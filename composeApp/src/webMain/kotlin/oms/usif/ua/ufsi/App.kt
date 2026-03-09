@@ -13,34 +13,60 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import oms.usif.ua.ufsi.layout.MainLayout
+import oms.usif.ua.ufsi.screens.DashboardScreen
+import oms.usif.ua.ufsi.screens.MapScreen
+import oms.usif.ua.ufsi.screens.ProjectsScreen
+import oms.usif.ua.ufsi.screens.ReportsScreen
 import org.jetbrains.compose.resources.painterResource
 
 import ufsi.composeapp.generated.resources.Res
 import ufsi.composeapp.generated.resources.compose_multiplatform
 
+/*
+   Enum описує всі сторінки системи.
+   Це спрощений router для нашого UI.
+*/
+enum class Screen {
+    DASHBOARD,
+    PROJECTS,
+    MAP,
+    REPORTS
+}
+
+
 @Composable
 fun App() {
     MaterialTheme {
-        var showContent by remember { mutableStateOf(false) }
-        Column(
-            modifier = Modifier
-                .background(MaterialTheme.colorScheme.primaryContainer)
-                .safeContentPadding()
-                .fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Button(onClick = { showContent = !showContent }) {
-                Text("Click me!")
+
+        // Змінна стану Compose.
+        // Вона визначає яка сторінка зараз відображається.
+        var currentScreen by remember { mutableStateOf(Screen.DASHBOARD) }
+
+        /*
+           MainLayout — це загальний каркас системи:
+           Sidebar + TopBar + Content area
+        */
+        MainLayout(
+            currentScreen = currentScreen,
+
+            // callback для навігації
+            onNavigate = { screen ->
+                currentScreen = screen
             }
-            AnimatedVisibility(showContent) {
-                val greeting = remember { Greeting().greet() }
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    Image(painterResource(Res.drawable.compose_multiplatform), null)
-                    Text("Compose: $greeting")
-                }
+
+        ) {
+
+            // Відображаємо потрібний екран
+            when (currentScreen) {
+
+                Screen.DASHBOARD -> DashboardScreen()
+
+                Screen.PROJECTS -> ProjectsScreen()
+
+                Screen.MAP -> MapScreen()
+
+                Screen.REPORTS -> ReportsScreen()
             }
         }
     }
