@@ -40,7 +40,7 @@ fun App() {
     MaterialTheme {
 
         // Змінна стану Compose.
-        // Вона визначає яка сторінка зараз відображається.
+        // Вона визначає, яка сторінка зараз відображається.
         var currentScreen by remember { mutableStateOf(Screen.DASHBOARD) }
 
         /*
