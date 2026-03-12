@@ -15,5 +15,10 @@ data class Project(
 
     val region: String,
 
-    val status: ProjectStatus
+    val status: ProjectStatus,
+
+    // Географічні координати проєкту для відображення на карті.
+    val latitude: Double,
+
+    val longitude: Double
 )

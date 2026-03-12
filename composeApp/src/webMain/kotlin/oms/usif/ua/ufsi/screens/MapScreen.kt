@@ -7,11 +7,16 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import oms.usif.ua.ufsi.data.ProjectRepository
 import oms.usif.ua.ufsi.map.LeafletMapView
 
 @Composable
 fun MapScreen() {
-    LeafletMapView()
+    // Беремо список проєктів для відображення на карті.
+    val projects = ProjectRepository.projects
+
+    // Показуємо карту та передаємо в неї маркери.
+    LeafletMapView(projects = projects)
 
     Column(
         modifier = Modifier.fillMaxSize()
@@ -26,7 +31,7 @@ fun MapScreen() {
         Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(120.dp)
+                .height(140.dp)
         ) {
             Column(
                 modifier = Modifier
@@ -40,11 +45,11 @@ fun MapScreen() {
                 )
 
                 Text(
-                    text = "The interactive map is rendered in a separate web layer for the WASM target."
+                    text = "На карті відображаються всі проєкти з локального репозиторію."
                 )
 
                 Text(
-                    text = "Next step: add project markers, popups, filters, and map synchronization."
+                    text = "Кількість маркерів: ${projects.size}"
                 )
             }
         }

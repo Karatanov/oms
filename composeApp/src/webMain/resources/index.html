@@ -11,14 +11,33 @@
     />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
+        // Глобальний інстанс карти.
         let ufsiLeafletMap = null;
+
+        // Окремий шар для маркерів, щоб їх можна було легко оновлювати.
+        let ufsiMarkersLayer = null;
+
+        // Географічні межі України:
+        // [південний-захід, північний-схід]
+        const ukraineBounds = [
+            [44.0, 22.0],
+            [52.5, 40.5]
+        ];
 
         function initLeafletMap() {
             const mapHost = document.getElementById("map-host");
             if (!mapHost || ufsiLeafletMap) return;
 
-            ufsiLeafletMap = L.map("map-host").setView([50.4501, 30.5234], 6);
+            // Створюємо карту.
+            ufsiLeafletMap = L.map("map-host", {
+                zoomControl: true,
+                minZoom: 5,
+                maxZoom: 18,
+                maxBounds: ukraineBounds,
+                maxBoundsViscosity: 1.0
+            });
 
+            // Додаємо базовий шар OpenStreetMap.
             L.tileLayer(
                 "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
                 {
@@ -26,9 +45,11 @@
                 }
             ).addTo(ufsiLeafletMap);
 
-            L.marker([50.4501, 30.5234])
-                .addTo(ufsiLeafletMap)
-                .bindPopup("Kyiv");
+            // Створюємо окрему групу для маркерів.
+            ufsiMarkersLayer = L.layerGroup().addTo(ufsiLeafletMap);
+
+            // Одразу показуємо всю Україну.
+            ufsiLeafletMap.fitBounds(ukraineBounds);
         }
 
         function showLeafletMapPane() {
@@ -37,13 +58,59 @@
 
             setTimeout(() => {
                 if (ufsiLeafletMap) {
+                    // Після показу контейнера перевираховуємо розмір карти.
                     ufsiLeafletMap.invalidateSize();
+
+                    // І ще раз ставимо карту на всю Україну.
+                    ufsiLeafletMap.fitBounds(ukraineBounds);
                 }
             }, 250);
         }
 
         function hideLeafletMapPane() {
             document.body.classList.remove("map-visible");
+        }
+
+        function setLeafletProjects(projectsJson) {
+            initLeafletMap();
+
+            // Якщо карта або шар ще не готові — просто виходимо.
+            if (!ufsiLeafletMap || !ufsiMarkersLayer) return;
+
+            // Очищаємо попередні маркери перед новим малюванням.
+            ufsiMarkersLayer.clearLayers();
+
+            // Перетворюємо JSON-рядок у масив JS-об’єктів.
+            const projects = JSON.parse(projectsJson);
+
+            // Якщо список порожній — просто залишаємо карту на Україні.
+            if (!projects.length) {
+                ufsiLeafletMap.fitBounds(ukraineBounds);
+                return;
+            }
+
+            projects.forEach(project => {
+                const lat = project.latitude;
+                const lng = project.longitude;
+
+                // Формуємо текст popup.
+                const popupHtml = `
+                    <div>
+                        <strong>${project.name}</strong><br/>
+                        Region: ${project.region}<br/>
+                        Status: ${project.status}
+                    </div>
+                `;
+
+                // Створюємо маркер і додаємо його в групу.
+                L.marker([lat, lng])
+                    .bindPopup(popupHtml)
+                    .addTo(ufsiMarkersLayer);
+            });
+
+            // Не масштабуємо карту під маркери,
+            // а завжди залишаємо огляд усієї України.
+            ufsiLeafletMap.fitBounds(ukraineBounds);
         }
 
         window.addEventListener("load", () => {
