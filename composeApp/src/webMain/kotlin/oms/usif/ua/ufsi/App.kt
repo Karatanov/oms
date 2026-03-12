@@ -1,27 +1,27 @@
 package oms.usif.ua.ufsi
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.safeContentPadding
-import androidx.compose.material3.Button
+//import androidx.compose.animation.AnimatedVisibility
+//import androidx.compose.foundation.Image
+//import androidx.compose.foundation.background
+//import androidx.compose.foundation.layout.Column
+//import androidx.compose.foundation.layout.fillMaxSize
+//import androidx.compose.foundation.layout.fillMaxWidth
+//import androidx.compose.foundation.layout.safeContentPadding
+//import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+//import androidx.compose.material3.Text
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
+//import androidx.compose.ui.Alignment
+//import androidx.compose.ui.Modifier
 import oms.usif.ua.ufsi.layout.MainLayout
 import oms.usif.ua.ufsi.screens.DashboardScreen
 import oms.usif.ua.ufsi.screens.MapScreen
 import oms.usif.ua.ufsi.screens.ProjectsScreen
 import oms.usif.ua.ufsi.screens.ReportsScreen
-import org.jetbrains.compose.resources.painterResource
-
-import ufsi.composeapp.generated.resources.Res
-import ufsi.composeapp.generated.resources.compose_multiplatform
+//import org.jetbrains.compose.resources.painterResource
+//
+//import ufsi.composeapp.generated.resources.Res
+//import ufsi.composeapp.generated.resources.compose_multiplatform
 
 /*
    Enum описує всі сторінки системи.

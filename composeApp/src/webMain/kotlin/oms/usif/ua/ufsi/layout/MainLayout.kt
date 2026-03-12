@@ -26,7 +26,11 @@ fun MainLayout(
                 .padding(16.dp)
         ) {
 
-            TopBar()
+            TopBar(
+                currentScreen = currentScreen,
+                userName = "Administrator",
+                onLogout = { println("Logout clicked") }
+            )
 
             Spacer(modifier = Modifier.height(16.dp))
 
