@@ -1,77 +1,388 @@
 package oms.usif.ua.ufsi.screens
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDownward
+import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import oms.usif.ua.ufsi.components.StatusChip
+import oms.usif.ua.ufsi.data.ProjectRepository.projects
+import oms.usif.ua.ufsi.model.Project
 
 /*
-   Екран проектів.
+   Projects screen.
 
-   У реальній OMS тут знаходиться:
-   - таблиця проектів
+   Реалізує:
+   - таблицю проектів
+   - пошук
    - фільтри
-   - кнопка створення проекту
+   - pagination
 */
 
 @Composable
 fun ProjectsScreen() {
 
+    var searchText by remember { mutableStateOf("") }
+
+    val projects = projects
+
+    val filteredProjects = remember(searchText) {
+
+        projects.filter {
+
+            it.name.contains(searchText, true) ||
+                    it.region.contains(searchText, true)
+            //  it.status.contains(searchText, true)
+        }
+    }
+
     Column(
-        modifier = Modifier.fillMaxSize()
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)
     ) {
 
         Text(
-            text = "Projects",
+            "Projects",
             style = MaterialTheme.typography.headlineMedium
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(Modifier.height(16.dp))
 
-        // Заглушка таблиці проектів
-        ProjectRow("1", "School reconstruction", "Kyiv", "Active")
+        ProjectsFilters(
+            searchText = searchText,
+            onSearchChange = { searchText = it }
+        )
 
-        ProjectRow("2", "Hospital modernization", "Lviv", "Planning")
+        Spacer(Modifier.height(16.dp))
 
-        ProjectRow("3", "Road repair", "Kharkiv", "Completed")
+        ProjectsTable(filteredProjects)
+
+        Spacer(Modifier.height(16.dp))
+
+        Pagination()
+    }
+}
+/*
+   ---------- FILTERS ----------
+*/
+
+@Composable
+fun ProjectsFilters(
+    searchText: String,
+    onSearchChange: (String) -> Unit
+) {
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+
+        OutlinedTextField(
+            value = searchText,
+            onValueChange = onSearchChange,
+            label = { Text("Search project") },
+            modifier = Modifier.weight(1f)
+        )
+
+        FilterDropdown("Region")
+
+        FilterDropdown("Status")
     }
 }
 
 /*
-   Один рядок "таблиці" проектів.
-
-   Поки що використовуємо Card,
-   пізніше можна зробити справжню DataTable.
+   Простий dropdown фільтр
 */
 
 @Composable
-fun ProjectRow(
-    id: String,
-    name: String,
-    region: String,
-    status: String
-) {
+fun FilterDropdown(label: String) {
 
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(bottom = 8.dp)
-    ) {
+    var expanded by remember { mutableStateOf(false) }
 
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp)
+    Box {
+
+        Button(
+            onClick = { expanded = true }
+        ) {
+            Text(label)
+        }
+
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
         ) {
 
-            Text(id, modifier = Modifier.width(50.dp))
+            DropdownMenuItem(
+                text = { Text("All") },
+                onClick = { expanded = false }
+            )
 
-            Text(name, modifier = Modifier.weight(1f))
+            DropdownMenuItem(
+                text = { Text("Option 1") },
+                onClick = { expanded = false }
+            )
 
-            Text(region, modifier = Modifier.width(120.dp))
-
-            Text(status, modifier = Modifier.width(120.dp))
+            DropdownMenuItem(
+                text = { Text("Option 2") },
+                onClick = { expanded = false }
+            )
         }
+    }
+}
+
+enum class SortColumn {
+
+    ID,
+
+    NAME,
+
+    REGION,
+
+    STATUS
+}
+
+/*
+   ---------- TABLE ----------
+*/
+@Composable
+fun ProjectsTable(
+
+    projects: List<Project>
+
+) {
+
+    var sortColumn by remember { mutableStateOf(SortColumn.ID) }
+
+    var ascending by remember { mutableStateOf(true) }
+
+    val sortedProjects = remember(projects, sortColumn, ascending) {
+
+        val list = when (sortColumn) {
+
+            SortColumn.ID -> projects.sortedBy { it.id }
+
+            SortColumn.NAME -> projects.sortedBy { it.name }
+
+            SortColumn.REGION -> projects.sortedBy { it.region }
+
+            SortColumn.STATUS -> projects.sortedBy { it.status }
+        }
+
+        if (ascending) list else list.reversed()
+    }
+
+    Column {
+
+        TableHeader(
+            sortColumn,
+            ascending
+        ) { column ->
+
+            if (sortColumn == column)
+                ascending = !ascending
+            else {
+                sortColumn = column
+                ascending = true
+            }
+        }
+
+        HorizontalDivider()
+
+        /*
+           Scroll container.
+           Таблиця може мати сотні рядків.
+        */
+
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(400.dp)
+        ) {
+
+            sortedProjects.forEach {
+
+                ProjectRow(it)
+
+            }
+        }
+    }
+}
+
+@Composable
+fun SortableHeader(
+    title: String,
+    column: SortColumn,
+    currentSort: SortColumn,
+    ascending: Boolean,
+    onSort: (SortColumn) -> Unit,
+    modifier: Modifier
+) {
+
+    TextButton(
+        onClick = { onSort(column) },
+        modifier = modifier
+    ) {
+
+        Row {
+
+            Text(title)
+
+            if (currentSort == column) {
+
+                Spacer(Modifier.width(4.dp))
+
+                Icon(
+                    imageVector =
+                        if (ascending)
+                            Icons.Default.ArrowUpward
+                        else
+                            Icons.Default.ArrowDownward,
+                    contentDescription = null
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun TableHeader(
+
+    currentSort: SortColumn,
+
+    ascending: Boolean,
+
+    onSort: (SortColumn) -> Unit
+) {
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp)
+    ) {
+
+        SortableHeader(
+            "ID",
+            SortColumn.ID,
+            currentSort,
+            ascending,
+            onSort,
+            Modifier.width(80.dp)
+        )
+
+        SortableHeader(
+            "Project",
+            SortColumn.NAME,
+            currentSort,
+            ascending,
+            onSort,
+            Modifier.weight(1f)
+        )
+
+        SortableHeader(
+            "Region",
+            SortColumn.REGION,
+            currentSort,
+            ascending,
+            onSort,
+            Modifier.width(160.dp)
+        )
+
+        SortableHeader(
+            "Status",
+            SortColumn.STATUS,
+            currentSort,
+            ascending,
+            onSort,
+            Modifier.width(140.dp)
+        )
+        Box(
+            modifier = Modifier
+                .width(100.dp)
+                .height(48.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Spacer(modifier = Modifier.width(24.dp))
+                Text(
+                    text = "Action",
+                    style = MaterialTheme.typography.labelLarge
+                )
+            }
+        }
+    }
+}
+
+/*
+   ---------- TABLE ROW ----------
+*/
+@Composable
+fun ProjectRow(project: Project) {
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 10.dp)
+    ) {
+
+        Text(project.id.toString(), modifier = Modifier.width(80.dp))
+
+        Text(project.name, modifier = Modifier.weight(1f))
+
+        Text(project.region, modifier = Modifier.width(160.dp))
+
+        Box(
+            modifier = Modifier.width(140.dp)
+        ) {
+            StatusChip(project.status)
+        }
+
+        Button(
+            onClick = { },
+            modifier = Modifier.width(100.dp)
+        ) {
+            Text("View")
+        }
+    }
+
+    HorizontalDivider()
+}
+/*
+   ---------- PAGINATION ----------
+*/
+
+@Composable
+fun Pagination() {
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.Center
+    ) {
+
+        Button(onClick = { }) { Text("<") }
+
+        Spacer(Modifier.width(8.dp))
+
+        Button(onClick = { }) { Text("1") }
+
+        Spacer(Modifier.width(8.dp))
+
+        Button(onClick = { }) { Text("2") }
+
+        Spacer(Modifier.width(8.dp))
+
+        Button(onClick = { }) { Text("3") }
+
+        Spacer(Modifier.width(8.dp))
+
+        Button(onClick = { }) { Text(">") }
     }
 }

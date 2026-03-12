@@ -40,9 +40,7 @@ fun TopBar(
     ) {
 
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 12.dp),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp),
 
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -70,15 +68,13 @@ fun TopBar(
             ) {
 
                 Icon(
-                    Icons.Default.Person,
-                    contentDescription = "User"
+                    Icons.Default.Person, contentDescription = "User"
                 )
 
                 Spacer(modifier = Modifier.width(8.dp))
 
                 Text(
-                    text = userName,
-                    style = MaterialTheme.typography.bodyMedium
+                    text = userName, style = MaterialTheme.typography.bodyMedium
                 )
 
                 Spacer(modifier = Modifier.width(16.dp))
@@ -92,8 +88,7 @@ fun TopBar(
                 ) {
 
                     Icon(
-                        Icons.AutoMirrored.Filled.Logout,
-                        contentDescription = "Logout"
+                        Icons.AutoMirrored.Filled.Logout, contentDescription = "Logout"
                     )
                 }
             }
@@ -102,52 +97,29 @@ fun TopBar(
 }
 
 /*
-   Компонент Breadcrumb.
-
-   Визначає назву сторінки
-   на основі Screen enum.
+   Компонент Breadcrumb. Визначає назву сторінки на основі Screen enum.
 */
 
 @Composable
-fun Breadcrumb(
-
-    screen: Screen
-
-) {
+fun Breadcrumb(screen: Screen) {
 
     val title = when (screen) {
-
         Screen.DASHBOARD -> "Dashboard"
-
         Screen.PROJECTS -> "Projects"
-
         Screen.MAP -> "Projects Map"
-
         Screen.REPORTS -> "Inspection Reports"
     }
 
-    Row(
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-
-        Text(
-            text = "OMS",
-            style = MaterialTheme.typography.bodyMedium
-        )
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text(text = "OMS", style = MaterialTheme.typography.bodyMedium)
 
         Spacer(modifier = Modifier.width(8.dp))
 
-        Text(
-            text = "/",
-            style = MaterialTheme.typography.bodyMedium
-        )
+        Text(text = "/", style = MaterialTheme.typography.bodyMedium)
 
         Spacer(modifier = Modifier.width(8.dp))
 
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleMedium
-        )
+        Text(text = title, style = MaterialTheme.typography.titleMedium)
     }
 }
 
