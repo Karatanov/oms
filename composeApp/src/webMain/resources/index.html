@@ -5,16 +5,59 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ufsi</title>
     <link type="text/css" rel="stylesheet" href="styles.css">
+    <link
+            rel="stylesheet"
+            href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        let ufsiLeafletMap = null;
+
+        function initLeafletMap() {
+            const mapHost = document.getElementById("map-host");
+            if (!mapHost || ufsiLeafletMap) return;
+
+            ufsiLeafletMap = L.map("map-host").setView([50.4501, 30.5234], 6);
+
+            L.tileLayer(
+                "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+                {
+                    attribution: "&copy; OpenStreetMap contributors"
+                }
+            ).addTo(ufsiLeafletMap);
+
+            L.marker([50.4501, 30.5234])
+                .addTo(ufsiLeafletMap)
+                .bindPopup("Kyiv");
+        }
+
+        function showLeafletMapPane() {
+            document.body.classList.add("map-visible");
+            initLeafletMap();
+
+            setTimeout(() => {
+                if (ufsiLeafletMap) {
+                    ufsiLeafletMap.invalidateSize();
+                }
+            }, 250);
+        }
+
+        function hideLeafletMapPane() {
+            document.body.classList.remove("map-visible");
+        }
+
+        window.addEventListener("load", () => {
+            initLeafletMap();
+        });
+    </script>
 </head>
-<body style="text-align: center; align-content: center">
-<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 50 50" role="presentation">
-    <circle cx="25" cy="25" r="20" stroke="#ccc" stroke-width="4" fill="none"/>
-    <circle cx="25" cy="25" r="20" stroke="#333" stroke-width="4" fill="none" stroke-linecap="round"
-            stroke-dasharray="90 125">
-        <animateTransform attributeName="transform" type="rotate" from="0 25 25" to="360 25 25" dur="1s"
-                          repeatCount="indefinite"/>
-    </circle>
-</svg>
+<body>
+<div id="app-shell">
+    <div id="compose-host"></div>
+    <div id="map-pane">
+        <div id="map-host"></div>
+    </div>
+</div>
 <script type="application/javascript" src="composeApp.js"></script>
 </body>
 </html>

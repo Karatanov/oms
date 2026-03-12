@@ -5,3 +5,52 @@ html, body {
     padding: 0;
     overflow: hidden;
 }
+
+body {
+    font-family: sans-serif;
+}
+
+#app-shell {
+    width: 100%;
+    height: 100%;
+    position: relative;
+}
+
+#compose-host {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+}
+
+#map-pane {
+    position: fixed;
+    left: 122px;
+    top: 150px;
+    right: 16px;
+    bottom: 16px;
+    display: none;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+    background: #dbeafe;
+    z-index: 9999;
+}
+
+body.map-visible #map-pane {
+    display: block;
+}
+
+#map-host {
+    width: 100%;
+    height: 100%;
+}
+
+canvas {
+    display: block;
+}
+
+.leaflet-container {
+    width: 100%;
+    height: 100%;
+    font-family: inherit;
+}

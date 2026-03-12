@@ -1,27 +1,21 @@
 package oms.usif.ua.ufsi.screens
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
+import androidx.compose.material3.Card
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-
-/*
-   Екран карти.
-
-   У реальній системі тут буде:
-   - інтеграція Leaflet / Mapbox
-   - відображення проєктів
-   - кластеризація точок
-*/
+import oms.usif.ua.ufsi.map.LeafletMapView
 
 @Composable
 fun MapScreen() {
+    LeafletMapView()
 
     Column(
         modifier = Modifier.fillMaxSize()
     ) {
-
         Text(
             text = "Projects Map",
             style = MaterialTheme.typography.headlineMedium
@@ -29,19 +23,29 @@ fun MapScreen() {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Заглушка карти
         Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(400.dp)
+                .height(120.dp)
         ) {
-
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = androidx.compose.ui.Alignment.Center
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
+                Text(
+                    text = "Map controls",
+                    style = MaterialTheme.typography.titleMedium
+                )
 
-                Text("Map will be integrated here")
+                Text(
+                    text = "The interactive map is rendered in a separate web layer for the WASM target."
+                )
+
+                Text(
+                    text = "Next step: add project markers, popups, filters, and map synchronization."
+                )
             }
         }
     }

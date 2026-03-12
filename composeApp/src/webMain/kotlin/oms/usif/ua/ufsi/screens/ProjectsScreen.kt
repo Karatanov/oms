@@ -1,5 +1,7 @@
 package oms.usif.ua.ufsi.screens
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDownward
@@ -7,7 +9,10 @@ import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.onPointerEvent
 import androidx.compose.ui.unit.dp
 import oms.usif.ua.ufsi.components.StatusChip
 import oms.usif.ua.ufsi.data.ProjectRepository.projects
@@ -207,7 +212,12 @@ fun ProjectsTable(
 
             sortedProjects.forEach {
 
-                ProjectRow(it)
+                ProjectRow(
+                    project = it,
+                    onOpen = { project ->
+                        println("Open project: ${project.id}")
+                    }
+                )
 
             }
         }
@@ -324,12 +334,47 @@ fun TableHeader(
 /*
    ---------- TABLE ROW ----------
 */
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
-fun ProjectRow(project: Project) {
+fun ProjectRow(
+
+    project: Project,
+
+    onOpen: (Project) -> Unit = {}
+
+) {
+
+    var hovered by remember { mutableStateOf(false) }
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
+
+            // hover detection
+            .onPointerEvent(
+                eventType = PointerEventType.Enter
+            ) {
+                hovered = true
+            }
+
+            .onPointerEvent(
+                eventType = PointerEventType.Exit
+            ) {
+                hovered = false
+            }
+
+            // row click
+            .clickable {
+                onOpen(project)
+            }
+
+            .background(
+                if (hovered)
+                    MaterialTheme.colorScheme.surfaceVariant
+                else
+                    MaterialTheme.colorScheme.surface
+            )
+
             .padding(vertical = 10.dp)
     ) {
 
@@ -346,7 +391,7 @@ fun ProjectRow(project: Project) {
         }
 
         Button(
-            onClick = { },
+            onClick = { onOpen(project) },
             modifier = Modifier.width(100.dp)
         ) {
             Text("View")
