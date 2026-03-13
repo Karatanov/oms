@@ -92,24 +92,30 @@
             projects.forEach(project => {
                 const lat = project.latitude;
                 const lng = project.longitude;
+                const color = project.statusColor;
 
                 // Формуємо текст popup.
                 const popupHtml = `
                     <div>
                         <strong>${project.name}</strong><br/>
                         Region: ${project.region}<br/>
-                        Status: ${project.status}
+                        Status: ${project.statusText}
                     </div>
                 `;
 
-                // Створюємо маркер і додаємо його в групу.
-                L.marker([lat, lng])
+                // Малюємо круглий маркер у кольорі статусу.
+                L.circleMarker([lat, lng], {
+                    radius: 9,
+                    color: color,
+                    weight: 3,
+                    fillColor: color,
+                    fillOpacity: 0.85
+                })
                     .bindPopup(popupHtml)
                     .addTo(ufsiMarkersLayer);
             });
 
-            // Не масштабуємо карту під маркери,
-            // а завжди залишаємо огляд усієї України.
+            // Залишаємо загальний огляд України.
             ufsiLeafletMap.fitBounds(ukraineBounds);
         }
 

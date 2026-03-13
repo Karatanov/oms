@@ -31,7 +31,7 @@ fun MapScreen() {
         Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(140.dp)
+                .height(160.dp)
         ) {
             Column(
                 modifier = Modifier
@@ -46,6 +46,10 @@ fun MapScreen() {
 
                 Text(
                     text = "На карті відображаються всі проєкти з локального репозиторію."
+                )
+
+                Text(
+                    text = "Колір маркера відповідає статусу проєкту."
                 )
 
                 Text(

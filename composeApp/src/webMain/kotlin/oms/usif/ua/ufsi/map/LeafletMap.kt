@@ -3,6 +3,7 @@ package oms.usif.ua.ufsi.map
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import oms.usif.ua.ufsi.model.Project
+import oms.usif.ua.ufsi.model.ProjectStatus
 import kotlin.js.JsName
 
 @JsName("showLeafletMapPane")
@@ -43,6 +44,8 @@ private fun List<Project>.toLeafletJson(): String {
         this@toLeafletJson.forEachIndexed { index, project ->
             if (index > 0) append(",")
 
+            val (statusText, statusColorHex) = project.status.toMapPresentation()
+
             append(
                 """
                 {
@@ -50,6 +53,8 @@ private fun List<Project>.toLeafletJson(): String {
                   "name": "${project.name.escapeJson()}",
                   "region": "${project.region.escapeJson()}",
                   "status": "${project.status.name}",
+                  "statusText": "${statusText.escapeJson()}",
+                  "statusColor": "$statusColorHex",
                   "latitude": ${project.latitude},
                   "longitude": ${project.longitude}
                 }
@@ -58,6 +63,23 @@ private fun List<Project>.toLeafletJson(): String {
         }
 
         append("]")
+    }
+}
+
+/*
+   Презентаційна модель статусу для карти.
+   Тут ми використовуємо ті самі кольори, що і в таблиці.
+*/
+private fun ProjectStatus.toMapPresentation(): Pair<String, String> {
+    return when (this) {
+        ProjectStatus.ACTIVE ->
+            "Active" to "#2E7D32"
+
+        ProjectStatus.PLANNING ->
+            "Planning" to "#F9A825"
+
+        ProjectStatus.COMPLETED ->
+            "Completed" to "#1565C0"
     }
 }
 
