@@ -13,6 +13,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import oms.usif.ua.ufsi.charts.BarChart
+import oms.usif.ua.ufsi.charts.BarData
 import oms.usif.ua.ufsi.components.Sparkline
 
 /*
@@ -38,11 +40,50 @@ fun DashboardScreen() {
 
         item { KPIRow() }
 
-        item { ChartsSection() }
+        item { ProjectsByRegionChart() }
 
         item { StatisticsSection() }
 
         item { ActivitySection() }
+    }
+}
+
+@Composable
+fun ProjectsByRegionChart() {
+
+    val data = listOf(
+
+        BarData("Kyiv", 18f),
+        BarData("Lviv", 12f),
+        BarData("Odesa", 9f),
+        BarData("Dnipro", 7f),
+        BarData("Kharkiv", 4f)
+    )
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(320.dp),
+
+        shape = RoundedCornerShape(12.dp)
+    ) {
+
+        Column(
+            modifier = Modifier.padding(16.dp)
+        ) {
+
+            Text(
+                text = "Projects by Region",
+                style = MaterialTheme.typography.titleMedium
+            )
+
+            Spacer(Modifier.height(16.dp))
+
+            BarChart(
+                data = data,
+                color = Color(0xFF3F51B5)
+            )
+        }
     }
 }
 
@@ -75,7 +116,7 @@ fun KPIRow() {
 
 /*
    Визначає напрям тренду.
-   true  → значення зростає
+   true  → значення зростає,
    false → значення падає
 */
 fun trendDirection(data: List<Float>): Boolean {
