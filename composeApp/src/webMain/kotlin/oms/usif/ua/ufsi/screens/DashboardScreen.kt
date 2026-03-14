@@ -5,10 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Description
-import androidx.compose.material.icons.filled.Folder
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -16,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import oms.usif.ua.ufsi.components.Sparkline
 
 /*
    DashboardScreen
@@ -50,40 +48,38 @@ fun DashboardScreen() {
 
 @Composable
 fun KPIRow() {
+    KPICard(
+        title = "Projects",
+        value = "42",
+        icon = Icons.Default.Folder,
+        color = Color(0xFF3F51B5),
+        trend = listOf(10f, 12f, 14f, 18f, 22f, 30f, 42f)
+    )
 
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
+    KPICard(
+        title = "Reports",
+        value = "126",
+        icon = Icons.Default.Description,
+        color = Color(0xFF673AB7),
+        trend = listOf(40f, 48f, 60f, 75f, 92f, 110f, 126f)
+    )
 
-        KPICard(
-            title = "Projects",
-            value = "42",
-            icon = Icons.Default.Folder,
-            color = Color(0xFF3F51B5)
-        )
+    KPICard(
+        title = "Issues",
+        value = "5",
+        icon = Icons.Default.Warning,
+        color = Color(0xFFE53935),
+        trend = listOf(12f, 11f, 9f, 10f, 8f, 6f, 5f)
+    )
+}
 
-        KPICard(
-            title = "Inspections",
-            value = "8",
-            icon = Icons.Default.Search,
-            color = Color(0xFF009688)
-        )
-
-        KPICard(
-            title = "Reports",
-            value = "126",
-            icon = Icons.Default.Description,
-            color = Color(0xFF673AB7)
-        )
-
-        KPICard(
-            title = "Issues",
-            value = "5",
-            icon = Icons.Default.Warning,
-            color = Color(0xFFE53935)
-        )
-    }
+/*
+   Визначає напрям тренду.
+   true  → значення зростає
+   false → значення падає
+*/
+fun trendDirection(data: List<Float>): Boolean {
+    return data.last() >= data.first()
 }
 
 @Composable
@@ -91,59 +87,94 @@ fun KPICard(
     title: String,
     value: String,
     icon: ImageVector,
-    color: Color
+    color: Color,
+    trend: List<Float>
 ) {
-
+    val positive = trendDirection(trend)
     Card(
         modifier = Modifier
-            .height(120.dp)
+            .height(140.dp)
             .fillMaxWidth(),
 
         shape = RoundedCornerShape(12.dp)
     ) {
 
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp),
-
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+                .padding(16.dp)
         ) {
 
-            Column {
-
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.labelLarge,
-                    color = Color.Gray
-                )
-
-                Spacer(Modifier.height(6.dp))
-
-                Text(
-                    text = value,
-                    style = MaterialTheme.typography.headlineMedium
-                )
-            }
-
-            Box(
-                modifier = Modifier
-                    .size(42.dp)
-                    .background(
-                        color = color.copy(alpha = 0.15f),
-                        shape = RoundedCornerShape(10.dp)
-                    ),
-
-                contentAlignment = Alignment.Center
+            Row(
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.fillMaxWidth()
             ) {
 
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = color
-                )
+                Column {
+
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.labelLarge,
+                        color = Color.Gray
+                    )
+
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+
+                        Text(
+                            text = value,
+                            style = MaterialTheme.typography.headlineMedium
+                        )
+
+                        Spacer(Modifier.width(6.dp))
+
+                        Icon(
+                            imageVector =
+                                if (positive)
+                                    Icons.Default.ArrowUpward
+                                else
+                                    Icons.Default.ArrowDownward,
+
+                            contentDescription = null,
+
+                            tint =
+                                if (positive)
+                                    Color(0xFF2E7D32)
+                                else
+                                    Color(0xFFC62828),
+
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                }
+
+                Box(
+                    modifier = Modifier
+                        .size(42.dp)
+                        .background(
+                            color = color.copy(alpha = 0.15f),
+                            shape = RoundedCornerShape(10.dp)
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+
+                    Icon(
+                        icon,
+                        contentDescription = null,
+                        tint = color
+                    )
+                }
             }
+
+            Spacer(Modifier.height(12.dp))
+
+            /*
+               Sparkline тренду
+            */
+
+            Sparkline(
+                data = trend,
+                color = color
+            )
         }
     }
 }
