@@ -7,13 +7,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import oms.navigation.AppState
 import oms.navigation.Screen
-import oms.screens.DashboardScreen
-import oms.screens.MapScreen
-import oms.screens.ProjectDetailScreen
-import oms.screens.ProjectsScreen
+import oms.screens.*
 
-//import oms.screens.inspections.*
-//import oms.screens.financial.*
 //import oms.screens.documents.*
 //import oms.screens.admin.*
 
@@ -55,12 +50,12 @@ fun AppLayout(appState: AppState) {
 
                 is Screen.Map -> MapScreen()
 
-//                is Screen.Inspections -> InspectionsScreen()
-//
-//                is Screen.Financial -> FinancialScreen()
-//
-//                is Screen.Documents -> DocumentsScreen()
-//
+                is Screen.Inspections -> ReportsScreen()
+
+                is Screen.Financial -> FinancialScreen()
+
+                // is Screen.Documents -> DocumentsScreen()
+
 //                is Screen.Admin -> AdminScreen()
 
                 else -> {}
