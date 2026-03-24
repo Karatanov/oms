@@ -13,6 +13,9 @@ sealed class Screen(val title: String) {
     // 🔹 Список проєктів
     object Projects : Screen("Projects")
 
+    // 🔹 Деталі проєкту
+    object ProjectDetail : Screen("Project Detail")
+
     // 🔹 Карта
     object Map : Screen("Projects Map")
 

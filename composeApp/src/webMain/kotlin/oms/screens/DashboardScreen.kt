@@ -30,6 +30,11 @@ import oms.components.Sparkline
 @Composable
 fun DashboardScreen() {
 
+    val primary = MaterialTheme.colorScheme.primary
+    val secondary = MaterialTheme.colorScheme.secondary
+    val tertiary = MaterialTheme.colorScheme.tertiary
+    val error = MaterialTheme.colorScheme.error
+
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -38,18 +43,18 @@ fun DashboardScreen() {
         verticalArrangement = Arrangement.spacedBy(24.dp)
     ) {
 
-        item { KPIRow() }
+        item { KPIRow(primary, secondary, error) }
 
-        item { ProjectsByRegionChart() }
+        item { ProjectsByRegionChart(primary) }
 
-        item { StatisticsSection() }
+        item { StatisticsSection(primary, secondary, tertiary) }
 
         item { ActivitySection() }
     }
 }
 
 @Composable
-fun ProjectsByRegionChart() {
+fun ProjectsByRegionChart(primary: Color) {
 
     val data = listOf(
 
@@ -81,19 +86,23 @@ fun ProjectsByRegionChart() {
 
             BarChart(
                 data = data,
-                color = Color(0xFF3F51B5)
+                color = primary
             )
         }
     }
 }
 
 @Composable
-fun KPIRow() {
+fun KPIRow(
+    primary: Color,
+    secondary: Color,
+    error: Color
+) {
     KPICard(
         title = "Projects",
         value = "42",
         icon = Icons.Default.Folder,
-        color = Color(0xFF3F51B5),
+        color = primary,
         trend = listOf(10f, 12f, 14f, 18f, 22f, 30f, 42f)
     )
 
@@ -101,7 +110,7 @@ fun KPIRow() {
         title = "Reports",
         value = "126",
         icon = Icons.Default.Description,
-        color = Color(0xFF673AB7),
+        color = secondary,
         trend = listOf(40f, 48f, 60f, 75f, 92f, 110f, 126f)
     )
 
@@ -109,7 +118,7 @@ fun KPIRow() {
         title = "Issues",
         value = "5",
         icon = Icons.Default.Warning,
-        color = Color(0xFFE53935),
+        color = error,
         trend = listOf(12f, 11f, 9f, 10f, 8f, 6f, 5f)
     )
 }
@@ -330,7 +339,11 @@ fun ChartCard(
 }
 
 @Composable
-fun StatisticsSection() {
+fun StatisticsSection(
+    primary: Color,
+    secondary: Color,
+    tertiary: Color
+) {
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -345,10 +358,10 @@ fun StatisticsSection() {
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
 
-            StatItem("Total Budget", "$12.4M")
-            StatItem("Completed", "18")
-            StatItem("In Progress", "7")
-            StatItem("Delayed", "2")
+            StatItem("Total Budget", "$12.4M", primary)
+            StatItem("Completed", "18", secondary)
+            StatItem("In Progress", "7", tertiary)
+            StatItem("Delayed", "2", MaterialTheme.colorScheme.error)
         }
     }
 }
@@ -356,7 +369,8 @@ fun StatisticsSection() {
 @Composable
 fun StatItem(
     label: String,
-    value: String
+    value: String,
+    accent: Color
 ) {
 
     Column(
@@ -365,7 +379,8 @@ fun StatItem(
 
         Text(
             text = value,
-            style = MaterialTheme.typography.headlineSmall
+            style = MaterialTheme.typography.headlineSmall,
+            color = accent
         )
 
         Text(

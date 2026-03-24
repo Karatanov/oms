@@ -2,7 +2,12 @@ package oms.layout
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.filled.ListAlt
+import androidx.compose.material.icons.automirrored.filled.Logout
+import androidx.compose.material.icons.filled.AccountBalance
+import androidx.compose.material.icons.filled.Dashboard
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Map
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -34,7 +39,7 @@ fun Sidebar(
         Spacer(Modifier.height(16.dp))
 
         SidebarItem("Dashboard", Icons.Default.Dashboard, Screen.Dashboard, currentScreen, onNavigate)
-        SidebarItem("Projects", Icons.Default.ListAlt, Screen.Projects, currentScreen, onNavigate)
+        SidebarItem("Projects", Icons.AutoMirrored.Filled.ListAlt, Screen.Projects, currentScreen, onNavigate)
         SidebarItem("Map", Icons.Default.Map, Screen.Map, currentScreen, onNavigate)
         SidebarItem("Inspection Reports", Icons.Default.Description, Screen.Inspections, currentScreen, onNavigate)
         SidebarItem("Financial Monitoring", Icons.Default.AccountBalance, Screen.Financial, currentScreen, onNavigate)
@@ -47,7 +52,7 @@ fun Sidebar(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Icon(imageVector = Icons.Default.Logout, contentDescription = "Logout")
+                Icon(imageVector = Icons.AutoMirrored.Filled.Logout, contentDescription = "Logout")
                 Text("Logout")
             }
         }

@@ -18,23 +18,18 @@ import androidx.compose.ui.unit.dp
 import oms.components.StatusChip
 import oms.data.ProjectRepository.projects
 import oms.model.Project
+import oms.model.ProjectStatus
 
-/*
-   Projects screen.
-
-   Реалізує:
-   - таблицю проектів
-   - пошук
-   - фільтри
-   - pagination
-*/
+// ... existing code ...
 
 @Composable
-fun ProjectsScreen() {
+fun ProjectsScreen(
+    onOpenProject: (Project) -> Unit = {}
+) {
 
     var searchText by remember { mutableStateOf("") }
     var regionFilter by remember { mutableStateOf<String?>(null) }
-    var statusFilter by remember { mutableStateOf<String?>(null) }
+    var statusFilter by remember { mutableStateOf<ProjectStatus?>(null) }
 
     val projects = projects
 
@@ -42,7 +37,7 @@ fun ProjectsScreen() {
         projects.filter {
             (searchText.isBlank() || it.name.contains(searchText, true)) &&
                     (regionFilter == null || it.region == regionFilter) &&
-                    (statusFilter == null || it.status.name == statusFilter)
+                    (statusFilter == null || it.status == statusFilter)
         }
     }
 
@@ -65,17 +60,160 @@ fun ProjectsScreen() {
             regionFilter = regionFilter,
             onRegionChange = { regionFilter = it },
             statusFilter = statusFilter,
-            onStatusChange = { statusFilter = it })
+            onStatusChange = { statusFilter = it }
+        )
 
         Spacer(Modifier.height(16.dp))
 
-        ProjectsTable(filteredProjects)
+        ProjectsTable(
+            projects = filteredProjects,
+            onOpenProject = onOpenProject
+        )
 
         Spacer(Modifier.height(16.dp))
 
         Pagination()
     }
 }
+
+// ... existing code ...
+
+@Composable
+fun ProjectsTable(
+    projects: List<Project>,
+    onOpenProject: (Project) -> Unit
+) {
+
+    var sortColumn by remember { mutableStateOf(SortColumn.ID) }
+    var ascending by remember { mutableStateOf(true) }
+
+    val sortedProjects = remember(projects, sortColumn, ascending) {
+
+        val list = when (sortColumn) {
+
+            SortColumn.ID -> projects.sortedBy { it.id }
+
+            SortColumn.NAME -> projects.sortedBy { it.name }
+
+            SortColumn.REGION -> projects.sortedBy { it.region }
+
+            SortColumn.STATUS -> projects.sortedBy { it.status }
+        }
+
+        if (ascending) list else list.reversed()
+    }
+
+    Column {
+
+        TableHeader(
+            sortColumn,
+            ascending
+        ) { column ->
+
+            if (sortColumn == column)
+                ascending = !ascending
+            else {
+                sortColumn = column
+                ascending = true
+            }
+        }
+
+        HorizontalDivider()
+
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(400.dp)
+        ) {
+
+            sortedProjects.forEach {
+
+                ProjectRow(
+                    project = it,
+                    onOpen = onOpenProject
+                )
+
+            }
+        }
+    }
+}
+//import androidx.compose.foundation.background
+//import androidx.compose.foundation.clickable
+//import androidx.compose.foundation.layout.*
+//import androidx.compose.material.icons.Icons
+//import androidx.compose.material.icons.filled.ArrowDownward
+//import androidx.compose.material.icons.filled.ArrowUpward
+//import androidx.compose.material3.*
+//import androidx.compose.runtime.*
+//import androidx.compose.ui.Alignment
+//import androidx.compose.ui.ExperimentalComposeUiApi
+//import androidx.compose.ui.Modifier
+//import androidx.compose.ui.graphics.Color
+//import androidx.compose.ui.input.pointer.PointerEventType
+//import androidx.compose.ui.input.pointer.onPointerEvent
+//import androidx.compose.ui.unit.dp
+//import oms.components.StatusChip
+//import oms.data.ProjectRepository.projects
+//import oms.model.Project
+//import oms.model.ProjectStatus
+//
+///*
+//   Projects screen.
+//
+//   Реалізує:
+//   - таблицю проектів
+//   - пошук
+//   - фільтри
+//   - pagination
+//*/
+//
+//@Composable
+//fun ProjectsScreen() {
+//
+//    var searchText by remember { mutableStateOf("") }
+//    var regionFilter by remember { mutableStateOf<String?>(null) }
+//    var statusFilter by remember { mutableStateOf<ProjectStatus?>(null) }
+//
+//    val projects = projects
+//
+//    val filteredProjects = remember(searchText, regionFilter, statusFilter) {
+//        projects.filter {
+//            (searchText.isBlank() || it.name.contains(searchText, true)) &&
+//                    (regionFilter == null || it.region == regionFilter) &&
+//                    (statusFilter == null || it.status == statusFilter)
+//        }
+//    }
+//
+//    Column(
+//        modifier = Modifier
+//            .fillMaxSize()
+//            .padding(16.dp)
+//    ) {
+//
+//        Text(
+//            "Projects",
+//            style = MaterialTheme.typography.headlineMedium
+//        )
+//
+//        Spacer(Modifier.height(16.dp))
+//
+//        ProjectsFilters(
+//            searchText = searchText,
+//            onSearchChange = { searchText = it },
+//            regionFilter = regionFilter,
+//            onRegionChange = { regionFilter = it },
+//            statusFilter = statusFilter,
+//            onStatusChange = { statusFilter = it })
+//
+//        Spacer(Modifier.height(16.dp))
+//
+//        ProjectsTable(filteredProjects)
+//
+//        Spacer(Modifier.height(16.dp))
+//
+//        Pagination()
+//    }
+//}
 /*
    ---------- FILTERS ----------
 */
@@ -86,8 +224,8 @@ fun ProjectsFilters(
     onSearchChange: (String) -> Unit,
     regionFilter: String?,
     onRegionChange: (String?) -> Unit,
-    statusFilter: String?,
-    onStatusChange: (String?) -> Unit
+    statusFilter: ProjectStatus?,
+    onStatusChange: (ProjectStatus?) -> Unit
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -110,23 +248,20 @@ fun ProjectsFilters(
 
         FilterDropdown(
             label = "Status",
-            options = listOf("Active", "Completed", "Delayed"),
+            options = ProjectStatus.entries,
             selected = statusFilter,
             onSelect = onStatusChange
         )
     }
 }
 
-/*
-   Простий dropdown фільтр
-*/
-
 @Composable
-fun FilterDropdown(
+fun <T> FilterDropdown(
     label: String,
-    options: List<String>,
-    selected: String?,
-    onSelect: (String?) -> Unit
+    options: List<T>,
+    selected: T?,
+    onSelect: (T?) -> Unit,
+    itemLabel: (T) -> String = { it.toString() }
 ) {
 
     var expanded by remember { mutableStateOf(false) }
@@ -134,7 +269,7 @@ fun FilterDropdown(
     Box {
 
         OutlinedButton(onClick = { expanded = true }) {
-            Text(selected ?: label)
+            Text(selected?.let(itemLabel) ?: label)
         }
 
         DropdownMenu(
@@ -150,12 +285,11 @@ fun FilterDropdown(
                 }
             )
 
-            options.forEach {
-
+            options.forEach { option ->
                 DropdownMenuItem(
-                    text = { Text(it) },
+                    text = { Text(itemLabel(option)) },
                     onClick = {
-                        onSelect(it)
+                        onSelect(option)
                         expanded = false
                     }
                 )

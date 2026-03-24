@@ -1,11 +1,15 @@
 package oms.layout
 
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import oms.navigation.*
+import oms.navigation.AppState
+import oms.navigation.Screen
 import oms.screens.DashboardScreen
 import oms.screens.MapScreen
+import oms.screens.ProjectDetailScreen
 import oms.screens.ProjectsScreen
 
 //import oms.screens.inspections.*
@@ -34,7 +38,20 @@ fun AppLayout(appState: AppState) {
 
                 is Screen.Dashboard -> DashboardScreen()
 
-                is Screen.Projects -> ProjectsScreen()
+                is Screen.Projects -> ProjectsScreen(
+                    onOpenProject = { project -> appState.openProjectDetail(project) }
+                )
+
+                is Screen.ProjectDetail -> {
+                    appState.selectedProject?.let { project ->
+                        ProjectDetailScreen(
+                            project = project,
+                            onBackToProjects = {
+                                appState.navigate(Screen.Projects)
+                            }
+                        )
+                    }
+                }
 
                 is Screen.Map -> MapScreen()
 
