@@ -1,10 +1,11 @@
 package oms
 
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import oms.layout.AppLayout
+import oms.navigation.AppState
 import oms.screens.LoginScreen
-import androidx.compose.runtime.*
-import androidx.compose.material3.*
-import oms.navigation.*
-import oms.layout.*
+import oms.theme.OMSTheme
 
 // 🔹 Точка входу в UI
 @Composable
@@ -13,7 +14,7 @@ fun App() {
     // 🔹 Глобальний стан
     val appState = remember { AppState() }
 
-    MaterialTheme {
+    OMSTheme {
 
         // 🔹 Якщо користувач НЕ залогінений
         if (!appState.isAuthenticated) {

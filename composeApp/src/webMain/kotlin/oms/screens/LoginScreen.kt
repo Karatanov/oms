@@ -1,5 +1,6 @@
 package oms.screens
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Visibility
@@ -8,9 +9,11 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import oms.components.FeatureItem
 
 @Composable
 fun LoginScreen(
@@ -32,33 +35,65 @@ fun LoginScreen(
 
     Row(modifier = Modifier.fillMaxSize()) {
 
-        // ---------------- LEFT PANEL (branding) ----------------
+// ---------------- LEFT PANEL (enhanced branding) ----------------
         Box(
             modifier = Modifier
                 .weight(1f)
                 .fillMaxHeight()
-                .padding(48.dp),
-            contentAlignment = Alignment.Center
+                // 🔹 Градієнт замість плоского кольору
+                .background(
+                    Brush.linearGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.primary,
+                            MaterialTheme.colorScheme.primaryContainer
+                        )
+                    )
+                )
+                .padding(64.dp),
+            contentAlignment = Alignment.CenterStart
         ) {
 
             Column(
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                verticalArrangement = Arrangement.spacedBy(24.dp),
+                modifier = Modifier.widthIn(max = 480.dp)
             ) {
 
+                // 🔹 Маленький badge (додає "продуктовість")
+                Surface(
+                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.1f),
+                    shape = MaterialTheme.shapes.small
+                ) {
+                    Text(
+                        text = "OMS Platform",
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        style = MaterialTheme.typography.labelMedium
+                    )
+                }
+
+                // 🔥 ГОЛОВНИЙ АКЦЕНТ (hero text)
                 Text(
-                    text = "OMS",
-                    style = MaterialTheme.typography.displaySmall
+                    text = "Monitor projects\nwith clarity and control",
+                    style = MaterialTheme.typography.displayMedium,
+                    color = MaterialTheme.colorScheme.onPrimary
                 )
 
+                // 🔹 Підзаголовок
                 Text(
-                    text = "Online Monitoring System",
-                    style = MaterialTheme.typography.titleMedium
+                    text = "A unified system for project tracking, inspections, and financial oversight.",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.9f)
                 )
 
-                Text(
-                    text = "Manage projects, inspections, and financial monitoring in one place.",
-                    style = MaterialTheme.typography.bodyMedium
-                )
+                Spacer(Modifier.height(16.dp))
+
+                // 🔹 Невеликий список переваг (дуже сильно піднімає UX)
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+
+                    FeatureItem("Real-time project monitoring")
+                    FeatureItem("Integrated inspection reports")
+                    FeatureItem("Financial transparency tools")
+                }
             }
         }
 
@@ -71,12 +106,12 @@ fun LoginScreen(
         ) {
 
             Card(
-                modifier = Modifier.width(420.dp),
+                modifier = Modifier.width(460.dp),
                 elevation = CardDefaults.cardElevation(12.dp)
             ) {
 
                 Column(
-                    modifier = Modifier.padding(32.dp),
+                    modifier = Modifier.padding(36.dp),
                     verticalArrangement = Arrangement.spacedBy(20.dp)
                 ) {
 
@@ -193,7 +228,7 @@ fun LoginScreen(
                         },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(48.dp)
+                            .height(52.dp)
                     ) {
 
                         if (isLoading) {
