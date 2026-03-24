@@ -54,7 +54,7 @@ fun AppLayout(appState: AppState) {
 
                 is Screen.Financial -> FinancialScreen()
 
-                // is Screen.Documents -> DocumentsScreen()
+                is Screen.Documents -> DocumentsScreen()
 
 //                is Screen.Admin -> AdminScreen()
 
