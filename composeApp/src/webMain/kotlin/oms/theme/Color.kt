@@ -7,7 +7,7 @@ val Primary = Color(0xFF278DAD)
 
 // 🔹 Варіації (трохи темніша і світліша)
 // 🔹 Використовуються для hover / active / gradients
-val PrimaryDark = Color(0xFF1F6F8A)
+//val PrimaryDark = Color(0xFF1F6F8A)
 val PrimaryLight = Color(0xFF5FAFC9)
 
 // 🔹 Нейтральні кольори (фон)
