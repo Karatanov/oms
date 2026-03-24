@@ -11,12 +11,13 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.onPointerEvent
 import androidx.compose.ui.unit.dp
-import oms.model.Project
 import oms.components.StatusChip
 import oms.data.ProjectRepository.projects
+import oms.model.Project
 
 /*
    Projects screen.
@@ -32,16 +33,16 @@ import oms.data.ProjectRepository.projects
 fun ProjectsScreen() {
 
     var searchText by remember { mutableStateOf("") }
+    var regionFilter by remember { mutableStateOf<String?>(null) }
+    var statusFilter by remember { mutableStateOf<String?>(null) }
 
     val projects = projects
 
-    val filteredProjects = remember(searchText) {
-
+    val filteredProjects = remember(searchText, regionFilter, statusFilter) {
         projects.filter {
-
-            it.name.contains(searchText, true) ||
-                    it.region.contains(searchText, true)
-            //  it.status.contains(searchText, true)
+            (searchText.isBlank() || it.name.contains(searchText, true)) &&
+                    (regionFilter == null || it.region == regionFilter) &&
+                    (statusFilter == null || it.status.name == statusFilter)
         }
     }
 
@@ -60,8 +61,11 @@ fun ProjectsScreen() {
 
         ProjectsFilters(
             searchText = searchText,
-            onSearchChange = { searchText = it }
-        )
+            onSearchChange = { searchText = it },
+            regionFilter = regionFilter,
+            onRegionChange = { regionFilter = it },
+            statusFilter = statusFilter,
+            onStatusChange = { statusFilter = it })
 
         Spacer(Modifier.height(16.dp))
 
@@ -79,15 +83,17 @@ fun ProjectsScreen() {
 @Composable
 fun ProjectsFilters(
     searchText: String,
-    onSearchChange: (String) -> Unit
+    onSearchChange: (String) -> Unit,
+    regionFilter: String?,
+    onRegionChange: (String?) -> Unit,
+    statusFilter: String?,
+    onStatusChange: (String?) -> Unit
 ) {
-
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-
         OutlinedTextField(
             value = searchText,
             onValueChange = onSearchChange,
@@ -95,9 +101,19 @@ fun ProjectsFilters(
             modifier = Modifier.weight(1f)
         )
 
-        FilterDropdown("Region")
+        FilterDropdown(
+            label = "Region",
+            options = listOf("Kyiv", "Lviv", "Odesa"),
+            selected = regionFilter,
+            onSelect = onRegionChange
+        )
 
-        FilterDropdown("Status")
+        FilterDropdown(
+            label = "Status",
+            options = listOf("Active", "Completed", "Delayed"),
+            selected = statusFilter,
+            onSelect = onStatusChange
+        )
     }
 }
 
@@ -106,16 +122,19 @@ fun ProjectsFilters(
 */
 
 @Composable
-fun FilterDropdown(label: String) {
+fun FilterDropdown(
+    label: String,
+    options: List<String>,
+    selected: String?,
+    onSelect: (String?) -> Unit
+) {
 
     var expanded by remember { mutableStateOf(false) }
 
     Box {
 
-        Button(
-            onClick = { expanded = true }
-        ) {
-            Text(label)
+        OutlinedButton(onClick = { expanded = true }) {
+            Text(selected ?: label)
         }
 
         DropdownMenu(
@@ -125,18 +144,22 @@ fun FilterDropdown(label: String) {
 
             DropdownMenuItem(
                 text = { Text("All") },
-                onClick = { expanded = false }
+                onClick = {
+                    onSelect(null)
+                    expanded = false
+                }
             )
 
-            DropdownMenuItem(
-                text = { Text("Option 1") },
-                onClick = { expanded = false }
-            )
+            options.forEach {
 
-            DropdownMenuItem(
-                text = { Text("Option 2") },
-                onClick = { expanded = false }
-            )
+                DropdownMenuItem(
+                    text = { Text(it) },
+                    onClick = {
+                        onSelect(it)
+                        expanded = false
+                    }
+                )
+            }
         }
     }
 }
@@ -370,9 +393,9 @@ fun ProjectRow(
 
             .background(
                 if (hovered)
-                    MaterialTheme.colorScheme.surfaceVariant
+                    MaterialTheme.colorScheme.primary.copy(alpha = 0.06f)
                 else
-                    MaterialTheme.colorScheme.surface
+                    Color.Transparent
             )
 
             .padding(vertical = 10.dp)
