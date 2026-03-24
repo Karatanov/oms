@@ -4,7 +4,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import oms.layout.AppLayout
 import oms.navigation.AppState
-import oms.screens.LoginScreen
 import oms.theme.OMSTheme
 
 // 🔹 Точка входу в UI
@@ -12,96 +11,43 @@ import oms.theme.OMSTheme
 fun App() {
 
     // 🔹 Глобальний стан
-    val appState = remember { AppState() }
+    val appState = remember {
+        AppState().apply {
+            isAuthenticated = true
+            token = "mock-token"
+            currentScreen = oms.navigation.Screen.Dashboard
+        }
+    }
 
     OMSTheme {
 
-        // 🔹 Якщо користувач НЕ залогінений
-        if (!appState.isAuthenticated) {
-
-            LoginScreen(
-                onLoginSuccess = {
-                    // 🔹 Тут пізніше буде реальний API
-                    appState.onLoginSuccess("mock-token")
-                }
-            )
-
-        } else {
-
-            // 🔹 Основний layout системи (Sidebar + Content)
-            AppLayout(appState)
-        }
+        // 🔹 Одразу відкриваємо основний layout системи
+        AppLayout(appState)
     }
 }
-
-////import androidx.compose.animation.AnimatedVisibility
-////import androidx.compose.foundation.Image
-////import androidx.compose.foundation.background
-////import androidx.compose.foundation.layout.Column
-////import androidx.compose.foundation.layout.fillMaxSize
-////import androidx.compose.foundation.layout.fillMaxWidth
-////import androidx.compose.foundation.layout.safeContentPadding
-////import androidx.compose.material3.Button
-//import androidx.compose.material3.MaterialTheme
-////import androidx.compose.material3.Text
-//import androidx.compose.runtime.*
-////import androidx.compose.ui.Alignment
-////import androidx.compose.ui.Modifier
-//import oms.usif.ua.ufsi.layout.MainLayout
-//import oms.usif.ua.ufsi.screens.DashboardScreen
-//import oms.usif.ua.ufsi.screens.MapScreen
-//import oms.usif.ua.ufsi.screens.ProjectsScreen
-//import oms.usif.ua.ufsi.screens.ReportsScreen
-////import org.jetbrains.compose.resources.painterResource
-////
-////import ufsi.composeapp.generated.resources.Res
-////import ufsi.composeapp.generated.resources.compose_multiplatform
-//
-///*
-//   Enum описує всі сторінки системи.
-//   Це спрощений router для нашого UI.
-//*/
-//enum class Screen {
-//    DASHBOARD,
-//    PROJECTS,
-//    MAP,
-//    REPORTS
-//}
-//
-//
+// 🔹 Точка входу в UI
 //@Composable
 //fun App() {
-//    MaterialTheme {
 //
-//        // Змінна стану Compose.
-//        // Вона визначає, яка сторінка зараз відображається.
-//        var currentScreen by remember { mutableStateOf(Screen.DASHBOARD) }
+//    // 🔹 Глобальний стан
+//    val appState = remember { AppState() }
 //
-//        /*
-//           MainLayout — це загальний каркас системи:
-//           Sidebar + TopBar + Content area
-//        */
-//        MainLayout(
-//            currentScreen = currentScreen,
+//    OMSTheme {
 //
-//            // callback для навігації
-//            onNavigate = { screen ->
-//                currentScreen = screen
-//            }
+//        // 🔹 Якщо користувач НЕ залогінений
+//        if (!appState.isAuthenticated) {
 //
-//        ) {
+//            LoginScreen(
+//                onLoginSuccess = {
+//                    // 🔹 Тут пізніше буде реальний API
+//                    appState.onLoginSuccess("mock-token")
+//                }
+//            )
 //
-//            // Відображаємо потрібний екран
-//            when (currentScreen) {
+//        } else {
 //
-//                Screen.DASHBOARD -> DashboardScreen()
-//
-//                Screen.PROJECTS -> ProjectsScreen()
-//
-//                Screen.MAP -> MapScreen()
-//
-//                Screen.REPORTS -> ReportsScreen()
-//            }
+//            // 🔹 Основний layout системи (Sidebar + Content)
+//            AppLayout(appState)
 //        }
 //    }
 //}

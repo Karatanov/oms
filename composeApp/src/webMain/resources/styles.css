@@ -24,14 +24,14 @@ body {
 
 #map-pane {
     position: fixed;
-    left: 122px;
-    top: 150px;
-    right: 16px;
-    bottom: 16px;
+    left: 240px;
+    top: 0;
+    right: 0;
+    bottom: 0;
     display: none;
-    border-radius: 16px;
+    border-radius: 0;
     overflow: hidden;
-    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+    box-shadow: none;
     background: #dbeafe;
     z-index: 9999;
 }

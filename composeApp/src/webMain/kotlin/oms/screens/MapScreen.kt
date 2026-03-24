@@ -12,21 +12,18 @@ import oms.map.LeafletMapView
 
 @Composable
 fun MapScreen() {
-    // Беремо список проєктів для відображення на карті.
     val projects = ProjectRepository.projects
 
-    // Показуємо карту та передаємо в неї маркери.
-    LeafletMapView(projects = projects)
-
     Column(
-        modifier = Modifier.fillMaxSize()
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Text(
             text = "Projects Map",
             style = MaterialTheme.typography.headlineMedium
         )
-
-        Spacer(modifier = Modifier.height(16.dp))
 
         Card(
             modifier = Modifier
@@ -55,6 +52,18 @@ fun MapScreen() {
                 Text(
                     text = "Кількість маркерів: ${projects.size}"
                 )
+            }
+        }
+
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
+        ) {
+            Box(
+                modifier = Modifier.fillMaxSize()
+            ) {
+                LeafletMapView(projects = projects)
             }
         }
     }
