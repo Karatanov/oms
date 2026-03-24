@@ -16,7 +16,9 @@ import androidx.compose.ui.unit.dp
 import oms.components.FilterDropdown
 
 @Composable
-fun ReportsScreen() {
+fun ReportsScreen(
+    onNewInspection: () -> Unit = {}
+) {
 
     var statusFilter by remember { mutableStateOf<InspectionReportStatus?>(null) }
     var sortDescending by remember { mutableStateOf(true) }
@@ -49,7 +51,7 @@ fun ReportsScreen() {
                 modifier = Modifier.weight(1f)
             )
 
-            Button(onClick = { }) {
+            Button(onClick = onNewInspection) {
                 Icon(imageVector = Icons.Default.Add, contentDescription = null)
                 Spacer(Modifier.width(8.dp))
                 Text("New Inspection")

@@ -48,9 +48,16 @@ fun AppLayout(appState: AppState) {
                     }
                 }
 
+                is Screen.CreateInspection -> CreateInspectionScreen(
+                    onSaveDraft = { },
+                    onSubmit = { }
+                )
+
                 is Screen.Map -> MapScreen()
 
-                is Screen.Inspections -> ReportsScreen()
+                is Screen.Inspections -> ReportsScreen(
+                    onNewInspection = { appState.openCreateInspection() }
+                )
 
                 is Screen.Financial -> FinancialScreen()
 
