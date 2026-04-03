@@ -25,7 +25,6 @@ fun AppLayout(appState: AppState) {
             onNavigate = { appState.navigate(it) },
             onLogout = { appState.logout() }
         )
-
         // ---------------- CONTENT ----------------
         Box(modifier = Modifier.weight(1f)) {
 

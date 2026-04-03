@@ -4,21 +4,18 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ListAlt
 import androidx.compose.material.icons.automirrored.filled.Logout
-import androidx.compose.material.icons.filled.AccountBalance
-import androidx.compose.material.icons.filled.Dashboard
-import androidx.compose.material.icons.filled.Description
-import androidx.compose.material.icons.filled.Map
-import androidx.compose.material3.Button
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import oms.components.LanguageSwitcher
+import oms.localization.LocalizationManager
 import oms.navigation.Screen
 
 // 🔹 Sidebar згідно spec 7.2 :contentReference[oaicite:1]{index=1}
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun Sidebar(
     currentScreen: Screen,
@@ -38,23 +35,114 @@ fun Sidebar(
 
         Spacer(Modifier.height(16.dp))
 
-        SidebarItem("Dashboard", Icons.Default.Dashboard, Screen.Dashboard, currentScreen, onNavigate)
-        SidebarItem("Projects", Icons.AutoMirrored.Filled.ListAlt, Screen.Projects, currentScreen, onNavigate)
-        SidebarItem("Map", Icons.Default.Map, Screen.Map, currentScreen, onNavigate)
-        SidebarItem("Inspection Reports", Icons.Default.Description, Screen.Inspections, currentScreen, onNavigate)
-        SidebarItem("Financial Monitoring", Icons.Default.AccountBalance, Screen.Financial, currentScreen, onNavigate)
-        SidebarItem("Documents", Icons.Default.Description, Screen.Documents, currentScreen, onNavigate)
+        SidebarItem(
+            LocalizationManager.t("dashboard"),
+            Icons.Default.Dashboard,
+            Screen.Dashboard,
+            currentScreen,
+            onNavigate
+        )
+        SidebarItem(
+            LocalizationManager.t("projects"),
+            Icons.AutoMirrored.Filled.ListAlt,
+            Screen.Projects,
+            currentScreen,
+            onNavigate
+        )
+        SidebarItem(LocalizationManager.t("map"), Icons.Default.Map, Screen.Map, currentScreen, onNavigate)
+        SidebarItem(
+            LocalizationManager.t("inspection_reports"),
+            Icons.Default.Description,
+            Screen.Inspections,
+            currentScreen,
+            onNavigate
+        )
+        SidebarItem(
+            LocalizationManager.t("Financial Monitoring"),
+            Icons.Default.AccountBalance,
+            Screen.Financial,
+            currentScreen,
+            onNavigate
+        )
+        SidebarItem(
+            LocalizationManager.t("Documents"),
+            Icons.Default.Description,
+            Screen.Documents,
+            currentScreen,
+            onNavigate
+        )
+        Spacer(modifier = Modifier.weight(1f))
 
-        Spacer(Modifier.weight(1f))
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalAlignment = Alignment.Start
+        ) {
 
-        Button(onClick = onLogout) {
+            LanguageSwitcher()
+
             Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(imageVector = Icons.AutoMirrored.Filled.Logout, contentDescription = "Logout")
-                Text("Logout")
+                Icon(
+                    imageVector = Icons.Default.Person,
+                    contentDescription = "User"
+                )
+
+                Spacer(modifier = Modifier.width(8.dp))
+
+                Text(
+                    text = "Admin",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+
+                Spacer(modifier = Modifier.weight(1f))
+
+                IconButton(
+                    onClick = onLogout
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.Logout,
+                        contentDescription = "Logout"
+                    )
+                }
             }
         }
+//        Spacer(Modifier.weight(1f))
+//
+//        LanguageSwitcher()
+//        /*
+//           -------- User info --------
+//        */
+//        Spacer(modifier = Modifier.width(16.dp))
+//
+//        Icon(
+//            Icons.Default.Person,
+//            contentDescription = "User"
+//        )
+//
+//        Spacer(modifier = Modifier.width(8.dp))
+//
+//        Text(
+//            text = "Admin",
+//            style = MaterialTheme.typography.bodyMedium
+//        )
+//
+//        Spacer(modifier = Modifier.width(16.dp))
+//        /*
+//           -------- Logout --------
+//        */
+//        Button(onClick = onLogout) {
+//            Row(
+//                verticalAlignment = Alignment.CenterVertically,
+//                horizontalArrangement = Arrangement.spacedBy(8.dp)
+//            ) {
+//                Icon(imageVector = Icons.AutoMirrored.Filled.Logout, contentDescription = "Logout")
+//                LocalizationManager.t("Logout")
+//            }
+//        }
     }
 }

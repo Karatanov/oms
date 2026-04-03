@@ -10,6 +10,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import oms.components.Breadcrumb
+import oms.components.LanguageSwitcher
 import oms.navigation.Screen
 
 /*
@@ -60,38 +61,54 @@ fun TopBar(
 
             Spacer(modifier = Modifier.weight(1f))
 
-            /*
-               -------- User info --------
-            */
-
             Row(
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                LanguageSwitcher()
+                /*
+                   -------- User info --------
+                */
+                Spacer(modifier = Modifier.width(16.dp))
 
                 Icon(
-                    Icons.Default.Person, contentDescription = "User"
+                    Icons.Default.Person,
+                    contentDescription = "User"
                 )
 
                 Spacer(modifier = Modifier.width(8.dp))
 
                 Text(
-                    text = userName, style = MaterialTheme.typography.bodyMedium
+                    text = userName,
+                    style = MaterialTheme.typography.bodyMedium
                 )
 
                 Spacer(modifier = Modifier.width(16.dp))
-
                 /*
                    -------- Logout --------
                 */
-
                 IconButton(
                     onClick = onLogout
                 ) {
-
                     Icon(
-                        Icons.AutoMirrored.Filled.Logout, contentDescription = "Logout"
+                        Icons.AutoMirrored.Filled.Logout,
+                        contentDescription = "Logout"
                     )
                 }
+//                IconButton(
+//                    onClick = onLogout
+//                ) {
+//
+//                    Icon(
+//                        Icons.AutoMirrored.Filled.Logout, contentDescription = "Logout"
+//                    )
+//                }
+//
+//                Row(
+//                    horizontalArrangement = Arrangement.End
+//                ) {
+//                    LanguageSwitcher()
+//                    // UserAvatar()
+//                }
             }
         }
     }
