@@ -7,26 +7,22 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import oms.localization.LocalizationManager
 import oms.screens.SortColumn
 
 @Composable
 fun TableHeader(
-
     currentSort: SortColumn,
-
     ascending: Boolean,
-
     onSort: (SortColumn) -> Unit
 ) {
-
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 8.dp)
     ) {
-
         SortableHeader(
-            "ID",
+            LocalizationManager.t("id"),
             SortColumn.ID,
             currentSort,
             ascending,
@@ -35,7 +31,7 @@ fun TableHeader(
         )
 
         SortableHeader(
-            "Project",
+            LocalizationManager.t("project"),
             SortColumn.NAME,
             currentSort,
             ascending,
@@ -44,7 +40,7 @@ fun TableHeader(
         )
 
         SortableHeader(
-            "Region",
+            LocalizationManager.t("region"),
             SortColumn.REGION,
             currentSort,
             ascending,
@@ -53,13 +49,14 @@ fun TableHeader(
         )
 
         SortableHeader(
-            "Status",
+            LocalizationManager.t("status"),
             SortColumn.STATUS,
             currentSort,
             ascending,
             onSort,
             Modifier.width(140.dp)
         )
+
         Box(
             modifier = Modifier
                 .width(100.dp)
@@ -72,7 +69,7 @@ fun TableHeader(
             ) {
                 Spacer(modifier = Modifier.width(24.dp))
                 Text(
-                    text = "Action",
+                    text = LocalizationManager.t("action"),
                     style = MaterialTheme.typography.labelLarge
                 )
             }

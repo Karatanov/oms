@@ -16,6 +16,7 @@ import androidx.compose.ui.unit.dp
 import oms.charts.BarChart
 import oms.charts.BarData
 import oms.components.Sparkline
+import oms.localization.LocalizationManager
 
 /*
    DashboardScreen
@@ -78,7 +79,7 @@ fun ProjectsByRegionChart(primary: Color) {
         ) {
 
             Text(
-                text = "Projects by Region",
+                text = LocalizationManager.t("projects_by_region"),
                 style = MaterialTheme.typography.titleMedium
             )
 
@@ -99,7 +100,7 @@ fun KPIRow(
     error: Color
 ) {
     KPICard(
-        title = "Projects",
+        title = LocalizationManager.t("projects"),
         value = "42",
         icon = Icons.Default.Folder,
         color = primary,
@@ -107,7 +108,7 @@ fun KPIRow(
     )
 
     KPICard(
-        title = "Reports",
+        title = LocalizationManager.t("reports"),
         value = "126",
         icon = Icons.Default.Description,
         color = secondary,
@@ -115,7 +116,7 @@ fun KPIRow(
     )
 
     KPICard(
-        title = "Issues",
+        title = LocalizationManager.t("issues"),
         value = "5",
         icon = Icons.Default.Warning,
         color = error,
@@ -242,7 +243,7 @@ fun ActivitySection() {
         ) {
 
             Text(
-                text = "Recent Activity",
+                text = LocalizationManager.t("recent_activity"),
                 style = MaterialTheme.typography.titleMedium
             )
 
@@ -252,9 +253,18 @@ fun ActivitySection() {
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            ActivityRow("Project A updated", "2 hours ago")
-            ActivityRow("Inspection completed", "5 hours ago")
-            ActivityRow("New report uploaded", "Yesterday")
+            ActivityRow(
+                LocalizationManager.t("project_updated"),
+                LocalizationManager.t("time_2_hours_ago")
+            )
+            ActivityRow(
+                LocalizationManager.t("inspection_completed"),
+                LocalizationManager.t("time_5_hours_ago")
+            )
+            ActivityRow(
+                LocalizationManager.t("new_report_uploaded"),
+                LocalizationManager.t("time_yesterday")
+            )
         }
     }
 }
@@ -290,9 +300,9 @@ fun ChartsSection() {
         horizontalArrangement = Arrangement.spacedBy(16.dp)
     ) {
 
-        ChartCard("Projects by Region")
+        ChartCard(LocalizationManager.t("projects_by_region"))
 
-        ChartCard("Reports by Month")
+        ChartCard(LocalizationManager.t("reports_by_month"))
     }
 }
 
@@ -330,7 +340,7 @@ fun ChartCard(
             ) {
 
                 Text(
-                    text = "Chart placeholder",
+                    text = LocalizationManager.t("chart_placeholder"),
                     color = Color.Gray
                 )
             }
@@ -358,10 +368,10 @@ fun StatisticsSection(
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
 
-            StatItem("Total Budget", "$12.4M", primary)
-            StatItem("Completed", "18", secondary)
-            StatItem("In Progress", "7", tertiary)
-            StatItem("Delayed", "2", MaterialTheme.colorScheme.error)
+            StatItem(LocalizationManager.t("total_budget"), "$12.4M", primary)
+            StatItem(LocalizationManager.t("completed"), "18", secondary)
+            StatItem(LocalizationManager.t("in_progress"), "7", tertiary)
+            StatItem(LocalizationManager.t("delayed"), "2", MaterialTheme.colorScheme.error)
         }
     }
 }

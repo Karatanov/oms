@@ -31,7 +31,7 @@ fun <T> FilterDropdown(
         ) {
 
             DropdownMenuItem(
-                text = { Text("All") },
+                text = { Text(oms.localization.LocalizationManager.t("all")) },
                 onClick = {
                     onSelect(null)
                     expanded = false

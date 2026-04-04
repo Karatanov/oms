@@ -2,6 +2,7 @@ package oms.map
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import oms.localization.LocalizationManager
 import oms.model.Project
 import oms.model.ProjectStatus
 import kotlin.js.JsName
@@ -52,8 +53,10 @@ private fun List<Project>.toLeafletJson(): String {
                   "id": ${project.id},
                   "name": "${project.name.escapeJson()}",
                   "region": "${project.region.escapeJson()}",
+                  "regionLabel": "${LocalizationManager.t("region").escapeJson()}",
                   "status": "${project.status.name}",
                   "statusText": "${statusText.escapeJson()}",
+                  "statusLabel": "${LocalizationManager.t("status").escapeJson()}",
                   "statusColor": "$statusColorHex",
                   "latitude": ${project.latitude},
                   "longitude": ${project.longitude}
@@ -73,13 +76,13 @@ private fun List<Project>.toLeafletJson(): String {
 private fun ProjectStatus.toMapPresentation(): Pair<String, String> {
     return when (this) {
         ProjectStatus.ACTIVE ->
-            "Active" to "#2E7D32"
+            LocalizationManager.t("active") to "#2E7D32"
 
         ProjectStatus.PLANNING ->
-            "Planning" to "#F9A825"
+            LocalizationManager.t("planning") to "#F9A825"
 
         ProjectStatus.COMPLETED ->
-            "Completed" to "#1565C0"
+            LocalizationManager.t("completed") to "#1565C0"
     }
 }
 

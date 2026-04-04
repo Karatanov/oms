@@ -14,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import oms.components.FilterDropdown
+import oms.localization.LocalizationManager
 
 @Composable
 fun ReportsScreen(
@@ -46,7 +47,7 @@ fun ReportsScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "Inspection Reports",
+                text = LocalizationManager.t("reports_title"),
                 style = MaterialTheme.typography.headlineMedium,
                 modifier = Modifier.weight(1f)
             )
@@ -54,16 +55,23 @@ fun ReportsScreen(
             Button(onClick = onNewInspection) {
                 Icon(imageVector = Icons.Default.Add, contentDescription = null)
                 Spacer(Modifier.width(8.dp))
-                Text("New Inspection")
+                Text(LocalizationManager.t("new_inspection"))
             }
         }
 
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             FilterDropdown(
-                label = "Status",
+                label = LocalizationManager.t("status"),
                 options = InspectionReportStatus.entries,
                 selected = statusFilter,
-                onSelect = { statusFilter = it }
+                onSelect = { statusFilter = it },
+                itemLabel = { status ->
+                    when (status) {
+                        InspectionReportStatus.DRAFT -> LocalizationManager.t("draft")
+                        InspectionReportStatus.PENDING_REVIEW -> LocalizationManager.t("pending_review")
+                        InspectionReportStatus.COMPLETED -> LocalizationManager.t("completed")
+                    }
+                }
             )
         }
 
@@ -104,12 +112,24 @@ private fun InspectionTableHeader(
             .padding(vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text("Report ID", modifier = Modifier.width(120.dp), style = MaterialTheme.typography.labelLarge)
-        Text("Type", modifier = Modifier.width(160.dp), style = MaterialTheme.typography.labelLarge)
-        Text("Inspector", modifier = Modifier.width(160.dp), style = MaterialTheme.typography.labelLarge)
+        Text(
+            LocalizationManager.t("report_id"),
+            modifier = Modifier.width(120.dp),
+            style = MaterialTheme.typography.labelLarge
+        )
+        Text(
+            LocalizationManager.t("report_type"),
+            modifier = Modifier.width(160.dp),
+            style = MaterialTheme.typography.labelLarge
+        )
+        Text(
+            LocalizationManager.t("inspector"),
+            modifier = Modifier.width(160.dp),
+            style = MaterialTheme.typography.labelLarge
+        )
         TextButton(onClick = onSortDate, modifier = Modifier.width(120.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("Date")
+                Text(LocalizationManager.t("date"))
                 Spacer(Modifier.width(4.dp))
                 Icon(
                     imageVector = if (sortDescending) Icons.Default.Visibility else Icons.Default.Visibility,
@@ -118,9 +138,13 @@ private fun InspectionTableHeader(
                 )
             }
         }
-        Text("Status", modifier = Modifier.width(160.dp), style = MaterialTheme.typography.labelLarge)
-        Box(modifier = Modifier.width(160.dp)) {
-            Text("Actions", style = MaterialTheme.typography.labelLarge)
+        Text(
+            LocalizationManager.t("status"),
+            modifier = Modifier.width(160.dp),
+            style = MaterialTheme.typography.labelLarge
+        )
+        Box(modifier = Modifier.width(200.dp)) {
+            Text(LocalizationManager.t("actions"), style = MaterialTheme.typography.labelLarge)
         }
     }
 }
@@ -147,12 +171,20 @@ private fun InspectionReportRow(
             modifier = Modifier.width(160.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            TextButton(onClick = { onView(report) }) { Text("View") }
+            TextButton(onClick = { onView(report) }) { Text(LocalizationManager.t("view")) }
             if (report.status == InspectionReportStatus.DRAFT) {
-                TextButton(onClick = { onEdit(report) }) {
+                TextButton(
+                    onClick = { onEdit(report) },
+                    modifier = Modifier.defaultMinSize(minWidth = 0.dp),
+                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
+                ) {
                     Icon(imageVector = Icons.Default.Edit, contentDescription = null)
                     Spacer(Modifier.width(4.dp))
-                    Text("Edit")
+                    Text(
+                        text = LocalizationManager.t("edit"),
+                        maxLines = 1,
+                        softWrap = false
+                    )
                 }
             }
         }
@@ -163,9 +195,9 @@ private fun InspectionReportRow(
 @Composable
 private fun InspectionStatusBadge(status: InspectionReportStatus) {
     val (label, color) = when (status) {
-        InspectionReportStatus.DRAFT -> "Draft" to Color(0xFF9E9E9E)
-        InspectionReportStatus.PENDING_REVIEW -> "Pending Review" to Color(0xFFF9A825)
-        InspectionReportStatus.COMPLETED -> "Completed" to Color(0xFF2E7D32)
+        InspectionReportStatus.DRAFT -> LocalizationManager.t("draft") to Color(0xFF9E9E9E)
+        InspectionReportStatus.PENDING_REVIEW -> LocalizationManager.t("pending_review") to Color(0xFFF9A825)
+        InspectionReportStatus.COMPLETED -> LocalizationManager.t("completed") to Color(0xFF2E7D32)
     }
 
     Surface(

@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import oms.components.StatusChip
+import oms.localization.LocalizationManager
 import oms.model.Project
 import oms.navigation.Screen
 
@@ -89,16 +90,15 @@ fun ProjectDetailScreen(
                     Button(onClick = { onEdit(project) }) {
                         Icon(
                             imageVector = Icons.Default.Edit,
-                            contentDescription = "Edit"
+                            contentDescription = LocalizationManager.t("edit")
                         )
                         Spacer(Modifier.width(8.dp))
-                        Text("Edit")
+                        Text(LocalizationManager.t("edit"))
                     }
                 }
             }
         }
 
-        // Key metrics
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(16.dp)

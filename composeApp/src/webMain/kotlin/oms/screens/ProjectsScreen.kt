@@ -17,6 +17,7 @@ import oms.components.Pagination
 import oms.components.StatusChip
 import oms.components.TableHeader
 import oms.data.ProjectRepository.projects
+import oms.localization.LocalizationManager
 import oms.model.Project
 import oms.model.ProjectStatus
 
@@ -48,7 +49,7 @@ fun ProjectsScreen(
     ) {
 
         Text(
-            "Projects",
+            LocalizationManager.t("projects_title"),
             style = MaterialTheme.typography.headlineMedium
         )
 
@@ -159,22 +160,37 @@ fun ProjectsFilters(
         OutlinedTextField(
             value = searchText,
             onValueChange = onSearchChange,
-            label = { Text("Search project") },
+            label = { Text(LocalizationManager.t("search_project")) },
             modifier = Modifier.weight(1f)
         )
 
         FilterDropdown(
-            label = "Region",
+            label = LocalizationManager.t("region"),
             options = listOf("Kyiv", "Lviv", "Odesa"),
             selected = regionFilter,
-            onSelect = onRegionChange
+            onSelect = onRegionChange,
+            itemLabel = { region ->
+                when (region) {
+                    "Kyiv" -> "Kyiv"
+                    "Lviv" -> "Lviv"
+                    "Odesa" -> "Odesa"
+                    else -> region
+                }
+            }
         )
 
         FilterDropdown(
-            label = "Status",
+            label = LocalizationManager.t("status"),
             options = ProjectStatus.entries,
             selected = statusFilter,
-            onSelect = onStatusChange
+            onSelect = onStatusChange,
+            itemLabel = { status ->
+                when (status) {
+                    ProjectStatus.ACTIVE -> LocalizationManager.t("active")
+                    ProjectStatus.PLANNING -> LocalizationManager.t("planning")
+                    ProjectStatus.COMPLETED -> LocalizationManager.t("completed")
+                }
+            }
         )
     }
 }
@@ -327,7 +343,7 @@ fun ProjectRow(
             onClick = { onOpen(project) },
             modifier = Modifier.width(100.dp)
         ) {
-            Text("View")
+            Text(LocalizationManager.t("view"))
         }
     }
 

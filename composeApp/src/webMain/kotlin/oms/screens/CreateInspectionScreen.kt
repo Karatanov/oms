@@ -10,6 +10,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
+import oms.localization.LocalizationManager
 
 @Composable
 fun CreateInspectionScreen(
@@ -36,7 +37,7 @@ fun CreateInspectionScreen(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Text(
-            text = if (isEditMode) "Edit Inspection" else "Create Inspection",
+            text = if (isEditMode) LocalizationManager.t("edit_inspection") else LocalizationManager.t("create_inspection"),
             style = MaterialTheme.typography.headlineMedium
         )
 
@@ -47,7 +48,7 @@ fun CreateInspectionScreen(
                 )
             ) {
                 Text(
-                    text = "Rejected: $rejectedReason",
+                    text = "${LocalizationManager.t("rejected")}: $rejectedReason",
                     modifier = Modifier.padding(16.dp),
                     color = Color(0xFF8D6E63)
                 )
@@ -62,7 +63,7 @@ fun CreateInspectionScreen(
                 OutlinedTextField(
                     value = inspector,
                     onValueChange = { if (isAdmin) inspector = it },
-                    label = { Text("Inspector") },
+                    label = { Text(LocalizationManager.t("inspector_label")) },
                     readOnly = !isAdmin,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -70,9 +71,9 @@ fun CreateInspectionScreen(
                 OutlinedTextField(
                     value = date,
                     onValueChange = { date = it },
-                    label = { Text("Date") },
+                    label = { Text(LocalizationManager.t("date_label")) },
                     modifier = Modifier.fillMaxWidth(),
-                    supportingText = { Text("Cannot be a future date") }
+                    supportingText = { Text(LocalizationManager.t("cannot_be_future_date")) }
                 )
 
                 InspectionTypeDropdown(
@@ -83,9 +84,9 @@ fun CreateInspectionScreen(
                 OutlinedTextField(
                     value = gps,
                     onValueChange = { gps = it },
-                    label = { Text("GPS coordinates") },
+                    label = { Text(LocalizationManager.t("gps_coordinates")) },
                     modifier = Modifier.fillMaxWidth(),
-                    supportingText = { Text("Optional on web. Accuracy warning if > 50m.") }
+                    supportingText = { Text(LocalizationManager.t("optional_on_web_accuracy_warning")) }
                 )
 
                 OutlinedTextField(
@@ -93,7 +94,7 @@ fun CreateInspectionScreen(
                     onValueChange = {
                         if (it.text.length <= maxComments) comments = it
                     },
-                    label = { Text("Comments") },
+                    label = { Text(LocalizationManager.t("comments")) },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(160.dp),
@@ -112,7 +113,7 @@ fun CreateInspectionScreen(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Text(
-                    text = "Photos",
+                    text = LocalizationManager.t("photos"),
                     style = MaterialTheme.typography.titleMedium
                 )
 
@@ -126,16 +127,16 @@ fun CreateInspectionScreen(
                         ),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("Drag-and-drop zone / camera upload")
+                    Text(LocalizationManager.t("drag_and_drop_zone"))
                 }
 
                 if (photos.isEmpty()) {
                     Text(
-                        text = "No photos uploaded yet.",
+                        text = LocalizationManager.t("no_photos_uploaded_yet"),
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 } else {
-                    Text("Photo thumbnails go here")
+                    Text(LocalizationManager.t("photo_thumbnails_go_here"))
                 }
             }
         }
@@ -145,11 +146,11 @@ fun CreateInspectionScreen(
             horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.End)
         ) {
             OutlinedButton(onClick = onSaveDraft) {
-                Text("Save Draft")
+                Text(LocalizationManager.t("save_draft"))
             }
 
             Button(onClick = onSubmit) {
-                Text("Submit Report")
+                Text(LocalizationManager.t("submit_report"))
             }
         }
     }
@@ -184,8 +185,15 @@ private fun InspectionTypeDropdown(
     }
 }
 
-private enum class InspectionType(val label: String) {
-    PLANNED("Planned"),
-    UNPLANNED("Unplanned"),
-    FINAL("Final")
+private enum class InspectionType {
+    PLANNED,
+    UNPLANNED,
+    FINAL;
+
+    val label: String
+        get() = when (this) {
+            PLANNED -> LocalizationManager.t("planned")
+            UNPLANNED -> LocalizationManager.t("unplanned")
+            FINAL -> LocalizationManager.t("final")
+        }
 }

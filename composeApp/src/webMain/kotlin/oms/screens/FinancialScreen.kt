@@ -17,6 +17,8 @@ import androidx.compose.ui.unit.dp
 import oms.charts.BarChart
 import oms.charts.BarData
 import oms.components.FilterDropdown
+import oms.localization.LocalizationManager
+
 
 @Composable
 fun FinancialScreen(
@@ -46,7 +48,7 @@ fun FinancialScreen(
     }
 
     var recordTypeFilter = remember { mutableStateOf<FinancialRecordType?>(null) }
-    var dateRangeLabel = remember { mutableStateOf("All dates") }
+    var dateRangeLabel = remember { mutableStateOf(LocalizationManager.t("all_dates")) }
 
     val records = remember { sampleFinancialRecords() }
 
@@ -67,7 +69,7 @@ fun FinancialScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "Financial Monitoring",
+                text = LocalizationManager.t("financial_monitoring"),
                 style = MaterialTheme.typography.headlineMedium,
                 modifier = Modifier.weight(1f)
             )
@@ -77,19 +79,19 @@ fun FinancialScreen(
                     OutlinedButton(onClick = { }) {
                         Icon(Icons.Default.FileUpload, contentDescription = null)
                         Spacer(Modifier.width(8.dp))
-                        Text("Import XLS")
+                        Text(LocalizationManager.t("import_xls"))
                     }
 
                     OutlinedButton(onClick = { }) {
                         Icon(Icons.Default.Download, contentDescription = null)
                         Spacer(Modifier.width(8.dp))
-                        Text("Export to Excel")
+                        Text(LocalizationManager.t("export_to_excel"))
                     }
 
                     Button(onClick = { }) {
                         Icon(Icons.Default.Add, contentDescription = null)
                         Spacer(Modifier.width(8.dp))
-                        Text("Add Record")
+                        Text(LocalizationManager.t("add_record"))
                     }
                 }
             }
@@ -108,7 +110,7 @@ fun FinancialScreen(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Text(
-                    text = "Monthly Payments",
+                    text = LocalizationManager.t("monthly_payments"),
                     style = MaterialTheme.typography.titleMedium
                 )
 
@@ -124,10 +126,18 @@ fun FinancialScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             FilterDropdown(
-                label = "Record Type",
+                label = LocalizationManager.t("record_type"),
                 options = FinancialRecordType.entries,
                 selected = recordTypeFilter.value,
-                onSelect = { recordTypeFilter.value = it }
+                onSelect = { recordTypeFilter.value = it },
+                itemLabel = { type ->
+                    when (type) {
+                        FinancialRecordType.INVOICE -> LocalizationManager.t("record_type_invoice")
+                        FinancialRecordType.ACT -> LocalizationManager.t("record_type_act")
+                        FinancialRecordType.PAYMENT -> LocalizationManager.t("record_type_payment")
+                        FinancialRecordType.ADVANCE -> LocalizationManager.t("record_type_advance")
+                    }
+                }
             )
 
             OutlinedButton(onClick = { }) {
@@ -174,12 +184,12 @@ private fun FinancialAccessDenied() {
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Text(
-                    text = "Access restricted",
+                    text = LocalizationManager.t("access_restricted"),
                     style = MaterialTheme.typography.headlineSmall
                 )
 
                 Text(
-                    text = "Financial data is restricted. Contact your Project Manager.",
+                    text = LocalizationManager.t("financial_access_restricted"),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -207,8 +217,12 @@ private fun BudgetSummaryBar(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text("Budget summary", style = MaterialTheme.typography.titleMedium)
-                Text("${spent.toInt()}% spent / ${remaining.toInt()}% remaining")
+                Text(LocalizationManager.t("budget_summary"), style = MaterialTheme.typography.titleMedium)
+                Text(
+                    LocalizationManager.t("spent_remaining")
+                        .replace("%", "${spent.toInt()}")
+                        .replaceFirst("${spent.toInt()}", "${spent.toInt()}")
+                )
             }
 
             Box(
@@ -235,8 +249,8 @@ private fun BudgetSummaryBar(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text("Spent: $spent%")
-                Text("Remaining: $remaining%")
+                Text("${LocalizationManager.t("spent")}: $spent%")
+                Text("${LocalizationManager.t("remaining")}: $remaining%")
             }
         }
     }
@@ -250,14 +264,46 @@ private fun FinancialTableHeader() {
             .padding(vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text("Invoice #", modifier = Modifier.width(120.dp), style = MaterialTheme.typography.labelLarge)
-        Text("Type", modifier = Modifier.width(110.dp), style = MaterialTheme.typography.labelLarge)
-        Text("Date", modifier = Modifier.width(120.dp), style = MaterialTheme.typography.labelLarge)
-        Text("Payment Date", modifier = Modifier.width(140.dp), style = MaterialTheme.typography.labelLarge)
-        Text("Amount", modifier = Modifier.width(120.dp), style = MaterialTheme.typography.labelLarge)
-        Text("Currency", modifier = Modifier.width(100.dp), style = MaterialTheme.typography.labelLarge)
-        Text("Milestone", modifier = Modifier.weight(1f), style = MaterialTheme.typography.labelLarge)
-        Text("Actions", modifier = Modifier.width(120.dp), style = MaterialTheme.typography.labelLarge)
+        Text(
+            LocalizationManager.t("invoice_no"),
+            modifier = Modifier.width(120.dp),
+            style = MaterialTheme.typography.labelLarge
+        )
+        Text(
+            LocalizationManager.t("type"),
+            modifier = Modifier.width(110.dp),
+            style = MaterialTheme.typography.labelLarge
+        )
+        Text(
+            LocalizationManager.t("date"),
+            modifier = Modifier.width(120.dp),
+            style = MaterialTheme.typography.labelLarge
+        )
+        Text(
+            LocalizationManager.t("payment_date"),
+            modifier = Modifier.width(140.dp),
+            style = MaterialTheme.typography.labelLarge
+        )
+        Text(
+            LocalizationManager.t("amount"),
+            modifier = Modifier.width(120.dp),
+            style = MaterialTheme.typography.labelLarge
+        )
+        Text(
+            LocalizationManager.t("currency"),
+            modifier = Modifier.width(100.dp),
+            style = MaterialTheme.typography.labelLarge
+        )
+        Text(
+            LocalizationManager.t("milestone"),
+            modifier = Modifier.weight(1f),
+            style = MaterialTheme.typography.labelLarge
+        )
+        Text(
+            LocalizationManager.t("actions"),
+            modifier = Modifier.width(120.dp),
+            style = MaterialTheme.typography.labelLarge
+        )
     }
 }
 
@@ -285,8 +331,8 @@ private fun FinancialRecordRow(
             modifier = Modifier.width(120.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            TextButton(onClick = { onOpen(record) }) { Text("View") }
-            TextButton(onClick = { onEdit(record) }) { Text("Edit") }
+            TextButton(onClick = { onOpen(record) }) { Text(LocalizationManager.t("view")) }
+            TextButton(onClick = { onEdit(record) }) { Text(LocalizationManager.t("edit")) }
         }
     }
 

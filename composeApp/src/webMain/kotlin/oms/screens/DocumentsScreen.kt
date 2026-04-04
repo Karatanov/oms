@@ -14,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import oms.components.FilterDropdown
+import oms.localization.LocalizationManager
 
 @Composable
 fun DocumentsScreen(
@@ -57,7 +58,7 @@ fun DocumentsScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "Documents",
+                text = LocalizationManager.t("documents_title"),
                 style = MaterialTheme.typography.headlineMedium,
                 modifier = Modifier.weight(1f)
             )
@@ -65,7 +66,7 @@ fun DocumentsScreen(
             Button(onClick = { }) {
                 Icon(Icons.Default.UploadFile, contentDescription = null)
                 Spacer(Modifier.width(8.dp))
-                Text("Upload Document")
+                Text(LocalizationManager.t("upload_document"))
             }
         }
 
@@ -75,34 +76,48 @@ fun DocumentsScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             FilterDropdown(
-                label = "Project",
+                label = LocalizationManager.t("project"),
                 options = projectOptions,
                 selected = projectFilter,
                 onSelect = { projectFilter = it }
             )
 
             FilterDropdown(
-                label = "Uploaded by",
+                label = LocalizationManager.t("uploaded_by"),
                 options = uploadedByOptions,
                 selected = uploadedByFilter,
                 onSelect = { uploadedByFilter = it }
             )
 
             FilterDropdown(
-                label = "Type",
+                label = LocalizationManager.t("type"),
                 options = DocumentType.entries,
                 selected = typeFilter,
-                onSelect = { typeFilter = it }
+                onSelect = { typeFilter = it },
+                itemLabel = { type ->
+                    when (type) {
+                        DocumentType.CONTRACT -> LocalizationManager.t("contract")
+                        DocumentType.DESIGN -> LocalizationManager.t("design")
+                        DocumentType.ESTIMATE -> LocalizationManager.t("estimate")
+                        DocumentType.FINANCIAL_DOC -> LocalizationManager.t("financial_doc")
+                        DocumentType.PHOTO -> LocalizationManager.t("photo")
+                    }
+                }
             )
 
             TextButton(onClick = { sortDescending = !sortDescending }) {
-                Text(if (sortDescending) "Newest first" else "Oldest first")
+                Text(
+                    if (sortDescending)
+                        LocalizationManager.t("newest_first")
+                    else
+                        LocalizationManager.t("oldest_first")
+                )
             }
 
             OutlinedTextField(
                 value = searchText,
                 onValueChange = { searchText = it },
-                label = { Text("Search") },
+                label = { Text(LocalizationManager.t("search")) },
                 modifier = Modifier.weight(1f)
             )
         }
@@ -140,7 +155,7 @@ private fun EmptyDocumentsState() {
             contentAlignment = Alignment.Center
         ) {
             Text(
-                text = "No documents uploaded yet. Click Upload Document to add the first one.",
+                text = LocalizationManager.t("no_documents"),
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
@@ -155,14 +170,46 @@ private fun DocumentsTableHeader() {
             .padding(vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text("Icon", modifier = Modifier.width(72.dp), style = MaterialTheme.typography.labelLarge)
-        Text("Filename", modifier = Modifier.weight(1f), style = MaterialTheme.typography.labelLarge)
-        Text("Project", modifier = Modifier.width(160.dp), style = MaterialTheme.typography.labelLarge)
-        Text("Type", modifier = Modifier.width(140.dp), style = MaterialTheme.typography.labelLarge)
-        Text("Uploaded by", modifier = Modifier.width(160.dp), style = MaterialTheme.typography.labelLarge)
-        Text("Date", modifier = Modifier.width(120.dp), style = MaterialTheme.typography.labelLarge)
-        Text("Size", modifier = Modifier.width(90.dp), style = MaterialTheme.typography.labelLarge)
-        Text("Actions", modifier = Modifier.width(120.dp), style = MaterialTheme.typography.labelLarge)
+        Text(
+            LocalizationManager.t("icon"),
+            modifier = Modifier.width(72.dp),
+            style = MaterialTheme.typography.labelLarge
+        )
+        Text(
+            LocalizationManager.t("filename"),
+            modifier = Modifier.weight(1f),
+            style = MaterialTheme.typography.labelLarge
+        )
+        Text(
+            LocalizationManager.t("project"),
+            modifier = Modifier.width(160.dp),
+            style = MaterialTheme.typography.labelLarge
+        )
+        Text(
+            LocalizationManager.t("type"),
+            modifier = Modifier.width(140.dp),
+            style = MaterialTheme.typography.labelLarge
+        )
+        Text(
+            LocalizationManager.t("uploaded_by"),
+            modifier = Modifier.width(160.dp),
+            style = MaterialTheme.typography.labelLarge
+        )
+        Text(
+            LocalizationManager.t("date"),
+            modifier = Modifier.width(120.dp),
+            style = MaterialTheme.typography.labelLarge
+        )
+        Text(
+            LocalizationManager.t("size"),
+            modifier = Modifier.width(90.dp),
+            style = MaterialTheme.typography.labelLarge
+        )
+        Text(
+            LocalizationManager.t("actions"),
+            modifier = Modifier.width(120.dp),
+            style = MaterialTheme.typography.labelLarge
+        )
     }
 }
 
@@ -191,14 +238,14 @@ private fun DocumentRow(
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             IconButton(onClick = { }) {
-                Icon(Icons.Default.Download, contentDescription = "Download")
+                Icon(Icons.Default.Download, contentDescription = LocalizationManager.t("download"))
             }
 
             if (canManageDocuments) {
                 IconButton(onClick = { }) {
                     Icon(
                         imageVector = Icons.Default.Delete,
-                        contentDescription = "Delete",
+                        contentDescription = LocalizationManager.t("delete"),
                         tint = MaterialTheme.colorScheme.error
                     )
                 }
@@ -238,11 +285,11 @@ private fun DocumentTypeIcon(type: DocumentType) {
 }
 
 private enum class DocumentType(val label: String, val shortLabel: String) {
-    CONTRACT("Contract", "CTR"),
-    DESIGN("Design", "DSN"),
-    ESTIMATE("Estimate", "EST"),
-    FINANCIAL_DOC("Financial Doc", "FIN"),
-    PHOTO("Photo", "IMG")
+    CONTRACT(LocalizationManager.t("contract"), "CTR"),
+    DESIGN(LocalizationManager.t("design"), "DSN"),
+    ESTIMATE(LocalizationManager.t("estimate"), "EST"),
+    FINANCIAL_DOC(LocalizationManager.t("financial_doc"), "FIN"),
+    PHOTO(LocalizationManager.t("photo"), "IMG")
 }
 
 private data class DocumentUi(

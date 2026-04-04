@@ -58,14 +58,14 @@ fun Sidebar(
             onNavigate
         )
         SidebarItem(
-            LocalizationManager.t("Financial Monitoring"),
+            LocalizationManager.t("financial_monitoring"),
             Icons.Default.AccountBalance,
             Screen.Financial,
             currentScreen,
             onNavigate
         )
         SidebarItem(
-            LocalizationManager.t("Documents"),
+            LocalizationManager.t("documents"),
             Icons.Default.Description,
             Screen.Documents,
             currentScreen,
@@ -89,7 +89,7 @@ fun Sidebar(
             ) {
                 Icon(
                     imageVector = Icons.Default.Person,
-                    contentDescription = "User"
+                    contentDescription = LocalizationManager.t("user")
                 )
 
                 Spacer(modifier = Modifier.width(8.dp))
@@ -106,43 +106,10 @@ fun Sidebar(
                 ) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.Logout,
-                        contentDescription = "Logout"
+                        contentDescription = LocalizationManager.t("logout")
                     )
                 }
             }
         }
-//        Spacer(Modifier.weight(1f))
-//
-//        LanguageSwitcher()
-//        /*
-//           -------- User info --------
-//        */
-//        Spacer(modifier = Modifier.width(16.dp))
-//
-//        Icon(
-//            Icons.Default.Person,
-//            contentDescription = "User"
-//        )
-//
-//        Spacer(modifier = Modifier.width(8.dp))
-//
-//        Text(
-//            text = "Admin",
-//            style = MaterialTheme.typography.bodyMedium
-//        )
-//
-//        Spacer(modifier = Modifier.width(16.dp))
-//        /*
-//           -------- Logout --------
-//        */
-//        Button(onClick = onLogout) {
-//            Row(
-//                verticalAlignment = Alignment.CenterVertically,
-//                horizontalArrangement = Arrangement.spacedBy(8.dp)
-//            ) {
-//                Icon(imageVector = Icons.AutoMirrored.Filled.Logout, contentDescription = "Logout")
-//                LocalizationManager.t("Logout")
-//            }
-//        }
     }
 }

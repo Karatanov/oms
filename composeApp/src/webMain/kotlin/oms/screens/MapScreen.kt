@@ -8,6 +8,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import oms.data.ProjectRepository
+import oms.localization.LocalizationManager
 import oms.map.LeafletMapView
 
 @Composable
@@ -21,7 +22,7 @@ fun MapScreen() {
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Text(
-            text = "Projects Map",
+            text = LocalizationManager.t("projects_map"),
             style = MaterialTheme.typography.headlineMedium
         )
 
@@ -37,20 +38,20 @@ fun MapScreen() {
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Text(
-                    text = "Map controls",
+                    text = LocalizationManager.t("map_controls"),
                     style = MaterialTheme.typography.titleMedium
                 )
 
                 Text(
-                    text = "На карті відображаються всі проєкти з локального репозиторію."
+                    text = LocalizationManager.t("map_projects_info")
                 )
 
                 Text(
-                    text = "Колір маркера відповідає статусу проєкту."
+                    text = LocalizationManager.t("map_marker_info")
                 )
 
                 Text(
-                    text = "Кількість маркерів: ${projects.size}"
+                    text = "${LocalizationManager.t("markers_count")} ${projects.size}"
                 )
             }
         }

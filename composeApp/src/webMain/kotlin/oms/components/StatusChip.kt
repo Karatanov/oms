@@ -5,6 +5,7 @@ import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
+import oms.localization.LocalizationManager
 import oms.model.ProjectStatus
 
 /*
@@ -18,13 +19,13 @@ fun StatusChip(status: ProjectStatus) {
     val (text, color) = when (status) {
 
         ProjectStatus.ACTIVE ->
-            "Active" to Color(0xFF2E7D32)
+            LocalizationManager.t("active") to Color(0xFF2E7D32)
 
         ProjectStatus.PLANNING ->
-            "Planning" to Color(0xFFF9A825)
+            LocalizationManager.t("planning") to Color(0xFFF9A825)
 
         ProjectStatus.COMPLETED ->
-            "Completed" to Color(0xFF1565C0)
+            LocalizationManager.t("completed") to Color(0xFF1565C0)
     }
 
     AssistChip(
