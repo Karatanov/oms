@@ -10,9 +10,12 @@ import androidx.compose.ui.unit.dp
 import oms.data.ProjectRepository
 import oms.localization.LocalizationManager
 import oms.map.LeafletMapView
+import oms.model.Project
 
 @Composable
-fun MapScreen() {
+fun MapScreen(
+    onOpenProject: (Project) -> Unit = {}
+) {
     val projects = ProjectRepository.projects
 
     Column(
@@ -42,17 +45,9 @@ fun MapScreen() {
                     style = MaterialTheme.typography.titleMedium
                 )
 
-                Text(
-                    text = LocalizationManager.t("map_projects_info")
-                )
-
-                Text(
-                    text = LocalizationManager.t("map_marker_info")
-                )
-
-                Text(
-                    text = "${LocalizationManager.t("markers_count")} ${projects.size}"
-                )
+                Text(text = LocalizationManager.t("map_projects_info"))
+                Text(text = LocalizationManager.t("map_marker_info"))
+                Text(text = "${LocalizationManager.t("markers_count")} ${projects.size}")
             }
         }
 
@@ -64,7 +59,12 @@ fun MapScreen() {
             Box(
                 modifier = Modifier.fillMaxSize()
             ) {
-                LeafletMapView(projects = projects)
+                LeafletMapView(
+                    projects = projects,
+                    onProjectClick = { projectId ->
+                        projects.find { it.id == projectId }?.let(onOpenProject)
+                    }
+                )
             }
         }
     }

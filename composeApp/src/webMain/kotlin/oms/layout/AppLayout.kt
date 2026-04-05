@@ -53,7 +53,11 @@ fun AppLayout(appState: AppState) {
                     onSubmit = { }
                 )
 
-                is Screen.Map -> MapScreen()
+                is Screen.Map -> MapScreen(
+                    onOpenProject = { project ->
+                        appState.openProjectDetail(project)
+                    }
+                )
 
                 is Screen.Inspections -> ReportsScreen(
                     onNewInspection = { appState.openCreateInspection() }

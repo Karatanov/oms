@@ -11,14 +11,10 @@
     />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        // Глобальний інстанс карти.
         let ufsiLeafletMap = null;
-
-        // Окремий шар для маркерів, щоб їх можна було легко оновлювати.
         let ufsiMarkersLayer = null;
+        let ufsiOnProjectClick = null;
 
-        // Географічні межі України:
-        // [південний-захід, північний-схід]
         const ukraineBounds = [
             [44.0, 22.0],
             [52.5, 40.5]
@@ -28,7 +24,6 @@
             const mapHost = document.getElementById("map-host");
             if (!mapHost || ufsiLeafletMap) return;
 
-            // Створюємо карту.
             ufsiLeafletMap = L.map("map-host", {
                 zoomControl: true,
                 minZoom: 5,
@@ -37,7 +32,6 @@
                 maxBoundsViscosity: 1.0
             });
 
-            // Додаємо базовий шар OpenStreetMap.
             L.tileLayer(
                 "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
                 {
@@ -45,10 +39,7 @@
                 }
             ).addTo(ufsiLeafletMap);
 
-            // Створюємо окрему групу для маркерів.
             ufsiMarkersLayer = L.layerGroup().addTo(ufsiLeafletMap);
-
-            // Одразу показуємо всю Україну.
             ufsiLeafletMap.fitBounds(ukraineBounds);
         }
 
@@ -58,10 +49,7 @@
 
             setTimeout(() => {
                 if (ufsiLeafletMap) {
-                    // Після показу контейнера перевираховуємо розмір карти.
                     ufsiLeafletMap.invalidateSize();
-
-                    // І ще раз ставимо карту на всю Україну.
                     ufsiLeafletMap.fitBounds(ukraineBounds);
                 }
             }, 250);
@@ -71,19 +59,19 @@
             document.body.classList.remove("map-visible");
         }
 
+        function setLeafletProjectClickHandler(handler) {
+            ufsiOnProjectClick = handler;
+        }
+
         function setLeafletProjects(projectsJson) {
             initLeafletMap();
 
-            // Якщо карта або шар ще не готові — просто виходимо.
             if (!ufsiLeafletMap || !ufsiMarkersLayer) return;
 
-            // Очищаємо попередні маркери перед новим малюванням.
             ufsiMarkersLayer.clearLayers();
 
-            // Перетворюємо JSON-рядок у масив JS-об’єктів.
             const projects = JSON.parse(projectsJson);
 
-            // Якщо список порожній — просто залишаємо карту на Україні.
             if (!projects.length) {
                 ufsiLeafletMap.fitBounds(ukraineBounds);
                 return;
@@ -94,16 +82,30 @@
                 const lng = project.longitude;
                 const color = project.statusColor;
 
-                // Формуємо текст popup.
                 const popupHtml = `
-                    <div>
-                        <strong>${project.name}</strong><br/>
-                        ${project.regionLabel}: ${project.region}<br/>
-                        ${project.statusLabel}: ${project.statusText}
-                    </div>
-                `;
+                <div style="min-width: 180px;">
+                    <strong>${project.name}</strong><br/>
+                    ${project.regionLabel}: ${project.region}<br/>
+                    ${project.statusLabel}: ${project.statusText}<br/><br/>
+                    <button
+                        type="button"
+                        onclick="ufsiOnProjectClick && ufsiOnProjectClick(${project.id})"
+                        style="
+                            width: 100%;
+                            padding: 8px 12px;
+                            border: none;
+                            border-radius: 8px;
+                            cursor: pointer;
+                            background: #278DAD;
+                            color: white;
+                            font-weight: 600;
+                        "
+                    >
+                        Деталі
+                    </button>
+                </div>
+            `;
 
-                // Малюємо круглий маркер у кольорі статусу.
                 L.circleMarker([lat, lng], {
                     radius: 9,
                     color: color,
@@ -115,7 +117,6 @@
                     .addTo(ufsiMarkersLayer);
             });
 
-            // Залишаємо загальний огляд України.
             ufsiLeafletMap.fitBounds(ukraineBounds);
         }
 

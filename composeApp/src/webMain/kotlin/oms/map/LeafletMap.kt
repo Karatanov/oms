@@ -16,19 +16,20 @@ external fun hideLeafletMapPane()
 @JsName("setLeafletProjects")
 external fun setLeafletProjects(projectsJson: String)
 
+@JsName("setLeafletProjectClickHandler")
+external fun setLeafletProjectClickHandler(handler: (Int) -> Unit)
+
 @Composable
 fun LeafletMapView(
-    projects: List<Project>
+    projects: List<Project>,
+    onProjectClick: (Int) -> Unit = {}
 ) {
     DisposableEffect(projects) {
-        // Показуємо панель карти.
         showLeafletMapPane()
-
-        // Передаємо список проєктів у JavaScript.
+        setLeafletProjectClickHandler(onProjectClick)
         setLeafletProjects(projects.toLeafletJson())
 
         onDispose {
-            // При виході з екрану ховаємо карту.
             hideLeafletMapPane()
         }
     }
