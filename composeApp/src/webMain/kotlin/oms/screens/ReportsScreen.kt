@@ -6,7 +6,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -20,20 +21,24 @@ import oms.localization.LocalizationManager
 fun ReportsScreen(
     onNewInspection: () -> Unit = {}
 ) {
-
     var statusFilter by remember { mutableStateOf<InspectionReportStatus?>(null) }
-    var sortDescending by remember { mutableStateOf(true) }
+    var sortColumn by remember { mutableStateOf(ReportSortColumn.DATE) }
+    var ascending by remember { mutableStateOf(false) }
 
-    val reports = remember {
-        sampleInspectionReports()
-    }
+    val reports = remember { sampleInspectionReports() }
 
-    val filteredReports = remember(statusFilter, sortDescending) {
-        reports
-            .filter { statusFilter == null || it.status == statusFilter }
-            .let { list ->
-                if (sortDescending) list.sortedByDescending { it.date } else list.sortedBy { it.date }
-            }
+    val filteredReports = remember(statusFilter, sortColumn, ascending) {
+        val filtered = reports.filter { statusFilter == null || it.status == statusFilter }
+
+        val sorted = when (sortColumn) {
+            ReportSortColumn.ID -> filtered.sortedBy { it.id }
+            ReportSortColumn.TYPE -> filtered.sortedBy { it.type }
+            ReportSortColumn.INSPECTOR -> filtered.sortedBy { it.inspector }
+            ReportSortColumn.DATE -> filtered.sortedBy { it.date }
+            ReportSortColumn.STATUS -> filtered.sortedBy { it.status.ordinal }
+        }
+
+        if (ascending) sorted else sorted.reversed()
     }
 
     Column(
@@ -59,7 +64,10 @@ fun ReportsScreen(
             }
         }
 
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
             FilterDropdown(
                 label = LocalizationManager.t("status"),
                 options = InspectionReportStatus.entries,
@@ -76,15 +84,30 @@ fun ReportsScreen(
         }
 
         Card(
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface
+            ),
+            shape = RoundedCornerShape(12.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
         ) {
             Column(
-                modifier = Modifier.padding(12.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(12.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 InspectionTableHeader(
-                    sortDescending = sortDescending,
-                    onSortDate = { sortDescending = !sortDescending }
+                    currentSort = sortColumn,
+                    ascending = ascending,
+                    onSort = { column ->
+                        if (sortColumn == column) {
+                            ascending = !ascending
+                        } else {
+                            sortColumn = column
+                            ascending = true
+                        }
+                    }
                 )
 
                 HorizontalDivider()
@@ -103,8 +126,9 @@ fun ReportsScreen(
 
 @Composable
 private fun InspectionTableHeader(
-    sortDescending: Boolean,
-    onSortDate: () -> Unit
+    currentSort: ReportSortColumn,
+    ascending: Boolean,
+    onSort: (ReportSortColumn) -> Unit
 ) {
     Row(
         modifier = Modifier
@@ -112,39 +136,86 @@ private fun InspectionTableHeader(
             .padding(vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(
-            LocalizationManager.t("report_id"),
-            modifier = Modifier.width(120.dp),
-            style = MaterialTheme.typography.labelLarge
+        SortHeaderCell(
+            title = LocalizationManager.t("report_id"),
+            column = ReportSortColumn.ID,
+            currentSort = currentSort,
+            ascending = ascending,
+            onSort = onSort,
+            width = 120.dp
         )
-        Text(
-            LocalizationManager.t("report_type"),
-            modifier = Modifier.width(160.dp),
-            style = MaterialTheme.typography.labelLarge
+
+        SortHeaderCell(
+            title = LocalizationManager.t("report_type"),
+            column = ReportSortColumn.TYPE,
+            currentSort = currentSort,
+            ascending = ascending,
+            onSort = onSort,
+            width = 160.dp
         )
-        Text(
-            LocalizationManager.t("inspector"),
-            modifier = Modifier.width(160.dp),
-            style = MaterialTheme.typography.labelLarge
+
+        SortHeaderCell(
+            title = LocalizationManager.t("inspector"),
+            column = ReportSortColumn.INSPECTOR,
+            currentSort = currentSort,
+            ascending = ascending,
+            onSort = onSort,
+            width = 180.dp
         )
-        TextButton(onClick = onSortDate, modifier = Modifier.width(120.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(LocalizationManager.t("date"))
+
+        SortHeaderCell(
+            title = LocalizationManager.t("date"),
+            column = ReportSortColumn.DATE,
+            currentSort = currentSort,
+            ascending = ascending,
+            onSort = onSort,
+            width = 120.dp
+        )
+
+        SortHeaderCell(
+            title = LocalizationManager.t("status"),
+            column = ReportSortColumn.STATUS,
+            currentSort = currentSort,
+            ascending = ascending,
+            onSort = onSort,
+            width = 160.dp
+        )
+
+        Box(
+            modifier = Modifier.width(220.dp)
+        ) {
+            Text(
+                text = LocalizationManager.t("actions"),
+                style = MaterialTheme.typography.labelLarge
+            )
+        }
+    }
+}
+
+@Composable
+private fun SortHeaderCell(
+    title: String,
+    column: ReportSortColumn,
+    currentSort: ReportSortColumn,
+    ascending: Boolean,
+    onSort: (ReportSortColumn) -> Unit,
+    width: androidx.compose.ui.unit.Dp
+) {
+    TextButton(
+        onClick = { onSort(column) },
+        modifier = Modifier.width(width),
+        contentPadding = PaddingValues(0.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(title)
+            if (currentSort == column) {
                 Spacer(Modifier.width(4.dp))
                 Icon(
-                    imageVector = if (sortDescending) Icons.Default.Visibility else Icons.Default.Visibility,
+                    imageVector = if (ascending) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-        }
-        Text(
-            LocalizationManager.t("status"),
-            modifier = Modifier.width(160.dp),
-            style = MaterialTheme.typography.labelLarge
-        )
-        Box(modifier = Modifier.width(200.dp)) {
-            Text(LocalizationManager.t("actions"), style = MaterialTheme.typography.labelLarge)
         }
     }
 }
@@ -164,14 +235,21 @@ private fun InspectionReportRow(
     ) {
         Text(report.id, modifier = Modifier.width(120.dp))
         Text(report.type, modifier = Modifier.width(160.dp))
-        Text(report.inspector, modifier = Modifier.width(160.dp))
+        Text(report.inspector, modifier = Modifier.width(180.dp))
         Text(report.date, modifier = Modifier.width(120.dp))
-        InspectionStatusBadge(report.status)
+
+        Box(modifier = Modifier.width(160.dp)) {
+            InspectionStatusBadge(report.status)
+        }
+
         Row(
-            modifier = Modifier.width(160.dp),
+            modifier = Modifier.width(220.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            TextButton(onClick = { onView(report) }) { Text(LocalizationManager.t("view")) }
+            TextButton(onClick = { onView(report) }) {
+                Text(LocalizationManager.t("view"))
+            }
+
             if (report.status == InspectionReportStatus.DRAFT) {
                 TextButton(
                     onClick = { onEdit(report) },
@@ -189,6 +267,7 @@ private fun InspectionReportRow(
             }
         }
     }
+
     HorizontalDivider()
 }
 
@@ -203,7 +282,7 @@ private fun InspectionStatusBadge(status: InspectionReportStatus) {
     Surface(
         color = color.copy(alpha = 0.15f),
         shape = RoundedCornerShape(999.dp),
-        modifier = Modifier.width(160.dp)
+        modifier = Modifier.fillMaxWidth()
     ) {
         Text(
             text = label,
@@ -212,6 +291,14 @@ private fun InspectionStatusBadge(status: InspectionReportStatus) {
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
         )
     }
+}
+
+private enum class ReportSortColumn {
+    ID,
+    TYPE,
+    INSPECTOR,
+    DATE,
+    STATUS
 }
 
 private enum class InspectionReportStatus {
