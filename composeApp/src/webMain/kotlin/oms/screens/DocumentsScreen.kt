@@ -4,9 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Download
-import androidx.compose.material.icons.filled.UploadFile
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -24,24 +22,39 @@ fun DocumentsScreen(
     var projectFilter by remember { mutableStateOf<String?>(null) }
     var uploadedByFilter by remember { mutableStateOf<String?>(null) }
     var typeFilter by remember { mutableStateOf<DocumentType?>(null) }
-    var sortDescending by remember { mutableStateOf(true) }
+    var sortColumn by remember { mutableStateOf(DocumentSortColumn.DATE) }
+    var ascending by remember { mutableStateOf(false) }
 
     val documents = remember { sampleDocuments() }
 
-    val filteredDocuments = remember(searchText, projectFilter, uploadedByFilter, typeFilter, sortDescending) {
-        documents
-            .filter { doc ->
-                (searchText.isBlank() ||
-                        doc.fileName.contains(searchText, ignoreCase = true) ||
-                        doc.description.contains(searchText, ignoreCase = true)
-                        ) &&
-                        (projectFilter == null || doc.project == projectFilter) &&
-                        (uploadedByFilter == null || doc.uploadedBy == uploadedByFilter) &&
-                        (typeFilter == null || doc.type == typeFilter)
-            }
-            .let { list ->
-                if (sortDescending) list.sortedByDescending { it.date } else list.sortedBy { it.date }
-            }
+    val filteredDocuments = remember(
+        searchText,
+        projectFilter,
+        uploadedByFilter,
+        typeFilter,
+        sortColumn,
+        ascending
+    ) {
+        val filtered = documents.filter { doc ->
+            (searchText.isBlank() ||
+                    doc.fileName.contains(searchText, ignoreCase = true) ||
+                    doc.description.contains(searchText, ignoreCase = true)
+                    ) &&
+                    (projectFilter == null || doc.project == projectFilter) &&
+                    (uploadedByFilter == null || doc.uploadedBy == uploadedByFilter) &&
+                    (typeFilter == null || doc.type == typeFilter)
+        }
+
+        val sorted = when (sortColumn) {
+            DocumentSortColumn.FILE_NAME -> filtered.sortedBy { it.fileName }
+            DocumentSortColumn.PROJECT -> filtered.sortedBy { it.project }
+            DocumentSortColumn.TYPE -> filtered.sortedBy { it.type.ordinal }
+            DocumentSortColumn.UPLOADED_BY -> filtered.sortedBy { it.uploadedBy }
+            DocumentSortColumn.DATE -> filtered.sortedBy { it.date }
+            DocumentSortColumn.SIZE -> filtered.sortedBy { it.size }
+        }
+
+        if (ascending) sorted else sorted.reversed()
     }
 
     val projectOptions = remember { documents.map { it.project }.distinct().sorted() }
@@ -105,12 +118,12 @@ fun DocumentsScreen(
                 }
             )
 
-            TextButton(onClick = { sortDescending = !sortDescending }) {
+            TextButton(onClick = { ascending = !ascending }) {
                 Text(
-                    if (sortDescending)
-                        LocalizationManager.t("newest_first")
-                    else
+                    if (ascending)
                         LocalizationManager.t("oldest_first")
+                    else
+                        LocalizationManager.t("newest_first")
                 )
             }
 
@@ -125,12 +138,33 @@ fun DocumentsScreen(
         if (filteredDocuments.isEmpty()) {
             EmptyDocumentsState()
         } else {
-            Card(modifier = Modifier.fillMaxWidth()) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                ),
+                shape = RoundedCornerShape(12.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            ) {
                 Column(
-                    modifier = Modifier.padding(12.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(12.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    DocumentsTableHeader()
+                    DocumentsTableHeader(
+                        currentSort = sortColumn,
+                        ascending = ascending,
+                        onSort = { column ->
+                            if (sortColumn == column) {
+                                ascending = !ascending
+                            } else {
+                                sortColumn = column
+                                ascending = true
+                            }
+                        }
+                    )
+
                     HorizontalDivider()
 
                     filteredDocuments.forEach { document ->
@@ -163,53 +197,116 @@ private fun EmptyDocumentsState() {
 }
 
 @Composable
-private fun DocumentsTableHeader() {
+private fun DocumentsTableHeader(
+    currentSort: DocumentSortColumn,
+    ascending: Boolean,
+    onSort: (DocumentSortColumn) -> Unit
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(
-            LocalizationManager.t("icon"),
-            modifier = Modifier.width(72.dp),
-            style = MaterialTheme.typography.labelLarge
+        SortHeaderCell(
+            title = LocalizationManager.t("icon"),
+            column = DocumentSortColumn.TYPE,
+            currentSort = currentSort,
+            ascending = ascending,
+            onSort = onSort,
+            width = 72.dp
         )
-        Text(
-            LocalizationManager.t("filename"),
-            modifier = Modifier.weight(1f),
-            style = MaterialTheme.typography.labelLarge
+
+        SortHeaderCell(
+            title = LocalizationManager.t("filename"),
+            column = DocumentSortColumn.FILE_NAME,
+            currentSort = currentSort,
+            ascending = ascending,
+            onSort = onSort,
+            width = 220.dp
         )
-        Text(
-            LocalizationManager.t("project"),
-            modifier = Modifier.width(160.dp),
-            style = MaterialTheme.typography.labelLarge
+
+        SortHeaderCell(
+            title = LocalizationManager.t("project"),
+            column = DocumentSortColumn.PROJECT,
+            currentSort = currentSort,
+            ascending = ascending,
+            onSort = onSort,
+            width = 160.dp
         )
-        Text(
-            LocalizationManager.t("type"),
-            modifier = Modifier.width(140.dp),
-            style = MaterialTheme.typography.labelLarge
+
+        SortHeaderCell(
+            title = LocalizationManager.t("type"),
+            column = DocumentSortColumn.TYPE,
+            currentSort = currentSort,
+            ascending = ascending,
+            onSort = onSort,
+            width = 140.dp
         )
-        Text(
-            LocalizationManager.t("uploaded_by"),
-            modifier = Modifier.width(160.dp),
-            style = MaterialTheme.typography.labelLarge
+
+        SortHeaderCell(
+            title = LocalizationManager.t("uploaded_by"),
+            column = DocumentSortColumn.UPLOADED_BY,
+            currentSort = currentSort,
+            ascending = ascending,
+            onSort = onSort,
+            width = 160.dp
         )
-        Text(
-            LocalizationManager.t("date"),
-            modifier = Modifier.width(120.dp),
-            style = MaterialTheme.typography.labelLarge
+
+        SortHeaderCell(
+            title = LocalizationManager.t("date"),
+            column = DocumentSortColumn.DATE,
+            currentSort = currentSort,
+            ascending = ascending,
+            onSort = onSort,
+            width = 120.dp
         )
-        Text(
-            LocalizationManager.t("size"),
-            modifier = Modifier.width(90.dp),
-            style = MaterialTheme.typography.labelLarge
+
+        SortHeaderCell(
+            title = LocalizationManager.t("size"),
+            column = DocumentSortColumn.SIZE,
+            currentSort = currentSort,
+            ascending = ascending,
+            onSort = onSort,
+            width = 90.dp
         )
-        Text(
-            LocalizationManager.t("actions"),
-            modifier = Modifier.width(120.dp),
-            style = MaterialTheme.typography.labelLarge
-        )
+
+        Box(
+            modifier = Modifier.width(120.dp)
+        ) {
+            Text(
+                text = LocalizationManager.t("actions"),
+                style = MaterialTheme.typography.labelLarge
+            )
+        }
+    }
+}
+
+@Composable
+private fun SortHeaderCell(
+    title: String,
+    column: DocumentSortColumn,
+    currentSort: DocumentSortColumn,
+    ascending: Boolean,
+    onSort: (DocumentSortColumn) -> Unit,
+    width: androidx.compose.ui.unit.Dp
+) {
+    TextButton(
+        onClick = { onSort(column) },
+        modifier = Modifier.width(width),
+        contentPadding = PaddingValues(0.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(title)
+            if (currentSort == column) {
+                Spacer(Modifier.width(4.dp))
+                Icon(
+                    imageVector = if (ascending) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
     }
 }
 
@@ -226,7 +323,7 @@ private fun DocumentRow(
     ) {
         DocumentTypeIcon(document.type)
 
-        Text(document.fileName, modifier = Modifier.weight(1f))
+        Text(document.fileName, modifier = Modifier.width(220.dp))
         Text(document.project, modifier = Modifier.width(160.dp))
         Text(document.type.label, modifier = Modifier.width(140.dp))
         Text(document.uploadedBy, modifier = Modifier.width(160.dp))
@@ -282,6 +379,15 @@ private fun DocumentTypeIcon(type: DocumentType) {
             style = MaterialTheme.typography.labelSmall
         )
     }
+}
+
+private enum class DocumentSortColumn {
+    FILE_NAME,
+    PROJECT,
+    TYPE,
+    UPLOADED_BY,
+    DATE,
+    SIZE
 }
 
 private enum class DocumentType(val label: String, val shortLabel: String) {

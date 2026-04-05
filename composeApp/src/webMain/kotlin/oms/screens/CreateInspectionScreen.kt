@@ -43,9 +43,11 @@ fun CreateInspectionScreen(
 
         if (rejectedReason != null) {
             Card(
+                modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(
                     containerColor = Color(0xFFFFF3E0)
-                )
+                ),
+                shape = RoundedCornerShape(12.dp)
             ) {
                 Text(
                     text = "${LocalizationManager.t("rejected")}: $rejectedReason",
@@ -55,7 +57,14 @@ fun CreateInspectionScreen(
             }
         }
 
-        Card {
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface
+            ),
+            shape = RoundedCornerShape(12.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        ) {
             Column(
                 modifier = Modifier.padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -107,7 +116,14 @@ fun CreateInspectionScreen(
             }
         }
 
-        Card {
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface
+            ),
+            shape = RoundedCornerShape(12.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        ) {
             Column(
                 modifier = Modifier.padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)

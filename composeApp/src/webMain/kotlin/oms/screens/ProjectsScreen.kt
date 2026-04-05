@@ -13,7 +13,6 @@ import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.onPointerEvent
 import androidx.compose.ui.unit.dp
 import oms.components.FilterDropdown
-import oms.components.Pagination
 import oms.components.StatusChip
 import oms.components.TableHeader
 import oms.data.ProjectRepository.projects
@@ -73,7 +72,7 @@ fun ProjectsScreen(
 
         Spacer(Modifier.height(16.dp))
 
-        Pagination()
+        //Pagination()
     }
 }
 
