@@ -8,6 +8,7 @@ import androidx.compose.ui.Modifier
 import oms.navigation.AppState
 import oms.navigation.Screen
 import oms.screens.*
+import oms.screens.dashboard.DashboardScreen
 
 //import oms.screens.documents.*
 //import oms.screens.admin.*
@@ -28,7 +29,7 @@ fun AppLayout(appState: AppState) {
         // ---------------- CONTENT ----------------
         Box(modifier = Modifier.weight(1f)) {
 
-            when (val screen = appState.currentScreen) {
+            when (appState.currentScreen) {
 
                 is Screen.Dashboard -> DashboardScreen()
 
