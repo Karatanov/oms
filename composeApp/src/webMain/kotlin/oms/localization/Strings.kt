@@ -144,7 +144,19 @@ object Strings {
         "save_draft" to "Зберегти чернетку",
         "submit_report" to "Надіслати звіт",
         "inspector_label" to "Інспектор",
-        "date_label" to "Дата"
+        "date_label" to "Дата",
+
+        "address" to "Адреса",
+        "sector" to "Сектор",
+        "budget_planned" to "Плановий бюджет",
+        "amount_spent" to "Витрачено",
+        "budget_remaining" to "Залишилось",
+        "general_info" to "Загальна інформація",
+        "inspection_reports_tab" to "Інспекційні звіти",
+        "financials" to "Фінанси",
+        "documents" to "Документи",
+        "incidents" to "Інциденти",
+        "coming_next" to "Найближчим часом"
     )
 
     val en = mapOf(
@@ -288,6 +300,19 @@ object Strings {
         "save_draft" to "Save Draft",
         "submit_report" to "Submit Report",
         "inspector_label" to "Inspector",
-        "date_label" to "Date"
+        "date_label" to "Date",
+
+        "address" to "Address",
+        "sector" to "Sector",
+        "construction_type" to "Construction type",
+        "budget_planned" to "Budget Planned",
+        "amount_spent" to "Amount Spent",
+        "budget_remaining" to "Budget Remaining",
+        "general_info" to "General Info",
+        "inspection_reports_tab" to "Inspection Reports",
+        "financials" to "Financials",
+        "documents_tab" to "Documents",
+        "incidents" to "Incidents",
+        "coming_next" to "Coming next"
     )
 }

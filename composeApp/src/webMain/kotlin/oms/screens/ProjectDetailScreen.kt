@@ -75,13 +75,13 @@ fun ProjectDetailScreen(
                             StatusChip(project.status)
 
                             Text(
-                                text = "Address: ${project.region}",
+                                text = "${LocalizationManager.t("address")}: ${project.region}",
                                 style = MaterialTheme.typography.bodyMedium
                             )
                         }
 
                         Text(
-                            text = "Sector: Infrastructure • Construction type: General",
+                            text = "${LocalizationManager.t("sector")}: Infrastructure • ${LocalizationManager.t("construction_type")}: General",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -104,27 +104,26 @@ fun ProjectDetailScreen(
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             DetailMetricCard(
-                title = "Budget Planned",
+                title = LocalizationManager.t("budget_planned"),
                 value = "$1.2M",
                 modifier = Modifier.weight(1f)
             )
             DetailMetricCard(
-                title = "Amount Spent",
+                title = LocalizationManager.t("amount_spent"),
                 value = "$840K",
                 modifier = Modifier.weight(1f)
             )
             DetailMetricCard(
-                title = "Budget Remaining",
+                title = LocalizationManager.t("budget_remaining"),
                 value = "$360K",
                 modifier = Modifier.weight(1f)
             )
         }
 
-        // Tabs
         Column(
             modifier = Modifier.fillMaxWidth()
         ) {
-            TabRow(selectedTabIndex = selectedTab.ordinal) {
+            PrimaryTabRow(selectedTabIndex = selectedTab.ordinal) {
                 ProjectDetailTab.entries.forEach { tab ->
                     Tab(
                         selected = selectedTab == tab,
@@ -141,11 +140,11 @@ fun ProjectDetailScreen(
                     .padding(top = 16.dp)
             ) {
                 when (selectedTab) {
-                    ProjectDetailTab.GeneralInfo -> PlaceholderTabContent("General Info")
-                    ProjectDetailTab.InspectionReports -> PlaceholderTabContent("Inspection Reports")
-                    ProjectDetailTab.Financials -> PlaceholderTabContent("Financials")
-                    ProjectDetailTab.Documents -> PlaceholderTabContent("Documents")
-                    ProjectDetailTab.Incidents -> PlaceholderTabContent("Incidents (HSE)")
+                    ProjectDetailTab.GeneralInfo -> PlaceholderTabContent(LocalizationManager.t("general_info"))
+                    ProjectDetailTab.InspectionReports -> PlaceholderTabContent(LocalizationManager.t("inspection_reports_tab"))
+                    ProjectDetailTab.Financials -> PlaceholderTabContent(LocalizationManager.t("financials"))
+                    ProjectDetailTab.Documents -> PlaceholderTabContent(LocalizationManager.t("documents_tab"))
+                    ProjectDetailTab.Incidents -> PlaceholderTabContent(LocalizationManager.t("incidents"))
                 }
             }
         }
@@ -188,7 +187,7 @@ private fun PlaceholderTabContent(title: String) {
             contentAlignment = Alignment.Center
         ) {
             Text(
-                text = "$title — coming next",
+                text = "$title — ${LocalizationManager.t("coming_next")}",
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
