@@ -19,7 +19,8 @@ fun CreateInspectionScreen(
     isAdmin: Boolean = false,
     rejectedReason: String? = null,
     onSaveDraft: () -> Unit = {},
-    onSubmit: () -> Unit = {}
+    onSubmit: () -> Unit = {},
+    onImportXls: () -> Unit = {}
 ) {
     var inspector by remember { mutableStateOf(currentUserName) }
     var date by remember { mutableStateOf("2026-03-24") }
@@ -163,6 +164,10 @@ fun CreateInspectionScreen(
         ) {
             OutlinedButton(onClick = onSaveDraft) {
                 Text(LocalizationManager.t("save_draft"))
+            }
+
+            OutlinedButton(onClick = onImportXls) {
+                Text("Завантажити XLS/XLSX")
             }
 
             Button(onClick = onSubmit) {

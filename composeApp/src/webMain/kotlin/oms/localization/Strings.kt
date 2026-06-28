@@ -79,7 +79,7 @@ object Strings {
         "password_required" to "Потрібно вказати пароль",
         "invalid_credentials" to "Невірні облікові дані",
 
-        "login_hero_title" to "Більше контролю.\nМенше хаосу.\nКращі результати.",
+        "login_hero_title" to "Система онлайн-моніторингу.",
         "login_hero_subtitle" to "Єдина система для відстеження проєктів, інспекцій і фінансового контролю.",
         "feature_realtime_monitoring" to "Моніторинг проєктів у реальному часі",
         "feature_inspection_reports" to "Інтегровані інспекційні звіти",
@@ -235,7 +235,7 @@ object Strings {
         "password_required" to "Password is required",
         "invalid_credentials" to "Invalid credentials",
 
-        "login_hero_title" to "Monitor projects\nwith clarity and control",
+        "login_hero_title" to "Online Monitoring System",
         "login_hero_subtitle" to "A unified system for project tracking, inspections, and financial oversight.",
         "feature_realtime_monitoring" to "Real-time project monitoring",
         "feature_inspection_reports" to "Integrated inspection reports",
