@@ -1,8 +1,6 @@
 package oms.ufsi
 
 import io.ktor.server.application.*
-import io.ktor.server.engine.*
-import io.ktor.server.netty.*
 import oms.ufsi.plugins.configureErrorHandling
 import oms.ufsi.plugins.configureMonitoring
 import oms.ufsi.plugins.configureRouting
@@ -11,42 +9,30 @@ import oms.ufsi.plugins.configureSerialization
 /**
  * Точка входу в серверний застосунок.
  *
- * Саме із цієї функції починається запуск backend-серва.
- */
-/**
- * Точка входу в серверний застосунок.
+ * EngineMain автоматично:
+ * - зчитує application.yaml;
+ * - створює HTTP-сервер;
+ * - викликає функцію module();
+ * - передає їй об'єкт Application.
  *
- * Основні параметри запуску (порт, модулі тощо)
- * тепер зчитуються з application.yaml.
+ * Завдяки цьому параметри запуску не потрібно
+ * дублювати безпосередньо в Kotlin-коді.
  */
-fun main() {
-
-    embeddedServer(
-        factory = Netty,
-
-        /**
-         * Значення 0 означає:
-         * "використати конфігурацію з application.yaml".
-         *
-         * Якщо вказати конкретне число, воно матиме
-         * пріоритет над конфігураційним файлом.
-         */
-        port = 0,
-
-        host = "0.0.0.0",
-        module = Application::module
-    ).start(wait = true)
+fun main(args: Array<String>) {
+    io.ktor.server.netty.EngineMain.main(args)
 }
 
 /**
- * Основна конфігурація застосунку.
+ * Головний модуль застосунку.
  *
- * У майбутньому тут будуть підключатися:
- * - база даних;
- * - авторизація;
- * - DI-контейнер;
- * - логування;
- * - маршрути API.
+ * Саме ця функція викликається Ktor після
+ * завершення початкової ініціалізації сервера.
+ *
+ * Порядок виклику конфігураційних функцій важливий:
+ * 1. Логування.
+ * 2. Серіалізація JSON.
+ * 3. Обробка помилок.
+ * 4. Реєстрація HTTP-маршрутів.
  */
 fun Application.module() {
 

@@ -8,7 +8,7 @@ plugins {
 group = "oms.usif.ua.ufsi"
 version = "1.0.0"
 application {
-    mainClass.set("oms.usif.ua.ufsi.ApplicationKt")
+    mainClass.set("oms.ufsi.ApplicationKt")
 
     val isDevelopment: Boolean = project.ext.has("development")
     applicationDefaultJvmArgs = listOf("-Dio.ktor.development=$isDevelopment")
