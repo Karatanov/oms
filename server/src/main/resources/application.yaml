@@ -1,0 +1,12 @@
+ktor:
+
+  deployment:
+
+    # TCP-порт, на якому буде працювати HTTP-сервер.
+    port: 8080
+
+  application:
+
+    # Список модулів, які Ktor повинен викликати під час запуску.
+    modules:
+      - oms.ufsi.ApplicationKt.module

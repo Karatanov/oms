@@ -1,28 +1,37 @@
 package oms.ufsi
 
-import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
-import io.ktor.server.plugins.contentnegotiation.*
-import io.ktor.server.routing.*
-import oms.ufsi.api.healthRoutes
+import oms.ufsi.plugins.configureRouting
+import oms.ufsi.plugins.configureSerialization
 
 /**
  * Точка входу в серверний застосунок.
  *
  * Саме із цієї функції починається запуск backend-серва.
  */
+/**
+ * Точка входу в серверний застосунок.
+ *
+ * Основні параметри запуску (порт, модулі тощо)
+ * тепер зчитуються з application.yaml.
+ */
 fun main() {
 
-    // Створюємо HTTP-сервер на базі рушія Netty.
     embeddedServer(
         factory = Netty,
-        port = _root_ide_package_.oms.ufsi.SERVER_PORT,
-        host = "0.0.0.0",
 
-        // Після запуску Ktor викличе функцію module()
-        // і передасть їй об'єкт Application для налаштування застосунку.
+        /**
+         * Значення 0 означає:
+         * "використати конфігурацію з application.yaml".
+         *
+         * Якщо вказати конкретне число, воно матиме
+         * пріоритет над конфігураційним файлом.
+         */
+        port = 0,
+
+        host = "0.0.0.0",
         module = Application::module
     ).start(wait = true)
 }
@@ -39,13 +48,16 @@ fun main() {
  */
 fun Application.module() {
 
-    install(ContentNegotiation) {
-        json()
-    }
+    fun Application.module() {
 
-    routing {
+        /**
+         * Кожна функція налаштовує окрему підсистему Ktor.
+         *
+         * Такий підхід дозволяє не перевантажувати
+         * головний файл застосунку деталями реалізації.
+         */
+        configureSerialization()
 
-        // Реєструємо службові маршрути системи.
-        healthRoutes()
+        configureRouting()
     }
 }
