@@ -3,6 +3,7 @@ package oms.ufsi
 import io.ktor.server.application.*
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
+import oms.ufsi.plugins.configureErrorHandling
 import oms.ufsi.plugins.configureRouting
 import oms.ufsi.plugins.configureSerialization
 
@@ -48,16 +49,18 @@ fun main() {
  */
 fun Application.module() {
 
-    fun Application.module() {
+    /**
+     * Налаштовуємо підтримку JSON.
+     */
+    configureSerialization()
 
-        /**
-         * Кожна функція налаштовує окрему підсистему Ktor.
-         *
-         * Такий підхід дозволяє не перевантажувати
-         * головний файл застосунку деталями реалізації.
-         */
-        configureSerialization()
+    /**
+     * Налаштовуємо єдиний механізм обробки помилок.
+     */
+    configureErrorHandling()
 
-        configureRouting()
-    }
+    /**
+     * Реєструємо HTTP-маршрути застосунку.
+     */
+    configureRouting()
 }
