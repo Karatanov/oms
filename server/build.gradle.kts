@@ -19,10 +19,11 @@ dependencies {
     implementation(libs.logback)
     implementation(libs.ktor.serverCore)
     implementation(libs.ktor.serverNetty)
-    testImplementation(libs.ktor.serverTestHost)
-    testImplementation(libs.kotlin.testJunit)
+
+    // ... existing code ...
 
     implementation("io.ktor:ktor-server-content-negotiation")
     implementation("io.ktor:ktor-serialization-kotlinx-json")
     implementation("io.ktor:ktor-server-status-pages")
+    implementation("io.ktor:ktor-server-call-logging")
 }

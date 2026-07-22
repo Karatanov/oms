@@ -4,6 +4,7 @@ import io.ktor.server.application.*
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
 import oms.ufsi.plugins.configureErrorHandling
+import oms.ufsi.plugins.configureMonitoring
 import oms.ufsi.plugins.configureRouting
 import oms.ufsi.plugins.configureSerialization
 
@@ -48,6 +49,11 @@ fun main() {
  * - маршрути API.
  */
 fun Application.module() {
+
+    /**
+     * Налаштовуємо журналювання роботи сервера.
+     */
+    configureMonitoring()
 
     /**
      * Налаштовуємо підтримку JSON.
