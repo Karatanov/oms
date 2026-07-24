@@ -1,10 +1,7 @@
 package oms.ufsi
 
 import io.ktor.server.application.*
-import oms.ufsi.plugins.configureErrorHandling
-import oms.ufsi.plugins.configureMonitoring
-import oms.ufsi.plugins.configureRouting
-import oms.ufsi.plugins.configureSerialization
+import oms.ufsi.plugins.*
 
 /**
  * Точка входу в серверний застосунок.
@@ -50,6 +47,12 @@ fun Application.module() {
      * Налаштовуємо єдиний механізм обробки помилок.
      */
     configureErrorHandling()
+
+    /**
+     * Перевіряємо доступність бази даних
+     * під час запуску застосунку.
+     */
+    configureDatabase()
 
     /**
      * Реєструємо HTTP-маршрути застосунку.

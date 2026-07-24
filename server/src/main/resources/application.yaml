@@ -16,3 +16,12 @@ ktor:
     # після запуску HTTP-сервера.
     modules:
       - oms.ufsi.ApplicationKt.module
+
+database:
+
+  # JDBC-рядок підключення до локальної MySQL.
+  url: "jdbc:mysql://localhost:3306/usif"
+
+  # Облікові дані робочого користувача застосунку.
+  user: "root"
+  password: "root"
