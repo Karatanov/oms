@@ -1,11 +1,14 @@
 package oms.ufsi.domain
 
+import kotlinx.serialization.Serializable
+
 /**
  * Доменна модель ролі користувача.
  *
  * Доменні моделі описують предметну область
  * і не повинні залежати від деталей зберігання даних.
  */
+@Serializable
 data class Role(
 
     /**
