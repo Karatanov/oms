@@ -32,4 +32,5 @@ dependencies {
     implementation("org.jetbrains.exposed:exposed-jdbc:1.0.0")
     implementation("org.jetbrains.exposed:exposed-java-time:1.0.0")
     implementation("org.flywaydb:flyway-mysql:11.12.0")
+    implementation("com.zaxxer:HikariCP:6.3.0")
 }

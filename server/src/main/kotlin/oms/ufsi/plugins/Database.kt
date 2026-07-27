@@ -1,10 +1,10 @@
 package oms.ufsi.plugins
 
+import com.zaxxer.hikari.HikariConfig
+import com.zaxxer.hikari.HikariDataSource
 import io.ktor.server.application.*
-import oms.ufsi.database.tables.HealthChecksTable
 import org.flywaydb.core.Flyway
 import org.jetbrains.exposed.v1.jdbc.Database
-import org.jetbrains.exposed.v1.jdbc.SchemaUtils
 
 /**
  * Налаштовує роботу з базою даних.
@@ -14,47 +14,60 @@ fun Application.configureDatabase() {
     val url = environment.config.property("database.url").getString()
     val driver = environment.config.property("database.driver").getString()
     val user = environment.config.property("database.user").getString()
-    val password = environment.config.property("database.password").getString()
+    val dbPassword = environment.config.property("database.password").getString()
+
+    val maxPoolSize =
+        environment.config.property("database.pool.maxSize").getString().toInt()
+
+    val minIdle =
+        environment.config.property("database.pool.minIdle").getString().toInt()
 
     /**
-     * Спочатку виконуємо всі SQL-міграції.
+     * Спочатку оновлюємо структуру БД.
      *
-     * Після завершення роботи Flyway структура БД
-     * гарантовано відповідає поточній версії застосунку.
+     * Після завершення роботи Flyway застосунок
+     * гарантовано працює з актуальною схемою даних.
      */
     Flyway
         .configure()
-        .dataSource(url, user, password)
-        .baselineOnMigrate(true)
-        .baselineVersion("0")
-        .dataSource(url, user, password)
+        .dataSource(url, user, dbPassword)
         .load()
         .migrate()
 
     /**
-     * Реєструємо підключення Exposed.
-     *
-     * Надалі всі запити до БД виконуватимуться
-     * через цей механізм.
+     * Створюємо конфігурацію пулу з'єднань.
      */
-    Database.connect(
-        url = url,
-        driver = driver,
-        user = user,
-        password = password
-    )
+    val hikariConfig = HikariConfig().apply {
 
-    log.info("База даних успішно ініціалізована.")
-}
+        jdbcUrl = url
+        driverClassName = driver
 
-/**
- * Створює службові таблиці застосунку.
- */
-private fun createSchema() {
+        username = user
+        password = dbPassword
+
+        maximumPoolSize = maxPoolSize
+        minimumIdle = minIdle
+
+        /**
+         * Ім'я пулу, яке буде видно в логах
+         * та інструментах моніторингу.
+         */
+        poolName = "USIF-Pool"
+    }
 
     /**
-     * Якщо таблиця вже існує,
-     * Exposed не буде створювати її повторно.
+     * Створюємо пул з'єднань.
      */
-    SchemaUtils.create(HealthChecksTable)
+    val dataSource = HikariDataSource(hikariConfig)
+
+    /**
+     * Exposed працює не напряму з MySQL,
+     * а через пул HikariCP.
+     *
+     * Саме пул відповідає за повторне використання
+     * та життєвий цикл фізичних з'єднань.
+     */
+    Database.connect(dataSource)
+
+    log.info("База даних успішно ініціалізована.")
 }
