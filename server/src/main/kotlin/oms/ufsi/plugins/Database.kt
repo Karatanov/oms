@@ -2,9 +2,9 @@ package oms.ufsi.plugins
 
 import io.ktor.server.application.*
 import oms.ufsi.database.tables.HealthChecksTable
+import org.flywaydb.core.Flyway
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.SchemaUtils
-import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 
 /**
  * Налаштовує роботу з базою даних.
@@ -17,7 +17,25 @@ fun Application.configureDatabase() {
     val password = environment.config.property("database.password").getString()
 
     /**
-     * Реєструємо підключення до MySQL.
+     * Спочатку виконуємо всі SQL-міграції.
+     *
+     * Після завершення роботи Flyway структура БД
+     * гарантовано відповідає поточній версії застосунку.
+     */
+    Flyway
+        .configure()
+        .dataSource(url, user, password)
+        .baselineOnMigrate(true)
+        .baselineVersion("0")
+        .dataSource(url, user, password)
+        .load()
+        .migrate()
+
+    /**
+     * Реєструємо підключення Exposed.
+     *
+     * Надалі всі запити до БД виконуватимуться
+     * через цей механізм.
      */
     Database.connect(
         url = url,
@@ -25,16 +43,6 @@ fun Application.configureDatabase() {
         user = user,
         password = password
     )
-
-    /**
-     * Виконуємо службові дії в транзакції.
-     *
-     * Будь-яка зміна даних або структури БД
-     * в Exposed повинна виконуватися всередині transaction {}.
-     */
-    transaction {
-        createSchema()
-    }
 
     log.info("База даних успішно ініціалізована.")
 }

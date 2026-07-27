@@ -1,5 +1,14 @@
 package oms.ufsi.database.tables
 
+/**
+ * Навчальний приклад опису таблиці через Exposed.
+ *
+ * Реальне створення таблиць виконується Flyway-міграціями.
+ *
+ * Файл буде видалено після появи перших
+ * бізнес-сутностей системи.
+ */
+
 import org.jetbrains.exposed.v1.core.dao.id.LongIdTable
 import org.jetbrains.exposed.v1.javatime.timestamp
 
