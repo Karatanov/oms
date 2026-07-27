@@ -21,7 +21,8 @@ database:
 
   # JDBC-рядок підключення до локальної MySQL.
   url: "jdbc:mysql://localhost:3306/usif"
-
+  # JDBC-драйвер MySQL.
+  driver: "com.mysql.cj.jdbc.Driver"
   # Облікові дані робочого користувача застосунку.
   user: "root"
   password: "root"
