@@ -19,4 +19,11 @@ interface RoleRepository {
      * Повертає всі ролі системи.
      */
     fun findAll(): List<Role>
+
+    /**
+     * Повертає роль за її системним кодом.
+     *
+     * Якщо роль не знайдена, повертається null.
+     */
+    fun findByCode(code: String): Role?
 }

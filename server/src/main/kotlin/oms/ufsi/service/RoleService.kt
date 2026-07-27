@@ -30,4 +30,14 @@ class RoleService(
 
         return roleRepository.findAll()
     }
+
+    /**
+     * Повертає роль за її системним кодом.
+     *
+     * Якщо роль не знайдена, повертається null.
+     */
+    fun getRoleByCode(code: String): Role? {
+
+        return roleRepository.findByCode(code)
+    }
 }
