@@ -36,3 +36,16 @@ CREATE TABLE users
         FOREIGN KEY (role_id)
             REFERENCES roles (id)
 );
+/*
+ * Початковий адміністратор системи.
+ */
+INSERT INTO users (username,
+                   email,
+                   password,
+                   role_id)
+VALUES ('admin',
+        'admin@usif.local',
+        'admin',
+        (SELECT id
+         FROM roles
+         WHERE code = 'ADMIN'));
