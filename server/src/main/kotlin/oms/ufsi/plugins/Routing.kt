@@ -4,6 +4,7 @@ import io.ktor.server.application.*
 import io.ktor.server.routing.*
 import oms.ufsi.api.healthRoutes
 import oms.ufsi.api.roleRoutes
+import oms.ufsi.api.userRoutes
 
 /**
  * Реєструє всі HTTP-маршрути застосунку.
@@ -24,5 +25,8 @@ fun Application.configureRouting() {
 
         // Маршрути роботи з ролями.
         roleRoutes()
+
+        // Маршрути роботи з користувачами.
+        userRoutes()
     }
 }

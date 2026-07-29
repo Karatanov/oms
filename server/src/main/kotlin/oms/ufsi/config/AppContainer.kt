@@ -1,8 +1,11 @@
 package oms.ufsi.config
 
 import oms.ufsi.repository.ExposedRoleRepository
+import oms.ufsi.repository.ExposedUserRepository
 import oms.ufsi.repository.RoleRepository
+import oms.ufsi.repository.UserRepository
 import oms.ufsi.service.RoleService
+import oms.ufsi.service.UserService
 
 /**
  * Найпростіший контейнер залежностей застосунку.
@@ -23,4 +26,16 @@ object AppContainer {
      */
     val roleService =
         RoleService(roleRepository)
+
+    /**
+     * Шар доступу до користувачів.
+     */
+    val userRepository: UserRepository =
+        ExposedUserRepository()
+
+    /**
+     * Бізнес-логіка роботи з користувачами.
+     */
+    val userService =
+        UserService(userRepository)
 }

@@ -1,11 +1,14 @@
 package oms.ufsi.domain
 
+import kotlinx.serialization.Serializable
+
 /**
  * Доменна модель користувача.
  *
  * Доменна модель не повинна залежати
  * від способу зберігання даних.
  */
+@Serializable
 data class User(
 
     /**
@@ -24,7 +27,11 @@ data class User(
     val email: String,
 
     /**
-     * Роль користувача.
+     * Повна інформація про роль користувача.
+     *
+     * Ми навмисно повертаємо не roleId,
+     * а готовий доменний об'єкт, щоб API
+     * було зручніше використовувати клієнтам.
      */
     val role: Role
 )
