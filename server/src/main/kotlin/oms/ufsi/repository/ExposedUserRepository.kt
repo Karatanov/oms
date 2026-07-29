@@ -31,6 +31,42 @@ class ExposedUserRepository : UserRepository {
 
                     email = row[UserTable.email],
 
+                    passwordHash = row[UserTable.password],
+
+                    role = Role(
+                        id = row[RoleTable.id].value,
+                        code = row[RoleTable.code],
+                        name = row[RoleTable.name]
+                    )
+                )
+            }
+    }
+
+    /**
+     * Виконує пошук користувача за логіном.
+     */
+    override fun findByUsername(
+        username: String
+    ): User? = transaction {
+
+        UserTable
+            .innerJoin(RoleTable)
+            .selectAll()
+            .firstOrNull { row ->
+
+                row[UserTable.username] == username
+            }
+            ?.let { row ->
+
+                User(
+                    id = row[UserTable.id].value,
+
+                    username = row[UserTable.username],
+
+                    email = row[UserTable.email],
+
+                    passwordHash = row[UserTable.password],
+
                     role = Role(
                         id = row[RoleTable.id].value,
                         code = row[RoleTable.code],
@@ -67,8 +103,12 @@ class ExposedUserRepository : UserRepository {
 
         User(
             id = userId.value,
+
             username = username,
+
             email = email,
+
+            passwordHash = password,
 
             role = Role(
                 id = role[RoleTable.id].value,

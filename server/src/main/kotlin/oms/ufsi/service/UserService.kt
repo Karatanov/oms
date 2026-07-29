@@ -2,6 +2,7 @@ package oms.ufsi.service
 
 import oms.ufsi.domain.User
 import oms.ufsi.repository.UserRepository
+import oms.ufsi.security.PasswordHasher
 
 /**
  * Сервіс роботи з користувачами.
@@ -40,7 +41,13 @@ class UserService(
             email = email,
             password = password
         )
-        
+        /**
+         * Пароль ніколи не передається
+         * до репозиторію у відкритому вигляді.
+         */
+        val passwordHash =
+            PasswordHasher.hash(password)
+
         val role = roleService.getRoleByCode(roleCode)
             ?: throw IllegalArgumentException(
                 "Роль '$roleCode' не існує."
@@ -49,7 +56,7 @@ class UserService(
         return userRepository.create(
             username = username,
             email = email,
-            password = password,
+            password = passwordHash,
             roleId = role.id
         )
     }

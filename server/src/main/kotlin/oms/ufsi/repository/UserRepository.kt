@@ -21,4 +21,12 @@ interface UserRepository {
         password: String,
         roleId: Long
     ): User
+
+    /**
+     * Повертає користувача за логіном.
+     *
+     * Якщо користувача не знайдено,
+     * повертається null.
+     */
+    fun findByUsername(username: String): User?
 }
