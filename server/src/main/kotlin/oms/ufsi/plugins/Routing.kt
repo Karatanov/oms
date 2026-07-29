@@ -32,5 +32,7 @@ fun Application.configureRouting() {
 
         // Маршрути роботи з проєктами.
         projectRoutes()
+
+        inspectionRoutes()
     }
 }

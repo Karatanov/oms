@@ -5,3 +5,35 @@ Content-Type: application/json
   "username": "admin",
   "password": "password"
 }
+
+### Create an inspection finding (replace report UUID first)
+POST http://localhost:8080/api/v1/inspection-reports/{{reportUuid}}/findings
+Content-Type: application/json
+
+{
+  "category": "safety",
+  "severity": "high",
+  "description": "Temporary edge protection is missing on the second floor.",
+  "recommendation": "Install compliant guardrails before continuing work."
+}
+
+### List findings for an inspection report
+GET http://localhost:8080/api/v1/inspection-reports/{{reportUuid}}/findings
+
+### Get one finding (replace finding UUID first)
+GET http://localhost:8080/api/v1/inspection-reports/{{reportUuid}}/findings/{{findingUuid}}
+
+### Update a finding
+PUT http://localhost:8080/api/v1/inspection-reports/{{reportUuid}}/findings/{{findingUuid}}
+Content-Type: application/json
+
+{
+  "category": "safety",
+  "severity": "medium",
+  "description": "Guardrails have been installed; final fastening inspection remains.",
+  "recommendation": "Verify the fasteners and close the finding.",
+  "isResolved": false
+}
+
+### Delete a finding
+DELETE http://localhost:8080/api/v1/inspection-reports/{{reportUuid}}/findings/{{findingUuid}}

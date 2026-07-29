@@ -31,7 +31,9 @@ fun main(args: Array<String>) {
  * 3. Обробка помилок.
  * 4. Реєстрація HTTP-маршрутів.
  */
-fun Application.module() {
+fun Application.module(
+    configureDatabase: Boolean = true
+) {
 
     /**
      * Налаштовуємо журналювання роботи сервера.
@@ -52,7 +54,9 @@ fun Application.module() {
      * Перевіряємо доступність бази даних
      * під час запуску застосунку.
      */
-    configureDatabase()
+    if (configureDatabase) {
+        configureDatabase()
+    }
 
     /**
      * Реєструємо HTTP-маршрути застосунку.

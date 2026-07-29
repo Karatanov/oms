@@ -176,4 +176,148 @@ fun Route.projectRoutes() {
             )
         )
     }
+
+    /**
+     * Повертає всі інспекції проєкту.
+     */
+    get(
+        "/api/v1/projects/{uuid}/inspection-reports"
+    ) {
+
+        val uuid =
+            call.parameters["uuid"]
+                ?: return@get call.respond(
+                    HttpStatusCode.BadRequest,
+
+                    ErrorResponse(
+                        error = "VALIDATION_ERROR",
+                        message =
+                            "UUID проєкту відсутній."
+                    )
+                )
+
+        val project =
+            projectService.getProjectByUuid(
+                uuid
+            )
+
+        if (project == null) {
+
+            call.respond(
+                HttpStatusCode.NotFound,
+
+                ErrorResponse(
+                    error = "NOT_FOUND",
+                    message =
+                        "Проєкт не знайдено."
+                )
+            )
+
+            return@get
+        }
+
+        val reports =
+            AppContainer
+                .inspectionReportService
+                .getProjectReports(
+                    project.id
+                )
+
+        call.respond(
+
+            reports.map {
+
+                it.toResponse()
+            }
+        )
+    }
+
+    /**
+     * Створює новий звіт інспекції.
+     */
+    post(
+        "/api/v1/projects/{uuid}/inspection-reports"
+    ) {
+
+        val uuid =
+            call.parameters["uuid"]
+                ?: return@post call.respond(
+                    HttpStatusCode.BadRequest,
+
+                    ErrorResponse(
+                        error = "VALIDATION_ERROR",
+                        message =
+                            "UUID проєкту відсутній."
+                    )
+                )
+
+        val project =
+            projectService.getProjectByUuid(
+                uuid
+            )
+
+        if (project == null) {
+
+            call.respond(
+                HttpStatusCode.NotFound,
+
+                ErrorResponse(
+                    error = "NOT_FOUND",
+                    message =
+                        "Проєкт не знайдено."
+                )
+            )
+
+            return@post
+        }
+
+        val request =
+            call.receive<
+                    CreateInspectionReportRequest
+                    >()
+
+        try {
+
+            val report =
+                AppContainer
+                    .inspectionReportService
+                    .createReport(
+
+                        projectId =
+                            project.id,
+
+                        inspectionDate =
+                            request.inspectionDate,
+
+                        completionPct =
+                            request.completionPct,
+
+                        summary =
+                            request.summary
+                    )
+
+            call.respond(
+                HttpStatusCode.Created,
+
+                report.toResponse()
+            )
+
+        } catch (
+            exception: IllegalArgumentException
+        ) {
+
+            call.respond(
+
+                HttpStatusCode.BadRequest,
+
+                ErrorResponse(
+                    error = "VALIDATION_ERROR",
+
+                    message =
+                        exception.message
+                            ?: "Помилка створення інспекції."
+                )
+            )
+        }
+    }
 }

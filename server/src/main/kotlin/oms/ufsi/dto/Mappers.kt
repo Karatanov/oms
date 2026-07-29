@@ -8,9 +8,7 @@ package oms.ufsi.dto
  *
  * Саме DTO визначають зовнішній контракт API.
  */
-import oms.ufsi.domain.Project
-import oms.ufsi.domain.Role
-import oms.ufsi.domain.User
+import oms.ufsi.domain.*
 
 /**
  * Перетворення доменних моделей у DTO.
@@ -103,5 +101,57 @@ fun Project.toResponse(): ProjectResponse {
 
         contractorName =
             contractorName
+    )
+}
+
+/**
+ * Перетворює доменну модель
+ * інспекції у DTO.
+ */
+fun InspectionReport.toResponse():
+        InspectionReportResponse {
+
+    return InspectionReportResponse(
+
+        uuid =
+            uuid.toString(),
+
+        inspectionDate =
+            inspectionDate.toString(),
+
+        completionPct =
+            completionPct,
+
+        summary =
+            summary
+    )
+}
+
+/**
+ * Перетворює доменну модель
+ * зауваження у DTO.
+ */
+fun InspectionFinding.toResponse():
+        InspectionFindingResponse {
+
+    return InspectionFindingResponse(
+
+        uuid =
+            uuid.toString(),
+
+        category =
+            category,
+
+        severity =
+            severity.name.lowercase(),
+
+        description =
+            description,
+
+        recommendation =
+            recommendation,
+
+        isResolved =
+            isResolved
     )
 }

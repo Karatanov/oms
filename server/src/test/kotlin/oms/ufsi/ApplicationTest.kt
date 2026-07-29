@@ -12,10 +12,10 @@ class ApplicationTest {
     @Test
     fun testRoot() = testApplication {
         application {
-            module()
+            module(configureDatabase = false)
         }
         val response = client.get("/")
         assertEquals(HttpStatusCode.OK, response.status)
-        assertEquals("Ktor: ${_root_ide_package_.oms.ufsi.Greeting().greet()}", response.bodyAsText())
+        assertEquals("OMS backend is running", response.bodyAsText())
     }
 }

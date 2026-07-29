@@ -1,10 +1,8 @@
 package oms.ufsi.config
 
 import oms.ufsi.repository.*
-import oms.ufsi.service.AuthService
-import oms.ufsi.service.ProjectService
-import oms.ufsi.service.RoleService
-import oms.ufsi.service.UserService
+import oms.ufsi.service.*
+import oms.ufsi.service.InspectionFindingService
 
 /**
  * Найпростіший контейнер залежностей застосунку.
@@ -58,4 +56,35 @@ object AppContainer {
      */
     val projectService =
         ProjectService(projectRepository)
+
+    /**
+     * Репозиторій інспекцій.
+     */
+    val inspectionReportRepository:
+            InspectionReportRepository =
+        ExposedInspectionReportRepository()
+
+    /**
+     * Сервіс роботи з інспекціями.
+     */
+    val inspectionReportService =
+        InspectionReportService(
+            inspectionReportRepository
+        )
+
+    /**
+     * Репозиторій зауважень інспекцій.
+     */
+    val inspectionFindingRepository:
+            InspectionFindingRepository =
+        ExposedInspectionFindingRepository()
+
+    /**
+     * Сервіс роботи
+     * із зауваженнями інспекцій.
+     */
+    val inspectionFindingService =
+        InspectionFindingService(
+            inspectionFindingRepository
+        )
 }
