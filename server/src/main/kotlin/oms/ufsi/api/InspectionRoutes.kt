@@ -72,6 +72,45 @@ fun Route.inspectionRoutes() {
             call.respond(HttpStatusCode.NoContent)
         }
     }
+
+    route("/api/v1/inspection-reports/{reportUuid}") {
+        put {
+            val reportUuid = call.parameters["reportUuid"] ?: return@put call.notFound("Inspection report not found.")
+            val request = call.receive<UpdateInspectionReportRequest>()
+            try {
+                val report = AppContainer.inspectionReportService.updateReport(
+                    reportUuid, request.inspectionDate, request.completionPct, request.summary
+                ) ?: return@put call.notFound("Inspection report not found.")
+                call.respond(report.toResponse())
+            } catch (exception: IllegalArgumentException) {
+                call.validationError(exception)
+            }
+        }
+
+        post("submit") {
+            val reportUuid = call.parameters["reportUuid"] ?: return@post call.notFound("Inspection report not found.")
+            try {
+                val report = AppContainer.inspectionReportService.submitReport(reportUuid)
+                    ?: return@post call.notFound("Inspection report not found.")
+                call.respond(report.toResponse())
+            } catch (exception: IllegalArgumentException) {
+                call.validationError(exception)
+            }
+        }
+
+        post("review") {
+            val reportUuid = call.parameters["reportUuid"] ?: return@post call.notFound("Inspection report not found.")
+            val request = call.receive<ReviewInspectionReportRequest>()
+            try {
+                val report = AppContainer.inspectionReportService.reviewReport(
+                    reportUuid, request.action, request.rejectionReason
+                ) ?: return@post call.notFound("Inspection report not found.")
+                call.respond(report.toResponse())
+            } catch (exception: IllegalArgumentException) {
+                call.validationError(exception)
+            }
+        }
+    }
 }
 
 private suspend fun ApplicationCall.findReport() =

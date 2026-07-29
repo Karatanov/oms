@@ -4,6 +4,7 @@ package oms.ufsi.database.tables
 import org.jetbrains.exposed.v1.core.ReferenceOption
 import org.jetbrains.exposed.v1.core.dao.id.LongIdTable
 import org.jetbrains.exposed.v1.javatime.date
+import org.jetbrains.exposed.v1.javatime.datetime
 
 /**
  * Опис таблиці inspection_reports
@@ -61,4 +62,12 @@ object InspectionReportTable :
             foreign = UserTable,
             onDelete = ReferenceOption.RESTRICT
         )
+
+    val status = varchar("status", 20)
+
+    val rejectionReason = text("rejection_reason").nullable()
+
+    val submittedAt = datetime("submitted_at").nullable()
+
+    val reviewedAt = datetime("reviewed_at").nullable()
 }

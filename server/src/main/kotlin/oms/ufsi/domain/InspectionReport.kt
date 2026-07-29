@@ -41,6 +41,10 @@ data class InspectionReport(
      */
     val summary: String?,
 
+    val status: InspectionReportStatus,
+
+    val rejectionReason: String?,
+
     /**
      * Автор звіту.
      */

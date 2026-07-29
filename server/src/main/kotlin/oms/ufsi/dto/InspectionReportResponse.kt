@@ -26,5 +26,9 @@ data class InspectionReportResponse(
     /**
      * Короткий підсумок.
      */
-    val summary: String?
+    val summary: String?,
+
+    val status: String,
+
+    val rejectionReason: String?
 )

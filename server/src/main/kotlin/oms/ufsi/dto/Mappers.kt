@@ -123,7 +123,13 @@ fun InspectionReport.toResponse():
             completionPct,
 
         summary =
-            summary
+            summary,
+
+        status =
+            status.name.lowercase(),
+
+        rejectionReason =
+            rejectionReason
     )
 }
 

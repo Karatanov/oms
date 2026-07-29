@@ -32,4 +32,17 @@ interface InspectionReportRepository {
         summary: String?,
         createdBy: Long
     ): InspectionReport
+
+    fun update(
+        uuid: String,
+        inspectionDate: String,
+        completionPct: Double,
+        summary: String?
+    ): InspectionReport?
+
+    fun changeStatus(
+        uuid: String,
+        status: String,
+        rejectionReason: String?
+    ): InspectionReport?
 }

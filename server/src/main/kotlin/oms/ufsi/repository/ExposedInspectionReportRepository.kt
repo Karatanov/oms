@@ -3,11 +3,13 @@ package oms.ufsi.repository
 import java.time.LocalDate
 import oms.ufsi.database.tables.InspectionReportTable
 import oms.ufsi.domain.InspectionReport
+import oms.ufsi.domain.InspectionReportStatus
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.insertAndGetId
 import org.jetbrains.exposed.v1.jdbc.select
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
+import org.jetbrains.exposed.v1.jdbc.update
 import java.util.*
 
 /**
@@ -64,6 +66,12 @@ class ExposedInspectionReportRepository :
                         row[
                             InspectionReportTable.summary
                         ],
+
+                    status = InspectionReportStatus.valueOf(
+                        row[InspectionReportTable.status].uppercase()
+                    ),
+
+                    rejectionReason = row[InspectionReportTable.rejectionReason],
 
                     createdBy =
                         row[
@@ -123,6 +131,12 @@ class ExposedInspectionReportRepository :
                             InspectionReportTable.summary
                         ],
 
+                    status = InspectionReportStatus.valueOf(
+                        row[InspectionReportTable.status].uppercase()
+                    ),
+
+                    rejectionReason = row[InspectionReportTable.rejectionReason],
+
                     createdBy =
                         row[
                             InspectionReportTable.createdBy
@@ -167,6 +181,8 @@ class ExposedInspectionReportRepository :
 
                     it[this.createdBy] =
                         createdBy
+
+                    it[status] = "draft"
                 }
 
         InspectionReport(
@@ -186,7 +202,44 @@ class ExposedInspectionReportRepository :
 
             summary = summary,
 
+            status = InspectionReportStatus.DRAFT,
+
+            rejectionReason = null,
+
             createdBy = createdBy
         )
+    }
+
+    override fun update(
+        uuid: String,
+        inspectionDate: String,
+        completionPct: Double,
+        summary: String?
+    ): InspectionReport? = transaction {
+        val count = InspectionReportTable.update({ InspectionReportTable.uuid eq uuid }) {
+            it[this.inspectionDate] = LocalDate.parse(inspectionDate)
+            it[this.completionPct] = completionPct.toBigDecimal()
+            it[this.summary] = summary
+        }
+        if (count == 0) null else findByUuid(uuid)
+    }
+
+    override fun changeStatus(
+        uuid: String,
+        status: String,
+        rejectionReason: String?
+    ): InspectionReport? = transaction {
+        val now = java.time.LocalDateTime.now()
+        val count = InspectionReportTable.update({ InspectionReportTable.uuid eq uuid }) {
+            it[InspectionReportTable.status] = status
+            it[this.rejectionReason] = rejectionReason
+            if (status == "pending_review") {
+                it[this.submittedAt] = now
+            }
+            if (status == "completed") {
+                it[this.reviewedAt] = now
+            }
+        }
+        if (count == 0) null else findByUuid(uuid)
     }
 }
