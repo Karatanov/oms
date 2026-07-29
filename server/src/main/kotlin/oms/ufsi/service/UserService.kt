@@ -31,7 +31,16 @@ class UserService(
         password: String,
         roleCode: String
     ): User {
-
+        /**
+         * Спочатку перевіряємо коректність
+         * отриманих від клієнта даних.
+         */
+        validateUserData(
+            username = username,
+            email = email,
+            password = password
+        )
+        
         val role = roleService.getRoleByCode(roleCode)
             ?: throw IllegalArgumentException(
                 "Роль '$roleCode' не існує."
@@ -43,5 +52,48 @@ class UserService(
             password = password,
             roleId = role.id
         )
+    }
+
+    /**
+     * Перевіряє коректність даних нового користувача.
+     *
+     * Якщо будь-яка перевірка не проходить,
+     * генерується виняток IllegalArgumentException.
+     */
+    private fun validateUserData(
+        username: String,
+        email: String,
+        password: String
+    ) {
+
+        if (username.isBlank()) {
+            throw IllegalArgumentException(
+                "Логін користувача не може бути порожнім."
+            )
+        }
+
+        if (username.length < 3) {
+            throw IllegalArgumentException(
+                "Логін повинен містити щонайменше 3 символи."
+            )
+        }
+
+        if (email.isBlank()) {
+            throw IllegalArgumentException(
+                "Email не може бути порожнім."
+            )
+        }
+
+        if ('@' !in email) {
+            throw IllegalArgumentException(
+                "Некоректний формат email."
+            )
+        }
+
+        if (password.length < 5) {
+            throw IllegalArgumentException(
+                "Пароль повинен містити щонайменше 5 символів."
+            )
+        }
     }
 }
