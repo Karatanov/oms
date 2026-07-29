@@ -27,6 +27,7 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import oms.ufsi.config.AppContainer
 import oms.ufsi.dto.ErrorResponse
+import oms.ufsi.dto.toResponse
 
 /**
  * Маршрути для роботи з ролями користувачів.
@@ -44,7 +45,12 @@ fun Route.roleRoutes() {
     get("/api/v1/roles") {
 
         call.respond(
-            roleService.getAllRoles()
+            roleService
+                .getAllRoles()
+                .map { role ->
+
+                    role.toResponse()
+                }
         )
     }
     /**
@@ -85,6 +91,8 @@ fun Route.roleRoutes() {
             return@get
         }
 
-        call.respond(role)
+        call.respond(
+            role.toResponse()
+        )
     }
 }

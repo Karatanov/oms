@@ -37,5 +37,8 @@ object AppContainer {
      * Бізнес-логіка роботи з користувачами.
      */
     val userService =
-        UserService(userRepository)
+        UserService(
+            userRepository,
+            roleService
+        )
 }
