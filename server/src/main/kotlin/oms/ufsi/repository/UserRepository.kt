@@ -29,4 +29,20 @@ interface UserRepository {
      * повертається null.
      */
     fun findByUsername(username: String): User?
+
+    /**
+     * Перевіряє існування користувача
+     * з указаним логіном.
+     */
+    fun existsByUsername(
+        username: String
+    ): Boolean
+
+    /**
+     * Перевіряє існування користувача
+     * з указаною електронною поштою.
+     */
+    fun existsByEmail(
+        email: String
+    ): Boolean
 }

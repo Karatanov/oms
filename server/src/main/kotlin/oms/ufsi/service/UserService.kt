@@ -24,6 +24,18 @@ class UserService(
     }
 
     /**
+     * Повертає користувача за логіном.
+     */
+    fun findByUsername(
+        username: String
+    ): User? {
+
+        return userRepository.findByUsername(
+            username.trim()
+        )
+    }
+
+    /**
      * Створює нового користувача.
      */
     fun createUser(
@@ -41,6 +53,26 @@ class UserService(
             email = email,
             password = password
         )
+
+        /**
+         * Логін користувача повинен бути унікальним.
+         */
+        if (userRepository.existsByUsername(username)) {
+
+            throw IllegalArgumentException(
+                "Користувач з таким логіном вже існує."
+            )
+        }
+
+        /**
+         * Email також повинен бути унікальним.
+         */
+        if (userRepository.existsByEmail(email)) {
+
+            throw IllegalArgumentException(
+                "Користувач з таким email вже існує."
+            )
+        }
         /**
          * Пароль ніколи не передається
          * до репозиторію у відкритому вигляді.
@@ -103,4 +135,6 @@ class UserService(
             )
         }
     }
+
+
 }

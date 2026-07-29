@@ -8,6 +8,7 @@ package oms.ufsi.dto
  *
  * Саме DTO визначають зовнішній контракт API.
  */
+import oms.ufsi.domain.Project
 import oms.ufsi.domain.Role
 import oms.ufsi.domain.User
 
@@ -41,5 +42,66 @@ fun User.toResponse(): UserResponse {
         username = username,
         email = email,
         role = role.toResponse()
+    )
+}
+
+/**
+ * Перетворює доменну модель проєкту
+ * у DTO-відповідь REST API.
+ */
+fun Project.toResponse(): ProjectResponse {
+
+    return ProjectResponse(
+
+        uuid =
+            uuid.toString(),
+
+        projectType =
+            projectType.name.lowercase(),
+
+        parentProjectId =
+            parentProjectId,
+
+        name =
+            name,
+
+        siteName =
+            siteName,
+
+        siteNumber =
+            siteNumber,
+
+        address =
+            address,
+
+        region =
+            region,
+
+        city =
+            city,
+
+        latitude =
+            latitude,
+
+        longitude =
+            longitude,
+
+        status =
+            status.name.lowercase(),
+
+        sector =
+            sector,
+
+        constructionType =
+            constructionType,
+
+        budgetPlanned =
+            budgetPlanned,
+
+        currency =
+            currency,
+
+        contractorName =
+            contractorName
     )
 }

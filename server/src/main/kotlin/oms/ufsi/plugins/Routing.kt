@@ -2,9 +2,7 @@ package oms.ufsi.plugins
 
 import io.ktor.server.application.*
 import io.ktor.server.routing.*
-import oms.ufsi.api.healthRoutes
-import oms.ufsi.api.roleRoutes
-import oms.ufsi.api.userRoutes
+import oms.ufsi.api.*
 
 /**
  * Реєструє всі HTTP-маршрути застосунку.
@@ -28,5 +26,11 @@ fun Application.configureRouting() {
 
         // Маршрути роботи з користувачами.
         userRoutes()
+
+        // Маршрути автентифікації.
+        authRoutes()
+
+        // Маршрути роботи з проєктами.
+        projectRoutes()
     }
 }

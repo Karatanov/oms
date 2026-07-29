@@ -1,9 +1,8 @@
 package oms.ufsi.config
 
-import oms.ufsi.repository.ExposedRoleRepository
-import oms.ufsi.repository.ExposedUserRepository
-import oms.ufsi.repository.RoleRepository
-import oms.ufsi.repository.UserRepository
+import oms.ufsi.repository.*
+import oms.ufsi.service.AuthService
+import oms.ufsi.service.ProjectService
 import oms.ufsi.service.RoleService
 import oms.ufsi.service.UserService
 
@@ -41,4 +40,22 @@ object AppContainer {
             userRepository,
             roleService
         )
+
+    /**
+     * Сервіс автентифікації користувачів.
+     */
+    val authService =
+        AuthService(userService)
+
+    /**
+     * Репозиторій проєктів.
+     */
+    val projectRepository: ProjectRepository =
+        ExposedProjectRepository()
+
+    /**
+     * Бізнес-логіка роботи з проєктами.
+     */
+    val projectService =
+        ProjectService(projectRepository)
 }

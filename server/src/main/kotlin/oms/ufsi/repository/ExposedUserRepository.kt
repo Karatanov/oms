@@ -116,5 +116,38 @@ class ExposedUserRepository : UserRepository {
                 name = role[RoleTable.name]
             )
         )
+
+    }
+
+    /**
+     * Перевіряє наявність користувача
+     * з указаним логіном.
+     */
+    override fun existsByUsername(
+        username: String
+    ): Boolean = transaction {
+
+        UserTable
+            .selectAll()
+            .any { row ->
+
+                row[UserTable.username] == username
+            }
+    }
+
+    /**
+     * Перевіряє наявність користувача
+     * з указаною електронною поштою.
+     */
+    override fun existsByEmail(
+        email: String
+    ): Boolean = transaction {
+
+        UserTable
+            .selectAll()
+            .any { row ->
+
+                row[UserTable.email] == email
+            }
     }
 }
