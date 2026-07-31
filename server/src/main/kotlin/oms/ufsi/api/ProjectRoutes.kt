@@ -160,19 +160,9 @@ fun Route.projectRoutes() {
                 data =
                     project.toResponse(),
 
-                financialSummary =
-                    FinancialSummaryResponse(
-
-                        budgetPlanned =
-                            project.budgetPlanned,
-
-                        amountSpent = 0,
-
-                        budgetRemaining =
-                            project.budgetPlanned,
-
-                        completionPct = 0.0
-                    )
+                financialSummary = AppContainer.financialRecordService.summary(project).let {
+                    FinancialSummaryResponse(it.budgetPlanned, it.amountSpent, it.budgetRemaining, it.completionPct)
+                }
             )
         )
     }

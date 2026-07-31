@@ -34,5 +34,7 @@ fun Application.configureRouting() {
         projectRoutes()
 
         inspectionRoutes()
+
+        financialRoutes()
     }
 }

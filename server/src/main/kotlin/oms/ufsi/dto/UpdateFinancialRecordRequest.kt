@@ -1,0 +1,10 @@
+package oms.ufsi.dto
+
+import kotlinx.serialization.Serializable
+
+@Serializable
+data class UpdateFinancialRecordRequest(
+    val recordType: String, val referenceNumber: String, val amount: Long,
+    val currency: String = "UAH", val recordDate: String, val paymentDate: String? = null,
+    val description: String? = null, val milestone: String? = null
+)

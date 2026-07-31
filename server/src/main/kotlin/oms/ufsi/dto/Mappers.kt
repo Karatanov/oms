@@ -161,3 +161,5 @@ fun InspectionFinding.toResponse():
             isResolved
     )
 }
+
+fun FinancialRecord.toResponse() = FinancialRecordResponse(uuid.toString(), recordType.name.lowercase(), referenceNumber, amount, currency, recordDate.toString(), paymentDate?.toString(), description, milestone)

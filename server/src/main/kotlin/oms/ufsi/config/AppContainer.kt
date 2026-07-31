@@ -87,4 +87,7 @@ object AppContainer {
         InspectionFindingService(
             inspectionFindingRepository
         )
+
+    val financialRecordRepository: FinancialRecordRepository = ExposedFinancialRecordRepository()
+    val financialRecordService = FinancialRecordService(financialRecordRepository)
 }
