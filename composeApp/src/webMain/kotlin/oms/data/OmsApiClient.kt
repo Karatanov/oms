@@ -109,4 +109,14 @@ data class ApiProjectDocument(val uuid: String, val docType: String, val fileNam
 data class ApiFinancialRecords(val data: List<ApiFinancialRecord>, val summary: ApiFinancialSummary)
 
 @Serializable
-data class ApiFinancialRecord(val uuid: String, val recordType: String, val referenceNumber: String, val amount: Long, val currency: String, val recordDate: String)
+data class ApiFinancialRecord(
+    val uuid: String,
+    val recordType: String,
+    val referenceNumber: String,
+    val amount: Long,
+    val currency: String,
+    val recordDate: String,
+    val paymentDate: String? = null,
+    val description: String? = null,
+    val milestone: String? = null
+)

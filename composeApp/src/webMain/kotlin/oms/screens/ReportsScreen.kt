@@ -38,17 +38,37 @@ fun ReportsScreen(onNewInspection: () -> Unit = {}) {
             }
         }
         Card(Modifier.fillMaxWidth()) {
-            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                ReportTableHeader()
+                HorizontalDivider()
                 if (visible.isEmpty()) Text("No inspection reports found.")
                 visible.forEach { row ->
-                    Column {
-                        Text(row.report.summary ?: "Inspection report", style = MaterialTheme.typography.titleMedium)
-                        Text("${row.projectName} • ${row.report.inspectionDate} • ${row.report.completionPct}% • ${row.report.status}")
-                        Text(row.report.uuid, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                        Text(row.report.inspectionDate, Modifier.width(105.dp))
+                        Column(Modifier.weight(1.35f)) {
+                            Text(row.report.summary ?: "Inspection report", style = MaterialTheme.typography.bodyMedium)
+                            Text(row.projectName, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        Text("${row.report.completionPct}%", Modifier.width(85.dp))
+                        Text(row.report.status.replace('_', ' '), Modifier.width(130.dp))
+                        Text("admin", Modifier.width(100.dp))
+                        Text(row.report.uuid.take(8), Modifier.width(80.dp), style = MaterialTheme.typography.bodySmall)
                     }
                     HorizontalDivider()
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun ReportTableHeader() {
+    Row(Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
+        Text("Date", Modifier.width(105.dp), style = MaterialTheme.typography.labelLarge)
+        Text("Report / project", Modifier.weight(1.35f), style = MaterialTheme.typography.labelLarge)
+        Text("Progress", Modifier.width(85.dp), style = MaterialTheme.typography.labelLarge)
+        Text("Status", Modifier.width(130.dp), style = MaterialTheme.typography.labelLarge)
+        Text("Uploaded by", Modifier.width(100.dp), style = MaterialTheme.typography.labelLarge)
+        Text("ID", Modifier.width(80.dp), style = MaterialTheme.typography.labelLarge)
     }
 }

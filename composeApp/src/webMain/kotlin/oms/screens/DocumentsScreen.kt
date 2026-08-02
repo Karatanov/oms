@@ -36,12 +36,19 @@ fun DocumentsScreen(canManageDocuments: Boolean = true) {
         Text(LocalizationManager.t("documents_title"), style = MaterialTheme.typography.headlineMedium)
         Text("Project documents", style = MaterialTheme.typography.titleLarge)
         Card(Modifier.fillMaxWidth()) {
-            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                DocumentTableHeader()
+                HorizontalDivider()
                 if (projectFiles.isEmpty()) Text("No project documents found.")
                 projectFiles.forEach { row ->
-                    Text(row.document.fileName, style = MaterialTheme.typography.titleMedium)
-                    Text("${row.projectName} • ${row.document.docType}")
-                    Button(onClick = { uriHandler.openUri("http://localhost:8080/api/v1/projects/${row.projectUuid}/documents/${row.document.uuid}/download") }) { Text("Open document") }
+                    Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                        Text(row.document.fileName, Modifier.weight(1.35f))
+                        Text(row.projectName, Modifier.weight(1f))
+                        Text(row.document.docType, Modifier.width(85.dp))
+                        Text(formatFileSize(row.document.fileSizeBytes), Modifier.width(90.dp))
+                        Text("admin", Modifier.width(85.dp))
+                        TextButton(onClick = { uriHandler.openUri("http://localhost:8080/api/v1/projects/${row.projectUuid}/documents/${row.document.uuid}/download") }, modifier = Modifier.width(85.dp)) { Text("Open") }
+                    }
                     HorizontalDivider()
                 }
             }
@@ -62,4 +69,22 @@ fun DocumentsScreen(canManageDocuments: Boolean = true) {
             }
         }
     }
+}
+
+@Composable
+private fun DocumentTableHeader() {
+    Row(Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
+        Text("File name", Modifier.weight(1.35f), style = MaterialTheme.typography.labelLarge)
+        Text("Project", Modifier.weight(1f), style = MaterialTheme.typography.labelLarge)
+        Text("Type", Modifier.width(85.dp), style = MaterialTheme.typography.labelLarge)
+        Text("Size", Modifier.width(90.dp), style = MaterialTheme.typography.labelLarge)
+        Text("Uploaded by", Modifier.width(85.dp), style = MaterialTheme.typography.labelLarge)
+        Spacer(Modifier.width(85.dp))
+    }
+}
+
+private fun formatFileSize(bytes: Long): String = when {
+    bytes >= 1_000_000 -> "${bytes / 1_000_000} MB"
+    bytes >= 1_000 -> "${bytes / 1_000} KB"
+    else -> "$bytes B"
 }

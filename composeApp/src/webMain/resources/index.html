@@ -77,6 +77,7 @@
                 return;
             }
 
+            const markerBounds = [];
             projects.forEach(project => {
                 const lat = project.latitude;
                 const lng = project.longitude;
@@ -106,7 +107,9 @@
                 </div>
             `;
 
-                L.circleMarker([lat, lng], {
+                const coordinates = [lat, lng];
+                markerBounds.push(coordinates);
+                L.circleMarker(coordinates, {
                     radius: 9,
                     color: color,
                     weight: 3,
@@ -117,7 +120,14 @@
                     .addTo(ufsiMarkersLayer);
             });
 
-            ufsiLeafletMap.fitBounds(ukraineBounds);
+            if (markerBounds.length === 1) {
+                ufsiLeafletMap.setView(markerBounds[0], 13);
+            } else {
+                ufsiLeafletMap.fitBounds(markerBounds, {
+                    padding: [48, 48],
+                    maxZoom: 16
+                });
+            }
         }
 
         window.addEventListener("load", () => {

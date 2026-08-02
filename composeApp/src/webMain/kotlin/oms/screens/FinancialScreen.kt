@@ -69,11 +69,21 @@ fun FinancialScreen(
 
         Text("Acts", style = MaterialTheme.typography.titleLarge)
         Card(Modifier.fillMaxWidth()) {
-            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                FinancialTableHeader()
+                HorizontalDivider()
                 if (acts.isEmpty()) Text("No acts found.")
                 acts.forEach { row ->
-                    Text(row.act.referenceNumber, style = MaterialTheme.typography.titleMedium)
-                    Text("${row.projectName} • ${row.act.recordDate} • ${row.act.amount.toMoney()}")
+                    Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                        Text(row.act.referenceNumber, Modifier.width(130.dp))
+                        Text(row.projectName, Modifier.weight(1.25f))
+                        Text(row.act.recordDate, Modifier.width(105.dp))
+                        Text(row.act.paymentDate ?: "—", Modifier.width(105.dp))
+                        Text(row.act.amount.toMoney(), Modifier.width(130.dp))
+                        Text(row.act.currency, Modifier.width(65.dp))
+                        Text(row.act.milestone ?: "—", Modifier.weight(1f))
+                        Text("admin", Modifier.width(75.dp))
+                    }
                     HorizontalDivider()
                 }
             }
@@ -93,6 +103,20 @@ fun FinancialScreen(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun FinancialTableHeader() {
+    Row(Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
+        Text("Act no.", Modifier.width(130.dp), style = MaterialTheme.typography.labelLarge)
+        Text("Project", Modifier.weight(1.25f), style = MaterialTheme.typography.labelLarge)
+        Text("Act date", Modifier.width(105.dp), style = MaterialTheme.typography.labelLarge)
+        Text("Payment date", Modifier.width(105.dp), style = MaterialTheme.typography.labelLarge)
+        Text("Amount", Modifier.width(130.dp), style = MaterialTheme.typography.labelLarge)
+        Text("Curr.", Modifier.width(65.dp), style = MaterialTheme.typography.labelLarge)
+        Text("Milestone", Modifier.weight(1f), style = MaterialTheme.typography.labelLarge)
+        Text("By", Modifier.width(75.dp), style = MaterialTheme.typography.labelLarge)
     }
 }
 
