@@ -86,8 +86,16 @@ fun DocumentsScreen(canManageDocuments: Boolean = true) {
                     val fileName = row.report.summary?.removePrefix("Imported SIR: ") ?: "SIR source file"
                     Text(fileName, style = MaterialTheme.typography.titleMedium)
                     Text("${row.projectName} • ${row.report.inspectionDate}")
-                    Button(onClick = { uriHandler.openUri("http://localhost:8080/api/v1/inspection-reports/${row.report.uuid}/source-file") }) {
-                        Text("Open SIR source file")
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Button(onClick = { uriHandler.openUri("http://localhost:8080/api/v1/inspection-reports/${row.report.uuid}/source-file") }) {
+                            Text("Open SIR source file")
+                        }
+                        if (canManageDocuments) TextButton(onClick = {
+                            scope.launch {
+                                if (OmsApiClient.deleteInspectionReport(row.report.uuid)) sirFiles = sirFiles.filterNot { it.report.uuid == row.report.uuid }
+                                else errorMessage = "Could not delete source document."
+                            }
+                        }) { Text("Delete") }
                     }
                     HorizontalDivider()
                 }
