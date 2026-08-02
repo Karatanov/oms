@@ -33,6 +33,9 @@ object OmsApiClient {
         client.get("$baseUrl/projects?page=1&pageSize=100").body<ProjectListPayload>().data
 
     suspend fun dashboard(): ApiDashboard = client.get("$baseUrl/dashboard").body()
+
+    suspend fun projectDetails(uuid: String): ApiProjectDetails =
+        client.get("$baseUrl/projects/$uuid").body()
 }
 
 @Serializable
@@ -70,3 +73,12 @@ data class ApiInspectionReport(
     val summary: String? = null,
     val status: String
 )
+
+@Serializable
+data class ApiProjectDetails(val data: ApiProjectDetailsData, val financialSummary: ApiFinancialSummary)
+
+@Serializable
+data class ApiProjectDetailsData(val address: String, val sector: String, val constructionType: String)
+
+@Serializable
+data class ApiFinancialSummary(val budgetPlanned: Long, val amountSpent: Long, val budgetRemaining: Long)

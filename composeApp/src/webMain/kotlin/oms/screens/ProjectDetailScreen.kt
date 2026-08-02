@@ -5,6 +5,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -12,6 +15,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import oms.components.StatusChip
+import oms.data.ApiProjectDetails
+import oms.data.OmsApiClient
 import oms.localization.LocalizationManager
 import oms.model.Project
 import oms.navigation.Screen
@@ -23,6 +28,8 @@ fun ProjectDetailScreen(
     onEdit: (Project) -> Unit = {}
 ) {
     var selectedTab by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(ProjectDetailTab.GeneralInfo) }
+    val details = remember(project.id) { mutableStateOf<ApiProjectDetails?>(null) }
+    LaunchedEffect(project.id) { details.value = runCatching { OmsApiClient.projectDetails(project.id) }.getOrNull() }
 
     Column(
         modifier = Modifier
@@ -75,13 +82,13 @@ fun ProjectDetailScreen(
                             StatusChip(project.status)
 
                             Text(
-                                text = "${LocalizationManager.t("address")}: ${project.region}",
+                                text = "${LocalizationManager.t("address")}: ${details.value?.data?.address ?: project.region}",
                                 style = MaterialTheme.typography.bodyMedium
                             )
                         }
 
                         Text(
-                            text = "${LocalizationManager.t("sector")}: Infrastructure • ${LocalizationManager.t("construction_type")}: General",
+                            text = "${LocalizationManager.t("sector")}: ${details.value?.data?.sector ?: "—"} • ${LocalizationManager.t("construction_type")}: ${details.value?.data?.constructionType ?: "—"}",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -105,17 +112,17 @@ fun ProjectDetailScreen(
         ) {
             DetailMetricCard(
                 title = LocalizationManager.t("budget_planned"),
-                value = "$1.2M",
+                value = details.value?.financialSummary?.budgetPlanned?.toMoney() ?: "—",
                 modifier = Modifier.weight(1f)
             )
             DetailMetricCard(
                 title = LocalizationManager.t("amount_spent"),
-                value = "$840K",
+                value = details.value?.financialSummary?.amountSpent?.toMoney() ?: "—",
                 modifier = Modifier.weight(1f)
             )
             DetailMetricCard(
                 title = LocalizationManager.t("budget_remaining"),
-                value = "$360K",
+                value = details.value?.financialSummary?.budgetRemaining?.toMoney() ?: "—",
                 modifier = Modifier.weight(1f)
             )
         }
@@ -201,3 +208,5 @@ private enum class ProjectDetailTab(val title: String) {
     Documents("Documents"),
     Incidents("Incidents (HSE)")
 }
+
+private fun Long.toMoney(): String = "${toString().reversed().chunked(3).joinToString(" ").reversed()} UAH"
