@@ -12,6 +12,9 @@ GET http://localhost:8080/api/v1/dashboard
 ### Map markers for all projects
 GET http://localhost:8080/api/v1/projects/map
 
+### Filtered project list
+GET http://localhost:8080/api/v1/projects?page=1&pageSize=20&status=planned&region=Kyiv&search=borodyanka
+
 ### Create an inspection finding (replace report UUID first)
 POST http://localhost:8080/api/v1/inspection-reports/{{reportUuid}}/findings
 Content-Type: application/json

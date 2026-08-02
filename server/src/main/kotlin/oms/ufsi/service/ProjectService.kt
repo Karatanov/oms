@@ -21,6 +21,16 @@ class ProjectService(
         return projectRepository.findAll()
     }
 
+    fun searchProjects(
+        status: String?,
+        region: String?,
+        search: String?
+    ): List<Project> = getAllProjects().filter { project ->
+        (status.isNullOrBlank() || project.status.name.equals(status.trim(), true)) &&
+            (region.isNullOrBlank() || project.region.equals(region.trim(), true)) &&
+            (search.isNullOrBlank() || listOf(project.name, project.address, project.city, project.contractorName.orEmpty()).any { it.contains(search.trim(), true) })
+    }
+
     /**
      * Створює новий проєкт.
      */
