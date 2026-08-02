@@ -1,15 +1,53 @@
 package oms.ufsi.api
 
 import io.ktor.http.*
+import io.ktor.http.content.*
 import io.ktor.server.application.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import io.ktor.utils.io.readRemaining
+import kotlinx.io.readByteArray
 import oms.ufsi.config.AppContainer
 import oms.ufsi.dto.*
 
 /** REST endpoints for inspection findings. */
 fun Route.inspectionRoutes() {
+    post("/api/v1/projects/{projectUuid}/inspection-reports/import") {
+        val projectUuid = call.parameters["projectUuid"] ?: return@post call.notFound("Project not found.")
+        val project = AppContainer.projectService.getProjectByUuid(projectUuid)
+            ?: return@post call.notFound("Project not found.")
+        val multipart = call.receiveMultipart()
+        var imported: oms.ufsi.domain.InspectionReport? = null
+        try {
+            multipart.forEachPart { part ->
+                if (part is PartData.FileItem && part.name == "file") {
+                    val name = part.originalFileName ?: throw IllegalArgumentException("File name is required.")
+                    val bytes = part.provider().readRemaining(20_000_001).readByteArray()
+                    require(bytes.size <= 20_000_000) { "File size must not exceed 20 MB." }
+                    imported = AppContainer.inspectionReportFileService.import(project.id, name, part.contentType?.toString(), java.io.ByteArrayInputStream(bytes))
+                }
+                part.dispose()
+            }
+            val report = imported ?: throw IllegalArgumentException("Multipart field 'file' is required.")
+            call.respond(HttpStatusCode.Created, report.toResponse())
+        } catch (exception: IllegalArgumentException) {
+            call.validationError(exception)
+        }
+    }
+
+    get("/api/v1/inspection-reports/{reportUuid}/source-file") {
+        val report = call.findReport() ?: return@get
+        val file = AppContainer.inspectionReportFileService.getFile(report.id)
+            ?: return@get call.notFound("Original SIR file not found.")
+        val path = java.nio.file.Path.of(file.storagePath)
+        if (!java.nio.file.Files.isRegularFile(path)) {
+            return@get call.notFound("Original SIR file is unavailable.")
+        }
+        call.response.header(HttpHeaders.ContentDisposition, ContentDisposition.Attachment.withParameter(ContentDisposition.Parameters.FileName, file.originalName).toString())
+        call.respondFile(path.toFile())
+    }
+
     route("/api/v1/inspection-reports/{reportUuid}/findings") {
         get {
             val report = call.findReport() ?: return@get

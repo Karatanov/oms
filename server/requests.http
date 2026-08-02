@@ -49,6 +49,20 @@ Content-Type: application/json
   "action": "approve"
 }
 
+### Import a completed SIR XLSX file for a project
+POST http://localhost:8080/api/v1/projects/{{projectUuid}}/inspection-reports/import
+Content-Type: multipart/form-data; boundary=OMSBoundary
+
+--OMSBoundary
+Content-Disposition: form-data; name="file"; filename="SIR-USIF_ Borodyanka_04112025.xlsx"
+Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
+
+< D:\2026\OMS\SIR-USIF_ Borodyanka_04112025.xlsx
+--OMSBoundary--
+
+### Download the original SIR XLSX file
+GET http://localhost:8080/api/v1/inspection-reports/{{reportUuid}}/source-file
+
 ### Reject an inspection report
 POST http://localhost:8080/api/v1/inspection-reports/{{reportUuid}}/review
 Content-Type: application/json
