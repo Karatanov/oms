@@ -10,6 +10,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.launch
+import oms.data.OmsApiClient
+import oms.data.ProjectRepository
 import oms.localization.LocalizationManager
 
 @Composable
@@ -23,11 +26,21 @@ fun CreateInspectionScreen(
     onImportXls: () -> Unit = {}
 ) {
     var inspector by remember { mutableStateOf(currentUserName) }
-    var date by remember { mutableStateOf("2026-03-24") }
+    var date by remember { mutableStateOf("2026-08-03") }
     var inspectionType by remember { mutableStateOf(InspectionType.PLANNED) }
     var gps by remember { mutableStateOf("") }
     var comments by remember { mutableStateOf(TextFieldValue("")) }
     var photos by remember { mutableStateOf(listOf<String>()) }
+    var projectUuid by remember { mutableStateOf<String?>(null) }
+    var completionPct by remember { mutableStateOf("0") }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+    var isSubmitting by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+
+    LaunchedEffect(Unit) {
+        ProjectRepository.refresh()
+        projectUuid = ProjectRepository.projects.firstOrNull()?.id
+    }
 
     val maxComments = 2000
 
@@ -78,6 +91,11 @@ fun CreateInspectionScreen(
                     modifier = Modifier.fillMaxWidth()
                 )
 
+                ProjectDropdown(
+                    selectedProjectUuid = projectUuid,
+                    onSelect = { projectUuid = it }
+                )
+
                 OutlinedTextField(
                     value = date,
                     onValueChange = { date = it },
@@ -89,6 +107,15 @@ fun CreateInspectionScreen(
                 InspectionTypeDropdown(
                     value = inspectionType,
                     onChange = { inspectionType = it }
+                )
+
+                OutlinedTextField(
+                    value = completionPct,
+                    onValueChange = { completionPct = it },
+                    label = { Text("Completion, %") },
+                    placeholder = { Text("0–100") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
                 )
 
                 OutlinedTextField(
@@ -170,12 +197,67 @@ fun CreateInspectionScreen(
                 Text("Завантажити XLS/XLSX")
             }
 
-            Button(onClick = onSubmit) {
-                Text(LocalizationManager.t("submit_report"))
+            Button(
+                enabled = !isSubmitting,
+                onClick = {
+                    val selectedProject = projectUuid
+                    val completion = completionPct.toDoubleOrNull()
+                    when {
+                        selectedProject == null -> errorMessage = "Select a project."
+                        !date.isIsoDate() -> errorMessage = "Date must use YYYY-MM-DD format."
+                        completion == null || completion !in 0.0..100.0 -> errorMessage = "Completion must be between 0 and 100."
+                        comments.text.isBlank() -> errorMessage = "Add a report summary before submitting."
+                        else -> {
+                            isSubmitting = true
+                            errorMessage = null
+                            scope.launch {
+                                val summary = buildString {
+                                    append("[${inspectionType.name.lowercase()}] ")
+                                    append(comments.text.trim())
+                                    if (gps.isNotBlank()) append(" | GPS: ${gps.trim()}")
+                                }
+                                runCatching {
+                                    OmsApiClient.createAndSubmitInspectionReport(selectedProject, date, completion, summary)
+                                }.onSuccess {
+                                    onSubmit()
+                                }.onFailure {
+                                    errorMessage = "Could not submit report: ${it.message ?: "unknown error"}"
+                                }
+                                isSubmitting = false
+                            }
+                        }
+                    }
+                }
+            ) {
+                if (isSubmitting) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
+                else Text(LocalizationManager.t("submit_report"))
+            }
+        }
+        errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+    }
+}
+
+@Composable
+private fun ProjectDropdown(selectedProjectUuid: String?, onSelect: (String) -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+    val projects = ProjectRepository.projects
+    val selected = projects.firstOrNull { it.id == selectedProjectUuid }
+    Box {
+        OutlinedButton(onClick = { expanded = true }, modifier = Modifier.fillMaxWidth()) {
+            Text(selected?.name ?: "Select project")
+        }
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            projects.forEach { project ->
+                DropdownMenuItem(
+                    text = { Text("${project.name} (${project.region})") },
+                    onClick = { onSelect(project.id); expanded = false }
+                )
             }
         }
     }
 }
+
+private fun String.isIsoDate(): Boolean = matches(Regex("\\d{4}-\\d{2}-\\d{2}"))
 
 @Composable
 private fun InspectionTypeDropdown(

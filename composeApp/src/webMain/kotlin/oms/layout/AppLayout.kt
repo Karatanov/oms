@@ -50,7 +50,7 @@ fun AppLayout(appState: AppState) {
 
                 is Screen.CreateInspection -> CreateInspectionScreen(
                     onSaveDraft = { },
-                    onSubmit = { }
+                    onSubmit = { appState.navigate(Screen.Inspections) }
                 )
 
                 is Screen.Map -> MapScreen(

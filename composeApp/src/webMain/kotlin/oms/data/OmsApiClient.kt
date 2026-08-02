@@ -50,6 +50,19 @@ object OmsApiClient {
     suspend fun projectReports(projectUuid: String): List<ApiInspectionReport> =
         client.get("$baseUrl/projects/$projectUuid/inspection-reports").body()
 
+    suspend fun createAndSubmitInspectionReport(
+        projectUuid: String,
+        inspectionDate: String,
+        completionPct: Double,
+        summary: String
+    ): ApiInspectionReport {
+        val draft: ApiInspectionReport = client.post("$baseUrl/projects/$projectUuid/inspection-reports") {
+            contentType(ContentType.Application.Json)
+            setBody(CreateInspectionReportRequest(inspectionDate, completionPct, summary))
+        }.body()
+        return client.post("$baseUrl/inspection-reports/${draft.uuid}/submit").body()
+    }
+
     suspend fun projectDocuments(projectUuid: String): List<ApiProjectDocument> =
         client.get("$baseUrl/projects/$projectUuid/documents").body()
 
@@ -59,6 +72,13 @@ object OmsApiClient {
 
 @Serializable
 data class LoginRequest(val username: String, val password: String)
+
+@Serializable
+data class CreateInspectionReportRequest(
+    val inspectionDate: String,
+    val completionPct: Double,
+    val summary: String
+)
 
 @Serializable
 data class ProjectListPayload(val data: List<ApiProject>)
