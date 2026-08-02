@@ -112,6 +112,11 @@ fun Route.inspectionRoutes() {
     }
 
     route("/api/v1/inspection-reports/{reportUuid}") {
+        get {
+            val report = call.findReport() ?: return@get
+            call.respond(report.toResponse())
+        }
+
         put {
             val reportUuid = call.parameters["reportUuid"] ?: return@put call.notFound("Inspection report not found.")
             val request = call.receive<UpdateInspectionReportRequest>()

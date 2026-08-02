@@ -1,4 +1,18 @@
-This is a Kotlin Multiplatform project targeting Web, Server.
+# OMS MVP
+
+OMS is a Kotlin Multiplatform system for monitoring projects, SIR inspections, financial records, documents and map markers.
+
+## Demo runbook
+
+1. Start MySQL: `docker compose up -d`.
+2. Start the backend: `./gradlew :server:run` (Windows: `./gradlew.bat :server:run`).
+3. Sign in through `POST /api/v1/auth/login` using `admin` / `password`; retain the `oms_session` cookie for protected writes.
+4. Create or select a project, then import `SIR-USIF_ Borodyanka_04112025.xlsx` with `POST /api/v1/projects/{projectUuid}/inspection-reports/import`.
+5. Demonstrate Dashboard, project filters, map markers, SIR source-file download, documents and photos.
+
+`server/requests.http` contains ready-to-run API examples. Runtime files are kept in `server/uploads/` and are intentionally not stored in Git.
+
+## Build and Run
 
 * [/composeApp](./composeApp/src) is for code that will be shared across your Compose Multiplatform applications.
   It contains several subfolders:
