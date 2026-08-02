@@ -13,11 +13,21 @@ import io.ktor.http.isSuccess
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import kotlin.js.ExperimentalWasmJsInterop
+import kotlin.js.unsafeCast
+import kotlin.js.toJsString
+import org.w3c.fetch.RequestCredentials
 
+@OptIn(ExperimentalWasmJsInterop::class)
 object OmsApiClient {
     private const val baseUrl = "http://localhost:8080/api/v1"
 
     private val client = HttpClient(Js) {
+        engine {
+            configureRequest {
+                credentials = "include".toJsString().unsafeCast<RequestCredentials>()
+            }
+        }
         install(ContentNegotiation) {
             json(Json { ignoreUnknownKeys = true })
         }
@@ -39,6 +49,12 @@ object OmsApiClient {
 
     suspend fun projectReports(projectUuid: String): List<ApiInspectionReport> =
         client.get("$baseUrl/projects/$projectUuid/inspection-reports").body()
+
+    suspend fun projectDocuments(projectUuid: String): List<ApiProjectDocument> =
+        client.get("$baseUrl/projects/$projectUuid/documents").body()
+
+    suspend fun financials(projectUuid: String): ApiFinancialRecords =
+        client.get("$baseUrl/projects/$projectUuid/financials").body()
 }
 
 @Serializable
@@ -85,3 +101,12 @@ data class ApiProjectDetailsData(val address: String, val sector: String, val co
 
 @Serializable
 data class ApiFinancialSummary(val budgetPlanned: Long, val amountSpent: Long, val budgetRemaining: Long)
+
+@Serializable
+data class ApiProjectDocument(val uuid: String, val docType: String, val fileName: String, val contentType: String, val fileSizeBytes: Long)
+
+@Serializable
+data class ApiFinancialRecords(val data: List<ApiFinancialRecord>, val summary: ApiFinancialSummary)
+
+@Serializable
+data class ApiFinancialRecord(val uuid: String, val recordType: String, val referenceNumber: String, val amount: Long, val currency: String, val recordDate: String)

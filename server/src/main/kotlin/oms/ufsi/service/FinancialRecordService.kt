@@ -62,7 +62,7 @@ class FinancialRecordService(private val repository: FinancialRecordRepository) 
             workbook.write(output)
         }
     }
-    fun summary(project: Project): FinancialSummary = FinancialSummary(project.budgetPlanned, getAll(project.id).filter { it.recordType in setOf(FinancialRecordType.ACT, FinancialRecordType.PAYMENT) }.sumOf { it.amount })
+    fun summary(project: Project): FinancialSummary = FinancialSummary(project.budgetPlanned, getAll(project.id).filter { it.recordType == FinancialRecordType.ACT }.sumOf { it.amount })
     private fun validatedType(value: String) = try { FinancialRecordType.valueOf(value.trim().uppercase()) } catch (_: Exception) { throw IllegalArgumentException("Record type must be invoice, act, payment, or advance.") }
     private fun positive(value: Long): Long { require(value > 0) { "Amount must be positive." }; return value }
     private fun required(value: String, field: String): String { val result = value.trim(); require(result.isNotEmpty()) { "$field is required." }; return result }
