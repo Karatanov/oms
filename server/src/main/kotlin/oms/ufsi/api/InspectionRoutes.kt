@@ -14,6 +14,7 @@ import oms.ufsi.dto.*
 /** REST endpoints for inspection findings. */
 fun Route.inspectionRoutes() {
     post("/api/v1/projects/{projectUuid}/inspection-reports/import") {
+        call.requireRole("ADMIN", "PROJECT_MANAGER", "INSPECTOR") ?: return@post
         val projectUuid = call.parameters["projectUuid"] ?: return@post call.notFound("Project not found.")
         val project = AppContainer.projectService.getProjectByUuid(projectUuid)
             ?: return@post call.notFound("Project not found.")
@@ -59,6 +60,7 @@ fun Route.inspectionRoutes() {
         }
 
         post {
+            call.requireRole("ADMIN", "PROJECT_MANAGER", "INSPECTOR") ?: return@post
             val report = call.findReport() ?: return@post
             val request = call.receive<CreateInspectionFindingRequest>()
             try {
@@ -82,6 +84,7 @@ fun Route.inspectionRoutes() {
         }
 
         put("{findingUuid}") {
+            call.requireRole("ADMIN", "PROJECT_MANAGER", "INSPECTOR") ?: return@put
             val report = call.findReport() ?: return@put
             val findingUuid = call.findingUuid() ?: return@put
             val request = call.receive<UpdateInspectionFindingRequest>()
@@ -102,6 +105,7 @@ fun Route.inspectionRoutes() {
         }
 
         delete("{findingUuid}") {
+            call.requireRole("ADMIN", "PROJECT_MANAGER", "INSPECTOR") ?: return@delete
             val report = call.findReport() ?: return@delete
             val findingUuid = call.findingUuid() ?: return@delete
             if (!AppContainer.inspectionFindingService.deleteFinding(report.id, findingUuid)) {
@@ -118,6 +122,7 @@ fun Route.inspectionRoutes() {
         }
 
         put {
+            call.requireRole("ADMIN", "PROJECT_MANAGER", "INSPECTOR") ?: return@put
             val reportUuid = call.parameters["reportUuid"] ?: return@put call.notFound("Inspection report not found.")
             val request = call.receive<UpdateInspectionReportRequest>()
             try {
@@ -131,6 +136,7 @@ fun Route.inspectionRoutes() {
         }
 
         post("submit") {
+            call.requireRole("ADMIN", "PROJECT_MANAGER", "INSPECTOR") ?: return@post
             val reportUuid = call.parameters["reportUuid"] ?: return@post call.notFound("Inspection report not found.")
             try {
                 val report = AppContainer.inspectionReportService.submitReport(reportUuid)
@@ -142,6 +148,7 @@ fun Route.inspectionRoutes() {
         }
 
         post("review") {
+            call.requireRole("ADMIN", "PROJECT_MANAGER") ?: return@post
             val reportUuid = call.parameters["reportUuid"] ?: return@post call.notFound("Inspection report not found.")
             val request = call.receive<ReviewInspectionReportRequest>()
             try {

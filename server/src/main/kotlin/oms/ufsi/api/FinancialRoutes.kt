@@ -13,6 +13,7 @@ import oms.ufsi.dto.*
 fun Route.financialRoutes() {
     route("/api/v1/projects/{projectUuid}/financials") {
         get {
+            call.requireRole("ADMIN", "PROJECT_MANAGER") ?: return@get
             val project = call.project() ?: return@get
             val service = AppContainer.financialRecordService
             val summary = service.summary(project)
@@ -51,6 +52,7 @@ fun Route.financialRoutes() {
             }
         }
         get("export") {
+            call.requireRole("ADMIN", "PROJECT_MANAGER") ?: return@get
             val project = call.project() ?: return@get
             call.response.header(HttpHeaders.ContentDisposition, "attachment; filename=financials.xlsx")
             call.respondOutputStream(
@@ -60,6 +62,7 @@ fun Route.financialRoutes() {
             }
         }
         get("{recordUuid}") {
+            call.requireRole("ADMIN", "PROJECT_MANAGER") ?: return@get
             val project = call.project() ?: return@get
             val record = call.parameters["recordUuid"]?.let { AppContainer.financialRecordService.get(project.id, it) } ?: return@get call.financeNotFound("Financial record not found.")
             call.respond(record.toResponse())
