@@ -166,4 +166,8 @@ fun FinancialRecord.toResponse() = FinancialRecordResponse(uuid.toString(), reco
 
 fun ProjectDocument.toResponse() = ProjectDocumentResponse(uuid.toString(), docType, originalName, contentType, fileSizeBytes)
 
-fun InspectionPhoto.toResponse() = InspectionPhotoResponse(uuid.toString(), originalName, contentType, fileSizeBytes, isMain, "/api/v1/inspection-reports/$reportId/photos/$uuid/download", "/api/v1/inspection-reports/$reportId/photos/$uuid/thumbnail")
+fun InspectionPhoto.toResponse(reportUuid: String) = InspectionPhotoResponse(
+    uuid.toString(), originalName, contentType, fileSizeBytes, isMain,
+    "/api/v1/inspection-reports/$reportUuid/photos/$uuid/original",
+    "/api/v1/inspection-reports/$reportUuid/photos/$uuid/thumbnail"
+)
