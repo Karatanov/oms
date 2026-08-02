@@ -6,8 +6,15 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import oms.data.ApiDashboard
+import oms.data.OmsApiClient
 
 /*
    DashboardScreen
@@ -21,6 +28,8 @@ import androidx.compose.ui.unit.dp
 
 @Composable
 fun DashboardScreen() {
+    var dashboard by remember { mutableStateOf<ApiDashboard?>(null) }
+    LaunchedEffect(Unit) { dashboard = runCatching { OmsApiClient.dashboard() }.getOrNull() }
 
     val primary = MaterialTheme.colorScheme.primary
     val secondary = MaterialTheme.colorScheme.secondary
@@ -35,7 +44,7 @@ fun DashboardScreen() {
         verticalArrangement = Arrangement.spacedBy(24.dp)
     ) {
 
-        item { KPIRow(primary, secondary, error) }
+        item { KPIRow(primary, secondary, error, dashboard) }
 
         item { ProjectsByRegionChart(primary) }
 

@@ -7,17 +7,19 @@ import androidx.compose.material.icons.filled.Warning
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import oms.localization.LocalizationManager
+import oms.data.ApiDashboard
 
 
 @Composable
 fun KPIRow(
     primary: Color,
     secondary: Color,
-    error: Color
+    error: Color,
+    dashboard: ApiDashboard?
 ) {
     KPICard(
         title = LocalizationManager.t("projects"),
-        value = "42",
+        value = dashboard?.projectsTotal?.toString() ?: "—",
         icon = Icons.Default.Folder,
         color = primary,
         trend = listOf(10f, 12f, 14f, 18f, 22f, 30f, 42f)
@@ -25,7 +27,7 @@ fun KPIRow(
 
     KPICard(
         title = LocalizationManager.t("reports"),
-        value = "126",
+        value = dashboard?.inspectionsTotal?.toString() ?: "—",
         icon = Icons.Default.Description,
         color = secondary,
         trend = listOf(40f, 48f, 60f, 75f, 92f, 110f, 126f)
@@ -33,7 +35,7 @@ fun KPIRow(
 
     KPICard(
         title = LocalizationManager.t("issues"),
-        value = "5",
+        value = dashboard?.findingsTotal?.toString() ?: "—",
         icon = Icons.Default.Warning,
         color = error,
         trend = listOf(12f, 11f, 9f, 10f, 8f, 6f, 5f)
