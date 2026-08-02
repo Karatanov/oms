@@ -36,6 +36,9 @@ object OmsApiClient {
 
     suspend fun projectDetails(uuid: String): ApiProjectDetails =
         client.get("$baseUrl/projects/$uuid").body()
+
+    suspend fun projectReports(projectUuid: String): List<ApiInspectionReport> =
+        client.get("$baseUrl/projects/$projectUuid/inspection-reports").body()
 }
 
 @Serializable

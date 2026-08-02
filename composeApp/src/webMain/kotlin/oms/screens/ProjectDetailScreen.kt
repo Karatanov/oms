@@ -16,6 +16,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import oms.components.StatusChip
 import oms.data.ApiProjectDetails
+import oms.data.ApiInspectionReport
 import oms.data.OmsApiClient
 import oms.localization.LocalizationManager
 import oms.model.Project
@@ -29,7 +30,9 @@ fun ProjectDetailScreen(
 ) {
     var selectedTab by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(ProjectDetailTab.GeneralInfo) }
     val details = remember(project.id) { mutableStateOf<ApiProjectDetails?>(null) }
+    val reports = remember(project.id) { mutableStateOf<List<ApiInspectionReport>>(emptyList()) }
     LaunchedEffect(project.id) { details.value = runCatching { OmsApiClient.projectDetails(project.id) }.getOrNull() }
+    LaunchedEffect(project.id) { reports.value = runCatching { OmsApiClient.projectReports(project.id) }.getOrDefault(emptyList()) }
 
     Column(
         modifier = Modifier
@@ -148,7 +151,7 @@ fun ProjectDetailScreen(
             ) {
                 when (selectedTab) {
                     ProjectDetailTab.GeneralInfo -> PlaceholderTabContent(LocalizationManager.t("general_info"))
-                    ProjectDetailTab.InspectionReports -> PlaceholderTabContent(LocalizationManager.t("inspection_reports_tab"))
+                    ProjectDetailTab.InspectionReports -> ProjectReportsTab(reports.value)
                     ProjectDetailTab.Financials -> PlaceholderTabContent(LocalizationManager.t("financials"))
                     ProjectDetailTab.Documents -> PlaceholderTabContent(LocalizationManager.t("documents_tab"))
                     ProjectDetailTab.Incidents -> PlaceholderTabContent(LocalizationManager.t("incidents"))
@@ -207,6 +210,21 @@ private enum class ProjectDetailTab(val title: String) {
     Financials("Financials"),
     Documents("Documents"),
     Incidents("Incidents (HSE)")
+}
+
+@Composable
+private fun ProjectReportsTab(reports: List<ApiInspectionReport>) {
+    Card(Modifier.fillMaxSize()) {
+        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            if (reports.isEmpty()) Text("No inspection reports found.")
+            reports.forEach { report ->
+                Text(report.summary ?: "Inspection report", style = MaterialTheme.typography.titleMedium)
+                Text("${report.inspectionDate} • ${report.completionPct}% • ${report.status}")
+                Text(report.uuid, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                HorizontalDivider()
+            }
+        }
+    }
 }
 
 private fun Long.toMoney(): String = "${toString().reversed().chunked(3).joinToString(" ").reversed()} UAH"

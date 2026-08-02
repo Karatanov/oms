@@ -2,6 +2,7 @@ package oms
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.foundation.text.selection.SelectionContainer
 import oms.layout.AppLayout
 import oms.navigation.AppState
 import oms.navigation.Screen
@@ -27,14 +28,16 @@ fun App() {
     }
 
     OMSTheme {
-        if (!appState.isAuthenticated) {
-            LoginScreen(
-                onLoginSuccess = {
-                    appState.onLoginSuccess("mock-token")
-                }
-            )
-        } else {
-            AppLayout(appState)
+        SelectionContainer {
+            if (!appState.isAuthenticated) {
+                LoginScreen(
+                    onLoginSuccess = {
+                        appState.onLoginSuccess("mock-token")
+                    }
+                )
+            } else {
+                AppLayout(appState)
+            }
         }
     }
 }
