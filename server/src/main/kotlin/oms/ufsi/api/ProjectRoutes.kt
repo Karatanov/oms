@@ -70,6 +70,7 @@ fun Route.projectRoutes() {
      * Створює новий проєкт.
      */
     post("/api/v1/projects") {
+        call.requireRole("ADMIN", "PROJECT_MANAGER") ?: return@post
 
         val request =
             call.receive<CreateProjectRequest>()
@@ -236,6 +237,7 @@ fun Route.projectRoutes() {
     post(
         "/api/v1/projects/{uuid}/inspection-reports"
     ) {
+        call.requireRole("ADMIN", "PROJECT_MANAGER", "INSPECTOR") ?: return@post
 
         val uuid =
             call.parameters["uuid"]

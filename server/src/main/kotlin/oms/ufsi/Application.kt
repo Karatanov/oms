@@ -45,6 +45,8 @@ fun Application.module(
      */
     configureSerialization()
 
+    configureSessions()
+
     /**
      * Налаштовуємо єдиний механізм обробки помилок.
      */

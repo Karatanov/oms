@@ -4,11 +4,13 @@ import io.ktor.http.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import io.ktor.server.sessions.*
 import oms.ufsi.config.AppContainer
 import oms.ufsi.dto.ErrorResponse
 import oms.ufsi.dto.LoginRequest
 import oms.ufsi.dto.LoginResponse
 import oms.ufsi.dto.toResponse
+import oms.ufsi.security.UserSession
 
 /**
  * Маршрути автентифікації.
@@ -31,6 +33,8 @@ fun Route.authRoutes() {
                 username = request.username,
                 password = request.password
             )
+
+            call.sessions.set(UserSession(user.id, user.role.code))
 
             call.respond(
                 LoginResponse(

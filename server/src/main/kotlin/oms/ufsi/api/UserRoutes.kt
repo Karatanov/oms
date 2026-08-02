@@ -31,6 +31,7 @@ fun Route.userRoutes() {
      * Повертає всіх користувачів системи.
      */
     get("/api/v1/users") {
+        call.requireRole("ADMIN") ?: return@get
 
         val response = userService
             .getAllUsers()
@@ -60,6 +61,7 @@ fun Route.userRoutes() {
      * виконується у Service-шарі.
      */
     post("/api/v1/users") {
+        call.requireRole("ADMIN") ?: return@post
 
         val request =
             call.receive<CreateUserRequest>()

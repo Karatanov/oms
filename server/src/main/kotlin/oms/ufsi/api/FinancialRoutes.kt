@@ -16,6 +16,7 @@ fun Route.financialRoutes() {
             call.respond(mapOf("data" to service.getAll(project.id).map { it.toResponse() }, "summary" to FinancialSummaryResponse(summary.budgetPlanned, summary.amountSpent, summary.budgetRemaining, summary.completionPct)))
         }
         post {
+            call.requireRole("ADMIN", "PROJECT_MANAGER") ?: return@post
             val project = call.project() ?: return@post
             val request = call.receive<CreateFinancialRecordRequest>()
             try { call.respond(HttpStatusCode.Created, AppContainer.financialRecordService.create(project.id, request.recordType, request.referenceNumber, request.amount, request.currency, request.recordDate, request.paymentDate, request.description, request.milestone).toResponse()) } catch (e: IllegalArgumentException) { call.financeError(e) }
@@ -26,12 +27,14 @@ fun Route.financialRoutes() {
             call.respond(record.toResponse())
         }
         put("{recordUuid}") {
+            call.requireRole("ADMIN", "PROJECT_MANAGER") ?: return@put
             val project = call.project() ?: return@put
             val uuid = call.parameters["recordUuid"] ?: return@put call.financeNotFound("Financial record not found.")
             val request = call.receive<UpdateFinancialRecordRequest>()
             try { val record = AppContainer.financialRecordService.update(project.id, uuid, request.recordType, request.referenceNumber, request.amount, request.currency, request.recordDate, request.paymentDate, request.description, request.milestone) ?: return@put call.financeNotFound("Financial record not found."); call.respond(record.toResponse()) } catch (e: IllegalArgumentException) { call.financeError(e) }
         }
         delete("{recordUuid}") {
+            call.requireRole("ADMIN", "PROJECT_MANAGER") ?: return@delete
             val project = call.project() ?: return@delete
             val uuid = call.parameters["recordUuid"] ?: return@delete call.financeNotFound("Financial record not found.")
             if (!AppContainer.financialRecordService.delete(project.id, uuid)) return@delete call.financeNotFound("Financial record not found.")
