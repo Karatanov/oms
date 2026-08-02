@@ -11,6 +11,12 @@ import java.util.UUID
 class ProjectDocumentService(private val repository: ProjectDocumentRepository) {
     fun list(projectId: Long) = repository.findByProjectId(projectId)
     fun get(projectId: Long, uuid: String) = repository.findByUuid(projectId, uuid)
+    fun delete(projectId: Long, uuid: String): Boolean {
+        val document = get(projectId, uuid) ?: return false
+        val deleted = repository.delete(projectId, uuid)
+        if (deleted) Files.deleteIfExists(Path.of(document.storagePath))
+        return deleted
+    }
     fun upload(projectId: Long, type: String, name: String, contentType: String?, input: InputStream): ProjectDocument {
         val documentType = type.lowercase(); require(documentType in setOf("contract","design","estimate","invoice","act","photo","other")) { "Unsupported document type." }
         val extension = name.substringAfterLast('.', "").lowercase(); require(extension in setOf("pdf","xlsx","jpg","jpeg","png")) { "Allowed formats: PDF, XLSX, JPG, PNG." }
