@@ -35,6 +35,7 @@ dependencies {
     implementation("org.flywaydb:flyway-mysql:11.12.0")
     implementation("com.zaxxer:HikariCP:6.3.0")
     implementation("org.mindrot:jbcrypt:0.4")
+    implementation("org.apache.poi:poi-ooxml:5.4.1")
 
     testImplementation(libs.ktor.serverTestHost)
     testImplementation(libs.kotlin.testJunit)

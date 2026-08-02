@@ -28,23 +28,16 @@ class AuthService(
         password: String
     ): User {
 
-        println("AUTH DEBUG: username from request = '$username'")
-
         val user = userService.findByUsername(username)
             ?: throw IllegalArgumentException(
                 "Невірний логін або пароль."
             )
-
-        println("AUTH DEBUG: user found = ${user.username}")
-        println("AUTH DEBUG: password hash length = ${user.passwordHash.length}")
 
         val passwordIsValid =
             PasswordHasher.verify(
                 password,
                 user.passwordHash
             )
-
-        println("AUTH DEBUG: password is valid = $passwordIsValid")
 
         if (!passwordIsValid) {
             throw IllegalArgumentException(
