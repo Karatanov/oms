@@ -39,5 +39,6 @@ fun Application.configureRouting() {
 
         documentRoutes()
         photoRoutes()
+        dashboardRoutes()
     }
 }

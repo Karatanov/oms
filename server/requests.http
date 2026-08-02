@@ -6,6 +6,9 @@ Content-Type: application/json
   "password": "password"
 }
 
+### Dashboard KPIs and last inspections
+GET http://localhost:8080/api/v1/dashboard
+
 ### Create an inspection finding (replace report UUID first)
 POST http://localhost:8080/api/v1/inspection-reports/{{reportUuid}}/findings
 Content-Type: application/json
