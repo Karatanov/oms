@@ -5,10 +5,15 @@ OMS is a Kotlin Multiplatform system for monitoring projects, SIR inspections, f
 ## Demo runbook
 
 1. Start MySQL: `docker compose up -d`.
-2. Start the backend: `./gradlew :server:run` (Windows: `./gradlew.bat :server:run`).
+2. Start the backend: `./gradlew :server:run` (Windows: `./gradlew.bat :server:run`). Flyway creates a clean demo dataset automatically.
 3. Sign in through `POST /api/v1/auth/login` using `admin` / `password`; retain the `oms_session` cookie for protected writes.
-4. Create or select a project, then import `SIR-USIF_ Borodyanka_04112025.xlsx` with `POST /api/v1/projects/{projectUuid}/inspection-reports/import`.
-5. Demonstrate Dashboard, project filters, map markers, SIR source-file download, documents and photos.
+4. Open the seeded project `11111111-1111-4111-8111-111111111111` in the project list, map or dashboard. It has a completed report, an open finding and a financial act.
+5. Import `SIR-USIF_ Borodyanka_04112025.xlsx` with `POST /api/v1/projects/{projectUuid}/inspection-reports/import`, then show its source-file download, photo upload and finding workflow.
+6. Upload a project document, export financial records to XLSX and import that file back to demonstrate round-trip data exchange.
+
+### Local web UI
+
+Run the backend first. The web UI uses `http://localhost:8080/api/v1`; its local CORS policy permits the Compose development server on port 8081. Sign in as `admin` / `password`, open **Projects**, and confirm that the Borodyanka project comes from the API rather than mocked data.
 
 `server/requests.http` contains ready-to-run API examples. Runtime files are kept in `server/uploads/` and are intentionally not stored in Git.
 
