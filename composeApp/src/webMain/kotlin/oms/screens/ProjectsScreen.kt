@@ -15,7 +15,7 @@ import androidx.compose.ui.unit.dp
 import oms.components.FilterDropdown
 import oms.components.StatusChip
 import oms.components.TableHeader
-import oms.data.ProjectRepository.projects
+import oms.data.ProjectRepository
 import oms.localization.LocalizationManager
 import oms.model.Project
 import oms.model.ProjectStatus
@@ -31,7 +31,8 @@ fun ProjectsScreen(
     var regionFilter by remember { mutableStateOf<String?>(null) }
     var statusFilter by remember { mutableStateOf<ProjectStatus?>(null) }
 
-    val projects = projects
+    LaunchedEffect(Unit) { ProjectRepository.refresh() }
+    val projects = ProjectRepository.projects
 
     val filteredProjects = remember(searchText, regionFilter, statusFilter) {
         projects.filter {
@@ -253,7 +254,7 @@ fun ProjectRow(
             .padding(vertical = 10.dp)
     ) {
 
-        Text(project.id.toString(), modifier = Modifier.width(80.dp))
+        Text(project.id.take(8), modifier = Modifier.width(80.dp))
 
         Text(project.name, modifier = Modifier.weight(1f))
 

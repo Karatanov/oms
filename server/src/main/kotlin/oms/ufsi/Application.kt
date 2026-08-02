@@ -45,6 +45,8 @@ fun Application.module(
      */
     configureSerialization()
 
+    configureCors()
+
     configureSessions()
 
     /**

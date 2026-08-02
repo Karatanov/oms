@@ -5,6 +5,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import oms.data.ProjectRepository
@@ -16,6 +17,7 @@ import oms.model.Project
 fun MapScreen(
     onOpenProject: (Project) -> Unit = {}
 ) {
+    LaunchedEffect(Unit) { ProjectRepository.refresh() }
     val projects = ProjectRepository.projects
 
     Column(

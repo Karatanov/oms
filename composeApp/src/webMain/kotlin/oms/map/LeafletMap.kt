@@ -17,12 +17,12 @@ external fun hideLeafletMapPane()
 external fun setLeafletProjects(projectsJson: String)
 
 @JsName("setLeafletProjectClickHandler")
-external fun setLeafletProjectClickHandler(handler: (Int) -> Unit)
+external fun setLeafletProjectClickHandler(handler: (String) -> Unit)
 
 @Composable
 fun LeafletMapView(
     projects: List<Project>,
-    onProjectClick: (Int) -> Unit = {}
+    onProjectClick: (String) -> Unit = {}
 ) {
     DisposableEffect(projects) {
         showLeafletMapPane()
@@ -51,7 +51,7 @@ private fun List<Project>.toLeafletJson(): String {
             append(
                 """
                 {
-                  "id": ${project.id},
+                  "id": "${project.id.escapeJson()}",
                   "name": "${project.name.escapeJson()}",
                   "region": "${project.region.escapeJson()}",
                   "regionLabel": "${LocalizationManager.t("region").escapeJson()}",

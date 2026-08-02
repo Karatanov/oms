@@ -9,7 +9,7 @@ package oms.model
 
 data class Project(
 
-    val id: Int,
+    val id: String,
 
     val name: String,
 

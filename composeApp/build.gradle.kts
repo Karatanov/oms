@@ -30,6 +30,12 @@ kotlin {
             implementation(libs.androidx.lifecycle.runtimeCompose)
             implementation(projects.shared)
             implementation("org.jetbrains.compose.material:material-icons-extended:1.7.3")
+            implementation("io.ktor:ktor-client-core:3.3.3")
+            implementation("io.ktor:ktor-client-content-negotiation:3.3.3")
+            implementation("io.ktor:ktor-serialization-kotlinx-json:3.3.3")
+        }
+        webMain.dependencies {
+            implementation("io.ktor:ktor-client-js:3.3.3")
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

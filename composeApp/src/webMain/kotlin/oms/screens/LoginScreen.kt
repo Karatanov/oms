@@ -13,7 +13,9 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.launch
 import oms.components.FeatureItem
+import oms.data.OmsApiClient
 import oms.localization.LocalizationManager
 
 @Composable
@@ -23,7 +25,7 @@ fun LoginScreen(
 
     // ---------------- STATE ----------------
 
-    var email by remember { mutableStateOf("") }
+    var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
 
     var passwordVisible by remember { mutableStateOf(false) }
@@ -31,6 +33,7 @@ fun LoginScreen(
 
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var isLoading by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
 
     // ---------------- LAYOUT ----------------
 
@@ -132,9 +135,9 @@ fun LoginScreen(
 
                     // ---------------- EMAIL ----------------
                     OutlinedTextField(
-                        value = email,
+                        value = username,
                         onValueChange = {
-                            email = it
+                            username = it
                             errorMessage = null
                         },
                         label = { Text(LocalizationManager.t("email")) },
@@ -206,7 +209,7 @@ fun LoginScreen(
                     Button(
                         onClick = {
 
-                            if (email.isBlank()) {
+                            if (username.isBlank()) {
                                 errorMessage = LocalizationManager.t("email_required")
                                 return@Button
                             }
@@ -219,13 +222,13 @@ fun LoginScreen(
                             isLoading = true
 
                             // 🔹 mock auth
-                            if (email == "admin@test.com" && password == "1234") {
-                                onLoginSuccess()
-                            } else {
-                                errorMessage = LocalizationManager.t("invalid_credentials")
+                            scope.launch {
+                                val authenticated = runCatching {
+                                    OmsApiClient.login(username, password)
+                                }.getOrDefault(false)
+                                isLoading = false
+                                if (authenticated) onLoginSuccess() else errorMessage = LocalizationManager.t("invalid_credentials")
                             }
-
-                            isLoading = false
                         },
                         modifier = Modifier
                             .fillMaxWidth()
