@@ -34,7 +34,7 @@ fun ProjectsScreen(
     LaunchedEffect(Unit) { ProjectRepository.refresh() }
     val projects = ProjectRepository.projects
 
-    val filteredProjects = remember(searchText, regionFilter, statusFilter) {
+    val filteredProjects = remember(projects, searchText, regionFilter, statusFilter) {
         projects.filter {
             (searchText.isBlank() || it.name.contains(searchText, true)) &&
                     (regionFilter == null || it.region == regionFilter) &&
