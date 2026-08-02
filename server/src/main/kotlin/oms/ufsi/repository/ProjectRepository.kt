@@ -43,4 +43,6 @@ interface ProjectRepository {
     fun findByUuid(
         uuid: String
     ): Project?
+
+    fun deleteByUuid(uuid: String): Boolean
 }

@@ -5,6 +5,7 @@ import io.ktor.client.call.body
 import io.ktor.client.engine.js.Js
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.get
+import io.ktor.client.request.delete
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
@@ -68,6 +69,15 @@ object OmsApiClient {
 
     suspend fun financials(projectUuid: String): ApiFinancialRecords =
         client.get("$baseUrl/projects/$projectUuid/financials").body()
+
+    suspend fun deleteProject(projectUuid: String): Boolean =
+        client.delete("$baseUrl/projects/$projectUuid").status.isSuccess()
+
+    suspend fun deleteInspectionReport(reportUuid: String): Boolean =
+        client.delete("$baseUrl/inspection-reports/$reportUuid").status.isSuccess()
+
+    suspend fun deleteProjectDocument(projectUuid: String, documentUuid: String): Boolean =
+        client.delete("$baseUrl/projects/$projectUuid/documents/$documentUuid").status.isSuccess()
 }
 
 @Serializable

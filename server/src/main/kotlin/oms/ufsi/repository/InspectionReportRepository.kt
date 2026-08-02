@@ -45,4 +45,6 @@ interface InspectionReportRepository {
         status: String,
         rejectionReason: String?
     ): InspectionReport?
+
+    fun delete(uuid: String): Boolean
 }

@@ -176,6 +176,13 @@ fun Route.projectRoutes() {
         )
     }
 
+    delete("/api/v1/projects/{uuid}") {
+        call.requireRole("ADMIN", "PROJECT_MANAGER") ?: return@delete
+        val uuid = call.parameters["uuid"] ?: return@delete call.respond(HttpStatusCode.BadRequest, ErrorResponse("VALIDATION_ERROR", "Project UUID is required."))
+        if (!projectService.deleteProject(uuid)) return@delete call.respond(HttpStatusCode.NotFound, ErrorResponse("NOT_FOUND", "Project not found."))
+        call.respond(HttpStatusCode.NoContent)
+    }
+
     /**
      * Повертає всі інспекції проєкту.
      */

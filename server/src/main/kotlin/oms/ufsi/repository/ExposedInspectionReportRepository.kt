@@ -10,6 +10,7 @@ import org.jetbrains.exposed.v1.jdbc.select
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.jetbrains.exposed.v1.jdbc.update
+import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import java.util.*
 
 /**
@@ -239,5 +240,9 @@ class ExposedInspectionReportRepository :
             }
         }
         if (count == 0) null else findByUuid(uuid)
+    }
+
+    override fun delete(uuid: String): Boolean = transaction {
+        InspectionReportTable.deleteWhere { InspectionReportTable.uuid eq uuid } > 0
     }
 }

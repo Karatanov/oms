@@ -14,6 +14,10 @@ import kotlinx.coroutines.launch
 import oms.data.OmsApiClient
 import oms.data.ProjectRepository
 import oms.localization.LocalizationManager
+import kotlin.js.JsName
+
+@JsName("openSirImportDialog")
+external fun openSirImportDialog(projectUuid: String)
 
 @Composable
 fun CreateInspectionScreen(
@@ -193,7 +197,12 @@ fun CreateInspectionScreen(
                 Text(LocalizationManager.t("save_draft"))
             }
 
-            OutlinedButton(onClick = onImportXls) {
+            OutlinedButton(onClick = {
+                val selectedProject = projectUuid
+                if (selectedProject == null) errorMessage = "Select a project before importing."
+                else openSirImportDialog(selectedProject)
+                onImportXls()
+            }) {
                 Text("Завантажити XLS/XLSX")
             }
 

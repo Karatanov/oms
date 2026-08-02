@@ -220,4 +220,6 @@ class ProjectService(
             uuid.trim()
         )
     }
+
+    fun deleteProject(uuid: String): Boolean = projectRepository.deleteByUuid(uuid.trim())
 }

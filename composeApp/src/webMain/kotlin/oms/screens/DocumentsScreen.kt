@@ -6,6 +6,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.launch
 import oms.data.ApiInspectionReport
 import oms.data.ApiProjectDocument
 import oms.data.OmsApiClient
@@ -20,10 +21,12 @@ private enum class DocumentSort { Name, Project, Type, Size, Author }
 @Composable
 fun DocumentsScreen(canManageDocuments: Boolean = true) {
     val uriHandler = LocalUriHandler.current
+    val scope = rememberCoroutineScope()
     var sirFiles by remember { mutableStateOf<List<SirDocumentRow>>(emptyList()) }
     var projectFiles by remember { mutableStateOf<List<ProjectDocumentRow>>(emptyList()) }
     var sort by remember { mutableStateOf(DocumentSort.Name) }
     var ascending by remember { mutableStateOf(true) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(Unit) {
         ProjectRepository.refresh()
         sirFiles = ProjectRepository.projects.flatMap { project ->
@@ -62,11 +65,19 @@ fun DocumentsScreen(canManageDocuments: Boolean = true) {
                         Text(formatFileSize(row.document.fileSizeBytes), Modifier.width(90.dp))
                         Text("admin", Modifier.width(85.dp))
                         TextButton(onClick = { uriHandler.openUri("http://localhost:8080/api/v1/projects/${row.projectUuid}/documents/${row.document.uuid}/download") }, modifier = Modifier.width(85.dp)) { Text("Open") }
+                        if (canManageDocuments) TextButton(onClick = {
+                            scope.launch {
+                                if (OmsApiClient.deleteProjectDocument(row.projectUuid, row.document.uuid)) {
+                                    projectFiles = projectFiles.filterNot { it.document.uuid == row.document.uuid }
+                                } else errorMessage = "Could not delete document."
+                            }
+                        }) { Text("Delete") }
                     }
                     HorizontalDivider()
                 }
             }
         }
+        errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error) }
         Text("SIR source files", style = MaterialTheme.typography.titleLarge)
         Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {

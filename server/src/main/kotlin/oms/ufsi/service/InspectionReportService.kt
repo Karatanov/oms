@@ -125,6 +125,8 @@ class InspectionReportService(
         }
     }
 
+    fun deleteReport(uuid: String): Boolean = repository.delete(uuid.trim())
+
     private fun validate(completionPct: Double, inspectionDate: String) {
         require(completionPct in 0.0..100.0) {
             "Completion percentage must be between 0 and 100."

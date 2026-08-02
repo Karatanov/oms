@@ -121,6 +121,13 @@ fun Route.inspectionRoutes() {
             call.respond(report.toResponse())
         }
 
+        delete {
+            call.requireRole("ADMIN", "PROJECT_MANAGER", "INSPECTOR") ?: return@delete
+            val reportUuid = call.parameters["reportUuid"] ?: return@delete call.notFound("Inspection report not found.")
+            if (!AppContainer.inspectionReportService.deleteReport(reportUuid)) return@delete call.notFound("Inspection report not found.")
+            call.respond(HttpStatusCode.NoContent)
+        }
+
         put {
             call.requireRole("ADMIN", "PROJECT_MANAGER", "INSPECTOR") ?: return@put
             val reportUuid = call.parameters["reportUuid"] ?: return@put call.notFound("Inspection report not found.")

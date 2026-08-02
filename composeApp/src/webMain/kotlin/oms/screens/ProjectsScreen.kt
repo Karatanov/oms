@@ -12,6 +12,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.onPointerEvent
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.launch
 import oms.components.FilterDropdown
 import oms.components.StatusChip
 import oms.components.TableHeader
@@ -30,6 +31,8 @@ fun ProjectsScreen(
     var searchText by remember { mutableStateOf("") }
     var regionFilter by remember { mutableStateOf<String?>(null) }
     var statusFilter by remember { mutableStateOf<ProjectStatus?>(null) }
+    val scope = rememberCoroutineScope()
+    var errorMessage by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(Unit) { ProjectRepository.refresh() }
     val projects = ProjectRepository.projects
@@ -68,8 +71,16 @@ fun ProjectsScreen(
 
         ProjectsTable(
             projects = filteredProjects,
-            onOpenProject = onOpenProject
+            onOpenProject = onOpenProject,
+            onDeleteProject = { project ->
+                scope.launch {
+                    if (oms.data.OmsApiClient.deleteProject(project.id)) ProjectRepository.refresh()
+                    else errorMessage = "Could not delete project."
+                }
+            }
         )
+
+        errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error) }
 
         Spacer(Modifier.height(16.dp))
 
@@ -82,7 +93,8 @@ fun ProjectsScreen(
 @Composable
 fun ProjectsTable(
     projects: List<Project>,
-    onOpenProject: (Project) -> Unit
+    onOpenProject: (Project) -> Unit,
+    onDeleteProject: (Project) -> Unit
 ) {
 
     var sortColumn by remember { mutableStateOf(SortColumn.ID) }
@@ -131,7 +143,8 @@ fun ProjectsTable(
 
                 ProjectRow(
                     project = it,
-                    onOpen = onOpenProject
+                    onOpen = onOpenProject,
+                    onDelete = onDeleteProject
                 )
 
             }
@@ -216,7 +229,8 @@ fun ProjectRow(
 
     project: Project,
 
-    onOpen: (Project) -> Unit = {}
+    onOpen: (Project) -> Unit = {},
+    onDelete: (Project) -> Unit = {}
 
 ) {
 
@@ -272,6 +286,7 @@ fun ProjectRow(
         ) {
             Text(LocalizationManager.t("view"))
         }
+        TextButton(onClick = { onDelete(project) }) { Text("Delete") }
     }
 
     HorizontalDivider()

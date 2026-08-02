@@ -1,6 +1,8 @@
 package oms.ufsi.repository
 
 import oms.ufsi.database.tables.ProjectTable
+import oms.ufsi.database.tables.ProjectDocumentTable
+import oms.ufsi.database.tables.FinancialRecordTable
 import oms.ufsi.domain.Project
 import oms.ufsi.domain.ProjectStatus
 import oms.ufsi.domain.ProjectType
@@ -9,6 +11,7 @@ import org.jetbrains.exposed.v1.jdbc.insertAndGetId
 import org.jetbrains.exposed.v1.jdbc.select
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
+import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import java.util.*
 
 class ExposedProjectRepository : ProjectRepository {
@@ -186,5 +189,13 @@ class ExposedProjectRepository : ProjectRepository {
             currency = "UAH",
             contractorName = null
         )
+    }
+
+    override fun deleteByUuid(uuid: String): Boolean = transaction {
+        val project = ProjectTable.selectAll().firstOrNull { it[ProjectTable.uuid] == uuid } ?: return@transaction false
+        val projectId = project[ProjectTable.id].value
+        ProjectDocumentTable.deleteWhere { ProjectDocumentTable.projectId eq projectId }
+        FinancialRecordTable.deleteWhere { FinancialRecordTable.projectId eq projectId }
+        ProjectTable.deleteWhere { ProjectTable.id eq projectId } > 0
     }
 }

@@ -7,26 +7,29 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.launch
 import oms.data.ApiInspectionReport
 import oms.data.OmsApiClient
 import oms.data.ProjectRepository
 import oms.components.SortableTableHeader
 import oms.localization.LocalizationManager
 
-private data class ReportRow(val projectName: String, val report: ApiInspectionReport)
+private data class ReportRow(val projectUuid: String, val projectName: String, val report: ApiInspectionReport)
 private enum class ReportSort { Date, Report, Progress, Status, Author }
 
 @Composable
 fun ReportsScreen(onNewInspection: () -> Unit = {}) {
     var reports by remember { mutableStateOf<List<ReportRow>>(emptyList()) }
     var status by remember { mutableStateOf<String?>(null) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
     var sort by remember { mutableStateOf(ReportSort.Date) }
     var ascending by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
         ProjectRepository.refresh()
         reports = ProjectRepository.projects.flatMap { project ->
             runCatching { OmsApiClient.projectReports(project.id) }.getOrDefault(emptyList())
-                .map { ReportRow(project.name, it) }
+                .map { ReportRow(project.id, project.name, it) }
         }.sortedByDescending { it.report.inspectionDate }
     }
     val visible = reports.filter { status == null || it.report.status == status }.sortedWith(
@@ -68,11 +71,18 @@ fun ReportsScreen(onNewInspection: () -> Unit = {}) {
                         Text(row.report.status.replace('_', ' '), Modifier.width(130.dp))
                         Text("admin", Modifier.width(100.dp))
                         Text(row.report.uuid.take(8), Modifier.width(80.dp), style = MaterialTheme.typography.bodySmall)
+                        TextButton(onClick = {
+                            scope.launch {
+                                if (OmsApiClient.deleteInspectionReport(row.report.uuid)) reports = reports.filterNot { it.report.uuid == row.report.uuid }
+                                else errorMessage = "Could not delete report."
+                            }
+                        }) { Text("Delete") }
                     }
                     HorizontalDivider()
                 }
             }
         }
+        errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error) }
     }
 }
 
