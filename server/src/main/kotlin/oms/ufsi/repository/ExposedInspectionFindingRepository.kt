@@ -41,11 +41,11 @@ class ExposedInspectionFindingRepository :
         uuid: String
     ): InspectionFinding? = transaction {
         InspectionFindingTable
-            .select(
-                (InspectionFindingTable.inspectionReportId eq inspectionReportId) and
-                    (InspectionFindingTable.uuid eq uuid)
-            )
-            .singleOrNull()
+            .selectAll()
+            .firstOrNull {
+                it[InspectionFindingTable.inspectionReportId].value == inspectionReportId &&
+                    it[InspectionFindingTable.uuid] == uuid
+            }
             ?.let(::toFinding)
     }
 

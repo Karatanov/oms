@@ -52,10 +52,8 @@ class ExposedProjectRepository : ProjectRepository {
     ): Project? = transaction {
 
         ProjectTable
-            .select(
-                ProjectTable.uuid eq uuid
-            )
-            .singleOrNull()
+            .selectAll()
+            .firstOrNull { it[ProjectTable.uuid] == uuid }
             ?.let { row ->
 
                 Project(

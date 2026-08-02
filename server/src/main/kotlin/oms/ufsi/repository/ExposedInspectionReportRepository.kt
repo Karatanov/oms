@@ -91,10 +91,8 @@ class ExposedInspectionReportRepository :
     ): InspectionReport? = transaction {
 
         InspectionReportTable
-            .select(
-                InspectionReportTable.uuid eq uuid
-            )
-            .singleOrNull()
+            .selectAll()
+            .firstOrNull { it[InspectionReportTable.uuid] == uuid }
             ?.let { row ->
 
                 InspectionReport(

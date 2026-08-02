@@ -14,7 +14,7 @@ class ExposedFinancialRecordRepository : FinancialRecordRepository {
         FinancialRecordTable.selectAll().filter { it[FinancialRecordTable.projectId].value == projectId }.map(::map)
     }
     override fun findByUuid(projectId: Long, uuid: String) = transaction {
-        FinancialRecordTable.select((FinancialRecordTable.projectId eq projectId) and (FinancialRecordTable.uuid eq uuid)).singleOrNull()?.let(::map)
+        FinancialRecordTable.selectAll().firstOrNull { it[FinancialRecordTable.projectId].value == projectId && it[FinancialRecordTable.uuid] == uuid }?.let(::map)
     }
     override fun create(projectId: Long, type: FinancialRecordType, reference: String, amount: Long, currency: String, recordDate: String, paymentDate: String?, description: String?, milestone: String?, createdBy: Long) = transaction {
         val uuid = UUID.randomUUID()
