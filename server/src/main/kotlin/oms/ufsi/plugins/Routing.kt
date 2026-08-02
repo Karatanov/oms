@@ -36,5 +36,7 @@ fun Application.configureRouting() {
         inspectionRoutes()
 
         financialRoutes()
+
+        documentRoutes()
     }
 }
