@@ -96,4 +96,7 @@ object AppContainer {
 
     val projectDocumentRepository: ProjectDocumentRepository = ExposedProjectDocumentRepository()
     val projectDocumentService = ProjectDocumentService(projectDocumentRepository)
+
+    val inspectionPhotoRepository: InspectionPhotoRepository = ExposedInspectionPhotoRepository()
+    val inspectionPhotoService = InspectionPhotoService(inspectionPhotoRepository)
 }

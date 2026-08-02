@@ -38,5 +38,6 @@ fun Application.configureRouting() {
         financialRoutes()
 
         documentRoutes()
+        photoRoutes()
     }
 }

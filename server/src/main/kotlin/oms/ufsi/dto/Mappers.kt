@@ -165,3 +165,5 @@ fun InspectionFinding.toResponse():
 fun FinancialRecord.toResponse() = FinancialRecordResponse(uuid.toString(), recordType.name.lowercase(), referenceNumber, amount, currency, recordDate.toString(), paymentDate?.toString(), description, milestone)
 
 fun ProjectDocument.toResponse() = ProjectDocumentResponse(uuid.toString(), docType, originalName, contentType, fileSizeBytes)
+
+fun InspectionPhoto.toResponse() = InspectionPhotoResponse(uuid.toString(), originalName, contentType, fileSizeBytes, isMain, "/api/v1/inspection-reports/$reportId/photos/$uuid/download", "/api/v1/inspection-reports/$reportId/photos/$uuid/thumbnail")
