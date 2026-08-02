@@ -33,6 +33,8 @@ fun Application.configureRouting() {
         // Маршрути роботи з проєктами.
         projectRoutes()
 
+        mapRoutes()
+
         inspectionRoutes()
 
         financialRoutes()
