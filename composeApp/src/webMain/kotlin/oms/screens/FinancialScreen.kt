@@ -10,6 +10,7 @@ import oms.data.ApiFinancialRecord
 import oms.data.ApiProjectDocument
 import oms.data.OmsApiClient
 import oms.data.ProjectRepository
+import oms.components.SortableTableHeader
 import oms.localization.LocalizationManager
 
 private data class ProjectActRow(
@@ -23,6 +24,7 @@ private data class ActDocumentRow(
     val projectName: String,
     val document: ApiProjectDocument
 )
+private enum class FinancialSort { Number, Project, ActDate, PaymentDate, Amount, Currency, Milestone, Author }
 
 @Composable
 fun FinancialScreen(
@@ -37,6 +39,8 @@ fun FinancialScreen(
     val uriHandler = LocalUriHandler.current
     var acts by remember { mutableStateOf<List<ProjectActRow>>(emptyList()) }
     var actDocuments by remember { mutableStateOf<List<ActDocumentRow>>(emptyList()) }
+    var sort by remember { mutableStateOf(FinancialSort.ActDate) }
+    var ascending by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         ProjectRepository.refresh()
@@ -53,6 +57,19 @@ fun FinancialScreen(
     }
 
     val completedWorksTotal = acts.sumOf { it.act.amount }
+    val visibleActs = acts.sortedWith(compareBy<ProjectActRow> {
+        when (sort) {
+            FinancialSort.Number -> it.act.referenceNumber
+            FinancialSort.Project -> it.projectName
+            FinancialSort.ActDate -> it.act.recordDate
+            FinancialSort.PaymentDate -> it.act.paymentDate.orEmpty()
+            FinancialSort.Amount -> it.act.amount.toString().padStart(20, '0')
+            FinancialSort.Currency -> it.act.currency
+            FinancialSort.Milestone -> it.act.milestone.orEmpty()
+            FinancialSort.Author -> "admin"
+        }
+    }.let { if (ascending) it else it.reversed() })
+    fun selectSort(column: FinancialSort) { if (sort == column) ascending = !ascending else { sort = column; ascending = true } }
     Column(
         modifier = Modifier.fillMaxSize().padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -60,7 +77,7 @@ fun FinancialScreen(
         Text(LocalizationManager.t("financial_monitoring"), style = MaterialTheme.typography.headlineMedium)
         Text("Only completed works confirmed by acts are included.", color = MaterialTheme.colorScheme.onSurfaceVariant)
 
-        Card(Modifier.fillMaxWidth()) {
+        Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text("Sum of completed works by acts", style = MaterialTheme.typography.titleMedium)
                 Text(completedWorksTotal.toMoney(), style = MaterialTheme.typography.headlineMedium)
@@ -68,12 +85,12 @@ fun FinancialScreen(
         }
 
         Text("Acts", style = MaterialTheme.typography.titleLarge)
-        Card(Modifier.fillMaxWidth()) {
+        Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                FinancialTableHeader()
+                FinancialTableHeader(sort, ascending, ::selectSort)
                 HorizontalDivider()
-                if (acts.isEmpty()) Text("No acts found.")
-                acts.forEach { row ->
+                if (visibleActs.isEmpty()) Text("No acts found.")
+                visibleActs.forEach { row ->
                     Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                         Text(row.act.referenceNumber, Modifier.width(130.dp))
                         Text(row.projectName, Modifier.weight(1.25f))
@@ -107,16 +124,16 @@ fun FinancialScreen(
 }
 
 @Composable
-private fun FinancialTableHeader() {
+private fun FinancialTableHeader(sort: FinancialSort, ascending: Boolean, onSort: (FinancialSort) -> Unit) {
     Row(Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
-        Text("Act no.", Modifier.width(130.dp), style = MaterialTheme.typography.labelLarge)
-        Text("Project", Modifier.weight(1.25f), style = MaterialTheme.typography.labelLarge)
-        Text("Act date", Modifier.width(105.dp), style = MaterialTheme.typography.labelLarge)
-        Text("Payment date", Modifier.width(105.dp), style = MaterialTheme.typography.labelLarge)
-        Text("Amount", Modifier.width(130.dp), style = MaterialTheme.typography.labelLarge)
-        Text("Curr.", Modifier.width(65.dp), style = MaterialTheme.typography.labelLarge)
-        Text("Milestone", Modifier.weight(1f), style = MaterialTheme.typography.labelLarge)
-        Text("By", Modifier.width(75.dp), style = MaterialTheme.typography.labelLarge)
+        SortableTableHeader("Act no.", sort == FinancialSort.Number, ascending, { onSort(FinancialSort.Number) }, Modifier.width(130.dp))
+        SortableTableHeader("Project", sort == FinancialSort.Project, ascending, { onSort(FinancialSort.Project) }, Modifier.weight(1.25f))
+        SortableTableHeader("Act date", sort == FinancialSort.ActDate, ascending, { onSort(FinancialSort.ActDate) }, Modifier.width(105.dp))
+        SortableTableHeader("Payment date", sort == FinancialSort.PaymentDate, ascending, { onSort(FinancialSort.PaymentDate) }, Modifier.width(105.dp))
+        SortableTableHeader("Amount", sort == FinancialSort.Amount, ascending, { onSort(FinancialSort.Amount) }, Modifier.width(130.dp))
+        SortableTableHeader("Curr.", sort == FinancialSort.Currency, ascending, { onSort(FinancialSort.Currency) }, Modifier.width(65.dp))
+        SortableTableHeader("Milestone", sort == FinancialSort.Milestone, ascending, { onSort(FinancialSort.Milestone) }, Modifier.weight(1f))
+        SortableTableHeader("By", sort == FinancialSort.Author, ascending, { onSort(FinancialSort.Author) }, Modifier.width(75.dp))
     }
 }
 

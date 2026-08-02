@@ -10,16 +10,20 @@ import oms.data.ApiInspectionReport
 import oms.data.ApiProjectDocument
 import oms.data.OmsApiClient
 import oms.data.ProjectRepository
+import oms.components.SortableTableHeader
 import oms.localization.LocalizationManager
 
 private data class SirDocumentRow(val projectName: String, val report: ApiInspectionReport)
 private data class ProjectDocumentRow(val projectUuid: String, val projectName: String, val document: ApiProjectDocument)
+private enum class DocumentSort { Name, Project, Type, Size, Author }
 
 @Composable
 fun DocumentsScreen(canManageDocuments: Boolean = true) {
     val uriHandler = LocalUriHandler.current
     var sirFiles by remember { mutableStateOf<List<SirDocumentRow>>(emptyList()) }
     var projectFiles by remember { mutableStateOf<List<ProjectDocumentRow>>(emptyList()) }
+    var sort by remember { mutableStateOf(DocumentSort.Name) }
+    var ascending by remember { mutableStateOf(true) }
     LaunchedEffect(Unit) {
         ProjectRepository.refresh()
         sirFiles = ProjectRepository.projects.flatMap { project ->
@@ -32,15 +36,25 @@ fun DocumentsScreen(canManageDocuments: Boolean = true) {
                 .map { ProjectDocumentRow(project.id, project.name, it) }
         }
     }
+    val visibleDocuments = projectFiles.sortedWith(compareBy<ProjectDocumentRow> {
+        when (sort) {
+            DocumentSort.Name -> it.document.fileName
+            DocumentSort.Project -> it.projectName
+            DocumentSort.Type -> it.document.docType
+            DocumentSort.Size -> it.document.fileSizeBytes.toString().padStart(20, '0')
+            DocumentSort.Author -> "admin"
+        }
+    }.let { if (ascending) it else it.reversed() })
+    fun selectSort(column: DocumentSort) { if (sort == column) ascending = !ascending else { sort = column; ascending = true } }
     Column(Modifier.fillMaxSize().padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Text(LocalizationManager.t("documents_title"), style = MaterialTheme.typography.headlineMedium)
         Text("Project documents", style = MaterialTheme.typography.titleLarge)
-        Card(Modifier.fillMaxWidth()) {
+        Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                DocumentTableHeader()
+                DocumentTableHeader(sort, ascending, ::selectSort)
                 HorizontalDivider()
-                if (projectFiles.isEmpty()) Text("No project documents found.")
-                projectFiles.forEach { row ->
+                if (visibleDocuments.isEmpty()) Text("No project documents found.")
+                visibleDocuments.forEach { row ->
                     Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                         Text(row.document.fileName, Modifier.weight(1.35f))
                         Text(row.projectName, Modifier.weight(1f))
@@ -54,7 +68,7 @@ fun DocumentsScreen(canManageDocuments: Boolean = true) {
             }
         }
         Text("SIR source files", style = MaterialTheme.typography.titleLarge)
-        Card(Modifier.fillMaxWidth()) {
+        Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 if (sirFiles.isEmpty()) Text("No imported SIR files found.")
                 sirFiles.forEach { row ->
@@ -72,13 +86,13 @@ fun DocumentsScreen(canManageDocuments: Boolean = true) {
 }
 
 @Composable
-private fun DocumentTableHeader() {
+private fun DocumentTableHeader(sort: DocumentSort, ascending: Boolean, onSort: (DocumentSort) -> Unit) {
     Row(Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
-        Text("File name", Modifier.weight(1.35f), style = MaterialTheme.typography.labelLarge)
-        Text("Project", Modifier.weight(1f), style = MaterialTheme.typography.labelLarge)
-        Text("Type", Modifier.width(85.dp), style = MaterialTheme.typography.labelLarge)
-        Text("Size", Modifier.width(90.dp), style = MaterialTheme.typography.labelLarge)
-        Text("Uploaded by", Modifier.width(85.dp), style = MaterialTheme.typography.labelLarge)
+        SortableTableHeader("File name", sort == DocumentSort.Name, ascending, { onSort(DocumentSort.Name) }, Modifier.weight(1.35f))
+        SortableTableHeader("Project", sort == DocumentSort.Project, ascending, { onSort(DocumentSort.Project) }, Modifier.weight(1f))
+        SortableTableHeader("Type", sort == DocumentSort.Type, ascending, { onSort(DocumentSort.Type) }, Modifier.width(85.dp))
+        SortableTableHeader("Size", sort == DocumentSort.Size, ascending, { onSort(DocumentSort.Size) }, Modifier.width(90.dp))
+        SortableTableHeader("Uploaded by", sort == DocumentSort.Author, ascending, { onSort(DocumentSort.Author) }, Modifier.width(85.dp))
         Spacer(Modifier.width(85.dp))
     }
 }

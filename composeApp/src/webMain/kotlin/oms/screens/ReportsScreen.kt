@@ -10,14 +10,18 @@ import androidx.compose.ui.unit.dp
 import oms.data.ApiInspectionReport
 import oms.data.OmsApiClient
 import oms.data.ProjectRepository
+import oms.components.SortableTableHeader
 import oms.localization.LocalizationManager
 
 private data class ReportRow(val projectName: String, val report: ApiInspectionReport)
+private enum class ReportSort { Date, Report, Progress, Status, Author }
 
 @Composable
 fun ReportsScreen(onNewInspection: () -> Unit = {}) {
     var reports by remember { mutableStateOf<List<ReportRow>>(emptyList()) }
     var status by remember { mutableStateOf<String?>(null) }
+    var sort by remember { mutableStateOf(ReportSort.Date) }
+    var ascending by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
         ProjectRepository.refresh()
         reports = ProjectRepository.projects.flatMap { project ->
@@ -25,7 +29,18 @@ fun ReportsScreen(onNewInspection: () -> Unit = {}) {
                 .map { ReportRow(project.name, it) }
         }.sortedByDescending { it.report.inspectionDate }
     }
-    val visible = reports.filter { status == null || it.report.status == status }
+    val visible = reports.filter { status == null || it.report.status == status }.sortedWith(
+        compareBy<ReportRow> {
+            when (sort) {
+                ReportSort.Date -> it.report.inspectionDate
+                ReportSort.Report -> "${it.report.summary.orEmpty()} ${it.projectName}"
+                ReportSort.Progress -> it.report.completionPct.toString().padStart(6, '0')
+                ReportSort.Status -> it.report.status
+                ReportSort.Author -> "admin"
+            }
+        }.let { if (ascending) it else it.reversed() }
+    )
+    fun selectSort(column: ReportSort) { if (sort == column) ascending = !ascending else { sort = column; ascending = true } }
 
     Column(Modifier.fillMaxSize().padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -37,9 +52,9 @@ fun ReportsScreen(onNewInspection: () -> Unit = {}) {
                 FilterChip(selected = status == value, onClick = { status = value }, label = { Text(value ?: LocalizationManager.t("all")) })
             }
         }
-        Card(Modifier.fillMaxWidth()) {
+        Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                ReportTableHeader()
+                ReportTableHeader(sort, ascending, ::selectSort)
                 HorizontalDivider()
                 if (visible.isEmpty()) Text("No inspection reports found.")
                 visible.forEach { row ->
@@ -62,13 +77,13 @@ fun ReportsScreen(onNewInspection: () -> Unit = {}) {
 }
 
 @Composable
-private fun ReportTableHeader() {
+private fun ReportTableHeader(sort: ReportSort, ascending: Boolean, onSort: (ReportSort) -> Unit) {
     Row(Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
-        Text("Date", Modifier.width(105.dp), style = MaterialTheme.typography.labelLarge)
-        Text("Report / project", Modifier.weight(1.35f), style = MaterialTheme.typography.labelLarge)
-        Text("Progress", Modifier.width(85.dp), style = MaterialTheme.typography.labelLarge)
-        Text("Status", Modifier.width(130.dp), style = MaterialTheme.typography.labelLarge)
-        Text("Uploaded by", Modifier.width(100.dp), style = MaterialTheme.typography.labelLarge)
+        SortableTableHeader("Date", sort == ReportSort.Date, ascending, { onSort(ReportSort.Date) }, Modifier.width(105.dp))
+        SortableTableHeader("Report / project", sort == ReportSort.Report, ascending, { onSort(ReportSort.Report) }, Modifier.weight(1.35f))
+        SortableTableHeader("Progress", sort == ReportSort.Progress, ascending, { onSort(ReportSort.Progress) }, Modifier.width(85.dp))
+        SortableTableHeader("Status", sort == ReportSort.Status, ascending, { onSort(ReportSort.Status) }, Modifier.width(130.dp))
+        SortableTableHeader("Uploaded by", sort == ReportSort.Author, ascending, { onSort(ReportSort.Author) }, Modifier.width(100.dp))
         Text("ID", Modifier.width(80.dp), style = MaterialTheme.typography.labelLarge)
     }
 }
