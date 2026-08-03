@@ -13,6 +13,10 @@ import oms.data.OmsApiClient
 import oms.data.ProjectRepository
 import oms.components.SortableTableHeader
 import oms.localization.LocalizationManager
+import kotlin.js.JsName
+
+@JsName("openProjectDocumentUpload")
+external fun openProjectDocumentUpload(projectUuid: String, docType: String)
 
 private data class SirDocumentRow(val projectName: String, val report: ApiInspectionReport)
 private data class ProjectDocumentRow(val projectUuid: String, val projectName: String, val document: ApiProjectDocument)
@@ -27,6 +31,7 @@ fun DocumentsScreen(canManageDocuments: Boolean = true) {
     var sort by remember { mutableStateOf(DocumentSort.Name) }
     var ascending by remember { mutableStateOf(true) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    var showUploadDialog by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
         ProjectRepository.refresh()
         sirFiles = ProjectRepository.projects.flatMap { project ->
@@ -50,7 +55,10 @@ fun DocumentsScreen(canManageDocuments: Boolean = true) {
     }.let { if (ascending) it else it.reversed() })
     fun selectSort(column: DocumentSort) { if (sort == column) ascending = !ascending else { sort = column; ascending = true } }
     Column(Modifier.fillMaxSize().padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        Text(LocalizationManager.t("documents_title"), style = MaterialTheme.typography.headlineMedium)
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Text(LocalizationManager.t("documents_title"), style = MaterialTheme.typography.headlineMedium)
+            if (canManageDocuments) Button(onClick = { showUploadDialog = true }) { Text("Upload document") }
+        }
         Text("Project documents", style = MaterialTheme.typography.titleLarge)
         Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -101,7 +109,27 @@ fun DocumentsScreen(canManageDocuments: Boolean = true) {
                 }
             }
         }
+        if (showUploadDialog) ProjectDocumentUploadDialog(
+            projects = ProjectRepository.projects,
+            onDismiss = { showUploadDialog = false },
+            onUpload = { projectUuid, type -> openProjectDocumentUpload(projectUuid, type); showUploadDialog = false }
+        )
     }
+}
+
+@Composable
+private fun ProjectDocumentUploadDialog(projects: List<oms.model.Project>, onDismiss: () -> Unit, onUpload: (String, String) -> Unit) {
+    var projectUuid by remember { mutableStateOf(projects.firstOrNull()?.id) }
+    var docType by remember { mutableStateOf("other") }
+    var expanded by remember { mutableStateOf(false) }
+    val selected = projects.firstOrNull { it.id == projectUuid }
+    AlertDialog(onDismissRequest = onDismiss, title = { Text("Upload document") }, text = {
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Box { OutlinedButton(onClick = { expanded = true }, modifier = Modifier.fillMaxWidth()) { Text(selected?.name ?: "Select project") }
+                DropdownMenu(expanded, { expanded = false }) { projects.forEach { p -> DropdownMenuItem({ Text(p.name) }, { projectUuid = p.id; expanded = false }) } } }
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) { listOf("contract", "estimate", "act", "other").forEach { type -> FilterChip(selected = docType == type, onClick = { docType = type }, label = { Text(type) }) } }
+        }
+    }, confirmButton = { Button(onClick = { onUpload(projectUuid!!, docType) }, enabled = projectUuid != null) { Text("Choose file") } }, dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } })
 }
 
 @Composable

@@ -86,6 +86,36 @@
             input.click();
         }
 
+        function uploadWithDialog(accept, url, extraFields, successMessage) {
+            const input = document.createElement("input");
+            input.type = "file";
+            input.accept = accept;
+            input.onchange = async () => {
+                const file = input.files && input.files[0];
+                if (!file) return;
+                const formData = new FormData();
+                Object.entries(extraFields).forEach(([key, value]) => formData.append(key, value));
+                formData.append("file", file, file.name);
+                try {
+                    const response = await fetch(url, { method: "POST", body: formData, credentials: "include" });
+                    if (!response.ok) throw new Error(await response.text());
+                    window.alert(successMessage);
+                    window.location.reload();
+                } catch (error) {
+                    window.alert(`Upload failed: ${error.message || error}`);
+                }
+            };
+            input.click();
+        }
+
+        function openProjectDocumentUpload(projectUuid, docType) {
+            uploadWithDialog(".pdf,.xlsx,.jpg,.jpeg,.png", `http://localhost:8080/api/v1/projects/${projectUuid}/documents`, { docType }, "Document uploaded successfully.");
+        }
+
+        function openInspectionPhotoUpload(reportUuid) {
+            uploadWithDialog("image/jpeg,image/png,image/webp", `http://localhost:8080/api/v1/inspection-reports/${reportUuid}/photos`, {}, "Photo uploaded successfully.");
+        }
+
         function setLeafletProjects(projectsJson) {
             initLeafletMap();
 

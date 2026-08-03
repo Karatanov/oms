@@ -13,6 +13,10 @@ import oms.data.OmsApiClient
 import oms.data.ProjectRepository
 import oms.components.SortableTableHeader
 import oms.localization.LocalizationManager
+import kotlin.js.JsName
+
+@JsName("openInspectionPhotoUpload")
+external fun openInspectionPhotoUpload(reportUuid: String)
 
 private data class ReportRow(val projectUuid: String, val projectName: String, val report: ApiInspectionReport)
 private enum class ReportSort { Date, Report, Progress, Status, Author }
@@ -73,6 +77,7 @@ fun ReportsScreen(onNewInspection: () -> Unit = {}) {
                         Text(row.report.status.replace('_', ' '), Modifier.width(130.dp))
                         Text("admin", Modifier.width(100.dp))
                         Text(row.report.uuid.take(8), Modifier.width(80.dp), style = MaterialTheme.typography.bodySmall)
+                        TextButton(onClick = { openInspectionPhotoUpload(row.report.uuid) }) { Text("Photo") }
                         TextButton(onClick = { findingsReport = row }) { Text("Findings") }
                         TextButton(onClick = { reportToMove = row }) { Text("Move") }
                         TextButton(onClick = {
