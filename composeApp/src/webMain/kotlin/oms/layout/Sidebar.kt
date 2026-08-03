@@ -71,6 +71,13 @@ fun Sidebar(
             currentScreen,
             onNavigate
         )
+        SidebarItem(
+            "Адміністрування",
+            Icons.Default.AdminPanelSettings,
+            Screen.Admin,
+            currentScreen,
+            onNavigate
+        )
         Spacer(modifier = Modifier.weight(1f))
 
         Column(

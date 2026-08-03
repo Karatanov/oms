@@ -3,6 +3,7 @@ package oms.ufsi.service
 import oms.ufsi.domain.User
 import oms.ufsi.repository.UserRepository
 import oms.ufsi.security.PasswordHasher
+import oms.ufsi.dto.UpdateUserRequest
 
 /**
  * Сервіс роботи з користувачами.
@@ -33,6 +34,17 @@ class UserService(
         return userRepository.findByUsername(
             username.trim()
         )
+    }
+
+    fun findByLoginOrEmail(
+        loginOrEmail: String
+    ): User? {
+        val normalizedValue = loginOrEmail.trim()
+
+        return findByUsername(normalizedValue)
+            ?: getAllUsers().firstOrNull { user ->
+                user.email.equals(normalizedValue, ignoreCase = true)
+            }
     }
 
     /**
@@ -91,6 +103,24 @@ class UserService(
             password = passwordHash,
             roleId = role.id
         )
+    }
+
+    fun updateUser(id: Long, request: UpdateUserRequest): User? {
+        val current = getAllUsers().firstOrNull { it.id == id } ?: return null
+        val username = request.username?.trim() ?: current.username
+        val email = request.email?.trim() ?: current.email
+        val password = request.password?.trim()
+        validateUserData(username, email, password ?: "valid-existing-password")
+        if (username != current.username && userRepository.existsByUsername(username)) {
+            throw IllegalArgumentException("A user with this username already exists.")
+        }
+        if (!email.equals(current.email, ignoreCase = true) && userRepository.existsByEmail(email)) {
+            throw IllegalArgumentException("A user with this email already exists.")
+        }
+        val role = request.roleCode?.trim()?.takeIf { it.isNotEmpty() }?.let { roleService.getRoleByCode(it) }
+            ?: if (request.roleCode.isNullOrBlank()) current.role else throw IllegalArgumentException("Role does not exist.")
+        val passwordHash = if (password.isNullOrBlank()) current.passwordHash else PasswordHasher.hash(password)
+        return userRepository.update(id, username, email, passwordHash, role.id)
     }
 
     /**

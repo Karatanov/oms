@@ -7,6 +7,8 @@ import oms.ufsi.domain.User
 import org.jetbrains.exposed.v1.jdbc.insertAndGetId
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
+import org.jetbrains.exposed.v1.jdbc.update
+import org.jetbrains.exposed.v1.core.eq
 
 /**
  * Реалізація репозиторію користувачів на базі Exposed.
@@ -149,5 +151,15 @@ class ExposedUserRepository : UserRepository {
 
                 row[UserTable.email] == email
             }
+    }
+
+    override fun update(id: Long, username: String, email: String, passwordHash: String, roleId: Long): User? = transaction {
+        val count = UserTable.update({ UserTable.id eq id }) {
+            it[UserTable.username] = username
+            it[UserTable.email] = email
+            it[UserTable.password] = passwordHash
+            it[UserTable.roleId] = roleId
+        }
+        if (count == 0) null else findAll().firstOrNull { it.id == id }
     }
 }

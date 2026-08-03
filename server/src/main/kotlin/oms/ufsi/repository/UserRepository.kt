@@ -45,4 +45,6 @@ interface UserRepository {
     fun existsByEmail(
         email: String
     ): Boolean
+
+    fun update(id: Long, username: String, email: String, passwordHash: String, roleId: Long): User?
 }

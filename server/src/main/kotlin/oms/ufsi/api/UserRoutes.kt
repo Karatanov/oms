@@ -18,6 +18,7 @@ import io.ktor.server.routing.*
 import oms.ufsi.config.AppContainer
 import oms.ufsi.dto.CreateUserRequest
 import oms.ufsi.dto.ErrorResponse
+import oms.ufsi.dto.UpdateUserRequest
 import oms.ufsi.dto.toResponse
 
 /**
@@ -91,6 +92,19 @@ fun Route.userRoutes() {
                         ?: "Помилка валідації."
                 )
             )
+        }
+    }
+
+    patch("/api/v1/users/{id}") {
+        call.requireRole("ADMIN") ?: return@patch
+        val id = call.parameters["id"]?.toLongOrNull()
+            ?: return@patch call.respond(HttpStatusCode.BadRequest, ErrorResponse("VALIDATION_ERROR", "User ID is required."))
+        try {
+            val user = userService.updateUser(id, call.receive<UpdateUserRequest>())
+                ?: return@patch call.respond(HttpStatusCode.NotFound, ErrorResponse("NOT_FOUND", "User not found."))
+            call.respond(user.toResponse())
+        } catch (exception: IllegalArgumentException) {
+            call.respond(HttpStatusCode.BadRequest, ErrorResponse("VALIDATION_ERROR", exception.message ?: "Invalid user data."))
         }
     }
 }

@@ -83,7 +83,7 @@ fun AppLayout(appState: AppState) {
 
                 is Screen.Documents -> DocumentsScreen()
 
-//                is Screen.Admin -> AdminScreen()
+                is Screen.Admin -> AdminScreen()
 
                 else -> {}
             }

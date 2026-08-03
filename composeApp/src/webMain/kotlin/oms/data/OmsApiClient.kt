@@ -44,6 +44,16 @@ object OmsApiClient {
     suspend fun projects(): List<ApiProject> =
         client.get("$baseUrl/projects?page=1&pageSize=100").body<ProjectListPayload>().data
 
+    suspend fun users(): List<ApiUser> = client.get("$baseUrl/users").body()
+
+    suspend fun roles(): List<ApiRole> = client.get("$baseUrl/roles").body()
+
+    suspend fun updateUser(id: Long, request: UpdateUserRequest): ApiUser =
+        client.patch("$baseUrl/users/$id") {
+            contentType(ContentType.Application.Json)
+            setBody(request)
+        }.body()
+
     suspend fun createProject(request: CreateProjectRequest): ApiProject =
         client.post("$baseUrl/projects") {
             contentType(ContentType.Application.Json)
@@ -144,6 +154,14 @@ data class UpdateProjectRequest(
 )
 
 @Serializable
+data class UpdateUserRequest(
+    val username: String? = null,
+    val email: String? = null,
+    val roleCode: String? = null,
+    val password: String? = null
+)
+
+@Serializable
 data class ProjectListPayload(val data: List<ApiProject>)
 
 @Serializable
@@ -155,6 +173,12 @@ data class ApiProject(
     val latitude: Double,
     val longitude: Double
 )
+
+@Serializable
+data class ApiUser(val id: Long, val username: String, val email: String, val role: ApiRole)
+
+@Serializable
+data class ApiRole(val id: Long, val code: String, val name: String)
 
 @Serializable
 data class ApiDashboard(
