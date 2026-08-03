@@ -63,16 +63,7 @@ fun TableHeader(
                 .height(48.dp),
             contentAlignment = Alignment.Center
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Spacer(modifier = Modifier.width(24.dp))
-                Text(
-                    text = LocalizationManager.t("action"),
-                    style = MaterialTheme.typography.labelLarge
-                )
-            }
+            Text(text = LocalizationManager.t("action"), style = MaterialTheme.typography.labelLarge)
         }
     }
 }

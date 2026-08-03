@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -28,6 +29,7 @@ import oms.data.CreateProjectRequest
 import oms.data.ApiProject
 import oms.data.OmsApiClient
 import oms.data.ProjectRepository
+import oms.theme.Primary
 
 @Composable
 fun CreateProjectScreen(
@@ -88,8 +90,8 @@ fun CreateProjectScreen(
             ) {
                 Text("Основна інформація", style = MaterialTheme.typography.titleMedium)
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    OutlinedButton(onClick = { projectType = "project" }, modifier = Modifier.weight(1f)) { Text("Проєкт${if (projectType == "project") " ✓" else ""}") }
-                    OutlinedButton(onClick = { projectType = "subproject" }, modifier = Modifier.weight(1f)) { Text("Субпроєкт${if (projectType == "subproject") " ✓" else ""}") }
+                    OutlinedButton(onClick = { projectType = "project" }, modifier = Modifier.weight(1f), colors = ButtonDefaults.outlinedButtonColors(containerColor = if (projectType == "project") Primary else MaterialTheme.colorScheme.surface, contentColor = if (projectType == "project") MaterialTheme.colorScheme.onPrimary else Primary)) { Text("Проєкт") }
+                    OutlinedButton(onClick = { projectType = "subproject" }, modifier = Modifier.weight(1f), colors = ButtonDefaults.outlinedButtonColors(containerColor = if (projectType == "subproject") Primary else MaterialTheme.colorScheme.surface, contentColor = if (projectType == "subproject") MaterialTheme.colorScheme.onPrimary else Primary)) { Text("Субпроєкт") }
                 }
                 if (projectType == "subproject") {
                     Box {
@@ -137,7 +139,7 @@ fun CreateProjectScreen(
                     OutlinedTextField(sector, { sector = it }, label = { Text("Сектор *") }, modifier = Modifier.weight(1f))
                     OutlinedTextField(constructionType, { constructionType = it }, label = { Text("Тип будівництва *") }, modifier = Modifier.weight(1f))
                 }
-                OutlinedTextField(budgetPlanned, { budgetPlanned = it }, label = { Text("Плановий бюджет, грн *") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(budgetPlanned, { value -> if (value.matches(Regex("[0-9.,]*"))) budgetPlanned = value }, label = { Text("Плановий бюджет, грн *") }, singleLine = true, modifier = Modifier.fillMaxWidth())
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     OutlinedTextField(engineerConsultantContractAmount, { value -> if (value.all(Char::isDigit)) engineerConsultantContractAmount = value }, label = { Text("Договір інженера-консультанта, грн") }, singleLine = true, modifier = Modifier.weight(1f))
                     OutlinedTextField(technicalSupervisionAmount, { value -> if (value.all(Char::isDigit)) technicalSupervisionAmount = value }, label = { Text("Технічний нагляд, грн") }, singleLine = true, modifier = Modifier.weight(1f))
