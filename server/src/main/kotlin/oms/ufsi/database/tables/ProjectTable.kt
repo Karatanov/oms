@@ -2,6 +2,7 @@ package oms.ufsi.database.tables
 
 import org.jetbrains.exposed.v1.core.ReferenceOption
 import org.jetbrains.exposed.v1.core.dao.id.LongIdTable
+import org.jetbrains.exposed.v1.javatime.date
 
 /**
  * Опис таблиці проєктів для Exposed.
@@ -129,6 +130,14 @@ object ProjectTable : LongIdTable("projects") {
     val technicalSupervisionAmount =
         long("technical_supervision_amount")
             .nullable()
+
+    val subprojectContractAmount =
+        long("subproject_contract_amount")
+            .nullable()
+
+    val startDate = date("start_date").nullable()
+    val contractSignedDate = date("contract_signed_date").nullable()
+    val plannedEndDate = date("planned_end_date").nullable()
 
     /**
      * Валюта відображення.

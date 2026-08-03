@@ -190,7 +190,13 @@ data class CreateProjectRequest(
     val budgetPlanned: Long,
     val engineerConsultantContractAmount: Long? = null,
     val technicalSupervisionAmount: Long? = null,
-    val managerId: Long
+    val managerId: Long,
+    val projectType: String = "project",
+    val parentProjectUuid: String? = null,
+    val subprojectContractAmount: Long? = null,
+    val startDate: String? = null,
+    val contractSignedDate: String? = null,
+    val plannedEndDate: String? = null
 )
 
 @Serializable
@@ -207,7 +213,11 @@ data class UpdateProjectRequest(
     val constructionType: String? = null,
     val budgetPlanned: Long? = null,
     val engineerConsultantContractAmount: Long? = null,
-    val technicalSupervisionAmount: Long? = null
+    val technicalSupervisionAmount: Long? = null,
+    val subprojectContractAmount: Long? = null,
+    val startDate: String? = null,
+    val contractSignedDate: String? = null,
+    val plannedEndDate: String? = null
 )
 
 @Serializable
@@ -224,6 +234,7 @@ data class ProjectListPayload(val data: List<ApiProject>)
 @Serializable
 data class ApiProject(
     val uuid: String,
+    val projectType: String = "project",
     val name: String,
     val region: String,
     val status: String,
@@ -294,7 +305,13 @@ data class ApiProjectDetailsData(
     val constructionType: String,
     val budgetPlanned: Long,
     val engineerConsultantContractAmount: Long? = null,
-    val technicalSupervisionAmount: Long? = null
+    val technicalSupervisionAmount: Long? = null,
+    val projectType: String = "project",
+    val subprojectContractAmount: Long? = null,
+    val startDate: String? = null,
+    val contractSignedDate: String? = null,
+    val plannedEndDate: String? = null,
+    val contractDurationDays: Long? = null
 )
 
 @Serializable

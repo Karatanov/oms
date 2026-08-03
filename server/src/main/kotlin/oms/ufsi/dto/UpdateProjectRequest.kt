@@ -17,5 +17,9 @@ data class UpdateProjectRequest(
     val constructionType: String? = null,
     val budgetPlanned: Long? = null,
     val engineerConsultantContractAmount: Long? = null,
-    val technicalSupervisionAmount: Long? = null
+    val technicalSupervisionAmount: Long? = null,
+    val subprojectContractAmount: Long? = null,
+    val startDate: String? = null,
+    val contractSignedDate: String? = null,
+    val plannedEndDate: String? = null
 )

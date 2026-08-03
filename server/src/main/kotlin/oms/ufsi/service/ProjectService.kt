@@ -2,7 +2,9 @@ package oms.ufsi.service
 
 import oms.ufsi.domain.Project
 import oms.ufsi.domain.ProjectPatch
+import oms.ufsi.domain.ProjectType
 import oms.ufsi.repository.ProjectRepository
+import java.time.LocalDate
 
 /**
  * Бізнес-логіка роботи з проєктами.
@@ -49,6 +51,12 @@ class ProjectService(
         budgetPlanned: Long,
         engineerConsultantContractAmount: Long?,
         technicalSupervisionAmount: Long?,
+        projectType: ProjectType = ProjectType.PROJECT,
+        parentProjectId: Long? = null,
+        subprojectContractAmount: Long? = null,
+        startDate: LocalDate? = null,
+        contractSignedDate: LocalDate? = null,
+        plannedEndDate: LocalDate? = null,
         managerId: Long
     ): Project {
 
@@ -59,6 +67,11 @@ class ProjectService(
             budgetPlanned = budgetPlanned,
             engineerConsultantContractAmount = engineerConsultantContractAmount,
             technicalSupervisionAmount = technicalSupervisionAmount,
+            projectType = projectType,
+            subprojectContractAmount = subprojectContractAmount,
+            startDate = startDate,
+            contractSignedDate = contractSignedDate,
+            plannedEndDate = plannedEndDate,
         )
         /**
          * Координати повинні відповідати
@@ -106,6 +119,18 @@ class ProjectService(
 
             technicalSupervisionAmount = technicalSupervisionAmount,
 
+            projectType = projectType,
+
+            parentProjectId = parentProjectId,
+
+            subprojectContractAmount = subprojectContractAmount,
+
+            startDate = startDate,
+
+            contractSignedDate = contractSignedDate,
+
+            plannedEndDate = plannedEndDate,
+
             managerId = managerId
         )
     }
@@ -119,7 +144,12 @@ class ProjectService(
         city: String,
         budgetPlanned: Long,
         engineerConsultantContractAmount: Long? = null,
-        technicalSupervisionAmount: Long? = null
+        technicalSupervisionAmount: Long? = null,
+        projectType: ProjectType = ProjectType.PROJECT,
+        subprojectContractAmount: Long? = null,
+        startDate: LocalDate? = null,
+        contractSignedDate: LocalDate? = null,
+        plannedEndDate: LocalDate? = null
     ) {
 
         if (name.isBlank()) {
@@ -157,6 +187,18 @@ class ProjectService(
             "Technical supervision amount must not be negative."
         }
 
+        if (projectType == ProjectType.SUBPROJECT) {
+            require(subprojectContractAmount != null && subprojectContractAmount > 0) {
+                "Subproject contract amount must be positive."
+            }
+            require(startDate != null && contractSignedDate != null && plannedEndDate != null) {
+                "Subproject start date, contract signing date, and planned end date are required."
+            }
+            require(!plannedEndDate.isBefore(contractSignedDate)) {
+                "Planned end date must not be before contract signing date."
+            }
+        }
+
     }
 
     fun createProject(
@@ -173,8 +215,30 @@ class ProjectService(
         longitude: Double,
         engineerConsultantContractAmount: Long?,
         technicalSupervisionAmount: Long?,
+        projectType: String,
+        parentProjectUuid: String?,
+        subprojectContractAmount: Long?,
+        startDate: String?,
+        contractSignedDate: String?,
+        plannedEndDate: String?,
         managerId: Long
     ): Project {
+        val normalizedType = when (projectType.trim().lowercase()) {
+            "project" -> ProjectType.PROJECT
+            "subproject" -> ProjectType.SUBPROJECT
+            else -> throw IllegalArgumentException("Project type must be project or subproject.")
+        }
+        val parent = parentProjectUuid?.trim()?.takeIf { it.isNotEmpty() }?.let { parentUuid ->
+            getProjectByUuid(parentUuid) ?: throw IllegalArgumentException("Parent project was not found.")
+        }
+        if (normalizedType == ProjectType.SUBPROJECT) {
+            require(parent?.projectType == ProjectType.PROJECT) { "A subproject must reference a parent project." }
+        } else {
+            require(parent == null) { "Only a subproject may reference a parent project." }
+        }
+        val parsedStartDate = parseOptionalDate(startDate, "Start date")
+        val parsedContractSignedDate = parseOptionalDate(contractSignedDate, "Contract signing date")
+        val parsedPlannedEndDate = parseOptionalDate(plannedEndDate, "Planned end date")
         validateProjectData(
             name = name,
             region = region,
@@ -182,6 +246,11 @@ class ProjectService(
             budgetPlanned = budgetPlanned,
             engineerConsultantContractAmount = engineerConsultantContractAmount,
             technicalSupervisionAmount = technicalSupervisionAmount,
+            projectType = normalizedType,
+            subprojectContractAmount = subprojectContractAmount,
+            startDate = parsedStartDate,
+            contractSignedDate = parsedContractSignedDate,
+            plannedEndDate = parsedPlannedEndDate,
         )
 
         /**
@@ -230,6 +299,18 @@ class ProjectService(
 
             technicalSupervisionAmount = technicalSupervisionAmount,
 
+            projectType = normalizedType,
+
+            parentProjectId = parent?.id,
+
+            subprojectContractAmount = subprojectContractAmount,
+
+            startDate = parsedStartDate,
+
+            contractSignedDate = parsedContractSignedDate,
+
+            plannedEndDate = parsedPlannedEndDate,
+
             managerId = managerId
         )
     }
@@ -264,11 +345,24 @@ class ProjectService(
             constructionType = request.constructionType?.trim() ?: current.constructionType,
             budgetPlanned = request.budgetPlanned ?: current.budgetPlanned,
             engineerConsultantContractAmount = request.engineerConsultantContractAmount ?: current.engineerConsultantContractAmount,
-            technicalSupervisionAmount = request.technicalSupervisionAmount ?: current.technicalSupervisionAmount
+            technicalSupervisionAmount = request.technicalSupervisionAmount ?: current.technicalSupervisionAmount,
+            subprojectContractAmount = request.subprojectContractAmount ?: current.subprojectContractAmount,
+            startDate = request.startDate?.let { parseRequiredDate(it, "Start date") } ?: current.startDate,
+            contractSignedDate = request.contractSignedDate?.let { parseRequiredDate(it, "Contract signing date") } ?: current.contractSignedDate,
+            plannedEndDate = request.plannedEndDate?.let { parseRequiredDate(it, "Planned end date") } ?: current.plannedEndDate
         )
-        validateProjectData(patch.name, patch.region, patch.city, patch.budgetPlanned, patch.engineerConsultantContractAmount, patch.technicalSupervisionAmount)
+        validateProjectData(patch.name, patch.region, patch.city, patch.budgetPlanned, patch.engineerConsultantContractAmount, patch.technicalSupervisionAmount, current.projectType, patch.subprojectContractAmount, patch.startDate, patch.contractSignedDate, patch.plannedEndDate)
         if (patch.latitude !in -90.0..90.0) throw IllegalArgumentException("Latitude must be between -90 and 90.")
         if (patch.longitude !in -180.0..180.0) throw IllegalArgumentException("Longitude must be between -180 and 180.")
         return projectRepository.updateByUuid(uuid.trim(), patch)
+    }
+
+    private fun parseOptionalDate(value: String?, label: String): LocalDate? =
+        value?.trim()?.takeIf { it.isNotEmpty() }?.let { parseRequiredDate(it, label) }
+
+    private fun parseRequiredDate(value: String, label: String): LocalDate = try {
+        LocalDate.parse(value)
+    } catch (_: Exception) {
+        throw IllegalArgumentException("$label must use YYYY-MM-DD format.")
     }
 }

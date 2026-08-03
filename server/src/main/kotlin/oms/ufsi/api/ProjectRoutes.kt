@@ -108,6 +108,18 @@ fun Route.projectRoutes() {
 
                     technicalSupervisionAmount = request.technicalSupervisionAmount,
 
+                    projectType = request.projectType,
+
+                    parentProjectUuid = request.parentProjectUuid,
+
+                    subprojectContractAmount = request.subprojectContractAmount,
+
+                    startDate = request.startDate,
+
+                    contractSignedDate = request.contractSignedDate,
+
+                    plannedEndDate = request.plannedEndDate,
+
                     managerId = request.managerId,
                 )
 

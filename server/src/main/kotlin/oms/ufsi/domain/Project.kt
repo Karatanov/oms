@@ -1,6 +1,7 @@
 package oms.ufsi.domain
 
 import java.util.*
+import java.time.LocalDate
 
 /**
  * Доменна модель проєкту.
@@ -94,6 +95,14 @@ data class Project(
     /** Optional technical-supervision amount, in UAH. */
     val technicalSupervisionAmount: Long?,
 
+    /** Contract amount required for a subproject, in UAH. */
+    val subprojectContractAmount: Long?,
+
+    /** Schedule fields required for a subproject. */
+    val startDate: LocalDate?,
+    val contractSignedDate: LocalDate?,
+    val plannedEndDate: LocalDate?,
+
     /**
      * Код валюти.
      */
@@ -103,4 +112,10 @@ data class Project(
      * Назва основного підрядника.
      */
     val contractorName: String?
-)
+) {
+    /** Duration from contract signing to the planned end date, in days. */
+    val contractDurationDays: Long?
+        get() = if (contractSignedDate != null && plannedEndDate != null)
+            java.time.temporal.ChronoUnit.DAYS.between(contractSignedDate, plannedEndDate)
+        else null
+}

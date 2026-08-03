@@ -29,6 +29,11 @@ fun EditProjectScreen(
     var budgetPlanned by remember { mutableStateOf("") }
     var engineerConsultantContractAmount by remember { mutableStateOf("") }
     var technicalSupervisionAmount by remember { mutableStateOf("") }
+    var projectType by remember { mutableStateOf("project") }
+    var subprojectContractAmount by remember { mutableStateOf("") }
+    var startDate by remember { mutableStateOf("") }
+    var contractSignedDate by remember { mutableStateOf("") }
+    var plannedEndDate by remember { mutableStateOf("") }
     var latitude by remember { mutableStateOf(project.latitude.toString()) }
     var longitude by remember { mutableStateOf(project.longitude.toString()) }
     var isLoading by remember { mutableStateOf(true) }
@@ -46,6 +51,9 @@ fun EditProjectScreen(
                 budgetPlanned = details.budgetPlanned.toString()
                 engineerConsultantContractAmount = details.engineerConsultantContractAmount?.toString().orEmpty()
                 technicalSupervisionAmount = details.technicalSupervisionAmount?.toString().orEmpty()
+                projectType = details.projectType
+                subprojectContractAmount = details.subprojectContractAmount?.toString().orEmpty()
+                startDate = details.startDate.orEmpty(); contractSignedDate = details.contractSignedDate.orEmpty(); plannedEndDate = details.plannedEndDate.orEmpty()
             }
             .onFailure { errorMessage = "Не вдалося завантажити дані проєкту." }
         isLoading = false
@@ -64,6 +72,16 @@ fun EditProjectScreen(
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     OutlinedTextField(siteName, { siteName = it }, label = { Text("Код майданчика *") }, modifier = Modifier.weight(1f))
                     OutlinedTextField(siteNumber, { siteNumber = it }, label = { Text("Номер майданчика *") }, modifier = Modifier.weight(1f))
+                }
+                if (projectType == "subproject") {
+                    Text("Дані субпроєкту", style = MaterialTheme.typography.titleMedium)
+                    OutlinedTextField(subprojectContractAmount, { value -> if (value.all(Char::isDigit)) subprojectContractAmount = value }, label = { Text("Сума контракту субпроєкту, грн *") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        OutlinedTextField(startDate, { startDate = it }, label = { Text("Дата початку * (YYYY-MM-DD)") }, singleLine = true, modifier = Modifier.weight(1f))
+                        OutlinedTextField(contractSignedDate, { contractSignedDate = it }, label = { Text("Дата укладення контракту * (YYYY-MM-DD)") }, singleLine = true, modifier = Modifier.weight(1f))
+                        OutlinedTextField(plannedEndDate, { plannedEndDate = it }, label = { Text("Планова дата завершення * (YYYY-MM-DD)") }, singleLine = true, modifier = Modifier.weight(1f))
+                    }
+                    Text("Тривалість контракту буде розрахована після збереження дат.", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 OutlinedTextField(address, { address = it }, label = { Text("Адреса *") }, modifier = Modifier.fillMaxWidth())
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -94,6 +112,7 @@ fun EditProjectScreen(
                 val lon = longitude.replace(',', '.').toDoubleOrNull()
                 val engineerAmount = engineerConsultantContractAmount.takeIf { it.isNotBlank() }?.toLongOrNull()
                 val supervisionAmount = technicalSupervisionAmount.takeIf { it.isNotBlank() }?.toLongOrNull()
+                val subprojectAmount = subprojectContractAmount.takeIf { it.isNotBlank() }?.toLongOrNull()
                 errorMessage = when {
                     !allRequiredFilled -> "Заповніть усі поля, позначені * ."
                     budget == null || budget <= 0 -> "Бюджет має бути додатним цілим числом."
@@ -101,6 +120,8 @@ fun EditProjectScreen(
                     lon == null || lon !in -180.0..180.0 -> "Довгота має бути в межах від -180 до 180."
                     engineerConsultantContractAmount.isNotBlank() && engineerAmount == null -> "Сума договору інженера-консультанта має бути цілим числом."
                     technicalSupervisionAmount.isNotBlank() && supervisionAmount == null -> "Сума технічного нагляду має бути цілим числом."
+                    projectType == "subproject" && (subprojectAmount == null || subprojectAmount <= 0) -> "Вкажіть додатну суму контракту субпроєкту."
+                    projectType == "subproject" && listOf(startDate, contractSignedDate, plannedEndDate).any { it.isBlank() } -> "Заповніть усі дати субпроєкту."
                     else -> null
                 }
                 if (errorMessage == null) {
@@ -113,7 +134,11 @@ fun EditProjectScreen(
                                 latitude = lat!!, longitude = lon!!, sector = sector.trim(),
                                 constructionType = constructionType.trim(), budgetPlanned = budget!!,
                                 engineerConsultantContractAmount = engineerAmount,
-                                technicalSupervisionAmount = supervisionAmount
+                                technicalSupervisionAmount = supervisionAmount,
+                                subprojectContractAmount = subprojectAmount,
+                                startDate = startDate.takeIf { it.isNotBlank() },
+                                contractSignedDate = contractSignedDate.takeIf { it.isNotBlank() },
+                                plannedEndDate = plannedEndDate.takeIf { it.isNotBlank() }
                             ))
                         }.onSuccess {
                             ProjectRepository.refresh()

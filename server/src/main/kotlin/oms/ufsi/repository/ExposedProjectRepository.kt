@@ -44,6 +44,10 @@ class ExposedProjectRepository : ProjectRepository {
                     budgetPlanned = row[ProjectTable.budgetPlanned],
                     engineerConsultantContractAmount = row[ProjectTable.engineerConsultantContractAmount],
                     technicalSupervisionAmount = row[ProjectTable.technicalSupervisionAmount],
+                    subprojectContractAmount = row[ProjectTable.subprojectContractAmount],
+                    startDate = row[ProjectTable.startDate],
+                    contractSignedDate = row[ProjectTable.contractSignedDate],
+                    plannedEndDate = row[ProjectTable.plannedEndDate],
                     currency = row[ProjectTable.currency],
                     contractorName = row[ProjectTable.contractorName]
                 )
@@ -132,6 +136,18 @@ class ExposedProjectRepository : ProjectRepository {
                     technicalSupervisionAmount =
                         row[ProjectTable.technicalSupervisionAmount],
 
+                    subprojectContractAmount =
+                        row[ProjectTable.subprojectContractAmount],
+
+                    startDate =
+                        row[ProjectTable.startDate],
+
+                    contractSignedDate =
+                        row[ProjectTable.contractSignedDate],
+
+                    plannedEndDate =
+                        row[ProjectTable.plannedEndDate],
+
                     currency =
                         row[ProjectTable.currency],
 
@@ -158,6 +174,12 @@ class ExposedProjectRepository : ProjectRepository {
         budgetPlanned: Long,
         engineerConsultantContractAmount: Long?,
         technicalSupervisionAmount: Long?,
+        projectType: ProjectType,
+        parentProjectId: Long?,
+        subprojectContractAmount: Long?,
+        startDate: java.time.LocalDate?,
+        contractSignedDate: java.time.LocalDate?,
+        plannedEndDate: java.time.LocalDate?,
         managerId: Long
     ): Project = transaction {
 
@@ -165,6 +187,8 @@ class ExposedProjectRepository : ProjectRepository {
 
         val projectId = ProjectTable.insertAndGetId {
             it[ProjectTable.uuid] = projectUuid.toString()
+            it[ProjectTable.projectType] = projectType.name.lowercase()
+            it[ProjectTable.parentProjectId] = parentProjectId?.let { id -> org.jetbrains.exposed.v1.core.dao.id.EntityID(id, ProjectTable) }
             it[ProjectTable.name] = name
             it[ProjectTable.siteName] = siteName
             it[ProjectTable.siteNumber] = siteNumber
@@ -179,6 +203,10 @@ class ExposedProjectRepository : ProjectRepository {
             it[ProjectTable.budgetPlanned] = budgetPlanned
             it[ProjectTable.engineerConsultantContractAmount] = engineerConsultantContractAmount
             it[ProjectTable.technicalSupervisionAmount] = technicalSupervisionAmount
+            it[ProjectTable.subprojectContractAmount] = subprojectContractAmount
+            it[ProjectTable.startDate] = startDate
+            it[ProjectTable.contractSignedDate] = contractSignedDate
+            it[ProjectTable.plannedEndDate] = plannedEndDate
             it[ProjectTable.currency] = "UAH"
             it[ProjectTable.managerId] = managerId
         }
@@ -186,8 +214,8 @@ class ExposedProjectRepository : ProjectRepository {
         Project(
             id = projectId.value,
             uuid = projectUuid,
-            projectType = ProjectType.PROJECT,
-            parentProjectId = null,
+            projectType = projectType,
+            parentProjectId = parentProjectId,
             name = name,
             siteName = siteName,
             siteNumber = siteNumber,
@@ -202,6 +230,10 @@ class ExposedProjectRepository : ProjectRepository {
             budgetPlanned = budgetPlanned,
             engineerConsultantContractAmount = engineerConsultantContractAmount,
             technicalSupervisionAmount = technicalSupervisionAmount,
+            subprojectContractAmount = subprojectContractAmount,
+            startDate = startDate,
+            contractSignedDate = contractSignedDate,
+            plannedEndDate = plannedEndDate,
             currency = "UAH",
             contractorName = null
         )
@@ -231,6 +263,10 @@ class ExposedProjectRepository : ProjectRepository {
                 it[budgetPlanned] = patch.budgetPlanned
                 it[engineerConsultantContractAmount] = patch.engineerConsultantContractAmount
                 it[technicalSupervisionAmount] = patch.technicalSupervisionAmount
+                it[subprojectContractAmount] = patch.subprojectContractAmount
+                it[startDate] = patch.startDate
+                it[contractSignedDate] = patch.contractSignedDate
+                it[plannedEndDate] = patch.plannedEndDate
             }
         }
         return if (updated == 0) null else findByUuid(uuid)

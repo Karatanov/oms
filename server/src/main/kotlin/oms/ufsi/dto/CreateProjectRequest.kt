@@ -79,5 +79,15 @@ data class CreateProjectRequest(
     /**
      * Ідентифікатор керівника проєкту.
      */
-    val managerId: Long
+    val managerId: Long,
+
+    /** Project hierarchy. A subproject must reference a parent project UUID. */
+    val projectType: String = "project",
+    val parentProjectUuid: String? = null,
+
+    /** Required contract and schedule data for subprojects. */
+    val subprojectContractAmount: Long? = null,
+    val startDate: String? = null,
+    val contractSignedDate: String? = null,
+    val plannedEndDate: String? = null
 )

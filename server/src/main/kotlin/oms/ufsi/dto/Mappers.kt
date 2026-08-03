@@ -102,6 +102,21 @@ fun Project.toResponse(): ProjectResponse {
         technicalSupervisionAmount =
             technicalSupervisionAmount,
 
+        subprojectContractAmount =
+            subprojectContractAmount,
+
+        startDate =
+            startDate?.toString(),
+
+        contractSignedDate =
+            contractSignedDate?.toString(),
+
+        plannedEndDate =
+            plannedEndDate?.toString(),
+
+        contractDurationDays =
+            contractDurationDays,
+
         currency =
             currency,
 

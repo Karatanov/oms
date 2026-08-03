@@ -36,6 +36,12 @@ interface ProjectRepository {
         budgetPlanned: Long,
         engineerConsultantContractAmount: Long?,
         technicalSupervisionAmount: Long?,
+        projectType: oms.ufsi.domain.ProjectType,
+        parentProjectId: Long?,
+        subprojectContractAmount: Long?,
+        startDate: java.time.LocalDate?,
+        contractSignedDate: java.time.LocalDate?,
+        plannedEndDate: java.time.LocalDate?,
         managerId: Long
     ): Project
 

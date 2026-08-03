@@ -136,6 +136,24 @@ fun ProjectDetailScreen(
             )
         }
 
+        if (details.value?.data?.projectType == "subproject") {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                DetailMetricCard(
+                    title = "Сума контракту субпроєкту",
+                    value = details.value?.data?.subprojectContractAmount?.toMoney() ?: "—",
+                    modifier = Modifier.weight(1f)
+                )
+                DetailMetricCard(
+                    title = "Тривалість контракту",
+                    value = details.value?.data?.contractDurationDays?.let { "$it днів" } ?: "—",
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        }
+
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(16.dp)

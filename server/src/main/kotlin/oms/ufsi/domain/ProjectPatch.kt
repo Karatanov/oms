@@ -1,5 +1,7 @@
 package oms.ufsi.domain
 
+import java.time.LocalDate
+
 /** Fields of a project that may be changed without changing its lifecycle status. */
 data class ProjectPatch(
     val name: String,
@@ -14,5 +16,9 @@ data class ProjectPatch(
     val constructionType: String,
     val budgetPlanned: Long,
     val engineerConsultantContractAmount: Long?,
-    val technicalSupervisionAmount: Long?
+    val technicalSupervisionAmount: Long?,
+    val subprojectContractAmount: Long?,
+    val startDate: LocalDate?,
+    val contractSignedDate: LocalDate?,
+    val plannedEndDate: LocalDate?
 )

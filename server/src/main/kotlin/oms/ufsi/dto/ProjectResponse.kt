@@ -89,6 +89,12 @@ data class ProjectResponse(
     /** Optional technical-supervision amount, in UAH. */
     val technicalSupervisionAmount: Long?,
 
+    val subprojectContractAmount: Long?,
+    val startDate: String?,
+    val contractSignedDate: String?,
+    val plannedEndDate: String?,
+    val contractDurationDays: Long?,
+
     /**
      * Валюта відображення.
      */

@@ -5,11 +5,14 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -20,6 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import oms.data.CreateProjectRequest
+import oms.data.ApiProject
 import oms.data.OmsApiClient
 import oms.data.ProjectRepository
 
@@ -39,12 +43,24 @@ fun CreateProjectScreen(
     var budgetPlanned by remember { mutableStateOf("") }
     var engineerConsultantContractAmount by remember { mutableStateOf("") }
     var technicalSupervisionAmount by remember { mutableStateOf("") }
+    var projectType by remember { mutableStateOf("project") }
+    var parentProjectUuid by remember { mutableStateOf<String?>(null) }
+    var parentPickerExpanded by remember { mutableStateOf(false) }
+    var subprojectContractAmount by remember { mutableStateOf("") }
+    var startDate by remember { mutableStateOf("") }
+    var contractSignedDate by remember { mutableStateOf("") }
+    var plannedEndDate by remember { mutableStateOf("") }
+    var parentProjects by remember { mutableStateOf<List<ApiProject>>(emptyList()) }
     var latitude by remember { mutableStateOf("") }
     var longitude by remember { mutableStateOf("") }
     var managerId by remember { mutableStateOf("1") }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var isSubmitting by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
+
+    LaunchedEffect(Unit) {
+        parentProjects = runCatching { OmsApiClient.projects().filter { it.projectType == "project" } }.getOrDefault(emptyList())
+    }
 
     fun requiredFieldsFilled() = listOf(
         name, siteName, siteNumber, address, region, city, sector, constructionType
@@ -69,10 +85,34 @@ fun CreateProjectScreen(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Text("Основна інформація", style = MaterialTheme.typography.titleMedium)
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    OutlinedButton(onClick = { projectType = "project" }, modifier = Modifier.weight(1f)) { Text("Проєкт${if (projectType == "project") " ✓" else ""}") }
+                    OutlinedButton(onClick = { projectType = "subproject" }, modifier = Modifier.weight(1f)) { Text("Субпроєкт${if (projectType == "subproject") " ✓" else ""}") }
+                }
+                if (projectType == "subproject") {
+                    Box {
+                        OutlinedButton(onClick = { parentPickerExpanded = true }, modifier = Modifier.fillMaxWidth()) {
+                            Text(parentProjects.firstOrNull { it.uuid == parentProjectUuid }?.name ?: "Оберіть батьківський проєкт *")
+                        }
+                        DropdownMenu(expanded = parentPickerExpanded, onDismissRequest = { parentPickerExpanded = false }) {
+                            parentProjects.forEach { parent ->
+                                DropdownMenuItem(text = { Text(parent.name) }, onClick = { parentProjectUuid = parent.uuid; parentPickerExpanded = false })
+                            }
+                        }
+                    }
+                }
                 OutlinedTextField(name, { name = it }, label = { Text("Назва проєкту *") }, modifier = Modifier.fillMaxWidth())
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     OutlinedTextField(siteName, { siteName = it }, label = { Text("Код майданчика *") }, modifier = Modifier.weight(1f))
                     OutlinedTextField(siteNumber, { siteNumber = it }, label = { Text("Номер майданчика *") }, modifier = Modifier.weight(1f))
+                }
+                if (projectType == "subproject") {
+                    OutlinedTextField(subprojectContractAmount, { value -> if (value.all(Char::isDigit)) subprojectContractAmount = value }, label = { Text("Сума контракту субпроєкту, грн *") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        OutlinedTextField(startDate, { startDate = it }, label = { Text("Дата початку * (YYYY-MM-DD)") }, singleLine = true, modifier = Modifier.weight(1f))
+                        OutlinedTextField(contractSignedDate, { contractSignedDate = it }, label = { Text("Дата укладення контракту * (YYYY-MM-DD)") }, singleLine = true, modifier = Modifier.weight(1f))
+                        OutlinedTextField(plannedEndDate, { plannedEndDate = it }, label = { Text("Планова дата завершення * (YYYY-MM-DD)") }, singleLine = true, modifier = Modifier.weight(1f))
+                    }
                 }
                 OutlinedTextField(address, { address = it }, label = { Text("Адреса *") }, modifier = Modifier.fillMaxWidth())
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -124,6 +164,7 @@ fun CreateProjectScreen(
                     val parsedManagerId = managerId.toLongOrNull()
                     val parsedEngineerConsultantAmount = engineerConsultantContractAmount.takeIf { it.isNotBlank() }?.toLongOrNull()
                     val parsedTechnicalSupervisionAmount = technicalSupervisionAmount.takeIf { it.isNotBlank() }?.toLongOrNull()
+                    val parsedSubprojectContractAmount = subprojectContractAmount.takeIf { it.isNotBlank() }?.toLongOrNull()
                     errorMessage = when {
                         !requiredFieldsFilled() -> "Заповніть усі поля, позначені * ."
                         parsedBudget == null || parsedBudget <= 0 -> "Бюджет має бути додатним цілим числом."
@@ -132,6 +173,9 @@ fun CreateProjectScreen(
                         parsedManagerId == null || parsedManagerId <= 0 -> "Вкажіть коректний ID відповідального."
                         engineerConsultantContractAmount.isNotBlank() && parsedEngineerConsultantAmount == null -> "Сума договору інженера-консультанта має бути цілим числом."
                         technicalSupervisionAmount.isNotBlank() && parsedTechnicalSupervisionAmount == null -> "Сума технічного нагляду має бути цілим числом."
+                        projectType == "subproject" && parentProjectUuid == null -> "Оберіть батьківський проєкт для субпроєкту."
+                        projectType == "subproject" && (parsedSubprojectContractAmount == null || parsedSubprojectContractAmount <= 0) -> "Вкажіть додатну суму контракту субпроєкту."
+                        projectType == "subproject" && listOf(startDate, contractSignedDate, plannedEndDate).any { it.isBlank() } -> "Заповніть усі дати субпроєкту."
                         else -> null
                     }
                     if (errorMessage == null) {
@@ -146,7 +190,13 @@ fun CreateProjectScreen(
                                         constructionType = constructionType.trim(), budgetPlanned = parsedBudget!!,
                                         engineerConsultantContractAmount = parsedEngineerConsultantAmount,
                                         technicalSupervisionAmount = parsedTechnicalSupervisionAmount,
-                                        managerId = parsedManagerId!!
+                                        managerId = parsedManagerId!!,
+                                        projectType = projectType,
+                                        parentProjectUuid = parentProjectUuid,
+                                        subprojectContractAmount = parsedSubprojectContractAmount,
+                                        startDate = startDate.takeIf { it.isNotBlank() },
+                                        contractSignedDate = contractSignedDate.takeIf { it.isNotBlank() },
+                                        plannedEndDate = plannedEndDate.takeIf { it.isNotBlank() }
                                     )
                                 )
                             }.onSuccess {
