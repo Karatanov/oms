@@ -1,6 +1,8 @@
 package oms.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -35,10 +37,10 @@ fun CreateInspectionScreen(
     onSubmit: () -> Unit = {},
     onImportXls: () -> Unit = {}
 ) {
-    var inspector by remember { mutableStateOf(currentUserName) }
     var date by remember { mutableStateOf("2026-08-03") }
     var inspectionType by remember { mutableStateOf(InspectionType.PLANNED) }
-    var gps by remember { mutableStateOf("") }
+    var latitude by remember { mutableStateOf("") }
+    var longitude by remember { mutableStateOf("") }
     var comments by remember { mutableStateOf(TextFieldValue("")) }
     var photoCount by remember { mutableStateOf(0) }
     var projectUuid by remember { mutableStateOf<String?>(null) }
@@ -57,6 +59,7 @@ fun CreateInspectionScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
@@ -93,14 +96,6 @@ fun CreateInspectionScreen(
                 modifier = Modifier.padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                OutlinedTextField(
-                    value = inspector,
-                    onValueChange = { if (isAdmin) inspector = it },
-                    label = { Text(LocalizationManager.t("inspector_label")) },
-                    readOnly = !isAdmin,
-                    modifier = Modifier.fillMaxWidth()
-                )
-
                 ProjectDropdown(
                     selectedProjectUuid = projectUuid,
                     onSelect = { projectUuid = it }
@@ -119,13 +114,10 @@ fun CreateInspectionScreen(
                     onChange = { inspectionType = it }
                 )
 
-                OutlinedTextField(
-                    value = gps,
-                    onValueChange = { gps = it },
-                    label = { Text(LocalizationManager.t("gps_coordinates")) },
-                    modifier = Modifier.fillMaxWidth(),
-                    supportingText = { Text(LocalizationManager.t("optional_on_web_accuracy_warning")) }
-                )
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    OutlinedTextField(latitude, { value -> if (value.matches(Regex("-?[0-9.,]*"))) latitude = value }, label = { Text("Широта") }, modifier = Modifier.weight(1f), supportingText = { Text("-90…90") })
+                    OutlinedTextField(longitude, { value -> if (value.matches(Regex("-?[0-9.,]*"))) longitude = value }, label = { Text("Довгота") }, modifier = Modifier.weight(1f), supportingText = { Text("-180…180") })
+                }
 
                 OutlinedTextField(
                     value = comments,
@@ -223,7 +215,7 @@ fun CreateInspectionScreen(
                                 val summary = buildString {
                                     append("[${inspectionType.name.lowercase()}] ")
                                     append(comments.text.trim())
-                                    if (gps.isNotBlank()) append(" | GPS: ${gps.trim()}")
+                                    if (latitude.isNotBlank() || longitude.isNotBlank()) append(" | GPS: ${latitude.trim()}, ${longitude.trim()}")
                                 }
                                 runCatching {
                                     OmsApiClient.createAndSubmitInspectionReport(selectedProject, date, summary)
