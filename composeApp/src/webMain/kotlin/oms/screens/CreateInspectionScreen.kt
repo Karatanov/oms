@@ -4,6 +4,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -245,18 +247,15 @@ fun CreateInspectionScreen(
 
 @Composable
 private fun ProjectDropdown(selectedProjectUuid: String?, onSelect: (String) -> Unit) {
-    var expanded by remember { mutableStateOf(false) }
     val projects = ProjectRepository.projects
-    val selected = projects.firstOrNull { it.id == selectedProjectUuid }
-    Box {
-        OutlinedButton(onClick = { expanded = true }, modifier = Modifier.fillMaxWidth()) {
-            Text(selected?.name ?: "Select project")
-        }
-        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            projects.forEach { project ->
-                DropdownMenuItem(
-                    text = { Text("${project.name} (${project.region})") },
-                    onClick = { onSelect(project.id); expanded = false }
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text("Оберіть проєкт", style = MaterialTheme.typography.labelLarge)
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            items(projects, key = { it.id }) { project ->
+                FilterChip(
+                    selected = project.id == selectedProjectUuid,
+                    onClick = { onSelect(project.id) },
+                    label = { Text("${project.name} (${project.region})") }
                 )
             }
         }
