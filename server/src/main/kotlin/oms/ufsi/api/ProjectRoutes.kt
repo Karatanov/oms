@@ -176,6 +176,18 @@ fun Route.projectRoutes() {
         )
     }
 
+    patch("/api/v1/projects/{uuid}") {
+        call.requireRole("ADMIN", "PROJECT_MANAGER") ?: return@patch
+        val uuid = call.parameters["uuid"] ?: return@patch call.respond(HttpStatusCode.BadRequest, ErrorResponse("VALIDATION_ERROR", "Project UUID is required."))
+        try {
+            val project = projectService.updateProject(uuid, call.receive<UpdateProjectRequest>())
+                ?: return@patch call.respond(HttpStatusCode.NotFound, ErrorResponse("NOT_FOUND", "Project not found."))
+            call.respond(project.toResponse())
+        } catch (exception: IllegalArgumentException) {
+            call.respond(HttpStatusCode.BadRequest, ErrorResponse("VALIDATION_ERROR", exception.message ?: "Invalid project data."))
+        }
+    }
+
     delete("/api/v1/projects/{uuid}") {
         call.requireRole("ADMIN", "PROJECT_MANAGER") ?: return@delete
         val uuid = call.parameters["uuid"] ?: return@delete call.respond(HttpStatusCode.BadRequest, ErrorResponse("VALIDATION_ERROR", "Project UUID is required."))

@@ -35,7 +35,8 @@ fun AppLayout(appState: AppState) {
 
                 is Screen.Projects -> ProjectsScreen(
                     onOpenProject = { project -> appState.openProjectDetail(project) },
-                    onCreateProject = { appState.openCreateProject() }
+                    onCreateProject = { appState.openCreateProject() },
+                    onEditProject = { appState.openEditProject(it) }
                 )
 
                 is Screen.CreateProject -> CreateProjectScreen(
@@ -43,13 +44,22 @@ fun AppLayout(appState: AppState) {
                     onCreated = { appState.navigate(Screen.Projects) }
                 )
 
+                is Screen.EditProject -> appState.selectedProject?.let { project ->
+                    EditProjectScreen(
+                        project = project,
+                        onCancel = { appState.openProjectDetail(project) },
+                        onSaved = { appState.openProjectDetail(it) }
+                    )
+                }
+
                 is Screen.ProjectDetail -> {
                     appState.selectedProject?.let { project ->
                         ProjectDetailScreen(
                             project = project,
                             onBackToProjects = {
                                 appState.navigate(Screen.Projects)
-                            }
+                            },
+                            onEdit = { appState.openEditProject(it) }
                         )
                     }
                 }

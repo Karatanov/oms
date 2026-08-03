@@ -16,6 +16,8 @@ sealed class Screen(val title: String) {
     // Створення нового проєкту
     object CreateProject : Screen("Create Project")
 
+    object EditProject : Screen("Edit Project")
+
     // 🔹 Деталі проєкту
     object ProjectDetail : Screen("Project Detail")
 

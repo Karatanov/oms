@@ -26,7 +26,8 @@ import oms.model.ProjectStatus
 @Composable
 fun ProjectsScreen(
     onOpenProject: (Project) -> Unit = {},
-    onCreateProject: () -> Unit = {}
+    onCreateProject: () -> Unit = {},
+    onEditProject: (Project) -> Unit = {}
 ) {
 
     var searchText by remember { mutableStateOf("") }
@@ -80,6 +81,7 @@ fun ProjectsScreen(
         ProjectsTable(
             projects = filteredProjects,
             onOpenProject = onOpenProject,
+            onEditProject = onEditProject,
             onDeleteProject = { project ->
                 scope.launch {
                     if (oms.data.OmsApiClient.deleteProject(project.id)) ProjectRepository.refresh()
@@ -102,6 +104,7 @@ fun ProjectsScreen(
 fun ProjectsTable(
     projects: List<Project>,
     onOpenProject: (Project) -> Unit,
+    onEditProject: (Project) -> Unit,
     onDeleteProject: (Project) -> Unit
 ) {
 
@@ -152,6 +155,7 @@ fun ProjectsTable(
                 ProjectRow(
                     project = it,
                     onOpen = onOpenProject,
+                    onEdit = onEditProject,
                     onDelete = onDeleteProject
                 )
 
@@ -238,6 +242,7 @@ fun ProjectRow(
     project: Project,
 
     onOpen: (Project) -> Unit = {},
+    onEdit: (Project) -> Unit = {},
     onDelete: (Project) -> Unit = {}
 
 ) {
@@ -294,6 +299,7 @@ fun ProjectRow(
         ) {
             Text(LocalizationManager.t("view"))
         }
+        TextButton(onClick = { onEdit(project) }) { Text(LocalizationManager.t("edit")) }
         TextButton(onClick = { onDelete(project) }) { Text("Delete") }
     }
 

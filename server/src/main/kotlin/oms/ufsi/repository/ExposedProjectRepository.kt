@@ -6,10 +6,12 @@ import oms.ufsi.database.tables.FinancialRecordTable
 import oms.ufsi.domain.Project
 import oms.ufsi.domain.ProjectStatus
 import oms.ufsi.domain.ProjectType
+import oms.ufsi.domain.ProjectPatch
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.insertAndGetId
 import org.jetbrains.exposed.v1.jdbc.select
 import org.jetbrains.exposed.v1.jdbc.selectAll
+import org.jetbrains.exposed.v1.jdbc.update
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import java.util.*
@@ -197,5 +199,24 @@ class ExposedProjectRepository : ProjectRepository {
         ProjectDocumentTable.deleteWhere { ProjectDocumentTable.projectId eq projectId }
         FinancialRecordTable.deleteWhere { FinancialRecordTable.projectId eq projectId }
         ProjectTable.deleteWhere { ProjectTable.id eq projectId } > 0
+    }
+
+    override fun updateByUuid(uuid: String, patch: ProjectPatch): Project? {
+        val updated = transaction {
+            ProjectTable.update({ ProjectTable.uuid eq uuid }) {
+                it[name] = patch.name
+                it[siteName] = patch.siteName
+                it[siteNumber] = patch.siteNumber
+                it[address] = patch.address
+                it[region] = patch.region
+                it[city] = patch.city
+                it[latitude] = patch.latitude.toBigDecimal()
+                it[longitude] = patch.longitude.toBigDecimal()
+                it[sector] = patch.sector
+                it[constructionType] = patch.constructionType
+                it[budgetPlanned] = patch.budgetPlanned
+            }
+        }
+        return if (updated == 0) null else findByUuid(uuid)
     }
 }

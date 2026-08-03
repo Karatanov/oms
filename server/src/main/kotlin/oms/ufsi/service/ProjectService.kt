@@ -1,6 +1,7 @@
 package oms.ufsi.service
 
 import oms.ufsi.domain.Project
+import oms.ufsi.domain.ProjectPatch
 import oms.ufsi.repository.ProjectRepository
 
 /**
@@ -222,4 +223,25 @@ class ProjectService(
     }
 
     fun deleteProject(uuid: String): Boolean = projectRepository.deleteByUuid(uuid.trim())
+
+    fun updateProject(uuid: String, request: oms.ufsi.dto.UpdateProjectRequest): Project? {
+        val current = getProjectByUuid(uuid) ?: return null
+        val patch = ProjectPatch(
+            name = request.name?.trim() ?: current.name,
+            siteName = request.siteName?.trim() ?: current.siteName,
+            siteNumber = request.siteNumber?.trim() ?: current.siteNumber,
+            address = request.address?.trim() ?: current.address,
+            region = request.region?.trim() ?: current.region,
+            city = request.city?.trim() ?: current.city,
+            latitude = request.latitude ?: current.latitude,
+            longitude = request.longitude ?: current.longitude,
+            sector = request.sector?.trim() ?: current.sector,
+            constructionType = request.constructionType?.trim() ?: current.constructionType,
+            budgetPlanned = request.budgetPlanned ?: current.budgetPlanned
+        )
+        validateProjectData(patch.name, patch.region, patch.city, patch.budgetPlanned)
+        if (patch.latitude !in -90.0..90.0) throw IllegalArgumentException("Latitude must be between -90 and 90.")
+        if (patch.longitude !in -180.0..180.0) throw IllegalArgumentException("Longitude must be between -180 and 180.")
+        return projectRepository.updateByUuid(uuid.trim(), patch)
+    }
 }

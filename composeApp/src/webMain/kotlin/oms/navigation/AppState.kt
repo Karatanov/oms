@@ -46,6 +46,11 @@ class AppState {
         currentScreen = Screen.CreateProject
     }
 
+    fun openEditProject(project: Project) {
+        selectedProject = project
+        currentScreen = Screen.EditProject
+    }
+
     // 🔹 Успішний логін
     fun onLoginSuccess(token: String) {
         this.token = token

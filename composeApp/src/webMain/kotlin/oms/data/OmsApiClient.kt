@@ -7,6 +7,7 @@ import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.get
 import io.ktor.client.request.delete
 import io.ktor.client.request.post
+import io.ktor.client.request.patch
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
@@ -45,6 +46,12 @@ object OmsApiClient {
 
     suspend fun createProject(request: CreateProjectRequest): ApiProject =
         client.post("$baseUrl/projects") {
+            contentType(ContentType.Application.Json)
+            setBody(request)
+        }.body()
+
+    suspend fun updateProject(projectUuid: String, request: UpdateProjectRequest): ApiProject =
+        client.patch("$baseUrl/projects/$projectUuid") {
             contentType(ContentType.Application.Json)
             setBody(request)
         }.body()
@@ -113,6 +120,21 @@ data class CreateProjectRequest(
 )
 
 @Serializable
+data class UpdateProjectRequest(
+    val name: String? = null,
+    val siteName: String? = null,
+    val siteNumber: String? = null,
+    val address: String? = null,
+    val region: String? = null,
+    val city: String? = null,
+    val latitude: Double? = null,
+    val longitude: Double? = null,
+    val sector: String? = null,
+    val constructionType: String? = null,
+    val budgetPlanned: Long? = null
+)
+
+@Serializable
 data class ProjectListPayload(val data: List<ApiProject>)
 
 @Serializable
@@ -149,7 +171,19 @@ data class ApiInspectionReport(
 data class ApiProjectDetails(val data: ApiProjectDetailsData, val financialSummary: ApiFinancialSummary)
 
 @Serializable
-data class ApiProjectDetailsData(val address: String, val sector: String, val constructionType: String)
+data class ApiProjectDetailsData(
+    val name: String,
+    val siteName: String,
+    val siteNumber: String,
+    val address: String,
+    val region: String,
+    val city: String,
+    val latitude: Double,
+    val longitude: Double,
+    val sector: String,
+    val constructionType: String,
+    val budgetPlanned: Long
+)
 
 @Serializable
 data class ApiFinancialSummary(val budgetPlanned: Long, val amountSpent: Long, val budgetRemaining: Long)
