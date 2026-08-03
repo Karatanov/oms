@@ -10,6 +10,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.vector.ImageVector
+import oms.theme.Primary
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -24,7 +25,7 @@ fun TableActionIconButton(
         state = rememberTooltipState()
     ) {
         IconButton(onClick = onClick) {
-            Icon(icon, contentDescription = tooltip)
+            Icon(icon, contentDescription = tooltip, tint = Primary)
         }
     }
 }
