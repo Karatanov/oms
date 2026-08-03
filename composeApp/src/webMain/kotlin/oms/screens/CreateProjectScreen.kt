@@ -145,8 +145,8 @@ fun CreateProjectScreen(
                     OutlinedTextField(technicalSupervisionAmount, { value -> if (value.all(Char::isDigit)) technicalSupervisionAmount = value }, label = { Text("Технічний нагляд, грн") }, singleLine = true, modifier = Modifier.weight(1f))
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    OutlinedTextField(latitude, { latitude = it }, label = { Text("Широта *") }, singleLine = true, modifier = Modifier.weight(1f))
-                    OutlinedTextField(longitude, { longitude = it }, label = { Text("Довгота *") }, singleLine = true, modifier = Modifier.weight(1f))
+                    OutlinedTextField(latitude, { value -> if (value.matches(Regex("-?[0-9.,]*"))) latitude = value }, label = { Text("Широта *") }, singleLine = true, modifier = Modifier.weight(1f))
+                    OutlinedTextField(longitude, { value -> if (value.matches(Regex("-?[0-9.,]*"))) longitude = value }, label = { Text("Довгота *") }, singleLine = true, modifier = Modifier.weight(1f))
                     OutlinedTextField(managerId, { managerId = it }, label = { Text("ID відповідального *") }, supportingText = { Text("1 — Admin") }, singleLine = true, modifier = Modifier.weight(1f))
                 }
             }
