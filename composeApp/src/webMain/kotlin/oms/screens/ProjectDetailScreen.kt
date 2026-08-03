@@ -178,7 +178,7 @@ fun ProjectDetailScreen(
                     Tab(
                         selected = selectedTab == tab,
                         onClick = { selectedTab = tab },
-                        text = { Text(tab.title) }
+                        text = { Text(LocalizationManager.t(tab.titleKey)) }
                     )
                 }
             }
@@ -244,21 +244,21 @@ private fun PlaceholderTabContent(title: String) {
     }
 }
 
-private enum class ProjectDetailTab(val title: String) {
-    GeneralInfo("General Info"),
-    InspectionReports("Inspection Reports"),
-    Financials("Financials"),
-    Documents("Documents"),
-    Incidents("Incidents (HSE)")
+private enum class ProjectDetailTab(val titleKey: String) {
+    GeneralInfo("general_info_tab"),
+    InspectionReports("inspection_reports_tab"),
+    Financials("financials"),
+    Documents("documents"),
+    Incidents("incidents_hse")
 }
 
 @Composable
 private fun ProjectReportsTab(reports: List<ApiInspectionReport>) {
     Card(Modifier.fillMaxSize()) {
         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            if (reports.isEmpty()) Text("No inspection reports found.")
+            if (reports.isEmpty()) Text(LocalizationManager.t("no_reports"))
             reports.forEach { report ->
-                Text(report.summary ?: "Inspection report", style = MaterialTheme.typography.titleMedium)
+                Text(report.summary ?: LocalizationManager.t("inspection_report"), style = MaterialTheme.typography.titleMedium)
                 Text("${report.inspectionDate} • ${report.status.replace('_', ' ')}")
                 HorizontalDivider()
             }
@@ -277,18 +277,18 @@ private fun ProjectFinancialsTab(
     val actDocuments = documents.filter { it.docType == "act" }
     Card(Modifier.fillMaxSize()) {
         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text("Sum of completed works by acts: ${financials?.summary?.amountSpent?.toMoney() ?: "—"}", style = MaterialTheme.typography.titleLarge)
-            if (acts.isEmpty()) Text("No acts found.")
+            Text("${LocalizationManager.t("completed_works_by_acts")}: ${financials?.summary?.amountSpent?.toMoney() ?: "—"}", style = MaterialTheme.typography.titleLarge)
+            if (acts.isEmpty()) Text(LocalizationManager.t("no_acts"))
             acts.forEach { act ->
                 Text("${act.referenceNumber} • ${act.recordDate} • ${act.amount.toMoney()}")
                 HorizontalDivider()
             }
             if (actDocuments.isNotEmpty()) {
-                Text("Act documents", style = MaterialTheme.typography.titleMedium)
+                Text(LocalizationManager.t("act_documents"), style = MaterialTheme.typography.titleMedium)
                 actDocuments.forEach { document ->
                     Text(document.fileName)
                     Button(onClick = { uriHandler.openUri("http://localhost:8080/api/v1/projects/$projectUuid/documents/${document.uuid}/download") }) {
-                        Text("Open document")
+                        Text(LocalizationManager.t("open_document"))
                     }
                 }
             }
@@ -301,11 +301,11 @@ private fun ProjectDocumentsTab(projectUuid: String, documents: List<ApiProjectD
     val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
     Card(Modifier.fillMaxSize()) {
         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            if (documents.isEmpty()) Text("No project documents found.")
+            if (documents.isEmpty()) Text(LocalizationManager.t("no_project_documents"))
             documents.forEach { document ->
                 Text(document.fileName, style = MaterialTheme.typography.titleMedium)
                 Text("${document.docType} • ${document.fileSizeBytes} bytes")
-                Button(onClick = { uriHandler.openUri("http://localhost:8080/api/v1/projects/$projectUuid/documents/${document.uuid}/download") }) { Text("Open document") }
+                Button(onClick = { uriHandler.openUri("http://localhost:8080/api/v1/projects/$projectUuid/documents/${document.uuid}/download") }) { Text(LocalizationManager.t("open_document")) }
                 HorizontalDivider()
             }
         }

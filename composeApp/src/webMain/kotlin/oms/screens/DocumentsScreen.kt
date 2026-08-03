@@ -28,9 +28,9 @@ external fun openProjectDocumentUpload(projectUuid: String, docType: String)
 private data class SirDocumentRow(val projectName: String, val report: ApiInspectionReport)
 private data class ProjectDocumentRow(val projectUuid: String, val projectName: String, val document: ApiProjectDocument)
 private enum class DocumentSort { Name, Project, Type, Size, Author }
-private enum class DocumentTypeFilter(val label: String) {
-    ALL("All"), CONTRACT("Contract"), PROJECT("Project / Subproject"), DESIGN("Design"),
-    ESTIMATE("Estimate"), FINANCIAL("Financial Doc"), PHOTO("Photo");
+private enum class DocumentTypeFilter(val labelKey: String) {
+    ALL("all"), CONTRACT("contract"), PROJECT("project_documents"), DESIGN("design"),
+    ESTIMATE("estimate"), FINANCIAL("financial_doc"), PHOTO("photo");
 
     fun matches(type: String): Boolean = when (this) {
         ALL -> true
@@ -81,23 +81,23 @@ fun DocumentsScreen(canManageDocuments: Boolean = true) {
     Column(Modifier.fillMaxSize().padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Text(LocalizationManager.t("documents_title"), style = MaterialTheme.typography.headlineMedium)
-            if (canManageDocuments) Button(onClick = { showUploadDialog = true }) { Text("Upload document") }
+            if (canManageDocuments) Button(onClick = { showUploadDialog = true }) { Text(LocalizationManager.t("upload_document")) }
         }
         LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             items(DocumentTypeFilter.entries) { filter ->
                 FilterChip(
                     selected = typeFilter == filter,
                     onClick = { typeFilter = filter },
-                    label = { Text(filter.label) }
+                    label = { Text(LocalizationManager.t(filter.labelKey)) }
                 )
             }
         }
-        Text("Project documents", style = MaterialTheme.typography.titleLarge)
+        Text(LocalizationManager.t("project_documents"), style = MaterialTheme.typography.titleLarge)
         Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 DocumentTableHeader(sort, ascending, ::selectSort)
                 HorizontalDivider()
-                if (visibleDocuments.isEmpty()) Text("No project documents found.")
+                if (visibleDocuments.isEmpty()) Text(LocalizationManager.t("no_project_documents"))
                 visibleDocuments.forEach { row ->
                     Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                         Text(row.document.fileName, Modifier.weight(1.35f))
@@ -105,8 +105,8 @@ fun DocumentsScreen(canManageDocuments: Boolean = true) {
                         Box(Modifier.width(120.dp)) { DocumentTypeChip(row.document.docType) }
                         Text(formatFileSize(row.document.fileSizeBytes), Modifier.width(90.dp))
                         Text("admin", Modifier.width(85.dp))
-                        TableActionIconButton("Open document", Icons.AutoMirrored.Filled.OpenInNew) { uriHandler.openUri("http://localhost:8080/api/v1/projects/${row.projectUuid}/documents/${row.document.uuid}/download") }
-                        if (canManageDocuments) TableActionIconButton("Delete document", Icons.Default.Delete) {
+                        TableActionIconButton(LocalizationManager.t("open_document"), Icons.AutoMirrored.Filled.OpenInNew) { uriHandler.openUri("http://localhost:8080/api/v1/projects/${row.projectUuid}/documents/${row.document.uuid}/download") }
+                        if (canManageDocuments) TableActionIconButton(LocalizationManager.t("delete"), Icons.Default.Delete) {
                             scope.launch {
                                 if (OmsApiClient.deleteProjectDocument(row.projectUuid, row.document.uuid)) {
                                     projectFiles = projectFiles.filterNot { it.document.uuid == row.document.uuid }
@@ -119,7 +119,7 @@ fun DocumentsScreen(canManageDocuments: Boolean = true) {
             }
         }
         errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-        Text("SIR source files", style = MaterialTheme.typography.titleLarge)
+        Text(LocalizationManager.t("sir_source_files"), style = MaterialTheme.typography.titleLarge)
         Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 if (sirFiles.isEmpty()) Text("No imported SIR files found.")
@@ -156,8 +156,8 @@ private fun ProjectDocumentUploadDialog(projects: List<oms.model.Project>, onDis
     val selected = projects.firstOrNull { it.id == projectUuid }
     Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text("Upload document", style = MaterialTheme.typography.titleLarge)
-            Box { OutlinedButton(onClick = { expanded = true }, modifier = Modifier.fillMaxWidth()) { Text(selected?.name ?: "Select project") }
+            Text(LocalizationManager.t("upload_document"), style = MaterialTheme.typography.titleLarge)
+            Box { OutlinedButton(onClick = { expanded = true }, modifier = Modifier.fillMaxWidth()) { Text(selected?.name ?: LocalizationManager.t("select_project")) }
                 DropdownMenu(expanded, { expanded = false }) { projects.forEach { p -> DropdownMenuItem({ Text(p.name) }, { projectUuid = p.id; expanded = false }) } } }
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -168,8 +168,8 @@ private fun ProjectDocumentUploadDialog(projects: List<oms.model.Project>, onDis
                 }
             }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, androidx.compose.ui.Alignment.End)) {
-                OutlinedButton(onClick = onDismiss) { Text("Cancel") }
-                Button(onClick = { onUpload(projectUuid!!, docType) }, enabled = projectUuid != null) { Text("Choose file") }
+                OutlinedButton(onClick = onDismiss) { Text(LocalizationManager.t("cancel")) }
+                Button(onClick = { onUpload(projectUuid!!, docType) }, enabled = projectUuid != null) { Text(LocalizationManager.t("choose_file")) }
             }
         }
     }
@@ -178,11 +178,11 @@ private fun ProjectDocumentUploadDialog(projects: List<oms.model.Project>, onDis
 @Composable
 private fun DocumentTableHeader(sort: DocumentSort, ascending: Boolean, onSort: (DocumentSort) -> Unit) {
     Row(Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
-        SortableTableHeader("File name", sort == DocumentSort.Name, ascending, { onSort(DocumentSort.Name) }, Modifier.weight(1.35f))
-        SortableTableHeader("Project", sort == DocumentSort.Project, ascending, { onSort(DocumentSort.Project) }, Modifier.weight(1f))
-        SortableTableHeader("Type", sort == DocumentSort.Type, ascending, { onSort(DocumentSort.Type) }, Modifier.width(120.dp))
-        SortableTableHeader("Size", sort == DocumentSort.Size, ascending, { onSort(DocumentSort.Size) }, Modifier.width(90.dp))
-        SortableTableHeader("Uploaded by", sort == DocumentSort.Author, ascending, { onSort(DocumentSort.Author) }, Modifier.width(85.dp))
+        SortableTableHeader(LocalizationManager.t("file_name"), sort == DocumentSort.Name, ascending, { onSort(DocumentSort.Name) }, Modifier.weight(1.35f))
+        SortableTableHeader(LocalizationManager.t("project"), sort == DocumentSort.Project, ascending, { onSort(DocumentSort.Project) }, Modifier.weight(1f))
+        SortableTableHeader(LocalizationManager.t("type"), sort == DocumentSort.Type, ascending, { onSort(DocumentSort.Type) }, Modifier.width(120.dp))
+        SortableTableHeader(LocalizationManager.t("size"), sort == DocumentSort.Size, ascending, { onSort(DocumentSort.Size) }, Modifier.width(90.dp))
+        SortableTableHeader(LocalizationManager.t("uploaded_by"), sort == DocumentSort.Author, ascending, { onSort(DocumentSort.Author) }, Modifier.width(85.dp))
         Spacer(Modifier.width(96.dp))
     }
 }

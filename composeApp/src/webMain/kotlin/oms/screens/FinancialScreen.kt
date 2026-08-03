@@ -72,29 +72,29 @@ fun FinancialScreen(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Text(LocalizationManager.t("financial_monitoring"), style = MaterialTheme.typography.headlineMedium)
-        Text("Only completed works confirmed by acts are included.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(LocalizationManager.t("only_completed_works"), color = MaterialTheme.colorScheme.onSurfaceVariant)
 
         Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text("Sum of completed works by acts", style = MaterialTheme.typography.titleMedium)
+                Text(LocalizationManager.t("completed_works_by_acts"), style = MaterialTheme.typography.titleMedium)
                 Text(completedWorksTotal.toMoney(), style = MaterialTheme.typography.headlineMedium)
             }
         }
 
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-            Text("Financial records", style = MaterialTheme.typography.titleLarge)
-            if (canManageFinancials) Button(onClick = { addAct = true }) { Text("Add record") }
+            Text(LocalizationManager.t("financial_records"), style = MaterialTheme.typography.titleLarge)
+            if (canManageFinancials) Button(onClick = { addAct = true }) { Text(LocalizationManager.t("add_record")) }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             listOf(null, "invoice", "act", "payment", "advance").forEach { type ->
-                FilterChip(selected = recordTypeFilter == type, onClick = { recordTypeFilter = type }, label = { Text(type ?: "All") })
+                FilterChip(selected = recordTypeFilter == type, onClick = { recordTypeFilter = type }, label = { Text(type?.let { LocalizationManager.t("record_type_$it") } ?: LocalizationManager.t("all")) })
             }
         }
         Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 FinancialTableHeader(sort, ascending, ::selectSort)
                 HorizontalDivider()
-                if (visibleActs.isEmpty()) Text("No acts found.")
+                if (visibleActs.isEmpty()) Text(LocalizationManager.t("no_acts"))
                 visibleActs.forEach { row ->
                     Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                         Text(row.act.referenceNumber, Modifier.width(130.dp))

@@ -66,27 +66,27 @@ fun ReportsScreen(onNewInspection: () -> Unit = {}) {
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             listOf(null, "draft", "pending_review", "completed").forEach { value ->
-                FilterChip(selected = status == value, onClick = { status = value }, label = { Text(value ?: LocalizationManager.t("all")) })
+                FilterChip(selected = status == value, onClick = { status = value }, label = { Text(value?.let { LocalizationManager.t("${it}_status") } ?: LocalizationManager.t("all")) })
             }
         }
         Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 ReportTableHeader(sort, ascending, ::selectSort)
                 HorizontalDivider()
-                if (visible.isEmpty()) Text("No inspection reports found.")
+                if (visible.isEmpty()) Text(LocalizationManager.t("no_reports"))
                 visible.forEach { row ->
                     Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                         Text(row.report.inspectionDate, Modifier.width(105.dp))
                         Column(Modifier.weight(1.35f)) {
-                            Text(row.report.summary ?: "Inspection report", style = MaterialTheme.typography.bodyMedium)
+                            Text(row.report.summary ?: LocalizationManager.t("inspection_report"), style = MaterialTheme.typography.bodyMedium)
                             Text(row.projectName, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                         Box(Modifier.width(130.dp)) { ReportStatusChip(row.report.status) }
                         Text("admin", Modifier.width(100.dp))
-                        TableActionIconButton("Upload photo", Icons.Default.PhotoCamera) { openInspectionPhotoUpload(row.report.uuid) }
-                        TableActionIconButton("Findings", Icons.AutoMirrored.Filled.FactCheck) { findingsReport = row }
-                        TableActionIconButton("Move report", Icons.Default.SwapHoriz) { reportToMove = row }
-                        TableActionIconButton("Delete report", Icons.Default.Delete) {
+                        TableActionIconButton(LocalizationManager.t("upload_photo"), Icons.Default.PhotoCamera) { openInspectionPhotoUpload(row.report.uuid) }
+                        TableActionIconButton(LocalizationManager.t("findings"), Icons.AutoMirrored.Filled.FactCheck) { findingsReport = row }
+                        TableActionIconButton(LocalizationManager.t("move_report"), Icons.Default.SwapHoriz) { reportToMove = row }
+                        TableActionIconButton(LocalizationManager.t("delete_report"), Icons.Default.Delete) {
                             scope.launch {
                                 if (OmsApiClient.deleteInspectionReport(row.report.uuid)) reports = reports.filterNot { it.report.uuid == row.report.uuid }
                                 else errorMessage = "Could not delete report."
@@ -146,37 +146,37 @@ private fun FindingsDialog(report: ReportRow, onDismiss: () -> Unit) {
         )
     } else Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text("Inspection findings", style = MaterialTheme.typography.titleLarge)
-                Text("${report.report.summary ?: "Inspection report"} — ${report.projectName}", style = MaterialTheme.typography.bodySmall)
-                if (findings.isEmpty()) Text("No findings yet.")
+            Text(LocalizationManager.t("inspection_findings"), style = MaterialTheme.typography.titleLarge)
+                Text("${report.report.summary ?: LocalizationManager.t("inspection_report")} — ${report.projectName}", style = MaterialTheme.typography.bodySmall)
+                if (findings.isEmpty()) Text(LocalizationManager.t("no_findings"))
                 findings.forEach { finding ->
                     Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
                         Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                             Text("${finding.category} • ${finding.severity.uppercase()}${if (finding.isResolved) " • RESOLVED" else ""}", style = MaterialTheme.typography.titleSmall)
                             Text(finding.description)
-                            finding.recommendation?.let { Text("Recommendation: $it", style = MaterialTheme.typography.bodySmall) }
+                            finding.recommendation?.let { Text("${LocalizationManager.t("recommendation")}: $it", style = MaterialTheme.typography.bodySmall) }
                             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                TextButton(onClick = { editing = finding }) { Text("Edit") }
+                                TextButton(onClick = { editing = finding }) { Text(LocalizationManager.t("edit")) }
                                 TextButton(onClick = {
                                     scope.launch {
                                         runCatching { OmsApiClient.updateInspectionFinding(report.report.uuid, finding.uuid, UpdateInspectionFindingRequest(finding.category, finding.severity, finding.description, finding.recommendation, !finding.isResolved)) }
                                             .onSuccess { refresh() }.onFailure { error = "Could not update finding." }
                                     }
-                                }) { Text(if (finding.isResolved) "Reopen" else "Resolve") }
+                                }) { Text(if (finding.isResolved) LocalizationManager.t("reopen") else LocalizationManager.t("resolve")) }
                                 TextButton(onClick = {
                                     scope.launch {
                                         if (OmsApiClient.deleteInspectionFinding(report.report.uuid, finding.uuid)) refresh()
                                         else error = "Could not delete finding."
                                     }
-                                }) { Text("Delete") }
+                                }) { Text(LocalizationManager.t("delete")) }
                             }
                         }
                     }
                 }
                 error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
-                OutlinedButton(onClick = onDismiss) { Text("Close") }
-                Button(onClick = { adding = true }) { Text("Add finding") }
+                OutlinedButton(onClick = onDismiss) { Text(LocalizationManager.t("close")) }
+                Button(onClick = { adding = true }) { Text(LocalizationManager.t("add_finding")) }
             }
         }
     }
@@ -195,17 +195,17 @@ private fun FindingEditorDialog(
     var isResolved by remember(finding?.uuid) { mutableStateOf(finding?.isResolved ?: false) }
     Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text(if (finding == null) "Add finding" else "Edit finding", style = MaterialTheme.typography.titleLarge)
-                OutlinedTextField(category, { category = it }, label = { Text("Category") }, modifier = Modifier.fillMaxWidth())
+            Text(if (finding == null) LocalizationManager.t("add_finding") else LocalizationManager.t("edit_finding"), style = MaterialTheme.typography.titleLarge)
+                OutlinedTextField(category, { category = it }, label = { Text(LocalizationManager.t("category")) }, modifier = Modifier.fillMaxWidth())
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     listOf("low", "medium", "high", "critical").forEach { value -> FilterChip(selected = severity == value, onClick = { severity = value }, label = { Text(value) }) }
                 }
-                OutlinedTextField(description, { description = it }, label = { Text("Description") }, minLines = 3, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(recommendation, { recommendation = it }, label = { Text("Recommendation") }, minLines = 2, modifier = Modifier.fillMaxWidth())
-                if (finding != null) Row(verticalAlignment = Alignment.CenterVertically) { Checkbox(isResolved, { isResolved = it }); Text("Resolved") }
+                OutlinedTextField(description, { description = it }, label = { Text(LocalizationManager.t("description")) }, minLines = 3, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(recommendation, { recommendation = it }, label = { Text(LocalizationManager.t("recommendation")) }, minLines = 2, modifier = Modifier.fillMaxWidth())
+                if (finding != null) Row(verticalAlignment = Alignment.CenterVertically) { Checkbox(isResolved, { isResolved = it }); Text(LocalizationManager.t("resolved")) }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
-                OutlinedButton(onClick = onDismiss) { Text("Cancel") }
-                Button(onClick = { onSave(category, severity, description, recommendation.ifBlank { null }, isResolved) }, enabled = category.isNotBlank() && description.isNotBlank()) { Text("Save") }
+                OutlinedButton(onClick = onDismiss) { Text(LocalizationManager.t("cancel")) }
+                Button(onClick = { onSave(category, severity, description, recommendation.ifBlank { null }, isResolved) }, enabled = category.isNotBlank() && description.isNotBlank()) { Text(LocalizationManager.t("save")) }
             }
         }
     }
@@ -218,12 +218,11 @@ private fun MoveReportDialog(report: ReportRow, onDismiss: () -> Unit, onMove: (
     val selected = projects.firstOrNull { it.id == selectedUuid }
     Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text("Move inspection report", style = MaterialTheme.typography.titleLarge)
-                Text("${report.report.summary ?: "Inspection report"} is currently linked to ${report.projectName}.")
+            Text(LocalizationManager.t("move_report"), style = MaterialTheme.typography.titleLarge)
                 var expanded by remember { mutableStateOf(false) }
                 Box {
                     OutlinedButton(onClick = { expanded = true }, modifier = Modifier.fillMaxWidth()) {
-                        Text(selected?.name ?: "Select target project")
+                        Text(selected?.name ?: LocalizationManager.t("select_target_project"))
                     }
                     DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
                         projects.forEach { project ->
@@ -234,10 +233,10 @@ private fun MoveReportDialog(report: ReportRow, onDismiss: () -> Unit, onMove: (
                         }
                     }
                 }
-                if (projects.isEmpty()) Text("There is no other project to select.")
+                if (projects.isEmpty()) Text(LocalizationManager.t("no_other_project"))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
-                OutlinedButton(onClick = onDismiss) { Text("Cancel") }
-                Button(onClick = { selected?.let(onMove) }, enabled = selected != null) { Text("Move") }
+                OutlinedButton(onClick = onDismiss) { Text(LocalizationManager.t("cancel")) }
+                Button(onClick = { selected?.let(onMove) }, enabled = selected != null) { Text(LocalizationManager.t("move")) }
             }
         }
     }
@@ -246,10 +245,10 @@ private fun MoveReportDialog(report: ReportRow, onDismiss: () -> Unit, onMove: (
 @Composable
 private fun ReportTableHeader(sort: ReportSort, ascending: Boolean, onSort: (ReportSort) -> Unit) {
     Row(Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
-        SortableTableHeader("Date", sort == ReportSort.Date, ascending, { onSort(ReportSort.Date) }, Modifier.width(105.dp))
-        SortableTableHeader("Report / project", sort == ReportSort.Report, ascending, { onSort(ReportSort.Report) }, Modifier.weight(1.35f))
-        SortableTableHeader("Status", sort == ReportSort.Status, ascending, { onSort(ReportSort.Status) }, Modifier.width(130.dp))
-        SortableTableHeader("Uploaded by", sort == ReportSort.Author, ascending, { onSort(ReportSort.Author) }, Modifier.width(100.dp))
-        Text("Actions", Modifier.width(192.dp), style = MaterialTheme.typography.labelLarge)
+        SortableTableHeader(LocalizationManager.t("date"), sort == ReportSort.Date, ascending, { onSort(ReportSort.Date) }, Modifier.width(105.dp))
+        SortableTableHeader(LocalizationManager.t("report_project"), sort == ReportSort.Report, ascending, { onSort(ReportSort.Report) }, Modifier.weight(1.35f))
+        SortableTableHeader(LocalizationManager.t("status"), sort == ReportSort.Status, ascending, { onSort(ReportSort.Status) }, Modifier.width(130.dp))
+        SortableTableHeader(LocalizationManager.t("uploaded_by"), sort == ReportSort.Author, ascending, { onSort(ReportSort.Author) }, Modifier.width(100.dp))
+        Text(LocalizationManager.t("actions"), Modifier.width(192.dp), style = MaterialTheme.typography.labelLarge)
     }
 }
