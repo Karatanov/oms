@@ -7,11 +7,9 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import oms.data.ApiFinancialRecord
-import oms.data.ApiProjectDocument
 import oms.data.OmsApiClient
 import oms.data.ProjectRepository
 import oms.components.SortableTableHeader
@@ -24,12 +22,7 @@ private data class ProjectActRow(
     val act: ApiFinancialRecord
 )
 
-private data class ActDocumentRow(
-    val projectUuid: String,
-    val projectName: String,
-    val document: ApiProjectDocument
-)
-private enum class FinancialSort { Number, Project, ActDate, PaymentDate, Amount, Currency, Milestone, Author }
+private enum class FinancialSort { Number, Type, Project, ActDate, PaymentDate, Amount, Currency, Milestone, Author }
 
 @Composable
 fun FinancialScreen(
@@ -41,9 +34,8 @@ fun FinancialScreen(
         return
     }
 
-    val uriHandler = LocalUriHandler.current
     var acts by remember { mutableStateOf<List<ProjectActRow>>(emptyList()) }
-    var actDocuments by remember { mutableStateOf<List<ActDocumentRow>>(emptyList()) }
+    var recordTypeFilter by remember { mutableStateOf<String?>(null) }
     var sort by remember { mutableStateOf(FinancialSort.ActDate) }
     var ascending by remember { mutableStateOf(false) }
     var reloadKey by remember { mutableStateOf(0) }
@@ -56,20 +48,15 @@ fun FinancialScreen(
         ProjectRepository.refresh()
         acts = ProjectRepository.projects.flatMap { project ->
             runCatching { OmsApiClient.financials(project.id) }.getOrNull()?.data.orEmpty()
-                .filter { it.recordType == "act" }
                 .map { ProjectActRow(project.id, project.name, it) }
         }.sortedByDescending { it.act.recordDate }
-        actDocuments = ProjectRepository.projects.flatMap { project ->
-            runCatching { OmsApiClient.projectDocuments(project.id) }.getOrDefault(emptyList())
-                .filter { it.docType == "act" }
-                .map { ActDocumentRow(project.id, project.name, it) }
-        }
     }
 
-    val completedWorksTotal = acts.sumOf { it.act.amount }
-    val visibleActs = acts.sortedWith(compareBy<ProjectActRow> {
+    val completedWorksTotal = acts.filter { it.act.recordType == "act" }.sumOf { it.act.amount }
+    val visibleActs = acts.filter { recordTypeFilter == null || it.act.recordType == recordTypeFilter }.sortedWith(compareBy<ProjectActRow> {
         when (sort) {
             FinancialSort.Number -> it.act.referenceNumber
+            FinancialSort.Type -> it.act.recordType
             FinancialSort.Project -> it.projectName
             FinancialSort.ActDate -> it.act.recordDate
             FinancialSort.PaymentDate -> it.act.paymentDate.orEmpty()
@@ -95,8 +82,13 @@ fun FinancialScreen(
         }
 
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-            Text("Acts", style = MaterialTheme.typography.titleLarge)
-            if (canManageFinancials) Button(onClick = { addAct = true }) { Text("Add act") }
+            Text("Financial records", style = MaterialTheme.typography.titleLarge)
+            if (canManageFinancials) Button(onClick = { addAct = true }) { Text("Add record") }
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            listOf(null, "invoice", "act", "payment", "advance").forEach { type ->
+                FilterChip(selected = recordTypeFilter == type, onClick = { recordTypeFilter = type }, label = { Text(type ?: "All") })
+            }
         }
         Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -106,6 +98,7 @@ fun FinancialScreen(
                 visibleActs.forEach { row ->
                     Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                         Text(row.act.referenceNumber, Modifier.width(130.dp))
+                        Text(row.act.recordType.replaceFirstChar { it.uppercase() }, Modifier.width(95.dp))
                         Text(row.projectName, Modifier.weight(1.25f))
                         Text(row.act.recordDate, Modifier.width(105.dp))
                         Text(row.act.paymentDate ?: "—", Modifier.width(105.dp))
@@ -128,20 +121,6 @@ fun FinancialScreen(
             }
         }
 
-        Text("Act documents", style = MaterialTheme.typography.titleLarge)
-        Card(Modifier.fillMaxWidth()) {
-            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                if (actDocuments.isEmpty()) Text("No act documents found.")
-                actDocuments.forEach { row ->
-                    Text(row.document.fileName, style = MaterialTheme.typography.titleMedium)
-                    Text(row.projectName)
-                    Button(onClick = { uriHandler.openUri("http://localhost:8080/api/v1/projects/${row.projectUuid}/documents/${row.document.uuid}/download") }) {
-                        Text("Open document")
-                    }
-                    HorizontalDivider()
-                }
-            }
-        }
         errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error) }
         if (addAct || editAct != null) {
             ActEditorDialog(editAct, ProjectRepository.projects, { addAct = false; editAct = null }) { projectUuid, request ->
@@ -161,6 +140,7 @@ fun FinancialScreen(
 private fun ActEditorDialog(existing: ProjectActRow?, projects: List<oms.model.Project>, onDismiss: () -> Unit, onSave: (String, oms.data.FinancialRecordRequest) -> Unit) {
     var projectUuid by remember { mutableStateOf(existing?.projectUuid ?: projects.firstOrNull()?.id) }
     var reference by remember { mutableStateOf(existing?.act?.referenceNumber ?: "") }
+    var recordType by remember { mutableStateOf(existing?.act?.recordType ?: "act") }
     var amount by remember { mutableStateOf(existing?.act?.amount?.toString() ?: "") }
     var date by remember { mutableStateOf(existing?.act?.recordDate ?: "") }
     var expanded by remember { mutableStateOf(false) }
@@ -168,15 +148,18 @@ private fun ActEditorDialog(existing: ProjectActRow?, projects: List<oms.model.P
     val valid = projectUuid != null && reference.isNotBlank() && amount.toLongOrNull()?.let { it > 0 } == true && date.matches(Regex("\\d{4}-\\d{2}-\\d{2}"))
     Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(if (existing == null) "Add act" else "Edit act", style = MaterialTheme.typography.titleLarge)
+            Text(if (existing == null) "Add financial record" else "Edit financial record", style = MaterialTheme.typography.titleLarge)
             Box { OutlinedButton(onClick = { expanded = true }, modifier = Modifier.fillMaxWidth()) { Text(selected?.name ?: "Select project") }
                 DropdownMenu(expanded, { expanded = false }) { projects.forEach { p -> DropdownMenuItem({ Text(p.name) }, { projectUuid = p.id; expanded = false }) } } }
-            OutlinedTextField(reference, { reference = it }, label = { Text("Act number") }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(reference, { reference = it }, label = { Text("Reference number") }, modifier = Modifier.fillMaxWidth())
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                listOf("invoice", "act", "payment", "advance").forEach { type -> FilterChip(selected = recordType == type, onClick = { recordType = type }, label = { Text(type) }) }
+            }
             OutlinedTextField(amount, { amount = it }, label = { Text("Amount, UAH") }, modifier = Modifier.fillMaxWidth())
             OutlinedTextField(date, { date = it }, label = { Text("Date (YYYY-MM-DD)") }, modifier = Modifier.fillMaxWidth())
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, androidx.compose.ui.Alignment.End)) {
                 OutlinedButton(onClick = onDismiss) { Text("Cancel") }
-                Button(onClick = { onSave(projectUuid!!, oms.data.FinancialRecordRequest("act", reference, amount.toLong(), "UAH", date)) }, enabled = valid) { Text("Save") }
+                Button(onClick = { onSave(projectUuid!!, oms.data.FinancialRecordRequest(recordType, reference, amount.toLong(), "UAH", date)) }, enabled = valid) { Text("Save") }
             }
         }
     }
@@ -185,7 +168,8 @@ private fun ActEditorDialog(existing: ProjectActRow?, projects: List<oms.model.P
 @Composable
 private fun FinancialTableHeader(sort: FinancialSort, ascending: Boolean, onSort: (FinancialSort) -> Unit) {
     Row(Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
-        SortableTableHeader("Act no.", sort == FinancialSort.Number, ascending, { onSort(FinancialSort.Number) }, Modifier.width(130.dp))
+        SortableTableHeader("Reference", sort == FinancialSort.Number, ascending, { onSort(FinancialSort.Number) }, Modifier.width(130.dp))
+        SortableTableHeader("Type", sort == FinancialSort.Type, ascending, { onSort(FinancialSort.Type) }, Modifier.width(95.dp))
         SortableTableHeader("Project", sort == FinancialSort.Project, ascending, { onSort(FinancialSort.Project) }, Modifier.weight(1.25f))
         SortableTableHeader("Act date", sort == FinancialSort.ActDate, ascending, { onSort(FinancialSort.ActDate) }, Modifier.width(105.dp))
         SortableTableHeader("Payment date", sort == FinancialSort.PaymentDate, ascending, { onSort(FinancialSort.PaymentDate) }, Modifier.width(105.dp))
