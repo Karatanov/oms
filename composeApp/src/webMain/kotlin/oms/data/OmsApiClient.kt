@@ -94,6 +94,21 @@ object OmsApiClient {
     suspend fun financials(projectUuid: String): ApiFinancialRecords =
         client.get("$baseUrl/projects/$projectUuid/financials").body()
 
+    suspend fun createFinancialRecord(projectUuid: String, request: FinancialRecordRequest): ApiFinancialRecord =
+        client.post("$baseUrl/projects/$projectUuid/financials") {
+            contentType(ContentType.Application.Json)
+            setBody(request)
+        }.body()
+
+    suspend fun updateFinancialRecord(projectUuid: String, recordUuid: String, request: FinancialRecordRequest): ApiFinancialRecord =
+        client.put("$baseUrl/projects/$projectUuid/financials/$recordUuid") {
+            contentType(ContentType.Application.Json)
+            setBody(request)
+        }.body()
+
+    suspend fun deleteFinancialRecord(projectUuid: String, recordUuid: String): Boolean =
+        client.delete("$baseUrl/projects/$projectUuid/financials/$recordUuid").status.isSuccess()
+
     suspend fun deleteProject(projectUuid: String): Boolean =
         client.delete("$baseUrl/projects/$projectUuid").status.isSuccess()
 
@@ -146,6 +161,18 @@ data class CreateInspectionFindingRequest(val category: String, val severity: St
 
 @Serializable
 data class UpdateInspectionFindingRequest(val category: String, val severity: String, val description: String, val recommendation: String? = null, val isResolved: Boolean)
+
+@Serializable
+data class FinancialRecordRequest(
+    val recordType: String,
+    val referenceNumber: String,
+    val amount: Long,
+    val currency: String = "UAH",
+    val recordDate: String,
+    val paymentDate: String? = null,
+    val description: String? = null,
+    val milestone: String? = null
+)
 
 @Serializable
 data class CreateProjectRequest(

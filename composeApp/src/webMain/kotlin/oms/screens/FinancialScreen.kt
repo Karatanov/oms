@@ -6,6 +6,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.launch
 import oms.data.ApiFinancialRecord
 import oms.data.ApiProjectDocument
 import oms.data.OmsApiClient
@@ -41,8 +42,13 @@ fun FinancialScreen(
     var actDocuments by remember { mutableStateOf<List<ActDocumentRow>>(emptyList()) }
     var sort by remember { mutableStateOf(FinancialSort.ActDate) }
     var ascending by remember { mutableStateOf(false) }
+    var reloadKey by remember { mutableStateOf(0) }
+    var editAct by remember { mutableStateOf<ProjectActRow?>(null) }
+    var addAct by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(reloadKey) {
         ProjectRepository.refresh()
         acts = ProjectRepository.projects.flatMap { project ->
             runCatching { OmsApiClient.financials(project.id) }.getOrNull()?.data.orEmpty()
@@ -84,7 +90,10 @@ fun FinancialScreen(
             }
         }
 
-        Text("Acts", style = MaterialTheme.typography.titleLarge)
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+            Text("Acts", style = MaterialTheme.typography.titleLarge)
+            if (canManageFinancials) Button(onClick = { addAct = true }) { Text("Add act") }
+        }
         Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 FinancialTableHeader(sort, ascending, ::selectSort)
@@ -100,6 +109,15 @@ fun FinancialScreen(
                         Text(row.act.currency, Modifier.width(65.dp))
                         Text(row.act.milestone ?: "—", Modifier.weight(1f))
                         Text("admin", Modifier.width(75.dp))
+                        if (canManageFinancials) {
+                            TextButton(onClick = { editAct = row }) { Text("Edit") }
+                            TextButton(onClick = {
+                                scope.launch {
+                                    if (OmsApiClient.deleteFinancialRecord(row.projectUuid, row.act.uuid)) reloadKey++
+                                    else errorMessage = "Could not delete act."
+                                }
+                            }) { Text("Delete") }
+                        }
                     }
                     HorizontalDivider()
                 }
@@ -120,7 +138,39 @@ fun FinancialScreen(
                 }
             }
         }
+        errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+        if (addAct || editAct != null) {
+            ActEditorDialog(editAct, ProjectRepository.projects, { addAct = false; editAct = null }) { projectUuid, request ->
+                scope.launch {
+                    runCatching {
+                        if (editAct == null) OmsApiClient.createFinancialRecord(projectUuid, request)
+                        else OmsApiClient.updateFinancialRecord(projectUuid, editAct!!.act.uuid, request)
+                    }.onSuccess { addAct = false; editAct = null; reloadKey++ }
+                        .onFailure { errorMessage = "Could not save act." }
+                }
+            }
+        }
     }
+}
+
+@Composable
+private fun ActEditorDialog(existing: ProjectActRow?, projects: List<oms.model.Project>, onDismiss: () -> Unit, onSave: (String, oms.data.FinancialRecordRequest) -> Unit) {
+    var projectUuid by remember { mutableStateOf(existing?.projectUuid ?: projects.firstOrNull()?.id) }
+    var reference by remember { mutableStateOf(existing?.act?.referenceNumber ?: "") }
+    var amount by remember { mutableStateOf(existing?.act?.amount?.toString() ?: "") }
+    var date by remember { mutableStateOf(existing?.act?.recordDate ?: "") }
+    var expanded by remember { mutableStateOf(false) }
+    val selected = projects.firstOrNull { it.id == projectUuid }
+    val valid = projectUuid != null && reference.isNotBlank() && amount.toLongOrNull()?.let { it > 0 } == true && date.matches(Regex("\\d{4}-\\d{2}-\\d{2}"))
+    AlertDialog(onDismissRequest = onDismiss, title = { Text(if (existing == null) "Add act" else "Edit act") }, text = {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Box { OutlinedButton(onClick = { expanded = true }, modifier = Modifier.fillMaxWidth()) { Text(selected?.name ?: "Select project") }
+                DropdownMenu(expanded, { expanded = false }) { projects.forEach { p -> DropdownMenuItem({ Text(p.name) }, { projectUuid = p.id; expanded = false }) } } }
+            OutlinedTextField(reference, { reference = it }, label = { Text("Act number") }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(amount, { amount = it }, label = { Text("Amount, UAH") }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(date, { date = it }, label = { Text("Date (YYYY-MM-DD)") }, modifier = Modifier.fillMaxWidth())
+        }
+    }, confirmButton = { Button(onClick = { onSave(projectUuid!!, oms.data.FinancialRecordRequest("act", reference, amount.toLong(), "UAH", date)) }, enabled = valid) { Text("Save") } }, dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } })
 }
 
 @Composable
