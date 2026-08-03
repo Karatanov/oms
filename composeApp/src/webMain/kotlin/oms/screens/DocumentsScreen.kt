@@ -18,6 +18,7 @@ import oms.data.OmsApiClient
 import oms.data.ProjectRepository
 import oms.components.SortableTableHeader
 import oms.components.DocumentTypeChip
+import oms.components.TableActionIconButton
 import oms.localization.LocalizationManager
 import kotlin.js.JsName
 
@@ -104,14 +105,14 @@ fun DocumentsScreen(canManageDocuments: Boolean = true) {
                         Box(Modifier.width(120.dp)) { DocumentTypeChip(row.document.docType) }
                         Text(formatFileSize(row.document.fileSizeBytes), Modifier.width(90.dp))
                         Text("admin", Modifier.width(85.dp))
-                        IconButton(onClick = { uriHandler.openUri("http://localhost:8080/api/v1/projects/${row.projectUuid}/documents/${row.document.uuid}/download") }) { Icon(Icons.AutoMirrored.Filled.OpenInNew, "Open document") }
-                        if (canManageDocuments) IconButton(onClick = {
+                        TableActionIconButton("Open document", Icons.AutoMirrored.Filled.OpenInNew) { uriHandler.openUri("http://localhost:8080/api/v1/projects/${row.projectUuid}/documents/${row.document.uuid}/download") }
+                        if (canManageDocuments) TableActionIconButton("Delete document", Icons.Default.Delete) {
                             scope.launch {
                                 if (OmsApiClient.deleteProjectDocument(row.projectUuid, row.document.uuid)) {
                                     projectFiles = projectFiles.filterNot { it.document.uuid == row.document.uuid }
                                 } else errorMessage = "Could not delete document."
                             }
-                        }) { Icon(Icons.Default.Delete, "Delete document") }
+                        }
                     }
                     HorizontalDivider()
                 }
@@ -127,15 +128,13 @@ fun DocumentsScreen(canManageDocuments: Boolean = true) {
                     Text(fileName, style = MaterialTheme.typography.titleMedium)
                     Text("${row.projectName} • ${row.report.inspectionDate}")
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        IconButton(onClick = { uriHandler.openUri("http://localhost:8080/api/v1/inspection-reports/${row.report.uuid}/source-file") }) {
-                            Icon(Icons.AutoMirrored.Filled.OpenInNew, "Open SIR source file")
-                        }
-                        if (canManageDocuments) IconButton(onClick = {
+                        TableActionIconButton("Open SIR source file", Icons.AutoMirrored.Filled.OpenInNew) { uriHandler.openUri("http://localhost:8080/api/v1/inspection-reports/${row.report.uuid}/source-file") }
+                        if (canManageDocuments) TableActionIconButton("Delete SIR source file", Icons.Default.Delete) {
                             scope.launch {
                                 if (OmsApiClient.deleteInspectionReport(row.report.uuid)) sirFiles = sirFiles.filterNot { it.report.uuid == row.report.uuid }
                                 else errorMessage = "Could not delete source document."
                             }
-                        }) { Icon(Icons.Default.Delete, "Delete SIR source file") }
+                        }
                     }
                     HorizontalDivider()
                 }

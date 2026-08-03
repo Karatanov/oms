@@ -42,7 +42,6 @@ fun CreateInspectionScreen(
     var comments by remember { mutableStateOf(TextFieldValue("")) }
     var photoCount by remember { mutableStateOf(0) }
     var projectUuid by remember { mutableStateOf<String?>(null) }
-    var completionPct by remember { mutableStateOf("0") }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var isSubmitting by remember { mutableStateOf(false) }
     var createdReportUuid by remember { mutableStateOf<String?>(null) }
@@ -118,15 +117,6 @@ fun CreateInspectionScreen(
                 InspectionTypeDropdown(
                     value = inspectionType,
                     onChange = { inspectionType = it }
-                )
-
-                OutlinedTextField(
-                    value = completionPct,
-                    onValueChange = { completionPct = it },
-                    label = { Text("Completion, %") },
-                    placeholder = { Text("0–100") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
                 )
 
                 OutlinedTextField(
@@ -222,11 +212,9 @@ fun CreateInspectionScreen(
                         return@Button
                     }
                     val selectedProject = projectUuid
-                    val completion = completionPct.toDoubleOrNull()
                     when {
                         selectedProject == null -> errorMessage = "Select a project."
                         !date.isIsoDate() -> errorMessage = "Date must use YYYY-MM-DD format."
-                        completion == null || completion !in 0.0..100.0 -> errorMessage = "Completion must be between 0 and 100."
                         comments.text.isBlank() -> errorMessage = "Add a report summary before submitting."
                         else -> {
                             isSubmitting = true
@@ -238,7 +226,7 @@ fun CreateInspectionScreen(
                                     if (gps.isNotBlank()) append(" | GPS: ${gps.trim()}")
                                 }
                                 runCatching {
-                                    OmsApiClient.createAndSubmitInspectionReport(selectedProject, date, completion, summary)
+                                    OmsApiClient.createAndSubmitInspectionReport(selectedProject, date, 0.0, summary)
                                 }.onSuccess { report ->
                                     createdReportUuid = report.uuid
                                     uploadSelectedInspectionPhotos(report.uuid) { uploadError ->

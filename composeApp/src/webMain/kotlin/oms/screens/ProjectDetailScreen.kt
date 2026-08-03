@@ -225,8 +225,7 @@ private fun ProjectReportsTab(reports: List<ApiInspectionReport>) {
             if (reports.isEmpty()) Text("No inspection reports found.")
             reports.forEach { report ->
                 Text(report.summary ?: "Inspection report", style = MaterialTheme.typography.titleMedium)
-                Text("${report.inspectionDate} • ${report.completionPct}% • ${report.status}")
-                Text(report.uuid, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("${report.inspectionDate} • ${report.status.replace('_', ' ')}")
                 HorizontalDivider()
             }
         }

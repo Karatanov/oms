@@ -20,6 +20,7 @@ import oms.data.ProjectRepository
 import oms.data.UpdateInspectionFindingRequest
 import oms.components.SortableTableHeader
 import oms.components.ReportStatusChip
+import oms.components.TableActionIconButton
 import oms.localization.LocalizationManager
 import kotlin.js.JsName
 
@@ -27,7 +28,7 @@ import kotlin.js.JsName
 external fun openInspectionPhotoUpload(reportUuid: String)
 
 private data class ReportRow(val projectUuid: String, val projectName: String, val report: ApiInspectionReport)
-private enum class ReportSort { Date, Report, Progress, Status, Author }
+private enum class ReportSort { Date, Report, Status, Author }
 
 @Composable
 fun ReportsScreen(onNewInspection: () -> Unit = {}) {
@@ -51,7 +52,6 @@ fun ReportsScreen(onNewInspection: () -> Unit = {}) {
             when (sort) {
                 ReportSort.Date -> it.report.inspectionDate
                 ReportSort.Report -> "${it.report.summary.orEmpty()} ${it.projectName}"
-                ReportSort.Progress -> it.report.completionPct.toString().padStart(6, '0')
                 ReportSort.Status -> it.report.status
                 ReportSort.Author -> "admin"
             }
@@ -81,19 +81,17 @@ fun ReportsScreen(onNewInspection: () -> Unit = {}) {
                             Text(row.report.summary ?: "Inspection report", style = MaterialTheme.typography.bodyMedium)
                             Text(row.projectName, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
-                        Text("${row.report.completionPct}%", Modifier.width(85.dp))
                         Box(Modifier.width(130.dp)) { ReportStatusChip(row.report.status) }
                         Text("admin", Modifier.width(100.dp))
-                        Text(row.report.uuid.take(8), Modifier.width(80.dp), style = MaterialTheme.typography.bodySmall)
-                        IconButton(onClick = { openInspectionPhotoUpload(row.report.uuid) }) { Icon(Icons.Default.PhotoCamera, "Upload photo") }
-                        IconButton(onClick = { findingsReport = row }) { Icon(Icons.AutoMirrored.Filled.FactCheck, "Findings") }
-                        IconButton(onClick = { reportToMove = row }) { Icon(Icons.Default.SwapHoriz, "Move report") }
-                        IconButton(onClick = {
+                        TableActionIconButton("Upload photo", Icons.Default.PhotoCamera) { openInspectionPhotoUpload(row.report.uuid) }
+                        TableActionIconButton("Findings", Icons.AutoMirrored.Filled.FactCheck) { findingsReport = row }
+                        TableActionIconButton("Move report", Icons.Default.SwapHoriz) { reportToMove = row }
+                        TableActionIconButton("Delete report", Icons.Default.Delete) {
                             scope.launch {
                                 if (OmsApiClient.deleteInspectionReport(row.report.uuid)) reports = reports.filterNot { it.report.uuid == row.report.uuid }
                                 else errorMessage = "Could not delete report."
                             }
-                        }) { Icon(Icons.Default.Delete, "Delete report") }
+                        }
                     }
                     HorizontalDivider()
                 }
@@ -253,10 +251,8 @@ private fun ReportTableHeader(sort: ReportSort, ascending: Boolean, onSort: (Rep
     Row(Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
         SortableTableHeader("Date", sort == ReportSort.Date, ascending, { onSort(ReportSort.Date) }, Modifier.width(105.dp))
         SortableTableHeader("Report / project", sort == ReportSort.Report, ascending, { onSort(ReportSort.Report) }, Modifier.weight(1.35f))
-        SortableTableHeader("Progress", sort == ReportSort.Progress, ascending, { onSort(ReportSort.Progress) }, Modifier.width(85.dp))
         SortableTableHeader("Status", sort == ReportSort.Status, ascending, { onSort(ReportSort.Status) }, Modifier.width(130.dp))
         SortableTableHeader("Uploaded by", sort == ReportSort.Author, ascending, { onSort(ReportSort.Author) }, Modifier.width(100.dp))
-        Text("ID", Modifier.width(80.dp), style = MaterialTheme.typography.labelLarge)
         Text("Actions", Modifier.width(192.dp), style = MaterialTheme.typography.labelLarge)
     }
 }

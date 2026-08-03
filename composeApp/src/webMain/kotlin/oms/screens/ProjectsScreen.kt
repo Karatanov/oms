@@ -3,6 +3,10 @@ package oms.screens
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -16,6 +20,7 @@ import kotlinx.coroutines.launch
 import oms.components.FilterDropdown
 import oms.components.StatusChip
 import oms.components.TableHeader
+import oms.components.TableActionIconButton
 import oms.data.ProjectRepository
 import oms.localization.LocalizationManager
 import oms.model.Project
@@ -293,14 +298,9 @@ fun ProjectRow(
             StatusChip(project.status)
         }
 
-        Button(
-            onClick = { onOpen(project) },
-            modifier = Modifier.width(100.dp)
-        ) {
-            Text(LocalizationManager.t("view"))
-        }
-        TextButton(onClick = { onEdit(project) }) { Text(LocalizationManager.t("edit")) }
-        TextButton(onClick = { onDelete(project) }) { Text("Delete") }
+        TableActionIconButton(LocalizationManager.t("view"), Icons.Default.Visibility) { onOpen(project) }
+        TableActionIconButton(LocalizationManager.t("edit"), Icons.Default.Edit) { onEdit(project) }
+        TableActionIconButton("Delete project", Icons.Default.Delete) { onDelete(project) }
     }
 
     HorizontalDivider()

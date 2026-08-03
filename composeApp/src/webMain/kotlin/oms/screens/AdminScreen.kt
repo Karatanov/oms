@@ -15,6 +15,7 @@ import oms.data.ApiUser
 import oms.data.OmsApiClient
 import oms.data.UpdateUserRequest
 import oms.components.RoleChip
+import oms.components.TableActionIconButton
 
 private enum class UserSort { Id, Username, Email, Role }
 
@@ -56,7 +57,7 @@ fun AdminScreen() {
                         Text(user.username, Modifier.weight(1f))
                         Text(user.email, Modifier.weight(1.4f))
                         Box(Modifier.width(150.dp)) { RoleChip(user.role.code) }
-                        IconButton(onClick = { selectedUser = user }, modifier = Modifier.width(48.dp)) { Icon(Icons.Default.Edit, "Редагувати") }
+                        TableActionIconButton("Редагувати користувача", Icons.Default.Edit) { selectedUser = user }
                     }
                     HorizontalDivider()
                 }

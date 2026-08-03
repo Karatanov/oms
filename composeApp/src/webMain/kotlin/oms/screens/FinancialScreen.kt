@@ -1,6 +1,9 @@
 package oms.screens
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -12,6 +15,7 @@ import oms.data.ApiProjectDocument
 import oms.data.OmsApiClient
 import oms.data.ProjectRepository
 import oms.components.SortableTableHeader
+import oms.components.TableActionIconButton
 import oms.localization.LocalizationManager
 
 private data class ProjectActRow(
@@ -110,13 +114,13 @@ fun FinancialScreen(
                         Text(row.act.milestone ?: "—", Modifier.weight(1f))
                         Text("admin", Modifier.width(75.dp))
                         if (canManageFinancials) {
-                            TextButton(onClick = { editAct = row }) { Text("Edit") }
-                            TextButton(onClick = {
+                            TableActionIconButton("Edit act", Icons.Default.Edit) { editAct = row }
+                            TableActionIconButton("Delete act", Icons.Default.Delete) {
                                 scope.launch {
                                     if (OmsApiClient.deleteFinancialRecord(row.projectUuid, row.act.uuid)) reloadKey++
                                     else errorMessage = "Could not delete act."
                                 }
-                            }) { Text("Delete") }
+                            }
                         }
                     }
                     HorizontalDivider()
@@ -184,6 +188,7 @@ private fun FinancialTableHeader(sort: FinancialSort, ascending: Boolean, onSort
         SortableTableHeader("Curr.", sort == FinancialSort.Currency, ascending, { onSort(FinancialSort.Currency) }, Modifier.width(65.dp))
         SortableTableHeader("Milestone", sort == FinancialSort.Milestone, ascending, { onSort(FinancialSort.Milestone) }, Modifier.weight(1f))
         SortableTableHeader("By", sort == FinancialSort.Author, ascending, { onSort(FinancialSort.Author) }, Modifier.width(75.dp))
+        Spacer(Modifier.width(96.dp))
     }
 }
 

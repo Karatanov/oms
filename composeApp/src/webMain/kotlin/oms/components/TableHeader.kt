@@ -59,7 +59,7 @@ fun TableHeader(
 
         Box(
             modifier = Modifier
-                .width(100.dp)
+                .width(144.dp)
                 .height(48.dp),
             contentAlignment = Alignment.Center
         ) {
