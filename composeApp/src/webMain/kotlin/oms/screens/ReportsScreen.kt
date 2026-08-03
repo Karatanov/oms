@@ -23,6 +23,7 @@ fun ReportsScreen(onNewInspection: () -> Unit = {}) {
     var status by remember { mutableStateOf<String?>(null) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var reportToMove by remember { mutableStateOf<ReportRow?>(null) }
+    var findingsReport by remember { mutableStateOf<ReportRow?>(null) }
     val scope = rememberCoroutineScope()
     var sort by remember { mutableStateOf(ReportSort.Date) }
     var ascending by remember { mutableStateOf(false) }
@@ -72,6 +73,7 @@ fun ReportsScreen(onNewInspection: () -> Unit = {}) {
                         Text(row.report.status.replace('_', ' '), Modifier.width(130.dp))
                         Text("admin", Modifier.width(100.dp))
                         Text(row.report.uuid.take(8), Modifier.width(80.dp), style = MaterialTheme.typography.bodySmall)
+                        TextButton(onClick = { findingsReport = row }) { Text("Findings") }
                         TextButton(onClick = { reportToMove = row }) { Text("Move") }
                         TextButton(onClick = {
                             scope.launch {
@@ -101,7 +103,103 @@ fun ReportsScreen(onNewInspection: () -> Unit = {}) {
                 }
             )
         }
+        findingsReport?.let { report ->
+            FindingsDialog(report = report, onDismiss = { findingsReport = null })
+        }
     }
+}
+
+@Composable
+private fun FindingsDialog(report: ReportRow, onDismiss: () -> Unit) {
+    var findings by remember(report.report.uuid) { mutableStateOf<List<oms.data.ApiInspectionFinding>>(emptyList()) }
+    var error by remember { mutableStateOf<String?>(null) }
+    var editing by remember { mutableStateOf<oms.data.ApiInspectionFinding?>(null) }
+    var adding by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+    fun refresh() { scope.launch { findings = runCatching { OmsApiClient.inspectionFindings(report.report.uuid) }.getOrElse { error = "Could not load findings."; emptyList() } } }
+    LaunchedEffect(report.report.uuid) { refresh() }
+
+    if (adding || editing != null) {
+        FindingEditorDialog(
+            finding = editing,
+            onDismiss = { adding = false; editing = null },
+            onSave = { category, severity, description, recommendation, isResolved ->
+                scope.launch {
+                    runCatching {
+                        if (editing == null) OmsApiClient.createInspectionFinding(report.report.uuid, CreateInspectionFindingRequest(category, severity, description, recommendation))
+                        else OmsApiClient.updateInspectionFinding(report.report.uuid, editing!!.uuid, UpdateInspectionFindingRequest(category, severity, description, recommendation, isResolved))
+                    }.onSuccess { adding = false; editing = null; refresh() }
+                        .onFailure { error = "Could not save finding: ${it.message ?: "unknown error"}" }
+                }
+            }
+        )
+    } else AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Inspection findings") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text("${report.report.summary ?: "Inspection report"} — ${report.projectName}", style = MaterialTheme.typography.bodySmall)
+                if (findings.isEmpty()) Text("No findings yet.")
+                findings.forEach { finding ->
+                    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+                        Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text("${finding.category} • ${finding.severity.uppercase()}${if (finding.isResolved) " • RESOLVED" else ""}", style = MaterialTheme.typography.titleSmall)
+                            Text(finding.description)
+                            finding.recommendation?.let { Text("Recommendation: $it", style = MaterialTheme.typography.bodySmall) }
+                            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                TextButton(onClick = { editing = finding }) { Text("Edit") }
+                                TextButton(onClick = {
+                                    scope.launch {
+                                        runCatching { OmsApiClient.updateInspectionFinding(report.report.uuid, finding.uuid, UpdateInspectionFindingRequest(finding.category, finding.severity, finding.description, finding.recommendation, !finding.isResolved)) }
+                                            .onSuccess { refresh() }.onFailure { error = "Could not update finding." }
+                                    }
+                                }) { Text(if (finding.isResolved) "Reopen" else "Resolve") }
+                                TextButton(onClick = {
+                                    scope.launch {
+                                        if (OmsApiClient.deleteInspectionFinding(report.report.uuid, finding.uuid)) refresh()
+                                        else error = "Could not delete finding."
+                                    }
+                                }) { Text("Delete") }
+                            }
+                        }
+                    }
+                }
+                error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+            }
+        },
+        confirmButton = { Button(onClick = { adding = true }) { Text("Add finding") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Close") } }
+    )
+}
+
+@Composable
+private fun FindingEditorDialog(
+    finding: oms.data.ApiInspectionFinding?,
+    onDismiss: () -> Unit,
+    onSave: (String, String, String, String?, Boolean) -> Unit
+) {
+    var category by remember(finding?.uuid) { mutableStateOf(finding?.category ?: "") }
+    var severity by remember(finding?.uuid) { mutableStateOf(finding?.severity ?: "medium") }
+    var description by remember(finding?.uuid) { mutableStateOf(finding?.description ?: "") }
+    var recommendation by remember(finding?.uuid) { mutableStateOf(finding?.recommendation ?: "") }
+    var isResolved by remember(finding?.uuid) { mutableStateOf(finding?.isResolved ?: false) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(if (finding == null) "Add finding" else "Edit finding") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                OutlinedTextField(category, { category = it }, label = { Text("Category") }, modifier = Modifier.fillMaxWidth())
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    listOf("low", "medium", "high", "critical").forEach { value -> FilterChip(selected = severity == value, onClick = { severity = value }, label = { Text(value) }) }
+                }
+                OutlinedTextField(description, { description = it }, label = { Text("Description") }, minLines = 3, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(recommendation, { recommendation = it }, label = { Text("Recommendation") }, minLines = 2, modifier = Modifier.fillMaxWidth())
+                if (finding != null) Row(verticalAlignment = Alignment.CenterVertically) { Checkbox(isResolved, { isResolved = it }); Text("Resolved") }
+            }
+        },
+        confirmButton = { Button(onClick = { onSave(category, severity, description, recommendation.ifBlank { null }, isResolved) }, enabled = category.isNotBlank() && description.isNotBlank()) { Text("Save") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
+    )
 }
 
 @Composable

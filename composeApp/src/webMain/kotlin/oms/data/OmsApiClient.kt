@@ -8,6 +8,7 @@ import io.ktor.client.request.get
 import io.ktor.client.request.delete
 import io.ktor.client.request.post
 import io.ktor.client.request.patch
+import io.ktor.client.request.put
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
@@ -105,6 +106,24 @@ object OmsApiClient {
             setBody(MoveInspectionReportRequest(targetProjectUuid))
         }.status.isSuccess()
 
+    suspend fun inspectionFindings(reportUuid: String): List<ApiInspectionFinding> =
+        client.get("$baseUrl/inspection-reports/$reportUuid/findings").body()
+
+    suspend fun createInspectionFinding(reportUuid: String, request: CreateInspectionFindingRequest): ApiInspectionFinding =
+        client.post("$baseUrl/inspection-reports/$reportUuid/findings") {
+            contentType(ContentType.Application.Json)
+            setBody(request)
+        }.body()
+
+    suspend fun updateInspectionFinding(reportUuid: String, findingUuid: String, request: UpdateInspectionFindingRequest): ApiInspectionFinding =
+        client.put("$baseUrl/inspection-reports/$reportUuid/findings/$findingUuid") {
+            contentType(ContentType.Application.Json)
+            setBody(request)
+        }.body()
+
+    suspend fun deleteInspectionFinding(reportUuid: String, findingUuid: String): Boolean =
+        client.delete("$baseUrl/inspection-reports/$reportUuid/findings/$findingUuid").status.isSuccess()
+
     suspend fun deleteProjectDocument(projectUuid: String, documentUuid: String): Boolean =
         client.delete("$baseUrl/projects/$projectUuid/documents/$documentUuid").status.isSuccess()
 }
@@ -121,6 +140,12 @@ data class CreateInspectionReportRequest(
 
 @Serializable
 data class MoveInspectionReportRequest(val projectUuid: String)
+
+@Serializable
+data class CreateInspectionFindingRequest(val category: String, val severity: String, val description: String, val recommendation: String? = null)
+
+@Serializable
+data class UpdateInspectionFindingRequest(val category: String, val severity: String, val description: String, val recommendation: String? = null, val isResolved: Boolean)
 
 @Serializable
 data class CreateProjectRequest(
@@ -198,6 +223,16 @@ data class ApiInspectionReport(
     val completionPct: Double,
     val summary: String? = null,
     val status: String
+)
+
+@Serializable
+data class ApiInspectionFinding(
+    val uuid: String,
+    val category: String,
+    val severity: String,
+    val description: String,
+    val recommendation: String? = null,
+    val isResolved: Boolean
 )
 
 @Serializable
