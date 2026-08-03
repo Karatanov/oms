@@ -19,6 +19,12 @@ import kotlin.js.JsName
 @JsName("openSirImportDialog")
 external fun openSirImportDialog(projectUuid: String)
 
+@JsName("openInspectionPhotoPicker")
+external fun openInspectionPhotoPicker(onSelectionChanged: (Int) -> Unit)
+
+@JsName("uploadSelectedInspectionPhotos")
+external fun uploadSelectedInspectionPhotos(reportUuid: String, onComplete: (String) -> Unit)
+
 @Composable
 fun CreateInspectionScreen(
     isEditMode: Boolean = false,
@@ -34,11 +40,12 @@ fun CreateInspectionScreen(
     var inspectionType by remember { mutableStateOf(InspectionType.PLANNED) }
     var gps by remember { mutableStateOf("") }
     var comments by remember { mutableStateOf(TextFieldValue("")) }
-    var photos by remember { mutableStateOf(listOf<String>()) }
+    var photoCount by remember { mutableStateOf(0) }
     var projectUuid by remember { mutableStateOf<String?>(null) }
     var completionPct by remember { mutableStateOf("0") }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var isSubmitting by remember { mutableStateOf(false) }
+    var createdReportUuid by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) {
@@ -165,27 +172,21 @@ fun CreateInspectionScreen(
                     style = MaterialTheme.typography.titleMedium
                 )
 
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(120.dp)
-                        .background(
-                            color = MaterialTheme.colorScheme.surfaceVariant,
-                            shape = RoundedCornerShape(12.dp)
-                        ),
-                    contentAlignment = Alignment.Center
+                OutlinedButton(
+                    onClick = { openInspectionPhotoPicker { photoCount = it } },
+                    modifier = Modifier.fillMaxWidth().height(56.dp)
                 ) {
-                    Text(LocalizationManager.t("drag_and_drop_zone"))
+                    Text("Add photos — drag & drop or select files")
                 }
-
-                if (photos.isEmpty()) {
-                    Text(
-                        text = LocalizationManager.t("no_photos_uploaded_yet"),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                } else {
-                    Text(LocalizationManager.t("photo_thumbnails_go_here"))
-                }
+                Text(
+                    text = if (photoCount == 0) "No photos selected yet." else "$photoCount / 30 photos selected. Open the area again to preview or remove them.",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = "JPEG or PNG, up to 10 MB each.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
 
@@ -209,6 +210,17 @@ fun CreateInspectionScreen(
             Button(
                 enabled = !isSubmitting,
                 onClick = {
+                    val createdReport = createdReportUuid
+                    if (createdReport != null) {
+                        isSubmitting = true
+                        errorMessage = null
+                        uploadSelectedInspectionPhotos(createdReport) { uploadError ->
+                            if (uploadError.isBlank()) onSubmit()
+                            else errorMessage = "Photo upload failed: $uploadError. You can retry without creating a second report."
+                            isSubmitting = false
+                        }
+                        return@Button
+                    }
                     val selectedProject = projectUuid
                     val completion = completionPct.toDoubleOrNull()
                     when {
@@ -227,12 +239,17 @@ fun CreateInspectionScreen(
                                 }
                                 runCatching {
                                     OmsApiClient.createAndSubmitInspectionReport(selectedProject, date, completion, summary)
-                                }.onSuccess {
-                                    onSubmit()
+                                }.onSuccess { report ->
+                                    createdReportUuid = report.uuid
+                                    uploadSelectedInspectionPhotos(report.uuid) { uploadError ->
+                                        if (uploadError.isBlank()) onSubmit()
+                                        else errorMessage = "Report was created, but photo upload failed: $uploadError"
+                                        isSubmitting = false
+                                    }
                                 }.onFailure {
                                     errorMessage = "Could not submit report: ${it.message ?: "unknown error"}"
+                                    isSubmitting = false
                                 }
-                                isSubmitting = false
                             }
                         }
                     }

@@ -116,6 +116,93 @@
             uploadWithDialog("image/jpeg,image/png,image/webp", `http://localhost:8080/api/v1/inspection-reports/${reportUuid}/photos`, {}, "Photo uploaded successfully.");
         }
 
+        let ufsiPendingInspectionPhotos = [];
+
+        function openInspectionPhotoPicker(onSelectionChanged) {
+            const overlay = document.createElement("div");
+            overlay.className = "inspection-photo-picker";
+            const dialog = document.createElement("section");
+            dialog.className = "inspection-photo-picker-dialog";
+            const title = document.createElement("h2");
+            title.textContent = "Inspection photos";
+            const rules = document.createElement("p");
+            rules.textContent = "Drag photos here or select files. JPEG/PNG only, up to 10 MB each, maximum 30 photos.";
+            const error = document.createElement("div");
+            error.className = "inspection-photo-picker-error";
+            const dropZone = document.createElement("button");
+            dropZone.type = "button";
+            dropZone.className = "inspection-photo-drop-zone";
+            dropZone.textContent = "Drop photos here or click to select";
+            const input = document.createElement("input");
+            input.type = "file";
+            input.accept = "image/jpeg,image/png,.jpg,.jpeg,.png";
+            input.multiple = true;
+            input.hidden = true;
+            const previews = document.createElement("div");
+            previews.className = "inspection-photo-previews";
+            const done = document.createElement("button");
+            done.type = "button";
+            done.className = "inspection-photo-done";
+            done.textContent = "Done";
+
+            const notify = () => onSelectionChanged(ufsiPendingInspectionPhotos.length);
+            const render = () => {
+                previews.replaceChildren();
+                ufsiPendingInspectionPhotos.forEach((file, index) => {
+                    const card = document.createElement("div");
+                    card.className = "inspection-photo-preview";
+                    const image = document.createElement("img");
+                    image.src = URL.createObjectURL(file);
+                    image.alt = file.name;
+                    const remove = document.createElement("button");
+                    remove.type = "button";
+                    remove.className = "inspection-photo-remove";
+                    remove.textContent = "×";
+                    remove.setAttribute("aria-label", `Remove ${file.name}`);
+                    remove.onclick = () => { ufsiPendingInspectionPhotos.splice(index, 1); notify(); render(); };
+                    const name = document.createElement("span");
+                    name.textContent = file.name;
+                    card.append(image, remove, name);
+                    previews.append(card);
+                });
+            };
+            const addFiles = files => {
+                const candidates = Array.from(files || []);
+                const invalid = candidates.find(file => !["image/jpeg", "image/png"].includes(file.type) || file.size > 10_000_000);
+                if (invalid) { error.textContent = `${invalid.name}: JPEG/PNG files up to 10 MB are allowed.`; return; }
+                if (ufsiPendingInspectionPhotos.length + candidates.length > 30) { error.textContent = "You can attach a maximum of 30 photos."; return; }
+                error.textContent = "";
+                ufsiPendingInspectionPhotos.push(...candidates);
+                notify(); render();
+            };
+            dropZone.onclick = () => input.click();
+            input.onchange = () => { addFiles(input.files); input.value = ""; };
+            ["dragenter", "dragover"].forEach(event => dropZone.addEventListener(event, value => { value.preventDefault(); dropZone.classList.add("dragging"); }));
+            ["dragleave", "drop"].forEach(event => dropZone.addEventListener(event, value => { value.preventDefault(); dropZone.classList.remove("dragging"); }));
+            dropZone.addEventListener("drop", event => addFiles(event.dataTransfer.files));
+            done.onclick = () => overlay.remove();
+            overlay.onclick = event => { if (event.target === overlay) overlay.remove(); };
+            dialog.append(title, rules, error, dropZone, input, previews, done);
+            overlay.append(dialog);
+            document.body.append(overlay);
+            render();
+        }
+
+        async function uploadSelectedInspectionPhotos(reportUuid, onComplete) {
+            try {
+                for (const file of ufsiPendingInspectionPhotos) {
+                    const formData = new FormData();
+                    formData.append("file", file, file.name);
+                    const response = await fetch(`http://localhost:8080/api/v1/inspection-reports/${reportUuid}/photos`, { method: "POST", body: formData, credentials: "include" });
+                    if (!response.ok) throw new Error(await response.text());
+                }
+                ufsiPendingInspectionPhotos = [];
+                onComplete("");
+            } catch (error) {
+                onComplete(error.message || String(error));
+            }
+        }
+
         function hideDashboardPhotoSlider() {
             const pane = document.getElementById("dashboard-photo-slider");
             if (pane) pane.classList.remove("visible");

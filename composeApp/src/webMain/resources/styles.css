@@ -55,6 +55,20 @@ body {
 .photo-lightbox-nav.previous { grid-column: 1; grid-row: 1; }
 .photo-lightbox-nav.next { grid-column: 3; grid-row: 1; }
 
+.inspection-photo-picker { position: fixed; inset: 0; z-index: 10000; display: grid; place-items: center; padding: 20px; box-sizing: border-box; background: rgba(15, 23, 42, 0.62); }
+.inspection-photo-picker-dialog { width: min(780px, 100%); max-height: calc(100vh - 40px); overflow: auto; box-sizing: border-box; padding: 24px; border-radius: 16px; background: #fff; color: #1e293b; box-shadow: 0 18px 48px rgba(15, 23, 42, 0.3); }
+.inspection-photo-picker-dialog h2 { margin: 0 0 6px; }
+.inspection-photo-picker-dialog p { margin: 0 0 16px; color: #64748b; }
+.inspection-photo-picker-error { min-height: 20px; margin-bottom: 8px; color: #b91c1c; font-size: 14px; }
+.inspection-photo-drop-zone { width: 100%; min-height: 120px; border: 2px dashed #278dad; border-radius: 12px; color: #176b84; background: #f0f9fc; font: inherit; font-weight: 600; cursor: pointer; }
+.inspection-photo-drop-zone.dragging { background: #d8f1f8; border-color: #075b73; }
+.inspection-photo-previews { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 12px; margin: 16px 0; }
+.inspection-photo-preview { position: relative; overflow: hidden; border-radius: 10px; background: #f1f5f9; }
+.inspection-photo-preview img { display: block; width: 100%; aspect-ratio: 1; object-fit: cover; }
+.inspection-photo-preview span { display: block; overflow: hidden; padding: 6px; color: #475569; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.inspection-photo-remove { position: absolute; top: 6px; right: 6px; width: 28px; height: 28px; border: 0; border-radius: 50%; color: #fff; background: #dc2626; font-size: 20px; line-height: 20px; cursor: pointer; }
+.inspection-photo-done { float: right; padding: 10px 18px; border: 0; border-radius: 8px; color: #fff; background: #278dad; font: inherit; font-weight: 600; cursor: pointer; }
+
 @media (max-width: 800px) {
     #dashboard-photo-slider { left: 16px; right: 16px; top: 16px; }
     .photo-slider-item { flex-basis: 150px; height: 132px; }
