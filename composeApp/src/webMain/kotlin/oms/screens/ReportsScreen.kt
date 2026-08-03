@@ -5,12 +5,15 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import oms.data.ApiInspectionReport
+import oms.data.CreateInspectionFindingRequest
 import oms.data.OmsApiClient
 import oms.data.ProjectRepository
+import oms.data.UpdateInspectionFindingRequest
 import oms.components.SortableTableHeader
 import oms.localization.LocalizationManager
 import kotlin.js.JsName
