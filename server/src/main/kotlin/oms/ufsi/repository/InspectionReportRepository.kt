@@ -46,5 +46,7 @@ interface InspectionReportRepository {
         rejectionReason: String?
     ): InspectionReport?
 
+    fun moveToProject(uuid: String, projectId: Long): InspectionReport?
+
     fun delete(uuid: String): Boolean
 }

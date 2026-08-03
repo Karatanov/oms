@@ -127,6 +127,12 @@ class InspectionReportService(
 
     fun deleteReport(uuid: String): Boolean = repository.delete(uuid.trim())
 
+    fun moveToProject(uuid: String, targetProjectId: Long): InspectionReport? {
+        val report = getByUuid(uuid) ?: return null
+        if (report.projectId == targetProjectId) return report
+        return repository.moveToProject(uuid.trim(), targetProjectId)
+    }
+
     private fun validate(completionPct: Double, inspectionDate: String) {
         require(completionPct in 0.0..100.0) {
             "Completion percentage must be between 0 and 100."

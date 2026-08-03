@@ -242,6 +242,13 @@ class ExposedInspectionReportRepository :
         if (count == 0) null else findByUuid(uuid)
     }
 
+    override fun moveToProject(uuid: String, projectId: Long): InspectionReport? = transaction {
+        val count = InspectionReportTable.update({ InspectionReportTable.uuid eq uuid }) {
+            it[this.projectId] = projectId
+        }
+        if (count == 0) null else findByUuid(uuid)
+    }
+
     override fun delete(uuid: String): Boolean = transaction {
         InspectionReportTable.deleteWhere { InspectionReportTable.uuid eq uuid } > 0
     }

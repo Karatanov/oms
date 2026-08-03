@@ -142,6 +142,17 @@ fun Route.inspectionRoutes() {
             }
         }
 
+        patch("project") {
+            call.requireRole("ADMIN", "PROJECT_MANAGER") ?: return@patch
+            val reportUuid = call.parameters["reportUuid"] ?: return@patch call.notFound("Inspection report not found.")
+            val request = call.receive<MoveInspectionReportRequest>()
+            val targetProject = AppContainer.projectService.getProjectByUuid(request.projectUuid.trim())
+                ?: return@patch call.notFound("Target project not found.")
+            val report = AppContainer.inspectionReportService.moveToProject(reportUuid, targetProject.id)
+                ?: return@patch call.notFound("Inspection report not found.")
+            call.respond(report.toResponse())
+        }
+
         post("submit") {
             call.requireRole("ADMIN", "PROJECT_MANAGER", "INSPECTOR") ?: return@post
             val reportUuid = call.parameters["reportUuid"] ?: return@post call.notFound("Inspection report not found.")

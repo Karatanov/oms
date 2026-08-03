@@ -89,6 +89,12 @@ object OmsApiClient {
     suspend fun deleteInspectionReport(reportUuid: String): Boolean =
         client.delete("$baseUrl/inspection-reports/$reportUuid").status.isSuccess()
 
+    suspend fun moveInspectionReport(reportUuid: String, targetProjectUuid: String): Boolean =
+        client.patch("$baseUrl/inspection-reports/$reportUuid/project") {
+            contentType(ContentType.Application.Json)
+            setBody(MoveInspectionReportRequest(targetProjectUuid))
+        }.status.isSuccess()
+
     suspend fun deleteProjectDocument(projectUuid: String, documentUuid: String): Boolean =
         client.delete("$baseUrl/projects/$projectUuid/documents/$documentUuid").status.isSuccess()
 }
@@ -102,6 +108,9 @@ data class CreateInspectionReportRequest(
     val completionPct: Double,
     val summary: String
 )
+
+@Serializable
+data class MoveInspectionReportRequest(val projectUuid: String)
 
 @Serializable
 data class CreateProjectRequest(

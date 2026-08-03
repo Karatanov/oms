@@ -22,6 +22,7 @@ fun ReportsScreen(onNewInspection: () -> Unit = {}) {
     var reports by remember { mutableStateOf<List<ReportRow>>(emptyList()) }
     var status by remember { mutableStateOf<String?>(null) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    var reportToMove by remember { mutableStateOf<ReportRow?>(null) }
     val scope = rememberCoroutineScope()
     var sort by remember { mutableStateOf(ReportSort.Date) }
     var ascending by remember { mutableStateOf(false) }
@@ -71,6 +72,7 @@ fun ReportsScreen(onNewInspection: () -> Unit = {}) {
                         Text(row.report.status.replace('_', ' '), Modifier.width(130.dp))
                         Text("admin", Modifier.width(100.dp))
                         Text(row.report.uuid.take(8), Modifier.width(80.dp), style = MaterialTheme.typography.bodySmall)
+                        TextButton(onClick = { reportToMove = row }) { Text("Move") }
                         TextButton(onClick = {
                             scope.launch {
                                 if (OmsApiClient.deleteInspectionReport(row.report.uuid)) reports = reports.filterNot { it.report.uuid == row.report.uuid }
@@ -83,7 +85,56 @@ fun ReportsScreen(onNewInspection: () -> Unit = {}) {
             }
         }
         errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+        reportToMove?.let { report ->
+            MoveReportDialog(
+                report = report,
+                onDismiss = { reportToMove = null },
+                onMove = { target ->
+                    scope.launch {
+                        if (OmsApiClient.moveInspectionReport(report.report.uuid, target.id)) {
+                            reports = reports.map {
+                                if (it.report.uuid == report.report.uuid) it.copy(projectUuid = target.id, projectName = target.name) else it
+                            }
+                            reportToMove = null
+                        } else errorMessage = "Could not move report."
+                    }
+                }
+            )
+        }
     }
+}
+
+@Composable
+private fun MoveReportDialog(report: ReportRow, onDismiss: () -> Unit, onMove: (oms.model.Project) -> Unit) {
+    var selectedUuid by remember(report.report.uuid) { mutableStateOf<String?>(null) }
+    val projects = ProjectRepository.projects.filter { it.id != report.projectUuid }
+    val selected = projects.firstOrNull { it.id == selectedUuid }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Move inspection report") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text("${report.report.summary ?: "Inspection report"} is currently linked to ${report.projectName}.")
+                var expanded by remember { mutableStateOf(false) }
+                Box {
+                    OutlinedButton(onClick = { expanded = true }, modifier = Modifier.fillMaxWidth()) {
+                        Text(selected?.name ?: "Select target project")
+                    }
+                    DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                        projects.forEach { project ->
+                            DropdownMenuItem(
+                                text = { Text("${project.name} (${project.region})") },
+                                onClick = { selectedUuid = project.id; expanded = false }
+                            )
+                        }
+                    }
+                }
+                if (projects.isEmpty()) Text("There is no other project to select.")
+            }
+        },
+        confirmButton = { Button(onClick = { selected?.let(onMove) }, enabled = selected != null) { Text("Move") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
+    )
 }
 
 @Composable
