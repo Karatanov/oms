@@ -116,6 +116,78 @@
             uploadWithDialog("image/jpeg,image/png,image/webp", `http://localhost:8080/api/v1/inspection-reports/${reportUuid}/photos`, {}, "Photo uploaded successfully.");
         }
 
+        function hideDashboardPhotoSlider() {
+            const pane = document.getElementById("dashboard-photo-slider");
+            if (pane) pane.classList.remove("visible");
+        }
+
+        function showDashboardPhotoSlider(inspectionDate, photosJson) {
+            const pane = document.getElementById("dashboard-photo-slider");
+            if (!pane) return;
+            const photos = JSON.parse(photosJson);
+            pane.replaceChildren();
+            pane.classList.add("visible");
+
+            const title = document.createElement("div");
+            title.className = "photo-slider-title";
+            title.textContent = inspectionDate ? `Latest inspection: ${inspectionDate}` : "No Inspection Reports yet";
+            pane.append(title);
+            if (!inspectionDate) return;
+
+            if (!photos.length) {
+                const empty = document.createElement("div");
+                empty.className = "photo-slider-empty";
+                empty.textContent = "No photos in the latest inspection.";
+                pane.append(empty);
+                return;
+            }
+
+            const track = document.createElement("div");
+            track.className = "photo-slider-track";
+            photos.forEach(photo => {
+                const button = document.createElement("button");
+                button.type = "button";
+                button.className = "photo-slider-item";
+                button.setAttribute("aria-label", `Open ${photo.fileName}`);
+                const image = document.createElement("img");
+                image.src = photo.thumbnailUrl;
+                image.alt = photo.fileName;
+                image.loading = "lazy";
+                button.append(image);
+                button.addEventListener("click", () => openPhotoLightbox(photos, photo.uuid));
+                track.append(button);
+            });
+            pane.append(track);
+        }
+
+        function openPhotoLightbox(photos, selectedUuid) {
+            let index = Math.max(0, photos.findIndex(photo => photo.uuid === selectedUuid));
+            const overlay = document.createElement("div");
+            overlay.className = "photo-lightbox";
+            overlay.addEventListener("click", event => { if (event.target === overlay) overlay.remove(); });
+            const close = document.createElement("button");
+            close.className = "photo-lightbox-close";
+            close.textContent = "×";
+            close.setAttribute("aria-label", "Close full-screen photo");
+            close.onclick = () => overlay.remove();
+            const previous = document.createElement("button");
+            previous.className = "photo-lightbox-nav previous";
+            previous.textContent = "‹";
+            const next = document.createElement("button");
+            next.className = "photo-lightbox-nav next";
+            next.textContent = "›";
+            const image = document.createElement("img");
+            image.className = "photo-lightbox-image";
+            const caption = document.createElement("div");
+            caption.className = "photo-lightbox-caption";
+            const render = () => { image.src = photos[index].downloadUrl; image.alt = photos[index].fileName; caption.textContent = `${photos[index].fileName} (${index + 1}/${photos.length})`; };
+            previous.onclick = () => { index = (index - 1 + photos.length) % photos.length; render(); };
+            next.onclick = () => { index = (index + 1) % photos.length; render(); };
+            overlay.append(close, previous, image, next, caption);
+            document.body.append(overlay);
+            render();
+        }
+
         function setLeafletProjects(projectsJson) {
             initLeafletMap();
 
@@ -191,6 +263,7 @@
 <body>
 <div id="app-shell">
     <div id="compose-host"></div>
+    <section id="dashboard-photo-slider" aria-live="polite"></section>
     <div id="map-pane">
         <div id="map-host"></div>
     </div>

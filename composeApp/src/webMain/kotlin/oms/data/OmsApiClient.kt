@@ -75,6 +75,9 @@ object OmsApiClient {
     suspend fun projectReports(projectUuid: String): List<ApiInspectionReport> =
         client.get("$baseUrl/projects/$projectUuid/inspection-reports").body()
 
+    suspend fun inspectionPhotos(reportUuid: String): List<ApiInspectionPhoto> =
+        client.get("$baseUrl/inspection-reports/$reportUuid/photos").body()
+
     suspend fun createAndSubmitInspectionReport(
         projectUuid: String,
         inspectionDate: String,
@@ -250,6 +253,17 @@ data class ApiInspectionReport(
     val completionPct: Double,
     val summary: String? = null,
     val status: String
+)
+
+@Serializable
+data class ApiInspectionPhoto(
+    val uuid: String,
+    val fileName: String,
+    val contentType: String,
+    val fileSizeBytes: Long,
+    val isMain: Boolean,
+    val downloadUrl: String,
+    val thumbnailUrl: String
 )
 
 @Serializable

@@ -14,6 +14,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import oms.data.ApiDashboard
+import oms.data.ApiInspectionPhoto
 import oms.data.OmsApiClient
 
 /*
@@ -29,7 +30,17 @@ import oms.data.OmsApiClient
 @Composable
 fun DashboardScreen() {
     var dashboard by remember { mutableStateOf<ApiDashboard?>(null) }
+    var latestPhotos by remember { mutableStateOf<List<ApiInspectionPhoto>?>(null) }
     LaunchedEffect(Unit) { dashboard = runCatching { OmsApiClient.dashboard() }.getOrNull() }
+
+    val latestInspection = dashboard?.recentInspections
+        ?.maxByOrNull { it.inspectionDate }
+    LaunchedEffect(latestInspection?.uuid) {
+        latestPhotos = latestInspection?.let {
+            runCatching { OmsApiClient.inspectionPhotos(it.uuid) }.getOrDefault(emptyList())
+        }
+    }
+    DashboardPhotoSlider(latestInspection?.inspectionDate, latestPhotos)
 
     val primary = MaterialTheme.colorScheme.primary
     val secondary = MaterialTheme.colorScheme.secondary
@@ -39,7 +50,7 @@ fun DashboardScreen() {
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .padding(24.dp),
+            .padding(start = 24.dp, top = 264.dp, end = 24.dp, bottom = 24.dp),
 
         verticalArrangement = Arrangement.spacedBy(24.dp)
     ) {

@@ -2,6 +2,8 @@ package oms.screens
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -12,6 +14,7 @@ import oms.data.ApiRole
 import oms.data.ApiUser
 import oms.data.OmsApiClient
 import oms.data.UpdateUserRequest
+import oms.components.RoleChip
 
 private enum class UserSort { Id, Username, Email, Role }
 
@@ -43,7 +46,7 @@ fun AdminScreen() {
                     SortableTableHeader("Логін", sort == UserSort.Username, ascending, { changeSort(UserSort.Username) }, Modifier.weight(1f))
                     SortableTableHeader("Email", sort == UserSort.Email, ascending, { changeSort(UserSort.Email) }, Modifier.weight(1.4f))
                     SortableTableHeader("Роль", sort == UserSort.Role, ascending, { changeSort(UserSort.Role) }, Modifier.width(150.dp))
-                    Text("Дії", Modifier.width(100.dp), style = MaterialTheme.typography.labelLarge)
+                    Text("Дії", Modifier.width(48.dp), style = MaterialTheme.typography.labelLarge)
                 }
                 HorizontalDivider()
                 if (sortedUsers.isEmpty()) Text("Користувачів не знайдено.")
@@ -52,8 +55,8 @@ fun AdminScreen() {
                         Text(user.id.toString(), Modifier.width(85.dp))
                         Text(user.username, Modifier.weight(1f))
                         Text(user.email, Modifier.weight(1.4f))
-                        Text(user.role.name, Modifier.width(150.dp))
-                        TextButton(onClick = { selectedUser = user }, modifier = Modifier.width(100.dp)) { Text("Редагувати") }
+                        Box(Modifier.width(150.dp)) { RoleChip(user.role.code) }
+                        IconButton(onClick = { selectedUser = user }, modifier = Modifier.width(48.dp)) { Icon(Icons.Default.Edit, "Редагувати") }
                     }
                     HorizontalDivider()
                 }

@@ -2,7 +2,11 @@ package oms.screens
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.FactCheck
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.PhotoCamera
+import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -15,6 +19,7 @@ import oms.data.OmsApiClient
 import oms.data.ProjectRepository
 import oms.data.UpdateInspectionFindingRequest
 import oms.components.SortableTableHeader
+import oms.components.ReportStatusChip
 import oms.localization.LocalizationManager
 import kotlin.js.JsName
 
@@ -77,18 +82,18 @@ fun ReportsScreen(onNewInspection: () -> Unit = {}) {
                             Text(row.projectName, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                         Text("${row.report.completionPct}%", Modifier.width(85.dp))
-                        Text(row.report.status.replace('_', ' '), Modifier.width(130.dp))
+                        Box(Modifier.width(130.dp)) { ReportStatusChip(row.report.status) }
                         Text("admin", Modifier.width(100.dp))
                         Text(row.report.uuid.take(8), Modifier.width(80.dp), style = MaterialTheme.typography.bodySmall)
-                        TextButton(onClick = { openInspectionPhotoUpload(row.report.uuid) }) { Text("Photo") }
-                        TextButton(onClick = { findingsReport = row }) { Text("Findings") }
-                        TextButton(onClick = { reportToMove = row }) { Text("Move") }
-                        TextButton(onClick = {
+                        IconButton(onClick = { openInspectionPhotoUpload(row.report.uuid) }) { Icon(Icons.Default.PhotoCamera, "Upload photo") }
+                        IconButton(onClick = { findingsReport = row }) { Icon(Icons.AutoMirrored.Filled.FactCheck, "Findings") }
+                        IconButton(onClick = { reportToMove = row }) { Icon(Icons.Default.SwapHoriz, "Move report") }
+                        IconButton(onClick = {
                             scope.launch {
                                 if (OmsApiClient.deleteInspectionReport(row.report.uuid)) reports = reports.filterNot { it.report.uuid == row.report.uuid }
                                 else errorMessage = "Could not delete report."
                             }
-                        }) { Text("Delete") }
+                        }) { Icon(Icons.Default.Delete, "Delete report") }
                     }
                     HorizontalDivider()
                 }
@@ -252,5 +257,6 @@ private fun ReportTableHeader(sort: ReportSort, ascending: Boolean, onSort: (Rep
         SortableTableHeader("Status", sort == ReportSort.Status, ascending, { onSort(ReportSort.Status) }, Modifier.width(130.dp))
         SortableTableHeader("Uploaded by", sort == ReportSort.Author, ascending, { onSort(ReportSort.Author) }, Modifier.width(100.dp))
         Text("ID", Modifier.width(80.dp), style = MaterialTheme.typography.labelLarge)
+        Text("Actions", Modifier.width(192.dp), style = MaterialTheme.typography.labelLarge)
     }
 }
