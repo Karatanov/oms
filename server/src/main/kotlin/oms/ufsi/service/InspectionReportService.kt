@@ -44,20 +44,9 @@ class InspectionReportService(
     fun createReport(
         projectId: Long,
         inspectionDate: String,
-        completionPct: Double,
         summary: String?
     ): InspectionReport {
-
-        /**
-         * Відсоток готовності
-         * повинен бути в межах 0..100.
-         */
-        if (completionPct !in 0.0..100.0) {
-
-            throw IllegalArgumentException(
-                "Відсоток готовності повинен бути від 0 до 100."
-            )
-        }
+        validateDate(inspectionDate)
 
         /**
          * Тимчасово використовуємо
@@ -75,8 +64,6 @@ class InspectionReportService(
 
             inspectionDate = inspectionDate,
 
-            completionPct = completionPct,
-
             summary = summary,
 
             createdBy = currentUserId
@@ -86,15 +73,14 @@ class InspectionReportService(
     fun updateReport(
         uuid: String,
         inspectionDate: String,
-        completionPct: Double,
         summary: String?
     ): InspectionReport? {
-        validate(completionPct, inspectionDate)
+        validateDate(inspectionDate)
         val report = getByUuid(uuid) ?: return null
         require(report.status == InspectionReportStatus.DRAFT) {
             "Only draft inspection reports can be edited."
         }
-        return repository.update(uuid.trim(), inspectionDate, completionPct, summary?.trim())
+        return repository.update(uuid.trim(), inspectionDate, summary?.trim())
     }
 
     fun submitReport(uuid: String): InspectionReport? {
@@ -133,10 +119,7 @@ class InspectionReportService(
         return repository.moveToProject(uuid.trim(), targetProjectId)
     }
 
-    private fun validate(completionPct: Double, inspectionDate: String) {
-        require(completionPct in 0.0..100.0) {
-            "Completion percentage must be between 0 and 100."
-        }
+    private fun validateDate(inspectionDate: String) {
         try {
             java.time.LocalDate.parse(inspectionDate.trim())
         } catch (_: Exception) {

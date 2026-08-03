@@ -37,16 +37,6 @@ object InspectionReportTable :
         date("inspection_date")
 
     /**
-     * Відсоток виконання робіт.
-     */
-    val completionPct =
-        decimal(
-            name = "completion_pct",
-            precision = 5,
-            scale = 2
-        )
-
-    /**
      * Підсумок інспекції.
      */
     val summary =

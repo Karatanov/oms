@@ -84,24 +84,22 @@ private fun EditUserDialog(user: ApiUser, roles: List<ApiRole>, onDismiss: () ->
     var password by remember(user.id) { mutableStateOf("") }
     var expanded by remember { mutableStateOf(false) }
     val role = roles.firstOrNull { it.code == roleCode }
-    val dismissDialog = { expanded = false; onDismiss() }
-    AlertDialog(
-        onDismissRequest = dismissDialog,
-        title = { Text("Редагувати користувача") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                OutlinedTextField(username, { username = it }, label = { Text("Логін") }, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(email, { email = it }, label = { Text("Email") }, modifier = Modifier.fillMaxWidth())
-                Box {
-                    OutlinedButton(onClick = { expanded = true }, modifier = Modifier.fillMaxWidth()) { Text(role?.name ?: roleCode) }
-                    DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-                        roles.forEach { item -> DropdownMenuItem(text = { Text(item.name) }, onClick = { roleCode = item.code; expanded = false }) }
-                    }
+    Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text("Редагувати користувача", style = MaterialTheme.typography.titleLarge)
+            OutlinedTextField(username, { username = it }, label = { Text("Логін") }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(email, { email = it }, label = { Text("Email") }, modifier = Modifier.fillMaxWidth())
+            Box {
+                OutlinedButton(onClick = { expanded = true }, modifier = Modifier.fillMaxWidth()) { Text(role?.name ?: roleCode) }
+                DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                    roles.forEach { item -> DropdownMenuItem(text = { Text(item.name) }, onClick = { roleCode = item.code; expanded = false }) }
                 }
-                OutlinedTextField(password, { password = it }, label = { Text("Новий пароль (необов'язково)") }, modifier = Modifier.fillMaxWidth())
             }
-        },
-        confirmButton = { Button(onClick = { onSave(UpdateUserRequest(username, email, roleCode, password.ifBlank { null })) }, enabled = username.isNotBlank() && email.contains('@') && role != null) { Text("Зберегти") } },
-        dismissButton = { TextButton(onClick = dismissDialog) { Text("Скасувати") } }
-    )
+            OutlinedTextField(password, { password = it }, label = { Text("Новий пароль (необов'язково)") }, modifier = Modifier.fillMaxWidth())
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
+                OutlinedButton(onClick = { expanded = false; onDismiss() }) { Text("Скасувати") }
+                Button(onClick = { onSave(UpdateUserRequest(username, email, roleCode, password.ifBlank { null })) }, enabled = username.isNotBlank() && email.contains('@') && role != null) { Text("Зберегти") }
+            }
+        }
+    }
 }

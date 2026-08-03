@@ -32,11 +32,6 @@ data class InspectionReport(
     val inspectionDate: LocalDate,
 
     /**
-     * Відсоток завершеності робіт.
-     */
-    val completionPct: Double,
-
-    /**
      * Короткий опис результатів.
      */
     val summary: String?,

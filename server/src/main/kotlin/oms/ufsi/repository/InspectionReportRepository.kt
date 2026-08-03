@@ -28,7 +28,6 @@ interface InspectionReportRepository {
     fun create(
         projectId: Long,
         inspectionDate: String,
-        completionPct: Double,
         summary: String?,
         createdBy: Long
     ): InspectionReport
@@ -36,7 +35,6 @@ interface InspectionReportRepository {
     fun update(
         uuid: String,
         inspectionDate: String,
-        completionPct: Double,
         summary: String?
     ): InspectionReport?
 

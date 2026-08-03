@@ -19,11 +19,6 @@ data class InspectionReportResponse(
     val inspectionDate: String,
 
     /**
-     * Відсоток готовності.
-     */
-    val completionPct: Double,
-
-    /**
      * Короткий підсумок.
      */
     val summary: String?,

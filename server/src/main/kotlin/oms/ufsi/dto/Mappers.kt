@@ -119,9 +119,6 @@ fun InspectionReport.toResponse():
         inspectionDate =
             inspectionDate.toString(),
 
-        completionPct =
-            completionPct,
-
         summary =
             summary,
 

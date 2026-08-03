@@ -226,7 +226,7 @@ fun CreateInspectionScreen(
                                     if (gps.isNotBlank()) append(" | GPS: ${gps.trim()}")
                                 }
                                 runCatching {
-                                    OmsApiClient.createAndSubmitInspectionReport(selectedProject, date, 0.0, summary)
+                                    OmsApiClient.createAndSubmitInspectionReport(selectedProject, date, summary)
                                 }.onSuccess { report ->
                                     createdReportUuid = report.uuid
                                     uploadSelectedInspectionPhotos(report.uuid) { uploadError ->

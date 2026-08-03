@@ -166,15 +166,20 @@ private fun ActEditorDialog(existing: ProjectActRow?, projects: List<oms.model.P
     var expanded by remember { mutableStateOf(false) }
     val selected = projects.firstOrNull { it.id == projectUuid }
     val valid = projectUuid != null && reference.isNotBlank() && amount.toLongOrNull()?.let { it > 0 } == true && date.matches(Regex("\\d{4}-\\d{2}-\\d{2}"))
-    AlertDialog(onDismissRequest = onDismiss, title = { Text(if (existing == null) "Add act" else "Edit act") }, text = {
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(if (existing == null) "Add act" else "Edit act", style = MaterialTheme.typography.titleLarge)
             Box { OutlinedButton(onClick = { expanded = true }, modifier = Modifier.fillMaxWidth()) { Text(selected?.name ?: "Select project") }
                 DropdownMenu(expanded, { expanded = false }) { projects.forEach { p -> DropdownMenuItem({ Text(p.name) }, { projectUuid = p.id; expanded = false }) } } }
             OutlinedTextField(reference, { reference = it }, label = { Text("Act number") }, modifier = Modifier.fillMaxWidth())
             OutlinedTextField(amount, { amount = it }, label = { Text("Amount, UAH") }, modifier = Modifier.fillMaxWidth())
             OutlinedTextField(date, { date = it }, label = { Text("Date (YYYY-MM-DD)") }, modifier = Modifier.fillMaxWidth())
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, androidx.compose.ui.Alignment.End)) {
+                OutlinedButton(onClick = onDismiss) { Text("Cancel") }
+                Button(onClick = { onSave(projectUuid!!, oms.data.FinancialRecordRequest("act", reference, amount.toLong(), "UAH", date)) }, enabled = valid) { Text("Save") }
+            }
         }
-    }, confirmButton = { Button(onClick = { onSave(projectUuid!!, oms.data.FinancialRecordRequest("act", reference, amount.toLong(), "UAH", date)) }, enabled = valid) { Text("Save") } }, dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } })
+    }
 }
 
 @Composable

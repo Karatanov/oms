@@ -154,8 +154,9 @@ private fun ProjectDocumentUploadDialog(projects: List<oms.model.Project>, onDis
     var docType by remember { mutableStateOf("other") }
     var expanded by remember { mutableStateOf(false) }
     val selected = projects.firstOrNull { it.id == projectUuid }
-    AlertDialog(onDismissRequest = onDismiss, title = { Text("Upload document") }, text = {
-        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text("Upload document", style = MaterialTheme.typography.titleLarge)
             Box { OutlinedButton(onClick = { expanded = true }, modifier = Modifier.fillMaxWidth()) { Text(selected?.name ?: "Select project") }
                 DropdownMenu(expanded, { expanded = false }) { projects.forEach { p -> DropdownMenuItem({ Text(p.name) }, { projectUuid = p.id; expanded = false }) } } }
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -166,8 +167,12 @@ private fun ProjectDocumentUploadDialog(projects: List<oms.model.Project>, onDis
                     listOf("estimate", "invoice", "act", "photo", "other").forEach { type -> FilterChip(selected = docType == type, onClick = { docType = type }, label = { Text(type.replaceFirstChar(Char::uppercase)) }) }
                 }
             }
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, androidx.compose.ui.Alignment.End)) {
+                OutlinedButton(onClick = onDismiss) { Text("Cancel") }
+                Button(onClick = { onUpload(projectUuid!!, docType) }, enabled = projectUuid != null) { Text("Choose file") }
+            }
         }
-    }, confirmButton = { Button(onClick = { onUpload(projectUuid!!, docType) }, enabled = projectUuid != null) { Text("Choose file") } }, dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } })
+    }
 }
 
 @Composable

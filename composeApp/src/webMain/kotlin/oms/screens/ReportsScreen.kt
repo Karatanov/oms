@@ -144,11 +144,9 @@ private fun FindingsDialog(report: ReportRow, onDismiss: () -> Unit) {
                 }
             }
         )
-    } else AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Inspection findings") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    } else Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text("Inspection findings", style = MaterialTheme.typography.titleLarge)
                 Text("${report.report.summary ?: "Inspection report"} — ${report.projectName}", style = MaterialTheme.typography.bodySmall)
                 if (findings.isEmpty()) Text("No findings yet.")
                 findings.forEach { finding ->
@@ -176,11 +174,12 @@ private fun FindingsDialog(report: ReportRow, onDismiss: () -> Unit) {
                     }
                 }
                 error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
+                OutlinedButton(onClick = onDismiss) { Text("Close") }
+                Button(onClick = { adding = true }) { Text("Add finding") }
             }
-        },
-        confirmButton = { Button(onClick = { adding = true }) { Text("Add finding") } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Close") } }
-    )
+        }
+    }
 }
 
 @Composable
@@ -194,11 +193,9 @@ private fun FindingEditorDialog(
     var description by remember(finding?.uuid) { mutableStateOf(finding?.description ?: "") }
     var recommendation by remember(finding?.uuid) { mutableStateOf(finding?.recommendation ?: "") }
     var isResolved by remember(finding?.uuid) { mutableStateOf(finding?.isResolved ?: false) }
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(if (finding == null) "Add finding" else "Edit finding") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text(if (finding == null) "Add finding" else "Edit finding", style = MaterialTheme.typography.titleLarge)
                 OutlinedTextField(category, { category = it }, label = { Text("Category") }, modifier = Modifier.fillMaxWidth())
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     listOf("low", "medium", "high", "critical").forEach { value -> FilterChip(selected = severity == value, onClick = { severity = value }, label = { Text(value) }) }
@@ -206,11 +203,12 @@ private fun FindingEditorDialog(
                 OutlinedTextField(description, { description = it }, label = { Text("Description") }, minLines = 3, modifier = Modifier.fillMaxWidth())
                 OutlinedTextField(recommendation, { recommendation = it }, label = { Text("Recommendation") }, minLines = 2, modifier = Modifier.fillMaxWidth())
                 if (finding != null) Row(verticalAlignment = Alignment.CenterVertically) { Checkbox(isResolved, { isResolved = it }); Text("Resolved") }
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
+                OutlinedButton(onClick = onDismiss) { Text("Cancel") }
+                Button(onClick = { onSave(category, severity, description, recommendation.ifBlank { null }, isResolved) }, enabled = category.isNotBlank() && description.isNotBlank()) { Text("Save") }
             }
-        },
-        confirmButton = { Button(onClick = { onSave(category, severity, description, recommendation.ifBlank { null }, isResolved) }, enabled = category.isNotBlank() && description.isNotBlank()) { Text("Save") } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
-    )
+        }
+    }
 }
 
 @Composable
@@ -218,11 +216,9 @@ private fun MoveReportDialog(report: ReportRow, onDismiss: () -> Unit, onMove: (
     var selectedUuid by remember(report.report.uuid) { mutableStateOf<String?>(null) }
     val projects = ProjectRepository.projects.filter { it.id != report.projectUuid }
     val selected = projects.firstOrNull { it.id == selectedUuid }
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Move inspection report") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text("Move inspection report", style = MaterialTheme.typography.titleLarge)
                 Text("${report.report.summary ?: "Inspection report"} is currently linked to ${report.projectName}.")
                 var expanded by remember { mutableStateOf(false) }
                 Box {
@@ -239,11 +235,12 @@ private fun MoveReportDialog(report: ReportRow, onDismiss: () -> Unit, onMove: (
                     }
                 }
                 if (projects.isEmpty()) Text("There is no other project to select.")
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
+                OutlinedButton(onClick = onDismiss) { Text("Cancel") }
+                Button(onClick = { selected?.let(onMove) }, enabled = selected != null) { Text("Move") }
             }
-        },
-        confirmButton = { Button(onClick = { selected?.let(onMove) }, enabled = selected != null) { Text("Move") } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
-    )
+        }
+    }
 }
 
 @Composable

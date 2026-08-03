@@ -16,11 +16,6 @@ data class CreateInspectionReportRequest(
     val inspectionDate: String,
 
     /**
-     * Загальний відсоток готовності.
-     */
-    val completionPct: Double,
-
-    /**
      * Короткий підсумок інспекції.
      */
     val summary: String?

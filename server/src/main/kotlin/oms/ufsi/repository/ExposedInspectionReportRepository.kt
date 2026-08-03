@@ -58,11 +58,6 @@ class ExposedInspectionReportRepository :
                             InspectionReportTable.inspectionDate
                         ],
 
-                    completionPct =
-                        row[
-                            InspectionReportTable.completionPct
-                        ].toDouble(),
-
                     summary =
                         row[
                             InspectionReportTable.summary
@@ -120,11 +115,6 @@ class ExposedInspectionReportRepository :
                             InspectionReportTable.inspectionDate
                         ],
 
-                    completionPct =
-                        row[
-                            InspectionReportTable.completionPct
-                        ].toDouble(),
-
                     summary =
                         row[
                             InspectionReportTable.summary
@@ -150,7 +140,6 @@ class ExposedInspectionReportRepository :
     override fun create(
         projectId: Long,
         inspectionDate: String,
-        completionPct: Double,
         summary: String?,
         createdBy: Long
     ): InspectionReport = transaction {
@@ -171,9 +160,6 @@ class ExposedInspectionReportRepository :
                         LocalDate.parse(
                             inspectionDate
                         )
-
-                    it[this.completionPct] =
-                        completionPct.toBigDecimal()
 
                     it[this.summary] =
                         summary
@@ -197,8 +183,6 @@ class ExposedInspectionReportRepository :
                     inspectionDate
                 ),
 
-            completionPct = completionPct,
-
             summary = summary,
 
             status = InspectionReportStatus.DRAFT,
@@ -212,12 +196,10 @@ class ExposedInspectionReportRepository :
     override fun update(
         uuid: String,
         inspectionDate: String,
-        completionPct: Double,
         summary: String?
     ): InspectionReport? = transaction {
         val count = InspectionReportTable.update({ InspectionReportTable.uuid eq uuid }) {
             it[this.inspectionDate] = LocalDate.parse(inspectionDate)
-            it[this.completionPct] = completionPct.toBigDecimal()
             it[this.summary] = summary
         }
         if (count == 0) null else findByUuid(uuid)

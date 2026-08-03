@@ -308,9 +308,6 @@ fun Route.projectRoutes() {
                         inspectionDate =
                             request.inspectionDate,
 
-                        completionPct =
-                            request.completionPct,
-
                         summary =
                             request.summary
                     )
