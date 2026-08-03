@@ -120,6 +120,16 @@ object ProjectTable : LongIdTable("projects") {
     val budgetPlanned =
         long("budget_planned")
 
+    /** Optional contract amount for the engineer-consultant, in UAH. */
+    val engineerConsultantContractAmount =
+        long("engineer_consultant_contract_amount")
+            .nullable()
+
+    /** Optional technical-supervision amount, in UAH. */
+    val technicalSupervisionAmount =
+        long("technical_supervision_amount")
+            .nullable()
+
     /**
      * Валюта відображення.
      */

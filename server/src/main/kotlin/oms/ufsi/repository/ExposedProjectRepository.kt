@@ -42,6 +42,8 @@ class ExposedProjectRepository : ProjectRepository {
                     sector = row[ProjectTable.sector],
                     constructionType = row[ProjectTable.constructionType],
                     budgetPlanned = row[ProjectTable.budgetPlanned],
+                    engineerConsultantContractAmount = row[ProjectTable.engineerConsultantContractAmount],
+                    technicalSupervisionAmount = row[ProjectTable.technicalSupervisionAmount],
                     currency = row[ProjectTable.currency],
                     contractorName = row[ProjectTable.contractorName]
                 )
@@ -124,6 +126,12 @@ class ExposedProjectRepository : ProjectRepository {
                     budgetPlanned =
                         row[ProjectTable.budgetPlanned],
 
+                    engineerConsultantContractAmount =
+                        row[ProjectTable.engineerConsultantContractAmount],
+
+                    technicalSupervisionAmount =
+                        row[ProjectTable.technicalSupervisionAmount],
+
                     currency =
                         row[ProjectTable.currency],
 
@@ -148,6 +156,8 @@ class ExposedProjectRepository : ProjectRepository {
         sector: String,
         constructionType: String,
         budgetPlanned: Long,
+        engineerConsultantContractAmount: Long?,
+        technicalSupervisionAmount: Long?,
         managerId: Long
     ): Project = transaction {
 
@@ -167,6 +177,8 @@ class ExposedProjectRepository : ProjectRepository {
             it[ProjectTable.sector] = sector
             it[ProjectTable.constructionType] = constructionType
             it[ProjectTable.budgetPlanned] = budgetPlanned
+            it[ProjectTable.engineerConsultantContractAmount] = engineerConsultantContractAmount
+            it[ProjectTable.technicalSupervisionAmount] = technicalSupervisionAmount
             it[ProjectTable.currency] = "UAH"
             it[ProjectTable.managerId] = managerId
         }
@@ -188,6 +200,8 @@ class ExposedProjectRepository : ProjectRepository {
             sector = sector,
             constructionType = constructionType,
             budgetPlanned = budgetPlanned,
+            engineerConsultantContractAmount = engineerConsultantContractAmount,
+            technicalSupervisionAmount = technicalSupervisionAmount,
             currency = "UAH",
             contractorName = null
         )
@@ -215,6 +229,8 @@ class ExposedProjectRepository : ProjectRepository {
                 it[sector] = patch.sector
                 it[constructionType] = patch.constructionType
                 it[budgetPlanned] = patch.budgetPlanned
+                it[engineerConsultantContractAmount] = patch.engineerConsultantContractAmount
+                it[technicalSupervisionAmount] = patch.technicalSupervisionAmount
             }
         }
         return if (updated == 0) null else findByUuid(uuid)

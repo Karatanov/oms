@@ -47,6 +47,8 @@ class ProjectService(
         sector: String,
         constructionType: String,
         budgetPlanned: Long,
+        engineerConsultantContractAmount: Long?,
+        technicalSupervisionAmount: Long?,
         managerId: Long
     ): Project {
 
@@ -55,6 +57,8 @@ class ProjectService(
             region = region,
             city = city,
             budgetPlanned = budgetPlanned,
+            engineerConsultantContractAmount = engineerConsultantContractAmount,
+            technicalSupervisionAmount = technicalSupervisionAmount,
         )
         /**
          * Координати повинні відповідати
@@ -98,6 +102,10 @@ class ProjectService(
 
             budgetPlanned = budgetPlanned,
 
+            engineerConsultantContractAmount = engineerConsultantContractAmount,
+
+            technicalSupervisionAmount = technicalSupervisionAmount,
+
             managerId = managerId
         )
     }
@@ -109,7 +117,9 @@ class ProjectService(
         name: String,
         region: String,
         city: String,
-        budgetPlanned: Long
+        budgetPlanned: Long,
+        engineerConsultantContractAmount: Long? = null,
+        technicalSupervisionAmount: Long? = null
     ) {
 
         if (name.isBlank()) {
@@ -140,6 +150,13 @@ class ProjectService(
             )
         }
 
+        require(engineerConsultantContractAmount == null || engineerConsultantContractAmount >= 0) {
+            "Engineer consultant contract amount must not be negative."
+        }
+        require(technicalSupervisionAmount == null || technicalSupervisionAmount >= 0) {
+            "Technical supervision amount must not be negative."
+        }
+
     }
 
     fun createProject(
@@ -154,6 +171,8 @@ class ProjectService(
         siteNumber: String,
         latitude: Double,
         longitude: Double,
+        engineerConsultantContractAmount: Long?,
+        technicalSupervisionAmount: Long?,
         managerId: Long
     ): Project {
         validateProjectData(
@@ -161,6 +180,8 @@ class ProjectService(
             region = region,
             city = city,
             budgetPlanned = budgetPlanned,
+            engineerConsultantContractAmount = engineerConsultantContractAmount,
+            technicalSupervisionAmount = technicalSupervisionAmount,
         )
 
         /**
@@ -204,6 +225,10 @@ class ProjectService(
             constructionType = constructionType,
 
             budgetPlanned = budgetPlanned,
+
+            engineerConsultantContractAmount = engineerConsultantContractAmount,
+
+            technicalSupervisionAmount = technicalSupervisionAmount,
 
             managerId = managerId
         )
@@ -237,9 +262,11 @@ class ProjectService(
             longitude = request.longitude ?: current.longitude,
             sector = request.sector?.trim() ?: current.sector,
             constructionType = request.constructionType?.trim() ?: current.constructionType,
-            budgetPlanned = request.budgetPlanned ?: current.budgetPlanned
+            budgetPlanned = request.budgetPlanned ?: current.budgetPlanned,
+            engineerConsultantContractAmount = request.engineerConsultantContractAmount ?: current.engineerConsultantContractAmount,
+            technicalSupervisionAmount = request.technicalSupervisionAmount ?: current.technicalSupervisionAmount
         )
-        validateProjectData(patch.name, patch.region, patch.city, patch.budgetPlanned)
+        validateProjectData(patch.name, patch.region, patch.city, patch.budgetPlanned, patch.engineerConsultantContractAmount, patch.technicalSupervisionAmount)
         if (patch.latitude !in -90.0..90.0) throw IllegalArgumentException("Latitude must be between -90 and 90.")
         if (patch.longitude !in -180.0..180.0) throw IllegalArgumentException("Longitude must be between -180 and 180.")
         return projectRepository.updateByUuid(uuid.trim(), patch)

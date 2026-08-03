@@ -37,6 +37,8 @@ fun CreateProjectScreen(
     var sector by remember { mutableStateOf("") }
     var constructionType by remember { mutableStateOf("") }
     var budgetPlanned by remember { mutableStateOf("") }
+    var engineerConsultantContractAmount by remember { mutableStateOf("") }
+    var technicalSupervisionAmount by remember { mutableStateOf("") }
     var latitude by remember { mutableStateOf("") }
     var longitude by remember { mutableStateOf("") }
     var managerId by remember { mutableStateOf("1") }
@@ -95,6 +97,10 @@ fun CreateProjectScreen(
                 }
                 OutlinedTextField(budgetPlanned, { budgetPlanned = it }, label = { Text("Плановий бюджет, грн *") }, singleLine = true, modifier = Modifier.fillMaxWidth())
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    OutlinedTextField(engineerConsultantContractAmount, { value -> if (value.all(Char::isDigit)) engineerConsultantContractAmount = value }, label = { Text("Договір інженера-консультанта, грн") }, singleLine = true, modifier = Modifier.weight(1f))
+                    OutlinedTextField(technicalSupervisionAmount, { value -> if (value.all(Char::isDigit)) technicalSupervisionAmount = value }, label = { Text("Технічний нагляд, грн") }, singleLine = true, modifier = Modifier.weight(1f))
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     OutlinedTextField(latitude, { latitude = it }, label = { Text("Широта *") }, singleLine = true, modifier = Modifier.weight(1f))
                     OutlinedTextField(longitude, { longitude = it }, label = { Text("Довгота *") }, singleLine = true, modifier = Modifier.weight(1f))
                     OutlinedTextField(managerId, { managerId = it }, label = { Text("ID відповідального *") }, supportingText = { Text("1 — Admin") }, singleLine = true, modifier = Modifier.weight(1f))
@@ -116,12 +122,16 @@ fun CreateProjectScreen(
                     val parsedLatitude = latitude.replace(',', '.').toDoubleOrNull()
                     val parsedLongitude = longitude.replace(',', '.').toDoubleOrNull()
                     val parsedManagerId = managerId.toLongOrNull()
+                    val parsedEngineerConsultantAmount = engineerConsultantContractAmount.takeIf { it.isNotBlank() }?.toLongOrNull()
+                    val parsedTechnicalSupervisionAmount = technicalSupervisionAmount.takeIf { it.isNotBlank() }?.toLongOrNull()
                     errorMessage = when {
                         !requiredFieldsFilled() -> "Заповніть усі поля, позначені * ."
                         parsedBudget == null || parsedBudget <= 0 -> "Бюджет має бути додатним цілим числом."
                         parsedLatitude == null || parsedLatitude !in -90.0..90.0 -> "Широта має бути в межах від -90 до 90."
                         parsedLongitude == null || parsedLongitude !in -180.0..180.0 -> "Довгота має бути в межах від -180 до 180."
                         parsedManagerId == null || parsedManagerId <= 0 -> "Вкажіть коректний ID відповідального."
+                        engineerConsultantContractAmount.isNotBlank() && parsedEngineerConsultantAmount == null -> "Сума договору інженера-консультанта має бути цілим числом."
+                        technicalSupervisionAmount.isNotBlank() && parsedTechnicalSupervisionAmount == null -> "Сума технічного нагляду має бути цілим числом."
                         else -> null
                     }
                     if (errorMessage == null) {
@@ -130,9 +140,13 @@ fun CreateProjectScreen(
                             runCatching {
                                 OmsApiClient.createProject(
                                     CreateProjectRequest(
-                                        name.trim(), siteName.trim(), siteNumber.trim(), address.trim(),
-                                        region.trim(), city.trim(), parsedLatitude!!, parsedLongitude!!,
-                                        sector.trim(), constructionType.trim(), parsedBudget!!, parsedManagerId!!
+                                        name = name.trim(), siteName = siteName.trim(), siteNumber = siteNumber.trim(),
+                                        address = address.trim(), region = region.trim(), city = city.trim(),
+                                        latitude = parsedLatitude!!, longitude = parsedLongitude!!, sector = sector.trim(),
+                                        constructionType = constructionType.trim(), budgetPlanned = parsedBudget!!,
+                                        engineerConsultantContractAmount = parsedEngineerConsultantAmount,
+                                        technicalSupervisionAmount = parsedTechnicalSupervisionAmount,
+                                        managerId = parsedManagerId!!
                                     )
                                 )
                             }.onSuccess {

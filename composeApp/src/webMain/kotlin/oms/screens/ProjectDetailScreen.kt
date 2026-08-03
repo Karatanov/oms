@@ -136,6 +136,22 @@ fun ProjectDetailScreen(
             )
         }
 
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            DetailMetricCard(
+                title = "Договір інженера-консультанта",
+                value = details.value?.data?.engineerConsultantContractAmount?.toMoney() ?: "—",
+                modifier = Modifier.weight(1f)
+            )
+            DetailMetricCard(
+                title = "Технічний нагляд",
+                value = details.value?.data?.technicalSupervisionAmount?.toMoney() ?: "—",
+                modifier = Modifier.weight(1f)
+            )
+        }
+
         Column(
             modifier = Modifier.fillMaxWidth()
         ) {

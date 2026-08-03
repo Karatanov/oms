@@ -96,6 +96,12 @@ fun Project.toResponse(): ProjectResponse {
         budgetPlanned =
             budgetPlanned,
 
+        engineerConsultantContractAmount =
+            engineerConsultantContractAmount,
+
+        technicalSupervisionAmount =
+            technicalSupervisionAmount,
+
         currency =
             currency,
 

@@ -34,6 +34,8 @@ interface ProjectRepository {
         sector: String,
         constructionType: String,
         budgetPlanned: Long,
+        engineerConsultantContractAmount: Long?,
+        technicalSupervisionAmount: Long?,
         managerId: Long
     ): Project
 

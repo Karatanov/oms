@@ -104,6 +104,10 @@ fun Route.projectRoutes() {
 
                     longitude = request.longitude,
 
+                    engineerConsultantContractAmount = request.engineerConsultantContractAmount,
+
+                    technicalSupervisionAmount = request.technicalSupervisionAmount,
+
                     managerId = request.managerId,
                 )
 

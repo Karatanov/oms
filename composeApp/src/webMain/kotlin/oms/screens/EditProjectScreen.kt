@@ -27,6 +27,8 @@ fun EditProjectScreen(
     var sector by remember { mutableStateOf("") }
     var constructionType by remember { mutableStateOf("") }
     var budgetPlanned by remember { mutableStateOf("") }
+    var engineerConsultantContractAmount by remember { mutableStateOf("") }
+    var technicalSupervisionAmount by remember { mutableStateOf("") }
     var latitude by remember { mutableStateOf(project.latitude.toString()) }
     var longitude by remember { mutableStateOf(project.longitude.toString()) }
     var isLoading by remember { mutableStateOf(true) }
@@ -42,6 +44,8 @@ fun EditProjectScreen(
                 latitude = details.latitude.toString(); longitude = details.longitude.toString()
                 sector = details.sector; constructionType = details.constructionType
                 budgetPlanned = details.budgetPlanned.toString()
+                engineerConsultantContractAmount = details.engineerConsultantContractAmount?.toString().orEmpty()
+                technicalSupervisionAmount = details.technicalSupervisionAmount?.toString().orEmpty()
             }
             .onFailure { errorMessage = "Не вдалося завантажити дані проєкту." }
         isLoading = false
@@ -72,6 +76,10 @@ fun EditProjectScreen(
                 }
                 OutlinedTextField(budgetPlanned, { budgetPlanned = it }, label = { Text("Плановий бюджет, грн *") }, singleLine = true, modifier = Modifier.fillMaxWidth())
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    OutlinedTextField(engineerConsultantContractAmount, { value -> if (value.all(Char::isDigit)) engineerConsultantContractAmount = value }, label = { Text("Договір інженера-консультанта, грн") }, singleLine = true, modifier = Modifier.weight(1f))
+                    OutlinedTextField(technicalSupervisionAmount, { value -> if (value.all(Char::isDigit)) technicalSupervisionAmount = value }, label = { Text("Технічний нагляд, грн") }, singleLine = true, modifier = Modifier.weight(1f))
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     OutlinedTextField(latitude, { latitude = it }, label = { Text("Широта *") }, singleLine = true, modifier = Modifier.weight(1f))
                     OutlinedTextField(longitude, { longitude = it }, label = { Text("Довгота *") }, singleLine = true, modifier = Modifier.weight(1f))
                 }
@@ -84,11 +92,15 @@ fun EditProjectScreen(
                 val budget = budgetPlanned.toLongOrNull()
                 val lat = latitude.replace(',', '.').toDoubleOrNull()
                 val lon = longitude.replace(',', '.').toDoubleOrNull()
+                val engineerAmount = engineerConsultantContractAmount.takeIf { it.isNotBlank() }?.toLongOrNull()
+                val supervisionAmount = technicalSupervisionAmount.takeIf { it.isNotBlank() }?.toLongOrNull()
                 errorMessage = when {
                     !allRequiredFilled -> "Заповніть усі поля, позначені * ."
                     budget == null || budget <= 0 -> "Бюджет має бути додатним цілим числом."
                     lat == null || lat !in -90.0..90.0 -> "Широта має бути в межах від -90 до 90."
                     lon == null || lon !in -180.0..180.0 -> "Довгота має бути в межах від -180 до 180."
+                    engineerConsultantContractAmount.isNotBlank() && engineerAmount == null -> "Сума договору інженера-консультанта має бути цілим числом."
+                    technicalSupervisionAmount.isNotBlank() && supervisionAmount == null -> "Сума технічного нагляду має бути цілим числом."
                     else -> null
                 }
                 if (errorMessage == null) {
@@ -96,8 +108,12 @@ fun EditProjectScreen(
                     scope.launch {
                         runCatching {
                             OmsApiClient.updateProject(project.id, UpdateProjectRequest(
-                                name.trim(), siteName.trim(), siteNumber.trim(), address.trim(), region.trim(), city.trim(),
-                                lat!!, lon!!, sector.trim(), constructionType.trim(), budget!!
+                                name = name.trim(), siteName = siteName.trim(), siteNumber = siteNumber.trim(),
+                                address = address.trim(), region = region.trim(), city = city.trim(),
+                                latitude = lat!!, longitude = lon!!, sector = sector.trim(),
+                                constructionType = constructionType.trim(), budgetPlanned = budget!!,
+                                engineerConsultantContractAmount = engineerAmount,
+                                technicalSupervisionAmount = supervisionAmount
                             ))
                         }.onSuccess {
                             ProjectRepository.refresh()

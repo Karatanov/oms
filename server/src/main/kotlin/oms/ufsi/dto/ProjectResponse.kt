@@ -83,6 +83,12 @@ data class ProjectResponse(
      */
     val budgetPlanned: Long,
 
+    /** Optional contract amount for the engineer-consultant, in UAH. */
+    val engineerConsultantContractAmount: Long?,
+
+    /** Optional technical-supervision amount, in UAH. */
+    val technicalSupervisionAmount: Long?,
+
     /**
      * Валюта відображення.
      */

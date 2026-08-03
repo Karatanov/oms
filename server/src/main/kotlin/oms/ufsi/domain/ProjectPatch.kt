@@ -12,5 +12,7 @@ data class ProjectPatch(
     val longitude: Double,
     val sector: String,
     val constructionType: String,
-    val budgetPlanned: Long
+    val budgetPlanned: Long,
+    val engineerConsultantContractAmount: Long?,
+    val technicalSupervisionAmount: Long?
 )

@@ -188,6 +188,8 @@ data class CreateProjectRequest(
     val sector: String,
     val constructionType: String,
     val budgetPlanned: Long,
+    val engineerConsultantContractAmount: Long? = null,
+    val technicalSupervisionAmount: Long? = null,
     val managerId: Long
 )
 
@@ -203,7 +205,9 @@ data class UpdateProjectRequest(
     val longitude: Double? = null,
     val sector: String? = null,
     val constructionType: String? = null,
-    val budgetPlanned: Long? = null
+    val budgetPlanned: Long? = null,
+    val engineerConsultantContractAmount: Long? = null,
+    val technicalSupervisionAmount: Long? = null
 )
 
 @Serializable
@@ -288,7 +292,9 @@ data class ApiProjectDetailsData(
     val longitude: Double,
     val sector: String,
     val constructionType: String,
-    val budgetPlanned: Long
+    val budgetPlanned: Long,
+    val engineerConsultantContractAmount: Long? = null,
+    val technicalSupervisionAmount: Long? = null
 )
 
 @Serializable
