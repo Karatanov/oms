@@ -83,8 +83,9 @@ private fun EditUserDialog(user: ApiUser, roles: List<ApiRole>, onDismiss: () ->
     var password by remember(user.id) { mutableStateOf("") }
     var expanded by remember { mutableStateOf(false) }
     val role = roles.firstOrNull { it.code == roleCode }
+    val dismissDialog = { expanded = false; onDismiss() }
     AlertDialog(
-        onDismissRequest = onDismiss,
+        onDismissRequest = dismissDialog,
         title = { Text("Редагувати користувача") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -100,6 +101,6 @@ private fun EditUserDialog(user: ApiUser, roles: List<ApiRole>, onDismiss: () ->
             }
         },
         confirmButton = { Button(onClick = { onSave(UpdateUserRequest(username, email, roleCode, password.ifBlank { null })) }, enabled = username.isNotBlank() && email.contains('@') && role != null) { Text("Зберегти") } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Скасувати") } }
+        dismissButton = { TextButton(onClick = dismissDialog) { Text("Скасувати") } }
     )
 }

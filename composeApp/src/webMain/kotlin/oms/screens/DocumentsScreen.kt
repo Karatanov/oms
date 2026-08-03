@@ -1,6 +1,11 @@
 package oms.screens
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -12,6 +17,7 @@ import oms.data.ApiProjectDocument
 import oms.data.OmsApiClient
 import oms.data.ProjectRepository
 import oms.components.SortableTableHeader
+import oms.components.DocumentTypeChip
 import oms.localization.LocalizationManager
 import kotlin.js.JsName
 
@@ -21,6 +27,20 @@ external fun openProjectDocumentUpload(projectUuid: String, docType: String)
 private data class SirDocumentRow(val projectName: String, val report: ApiInspectionReport)
 private data class ProjectDocumentRow(val projectUuid: String, val projectName: String, val document: ApiProjectDocument)
 private enum class DocumentSort { Name, Project, Type, Size, Author }
+private enum class DocumentTypeFilter(val label: String) {
+    ALL("All"), CONTRACT("Contract"), PROJECT("Project / Subproject"), DESIGN("Design"),
+    ESTIMATE("Estimate"), FINANCIAL("Financial Doc"), PHOTO("Photo");
+
+    fun matches(type: String): Boolean = when (this) {
+        ALL -> true
+        CONTRACT -> type == "contract"
+        PROJECT -> type == "project" || type == "subproject"
+        DESIGN -> type == "design"
+        ESTIMATE -> type == "estimate"
+        FINANCIAL -> type == "invoice" || type == "act"
+        PHOTO -> type == "photo"
+    }
+}
 
 @Composable
 fun DocumentsScreen(canManageDocuments: Boolean = true) {
@@ -30,6 +50,7 @@ fun DocumentsScreen(canManageDocuments: Boolean = true) {
     var projectFiles by remember { mutableStateOf<List<ProjectDocumentRow>>(emptyList()) }
     var sort by remember { mutableStateOf(DocumentSort.Name) }
     var ascending by remember { mutableStateOf(true) }
+    var typeFilter by remember { mutableStateOf(DocumentTypeFilter.ALL) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var showUploadDialog by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
@@ -44,7 +65,9 @@ fun DocumentsScreen(canManageDocuments: Boolean = true) {
                 .map { ProjectDocumentRow(project.id, project.name, it) }
         }
     }
-    val visibleDocuments = projectFiles.sortedWith(compareBy<ProjectDocumentRow> {
+    val visibleDocuments = projectFiles
+        .filter { typeFilter.matches(it.document.docType.lowercase()) }
+        .sortedWith(compareBy<ProjectDocumentRow> {
         when (sort) {
             DocumentSort.Name -> it.document.fileName
             DocumentSort.Project -> it.projectName
@@ -52,12 +75,21 @@ fun DocumentsScreen(canManageDocuments: Boolean = true) {
             DocumentSort.Size -> it.document.fileSizeBytes.toString().padStart(20, '0')
             DocumentSort.Author -> "admin"
         }
-    }.let { if (ascending) it else it.reversed() })
+        }.let { if (ascending) it else it.reversed() })
     fun selectSort(column: DocumentSort) { if (sort == column) ascending = !ascending else { sort = column; ascending = true } }
     Column(Modifier.fillMaxSize().padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Text(LocalizationManager.t("documents_title"), style = MaterialTheme.typography.headlineMedium)
             if (canManageDocuments) Button(onClick = { showUploadDialog = true }) { Text("Upload document") }
+        }
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            items(DocumentTypeFilter.entries) { filter ->
+                FilterChip(
+                    selected = typeFilter == filter,
+                    onClick = { typeFilter = filter },
+                    label = { Text(filter.label) }
+                )
+            }
         }
         Text("Project documents", style = MaterialTheme.typography.titleLarge)
         Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
@@ -69,17 +101,17 @@ fun DocumentsScreen(canManageDocuments: Boolean = true) {
                     Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                         Text(row.document.fileName, Modifier.weight(1.35f))
                         Text(row.projectName, Modifier.weight(1f))
-                        Text(row.document.docType, Modifier.width(85.dp))
+                        Box(Modifier.width(120.dp)) { DocumentTypeChip(row.document.docType) }
                         Text(formatFileSize(row.document.fileSizeBytes), Modifier.width(90.dp))
                         Text("admin", Modifier.width(85.dp))
-                        TextButton(onClick = { uriHandler.openUri("http://localhost:8080/api/v1/projects/${row.projectUuid}/documents/${row.document.uuid}/download") }, modifier = Modifier.width(85.dp)) { Text("Open") }
-                        if (canManageDocuments) TextButton(onClick = {
+                        IconButton(onClick = { uriHandler.openUri("http://localhost:8080/api/v1/projects/${row.projectUuid}/documents/${row.document.uuid}/download") }) { Icon(Icons.AutoMirrored.Filled.OpenInNew, "Open document") }
+                        if (canManageDocuments) IconButton(onClick = {
                             scope.launch {
                                 if (OmsApiClient.deleteProjectDocument(row.projectUuid, row.document.uuid)) {
                                     projectFiles = projectFiles.filterNot { it.document.uuid == row.document.uuid }
                                 } else errorMessage = "Could not delete document."
                             }
-                        }) { Text("Delete") }
+                        }) { Icon(Icons.Default.Delete, "Delete document") }
                     }
                     HorizontalDivider()
                 }
@@ -95,15 +127,15 @@ fun DocumentsScreen(canManageDocuments: Boolean = true) {
                     Text(fileName, style = MaterialTheme.typography.titleMedium)
                     Text("${row.projectName} • ${row.report.inspectionDate}")
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Button(onClick = { uriHandler.openUri("http://localhost:8080/api/v1/inspection-reports/${row.report.uuid}/source-file") }) {
-                            Text("Open SIR source file")
+                        IconButton(onClick = { uriHandler.openUri("http://localhost:8080/api/v1/inspection-reports/${row.report.uuid}/source-file") }) {
+                            Icon(Icons.AutoMirrored.Filled.OpenInNew, "Open SIR source file")
                         }
-                        if (canManageDocuments) TextButton(onClick = {
+                        if (canManageDocuments) IconButton(onClick = {
                             scope.launch {
                                 if (OmsApiClient.deleteInspectionReport(row.report.uuid)) sirFiles = sirFiles.filterNot { it.report.uuid == row.report.uuid }
                                 else errorMessage = "Could not delete source document."
                             }
-                        }) { Text("Delete") }
+                        }) { Icon(Icons.Default.Delete, "Delete SIR source file") }
                     }
                     HorizontalDivider()
                 }
@@ -127,7 +159,14 @@ private fun ProjectDocumentUploadDialog(projects: List<oms.model.Project>, onDis
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Box { OutlinedButton(onClick = { expanded = true }, modifier = Modifier.fillMaxWidth()) { Text(selected?.name ?: "Select project") }
                 DropdownMenu(expanded, { expanded = false }) { projects.forEach { p -> DropdownMenuItem({ Text(p.name) }, { projectUuid = p.id; expanded = false }) } } }
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) { listOf("contract", "estimate", "act", "other").forEach { type -> FilterChip(selected = docType == type, onClick = { docType = type }, label = { Text(type) }) } }
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    listOf("contract", "project", "subproject", "design").forEach { type -> FilterChip(selected = docType == type, onClick = { docType = type }, label = { Text(type.replaceFirstChar(Char::uppercase)) }) }
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    listOf("estimate", "invoice", "act", "photo", "other").forEach { type -> FilterChip(selected = docType == type, onClick = { docType = type }, label = { Text(type.replaceFirstChar(Char::uppercase)) }) }
+                }
+            }
         }
     }, confirmButton = { Button(onClick = { onUpload(projectUuid!!, docType) }, enabled = projectUuid != null) { Text("Choose file") } }, dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } })
 }
@@ -137,10 +176,10 @@ private fun DocumentTableHeader(sort: DocumentSort, ascending: Boolean, onSort: 
     Row(Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
         SortableTableHeader("File name", sort == DocumentSort.Name, ascending, { onSort(DocumentSort.Name) }, Modifier.weight(1.35f))
         SortableTableHeader("Project", sort == DocumentSort.Project, ascending, { onSort(DocumentSort.Project) }, Modifier.weight(1f))
-        SortableTableHeader("Type", sort == DocumentSort.Type, ascending, { onSort(DocumentSort.Type) }, Modifier.width(85.dp))
+        SortableTableHeader("Type", sort == DocumentSort.Type, ascending, { onSort(DocumentSort.Type) }, Modifier.width(120.dp))
         SortableTableHeader("Size", sort == DocumentSort.Size, ascending, { onSort(DocumentSort.Size) }, Modifier.width(90.dp))
         SortableTableHeader("Uploaded by", sort == DocumentSort.Author, ascending, { onSort(DocumentSort.Author) }, Modifier.width(85.dp))
-        Spacer(Modifier.width(85.dp))
+        Spacer(Modifier.width(96.dp))
     }
 }
 
