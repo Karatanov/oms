@@ -22,15 +22,6 @@ fun TableHeader(
             .padding(vertical = 8.dp)
     ) {
         SortableHeader(
-            LocalizationManager.t("id"),
-            SortColumn.ID,
-            currentSort,
-            ascending,
-            onSort,
-            Modifier.width(80.dp)
-        )
-
-        SortableHeader(
             LocalizationManager.t("project"),
             SortColumn.NAME,
             currentSort,

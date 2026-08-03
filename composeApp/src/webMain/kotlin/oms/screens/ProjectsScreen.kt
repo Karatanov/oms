@@ -113,7 +113,7 @@ fun ProjectsTable(
     onDeleteProject: (Project) -> Unit
 ) {
 
-    var sortColumn by remember { mutableStateOf(SortColumn.ID) }
+    var sortColumn by remember { mutableStateOf(SortColumn.NAME) }
     var ascending by remember { mutableStateOf(true) }
 
     val sortedProjects = remember(projects, sortColumn, ascending) {
@@ -285,8 +285,6 @@ fun ProjectRow(
 
             .padding(vertical = 10.dp)
     ) {
-
-        Text(project.id.take(8), modifier = Modifier.width(80.dp))
 
         Text(project.name, modifier = Modifier.weight(1f))
 
