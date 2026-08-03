@@ -34,7 +34,13 @@ fun AppLayout(appState: AppState) {
                 is Screen.Dashboard -> DashboardScreen()
 
                 is Screen.Projects -> ProjectsScreen(
-                    onOpenProject = { project -> appState.openProjectDetail(project) }
+                    onOpenProject = { project -> appState.openProjectDetail(project) },
+                    onCreateProject = { appState.openCreateProject() }
+                )
+
+                is Screen.CreateProject -> CreateProjectScreen(
+                    onCancel = { appState.navigate(Screen.Projects) },
+                    onCreated = { appState.navigate(Screen.Projects) }
                 )
 
                 is Screen.ProjectDetail -> {

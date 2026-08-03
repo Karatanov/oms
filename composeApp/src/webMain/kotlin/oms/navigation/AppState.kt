@@ -42,6 +42,10 @@ class AppState {
         currentScreen = Screen.CreateInspection
     }
 
+    fun openCreateProject() {
+        currentScreen = Screen.CreateProject
+    }
+
     // 🔹 Успішний логін
     fun onLoginSuccess(token: String) {
         this.token = token

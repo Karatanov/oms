@@ -25,7 +25,8 @@ import oms.model.ProjectStatus
 
 @Composable
 fun ProjectsScreen(
-    onOpenProject: (Project) -> Unit = {}
+    onOpenProject: (Project) -> Unit = {},
+    onCreateProject: () -> Unit = {}
 ) {
 
     var searchText by remember { mutableStateOf("") }
@@ -51,10 +52,17 @@ fun ProjectsScreen(
             .padding(16.dp)
     ) {
 
-        Text(
-            LocalizationManager.t("projects_title"),
-            style = MaterialTheme.typography.headlineMedium
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                LocalizationManager.t("projects_title"),
+                style = MaterialTheme.typography.headlineMedium
+            )
+            Button(onClick = onCreateProject) { Text("Створити проєкт") }
+        }
 
         Spacer(Modifier.height(16.dp))
 

@@ -43,6 +43,12 @@ object OmsApiClient {
     suspend fun projects(): List<ApiProject> =
         client.get("$baseUrl/projects?page=1&pageSize=100").body<ProjectListPayload>().data
 
+    suspend fun createProject(request: CreateProjectRequest): ApiProject =
+        client.post("$baseUrl/projects") {
+            contentType(ContentType.Application.Json)
+            setBody(request)
+        }.body()
+
     suspend fun dashboard(): ApiDashboard = client.get("$baseUrl/dashboard").body()
 
     suspend fun projectDetails(uuid: String): ApiProjectDetails =
@@ -88,6 +94,22 @@ data class CreateInspectionReportRequest(
     val inspectionDate: String,
     val completionPct: Double,
     val summary: String
+)
+
+@Serializable
+data class CreateProjectRequest(
+    val name: String,
+    val siteName: String,
+    val siteNumber: String,
+    val address: String,
+    val region: String,
+    val city: String,
+    val latitude: Double,
+    val longitude: Double,
+    val sector: String,
+    val constructionType: String,
+    val budgetPlanned: Long,
+    val managerId: Long
 )
 
 @Serializable
