@@ -16,6 +16,7 @@ import androidx.compose.ui.unit.dp
 import oms.data.ApiDashboard
 import oms.data.ApiInspectionPhoto
 import oms.data.OmsApiClient
+import oms.data.ProjectRepository
 
 /*
    DashboardScreen
@@ -31,16 +32,26 @@ import oms.data.OmsApiClient
 fun DashboardScreen() {
     var dashboard by remember { mutableStateOf<ApiDashboard?>(null) }
     var latestPhotos by remember { mutableStateOf<List<ApiInspectionPhoto>?>(null) }
-    LaunchedEffect(Unit) { dashboard = runCatching { OmsApiClient.dashboard() }.getOrNull() }
+    var photoInspectionDate by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(Unit) { ProjectRepository.refresh() }
+    val projects = ProjectRepository.projects
+    LaunchedEffect(projects) { dashboard = runCatching { OmsApiClient.dashboard() }.getOrNull() }
 
-    val latestInspection = dashboard?.recentInspections
-        ?.maxByOrNull { it.inspectionDate }
-    LaunchedEffect(latestInspection?.uuid) {
-        latestPhotos = latestInspection?.let {
-            runCatching { OmsApiClient.inspectionPhotos(it.uuid) }.getOrDefault(emptyList())
+    val recentInspections = dashboard?.recentInspections.orEmpty().sortedByDescending { it.inspectionDate }
+    LaunchedEffect(recentInspections.map { it.uuid }) {
+        latestPhotos = null
+        photoInspectionDate = recentInspections.firstOrNull()?.inspectionDate
+        for (inspection in recentInspections) {
+            val photos = runCatching { OmsApiClient.inspectionPhotos(inspection.uuid) }.getOrDefault(emptyList())
+            if (photos.isNotEmpty()) {
+                latestPhotos = photos
+                photoInspectionDate = inspection.inspectionDate
+                return@LaunchedEffect
+            }
         }
+        latestPhotos = emptyList()
     }
-    DashboardPhotoSlider(latestInspection?.inspectionDate, latestPhotos)
+    DashboardPhotoSlider(photoInspectionDate, latestPhotos)
 
     val primary = MaterialTheme.colorScheme.primary
     val secondary = MaterialTheme.colorScheme.secondary
@@ -57,7 +68,7 @@ fun DashboardScreen() {
 
         item { KPIRow(primary, secondary, error, dashboard) }
 
-        item { ProjectsByRegionChart(primary) }
+        item { ProjectsByRegionChart(primary, projects) }
 
         item { StatisticsSection(primary, secondary, tertiary) }
 

@@ -12,19 +12,19 @@ import androidx.compose.ui.unit.dp
 import oms.charts.BarChart
 import oms.charts.BarData
 import oms.localization.LocalizationManager
+import oms.model.Project
 
 
 @Composable
-fun ProjectsByRegionChart(primary: Color) {
+fun ProjectsByRegionChart(primary: Color, projects: List<Project>) {
 
-    val data = listOf(
-
-        BarData("Kyiv", 18f),
-        BarData("Lviv", 12f),
-        BarData("Odesa", 9f),
-        BarData("Dnipro", 7f),
-        BarData("Kharkiv", 4f)
-    )
+    val data = projects
+        .filter { it.projectType.equals("subproject", ignoreCase = true) }
+        .groupingBy { it.region.ifBlank { "—" } }
+        .eachCount()
+        .toList()
+        .sortedByDescending { it.second }
+        .map { (region, count) -> BarData(region, count.toFloat()) }
 
     Card(
         modifier = Modifier
@@ -39,16 +39,14 @@ fun ProjectsByRegionChart(primary: Color) {
         ) {
 
             Text(
-                text = LocalizationManager.t("projects_by_region"),
+                text = LocalizationManager.t("subprojects"),
                 style = MaterialTheme.typography.titleMedium
             )
 
             Spacer(Modifier.height(16.dp))
 
-            BarChart(
-                data = data,
-                color = primary
-            )
+            if (data.isEmpty()) Text(LocalizationManager.t("no_subprojects"))
+            else BarChart(data = data, color = primary)
         }
     }
 }

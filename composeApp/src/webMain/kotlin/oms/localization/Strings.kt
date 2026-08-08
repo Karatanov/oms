@@ -3,6 +3,9 @@ package oms.localization
 object Strings {
 
     val uk = mapOf(
+        "projects_subprojects" to "Проєкти / субпроєкти",
+        "subprojects" to "Субпроєкти",
+        "no_subprojects" to "Субпроєкти ще не додані.",
         "dashboard" to "Головна панель",
         "projects" to "Проєкти",
         "map" to "Карта",
@@ -209,6 +212,9 @@ object Strings {
     )
 
     val en = mapOf(
+        "projects_subprojects" to "Projects / subprojects",
+        "subprojects" to "Subprojects",
+        "no_subprojects" to "No subprojects yet.",
         "dashboard" to "Dashboard",
         "projects" to "Projects",
         "map" to "Map",

@@ -20,7 +20,16 @@ fun DashboardPhotoSlider(inspectionDate: String?, photos: List<ApiInspectionPhot
         val sliderPhotos = photos.orEmpty()
             .sortedByDescending { it.isMain }
             .take(7)
+            .map { photo ->
+                photo.copy(
+                    downloadUrl = photo.downloadUrl.toOmsUrl(),
+                    thumbnailUrl = photo.thumbnailUrl.toOmsUrl()
+                )
+            }
         showDashboardPhotoSlider(inspectionDate, Json.encodeToString(sliderPhotos))
         onDispose(::hideDashboardPhotoSlider)
     }
 }
+
+private fun String.toOmsUrl(): String =
+    if (startsWith("http://") || startsWith("https://")) this else "http://localhost:8080$this"

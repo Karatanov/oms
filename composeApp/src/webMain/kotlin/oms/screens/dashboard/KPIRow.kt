@@ -18,7 +18,7 @@ fun KPIRow(
     dashboard: ApiDashboard?
 ) {
     KPICard(
-        title = LocalizationManager.t("projects"),
+        title = LocalizationManager.t("projects_subprojects"),
         value = dashboard?.projectsTotal?.toString() ?: "—",
         icon = Icons.Default.Folder,
         color = primary,
