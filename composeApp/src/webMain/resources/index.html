@@ -290,10 +290,14 @@
             }
 
             const markerBounds = [];
+            const coordinateUsage = new Map();
             projects.forEach(project => {
                 const lat = project.latitude;
                 const lng = project.longitude;
                 const color = project.statusColor;
+                const coordinateKey = `${lat.toFixed(6)},${lng.toFixed(6)}`;
+                const duplicateIndex = coordinateUsage.get(coordinateKey) || 0;
+                coordinateUsage.set(coordinateKey, duplicateIndex + 1);
 
                 const popupHtml = `
                 <div style="min-width: 180px;">
@@ -319,7 +323,14 @@
                 </div>
             `;
 
-                const coordinates = [lat, lng];
+                // Several facilities may share one postal address. Spread only
+                // overlapping markers visually; their persisted GPS data remains exact.
+                const radius = duplicateIndex === 0 ? 0 : 0.00018 * (1 + Math.floor((duplicateIndex - 1) / 6));
+                const angle = duplicateIndex * (Math.PI * 2 / 6);
+                const coordinates = [
+                    lat + radius * Math.sin(angle),
+                    lng + (radius * Math.cos(angle) / Math.cos(lat * Math.PI / 180))
+                ];
                 markerBounds.push(coordinates);
                 L.circleMarker(coordinates, {
                     radius: 9,

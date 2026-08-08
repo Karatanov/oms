@@ -291,7 +291,8 @@ data class ApiInspectionReport(
     val uuid: String,
     val inspectionDate: String,
     val summary: String? = null,
-    val status: String
+    val status: String,
+    val rejectionReason: String? = null
 )
 
 @Serializable

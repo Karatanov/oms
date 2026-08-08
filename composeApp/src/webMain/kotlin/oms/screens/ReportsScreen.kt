@@ -6,7 +6,9 @@ import androidx.compose.material.icons.automirrored.filled.FactCheck
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.PhotoCamera
+import androidx.compose.material.icons.filled.RateReview
 import androidx.compose.material.icons.filled.SwapHoriz
+import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -31,12 +33,18 @@ private data class ReportRow(val projectUuid: String, val projectName: String, v
 private enum class ReportSort { Date, Report, Status, Author }
 
 @Composable
-fun ReportsScreen(onNewInspection: () -> Unit = {}) {
+fun ReportsScreen(
+    onNewInspection: () -> Unit = {},
+    canReviewReports: Boolean = true,
+    canMoveReports: Boolean = true
+) {
     var reports by remember { mutableStateOf<List<ReportRow>>(emptyList()) }
     var status by remember { mutableStateOf<String?>(null) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var reportToMove by remember { mutableStateOf<ReportRow?>(null) }
     var findingsReport by remember { mutableStateOf<ReportRow?>(null) }
+    var reportToReview by remember { mutableStateOf<ReportRow?>(null) }
+    var reportToView by remember { mutableStateOf<ReportRow?>(null) }
     val scope = rememberCoroutineScope()
     var sort by remember { mutableStateOf(ReportSort.Date) }
     var ascending by remember { mutableStateOf(false) }
@@ -83,9 +91,13 @@ fun ReportsScreen(onNewInspection: () -> Unit = {}) {
                         }
                         Box(Modifier.width(130.dp)) { ReportStatusChip(row.report.status) }
                         Text("admin", Modifier.width(100.dp))
+                        TableActionIconButton(LocalizationManager.t("view"), Icons.Default.Visibility) { reportToView = row }
+                        if (canReviewReports && row.report.status == "pending_review") {
+                            TableActionIconButton("Review report", Icons.Default.RateReview) { reportToReview = row }
+                        }
                         TableActionIconButton(LocalizationManager.t("upload_photo"), Icons.Default.PhotoCamera) { openInspectionPhotoUpload(row.report.uuid) }
                         TableActionIconButton(LocalizationManager.t("findings"), Icons.AutoMirrored.Filled.FactCheck) { findingsReport = row }
-                        TableActionIconButton(LocalizationManager.t("move_report"), Icons.Default.SwapHoriz) { reportToMove = row }
+                        if (canMoveReports) TableActionIconButton(LocalizationManager.t("move_report"), Icons.Default.SwapHoriz) { reportToMove = row }
                         TableActionIconButton(LocalizationManager.t("delete_report"), Icons.Default.Delete) {
                             scope.launch {
                                 if (OmsApiClient.deleteInspectionReport(row.report.uuid)) reports = reports.filterNot { it.report.uuid == row.report.uuid }
@@ -116,6 +128,89 @@ fun ReportsScreen(onNewInspection: () -> Unit = {}) {
         }
         findingsReport?.let { report ->
             FindingsDialog(report = report, onDismiss = { findingsReport = null })
+        }
+        reportToReview?.let { report ->
+            ReviewReportDialog(
+                report = report,
+                onDismiss = { reportToReview = null },
+                onReview = { action, reason ->
+                    scope.launch {
+                        runCatching { OmsApiClient.reviewInspectionReport(report.report.uuid, action, reason) }
+                            .onSuccess { reviewed ->
+                                reports = reports.map { if (it.report.uuid == reviewed.uuid) it.copy(report = reviewed) else it }
+                                reportToReview = null
+                            }
+                            .onFailure { errorMessage = "Could not review report: ${it.message ?: "unknown error"}" }
+                    }
+                }
+            )
+        }
+        reportToView?.let { report ->
+            ReportViewerDialog(report = report, onDismiss = { reportToView = null })
+        }
+    }
+}
+
+@Composable
+private fun ReportViewerDialog(report: ReportRow, onDismiss: () -> Unit) {
+    val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
+    var findings by remember(report.report.uuid) { mutableStateOf<List<oms.data.ApiInspectionFinding>>(emptyList()) }
+    var photos by remember(report.report.uuid) { mutableStateOf<List<oms.data.ApiInspectionPhoto>>(emptyList()) }
+    LaunchedEffect(report.report.uuid) {
+        findings = runCatching { OmsApiClient.inspectionFindings(report.report.uuid) }.getOrDefault(emptyList())
+        photos = runCatching { OmsApiClient.inspectionPhotos(report.report.uuid) }.getOrDefault(emptyList())
+    }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(report.report.summary ?: LocalizationManager.t("inspection_report")) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text("${LocalizationManager.t("report_project")}: ${report.projectName}")
+                Text("${LocalizationManager.t("date")}: ${report.report.inspectionDate}")
+                Text("${LocalizationManager.t("status")}: ${report.report.status.replace('_', ' ')}")
+                report.report.rejectionReason?.let { Text("Причина повернення: $it") }
+                Text("${LocalizationManager.t("inspection_findings")}: ${findings.size}")
+                findings.forEach { finding ->
+                    Text("• ${finding.category}: ${finding.description}", style = MaterialTheme.typography.bodySmall)
+                }
+                Text("${LocalizationManager.t("photos")}: ${photos.size}")
+            }
+        },
+        confirmButton = {
+            Button(onClick = { uriHandler.openUri("http://localhost:8080/api/v1/inspection-reports/${report.report.uuid}/source-file") }) {
+                Text("Завантажити XLSX")
+            }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(LocalizationManager.t("close")) } }
+    )
+}
+
+@Composable
+private fun ReviewReportDialog(
+    report: ReportRow,
+    onDismiss: () -> Unit,
+    onReview: (action: String, rejectionReason: String?) -> Unit
+) {
+    var rejectionReason by remember(report.report.uuid) { mutableStateOf("") }
+    Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text("Review inspection report", style = MaterialTheme.typography.titleLarge)
+            Text(report.report.summary ?: LocalizationManager.t("inspection_report"))
+            OutlinedTextField(
+                value = rejectionReason,
+                onValueChange = { rejectionReason = it },
+                label = { Text("Reason for returning for revision") },
+                modifier = Modifier.fillMaxWidth(),
+                minLines = 3
+            )
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
+                OutlinedButton(onClick = onDismiss) { Text(LocalizationManager.t("cancel")) }
+                OutlinedButton(
+                    onClick = { onReview("reject", rejectionReason.trim()) },
+                    enabled = rejectionReason.isNotBlank()
+                ) { Text("Return for revision") }
+                Button(onClick = { onReview("approve", null) }) { Text("Approve") }
+            }
         }
     }
 }
