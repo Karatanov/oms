@@ -33,7 +33,7 @@ class ExposedUserRepository : UserRepository {
 
                     email = row[UserTable.email],
 
-                    passwordHash = row[UserTable.password],
+                    passwordHash = row[UserTable.passwordHash],
 
                     role = Role(
                         id = row[RoleTable.id].value,
@@ -67,7 +67,7 @@ class ExposedUserRepository : UserRepository {
 
                     email = row[UserTable.email],
 
-                    passwordHash = row[UserTable.password],
+                    passwordHash = row[UserTable.passwordHash],
 
                     role = Role(
                         id = row[RoleTable.id].value,
@@ -92,7 +92,7 @@ class ExposedUserRepository : UserRepository {
 
             it[UserTable.username] = username
             it[UserTable.email] = email
-            it[UserTable.password] = password
+            it[UserTable.passwordHash] = password
             it[UserTable.roleId] = roleId
         }
 
@@ -157,7 +157,7 @@ class ExposedUserRepository : UserRepository {
         val count = UserTable.update({ UserTable.id eq id }) {
             it[UserTable.username] = username
             it[UserTable.email] = email
-            it[UserTable.password] = passwordHash
+            it[UserTable.passwordHash] = passwordHash
             it[UserTable.roleId] = roleId
         }
         if (count == 0) null else findAll().firstOrNull { it.id == id }

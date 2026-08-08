@@ -28,10 +28,18 @@ fun Application.configureDatabase() {
      * Після завершення роботи Flyway застосунок
      * гарантовано працює з актуальною схемою даних.
      */
-    Flyway
+    val flyway = Flyway
         .configure()
         .dataSource(url, user, dbPassword)
         .load()
+
+    // Opt-in recovery for a locally interrupted development migration.
+    // Production starts never repair history implicitly.
+    if (System.getProperty("oms.flywayRepair") == "true") {
+        flyway.repair()
+    }
+
+    flyway
         .migrate()
 
     /**

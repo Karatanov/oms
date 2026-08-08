@@ -31,8 +31,8 @@ object UserTable : LongIdTable("users") {
      * Зараз використовується лише
      * для навчальних цілей.
      */
-    val password =
-        varchar("password", 255)
+    val passwordHash =
+        varchar("password_hash", 255)
 
     /**
      * Посилання на роль користувача.
