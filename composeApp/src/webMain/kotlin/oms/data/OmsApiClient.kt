@@ -36,11 +36,11 @@ object OmsApiClient {
         }
     }
 
-    suspend fun login(username: String, password: String): Boolean =
+    suspend fun login(username: String, password: String): ApiUser =
         client.post("$baseUrl/auth/login") {
             contentType(ContentType.Application.Json)
             setBody(LoginRequest(username, password))
-        }.status.isSuccess()
+        }.body<LoginPayload>().user
 
     suspend fun projects(): List<ApiProject> =
         client.get("$baseUrl/projects?page=1&pageSize=100").body<ProjectListPayload>().data
@@ -51,6 +51,12 @@ object OmsApiClient {
 
     suspend fun updateUser(id: Long, request: UpdateUserRequest): ApiUser =
         client.patch("$baseUrl/users/$id") {
+            contentType(ContentType.Application.Json)
+            setBody(request)
+        }.body()
+
+    suspend fun createUser(request: CreateUserRequest): ApiUser =
+        client.post("$baseUrl/users") {
             contentType(ContentType.Application.Json)
             setBody(request)
         }.body()
@@ -89,6 +95,16 @@ object OmsApiClient {
         }.body()
         return client.post("$baseUrl/inspection-reports/${draft.uuid}/submit").body()
     }
+
+    suspend fun reviewInspectionReport(
+        reportUuid: String,
+        action: String,
+        rejectionReason: String? = null
+    ): ApiInspectionReport =
+        client.post("$baseUrl/inspection-reports/$reportUuid/review") {
+            contentType(ContentType.Application.Json)
+            setBody(ReviewInspectionReportRequest(action, rejectionReason))
+        }.body()
 
     suspend fun projectDocuments(projectUuid: String): List<ApiProjectDocument> =
         client.get("$baseUrl/projects/$projectUuid/documents").body()
@@ -149,6 +165,9 @@ object OmsApiClient {
 data class LoginRequest(val username: String, val password: String)
 
 @Serializable
+data class LoginPayload(val user: ApiUser)
+
+@Serializable
 data class CreateInspectionReportRequest(
     val inspectionDate: String,
     val summary: String
@@ -156,6 +175,9 @@ data class CreateInspectionReportRequest(
 
 @Serializable
 data class MoveInspectionReportRequest(val projectUuid: String)
+
+@Serializable
+data class ReviewInspectionReportRequest(val action: String, val rejectionReason: String? = null)
 
 @Serializable
 data class CreateInspectionFindingRequest(val category: String, val severity: String, val description: String, val recommendation: String? = null)
@@ -227,6 +249,9 @@ data class UpdateUserRequest(
     val roleCode: String? = null,
     val password: String? = null
 )
+
+@Serializable
+data class CreateUserRequest(val username: String, val email: String, val password: String, val roleCode: String)
 
 @Serializable
 data class ProjectListPayload(val data: List<ApiProject>)

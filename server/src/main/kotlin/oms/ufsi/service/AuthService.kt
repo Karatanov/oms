@@ -28,7 +28,7 @@ class AuthService(
         password: String
     ): User {
 
-        val user = userService.findByUsername(username)
+        val user = userService.findByLoginOrEmail(username)
             ?: throw IllegalArgumentException(
                 "Невірний логін або пароль."
             )

@@ -1,6 +1,8 @@
 package oms.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Visibility
@@ -11,29 +13,67 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import oms.components.FeatureItem
+import oms.data.BrowserCredentialStorage
 import oms.data.OmsApiClient
+import oms.data.ApiUser
 import oms.localization.LocalizationManager
 
 @Composable
 fun LoginScreen(
-    onLoginSuccess: () -> Unit
+    onLoginSuccess: (ApiUser) -> Unit
 ) {
 
     // ---------------- STATE ----------------
 
-    var username by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
+    val savedCredentials = remember { BrowserCredentialStorage.load() }
+    var username by remember { mutableStateOf(savedCredentials?.username.orEmpty()) }
+    var password by remember { mutableStateOf(savedCredentials?.password.orEmpty()) }
 
     var passwordVisible by remember { mutableStateOf(false) }
-    var rememberMe by remember { mutableStateOf(false) }
+    var rememberMe by remember { mutableStateOf(savedCredentials != null) }
 
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var isLoading by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
+
+    fun submitLogin() {
+        if (isLoading) return
+
+        if (username.isBlank()) {
+            errorMessage = "Вкажіть email або логін"
+            return
+        }
+
+        if (password.isBlank()) {
+            errorMessage = LocalizationManager.t("password_required")
+            return
+        }
+
+        isLoading = true
+        scope.launch {
+            val loginResult = runCatching {
+                OmsApiClient.login(username, password)
+            }
+            isLoading = false
+            loginResult
+                .onSuccess { authenticated ->
+                    if (rememberMe) {
+                        BrowserCredentialStorage.save(username.trim(), password)
+                    } else {
+                        BrowserCredentialStorage.clear()
+                    }
+                    onLoginSuccess(authenticated)
+                }
+                .onFailure { exception ->
+                    errorMessage = "Помилка підключення: ${exception.message ?: "невідома помилка"}"
+                }
+        }
+    }
 
     // ---------------- LAYOUT ----------------
 
@@ -133,16 +173,18 @@ fun LoginScreen(
                         )
                     }
 
-                    // ---------------- EMAIL ----------------
+                    // ---------------- LOGIN ----------------
                     OutlinedTextField(
                         value = username,
                         onValueChange = {
                             username = it
                             errorMessage = null
                         },
-                        label = { Text(LocalizationManager.t("email")) },
-                        placeholder = { Text("you@example.com") },
+                        label = { Text("Електронна пошта або логін") },
+                        placeholder = { Text("admin або user@example.com") },
                         singleLine = true,
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                        keyboardActions = KeyboardActions(onDone = { submitLogin() }),
                         modifier = Modifier.fillMaxWidth()
                     )
 
@@ -155,6 +197,8 @@ fun LoginScreen(
                         },
                         label = { Text(LocalizationManager.t("password")) },
                         singleLine = true,
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                        keyboardActions = KeyboardActions(onDone = { submitLogin() }),
                         modifier = Modifier.fillMaxWidth(),
 
                         visualTransformation =
@@ -186,7 +230,10 @@ fun LoginScreen(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Checkbox(
                                 checked = rememberMe,
-                                onCheckedChange = { rememberMe = it }
+                                onCheckedChange = { selected ->
+                                    rememberMe = selected
+                                    if (!selected) BrowserCredentialStorage.clear()
+                                }
                             )
                             Text(LocalizationManager.t("remember_me"))
                         }
@@ -207,29 +254,7 @@ fun LoginScreen(
 
                     // ---------------- LOGIN BUTTON ----------------
                     Button(
-                        onClick = {
-
-                            if (username.isBlank()) {
-                                errorMessage = LocalizationManager.t("email_required")
-                                return@Button
-                            }
-
-                            if (password.isBlank()) {
-                                errorMessage = LocalizationManager.t("password_required")
-                                return@Button
-                            }
-
-                            isLoading = true
-
-                            // 🔹 mock auth
-                            scope.launch {
-                                val authenticated = runCatching {
-                                    OmsApiClient.login(username, password)
-                                }.getOrDefault(false)
-                                isLoading = false
-                                if (authenticated) onLoginSuccess() else errorMessage = LocalizationManager.t("invalid_credentials")
-                            }
-                        },
+                        onClick = ::submitLogin,
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(52.dp)
