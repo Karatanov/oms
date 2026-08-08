@@ -122,8 +122,9 @@ fun ProjectsTable(
 
     var sortColumn by remember { mutableStateOf(SortColumn.NAME) }
     var ascending by remember { mutableStateOf(true) }
+    var expandedParentIds by remember { mutableStateOf<Set<String>?>(null) }
 
-    val sortedProjects = remember(projects, sortColumn, ascending) {
+    val sortedProjects = remember(projects, sortColumn, ascending, expandedParentIds) {
         fun sort(items: List<Project>): List<Project> {
             val list = when (sortColumn) {
                 SortColumn.ID -> items.sortedBy { it.id }
@@ -137,12 +138,17 @@ fun ProjectsTable(
         val subprojectsByParent = projects
             .filter { it.projectType.equals("subproject", ignoreCase = true) }
             .groupBy { it.parentProjectUuid }
+        val parents = sort(projects.filter { !it.projectType.equals("subproject", ignoreCase = true) })
+        val expanded = expandedParentIds ?: parents.map { it.id }.toSet()
         buildList {
-            sort(projects.filter { !it.projectType.equals("subproject", ignoreCase = true) }).forEach { parent ->
-                add(parent)
-                addAll(sort(subprojectsByParent[parent.id].orEmpty()))
+            parents.forEach { parent ->
+                val children = sort(subprojectsByParent[parent.id].orEmpty())
+                add(ProjectTreeRow(parent, false, false, children.size, parent.id in expanded))
+                if (parent.id in expanded) children.forEachIndexed { index, child ->
+                    add(ProjectTreeRow(child, true, index == children.lastIndex))
+                }
             }
-            addAll(sort(subprojectsByParent[null].orEmpty()))
+            addAll(sort(subprojectsByParent[null].orEmpty()).map { ProjectTreeRow(it, true, true) })
         }
     }
 
@@ -165,11 +171,20 @@ fun ProjectsTable(
 
         Column(modifier = Modifier.fillMaxWidth()) {
 
-            sortedProjects.forEach {
+            sortedProjects.forEach { row ->
 
                 ProjectRow(
-                    project = it,
-                    isSubproject = it.projectType.equals("subproject", ignoreCase = true),
+                    project = row.project,
+                    isSubproject = row.isSubproject,
+                    isLastSubproject = row.isLastSubproject,
+                    childCount = row.childCount,
+                    expanded = row.expanded,
+                    onToggleChildren = { id ->
+                        val childParentIds = projects.filter { it.projectType.equals("subproject", true) }.mapNotNull { it.parentProjectUuid }.toSet()
+                        val parentIds = projects.filter { !it.projectType.equals("subproject", true) && it.id in childParentIds }.map { it.id }.toSet()
+                        val current = expandedParentIds ?: parentIds
+                        expandedParentIds = if (id in current) current - id else current + id
+                    },
                     onOpen = onOpenProject,
                     onEdit = onEditProject,
                     onDelete = onDeleteProject
@@ -179,6 +194,14 @@ fun ProjectsTable(
         }
     }
 }
+
+private data class ProjectTreeRow(
+    val project: Project,
+    val isSubproject: Boolean,
+    val isLastSubproject: Boolean = false,
+    val childCount: Int = 0,
+    val expanded: Boolean = true
+)
 
 /*
    ---------- FILTERS ----------
@@ -258,6 +281,10 @@ fun ProjectRow(
     project: Project,
 
     isSubproject: Boolean = false,
+    isLastSubproject: Boolean = false,
+    childCount: Int = 0,
+    expanded: Boolean = true,
+    onToggleChildren: (String) -> Unit = {},
 
     onOpen: (Project) -> Unit = {},
     onEdit: (Project) -> Unit = {},
@@ -298,6 +325,29 @@ fun ProjectRow(
 
             .padding(vertical = 10.dp)
     ) {
+
+        if (childCount > 0) {
+            Box(
+                modifier = Modifier.width(30.dp).height(32.dp).clickable { onToggleChildren(project.id) },
+                contentAlignment = Alignment.Center
+            ) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .width(2.dp)
+                        .height(8.dp)
+                        .background(Primary.copy(alpha = 0.65f))
+                )
+                Box(
+                    modifier = Modifier
+                        .size(24.dp)
+                        .background(Primary, MaterialTheme.shapes.extraLarge),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(if (expanded) "−" else "+", color = Color.White, style = MaterialTheme.typography.titleMedium)
+                }
+            }
+        }
 
         if (isSubproject) {
             Box(modifier = Modifier.width(30.dp).height(32.dp), contentAlignment = Alignment.Center) {

@@ -270,7 +270,23 @@ data class ApiProject(
 )
 
 @Serializable
-data class ApiUser(val id: Long, val username: String, val email: String, val role: ApiRole)
+data class ApiUser(
+    val id: Long,
+    val username: String,
+    val email: String,
+    val firstName: String = "",
+    val lastName: String = "",
+    val status: String = "active",
+    val region: String? = null,
+    val department: String? = null,
+    val preferredLang: String = "uk",
+    val lastLoginAt: String? = null,
+    val failedLoginCount: Int = 0,
+    val lockedUntil: String? = null,
+    val createdAt: String? = null,
+    val updatedAt: String? = null,
+    val role: ApiRole
+)
 
 @Serializable
 data class ApiRole(val id: Long, val code: String, val name: String)

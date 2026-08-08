@@ -39,6 +39,17 @@ fun User.toResponse(): UserResponse {
         id = id,
         username = username,
         email = email,
+        firstName = firstName,
+        lastName = lastName,
+        status = status,
+        region = region,
+        department = department,
+        preferredLang = preferredLang,
+        lastLoginAt = lastLoginAt?.toString(),
+        failedLoginCount = failedLoginCount,
+        lockedUntil = lockedUntil?.toString(),
+        createdAt = createdAt?.toString(),
+        updatedAt = updatedAt?.toString(),
         role = role.toResponse()
     )
 }

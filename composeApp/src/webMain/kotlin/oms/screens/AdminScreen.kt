@@ -1,6 +1,8 @@
 package oms.screens
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
@@ -14,16 +16,18 @@ import oms.data.ApiRole
 import oms.data.ApiUser
 import oms.data.OmsApiClient
 import oms.data.UpdateUserRequest
+import oms.data.CreateUserRequest
 import oms.components.RoleChip
 import oms.components.TableActionIconButton
 
-private enum class UserSort { Id, Username, Email, Role }
+private enum class UserSort { Id, Username, FullName, Email, Role, Status, LastLogin, Region, Department, Language, Created }
 
 @Composable
 fun AdminScreen() {
     var users by remember { mutableStateOf<List<ApiUser>>(emptyList()) }
     var roles by remember { mutableStateOf<List<ApiRole>>(emptyList()) }
     var selectedUser by remember { mutableStateOf<ApiUser?>(null) }
+    var createUser by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var sort by remember { mutableStateOf(UserSort.Username) }
     var ascending by remember { mutableStateOf(true) }
@@ -33,17 +37,32 @@ fun AdminScreen() {
         roles = runCatching { OmsApiClient.roles() }.getOrDefault(emptyList())
     }
     val sortedUsers = users.sortedWith(compareBy<ApiUser> {
-        when (sort) { UserSort.Id -> it.id.toString().padStart(12, '0'); UserSort.Username -> it.username; UserSort.Email -> it.email; UserSort.Role -> it.role.name }
+        when (sort) {
+            UserSort.Id -> it.id.toString().padStart(12, '0')
+            UserSort.Username -> it.username
+            UserSort.FullName -> "${it.firstName} ${it.lastName}"
+            UserSort.Email -> it.email
+            UserSort.Role -> it.role.name
+            UserSort.Status -> it.status
+            UserSort.LastLogin -> it.lastLoginAt.orEmpty()
+            UserSort.Region -> it.region.orEmpty()
+            UserSort.Department -> it.department.orEmpty()
+            UserSort.Language -> it.preferredLang
+            UserSort.Created -> it.createdAt.orEmpty()
+        }
     }.let { if (ascending) it else it.reversed() })
     fun changeSort(column: UserSort) { if (sort == column) ascending = !ascending else { sort = column; ascending = true } }
 
     Column(Modifier.fillMaxSize().padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        Text("Адміністрування", style = MaterialTheme.typography.headlineMedium)
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+            Text("Адміністрування", style = MaterialTheme.typography.headlineMedium)
+            Button(onClick = { createUser = true }) { Text("Створити користувача") }
+        }
         Text("Користувачі системи", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Row(Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
-                    SortableTableHeader("ID", sort == UserSort.Id, ascending, { changeSort(UserSort.Id) }, Modifier.width(85.dp))
+                    SortableTableHeader("Логін", sort == UserSort.Username, ascending, { changeSort(UserSort.Username) }, Modifier.width(120.dp))
                     SortableTableHeader("Логін", sort == UserSort.Username, ascending, { changeSort(UserSort.Username) }, Modifier.weight(1f))
                     SortableTableHeader("Email", sort == UserSort.Email, ascending, { changeSort(UserSort.Email) }, Modifier.weight(1.4f))
                     SortableTableHeader("Роль", sort == UserSort.Role, ascending, { changeSort(UserSort.Role) }, Modifier.width(150.dp))
@@ -53,10 +72,47 @@ fun AdminScreen() {
                 if (sortedUsers.isEmpty()) Text("Користувачів не знайдено.")
                 sortedUsers.forEach { user ->
                     Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Text(user.id.toString(), Modifier.width(85.dp))
+                        Text(user.username, Modifier.width(120.dp))
                         Text(user.username, Modifier.weight(1f))
                         Text(user.email, Modifier.weight(1.4f))
                         Box(Modifier.width(150.dp)) { RoleChip(user.role.code) }
+                        TableActionIconButton("Редагувати користувача", Icons.Default.Edit) { selectedUser = user }
+                    }
+                    HorizontalDivider()
+                }
+            }
+        }
+        Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+            Column(Modifier.padding(16.dp).horizontalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Повні дані користувачів", style = MaterialTheme.typography.titleMedium)
+                Row(Modifier.width(1540.dp).padding(vertical = 6.dp)) {
+                    SortableTableHeader("Логін", sort == UserSort.Username, ascending, { changeSort(UserSort.Username) }, Modifier.width(130.dp))
+                    SortableTableHeader("Ім'я", sort == UserSort.FullName, ascending, { changeSort(UserSort.FullName) }, Modifier.width(180.dp))
+                    SortableTableHeader("Email", sort == UserSort.Email, ascending, { changeSort(UserSort.Email) }, Modifier.width(220.dp))
+                    SortableTableHeader("Роль", sort == UserSort.Role, ascending, { changeSort(UserSort.Role) }, Modifier.width(150.dp))
+                    SortableTableHeader("Статус", sort == UserSort.Status, ascending, { changeSort(UserSort.Status) }, Modifier.width(110.dp))
+                    SortableTableHeader("Регіон", sort == UserSort.Region, ascending, { changeSort(UserSort.Region) }, Modifier.width(130.dp))
+                    SortableTableHeader("Відділ", sort == UserSort.Department, ascending, { changeSort(UserSort.Department) }, Modifier.width(150.dp))
+                    SortableTableHeader("Мова", sort == UserSort.Language, ascending, { changeSort(UserSort.Language) }, Modifier.width(80.dp))
+                    SortableTableHeader("Останній вхід", sort == UserSort.LastLogin, ascending, { changeSort(UserSort.LastLogin) }, Modifier.width(170.dp))
+                    SortableTableHeader("Невдалі входи", sort == UserSort.LastLogin, ascending, { changeSort(UserSort.LastLogin) }, Modifier.width(120.dp))
+                    SortableTableHeader("Створено", sort == UserSort.Created, ascending, { changeSort(UserSort.Created) }, Modifier.width(170.dp))
+                    Text("Дії", Modifier.width(48.dp), style = MaterialTheme.typography.labelLarge)
+                }
+                HorizontalDivider()
+                sortedUsers.forEach { user ->
+                    Row(Modifier.width(1540.dp).padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Text(user.username, Modifier.width(130.dp))
+                        Text(listOf(user.firstName, user.lastName).filter { it.isNotBlank() }.joinToString(" ").ifBlank { "—" }, Modifier.width(180.dp))
+                        Text(user.email, Modifier.width(220.dp))
+                        Box(Modifier.width(150.dp)) { RoleChip(user.role.code) }
+                        Text(user.status, Modifier.width(110.dp))
+                        Text(user.region ?: "—", Modifier.width(130.dp))
+                        Text(user.department ?: "—", Modifier.width(150.dp))
+                        Text(user.preferredLang, Modifier.width(80.dp))
+                        Text(user.lastLoginAt ?: "—", Modifier.width(170.dp))
+                        Text(user.failedLoginCount.toString(), Modifier.width(120.dp))
+                        Text(user.createdAt ?: "—", Modifier.width(170.dp))
                         TableActionIconButton("Редагувати користувача", Icons.Default.Edit) { selectedUser = user }
                     }
                     HorizontalDivider()
@@ -71,6 +127,43 @@ fun AdminScreen() {
                         .onSuccess { saved -> users = users.map { if (it.id == saved.id) saved else it }; selectedUser = null }
                         .onFailure { errorMessage = "Could not save user: ${it.message ?: "unknown error"}" }
                 }
+            }
+        }
+        if (createUser) {
+            CreateUserDialog(roles, onDismiss = { createUser = false }) { request ->
+                scope.launch {
+                    runCatching { OmsApiClient.createUser(request) }
+                        .onSuccess { created -> users = users + created; createUser = false }
+                        .onFailure { errorMessage = "Could not create user: ${it.message ?: "unknown error"}" }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CreateUserDialog(roles: List<ApiRole>, onDismiss: () -> Unit, onSave: (CreateUserRequest) -> Unit) {
+    var username by remember { mutableStateOf("") }
+    var email by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
+    var roleCode by remember { mutableStateOf(roles.firstOrNull()?.code ?: "") }
+    var expanded by remember { mutableStateOf(false) }
+    val role = roles.firstOrNull { it.code == roleCode }
+    Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text("Створити користувача", style = MaterialTheme.typography.titleLarge)
+            OutlinedTextField(username, { username = it }, label = { Text("Логін") }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(email, { email = it }, label = { Text("Email") }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(password, { password = it }, label = { Text("Пароль") }, modifier = Modifier.fillMaxWidth())
+            Box {
+                OutlinedButton(onClick = { expanded = true }, modifier = Modifier.fillMaxWidth()) { Text(role?.name ?: "Оберіть роль") }
+                DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                    roles.forEach { item -> DropdownMenuItem(text = { Text(item.name) }, onClick = { roleCode = item.code; expanded = false }) }
+                }
+            }
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
+                OutlinedButton(onClick = onDismiss) { Text("Скасувати") }
+                Button(onClick = { onSave(CreateUserRequest(username.trim(), email.trim(), password, roleCode)) }, enabled = username.isNotBlank() && email.contains('@') && password.isNotBlank() && role != null) { Text("Створити") }
             }
         }
     }

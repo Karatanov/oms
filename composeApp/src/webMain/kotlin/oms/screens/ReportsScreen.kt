@@ -23,14 +23,20 @@ import oms.data.UpdateInspectionFindingRequest
 import oms.components.SortableTableHeader
 import oms.components.ReportStatusChip
 import oms.components.TableActionIconButton
+import oms.components.FilterDropdown
 import oms.localization.LocalizationManager
 import kotlin.js.JsName
 
 @JsName("openInspectionPhotoUpload")
 external fun openInspectionPhotoUpload(reportUuid: String)
 
-private data class ReportRow(val projectUuid: String, val projectName: String, val report: ApiInspectionReport)
-private enum class ReportSort { Date, Report, Status, Author }
+private data class ReportRow(
+    val projectUuid: String,
+    val projectName: String,
+    val subprojectName: String?,
+    val report: ApiInspectionReport
+)
+private enum class ReportSort { Date, ReportTitle, Project, Subproject, Status, Author }
 
 @Composable
 fun ReportsScreen(
@@ -40,6 +46,8 @@ fun ReportsScreen(
 ) {
     var reports by remember { mutableStateOf<List<ReportRow>>(emptyList()) }
     var status by remember { mutableStateOf<String?>(null) }
+    var projectFilter by remember { mutableStateOf<String?>(null) }
+    var subprojectFilter by remember { mutableStateOf<String?>(null) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var reportToMove by remember { mutableStateOf<ReportRow?>(null) }
     var findingsReport by remember { mutableStateOf<ReportRow?>(null) }
@@ -50,16 +58,26 @@ fun ReportsScreen(
     var ascending by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
         ProjectRepository.refresh()
-        reports = ProjectRepository.projects.flatMap { project ->
-            runCatching { OmsApiClient.projectReports(project.id) }.getOrDefault(emptyList())
-                .map { ReportRow(project.id, project.name, it) }
+        val projectsById = ProjectRepository.projects.associateBy { it.id }
+        reports = ProjectRepository.projects.flatMap { attachedProject ->
+            val parent = attachedProject.parentProjectUuid?.let(projectsById::get)
+            val projectName = parent?.name ?: attachedProject.name
+            val subprojectName = if (parent == null) null else attachedProject.name
+            runCatching { OmsApiClient.projectReports(attachedProject.id) }.getOrDefault(emptyList())
+                .map { ReportRow(attachedProject.id, projectName, subprojectName, it) }
         }.sortedByDescending { it.report.inspectionDate }
     }
-    val visible = reports.filter { status == null || it.report.status == status }.sortedWith(
+    val visible = reports.filter {
+        (status == null || it.report.status == status) &&
+            (projectFilter == null || it.projectName == projectFilter) &&
+            (subprojectFilter == null || it.subprojectName == subprojectFilter)
+    }.sortedWith(
         compareBy<ReportRow> {
             when (sort) {
                 ReportSort.Date -> it.report.inspectionDate
-                ReportSort.Report -> "${it.report.summary.orEmpty()} ${it.projectName}"
+                ReportSort.ReportTitle -> it.report.summary.orEmpty()
+                ReportSort.Project -> it.projectName
+                ReportSort.Subproject -> it.subprojectName.orEmpty()
                 ReportSort.Status -> it.report.status
                 ReportSort.Author -> "admin"
             }
@@ -77,6 +95,10 @@ fun ReportsScreen(
                 FilterChip(selected = status == value, onClick = { status = value }, label = { Text(value?.let { LocalizationManager.t("${it}_status") } ?: LocalizationManager.t("all")) })
             }
         }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FilterDropdown("Проєкт", reports.map { it.projectName }.distinct().sorted(), projectFilter, { projectFilter = it; subprojectFilter = null }) { it }
+            FilterDropdown("Субпроєкт", reports.filter { projectFilter == null || it.projectName == projectFilter }.mapNotNull { it.subprojectName }.distinct().sorted(), subprojectFilter, { subprojectFilter = it }) { it }
+        }
         Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 ReportTableHeader(sort, ascending, ::selectSort)
@@ -85,10 +107,9 @@ fun ReportsScreen(
                 visible.forEach { row ->
                     Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                         Text(row.report.inspectionDate, Modifier.width(105.dp))
-                        Column(Modifier.weight(1.35f)) {
-                            Text(row.report.summary ?: LocalizationManager.t("inspection_report"), style = MaterialTheme.typography.bodyMedium)
-                            Text(row.projectName, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
+                        Text(row.report.summary ?: LocalizationManager.t("inspection_report"), Modifier.weight(1.1f), style = MaterialTheme.typography.bodyMedium)
+                        Text(row.projectName, Modifier.width(190.dp), style = MaterialTheme.typography.bodySmall)
+                        Text(row.subprojectName ?: "—", Modifier.width(190.dp), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Box(Modifier.width(130.dp)) { ReportStatusChip(row.report.status) }
                         Text("admin", Modifier.width(100.dp))
                         TableActionIconButton(LocalizationManager.t("view"), Icons.Default.Visibility) { reportToView = row }
@@ -118,7 +139,10 @@ fun ReportsScreen(
                     scope.launch {
                         if (OmsApiClient.moveInspectionReport(report.report.uuid, target.id)) {
                             reports = reports.map {
-                                if (it.report.uuid == report.report.uuid) it.copy(projectUuid = target.id, projectName = target.name) else it
+                                if (it.report.uuid == report.report.uuid) {
+                                    val parent = target.parentProjectUuid?.let { parentId -> ProjectRepository.projects.firstOrNull { project -> project.id == parentId } }
+                                    it.copy(projectUuid = target.id, projectName = parent?.name ?: target.name, subprojectName = parent?.let { target.name })
+                                } else it
                             }
                             reportToMove = null
                         } else errorMessage = "Could not move report."
@@ -341,7 +365,9 @@ private fun MoveReportDialog(report: ReportRow, onDismiss: () -> Unit, onMove: (
 private fun ReportTableHeader(sort: ReportSort, ascending: Boolean, onSort: (ReportSort) -> Unit) {
     Row(Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
         SortableTableHeader(LocalizationManager.t("date"), sort == ReportSort.Date, ascending, { onSort(ReportSort.Date) }, Modifier.width(105.dp))
-        SortableTableHeader(LocalizationManager.t("report_project"), sort == ReportSort.Report, ascending, { onSort(ReportSort.Report) }, Modifier.weight(1.35f))
+        SortableTableHeader("Назва звіту", sort == ReportSort.ReportTitle, ascending, { onSort(ReportSort.ReportTitle) }, Modifier.weight(1.1f))
+        SortableTableHeader("Проєкт", sort == ReportSort.Project, ascending, { onSort(ReportSort.Project) }, Modifier.width(190.dp))
+        SortableTableHeader("Субпроєкт", sort == ReportSort.Subproject, ascending, { onSort(ReportSort.Subproject) }, Modifier.width(190.dp))
         SortableTableHeader(LocalizationManager.t("status"), sort == ReportSort.Status, ascending, { onSort(ReportSort.Status) }, Modifier.width(130.dp))
         SortableTableHeader(LocalizationManager.t("uploaded_by"), sort == ReportSort.Author, ascending, { onSort(ReportSort.Author) }, Modifier.width(100.dp))
         Text(LocalizationManager.t("actions"), Modifier.width(192.dp), style = MaterialTheme.typography.labelLarge)

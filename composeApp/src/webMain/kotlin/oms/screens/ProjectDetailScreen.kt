@@ -22,6 +22,7 @@ import oms.data.ApiInspectionReport
 import oms.data.ApiFinancialRecords
 import oms.data.ApiProjectDocument
 import oms.data.OmsApiClient
+import oms.data.ProjectRepository
 import oms.localization.LocalizationManager
 import oms.model.Project
 import oms.navigation.Screen
@@ -32,6 +33,9 @@ fun ProjectDetailScreen(
     onBackToProjects: () -> Unit = {},
     onEdit: (Project) -> Unit = {}
 ) {
+    val parentProjectName = project.parentProjectUuid?.let { parentId ->
+        ProjectRepository.projects.firstOrNull { it.id == parentId }?.name
+    }
     var selectedTab by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(ProjectDetailTab.GeneralInfo) }
     val details = remember(project.id) { mutableStateOf<ApiProjectDetails?>(null) }
     val reports = remember(project.id) { mutableStateOf<List<ApiInspectionReport>>(emptyList()) }
@@ -63,6 +67,14 @@ fun ProjectDetailScreen(
                 text = project.name,
                 color = MaterialTheme.colorScheme.onSurface,
                 fontWeight = FontWeight.Medium
+            )
+        }
+
+        parentProjectName?.let { parentName ->
+            Text(
+                text = "Проєкт: $parentName",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
 

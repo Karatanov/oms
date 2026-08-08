@@ -14,6 +14,7 @@
         let ufsiLeafletMap = null;
         let ufsiMarkersLayer = null;
         let ufsiOnProjectClick = null;
+        let ufsiHasShownInitialCountryView = false;
 
         const ukraineBounds = [
             [44.0, 22.0],
@@ -343,7 +344,10 @@
                     .addTo(ufsiMarkersLayer);
             });
 
-            if (markerBounds.length === 1) {
+            if (!ufsiHasShownInitialCountryView) {
+                ufsiLeafletMap.fitBounds(ukraineBounds, { padding: [24, 24] });
+                ufsiHasShownInitialCountryView = true;
+            } else if (markerBounds.length === 1) {
                 ufsiLeafletMap.setView(markerBounds[0], 13);
             } else {
                 ufsiLeafletMap.fitBounds(markerBounds, {

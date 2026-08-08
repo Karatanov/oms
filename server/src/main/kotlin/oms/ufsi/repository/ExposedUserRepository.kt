@@ -41,7 +41,18 @@ class ExposedUserRepository : UserRepository {
                         id = row[RoleTable.id].value,
                         code = row[RoleTable.code],
                         name = row[RoleTable.name]
-                    )
+                    ),
+                    firstName = row[UserTable.firstName],
+                    lastName = row[UserTable.lastName],
+                    status = row[UserTable.status],
+                    region = row[UserTable.region],
+                    department = row[UserTable.department],
+                    preferredLang = row[UserTable.preferredLang],
+                    lastLoginAt = row[UserTable.lastLoginAt],
+                    failedLoginCount = row[UserTable.failedLoginCount],
+                    lockedUntil = row[UserTable.lockedUntil],
+                    createdAt = row[UserTable.createdAt],
+                    updatedAt = row[UserTable.updatedAt]
                 )
             }
     }
@@ -75,7 +86,18 @@ class ExposedUserRepository : UserRepository {
                         id = row[RoleTable.id].value,
                         code = row[RoleTable.code],
                         name = row[RoleTable.name]
-                    )
+                    ),
+                    firstName = row[UserTable.firstName],
+                    lastName = row[UserTable.lastName],
+                    status = row[UserTable.status],
+                    region = row[UserTable.region],
+                    department = row[UserTable.department],
+                    preferredLang = row[UserTable.preferredLang],
+                    lastLoginAt = row[UserTable.lastLoginAt],
+                    failedLoginCount = row[UserTable.failedLoginCount],
+                    lockedUntil = row[UserTable.lockedUntil],
+                    createdAt = row[UserTable.createdAt],
+                    updatedAt = row[UserTable.updatedAt]
                 )
             }
     }

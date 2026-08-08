@@ -1,6 +1,7 @@
 package oms.ufsi.domain
 
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.Contextual
 
 /**
  * Доменна модель користувача.
@@ -41,5 +42,16 @@ data class User(
      * а готовий доменний об'єкт, щоб API
      * було зручніше використовувати клієнтам.
      */
-    val role: Role
+    val role: Role,
+    val firstName: String = "",
+    val lastName: String = "",
+    val status: String = "active",
+    val region: String? = null,
+    val department: String? = null,
+    val preferredLang: String = "uk",
+    @Contextual val lastLoginAt: java.time.LocalDateTime? = null,
+    val failedLoginCount: Int = 0,
+    @Contextual val lockedUntil: java.time.LocalDateTime? = null,
+    @Contextual val createdAt: java.time.LocalDateTime? = null,
+    @Contextual val updatedAt: java.time.LocalDateTime? = null
 )
