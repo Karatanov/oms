@@ -39,8 +39,15 @@ class InspectionReportFileService(
     fun getFile(reportId: Long): InspectionReportFile? = fileRepository.findByReportId(reportId)
 
     private fun extractDate(name: String): LocalDate {
-        val date = Regex("_(\\d{8})\\.xlsx$", RegexOption.IGNORE_CASE).find(name)?.groupValues?.get(1)
-            ?: throw IllegalArgumentException("File name must end with _DDMMYYYY.xlsx.")
-        return try { LocalDate.parse(date, DateTimeFormatter.ofPattern("ddMMyyyy")) } catch (_: Exception) { throw IllegalArgumentException("Invalid date in SIR file name.") }
+        val date = Regex("_(\\d{2}(?:[.-]?\\d{2}){1}[.-]?\\d{4})\\.xlsx$", RegexOption.IGNORE_CASE)
+            .find(name)
+            ?.groupValues
+            ?.get(1)
+            ?: throw IllegalArgumentException("File name must end with _DDMMYYYY.xlsx or _DD.MM.YYYY.xlsx.")
+        return try {
+            LocalDate.parse(date.replace(".", "").replace("-", ""), DateTimeFormatter.ofPattern("ddMMyyyy"))
+        } catch (_: Exception) {
+            throw IllegalArgumentException("Invalid date in SIR file name.")
+        }
     }
 }

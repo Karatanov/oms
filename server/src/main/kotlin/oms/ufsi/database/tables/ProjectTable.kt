@@ -45,7 +45,7 @@ object ProjectTable : LongIdTable("projects") {
      * Повна назва проєкту.
      */
     val name =
-        varchar("name", 255)
+        text("name")
 
     /**
      * Короткий код майданчика.
