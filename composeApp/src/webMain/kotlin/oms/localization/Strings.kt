@@ -3,6 +3,12 @@ package oms.localization
 object Strings {
 
     val uk = mapOf(
+        "no_recent_activity" to "Нещодавніх дій ще немає.",
+        "activity_project_created" to "Створено проєкт або субпроєкт",
+        "activity_project_deleted" to "Видалено проєкт або субпроєкт",
+        "activity_inspection_imported" to "Імпортовано інспекційний звіт",
+        "activity_financial_created" to "Додано фінансовий запис",
+        "activity_financial_imported" to "Імпортовано фінансові записи",
         "subproject" to "Субпроєкт",
         "choose_date" to "Вибрати дату",
         "password_requirements" to "Пароль має містити щонайменше 8 символів.",
@@ -215,6 +221,12 @@ object Strings {
     )
 
     val en = mapOf(
+        "no_recent_activity" to "No recent activity yet.",
+        "activity_project_created" to "Project or subproject created",
+        "activity_project_deleted" to "Project or subproject deleted",
+        "activity_inspection_imported" to "Inspection report imported",
+        "activity_financial_created" to "Financial record added",
+        "activity_financial_imported" to "Financial records imported",
         "subproject" to "Subproject",
         "choose_date" to "Choose date",
         "password_requirements" to "Password must contain at least 8 characters.",

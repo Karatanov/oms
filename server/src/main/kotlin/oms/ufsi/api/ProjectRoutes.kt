@@ -71,7 +71,7 @@ fun Route.projectRoutes() {
      * Створює новий проєкт.
      */
     post("/api/v1/projects") {
-        call.requireRole("ADMIN", "PROJECT_MANAGER") ?: return@post
+        val session = call.requireRole("ADMIN", "PROJECT_MANAGER") ?: return@post
 
         val request =
             call.receive<CreateProjectRequest>()
@@ -124,6 +124,7 @@ fun Route.projectRoutes() {
                     managerId = request.managerId,
                 )
 
+            AppContainer.auditLogService.record(session.userId, "project_created", project.projectType.name.lowercase(), project.id)
             call.respond(
                 HttpStatusCode.Created,
                 project.toResponse()
@@ -206,9 +207,11 @@ fun Route.projectRoutes() {
     }
 
     delete("/api/v1/projects/{uuid}") {
-        call.requireRole("ADMIN", "PROJECT_MANAGER") ?: return@delete
+        val session = call.requireRole("ADMIN", "PROJECT_MANAGER") ?: return@delete
         val uuid = call.parameters["uuid"] ?: return@delete call.respond(HttpStatusCode.BadRequest, ErrorResponse("VALIDATION_ERROR", "Project UUID is required."))
+        val project = projectService.getProjectByUuid(uuid) ?: return@delete call.respond(HttpStatusCode.NotFound, ErrorResponse("NOT_FOUND", "Project not found."))
         if (!projectService.deleteProject(uuid)) return@delete call.respond(HttpStatusCode.NotFound, ErrorResponse("NOT_FOUND", "Project not found."))
+        AppContainer.auditLogService.record(session.userId, "project_deleted", project.projectType.name.lowercase(), project.id)
         call.respond(HttpStatusCode.NoContent)
     }
 

@@ -10,5 +10,9 @@ data class DashboardResponse(
     val amountSpent: Long,
     val inspectionsTotal: Long,
     val findingsTotal: Long,
-    val recentInspections: List<InspectionReportResponse>
+    val recentInspections: List<InspectionReportResponse>,
+    val activities: List<ActivityResponse>
 )
+
+@Serializable
+data class ActivityResponse(val action: String, val entityType: String, val entityId: Long, val createdAt: String)

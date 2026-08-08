@@ -31,6 +31,7 @@ fun Route.inspectionRoutes() {
                 part.dispose()
             }
             val report = imported ?: throw IllegalArgumentException("Multipart field 'file' is required.")
+            AppContainer.auditLogService.record(session.userId, "inspection_imported", "inspection_report", report.id)
             call.respond(HttpStatusCode.Created, report.toResponse())
         } catch (exception: IllegalArgumentException) {
             call.validationError(exception)

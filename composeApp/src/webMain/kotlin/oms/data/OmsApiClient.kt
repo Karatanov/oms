@@ -299,7 +299,16 @@ data class ApiDashboard(
     val amountSpent: Long,
     val inspectionsTotal: Long,
     val findingsTotal: Long,
-    val recentInspections: List<ApiInspectionReport>
+    val recentInspections: List<ApiInspectionReport>,
+    val activities: List<ApiActivity> = emptyList()
+)
+
+@Serializable
+data class ApiActivity(
+    val action: String,
+    val entityType: String,
+    val entityId: Long,
+    val createdAt: String
 )
 
 @Serializable

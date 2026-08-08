@@ -35,13 +35,13 @@ fun Route.financialRoutes() {
             }
         }
         post {
-            call.requireRole("ADMIN", "PROJECT_MANAGER") ?: return@post
+            val session = call.requireRole("ADMIN", "PROJECT_MANAGER") ?: return@post
             val project = call.project() ?: return@post
             val request = call.receive<CreateFinancialRecordRequest>()
-            try { call.respond(HttpStatusCode.Created, AppContainer.financialRecordService.create(project.id, request.recordType, request.referenceNumber, request.amount, request.currency, request.recordDate, request.paymentDate, request.description, request.milestone).toResponse()) } catch (e: IllegalArgumentException) { call.financeError(e) }
+            try { val record = AppContainer.financialRecordService.create(project.id, request.recordType, request.referenceNumber, request.amount, request.currency, request.recordDate, request.paymentDate, request.description, request.milestone); AppContainer.auditLogService.record(session.userId, "financial_record_created", "financial_record", record.id); call.respond(HttpStatusCode.Created, record.toResponse()) } catch (e: IllegalArgumentException) { call.financeError(e) }
         }
         post("import") {
-            call.requireRole("ADMIN", "PROJECT_MANAGER") ?: return@post
+            val session = call.requireRole("ADMIN", "PROJECT_MANAGER") ?: return@post
             val project = call.project() ?: return@post
             var imported: Int? = null
 
@@ -56,6 +56,7 @@ fun Route.financialRoutes() {
                     }
                     part.dispose()
                 }
+                if ((imported ?: 0) > 0) AppContainer.auditLogService.record(session.userId, "financial_records_imported", "project", project.id)
                 call.respond(mapOf("imported" to (imported ?: throw IllegalArgumentException("Field file is required."))))
             } catch (e: IllegalArgumentException) {
                 call.financeError(e)

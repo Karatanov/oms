@@ -72,6 +72,6 @@ fun DashboardScreen() {
 
         item { StatisticsSection(primary, secondary, tertiary) }
 
-        item { ActivitySection() }
+        item { ActivitySection(dashboard?.activities.orEmpty()) }
     }
 }

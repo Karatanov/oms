@@ -100,5 +100,6 @@ object AppContainer {
     val inspectionPhotoRepository: InspectionPhotoRepository = ExposedInspectionPhotoRepository()
     val inspectionPhotoService = InspectionPhotoService(inspectionPhotoRepository)
 
-    val dashboardService = DashboardService()
+    val auditLogService = AuditLogService()
+    val dashboardService = DashboardService(auditLogService)
 }

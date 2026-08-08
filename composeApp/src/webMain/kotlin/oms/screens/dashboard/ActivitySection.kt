@@ -10,10 +10,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import oms.localization.LocalizationManager
+import oms.data.ApiActivity
 
 
 @Composable
-fun ActivitySection() {
+fun ActivitySection(activities: List<ApiActivity>) {
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -31,22 +32,24 @@ fun ActivitySection() {
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            HorizontalDivider()
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            ActivityRow(
-                LocalizationManager.t("project_updated"),
-                LocalizationManager.t("time_2_hours_ago")
-            )
-            ActivityRow(
-                LocalizationManager.t("inspection_completed"),
-                LocalizationManager.t("time_5_hours_ago")
-            )
-            ActivityRow(
-                LocalizationManager.t("new_report_uploaded"),
-                LocalizationManager.t("time_yesterday")
-            )
+            if (activities.isEmpty()) {
+                Text(LocalizationManager.t("no_recent_activity"), color = MaterialTheme.colorScheme.onSurfaceVariant)
+            } else {
+                activities.forEach { activity ->
+                    HorizontalDivider()
+                    Spacer(modifier = Modifier.height(8.dp))
+                    ActivityRow(activity.action.toActivityLabel(), activity.createdAt.replace('T', ' '))
+                }
+            }
         }
     }
+}
+
+private fun String.toActivityLabel(): String = when (this) {
+    "project_created" -> LocalizationManager.t("activity_project_created")
+    "project_deleted" -> LocalizationManager.t("activity_project_deleted")
+    "inspection_imported" -> LocalizationManager.t("activity_inspection_imported")
+    "financial_record_created" -> LocalizationManager.t("activity_financial_created")
+    "financial_records_imported" -> LocalizationManager.t("activity_financial_imported")
+    else -> this
 }
