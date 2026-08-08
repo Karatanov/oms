@@ -62,6 +62,7 @@ fun Route.inspectionRoutes() {
         post {
             call.requireRole("ADMIN", "PROJECT_MANAGER", "INSPECTOR") ?: return@post
             val report = call.findReport() ?: return@post
+            if (!call.requireEditableReport(report)) return@post
             val request = call.receive<CreateInspectionFindingRequest>()
             try {
                 val finding = AppContainer.inspectionFindingService.createFinding(
@@ -86,6 +87,7 @@ fun Route.inspectionRoutes() {
         put("{findingUuid}") {
             call.requireRole("ADMIN", "PROJECT_MANAGER", "INSPECTOR") ?: return@put
             val report = call.findReport() ?: return@put
+            if (!call.requireEditableReport(report)) return@put
             val findingUuid = call.findingUuid() ?: return@put
             val request = call.receive<UpdateInspectionFindingRequest>()
             try {
@@ -107,6 +109,7 @@ fun Route.inspectionRoutes() {
         delete("{findingUuid}") {
             call.requireRole("ADMIN", "PROJECT_MANAGER", "INSPECTOR") ?: return@delete
             val report = call.findReport() ?: return@delete
+            if (!call.requireEditableReport(report)) return@delete
             val findingUuid = call.findingUuid() ?: return@delete
             if (!AppContainer.inspectionFindingService.deleteFinding(report.id, findingUuid)) {
                 return@delete call.notFound("Finding not found.")
@@ -190,6 +193,12 @@ private suspend fun ApplicationCall.findReport() =
             notFound("Inspection report not found.")
             null
         }
+
+private suspend fun ApplicationCall.requireEditableReport(report: oms.ufsi.domain.InspectionReport): Boolean {
+    if (report.status != oms.ufsi.domain.InspectionReportStatus.COMPLETED) return true
+    respond(HttpStatusCode.Conflict, ErrorResponse("REPORT_LOCKED", "Completed inspection reports cannot be changed."))
+    return false
+}
 
 private suspend fun ApplicationCall.findFinding(reportId: Long) =
     findingUuid()?.let { uuid ->
