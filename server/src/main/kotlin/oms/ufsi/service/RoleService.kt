@@ -38,6 +38,7 @@ class RoleService(
      */
     fun getRoleByCode(code: String): Role? {
 
-        return roleRepository.findByCode(code)
+        return roleRepository.findByCode(code.trim())
+            ?: roleRepository.findAll().firstOrNull { it.code.equals(code.trim(), ignoreCase = true) }
     }
 }

@@ -3,6 +3,9 @@ package oms.localization
 object Strings {
 
     val uk = mapOf(
+        "subproject" to "Субпроєкт",
+        "choose_date" to "Вибрати дату",
+        "password_requirements" to "Пароль має містити щонайменше 8 символів.",
         "projects_subprojects" to "Проєкти / субпроєкти",
         "subprojects" to "Субпроєкти",
         "no_subprojects" to "Субпроєкти ще не додані.",
@@ -212,6 +215,9 @@ object Strings {
     )
 
     val en = mapOf(
+        "subproject" to "Subproject",
+        "choose_date" to "Choose date",
+        "password_requirements" to "Password must contain at least 8 characters.",
         "projects_subprojects" to "Projects / subprojects",
         "subprojects" to "Subprojects",
         "no_subprojects" to "No subprojects yet.",

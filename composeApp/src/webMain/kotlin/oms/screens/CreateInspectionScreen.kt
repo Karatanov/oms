@@ -119,7 +119,7 @@ fun CreateInspectionScreen(
                     modifier = Modifier.fillMaxWidth(),
                     trailingIcon = {
                         IconButton(onClick = { showDatePicker = true }) {
-                            Icon(Icons.Default.CalendarMonth, contentDescription = "Вибрати дату")
+                            Icon(Icons.Default.CalendarMonth, contentDescription = LocalizationManager.t("choose_date"))
                         }
                     },
                     supportingText = { Text(LocalizationManager.t("cannot_be_future_date")) }

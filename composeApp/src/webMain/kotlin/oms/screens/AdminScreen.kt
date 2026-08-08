@@ -19,6 +19,7 @@ import oms.data.UpdateUserRequest
 import oms.data.CreateUserRequest
 import oms.components.RoleChip
 import oms.components.TableActionIconButton
+import oms.localization.LocalizationManager
 
 private enum class UserSort { Id, Username, FullName, Email, Role, Status, LastLogin, Region, Department, Language, Created }
 
@@ -121,7 +122,7 @@ fun AdminScreen() {
         }
         errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error) }
         selectedUser?.let { user ->
-            EditUserDialog(user, roles, onDismiss = { selectedUser = null }) { updated ->
+            EditUserDialog(user, roles, errorMessage, onDismiss = { selectedUser = null }) { updated ->
                 scope.launch {
                     runCatching { OmsApiClient.updateUser(user.id, updated) }
                         .onSuccess { saved -> users = users.map { if (it.id == saved.id) saved else it }; selectedUser = null }
@@ -170,7 +171,7 @@ private fun CreateUserDialog(roles: List<ApiRole>, onDismiss: () -> Unit, onSave
 }
 
 @Composable
-private fun EditUserDialog(user: ApiUser, roles: List<ApiRole>, onDismiss: () -> Unit, onSave: (UpdateUserRequest) -> Unit) {
+private fun EditUserDialog(user: ApiUser, roles: List<ApiRole>, saveError: String?, onDismiss: () -> Unit, onSave: (UpdateUserRequest) -> Unit) {
     var username by remember(user.id) { mutableStateOf(user.username) }
     var email by remember(user.id) { mutableStateOf(user.email) }
     var roleCode by remember(user.id) { mutableStateOf(user.role.code) }
@@ -189,6 +190,8 @@ private fun EditUserDialog(user: ApiUser, roles: List<ApiRole>, onDismiss: () ->
                 }
             }
             OutlinedTextField(password, { password = it }, label = { Text("Новий пароль (необов'язково)") }, modifier = Modifier.fillMaxWidth())
+            Text(LocalizationManager.t("password_requirements"), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            saveError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
                 OutlinedButton(onClick = { expanded = false; onDismiss() }) { Text("Скасувати") }
                 Button(onClick = { onSave(UpdateUserRequest(username, email, roleCode, password.ifBlank { null })) }, enabled = username.isNotBlank() && email.contains('@') && role != null) { Text("Зберегти") }

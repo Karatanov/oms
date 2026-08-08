@@ -99,9 +99,14 @@
             const input = document.createElement("input");
             input.type = "file";
             input.accept = accept;
+            input.style.display = "none";
+            document.body.appendChild(input);
             input.onchange = async () => {
                 const file = input.files && input.files[0];
-                if (!file) return;
+                if (!file) {
+                    input.remove();
+                    return;
+                }
                 const formData = new FormData();
                 Object.entries(extraFields).forEach(([key, value]) => formData.append(key, value));
                 formData.append("file", file, file.name);

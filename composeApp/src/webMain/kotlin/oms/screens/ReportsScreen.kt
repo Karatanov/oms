@@ -96,8 +96,14 @@ fun ReportsScreen(
             }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            FilterDropdown("Проєкт", reports.map { it.projectName }.distinct().sorted(), projectFilter, { projectFilter = it; subprojectFilter = null }) { it }
-            FilterDropdown("Субпроєкт", reports.filter { projectFilter == null || it.projectName == projectFilter }.mapNotNull { it.subprojectName }.distinct().sorted(), subprojectFilter, { subprojectFilter = it }) { it }
+            FilterDropdown(LocalizationManager.t("project"), reports.map { it.projectName }.distinct().sorted(), projectFilter, { projectFilter = it; subprojectFilter = null }) { it }
+            FilterDropdown(
+                label = LocalizationManager.t("subproject"),
+                options = reports.filter { projectFilter == null || it.projectName == projectFilter }.mapNotNull { it.subprojectName }.distinct().sorted(),
+                selected = subprojectFilter,
+                onSelect = { subprojectFilter = it },
+                itemLabel = { it }
+            )
         }
         Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
