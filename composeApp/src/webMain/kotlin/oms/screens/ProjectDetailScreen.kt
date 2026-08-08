@@ -1,6 +1,8 @@
 package oms.screens
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
@@ -43,6 +45,7 @@ fun ProjectDetailScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
@@ -183,14 +186,9 @@ fun ProjectDetailScreen(
                 }
             }
 
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
-                    .padding(top = 16.dp)
-            ) {
+            Box(modifier = Modifier.fillMaxWidth().padding(top = 16.dp)) {
                 when (selectedTab) {
-                    ProjectDetailTab.GeneralInfo -> PlaceholderTabContent(LocalizationManager.t("general_info"))
+                    ProjectDetailTab.GeneralInfo -> ProjectGeneralInfoTab(details.value?.data)
                     ProjectDetailTab.InspectionReports -> ProjectReportsTab(reports.value)
                     ProjectDetailTab.Financials -> ProjectFinancialsTab(project.id, financials.value, documents.value)
                     ProjectDetailTab.Documents -> ProjectDocumentsTab(project.id, documents.value)
@@ -250,6 +248,55 @@ private enum class ProjectDetailTab(val titleKey: String) {
     Financials("financials"),
     Documents("documents"),
     Incidents("incidents_hse")
+}
+
+@Composable
+private fun ProjectGeneralInfoTab(data: oms.data.ApiProjectDetailsData?) {
+    Card(Modifier.fillMaxWidth()) {
+        if (data == null) {
+            Box(Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
+            }
+        } else {
+            val fields = listOf(
+                "Тип запису" to if (data.projectType == "subproject") "Субпроєкт" else "Проєкт",
+                "Назва майданчика" to data.siteName,
+                "Номер майданчика" to data.siteNumber,
+                "Опис" to (data.description ?: "—"),
+                "Адреса" to data.address,
+                "Область" to data.region,
+                "Населений пункт" to data.city,
+                "Координати" to "${data.latitude}, ${data.longitude}",
+                "Статус" to data.status.replace('_', ' '),
+                "Сектор" to data.sector,
+                "Тип будівництва" to data.constructionType,
+                "Підрядник" to (data.contractorName ?: "—"),
+                "Валюта" to data.currency,
+                "Плановий бюджет" to data.budgetPlanned.toMoney(),
+                "Договір інженера-консультанта" to (data.engineerConsultantContractAmount?.toMoney() ?: "—"),
+                "Технічний нагляд" to (data.technicalSupervisionAmount?.toMoney() ?: "—"),
+                "Сума контракту субпроєкту" to (data.subprojectContractAmount?.toMoney() ?: "—"),
+                "Дата початку" to (data.startDate ?: "—"),
+                "Дата завершення" to (data.endDate ?: "—"),
+                "Дата підписання контракту" to (data.contractSignedDate ?: "—"),
+                "Планова дата завершення" to (data.plannedEndDate ?: "—"),
+                "Дата договору на проєктування" to (data.designContractSigningDate ?: "—"),
+                "Дата договору на будівництво" to (data.constructionContractSigningDate ?: "—"),
+                "Початок будівництва" to (data.constructionStartDate ?: "—"),
+                "Прогнозована дата завершення" to (data.projectedCompletionTime ?: "—"),
+                "Тривалість контракту" to (data.contractDurationDays?.let { "$it днів" } ?: "—")
+            )
+            Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                fields.forEach { (label, value) ->
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                        Text(label, modifier = Modifier.width(260.dp), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(value, modifier = Modifier.weight(1f))
+                    }
+                    HorizontalDivider()
+                }
+            }
+        }
+    }
 }
 
 @Composable

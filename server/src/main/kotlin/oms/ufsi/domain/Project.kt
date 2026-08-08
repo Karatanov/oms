@@ -48,6 +48,8 @@ data class Project(
      */
     val siteNumber: String,
 
+    val description: String?,
+
     /**
      * Повна адреса.
      */
@@ -100,8 +102,13 @@ data class Project(
 
     /** Schedule fields required for a subproject. */
     val startDate: LocalDate?,
+    val endDate: LocalDate?,
     val contractSignedDate: LocalDate?,
     val plannedEndDate: LocalDate?,
+    val designContractSigningDate: LocalDate?,
+    val constructionContractSigningDate: LocalDate?,
+    val constructionStartDate: LocalDate?,
+    val projectedCompletionTime: LocalDate?,
 
     /**
      * Код валюти.

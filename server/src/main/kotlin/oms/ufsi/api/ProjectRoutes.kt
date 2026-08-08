@@ -36,13 +36,14 @@ fun Route.projectRoutes() {
         val total = projects.size.toLong()
         val pagedProjects = projects.drop((page - 1) * pageSize).take(pageSize)
 
+        val projectUuidById = projects.associate { project -> project.id to project.uuid.toString() }
         val response =
-            ProjectListResponse(
+                    ProjectListResponse(
 
                 data =
                     pagedProjects.map { project ->
 
-                        project.toResponse()
+                        project.toResponse(projectUuidById[project.parentProjectId])
                     },
 
                 meta = PageMetadata(

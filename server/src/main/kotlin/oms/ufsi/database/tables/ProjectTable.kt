@@ -59,6 +59,8 @@ object ProjectTable : LongIdTable("projects") {
     val siteNumber =
         varchar("site_number", 50)
 
+    val description = text("description").nullable()
+
     /**
      * Повна адреса.
      */
@@ -136,8 +138,13 @@ object ProjectTable : LongIdTable("projects") {
             .nullable()
 
     val startDate = date("start_date").nullable()
+    val endDate = date("end_date").nullable()
     val contractSignedDate = date("contract_signed_date").nullable()
     val plannedEndDate = date("planned_end_date").nullable()
+    val designContractSigningDate = date("design_contract_signing_date").nullable()
+    val constructionContractSigningDate = date("construction_contract_signing_date").nullable()
+    val constructionStartDate = date("construction_start_date").nullable()
+    val projectedCompletionTime = date("projected_completion_time").nullable()
 
     /**
      * Валюта відображення.

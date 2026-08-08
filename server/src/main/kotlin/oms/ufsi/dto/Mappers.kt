@@ -47,7 +47,7 @@ fun User.toResponse(): UserResponse {
  * Перетворює доменну модель проєкту
  * у DTO-відповідь REST API.
  */
-fun Project.toResponse(): ProjectResponse {
+fun Project.toResponse(parentProjectUuid: String? = null): ProjectResponse {
 
     return ProjectResponse(
 
@@ -60,6 +60,9 @@ fun Project.toResponse(): ProjectResponse {
         parentProjectId =
             parentProjectId,
 
+        parentProjectUuid =
+            parentProjectUuid,
+
         name =
             name,
 
@@ -68,6 +71,9 @@ fun Project.toResponse(): ProjectResponse {
 
         siteNumber =
             siteNumber,
+
+        description =
+            description,
 
         address =
             address,
@@ -108,11 +114,26 @@ fun Project.toResponse(): ProjectResponse {
         startDate =
             startDate?.toString(),
 
+        endDate =
+            endDate?.toString(),
+
         contractSignedDate =
             contractSignedDate?.toString(),
 
         plannedEndDate =
             plannedEndDate?.toString(),
+
+        designContractSigningDate =
+            designContractSigningDate?.toString(),
+
+        constructionContractSigningDate =
+            constructionContractSigningDate?.toString(),
+
+        constructionStartDate =
+            constructionStartDate?.toString(),
+
+        projectedCompletionTime =
+            projectedCompletionTime?.toString(),
 
         contractDurationDays =
             contractDurationDays,

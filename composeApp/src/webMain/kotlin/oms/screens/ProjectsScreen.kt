@@ -3,6 +3,8 @@ package oms.screens
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
@@ -16,6 +18,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.onPointerEvent
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.font.FontWeight
 import kotlinx.coroutines.launch
 import oms.components.FilterDropdown
 import oms.components.StatusChip
@@ -25,6 +28,7 @@ import oms.data.ProjectRepository
 import oms.localization.LocalizationManager
 import oms.model.Project
 import oms.model.ProjectStatus
+import oms.theme.Primary
 
 // ... existing code ...
 
@@ -45,16 +49,19 @@ fun ProjectsScreen(
     val projects = ProjectRepository.projects
 
     val filteredProjects = remember(projects, searchText, regionFilter, statusFilter) {
-        projects.filter {
-            (searchText.isBlank() || it.name.contains(searchText, true)) &&
-                    (regionFilter == null || it.region == regionFilter) &&
-                    (statusFilter == null || it.status == statusFilter)
-        }
+        fun matches(project: Project) =
+            (searchText.isBlank() || project.name.contains(searchText, true)) &&
+                (regionFilter == null || project.region == regionFilter) &&
+                (statusFilter == null || project.status == statusFilter)
+        val matchingProjects = projects.filter(::matches)
+        val visibleParentIds = matchingProjects.mapNotNull { it.parentProjectUuid }.toSet()
+        matchingProjects + projects.filter { it.id in visibleParentIds && it !in matchingProjects }
     }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .padding(16.dp)
     ) {
 
@@ -117,19 +124,26 @@ fun ProjectsTable(
     var ascending by remember { mutableStateOf(true) }
 
     val sortedProjects = remember(projects, sortColumn, ascending) {
-
-        val list = when (sortColumn) {
-
-            SortColumn.ID -> projects.sortedBy { it.id }
-
-            SortColumn.NAME -> projects.sortedBy { it.name }
-
-            SortColumn.REGION -> projects.sortedBy { it.region }
-
-            SortColumn.STATUS -> projects.sortedBy { it.status }
+        fun sort(items: List<Project>): List<Project> {
+            val list = when (sortColumn) {
+                SortColumn.ID -> items.sortedBy { it.id }
+                SortColumn.NAME -> items.sortedBy { it.name }
+                SortColumn.REGION -> items.sortedBy { it.region }
+                SortColumn.STATUS -> items.sortedBy { it.status }
+            }
+            return if (ascending) list else list.reversed()
         }
 
-        if (ascending) list else list.reversed()
+        val subprojectsByParent = projects
+            .filter { it.projectType.equals("subproject", ignoreCase = true) }
+            .groupBy { it.parentProjectUuid }
+        buildList {
+            sort(projects.filter { !it.projectType.equals("subproject", ignoreCase = true) }).forEach { parent ->
+                add(parent)
+                addAll(sort(subprojectsByParent[parent.id].orEmpty()))
+            }
+            addAll(sort(subprojectsByParent[null].orEmpty()))
+        }
     }
 
     Column {
@@ -149,16 +163,13 @@ fun ProjectsTable(
 
         HorizontalDivider()
 
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(400.dp)
-        ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
 
             sortedProjects.forEach {
 
                 ProjectRow(
                     project = it,
+                    isSubproject = it.projectType.equals("subproject", ignoreCase = true),
                     onOpen = onOpenProject,
                     onEdit = onEditProject,
                     onDelete = onDeleteProject
@@ -246,6 +257,8 @@ fun ProjectRow(
 
     project: Project,
 
+    isSubproject: Boolean = false,
+
     onOpen: (Project) -> Unit = {},
     onEdit: (Project) -> Unit = {},
     onDelete: (Project) -> Unit = {}
@@ -286,7 +299,25 @@ fun ProjectRow(
             .padding(vertical = 10.dp)
     ) {
 
-        Text(project.name, modifier = Modifier.weight(1f))
+        if (isSubproject) {
+            Box(modifier = Modifier.width(30.dp).height(32.dp), contentAlignment = Alignment.Center) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .width(2.dp)
+                        .height(18.dp)
+                        .background(Primary.copy(alpha = 0.55f))
+                )
+                Text("↳", color = Primary, style = MaterialTheme.typography.titleMedium)
+            }
+        }
+
+        Text(
+            project.name,
+            modifier = Modifier.weight(1f),
+            fontWeight = if (isSubproject) FontWeight.Normal else FontWeight.SemiBold,
+            color = if (isSubproject) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface
+        )
 
         Text(project.region, modifier = Modifier.width(160.dp))
 

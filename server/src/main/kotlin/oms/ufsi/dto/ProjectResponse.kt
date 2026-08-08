@@ -26,6 +26,9 @@ data class ProjectResponse(
      */
     val parentProjectId: Long?,
 
+    /** Public UUID of the parent project, used to render the project tree. */
+    val parentProjectUuid: String? = null,
+
     /**
      * Назва проєкту.
      */
@@ -40,6 +43,8 @@ data class ProjectResponse(
      * Номер майданчика.
      */
     val siteNumber: String,
+
+    val description: String?,
 
     /**
      * Повна адреса.
@@ -91,8 +96,13 @@ data class ProjectResponse(
 
     val subprojectContractAmount: Long?,
     val startDate: String?,
+    val endDate: String?,
     val contractSignedDate: String?,
     val plannedEndDate: String?,
+    val designContractSigningDate: String?,
+    val constructionContractSigningDate: String?,
+    val constructionStartDate: String?,
+    val projectedCompletionTime: String?,
     val contractDurationDays: Long?,
 
     /**

@@ -17,6 +17,8 @@ object ProjectRepository {
             projects = OmsApiClient.projects().map { api ->
                 Project(
                     id = api.uuid,
+                    projectType = api.projectType,
+                    parentProjectUuid = api.parentProjectUuid,
                     name = api.name,
                     region = api.region,
                     status = api.status.toProjectStatus(),

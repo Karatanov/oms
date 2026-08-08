@@ -11,6 +11,10 @@ data class Project(
 
     val id: String,
 
+    val projectType: String = "project",
+
+    val parentProjectUuid: String? = null,
+
     val name: String,
 
     val region: String,

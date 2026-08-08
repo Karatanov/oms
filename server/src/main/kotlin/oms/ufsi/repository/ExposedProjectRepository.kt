@@ -33,6 +33,7 @@ class ExposedProjectRepository : ProjectRepository {
                     name = row[ProjectTable.name],
                     siteName = row[ProjectTable.siteName],
                     siteNumber = row[ProjectTable.siteNumber],
+                    description = row[ProjectTable.description],
                     address = row[ProjectTable.address],
                     region = row[ProjectTable.region],
                     city = row[ProjectTable.city],
@@ -46,8 +47,13 @@ class ExposedProjectRepository : ProjectRepository {
                     technicalSupervisionAmount = row[ProjectTable.technicalSupervisionAmount],
                     subprojectContractAmount = row[ProjectTable.subprojectContractAmount],
                     startDate = row[ProjectTable.startDate],
+                    endDate = row[ProjectTable.endDate],
                     contractSignedDate = row[ProjectTable.contractSignedDate],
                     plannedEndDate = row[ProjectTable.plannedEndDate],
+                    designContractSigningDate = row[ProjectTable.designContractSigningDate],
+                    constructionContractSigningDate = row[ProjectTable.constructionContractSigningDate],
+                    constructionStartDate = row[ProjectTable.constructionStartDate],
+                    projectedCompletionTime = row[ProjectTable.projectedCompletionTime],
                     currency = row[ProjectTable.currency],
                     contractorName = row[ProjectTable.contractorName]
                 )
@@ -98,6 +104,9 @@ class ExposedProjectRepository : ProjectRepository {
                     siteNumber =
                         row[ProjectTable.siteNumber],
 
+                    description =
+                        row[ProjectTable.description],
+
                     address =
                         row[ProjectTable.address],
 
@@ -142,11 +151,26 @@ class ExposedProjectRepository : ProjectRepository {
                     startDate =
                         row[ProjectTable.startDate],
 
+                    endDate =
+                        row[ProjectTable.endDate],
+
                     contractSignedDate =
                         row[ProjectTable.contractSignedDate],
 
                     plannedEndDate =
                         row[ProjectTable.plannedEndDate],
+
+                    designContractSigningDate =
+                        row[ProjectTable.designContractSigningDate],
+
+                    constructionContractSigningDate =
+                        row[ProjectTable.constructionContractSigningDate],
+
+                    constructionStartDate =
+                        row[ProjectTable.constructionStartDate],
+
+                    projectedCompletionTime =
+                        row[ProjectTable.projectedCompletionTime],
 
                     currency =
                         row[ProjectTable.currency],
@@ -219,6 +243,7 @@ class ExposedProjectRepository : ProjectRepository {
             name = name,
             siteName = siteName,
             siteNumber = siteNumber,
+            description = null,
             latitude = latitude,
             longitude = longitude,
             address = address,
@@ -232,8 +257,13 @@ class ExposedProjectRepository : ProjectRepository {
             technicalSupervisionAmount = technicalSupervisionAmount,
             subprojectContractAmount = subprojectContractAmount,
             startDate = startDate,
+            endDate = null,
             contractSignedDate = contractSignedDate,
             plannedEndDate = plannedEndDate,
+            designContractSigningDate = null,
+            constructionContractSigningDate = null,
+            constructionStartDate = null,
+            projectedCompletionTime = null,
             currency = "UAH",
             contractorName = null
         )
