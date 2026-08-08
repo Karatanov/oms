@@ -7,6 +7,12 @@ import oms.ufsi.domain.User
  */
 interface UserRepository {
 
+    data class AuthenticationState(
+        val status: String,
+        val failedLoginCount: Int,
+        val lockedUntil: java.time.LocalDateTime?
+    )
+
     /**
      * Повертає всіх користувачів.
      */
@@ -47,4 +53,10 @@ interface UserRepository {
     ): Boolean
 
     fun update(id: Long, username: String, email: String, passwordHash: String, roleId: Long): User?
+
+    fun authenticationState(userId: Long): AuthenticationState?
+
+    fun recordFailedLogin(userId: Long, lockedUntil: java.time.LocalDateTime?)
+
+    fun recordSuccessfulLogin(userId: Long, at: java.time.LocalDateTime)
 }

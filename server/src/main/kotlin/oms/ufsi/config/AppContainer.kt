@@ -43,7 +43,7 @@ object AppContainer {
      * Сервіс автентифікації користувачів.
      */
     val authService =
-        AuthService(userService)
+        AuthService(userService, userRepository)
 
     /**
      * Репозиторій проєктів.

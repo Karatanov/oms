@@ -11,6 +11,7 @@ import oms.ufsi.dto.LoginRequest
 import oms.ufsi.dto.LoginResponse
 import oms.ufsi.dto.toResponse
 import oms.ufsi.security.UserSession
+import oms.ufsi.service.AccountLockedException
 
 /**
  * Маршрути автентифікації.
@@ -42,6 +43,11 @@ fun Route.authRoutes() {
                 )
             )
 
+        } catch (exception: AccountLockedException) {
+            call.respond(
+                HttpStatusCode.Locked,
+                ErrorResponse("ACCOUNT_LOCKED", "Account is locked until ${exception.lockedUntil}.")
+            )
         } catch (exception: IllegalArgumentException) {
 
             call.respond(
@@ -54,5 +60,10 @@ fun Route.authRoutes() {
                 )
             )
         }
+    }
+
+    post("/api/v1/auth/logout") {
+        call.sessions.clear<UserSession>()
+        call.respond(HttpStatusCode.NoContent)
     }
 }

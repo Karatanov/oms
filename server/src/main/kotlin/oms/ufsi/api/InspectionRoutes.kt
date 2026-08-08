@@ -14,7 +14,7 @@ import oms.ufsi.dto.*
 /** REST endpoints for inspection findings. */
 fun Route.inspectionRoutes() {
     post("/api/v1/projects/{projectUuid}/inspection-reports/import") {
-        call.requireRole("ADMIN", "PROJECT_MANAGER", "INSPECTOR") ?: return@post
+        val session = call.requireRole("ADMIN", "PROJECT_MANAGER", "INSPECTOR") ?: return@post
         val projectUuid = call.parameters["projectUuid"] ?: return@post call.notFound("Project not found.")
         val project = AppContainer.projectService.getProjectByUuid(projectUuid)
             ?: return@post call.notFound("Project not found.")
@@ -26,7 +26,7 @@ fun Route.inspectionRoutes() {
                     val name = part.originalFileName ?: throw IllegalArgumentException("File name is required.")
                     val bytes = part.provider().readRemaining(20_000_001).readByteArray()
                     require(bytes.size <= 20_000_000) { "File size must not exceed 20 MB." }
-                    imported = AppContainer.inspectionReportFileService.import(project.id, name, part.contentType?.toString(), java.io.ByteArrayInputStream(bytes))
+                    imported = AppContainer.inspectionReportFileService.import(project.id, name, part.contentType?.toString(), java.io.ByteArrayInputStream(bytes), session.userId)
                 }
                 part.dispose()
             }

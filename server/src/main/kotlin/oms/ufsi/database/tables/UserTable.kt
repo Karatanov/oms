@@ -2,6 +2,7 @@ package oms.ufsi.database.tables
 
 import org.jetbrains.exposed.v1.core.ReferenceOption
 import org.jetbrains.exposed.v1.core.dao.id.LongIdTable
+import org.jetbrains.exposed.v1.javatime.datetime
 
 /**
  * Опис таблиці користувачів.
@@ -10,6 +11,9 @@ import org.jetbrains.exposed.v1.core.dao.id.LongIdTable
  * визначеній у Flyway-міграції.
  */
 object UserTable : LongIdTable("users") {
+
+    /** Public identifier required by the current database schema. */
+    val uuid = varchar("uuid", 36).uniqueIndex()
 
     /**
      * Логін користувача.
@@ -43,4 +47,9 @@ object UserTable : LongIdTable("users") {
             foreign = RoleTable,
             onDelete = ReferenceOption.RESTRICT
         )
+
+    val status = varchar("status", 20)
+    val lastLoginAt = datetime("last_login_at").nullable()
+    val failedLoginCount = integer("failed_login_count")
+    val lockedUntil = datetime("locked_until").nullable()
 }

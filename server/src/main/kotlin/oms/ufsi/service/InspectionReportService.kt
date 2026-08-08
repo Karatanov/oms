@@ -44,7 +44,8 @@ class InspectionReportService(
     fun createReport(
         projectId: Long,
         inspectionDate: String,
-        summary: String?
+        summary: String?,
+        createdBy: Long
     ): InspectionReport {
         validateDate(inspectionDate)
 
@@ -66,7 +67,7 @@ class InspectionReportService(
 
             summary = summary,
 
-            createdBy = currentUserId
+            createdBy = createdBy
         )
     }
 

@@ -9,6 +9,8 @@ import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.jetbrains.exposed.v1.jdbc.update
 import org.jetbrains.exposed.v1.core.eq
+import java.time.LocalDateTime
+import java.util.UUID
 
 /**
  * Реалізація репозиторію користувачів на базі Exposed.
@@ -90,6 +92,7 @@ class ExposedUserRepository : UserRepository {
 
         val userId = UserTable.insertAndGetId {
 
+            it[UserTable.uuid] = UUID.randomUUID().toString()
             it[UserTable.username] = username
             it[UserTable.email] = email
             it[UserTable.passwordHash] = password
@@ -161,5 +164,32 @@ class ExposedUserRepository : UserRepository {
             it[UserTable.roleId] = roleId
         }
         if (count == 0) null else findAll().firstOrNull { it.id == id }
+    }
+
+    override fun authenticationState(userId: Long): UserRepository.AuthenticationState? = transaction {
+        UserTable.selectAll().firstOrNull { it[UserTable.id].value == userId }?.let { row ->
+            UserRepository.AuthenticationState(
+                status = row[UserTable.status],
+                failedLoginCount = row[UserTable.failedLoginCount],
+                lockedUntil = row[UserTable.lockedUntil]
+            )
+        }
+    }
+
+    override fun recordFailedLogin(userId: Long, lockedUntil: LocalDateTime?) = transaction {
+        val current = UserTable.selectAll().firstOrNull { it[UserTable.id].value == userId } ?: return@transaction
+        UserTable.update({ UserTable.id eq userId }) {
+            it[failedLoginCount] = current[UserTable.failedLoginCount] + 1
+            it[UserTable.lockedUntil] = lockedUntil
+        }
+    }
+
+    override fun recordSuccessfulLogin(userId: Long, at: LocalDateTime) = transaction {
+        UserTable.update({ UserTable.id eq userId }) {
+            it[lastLoginAt] = at
+            it[failedLoginCount] = 0
+            it[lockedUntil] = null
+        }
+        Unit
     }
 }

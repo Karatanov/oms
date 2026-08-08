@@ -1,7 +1,11 @@
 package oms.ufsi.service
 
 import oms.ufsi.domain.User
+import oms.ufsi.repository.UserRepository
 import oms.ufsi.security.PasswordHasher
+import java.time.LocalDateTime
+
+class AccountLockedException(val lockedUntil: LocalDateTime) : IllegalArgumentException("Account is temporarily locked.")
 
 /**
  * Сервіс автентифікації користувачів.
@@ -14,7 +18,8 @@ import oms.ufsi.security.PasswordHasher
  * Видача JWT-токенів буде додана пізніше.
  */
 class AuthService(
-    private val userService: UserService
+    private val userService: UserService,
+    private val userRepository: UserRepository
 ) {
 
     /**
@@ -33,6 +38,16 @@ class AuthService(
                 "Невірний логін або пароль."
             )
 
+        val state = userRepository.authenticationState(user.id)
+            ?: throw IllegalArgumentException("Invalid username or password.")
+        val now = LocalDateTime.now()
+        if (!state.status.equals("active", ignoreCase = true)) {
+            throw IllegalArgumentException("This account is not active.")
+        }
+        if (state.lockedUntil?.isAfter(now) == true) {
+            throw AccountLockedException(state.lockedUntil)
+        }
+
         val passwordIsValid =
             PasswordHasher.verify(
                 password,
@@ -40,10 +55,17 @@ class AuthService(
             )
 
         if (!passwordIsValid) {
+            val nextAttempts = state.failedLoginCount + 1
+            userRepository.recordFailedLogin(
+                user.id,
+                if (nextAttempts >= 5) now.plusMinutes(15) else state.lockedUntil
+            )
             throw IllegalArgumentException(
                 "Невірний логін або пароль."
             )
         }
+
+        userRepository.recordSuccessfulLogin(user.id, now)
 
         return user
     }

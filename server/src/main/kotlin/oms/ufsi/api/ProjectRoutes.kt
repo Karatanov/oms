@@ -272,7 +272,7 @@ fun Route.projectRoutes() {
     post(
         "/api/v1/projects/{uuid}/inspection-reports"
     ) {
-        call.requireRole("ADMIN", "PROJECT_MANAGER", "INSPECTOR") ?: return@post
+        val session = call.requireRole("ADMIN", "PROJECT_MANAGER", "INSPECTOR") ?: return@post
 
         val uuid =
             call.parameters["uuid"]
@@ -325,7 +325,9 @@ fun Route.projectRoutes() {
                             request.inspectionDate,
 
                         summary =
-                            request.summary
+                            request.summary,
+
+                        createdBy = session.userId
                     )
 
             call.respond(

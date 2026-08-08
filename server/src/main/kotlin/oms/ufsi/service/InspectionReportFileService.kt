@@ -14,10 +14,10 @@ class InspectionReportFileService(
     private val fileRepository: InspectionReportFileRepository,
     private val reportService: InspectionReportService
 ) {
-    fun import(projectId: Long, originalName: String, contentType: String?, input: java.io.InputStream): InspectionReport {
+    fun import(projectId: Long, originalName: String, contentType: String?, input: java.io.InputStream, createdBy: Long): InspectionReport {
         require(originalName.lowercase().endsWith(".xlsx")) { "Only XLSX inspection reports are supported." }
         val date = extractDate(originalName)
-        val report = reportService.createReport(projectId, date.toString(), "Imported SIR: $originalName")
+        val report = reportService.createReport(projectId, date.toString(), "Imported SIR: $originalName", createdBy)
         val completed = reportService.submitReport(report.uuid.toString())?.let {
             reportService.reviewReport(it.uuid.toString(), "approve", null)
         } ?: error("Could not finalize imported inspection report.")
