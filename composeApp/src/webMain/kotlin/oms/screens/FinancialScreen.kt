@@ -1,6 +1,8 @@
 package oms.screens
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
@@ -15,6 +17,13 @@ import oms.data.ProjectRepository
 import oms.components.SortableTableHeader
 import oms.components.TableActionIconButton
 import oms.localization.LocalizationManager
+import kotlin.js.JsName
+
+@JsName("openFinancialImport")
+external fun openFinancialImport(projectUuid: String)
+
+@JsName("downloadFinancialExport")
+external fun downloadFinancialExport(projectUuid: String)
 
 private data class ProjectActRow(
     val projectUuid: String,
@@ -41,6 +50,7 @@ fun FinancialScreen(
     var reloadKey by remember { mutableStateOf(0) }
     var editAct by remember { mutableStateOf<ProjectActRow?>(null) }
     var addAct by remember { mutableStateOf(false) }
+    var showTransferDialog by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
 
@@ -68,7 +78,7 @@ fun FinancialScreen(
     }.let { if (ascending) it else it.reversed() })
     fun selectSort(column: FinancialSort) { if (sort == column) ascending = !ascending else { sort = column; ascending = true } }
     Column(
-        modifier = Modifier.fillMaxSize().padding(24.dp),
+        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Text(LocalizationManager.t("financial_monitoring"), style = MaterialTheme.typography.headlineMedium)
@@ -83,7 +93,12 @@ fun FinancialScreen(
 
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
             Text(LocalizationManager.t("financial_records"), style = MaterialTheme.typography.titleLarge)
-            if (canManageFinancials) Button(onClick = { addAct = true }) { Text(LocalizationManager.t("add_record")) }
+            if (canManageFinancials) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedButton(onClick = { showTransferDialog = true }) { Text("Import / export XLSX") }
+                    Button(onClick = { addAct = true }) { Text(LocalizationManager.t("add_record")) }
+                }
+            }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             listOf(null, "invoice", "act", "payment", "advance").forEach { type ->
@@ -131,6 +146,47 @@ fun FinancialScreen(
                     }.onSuccess { addAct = false; editAct = null; reloadKey++ }
                         .onFailure { errorMessage = "Could not save act." }
                 }
+            }
+        }
+        if (showTransferDialog) {
+            FinancialTransferDialog(
+                projects = ProjectRepository.projects,
+                onDismiss = { showTransferDialog = false },
+                onImport = { projectUuid -> openFinancialImport(projectUuid); showTransferDialog = false },
+                onExport = { projectUuid -> downloadFinancialExport(projectUuid) }
+            )
+        }
+    }
+}
+
+@Composable
+private fun FinancialTransferDialog(
+    projects: List<oms.model.Project>,
+    onDismiss: () -> Unit,
+    onImport: (String) -> Unit,
+    onExport: (String) -> Unit
+) {
+    var projectUuid by remember { mutableStateOf(projects.firstOrNull()?.id) }
+    var expanded by remember { mutableStateOf(false) }
+    val selected = projects.firstOrNull { it.id == projectUuid }
+    Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text("Import or export financial records", style = MaterialTheme.typography.titleLarge)
+            Box {
+                OutlinedButton(onClick = { expanded = true }, modifier = Modifier.fillMaxWidth()) {
+                    Text(selected?.name ?: "Select project")
+                }
+                DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                    projects.forEach { project ->
+                        DropdownMenuItem(text = { Text(project.name) }, onClick = { projectUuid = project.id; expanded = false })
+                    }
+                }
+            }
+            Text("Import accepts an XLSX file exported by the system for the selected project.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, androidx.compose.ui.Alignment.End)) {
+                OutlinedButton(onClick = onDismiss) { Text(LocalizationManager.t("cancel")) }
+                OutlinedButton(onClick = { projectUuid?.let(onExport) }, enabled = projectUuid != null) { Text(LocalizationManager.t("export_to_excel")) }
+                Button(onClick = { projectUuid?.let(onImport) }, enabled = projectUuid != null) { Text(LocalizationManager.t("import_xls")) }
             }
         }
     }
