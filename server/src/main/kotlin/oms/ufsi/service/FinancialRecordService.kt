@@ -8,6 +8,17 @@ import java.io.OutputStream
 
 class FinancialRecordService(private val repository: FinancialRecordRepository) {
     fun getAll(projectId: Long) = repository.findByProjectId(projectId)
+    fun filtered(projectId: Long, recordType: String?, dateFrom: String?, dateTo: String?): List<FinancialRecord> {
+        val type = recordType?.trim()?.takeIf { it.isNotEmpty() }?.let(::validatedType)
+        val from = dateFrom?.trim()?.takeIf { it.isNotEmpty() }?.let(::date)?.let(java.time.LocalDate::parse)
+        val to = dateTo?.trim()?.takeIf { it.isNotEmpty() }?.let(::date)?.let(java.time.LocalDate::parse)
+        require(from == null || to == null || !from.isAfter(to)) { "date_from must not be later than date_to." }
+        return getAll(projectId).filter { record ->
+            (type == null || record.recordType == type) &&
+                (from == null || !record.recordDate.isBefore(from)) &&
+                (to == null || !record.recordDate.isAfter(to))
+        }
+    }
     fun get(projectId: Long, uuid: String) = repository.findByUuid(projectId, uuid.trim())
     fun create(projectId: Long, type: String, reference: String, amount: Long, currency: String, date: String, paymentDate: String?, description: String?, milestone: String?) = repository.create(projectId, validatedType(type), required(reference, "Reference number"), positive(amount), currency(currency), date(date), optionalDate(paymentDate), optional(description), optional(milestone), 1L)
     fun update(projectId: Long, uuid: String, type: String, reference: String, amount: Long, currency: String, date: String, paymentDate: String?, description: String?, milestone: String?) = repository.update(projectId, uuid.trim(), validatedType(type), required(reference, "Reference number"), positive(amount), currency(currency), date(date), optionalDate(paymentDate), optional(description), optional(milestone))

@@ -16,13 +16,23 @@ fun Route.financialRoutes() {
             call.requireRole("ADMIN", "PROJECT_MANAGER") ?: return@get
             val project = call.project() ?: return@get
             val service = AppContainer.financialRecordService
-            val summary = service.summary(project)
-            call.respond(
-                FinancialRecordListResponse(
-                    data = service.getAll(project.id).map { it.toResponse() },
-                    summary = FinancialSummaryResponse(summary.budgetPlanned, summary.amountSpent, summary.budgetRemaining, summary.completionPct)
+            try {
+                val summary = service.summary(project)
+                val records = service.filtered(
+                    project.id,
+                    call.request.queryParameters["record_type"],
+                    call.request.queryParameters["date_from"],
+                    call.request.queryParameters["date_to"]
                 )
-            )
+                call.respond(
+                    FinancialRecordListResponse(
+                        data = records.map { it.toResponse() },
+                        summary = FinancialSummaryResponse(summary.budgetPlanned, summary.amountSpent, summary.budgetRemaining, summary.completionPct)
+                    )
+                )
+            } catch (e: IllegalArgumentException) {
+                call.financeError(e)
+            }
         }
         post {
             call.requireRole("ADMIN", "PROJECT_MANAGER") ?: return@post
