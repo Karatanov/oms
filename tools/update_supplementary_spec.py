@@ -85,6 +85,7 @@ sections = {
     ],
     "13.2 Project data model and editing": [
         "projects.project_type is ENUM('project', 'subproject', 'subproject_part') NOT NULL DEFAULT 'project'. A subproject must have a project parent; a subproject part must have a subproject parent.",
+        "The reproducible local MVP dataset is seeded from `TVET II_Energy efficiency indicator status check_07.07.2026.xlsx`: the TVETII programme is the project, each source code (for example, 34-46-1) is a subproject, and each full facility title is a subproject part. Programme code is stored in the root project's site-number field; source codes are stored as the subproject name and site number.",
         "projects.construction_type is ENUM('reconstruction', 'capital_repair', 'new_construction') NOT NULL. UI labels are localised in Ukrainian and English.",
         "The edit form exposes all editable business data: identity and location, description, status, sector, construction type, budgets and contract amounts, contractor, ISO currency, coordinates and the complete project/design/construction date set. Technical UUID and creator-audit metadata remain immutable.",
         "Dates are entered with calendar controls and displayed as DD.MM.YYYY in the user interface while the REST API stores ISO YYYY-MM-DD values.",
