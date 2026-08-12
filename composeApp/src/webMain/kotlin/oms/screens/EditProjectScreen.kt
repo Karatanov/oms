@@ -12,6 +12,7 @@ import oms.data.ProjectRepository
 import oms.data.UpdateProjectRequest
 import oms.model.Project
 import oms.components.OmsDateField
+import oms.components.ConstructionTypeSelector
 
 @Composable
 fun EditProjectScreen(
@@ -91,7 +92,7 @@ fun EditProjectScreen(
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     OutlinedTextField(sector, { sector = it }, label = { Text("Сектор *") }, modifier = Modifier.weight(1f))
-                    OutlinedTextField(constructionType, { constructionType = it }, label = { Text("Тип будівництва *") }, modifier = Modifier.weight(1f))
+                    ConstructionTypeSelector(constructionType, { constructionType = it }, Modifier.weight(1f))
                 }
                 OutlinedTextField(budgetPlanned, { value -> if (value.matches(Regex("[0-9.,]*"))) budgetPlanned = value }, label = { Text("Плановий бюджет, грн *") }, singleLine = true, modifier = Modifier.fillMaxWidth())
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {

@@ -13,11 +13,28 @@ data class Project(
 
     val projectType: String = "project",
 
+    val trancheNumber: Int = 1,
+
     val parentProjectUuid: String? = null,
 
     val name: String,
 
+    /** Customer-facing project/subproject code (for example, KH08_09). */
+    val siteNumber: String,
+
     val region: String,
+
+    val city: String,
+
+    val sector: String,
+
+    val constructionType: String = "reconstruction",
+
+    val budgetPlanned: Long,
+
+    val contractorName: String? = null,
+
+    val startDate: String? = null,
 
     val status: ProjectStatus,
 

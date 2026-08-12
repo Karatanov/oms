@@ -18,9 +18,17 @@ object ProjectRepository {
                 Project(
                     id = api.uuid,
                     projectType = api.projectType,
+                    trancheNumber = api.trancheNumber,
                     parentProjectUuid = api.parentProjectUuid,
                     name = api.name,
+                    siteNumber = api.siteNumber,
                     region = api.region,
+                    city = api.city,
+                    sector = api.sector,
+                    constructionType = api.constructionType,
+                    budgetPlanned = api.budgetPlanned,
+                    contractorName = api.contractorName,
+                    startDate = api.startDate,
                     status = api.status.toProjectStatus(),
                     latitude = api.latitude,
                     longitude = api.longitude

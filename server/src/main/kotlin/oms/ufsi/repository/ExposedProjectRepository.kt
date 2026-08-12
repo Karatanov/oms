@@ -29,6 +29,7 @@ class ExposedProjectRepository : ProjectRepository {
                         "project" -> ProjectType.PROJECT
                         else -> ProjectType.SUBPROJECT
                     },
+                    trancheNumber = row[ProjectTable.trancheNumber],
                     parentProjectId = row[ProjectTable.parentProjectId]?.value,
                     name = row[ProjectTable.name],
                     siteName = row[ProjectTable.siteName],
@@ -90,6 +91,8 @@ class ExposedProjectRepository : ProjectRepository {
                             else ->
                                 ProjectType.SUBPROJECT
                         },
+
+                    trancheNumber = row[ProjectTable.trancheNumber],
 
                     parentProjectId =
                         row[ProjectTable.parentProjectId]
@@ -212,6 +215,7 @@ class ExposedProjectRepository : ProjectRepository {
         val projectId = ProjectTable.insertAndGetId {
             it[ProjectTable.uuid] = projectUuid.toString()
             it[ProjectTable.projectType] = projectType.name.lowercase()
+            it[ProjectTable.trancheNumber] = 1
             it[ProjectTable.parentProjectId] = parentProjectId?.let { id -> org.jetbrains.exposed.v1.core.dao.id.EntityID(id, ProjectTable) }
             it[ProjectTable.name] = name
             it[ProjectTable.siteName] = siteName
@@ -239,6 +243,7 @@ class ExposedProjectRepository : ProjectRepository {
             id = projectId.value,
             uuid = projectUuid,
             projectType = projectType,
+            trancheNumber = 1,
             parentProjectId = parentProjectId,
             name = name,
             siteName = siteName,

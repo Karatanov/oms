@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
@@ -29,6 +30,8 @@ import oms.localization.LocalizationManager
 import oms.model.Project
 import oms.model.ProjectStatus
 import oms.theme.Primary
+import oms.components.toOmsDate
+import oms.components.ConstructionTypeChip
 
 // ... existing code ...
 
@@ -50,7 +53,7 @@ fun ProjectsScreen(
 
     val filteredProjects = remember(projects, searchText, regionFilter, statusFilter) {
         fun matches(project: Project) =
-            (searchText.isBlank() || project.name.contains(searchText, true)) &&
+            (searchText.isBlank() || project.name.contains(searchText, true) || project.siteNumber.contains(searchText, true)) &&
                 (regionFilter == null || project.region == regionFilter) &&
                 (statusFilter == null || project.status == statusFilter)
         val matchingProjects = projects.filter(::matches)
@@ -125,14 +128,12 @@ fun ProjectsTable(
     var expandedParentIds by remember { mutableStateOf<Set<String>?>(null) }
 
     val sortedProjects = remember(projects, sortColumn, ascending, expandedParentIds) {
-        fun sort(items: List<Project>): List<Project> {
-            val list = when (sortColumn) {
-                SortColumn.ID -> items.sortedBy { it.id }
-                SortColumn.NAME -> items.sortedBy { it.name }
-                SortColumn.REGION -> items.sortedBy { it.region }
-                SortColumn.STATUS -> items.sortedBy { it.status }
+        fun sort(items: List<Project>): List<Project> = items.sortedWith { left, right ->
+            val comparison = when (sortColumn) {
+                SortColumn.ID -> compareBusinessIds(left.siteNumber, right.siteNumber)
+                else -> sortKey(left, sortColumn).compareTo(sortKey(right, sortColumn), ignoreCase = true)
             }
-            return if (ascending) list else list.reversed()
+            if (ascending) comparison else -comparison
         }
 
         val subprojectsByParent = projects
@@ -152,7 +153,7 @@ fun ProjectsTable(
         }
     }
 
-    Column {
+    Column(modifier = Modifier.horizontalScroll(rememberScrollState())) {
 
         TableHeader(
             sortColumn,
@@ -261,14 +262,36 @@ fun ProjectsFilters(
 
 
 enum class SortColumn {
+    ID, TRANCHE, NAME, REGION, CITY, SECTOR, CONSTRUCTION_TYPE, STATUS, BUDGET, START_DATE, CONTRACTOR
+}
 
-    ID,
+private fun sortKey(project: Project, column: SortColumn): String = when (column) {
+    SortColumn.ID -> project.siteNumber
+    SortColumn.TRANCHE -> project.trancheNumber.toString().padStart(10, '0')
+    SortColumn.NAME -> project.name
+    SortColumn.REGION -> project.region
+    SortColumn.CITY -> project.city
+    SortColumn.SECTOR -> project.sector
+    SortColumn.CONSTRUCTION_TYPE -> project.constructionType
+    SortColumn.STATUS -> project.status.name
+    SortColumn.BUDGET -> project.budgetPlanned.toString().padStart(20, '0')
+    SortColumn.START_DATE -> project.startDate.orEmpty()
+    SortColumn.CONTRACTOR -> project.contractorName.orEmpty()
+}
 
-    NAME,
-
-    REGION,
-
-    STATUS
+private fun compareBusinessIds(left: String, right: String): Int {
+    val leftParts = Regex("(\\d+|\\D+)").findAll(left).map { it.value }.toList()
+    val rightParts = Regex("(\\d+|\\D+)").findAll(right).map { it.value }.toList()
+    for (index in 0 until minOf(leftParts.size, rightParts.size)) {
+        val a = leftParts[index]
+        val b = rightParts[index]
+        val comparison = if (a.all(Char::isDigit) && b.all(Char::isDigit)) {
+            a.trimStart('0').padStart(1, '0').length.compareTo(b.trimStart('0').padStart(1, '0').length)
+                .takeIf { it != 0 } ?: a.trimStart('0').padStart(1, '0').compareTo(b.trimStart('0').padStart(1, '0'))
+        } else a.compareTo(b, ignoreCase = true)
+        if (comparison != 0) return comparison
+    }
+    return leftParts.size.compareTo(rightParts.size)
 }
 
 /*
@@ -296,7 +319,7 @@ fun ProjectRow(
 
     Row(
         modifier = Modifier
-            .fillMaxWidth()
+            .widthIn(min = 1_250.dp)
 
             // hover detection
             .onPointerEvent(
@@ -362,20 +385,31 @@ fun ProjectRow(
             }
         }
 
+        Text(project.siteNumber, modifier = Modifier.width(130.dp), fontWeight = FontWeight.Medium)
+        Text(project.trancheNumber.toString(), modifier = Modifier.width(90.dp))
+
         Text(
             project.name,
-            modifier = Modifier.weight(1f),
+            modifier = Modifier.width(230.dp),
             fontWeight = if (isSubproject) FontWeight.Normal else FontWeight.SemiBold,
             color = if (isSubproject) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface
         )
 
         Text(project.region, modifier = Modifier.width(160.dp))
 
+        Text(project.city, modifier = Modifier.width(130.dp))
+        Text(project.sector, modifier = Modifier.width(130.dp))
+        Box(modifier = Modifier.width(180.dp)) { ConstructionTypeChip(project.constructionType) }
+
         Box(
             modifier = Modifier.width(140.dp)
         ) {
             StatusChip(project.status)
         }
+
+        Text(project.budgetPlanned.toString(), modifier = Modifier.width(120.dp))
+        Text(project.startDate.toOmsDate(), modifier = Modifier.width(120.dp))
+        Text(project.contractorName.orEmpty(), modifier = Modifier.width(150.dp))
 
         TableActionIconButton(LocalizationManager.t("view"), Icons.Default.Visibility) { onOpen(project) }
         TableActionIconButton(LocalizationManager.t("edit"), Icons.Default.Edit) { onEdit(project) }

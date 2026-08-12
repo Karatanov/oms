@@ -18,9 +18,20 @@ fun TableHeader(
 ) {
     Row(
         modifier = Modifier
-            .fillMaxWidth()
+            .widthIn(min = 1_500.dp)
             .padding(vertical = 8.dp)
     ) {
+        SortableHeader(
+            "ID",
+            SortColumn.ID,
+            currentSort,
+            ascending,
+            onSort,
+            Modifier.width(130.dp)
+        )
+
+        SortableHeader("Tranche", SortColumn.TRANCHE, currentSort, ascending, onSort, Modifier.width(90.dp))
+
         SortableHeader(
             LocalizationManager.t("project"),
             SortColumn.NAME,
@@ -39,6 +50,10 @@ fun TableHeader(
             Modifier.width(160.dp)
         )
 
+        SortableHeader("City", SortColumn.CITY, currentSort, ascending, onSort, Modifier.width(130.dp))
+        SortableHeader("Sector", SortColumn.SECTOR, currentSort, ascending, onSort, Modifier.width(130.dp))
+        SortableHeader(LocalizationManager.t("construction_type"), SortColumn.CONSTRUCTION_TYPE, currentSort, ascending, onSort, Modifier.width(180.dp))
+
         SortableHeader(
             LocalizationManager.t("status"),
             SortColumn.STATUS,
@@ -47,6 +62,10 @@ fun TableHeader(
             onSort,
             Modifier.width(140.dp)
         )
+
+        SortableHeader("Budget", SortColumn.BUDGET, currentSort, ascending, onSort, Modifier.width(120.dp))
+        SortableHeader("Start date", SortColumn.START_DATE, currentSort, ascending, onSort, Modifier.width(120.dp))
+        SortableHeader("Contractor", SortColumn.CONTRACTOR, currentSort, ascending, onSort, Modifier.width(150.dp))
 
         Box(
             modifier = Modifier

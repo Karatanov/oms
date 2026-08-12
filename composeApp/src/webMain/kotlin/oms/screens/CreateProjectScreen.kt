@@ -26,6 +26,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import oms.data.CreateProjectRequest
+import oms.components.ConstructionTypeSelector
 import oms.components.OmsDateField
 import oms.data.ApiProject
 import oms.data.OmsApiClient
@@ -44,7 +45,7 @@ fun CreateProjectScreen(
     var region by remember { mutableStateOf("") }
     var city by remember { mutableStateOf("") }
     var sector by remember { mutableStateOf("") }
-    var constructionType by remember { mutableStateOf("") }
+    var constructionType by remember { mutableStateOf("reconstruction") }
     var budgetPlanned by remember { mutableStateOf("") }
     var engineerConsultantContractAmount by remember { mutableStateOf("") }
     var technicalSupervisionAmount by remember { mutableStateOf("") }
@@ -138,7 +139,7 @@ fun CreateProjectScreen(
                 Text("Параметри та розташування", style = MaterialTheme.typography.titleMedium)
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     OutlinedTextField(sector, { sector = it }, label = { Text("Сектор *") }, modifier = Modifier.weight(1f))
-                    OutlinedTextField(constructionType, { constructionType = it }, label = { Text("Тип будівництва *") }, modifier = Modifier.weight(1f))
+                    ConstructionTypeSelector(constructionType, { constructionType = it }, Modifier.weight(1f))
                 }
                 OutlinedTextField(budgetPlanned, { value -> if (value.matches(Regex("[0-9.,]*"))) budgetPlanned = value }, label = { Text("Плановий бюджет, грн *") }, singleLine = true, modifier = Modifier.fillMaxWidth())
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {

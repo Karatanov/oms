@@ -3,6 +3,10 @@ package oms.localization
 object Strings {
 
     val uk = mapOf(
+        "construction_type" to "Тип будівництва",
+        "construction_reconstruction" to "Реконструкція",
+        "construction_capital_repair" to "Капітальний ремонт",
+        "construction_new_construction" to "Нове будівництво",
         "no_recent_activity" to "Нещодавніх дій ще немає.",
         "activity_project_created" to "Створено проєкт або субпроєкт",
         "activity_project_deleted" to "Видалено проєкт або субпроєкт",
@@ -221,6 +225,9 @@ object Strings {
     )
 
     val en = mapOf(
+        "construction_reconstruction" to "Reconstruction",
+        "construction_capital_repair" to "Capital repair",
+        "construction_new_construction" to "New construction",
         "no_recent_activity" to "No recent activity yet.",
         "activity_project_created" to "Project or subproject created",
         "activity_project_deleted" to "Project or subproject deleted",

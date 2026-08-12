@@ -60,6 +60,8 @@ class ProjectService(
         managerId: Long
     ): Project {
 
+        val normalizedConstructionType = normalizeConstructionType(constructionType)
+
         validateProjectData(
             name = name,
             region = region,
@@ -111,7 +113,7 @@ class ProjectService(
 
             sector = sector,
 
-            constructionType = constructionType,
+            constructionType = normalizedConstructionType,
 
             budgetPlanned = budgetPlanned,
 
@@ -223,6 +225,8 @@ class ProjectService(
         plannedEndDate: String?,
         managerId: Long
     ): Project {
+
+        val normalizedConstructionType = normalizeConstructionType(constructionType)
         val normalizedType = when (projectType.trim().lowercase()) {
             "project" -> ProjectType.PROJECT
             "subproject" -> ProjectType.SUBPROJECT
@@ -291,7 +295,7 @@ class ProjectService(
 
             sector = sector,
 
-            constructionType = constructionType,
+            constructionType = normalizedConstructionType,
 
             budgetPlanned = budgetPlanned,
 
@@ -342,7 +346,7 @@ class ProjectService(
             latitude = request.latitude ?: current.latitude,
             longitude = request.longitude ?: current.longitude,
             sector = request.sector?.trim() ?: current.sector,
-            constructionType = request.constructionType?.trim() ?: current.constructionType,
+            constructionType = request.constructionType?.let(::normalizeConstructionType) ?: current.constructionType,
             budgetPlanned = request.budgetPlanned ?: current.budgetPlanned,
             engineerConsultantContractAmount = request.engineerConsultantContractAmount ?: current.engineerConsultantContractAmount,
             technicalSupervisionAmount = request.technicalSupervisionAmount ?: current.technicalSupervisionAmount,
@@ -359,6 +363,14 @@ class ProjectService(
 
     private fun parseOptionalDate(value: String?, label: String): LocalDate? =
         value?.trim()?.takeIf { it.isNotEmpty() }?.let { parseRequiredDate(it, label) }
+
+    private fun normalizeConstructionType(value: String): String {
+        val normalized = value.trim().lowercase()
+        require(normalized in setOf("reconstruction", "capital_repair", "new_construction")) {
+            "Construction type must be reconstruction, capital_repair, or new_construction."
+        }
+        return normalized
+    }
 
     private fun parseRequiredDate(value: String, label: String): LocalDate = try {
         LocalDate.parse(value)

@@ -75,6 +75,8 @@ object OmsApiClient {
 
     suspend fun dashboard(): ApiDashboard = client.get("$baseUrl/dashboard").body()
 
+    suspend fun procurements(): List<ApiProcurementRecord> = client.get("$baseUrl/procurements").body()
+
     suspend fun projectDetails(uuid: String): ApiProjectDetails =
         client.get("$baseUrl/projects/$uuid").body()
 
@@ -261,9 +263,17 @@ data class ProjectListPayload(val data: List<ApiProject>)
 data class ApiProject(
     val uuid: String,
     val projectType: String = "project",
+    val trancheNumber: Int = 1,
     val parentProjectUuid: String? = null,
     val name: String,
+    val siteNumber: String,
     val region: String,
+    val city: String,
+    val sector: String,
+    val constructionType: String = "reconstruction",
+    val budgetPlanned: Long,
+    val contractorName: String? = null,
+    val startDate: String? = null,
     val status: String,
     val latitude: Double,
     val longitude: Double
@@ -309,6 +319,17 @@ data class ApiActivity(
     val entityType: String,
     val entityId: Long,
     val createdAt: String
+)
+
+@Serializable
+data class ApiProcurementRecord(
+    val id: Long, val recordNumber: Int, val batchId: Int,
+    val oblastName: String, val oblastId: String, val subProjectId: String, val subProjectLotId: String,
+    val purchaseStatus: String, val tenderId: String? = null, val prozorroTenderId: String? = null,
+    val contractorNameUkr: String? = null, val contractorNameEng: String? = null, val contractorId: String? = null,
+    val contractDate: String? = null, val contractEndDate: String? = null, val contractDurationMonths: Int? = null,
+    val contractAmountUah: Double? = null, val contractAmountEur: Double? = null,
+    val financingContractDifferencePct: Double? = null
 )
 
 @Serializable
@@ -378,7 +399,13 @@ data class ApiProjectDetailsData(
 )
 
 @Serializable
-data class ApiFinancialSummary(val budgetPlanned: Long, val amountSpent: Long, val budgetRemaining: Long)
+data class ApiFinancialSummary(
+    val budgetPlanned: Long,
+    val constructionContractAmount: Long = budgetPlanned,
+    val amountSpent: Long,
+    val budgetRemaining: Long,
+    val completionPct: Double = 0.0
+)
 
 @Serializable
 data class ApiProjectDocument(val uuid: String, val docType: String, val fileName: String, val contentType: String, val fileSizeBytes: Long)

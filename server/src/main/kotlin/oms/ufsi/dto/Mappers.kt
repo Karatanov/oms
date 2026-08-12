@@ -68,6 +68,9 @@ fun Project.toResponse(parentProjectUuid: String? = null): ProjectResponse {
         projectType =
             projectType.name.lowercase(),
 
+        trancheNumber =
+            trancheNumber,
+
         parentProjectId =
             parentProjectId,
 

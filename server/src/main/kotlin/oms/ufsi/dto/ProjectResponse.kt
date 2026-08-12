@@ -21,6 +21,9 @@ data class ProjectResponse(
      */
     val projectType: String,
 
+    /** Tranche number; current records default to 1. */
+    val trancheNumber: Int,
+
     /**
      * UUID батьківського проєкту.
      */

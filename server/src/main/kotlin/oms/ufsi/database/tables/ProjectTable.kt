@@ -29,6 +29,9 @@ object ProjectTable : LongIdTable("projects") {
     val projectType =
         varchar("project_type", 20)
 
+    /** Customer-facing tranche number; all records start in tranche 1. */
+    val trancheNumber = integer("tranche_number").default(1)
+
     /**
      * Батьківський проєкт.
      *

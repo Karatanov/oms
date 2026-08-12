@@ -26,6 +26,9 @@ data class Project(
      */
     val projectType: ProjectType,
 
+    /** Tranche number. The current rollout assigns all records to tranche 1. */
+    val trancheNumber: Int,
+
     /**
      * Батьківський проєкт.
      *
