@@ -282,6 +282,26 @@ fun Route.projectRoutes() {
         )
     }
 
+    get("/api/v1/projects/{uuid}/health-safety-observations") {
+        val uuid = call.parameters["uuid"]
+            ?: return@get call.respond(HttpStatusCode.BadRequest, ErrorResponse("VALIDATION_ERROR", "Project UUID is required."))
+        val project = projectService.getProjectByUuid(uuid)
+            ?: return@get call.respond(HttpStatusCode.NotFound, ErrorResponse("NOT_FOUND", "Project not found."))
+        val reports = AppContainer.inspectionReportService.getProjectReports(project.id)
+        val observations = reports.flatMap { report ->
+            AppContainer.inspectionReportFileService.healthSafetyObservations(report.id).map { observation ->
+                HealthSafetyObservationResponse(
+                    reportUuid = report.uuid.toString(),
+                    inspectionDate = report.inspectionDate.toString(),
+                    observation = observation.observation,
+                    answer = observation.answer,
+                    comment = observation.comment
+                )
+            }
+        }
+        call.respond(HealthSafetyObservationsResponse(reports.size, observations))
+    }
+
     /**
      * Створює новий звіт інспекції.
      */

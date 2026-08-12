@@ -89,6 +89,9 @@ object OmsApiClient {
     suspend fun projectReports(projectUuid: String): List<ApiInspectionReport> =
         client.get("$baseUrl/projects/$projectUuid/inspection-reports").body()
 
+    suspend fun healthSafetyObservations(projectUuid: String): ApiHealthSafetyObservations =
+        client.get("$baseUrl/projects/$projectUuid/health-safety-observations").body()
+
     suspend fun inspectionPhotos(reportUuid: String): List<ApiInspectionPhoto> =
         client.get("$baseUrl/inspection-reports/$reportUuid/photos").body()
 
@@ -372,6 +375,21 @@ data class ApiInspectionReport(
     val summary: String? = null,
     val status: String,
     val rejectionReason: String? = null
+)
+
+@Serializable
+data class ApiHealthSafetyObservations(
+    val uploadedReportsCount: Int,
+    val observations: List<ApiHealthSafetyObservation>
+)
+
+@Serializable
+data class ApiHealthSafetyObservation(
+    val reportUuid: String,
+    val inspectionDate: String,
+    val observation: String,
+    val answer: String? = null,
+    val comment: String? = null
 )
 
 @Serializable

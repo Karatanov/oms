@@ -222,7 +222,14 @@ object Strings {
         "no_other_project" to "Немає іншого проєкту для вибору.",
         "move" to "Перемістити",
         "date" to "Дата",
-        "report_project" to "Звіт / проєкт"
+        "report_project" to "Звіт / проєкт",
+        "no_sir_reports_uploaded" to "Звіти ще не завантажено",
+        "hse_upload_report_hint" to "Після завантаження SIR тут з’являться спостереження з розділу OBSERVANCES ON HEALTH & SAFETY.",
+        "no_hse_observations" to "У завантажених звітах немає даних з ОПіЗ",
+        "hse_section_hint" to "Переконайтеся, що вихідний SIR містить розділ OBSERVANCES ON HEALTH & SAFETY.",
+        "hse_observations_title" to "Спостереження з SIR: OBSERVANCES ON HEALTH & SAFETY",
+        "inspection_date_prefix" to "Інспекція від",
+        "answer" to "Відповідь"
     )
 
     val en = mapOf(
@@ -441,6 +448,13 @@ object Strings {
         "select_target_project" to "Select target project",
         "no_other_project" to "There is no other project to select.",
         "move" to "Move",
-        "report_project" to "Report / project"
+        "report_project" to "Report / project",
+        "no_sir_reports_uploaded" to "No inspection reports have been uploaded yet",
+        "hse_upload_report_hint" to "Observations from the OBSERVANCES ON HEALTH & SAFETY section will appear here after a SIR is uploaded.",
+        "no_hse_observations" to "No HSE observations were found in the uploaded reports",
+        "hse_section_hint" to "Make sure the original SIR contains an OBSERVANCES ON HEALTH & SAFETY section.",
+        "hse_observations_title" to "SIR observations: OBSERVANCES ON HEALTH & SAFETY",
+        "inspection_date_prefix" to "Inspection on",
+        "answer" to "Answer"
     )
 }

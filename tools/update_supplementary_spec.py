@@ -76,6 +76,7 @@ sections = {
         "Project Registry bulk operations support multi-select and a single API operation to suspend or archive all selected projects.",
         "Construction type is a database ENUM and is selected from Reconstruction, Capital repair or New construction. It is rendered as a localised colour badge.",
         "Inspection reports support creation, submission, review/approval/rejection, findings, XLSX SIR import, source-file download, report reassignment, and JPEG/PNG photo upload with thumbnails and a main photo.",
+        "The project Incidents (HSE) tab reads the OBSERVANCES ON HEALTH & SAFETY checklist directly from each uploaded SIR XLSX, including the answer and comment columns. It does not create duplicate incident-register records; if no SIR exists, the UI explicitly states that reports have not been uploaded.",
         "Financial monitoring supports acts, invoices, payments and advances; XLSX import/export; completed-work totals; and project financial summary based on acts of completed works.",
         "Document management supports file-system storage, typed upload, filtering, original-filename download and role-controlled permanent deletion.",
         "Administration provides a sortable user table, role and status colour badges, and full CRUD for user business data (identity, role, status, region, department and preferred language). Administrators can set or reset a password but cannot read an existing password or delete their own account.",

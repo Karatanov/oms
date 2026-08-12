@@ -17,12 +17,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import oms.components.StatusChip
+import oms.components.constructionTypeLabel
 import oms.data.ApiProjectDetails
 import oms.data.ApiInspectionReport
 import oms.data.ApiFinancialRecords
 import oms.data.ApiProjectDocument
+import oms.data.ApiHealthSafetyObservations
 import oms.data.OmsApiClient
 import oms.data.ProjectRepository
+import oms.components.toOmsDate
 import oms.localization.LocalizationManager
 import oms.model.Project
 import oms.navigation.Screen
@@ -41,10 +44,12 @@ fun ProjectDetailScreen(
     val reports = remember(project.id) { mutableStateOf<List<ApiInspectionReport>>(emptyList()) }
     val financials = remember(project.id) { mutableStateOf<ApiFinancialRecords?>(null) }
     val documents = remember(project.id) { mutableStateOf<List<ApiProjectDocument>>(emptyList()) }
+    val healthSafetyObservations = remember(project.id) { mutableStateOf<ApiHealthSafetyObservations?>(null) }
     LaunchedEffect(project.id) { details.value = runCatching { OmsApiClient.projectDetails(project.id) }.getOrNull() }
     LaunchedEffect(project.id) { reports.value = runCatching { OmsApiClient.projectReports(project.id) }.getOrDefault(emptyList()) }
     LaunchedEffect(project.id) { financials.value = runCatching { OmsApiClient.financials(project.id) }.getOrNull() }
     LaunchedEffect(project.id) { documents.value = runCatching { OmsApiClient.projectDocuments(project.id) }.getOrDefault(emptyList()) }
+    LaunchedEffect(project.id) { healthSafetyObservations.value = runCatching { OmsApiClient.healthSafetyObservations(project.id) }.getOrNull() }
 
     Column(
         modifier = Modifier
@@ -112,7 +117,7 @@ fun ProjectDetailScreen(
                         }
 
                         Text(
-                            text = "${LocalizationManager.t("sector")}: ${details.value?.data?.sector ?: "—"} • ${LocalizationManager.t("construction_type")}: ${details.value?.data?.constructionType ?: "—"}",
+                            text = "${LocalizationManager.t("sector")}: ${details.value?.data?.sector ?: "—"} • ${LocalizationManager.t("construction_type")}: ${details.value?.data?.constructionType?.constructionTypeLabel() ?: "—"}",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -135,18 +140,18 @@ fun ProjectDetailScreen(
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             DetailMetricCard(
-                title = LocalizationManager.t("budget_planned"),
-                value = details.value?.financialSummary?.budgetPlanned?.toMoney() ?: "—",
+                title = "Construction Contract",
+                value = details.value?.financialSummary?.constructionContractAmount?.toMoney() ?: "—",
                 modifier = Modifier.weight(1f)
             )
             DetailMetricCard(
-                title = LocalizationManager.t("amount_spent"),
+                title = "Acts of Completed Works",
                 value = details.value?.financialSummary?.amountSpent?.toMoney() ?: "—",
                 modifier = Modifier.weight(1f)
             )
             DetailMetricCard(
-                title = LocalizationManager.t("budget_remaining"),
-                value = details.value?.financialSummary?.budgetRemaining?.toMoney() ?: "—",
+                title = "Financial Completion",
+                value = details.value?.financialSummary?.completionPct?.let { "${it.toInt()}%" } ?: "—",
                 modifier = Modifier.weight(1f)
             )
         }
@@ -204,7 +209,7 @@ fun ProjectDetailScreen(
                     ProjectDetailTab.InspectionReports -> ProjectReportsTab(reports.value)
                     ProjectDetailTab.Financials -> ProjectFinancialsTab(project.id, financials.value, documents.value)
                     ProjectDetailTab.Documents -> ProjectDocumentsTab(project.id, documents.value)
-                    ProjectDetailTab.Incidents -> PlaceholderTabContent(LocalizationManager.t("incidents"))
+                    ProjectDetailTab.Incidents -> ProjectHealthSafetyTab(healthSafetyObservations.value)
                 }
             }
         }
@@ -263,6 +268,58 @@ private enum class ProjectDetailTab(val titleKey: String) {
 }
 
 @Composable
+private fun ProjectHealthSafetyTab(data: ApiHealthSafetyObservations?) {
+    when {
+        data == null -> CircularProgressIndicator()
+        data.uploadedReportsCount == 0 -> EmptyProjectTab(
+            LocalizationManager.t("no_sir_reports_uploaded"),
+            LocalizationManager.t("hse_upload_report_hint")
+        )
+        data.observations.isEmpty() -> EmptyProjectTab(
+            LocalizationManager.t("no_hse_observations"),
+            LocalizationManager.t("hse_section_hint")
+        )
+        else -> Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(
+                LocalizationManager.t("hse_observations_title"),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold
+            )
+            data.observations.groupBy { it.inspectionDate }.forEach { (date, observations) ->
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Text("${LocalizationManager.t("inspection_date_prefix")} ${date.toOmsDate()}", style = MaterialTheme.typography.labelLarge)
+                        observations.forEach { item ->
+                            HorizontalDivider()
+                            Text(item.observation, style = MaterialTheme.typography.bodyLarge)
+                            item.answer?.let { answer ->
+                                Text("${LocalizationManager.t("answer")}: $answer", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.bodyMedium)
+                            }
+                            item.comment?.let { comment ->
+                                Text(comment, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodyMedium)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun EmptyProjectTab(title: String, description: String) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(title, style = MaterialTheme.typography.titleMedium)
+            Text(description, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
+
+@Composable
 private fun ProjectGeneralInfoTab(data: oms.data.ApiProjectDetailsData?) {
     Card(Modifier.fillMaxWidth()) {
         if (data == null) {
@@ -271,7 +328,11 @@ private fun ProjectGeneralInfoTab(data: oms.data.ApiProjectDetailsData?) {
             }
         } else {
             val fields = listOf(
-                "Тип запису" to if (data.projectType == "subproject") "Субпроєкт" else "Проєкт",
+                "Тип запису" to when (data.projectType) {
+                    "subproject" -> LocalizationManager.t("subproject")
+                    "subproject_part" -> LocalizationManager.t("subproject_part")
+                    else -> LocalizationManager.t("project")
+                },
                 "Назва майданчика" to data.siteName,
                 "Номер майданчика" to data.siteNumber,
                 "Опис" to (data.description ?: "—"),
@@ -281,17 +342,17 @@ private fun ProjectGeneralInfoTab(data: oms.data.ApiProjectDetailsData?) {
                 "Координати" to "${data.latitude}, ${data.longitude}",
                 "Статус" to data.status.replace('_', ' '),
                 "Сектор" to data.sector,
-                "Тип будівництва" to data.constructionType,
+                LocalizationManager.t("construction_type") to data.constructionType.constructionTypeLabel(),
                 "Підрядник" to (data.contractorName ?: "—"),
                 "Валюта" to data.currency,
                 "Плановий бюджет" to data.budgetPlanned.toMoney(),
                 "Договір інженера-консультанта" to (data.engineerConsultantContractAmount?.toMoney() ?: "—"),
                 "Технічний нагляд" to (data.technicalSupervisionAmount?.toMoney() ?: "—"),
                 "Сума контракту субпроєкту" to (data.subprojectContractAmount?.toMoney() ?: "—"),
-                "Дата початку" to (data.startDate ?: "—"),
-                "Дата завершення" to (data.endDate ?: "—"),
-                "Дата підписання контракту" to (data.contractSignedDate ?: "—"),
-                "Планова дата завершення" to (data.plannedEndDate ?: "—"),
+                "Дата початку" to data.startDate.toOmsDate(),
+                "Дата завершення" to data.endDate.toOmsDate(),
+                "Дата підписання контракту" to data.contractSignedDate.toOmsDate(),
+                "Планова дата завершення" to data.plannedEndDate.toOmsDate(),
                 "Дата договору на проєктування" to (data.designContractSigningDate ?: "—"),
                 "Дата договору на будівництво" to (data.constructionContractSigningDate ?: "—"),
                 "Початок будівництва" to (data.constructionStartDate ?: "—"),
@@ -363,10 +424,12 @@ private fun ProjectFinancialsTab(
     val actDocuments = documents.filter { it.docType == "act" }
     Card(Modifier.fillMaxSize()) {
         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text("${LocalizationManager.t("completed_works_by_acts")}: ${financials?.summary?.amountSpent?.toMoney() ?: "—"}", style = MaterialTheme.typography.titleLarge)
+            Text("Construction contract: ${financials?.summary?.constructionContractAmount?.toMoney() ?: "—"}", style = MaterialTheme.typography.titleLarge)
+            Text("${LocalizationManager.t("completed_works_by_acts")}: ${financials?.summary?.amountSpent?.toMoney() ?: "—"}")
+            Text("Financial completion: ${financials?.summary?.completionPct?.let { "${it.toInt()}%" } ?: "—"}")
             if (acts.isEmpty()) Text(LocalizationManager.t("no_acts"))
             acts.forEach { act ->
-                Text("${act.referenceNumber} • ${act.recordDate} • ${act.amount.toMoney()}")
+                Text("${act.referenceNumber} • ${act.recordDate.toOmsDate()} • ${act.amount.toMoney()}")
                 HorizontalDivider()
             }
             if (actDocuments.isNotEmpty()) {
