@@ -9,7 +9,10 @@
             rel="stylesheet"
             href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
     />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
     <script>
         let ufsiLeafletMap = null;
         let ufsiMarkersLayer = null;
@@ -54,7 +57,17 @@
                 }
             ).addTo(ufsiLeafletMap);
 
-            ufsiMarkersLayer = L.layerGroup().addTo(ufsiLeafletMap);
+            ufsiMarkersLayer = L.markerClusterGroup({
+                showCoverageOnHover: false,
+                spiderfyOnMaxZoom: true,
+                zoomToBoundsOnClick: true,
+                maxClusterRadius: 58,
+                iconCreateFunction: cluster => L.divIcon({
+                    html: `<span>${cluster.getChildCount()}</span>`,
+                    className: "oms-project-cluster",
+                    iconSize: L.point(42, 42)
+                })
+            }).addTo(ufsiLeafletMap);
             ufsiLeafletMap.fitBounds(ukraineBounds);
         }
 
@@ -367,12 +380,13 @@
                     lng + (radius * Math.cos(angle) / Math.cos(lat * Math.PI / 180))
                 ];
                 markerBounds.push(coordinates);
-                L.circleMarker(coordinates, {
-                    radius: 9,
-                    color: color,
-                    weight: 3,
-                    fillColor: color,
-                    fillOpacity: 0.85
+                L.marker(coordinates, {
+                    icon: L.divIcon({
+                        html: `<span class="oms-project-marker" style="--marker-color: ${color}"></span>`,
+                        className: "",
+                        iconSize: L.point(18, 18),
+                        iconAnchor: L.point(9, 9)
+                    })
                 })
                     .bindPopup(popupHtml)
                     .addTo(ufsiMarkersLayer);
