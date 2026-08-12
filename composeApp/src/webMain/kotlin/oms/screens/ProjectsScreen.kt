@@ -47,6 +47,7 @@ fun ProjectsScreen(
     var statusFilter by remember { mutableStateOf<ProjectStatus?>(null) }
     val scope = rememberCoroutineScope()
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    var selectedProjectIds by remember { mutableStateOf<Set<String>>(emptySet()) }
 
     LaunchedEffect(Unit) { ProjectRepository.refresh() }
     val projects = ProjectRepository.projects
@@ -91,6 +92,34 @@ fun ProjectsScreen(
             onStatusChange = { statusFilter = it }
         )
 
+        if (selectedProjectIds.isNotEmpty()) {
+            Spacer(Modifier.height(12.dp))
+            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("Вибрано: ${selectedProjectIds.size}", modifier = Modifier.weight(1f))
+                    OutlinedButton(onClick = { selectedProjectIds = emptySet() }) { Text("Скасувати вибір") }
+                    Button(onClick = {
+                        scope.launch {
+                            runCatching { oms.data.OmsApiClient.bulkUpdateProjectStatus(selectedProjectIds.toList(), "suspended") }
+                                .onSuccess { ProjectRepository.refresh(); selectedProjectIds = emptySet() }
+                                .onFailure { errorMessage = it.message ?: "Не вдалося призупинити проєкти." }
+                        }
+                    }) { Text("Призупинити") }
+                    Button(onClick = {
+                        scope.launch {
+                            runCatching { oms.data.OmsApiClient.bulkUpdateProjectStatus(selectedProjectIds.toList(), "archived") }
+                                .onSuccess { ProjectRepository.refresh(); selectedProjectIds = emptySet() }
+                                .onFailure { errorMessage = it.message ?: "Не вдалося архівувати проєкти." }
+                        }
+                    }) { Text("Архівувати") }
+                }
+            }
+        }
+
         Spacer(Modifier.height(16.dp))
 
         ProjectsTable(
@@ -102,7 +131,9 @@ fun ProjectsScreen(
                     if (oms.data.OmsApiClient.deleteProject(project.id)) ProjectRepository.refresh()
                     else errorMessage = "Could not delete project."
                 }
-            }
+            },
+            selectedProjectIds = selectedProjectIds,
+            onSelectionChange = { id, selected -> selectedProjectIds = if (selected) selectedProjectIds + id else selectedProjectIds - id }
         )
 
         errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error) }
@@ -120,7 +151,9 @@ fun ProjectsTable(
     projects: List<Project>,
     onOpenProject: (Project) -> Unit,
     onEditProject: (Project) -> Unit,
-    onDeleteProject: (Project) -> Unit
+    onDeleteProject: (Project) -> Unit,
+    selectedProjectIds: Set<String>,
+    onSelectionChange: (String, Boolean) -> Unit
 ) {
 
     var sortColumn by remember { mutableStateOf(SortColumn.NAME) }
@@ -191,7 +224,9 @@ fun ProjectsTable(
                     },
                     onOpen = onOpenProject,
                     onEdit = onEditProject,
-                    onDelete = onDeleteProject
+                    onDelete = onDeleteProject,
+                    isSelected = row.project.id in selectedProjectIds,
+                    onSelectedChange = { onSelectionChange(row.project.id, it) }
                 )
 
             }
@@ -315,7 +350,9 @@ fun ProjectRow(
 
     onOpen: (Project) -> Unit = {},
     onEdit: (Project) -> Unit = {},
-    onDelete: (Project) -> Unit = {}
+    onDelete: (Project) -> Unit = {},
+    isSelected: Boolean = false,
+    onSelectedChange: (Boolean) -> Unit = {}
 
 ) {
 
@@ -352,6 +389,12 @@ fun ProjectRow(
 
             .padding(vertical = 10.dp)
     ) {
+
+        Checkbox(
+            checked = isSelected,
+            onCheckedChange = onSelectedChange,
+            modifier = Modifier.width(32.dp)
+        )
 
         if (childCount > 0) {
             Box(

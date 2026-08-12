@@ -338,6 +338,14 @@ class ProjectService(
 
     fun deleteProject(uuid: String): Boolean = projectRepository.deleteByUuid(uuid.trim())
 
+    fun bulkUpdateStatus(projectUuids: List<String>, status: String): Int {
+        val uuids = projectUuids.map(String::trim).filter(String::isNotEmpty).distinct()
+        require(uuids.isNotEmpty()) { "Select at least one project." }
+        val projectStatus = runCatching { ProjectStatus.valueOf(status.trim().uppercase()) }
+            .getOrElse { throw IllegalArgumentException("Unknown project status.") }
+        return projectRepository.updateStatusByUuids(uuids, projectStatus)
+    }
+
     fun updateProject(uuid: String, request: oms.ufsi.dto.UpdateProjectRequest): Project? {
         val current = getProjectByUuid(uuid) ?: return null
         val patch = ProjectPatch(

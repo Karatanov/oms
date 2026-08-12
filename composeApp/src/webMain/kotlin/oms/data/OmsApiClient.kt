@@ -73,6 +73,12 @@ object OmsApiClient {
             setBody(request)
         }.body()
 
+    suspend fun bulkUpdateProjectStatus(projectUuids: List<String>, status: String): Int =
+        client.patch("$baseUrl/projects/bulk-status") {
+            contentType(ContentType.Application.Json)
+            setBody(BulkProjectUpdateRequest(projectUuids, status))
+        }.body<BulkProjectUpdateResponse>().updated
+
     suspend fun dashboard(): ApiDashboard = client.get("$baseUrl/dashboard").body()
 
     suspend fun procurements(): List<ApiProcurementRecord> = client.get("$baseUrl/procurements").body()
@@ -253,6 +259,12 @@ data class UpdateProjectRequest(
     val currency: String? = null,
     val contractorName: String? = null
 )
+
+@Serializable
+data class BulkProjectUpdateRequest(val projectUuids: List<String>, val status: String)
+
+@Serializable
+data class BulkProjectUpdateResponse(val updated: Int)
 
 @Serializable
 data class UpdateUserRequest(

@@ -188,10 +188,22 @@ fun Route.projectRoutes() {
                     project.toResponse(),
 
                 financialSummary = AppContainer.financialRecordService.summary(project).let {
-                    FinancialSummaryResponse(it.budgetPlanned, it.amountSpent, it.budgetRemaining, it.completionPct)
+                    FinancialSummaryResponse(it.budgetPlanned, it.constructionContractAmount, it.amountSpent, it.budgetRemaining, it.completionPct)
                 }
             )
         )
+    }
+
+    patch("/api/v1/projects/bulk-status") {
+        val session = call.requireRole("ADMIN", "PROJECT_MANAGER") ?: return@patch
+        try {
+            val request = call.receive<BulkProjectUpdateRequest>()
+            val updated = projectService.bulkUpdateStatus(request.projectUuids, request.status)
+            AppContainer.auditLogService.record(session.userId, "projects_bulk_status_updated", "project", 0)
+            call.respond(BulkProjectUpdateResponse(updated))
+        } catch (exception: IllegalArgumentException) {
+            call.respond(HttpStatusCode.BadRequest, ErrorResponse("VALIDATION_ERROR", exception.message ?: "Invalid bulk update."))
+        }
     }
 
     patch("/api/v1/projects/{uuid}") {

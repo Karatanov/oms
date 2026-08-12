@@ -21,6 +21,7 @@ fun TableHeader(
             .widthIn(min = 1_500.dp)
             .padding(vertical = 8.dp)
     ) {
+        Box(modifier = Modifier.width(32.dp))
         SortableHeader(
             "ID",
             SortColumn.ID,

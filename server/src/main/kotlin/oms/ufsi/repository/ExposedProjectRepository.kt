@@ -8,6 +8,7 @@ import oms.ufsi.domain.ProjectStatus
 import oms.ufsi.domain.ProjectType
 import oms.ufsi.domain.ProjectPatch
 import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.core.inList
 import org.jetbrains.exposed.v1.jdbc.insertAndGetId
 import org.jetbrains.exposed.v1.jdbc.select
 import org.jetbrains.exposed.v1.jdbc.selectAll
@@ -303,6 +304,12 @@ class ExposedProjectRepository : ProjectRepository {
             }
         }
         return if (updated == 0) null else findByUuid(uuid)
+    }
+
+    override fun updateStatusByUuids(uuids: List<String>, status: ProjectStatus): Int = transaction {
+        ProjectTable.update({ ProjectTable.uuid inList uuids }) {
+            it[ProjectTable.status] = status.name.lowercase()
+        }
     }
 }
 

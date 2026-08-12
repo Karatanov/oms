@@ -54,5 +54,7 @@ interface ProjectRepository {
 
     fun updateByUuid(uuid: String, patch: oms.ufsi.domain.ProjectPatch): Project?
 
+    fun updateStatusByUuids(uuids: List<String>, status: oms.ufsi.domain.ProjectStatus): Int
+
     fun deleteByUuid(uuid: String): Boolean
 }
