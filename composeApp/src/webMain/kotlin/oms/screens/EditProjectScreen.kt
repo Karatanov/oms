@@ -1,6 +1,8 @@
 package oms.screens
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -23,9 +25,11 @@ fun EditProjectScreen(
     var name by remember { mutableStateOf(project.name) }
     var siteName by remember { mutableStateOf("") }
     var siteNumber by remember { mutableStateOf("") }
+    var description by remember { mutableStateOf("") }
     var address by remember { mutableStateOf("") }
     var region by remember { mutableStateOf(project.region) }
     var city by remember { mutableStateOf("") }
+    var status by remember { mutableStateOf("planned") }
     var sector by remember { mutableStateOf("") }
     var constructionType by remember { mutableStateOf("") }
     var budgetPlanned by remember { mutableStateOf("") }
@@ -34,8 +38,15 @@ fun EditProjectScreen(
     var projectType by remember { mutableStateOf("project") }
     var subprojectContractAmount by remember { mutableStateOf("") }
     var startDate by remember { mutableStateOf("") }
+    var endDate by remember { mutableStateOf("") }
     var contractSignedDate by remember { mutableStateOf("") }
     var plannedEndDate by remember { mutableStateOf("") }
+    var designContractSigningDate by remember { mutableStateOf("") }
+    var constructionContractSigningDate by remember { mutableStateOf("") }
+    var constructionStartDate by remember { mutableStateOf("") }
+    var projectedCompletionTime by remember { mutableStateOf("") }
+    var currency by remember { mutableStateOf("UAH") }
+    var contractorName by remember { mutableStateOf("") }
     var latitude by remember { mutableStateOf(project.latitude.toString()) }
     var longitude by remember { mutableStateOf(project.longitude.toString()) }
     var isLoading by remember { mutableStateOf(true) }
@@ -47,7 +58,9 @@ fun EditProjectScreen(
         runCatching { OmsApiClient.projectDetails(project.id).data }
             .onSuccess { details ->
                 name = details.name; siteName = details.siteName; siteNumber = details.siteNumber
+                description = details.description.orEmpty()
                 address = details.address; region = details.region; city = details.city
+                status = details.status
                 latitude = details.latitude.toString(); longitude = details.longitude.toString()
                 sector = details.sector; constructionType = details.constructionType
                 budgetPlanned = details.budgetPlanned.toString()
@@ -55,14 +68,19 @@ fun EditProjectScreen(
                 technicalSupervisionAmount = details.technicalSupervisionAmount?.toString().orEmpty()
                 projectType = details.projectType
                 subprojectContractAmount = details.subprojectContractAmount?.toString().orEmpty()
-                startDate = details.startDate.orEmpty(); contractSignedDate = details.contractSignedDate.orEmpty(); plannedEndDate = details.plannedEndDate.orEmpty()
+                startDate = details.startDate.orEmpty(); endDate = details.endDate.orEmpty()
+                contractSignedDate = details.contractSignedDate.orEmpty(); plannedEndDate = details.plannedEndDate.orEmpty()
+                designContractSigningDate = details.designContractSigningDate.orEmpty()
+                constructionContractSigningDate = details.constructionContractSigningDate.orEmpty()
+                constructionStartDate = details.constructionStartDate.orEmpty(); projectedCompletionTime = details.projectedCompletionTime.orEmpty()
+                currency = details.currency; contractorName = details.contractorName.orEmpty()
             }
             .onFailure { errorMessage = "Не вдалося завантажити дані проєкту." }
         isLoading = false
     }
 
     val allRequiredFilled = listOf(name, siteName, siteNumber, address, region, city, sector, constructionType).all { it.isNotBlank() }
-    Column(Modifier.fillMaxSize().padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Text("Редагувати проєкт", style = MaterialTheme.typography.headlineMedium)
         if (isLoading) {
             CircularProgressIndicator()
@@ -71,19 +89,48 @@ fun EditProjectScreen(
         Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedTextField(name, { name = it }, label = { Text("Назва проєкту *") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(description, { description = it }, label = { Text("Опис") }, minLines = 3, modifier = Modifier.fillMaxWidth())
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     OutlinedTextField(siteName, { siteName = it }, label = { Text("Код майданчика *") }, modifier = Modifier.weight(1f))
                     OutlinedTextField(siteNumber, { siteNumber = it }, label = { Text("Номер майданчика *") }, modifier = Modifier.weight(1f))
+                }
+                Text("Статус", style = MaterialTheme.typography.labelLarge)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf("planned", "active", "suspended", "completed", "archived", "dlp").forEach { value ->
+                        FilterChip(selected = status == value, onClick = { status = value }, label = { Text(value.replaceFirstChar(Char::uppercase)) })
+                    }
                 }
                 if (projectType != "project") {
                     Text(if (projectType == "subproject_part") "Дані частини субпроєкту" else "Дані субпроєкту", style = MaterialTheme.typography.titleMedium)
                     OutlinedTextField(subprojectContractAmount, { value -> if (value.all(Char::isDigit)) subprojectContractAmount = value }, label = { Text("Сума контракту субпроєкту, грн *") }, singleLine = true, modifier = Modifier.fillMaxWidth())
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         OmsDateField(startDate, { startDate = it }, "Дата початку", Modifier.weight(1f), true)
+                        OmsDateField(endDate, { endDate = it }, "Дата завершення", Modifier.weight(1f), true)
                         OmsDateField(contractSignedDate, { contractSignedDate = it }, "Дата укладення контракту", Modifier.weight(1f), true)
                         OmsDateField(plannedEndDate, { plannedEndDate = it }, "Планова дата завершення", Modifier.weight(1f), true)
                     }
                     Text("Тривалість контракту буде розрахована після збереження дат.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Text("Дати проєктування та будівництва", style = MaterialTheme.typography.titleMedium)
+                if (projectType == "project") {
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        OmsDateField(startDate, { startDate = it }, "Дата початку", Modifier.weight(1f), true)
+                        OmsDateField(endDate, { endDate = it }, "Дата завершення", Modifier.weight(1f), true)
+                        OmsDateField(contractSignedDate, { contractSignedDate = it }, "Дата укладення контракту", Modifier.weight(1f), true)
+                        OmsDateField(plannedEndDate, { plannedEndDate = it }, "Планова дата завершення", Modifier.weight(1f), true)
+                    }
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    OmsDateField(designContractSigningDate, { designContractSigningDate = it }, "Договір на проєктування", Modifier.weight(1f), true)
+                    OmsDateField(constructionContractSigningDate, { constructionContractSigningDate = it }, "Договір на будівництво", Modifier.weight(1f), true)
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    OmsDateField(constructionStartDate, { constructionStartDate = it }, "Початок будівництва", Modifier.weight(1f), true)
+                    OmsDateField(projectedCompletionTime, { projectedCompletionTime = it }, "Прогнозована дата завершення", Modifier.weight(1f), true)
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    OutlinedTextField(contractorName, { contractorName = it }, label = { Text("Підрядник") }, singleLine = true, modifier = Modifier.weight(1f))
+                    OutlinedTextField(currency, { value -> if (value.all { it.isLetter() } && value.length <= 3) currency = value.uppercase() }, label = { Text("Валюта (ISO) *") }, singleLine = true, modifier = Modifier.weight(1f))
                 }
                 OutlinedTextField(address, { address = it }, label = { Text("Адреса *") }, modifier = Modifier.fillMaxWidth())
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -122,8 +169,9 @@ fun EditProjectScreen(
                     lon == null || lon !in -180.0..180.0 -> "Довгота має бути в межах від -180 до 180."
                     engineerConsultantContractAmount.isNotBlank() && engineerAmount == null -> "Сума договору інженера-консультанта має бути цілим числом."
                     technicalSupervisionAmount.isNotBlank() && supervisionAmount == null -> "Сума технічного нагляду має бути цілим числом."
-                    projectType == "subproject" && (subprojectAmount == null || subprojectAmount <= 0) -> "Вкажіть додатну суму контракту субпроєкту."
-                    projectType == "subproject" && listOf(startDate, contractSignedDate, plannedEndDate).any { it.isBlank() } -> "Заповніть усі дати субпроєкту."
+                    projectType != "project" && (subprojectAmount == null || subprojectAmount <= 0) -> "Вкажіть додатну суму контракту субпроєкту."
+                    projectType != "project" && listOf(startDate, contractSignedDate, plannedEndDate).any { it.isBlank() } -> "Заповніть усі дати субпроєкту."
+                    currency.length != 3 -> "Валюта повинна містити трилітерний ISO-код."
                     else -> null
                 }
                 if (errorMessage == null) {
@@ -132,15 +180,24 @@ fun EditProjectScreen(
                         runCatching {
                             OmsApiClient.updateProject(project.id, UpdateProjectRequest(
                                 name = name.trim(), siteName = siteName.trim(), siteNumber = siteNumber.trim(),
+                                description = description.trim(),
                                 address = address.trim(), region = region.trim(), city = city.trim(),
+                                status = status,
                                 latitude = lat!!, longitude = lon!!, sector = sector.trim(),
                                 constructionType = constructionType.trim(), budgetPlanned = budget!!,
                                 engineerConsultantContractAmount = engineerAmount,
                                 technicalSupervisionAmount = supervisionAmount,
                                 subprojectContractAmount = subprojectAmount,
                                 startDate = startDate.takeIf { it.isNotBlank() },
+                                endDate = endDate.takeIf { it.isNotBlank() },
                                 contractSignedDate = contractSignedDate.takeIf { it.isNotBlank() },
-                                plannedEndDate = plannedEndDate.takeIf { it.isNotBlank() }
+                                plannedEndDate = plannedEndDate.takeIf { it.isNotBlank() },
+                                designContractSigningDate = designContractSigningDate.takeIf { it.isNotBlank() },
+                                constructionContractSigningDate = constructionContractSigningDate.takeIf { it.isNotBlank() },
+                                constructionStartDate = constructionStartDate.takeIf { it.isNotBlank() },
+                                projectedCompletionTime = projectedCompletionTime.takeIf { it.isNotBlank() },
+                                currency = currency,
+                                contractorName = contractorName.trim()
                             ))
                         }.onSuccess {
                             ProjectRepository.refresh()

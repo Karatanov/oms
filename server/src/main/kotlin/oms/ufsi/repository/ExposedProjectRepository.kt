@@ -277,9 +277,11 @@ class ExposedProjectRepository : ProjectRepository {
                 it[name] = patch.name
                 it[siteName] = patch.siteName
                 it[siteNumber] = patch.siteNumber
+                it[description] = patch.description
                 it[address] = patch.address
                 it[region] = patch.region
                 it[city] = patch.city
+                it[status] = patch.status.name.lowercase()
                 it[latitude] = patch.latitude.toBigDecimal()
                 it[longitude] = patch.longitude.toBigDecimal()
                 it[sector] = patch.sector
@@ -289,8 +291,15 @@ class ExposedProjectRepository : ProjectRepository {
                 it[technicalSupervisionAmount] = patch.technicalSupervisionAmount
                 it[subprojectContractAmount] = patch.subprojectContractAmount
                 it[startDate] = patch.startDate
+                it[endDate] = patch.endDate
                 it[contractSignedDate] = patch.contractSignedDate
                 it[plannedEndDate] = patch.plannedEndDate
+                it[designContractSigningDate] = patch.designContractSigningDate
+                it[constructionContractSigningDate] = patch.constructionContractSigningDate
+                it[constructionStartDate] = patch.constructionStartDate
+                it[projectedCompletionTime] = patch.projectedCompletionTime
+                it[currency] = patch.currency
+                it[contractorName] = patch.contractorName
             }
         }
         return if (updated == 0) null else findByUuid(uuid)

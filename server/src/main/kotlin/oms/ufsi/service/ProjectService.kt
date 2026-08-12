@@ -3,6 +3,7 @@ package oms.ufsi.service
 import oms.ufsi.domain.Project
 import oms.ufsi.domain.ProjectPatch
 import oms.ufsi.domain.ProjectType
+import oms.ufsi.domain.ProjectStatus
 import oms.ufsi.repository.ProjectRepository
 import java.time.LocalDate
 
@@ -343,9 +344,13 @@ class ProjectService(
             name = request.name?.trim() ?: current.name,
             siteName = request.siteName?.trim() ?: current.siteName,
             siteNumber = request.siteNumber?.trim() ?: current.siteNumber,
+            description = request.description?.trim()?.takeIf { it.isNotEmpty() } ?: current.description,
             address = request.address?.trim() ?: current.address,
             region = request.region?.trim() ?: current.region,
             city = request.city?.trim() ?: current.city,
+            status = request.status?.trim()?.uppercase()?.let { value ->
+                runCatching { ProjectStatus.valueOf(value) }.getOrElse { throw IllegalArgumentException("Unknown project status.") }
+            } ?: current.status,
             latitude = request.latitude ?: current.latitude,
             longitude = request.longitude ?: current.longitude,
             sector = request.sector?.trim() ?: current.sector,
@@ -354,9 +359,16 @@ class ProjectService(
             engineerConsultantContractAmount = request.engineerConsultantContractAmount ?: current.engineerConsultantContractAmount,
             technicalSupervisionAmount = request.technicalSupervisionAmount ?: current.technicalSupervisionAmount,
             subprojectContractAmount = request.subprojectContractAmount ?: current.subprojectContractAmount,
-            startDate = request.startDate?.let { parseRequiredDate(it, "Start date") } ?: current.startDate,
-            contractSignedDate = request.contractSignedDate?.let { parseRequiredDate(it, "Contract signing date") } ?: current.contractSignedDate,
-            plannedEndDate = request.plannedEndDate?.let { parseRequiredDate(it, "Planned end date") } ?: current.plannedEndDate
+            startDate = request.startDate?.let { parseOptionalDate(it, "Start date") } ?: current.startDate,
+            endDate = request.endDate?.let { parseOptionalDate(it, "End date") } ?: current.endDate,
+            contractSignedDate = request.contractSignedDate?.let { parseOptionalDate(it, "Contract signing date") } ?: current.contractSignedDate,
+            plannedEndDate = request.plannedEndDate?.let { parseOptionalDate(it, "Planned end date") } ?: current.plannedEndDate,
+            designContractSigningDate = request.designContractSigningDate?.let { parseOptionalDate(it, "Design contract signing date") } ?: current.designContractSigningDate,
+            constructionContractSigningDate = request.constructionContractSigningDate?.let { parseOptionalDate(it, "Construction contract signing date") } ?: current.constructionContractSigningDate,
+            constructionStartDate = request.constructionStartDate?.let { parseOptionalDate(it, "Construction start date") } ?: current.constructionStartDate,
+            projectedCompletionTime = request.projectedCompletionTime?.let { parseOptionalDate(it, "Projected completion date") } ?: current.projectedCompletionTime,
+            currency = request.currency?.trim()?.uppercase()?.also { require(it.matches(Regex("[A-Z]{3}"))) { "Currency must be a three-letter code." } } ?: current.currency,
+            contractorName = request.contractorName?.trim()?.takeIf { it.isNotEmpty() } ?: current.contractorName
         )
         validateProjectData(patch.name, patch.region, patch.city, patch.budgetPlanned, patch.engineerConsultantContractAmount, patch.technicalSupervisionAmount, current.projectType, patch.subprojectContractAmount, patch.startDate, patch.contractSignedDate, patch.plannedEndDate)
         if (patch.latitude !in -90.0..90.0) throw IllegalArgumentException("Latitude must be between -90 and 90.")

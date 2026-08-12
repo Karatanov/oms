@@ -7,9 +7,11 @@ data class ProjectPatch(
     val name: String,
     val siteName: String,
     val siteNumber: String,
+    val description: String?,
     val address: String,
     val region: String,
     val city: String,
+    val status: ProjectStatus,
     val latitude: Double,
     val longitude: Double,
     val sector: String,
@@ -19,6 +21,13 @@ data class ProjectPatch(
     val technicalSupervisionAmount: Long?,
     val subprojectContractAmount: Long?,
     val startDate: LocalDate?,
+    val endDate: LocalDate?,
     val contractSignedDate: LocalDate?,
-    val plannedEndDate: LocalDate?
+    val plannedEndDate: LocalDate?,
+    val designContractSigningDate: LocalDate?,
+    val constructionContractSigningDate: LocalDate?,
+    val constructionStartDate: LocalDate?,
+    val projectedCompletionTime: LocalDate?,
+    val currency: String,
+    val contractorName: String?
 )
