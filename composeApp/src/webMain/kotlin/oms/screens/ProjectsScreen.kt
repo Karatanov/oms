@@ -9,6 +9,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -416,6 +417,18 @@ fun ProjectRow(
                 ) {
                     Text(if (expanded) "−" else "+", color = Color.White, style = MaterialTheme.typography.titleMedium)
                 }
+            }
+        } else if (!isSubproject) {
+            Box(
+                modifier = Modifier.width(30.dp).height(32.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Folder,
+                    contentDescription = "Project without subprojects",
+                    tint = Primary,
+                    modifier = Modifier.size(20.dp)
+                )
             }
         }
 
