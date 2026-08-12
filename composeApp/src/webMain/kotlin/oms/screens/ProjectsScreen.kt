@@ -59,8 +59,13 @@ fun ProjectsScreen(
                 (regionFilter == null || project.region == regionFilter) &&
                 (statusFilter == null || project.status == statusFilter)
         val matchingProjects = projects.filter(::matches)
-        val visibleParentIds = matchingProjects.mapNotNull { it.parentProjectUuid }.toSet()
-        matchingProjects + projects.filter { it.id in visibleParentIds && it !in matchingProjects }
+        val projectsById = projects.associateBy { it.id }
+        val visibleIds = matchingProjects
+            .flatMap { project ->
+                generateSequence(project) { current -> current.parentProjectUuid?.let(projectsById::get) }.toList()
+            }
+            .mapTo(mutableSetOf()) { it.id }
+        projects.filter { it.id in visibleIds }
     }
 
     Column(
@@ -270,7 +275,7 @@ fun ProjectsFilters(
 
         FilterDropdown(
             label = LocalizationManager.t("region"),
-            options = listOf("Kyiv", "Lviv", "Odesa"),
+            options = ProjectRepository.projects.map { it.region }.filter { it.isNotBlank() }.distinct().sorted(),
             selected = regionFilter,
             onSelect = onRegionChange,
             itemLabel = { region ->

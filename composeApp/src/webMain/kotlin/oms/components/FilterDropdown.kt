@@ -33,8 +33,8 @@ fun <T> FilterDropdown(
             DropdownMenuItem(
                 text = { Text(oms.localization.LocalizationManager.t("all")) },
                 onClick = {
-                    onSelect(null)
                     expanded = false
+                    onSelect(null)
                 }
             )
 
@@ -42,8 +42,8 @@ fun <T> FilterDropdown(
                 DropdownMenuItem(
                     text = { Text(itemLabel(option)) },
                     onClick = {
-                        onSelect(option)
                         expanded = false
+                        onSelect(option)
                     }
                 )
             }

@@ -62,29 +62,34 @@ fun ReportsScreen(
         ProjectRepository.refresh()
         val projectsById = ProjectRepository.projects.associateBy { it.id }
         reports = ProjectRepository.projects.flatMap { attachedProject ->
-            val parent = attachedProject.parentProjectUuid?.let(projectsById::get)
-            val projectName = parent?.name ?: attachedProject.name
-            val subprojectName = if (parent == null) null else attachedProject.name
+            val ancestry = generateSequence(attachedProject) { current ->
+                current.parentProjectUuid?.let(projectsById::get)
+            }.toList().asReversed()
+            val root = ancestry.firstOrNull() ?: attachedProject
+            val projectName = root.name
+            val subprojectName = ancestry.getOrNull(1)?.name
             runCatching { OmsApiClient.projectReports(attachedProject.id) }.getOrDefault(emptyList())
                 .map { ReportRow(attachedProject.id, projectName, subprojectName, it) }
         }.sortedByDescending { it.report.inspectionDate }
     }
-    val visible = reports.filter {
-        (status == null || it.report.status == status) &&
-            (projectFilter == null || it.projectName == projectFilter) &&
-            (subprojectFilter == null || it.subprojectName == subprojectFilter)
-    }.sortedWith(
-        compareBy<ReportRow> {
-            when (sort) {
-                ReportSort.Date -> it.report.inspectionDate
-                ReportSort.ReportTitle -> it.report.summary.orEmpty()
-                ReportSort.Project -> it.projectName
-                ReportSort.Subproject -> it.subprojectName.orEmpty()
-                ReportSort.Status -> it.report.status
-                ReportSort.Author -> "admin"
-            }
-        }.let { if (ascending) it else it.reversed() }
-    )
+    val visible = remember(reports, status, projectFilter, subprojectFilter, sort, ascending) {
+        reports.asSequence().filter {
+            (status == null || it.report.status == status) &&
+                (projectFilter == null || it.projectName == projectFilter) &&
+                (subprojectFilter == null || it.subprojectName == subprojectFilter)
+        }.sortedWith(
+            compareBy<ReportRow> {
+                when (sort) {
+                    ReportSort.Date -> it.report.inspectionDate
+                    ReportSort.ReportTitle -> it.report.summary.orEmpty()
+                    ReportSort.Project -> it.projectName
+                    ReportSort.Subproject -> it.subprojectName.orEmpty()
+                    ReportSort.Status -> it.report.status
+                    ReportSort.Author -> "admin"
+                }
+            }.let { if (ascending) it else it.reversed() }
+        ).toList()
+    }
     fun selectSort(column: ReportSort) { if (sort == column) ascending = !ascending else { sort = column; ascending = true } }
 
     Column(Modifier.fillMaxSize().padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {

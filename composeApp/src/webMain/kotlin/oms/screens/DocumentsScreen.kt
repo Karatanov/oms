@@ -30,7 +30,7 @@ private data class ProjectDocumentRow(val projectUuid: String, val projectName: 
 private enum class DocumentSort { Name, Project, Type, Size, Author }
 private enum class DocumentTypeFilter(val labelKey: String) {
     ALL("all"), CONTRACT("contract"), PROJECT("project_documents"), DESIGN("design"),
-    ESTIMATE("estimate"), FINANCIAL("financial_doc"), PHOTO("photo");
+    ESTIMATE("estimate"), FINANCIAL("financial_doc"), PHOTO("photo"), OTHER("other");
 
     fun matches(type: String): Boolean = when (this) {
         ALL -> true
@@ -40,6 +40,7 @@ private enum class DocumentTypeFilter(val labelKey: String) {
         ESTIMATE -> type == "estimate"
         FINANCIAL -> type == "invoice" || type == "act"
         PHOTO -> type == "photo"
+        OTHER -> type == "other"
     }
 }
 
@@ -66,17 +67,21 @@ fun DocumentsScreen(canManageDocuments: Boolean = true) {
                 .map { ProjectDocumentRow(project.id, project.name, it) }
         }
     }
-    val visibleDocuments = projectFiles
-        .filter { typeFilter.matches(it.document.docType.lowercase()) }
-        .sortedWith(compareBy<ProjectDocumentRow> {
-        when (sort) {
-            DocumentSort.Name -> it.document.fileName
-            DocumentSort.Project -> it.projectName
-            DocumentSort.Type -> it.document.docType
-            DocumentSort.Size -> it.document.fileSizeBytes.toString().padStart(20, '0')
-            DocumentSort.Author -> "admin"
-        }
-        }.let { if (ascending) it else it.reversed() })
+    val visibleDocuments = remember(projectFiles, typeFilter, sort, ascending) {
+        projectFiles
+            .asSequence()
+            .filter { typeFilter.matches(it.document.docType.lowercase()) }
+            .sortedWith(compareBy<ProjectDocumentRow> {
+                when (sort) {
+                    DocumentSort.Name -> it.document.fileName
+                    DocumentSort.Project -> it.projectName
+                    DocumentSort.Type -> it.document.docType
+                    DocumentSort.Size -> it.document.fileSizeBytes.toString().padStart(20, '0')
+                    DocumentSort.Author -> "admin"
+                }
+            }.let { if (ascending) it else it.reversed() })
+            .toList()
+    }
     fun selectSort(column: DocumentSort) { if (sort == column) ascending = !ascending else { sort = column; ascending = true } }
     Column(Modifier.fillMaxSize().padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -84,7 +89,7 @@ fun DocumentsScreen(canManageDocuments: Boolean = true) {
             if (canManageDocuments) Button(onClick = { showUploadDialog = true }) { Text(LocalizationManager.t("upload_document")) }
         }
         LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            items(DocumentTypeFilter.entries) { filter ->
+            items(DocumentTypeFilter.entries, key = { it.name }) { filter ->
                 FilterChip(
                     selected = typeFilter == filter,
                     onClick = { typeFilter = filter },
