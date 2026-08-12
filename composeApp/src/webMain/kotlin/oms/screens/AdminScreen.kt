@@ -20,8 +20,24 @@ import oms.data.CreateUserRequest
 import oms.components.RoleChip
 import oms.components.TableActionIconButton
 import oms.localization.LocalizationManager
+import androidx.compose.ui.graphics.Color
 
 private enum class UserSort { Id, Username, FullName, Email, Role, Status, LastLogin, Region, Department, Language, Created }
+
+@Composable
+private fun UserStatusChip(status: String) {
+    val color = when (status.lowercase()) {
+        "active" -> Color(0xFF2E7D32)
+        "pending" -> Color(0xFF757575)
+        "disabled", "locked" -> Color(0xFFC62828)
+        else -> Color(0xFF546E7A)
+    }
+    AssistChip(
+        onClick = {},
+        label = { Text(status.replaceFirstChar(Char::uppercase)) },
+        colors = AssistChipDefaults.assistChipColors(containerColor = color, labelColor = Color.White)
+    )
+}
 
 @Composable
 fun AdminScreen() {
@@ -61,32 +77,9 @@ fun AdminScreen() {
         }
         Text("Користувачі системи", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Row(Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
-                    SortableTableHeader("Логін", sort == UserSort.Username, ascending, { changeSort(UserSort.Username) }, Modifier.width(120.dp))
-                    SortableTableHeader("Логін", sort == UserSort.Username, ascending, { changeSort(UserSort.Username) }, Modifier.weight(1f))
-                    SortableTableHeader("Email", sort == UserSort.Email, ascending, { changeSort(UserSort.Email) }, Modifier.weight(1.4f))
-                    SortableTableHeader("Роль", sort == UserSort.Role, ascending, { changeSort(UserSort.Role) }, Modifier.width(150.dp))
-                    Text("Дії", Modifier.width(48.dp), style = MaterialTheme.typography.labelLarge)
-                }
-                HorizontalDivider()
-                if (sortedUsers.isEmpty()) Text("Користувачів не знайдено.")
-                sortedUsers.forEach { user ->
-                    Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Text(user.username, Modifier.width(120.dp))
-                        Text(user.username, Modifier.weight(1f))
-                        Text(user.email, Modifier.weight(1.4f))
-                        Box(Modifier.width(150.dp)) { RoleChip(user.role.code) }
-                        TableActionIconButton("Редагувати користувача", Icons.Default.Edit) { selectedUser = user }
-                    }
-                    HorizontalDivider()
-                }
-            }
-        }
-        Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
             Column(Modifier.padding(16.dp).horizontalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("Повні дані користувачів", style = MaterialTheme.typography.titleMedium)
-                Row(Modifier.width(1540.dp).padding(vertical = 6.dp)) {
+                Row(Modifier.width(1740.dp).padding(vertical = 6.dp)) {
                     SortableTableHeader("Логін", sort == UserSort.Username, ascending, { changeSort(UserSort.Username) }, Modifier.width(130.dp))
                     SortableTableHeader("Ім'я", sort == UserSort.FullName, ascending, { changeSort(UserSort.FullName) }, Modifier.width(180.dp))
                     SortableTableHeader("Email", sort == UserSort.Email, ascending, { changeSort(UserSort.Email) }, Modifier.width(220.dp))
@@ -97,23 +90,27 @@ fun AdminScreen() {
                     SortableTableHeader("Мова", sort == UserSort.Language, ascending, { changeSort(UserSort.Language) }, Modifier.width(80.dp))
                     SortableTableHeader("Останній вхід", sort == UserSort.LastLogin, ascending, { changeSort(UserSort.LastLogin) }, Modifier.width(170.dp))
                     SortableTableHeader("Невдалі входи", sort == UserSort.LastLogin, ascending, { changeSort(UserSort.LastLogin) }, Modifier.width(120.dp))
+                    Text("Блокування до", Modifier.width(170.dp), style = MaterialTheme.typography.labelLarge)
                     SortableTableHeader("Створено", sort == UserSort.Created, ascending, { changeSort(UserSort.Created) }, Modifier.width(170.dp))
+                    Text("Оновлено", Modifier.width(170.dp), style = MaterialTheme.typography.labelLarge)
                     Text("Дії", Modifier.width(48.dp), style = MaterialTheme.typography.labelLarge)
                 }
                 HorizontalDivider()
                 sortedUsers.forEach { user ->
-                    Row(Modifier.width(1540.dp).padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Row(Modifier.width(1740.dp).padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                         Text(user.username, Modifier.width(130.dp))
                         Text(listOf(user.firstName, user.lastName).filter { it.isNotBlank() }.joinToString(" ").ifBlank { "—" }, Modifier.width(180.dp))
                         Text(user.email, Modifier.width(220.dp))
                         Box(Modifier.width(150.dp)) { RoleChip(user.role.code) }
-                        Text(user.status, Modifier.width(110.dp))
+                        Box(Modifier.width(110.dp)) { UserStatusChip(user.status) }
                         Text(user.region ?: "—", Modifier.width(130.dp))
                         Text(user.department ?: "—", Modifier.width(150.dp))
                         Text(user.preferredLang, Modifier.width(80.dp))
                         Text(user.lastLoginAt ?: "—", Modifier.width(170.dp))
                         Text(user.failedLoginCount.toString(), Modifier.width(120.dp))
+                        Text(user.lockedUntil ?: "—", Modifier.width(170.dp))
                         Text(user.createdAt ?: "—", Modifier.width(170.dp))
+                        Text(user.updatedAt ?: "—", Modifier.width(170.dp))
                         TableActionIconButton("Редагувати користувача", Icons.Default.Edit) { selectedUser = user }
                     }
                     HorizontalDivider()
