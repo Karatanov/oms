@@ -73,7 +73,9 @@ fun Route.userRoutes() {
                 username = request.username,
                 email = request.email,
                 password = request.password,
-                roleCode = request.roleCode
+                roleCode = request.roleCode,
+                firstName = request.firstName, lastName = request.lastName, status = request.status,
+                region = request.region, department = request.department, preferredLang = request.preferredLang
             )
 
             call.respond(
@@ -106,5 +108,14 @@ fun Route.userRoutes() {
         } catch (exception: IllegalArgumentException) {
             call.respond(HttpStatusCode.BadRequest, ErrorResponse("VALIDATION_ERROR", exception.message ?: "Invalid user data."))
         }
+    }
+
+    delete("/api/v1/users/{id}") {
+        val session = call.requireRole("ADMIN") ?: return@delete
+        val id = call.parameters["id"]?.toLongOrNull()
+            ?: return@delete call.respond(HttpStatusCode.BadRequest, ErrorResponse("VALIDATION_ERROR", "User ID is required."))
+        if (id == session.userId) return@delete call.respond(HttpStatusCode.BadRequest, ErrorResponse("VALIDATION_ERROR", "You cannot delete your own account."))
+        if (!userService.deleteUser(id)) return@delete call.respond(HttpStatusCode.NotFound, ErrorResponse("NOT_FOUND", "User not found."))
+        call.respond(HttpStatusCode.NoContent)
     }
 }

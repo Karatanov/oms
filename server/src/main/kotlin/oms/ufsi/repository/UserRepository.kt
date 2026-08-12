@@ -25,7 +25,13 @@ interface UserRepository {
         username: String,
         email: String,
         password: String,
-        roleId: Long
+        roleId: Long,
+        firstName: String,
+        lastName: String,
+        status: String,
+        region: String?,
+        department: String?,
+        preferredLang: String
     ): User
 
     /**
@@ -52,7 +58,9 @@ interface UserRepository {
         email: String
     ): Boolean
 
-    fun update(id: Long, username: String, email: String, passwordHash: String, roleId: Long): User?
+    fun update(id: Long, username: String, email: String, passwordHash: String, roleId: Long, firstName: String, lastName: String, status: String, region: String?, department: String?, preferredLang: String): User?
+
+    fun delete(id: Long): Boolean
 
     fun authenticationState(userId: Long): AuthenticationState?
 

@@ -35,5 +35,11 @@ data class CreateUserRequest(
      * ADMIN
      * INSPECTOR
      */
-    val roleCode: String
+    val roleCode: String,
+    val firstName: String = "",
+    val lastName: String = "",
+    val status: String = "active",
+    val region: String? = null,
+    val department: String? = null,
+    val preferredLang: String = "uk"
 )

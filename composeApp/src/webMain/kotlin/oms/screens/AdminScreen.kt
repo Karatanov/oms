@@ -6,6 +6,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -112,6 +113,12 @@ fun AdminScreen() {
                         Text(user.createdAt ?: "—", Modifier.width(170.dp))
                         Text(user.updatedAt ?: "—", Modifier.width(170.dp))
                         TableActionIconButton("Редагувати користувача", Icons.Default.Edit) { selectedUser = user }
+                        TableActionIconButton("Видалити користувача", Icons.Default.Delete) {
+                            scope.launch {
+                                if (OmsApiClient.deleteUser(user.id)) users = users.filterNot { it.id == user.id }
+                                else errorMessage = "Не вдалося видалити користувача. Неможливо видалити поточний обліковий запис."
+                            }
+                        }
                     }
                     HorizontalDivider()
                 }
@@ -145,6 +152,12 @@ private fun CreateUserDialog(roles: List<ApiRole>, onDismiss: () -> Unit, onSave
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var roleCode by remember { mutableStateOf(roles.firstOrNull()?.code ?: "") }
+    var firstName by remember { mutableStateOf("") }
+    var lastName by remember { mutableStateOf("") }
+    var status by remember { mutableStateOf("active") }
+    var region by remember { mutableStateOf("") }
+    var department by remember { mutableStateOf("") }
+    var preferredLang by remember { mutableStateOf("uk") }
     var expanded by remember { mutableStateOf(false) }
     val role = roles.firstOrNull { it.code == roleCode }
     Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
@@ -152,6 +165,18 @@ private fun CreateUserDialog(roles: List<ApiRole>, onDismiss: () -> Unit, onSave
             Text("Створити користувача", style = MaterialTheme.typography.titleLarge)
             OutlinedTextField(username, { username = it }, label = { Text("Логін") }, modifier = Modifier.fillMaxWidth())
             OutlinedTextField(email, { email = it }, label = { Text("Email") }, modifier = Modifier.fillMaxWidth())
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(firstName, { firstName = it }, label = { Text("Ім'я") }, modifier = Modifier.weight(1f))
+                OutlinedTextField(lastName, { lastName = it }, label = { Text("Прізвище") }, modifier = Modifier.weight(1f))
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(region, { region = it }, label = { Text("Регіон") }, modifier = Modifier.weight(1f))
+                OutlinedTextField(department, { department = it }, label = { Text("Відділ") }, modifier = Modifier.weight(1f))
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                listOf("active", "pending", "disabled").forEach { value -> FilterChip(status == value, { status = value }, label = { Text(value) }) }
+                listOf("uk", "en").forEach { value -> FilterChip(preferredLang == value, { preferredLang = value }, label = { Text(value.uppercase()) }) }
+            }
             OutlinedTextField(password, { password = it }, label = { Text("Пароль") }, modifier = Modifier.fillMaxWidth())
             Box {
                 OutlinedButton(onClick = { expanded = true }, modifier = Modifier.fillMaxWidth()) { Text(role?.name ?: "Оберіть роль") }
@@ -161,7 +186,7 @@ private fun CreateUserDialog(roles: List<ApiRole>, onDismiss: () -> Unit, onSave
             }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
                 OutlinedButton(onClick = onDismiss) { Text("Скасувати") }
-                Button(onClick = { onSave(CreateUserRequest(username.trim(), email.trim(), password, roleCode)) }, enabled = username.isNotBlank() && email.contains('@') && password.isNotBlank() && role != null) { Text("Створити") }
+                Button(onClick = { onSave(CreateUserRequest(username.trim(), email.trim(), password, roleCode, firstName.trim(), lastName.trim(), status, region.trim().ifBlank { null }, department.trim().ifBlank { null }, preferredLang)) }, enabled = username.isNotBlank() && email.contains('@') && password.isNotBlank() && role != null) { Text("Створити") }
             }
         }
     }
@@ -173,6 +198,12 @@ private fun EditUserDialog(user: ApiUser, roles: List<ApiRole>, saveError: Strin
     var email by remember(user.id) { mutableStateOf(user.email) }
     var roleCode by remember(user.id) { mutableStateOf(user.role.code) }
     var password by remember(user.id) { mutableStateOf("") }
+    var firstName by remember(user.id) { mutableStateOf(user.firstName) }
+    var lastName by remember(user.id) { mutableStateOf(user.lastName) }
+    var status by remember(user.id) { mutableStateOf(user.status) }
+    var region by remember(user.id) { mutableStateOf(user.region.orEmpty()) }
+    var department by remember(user.id) { mutableStateOf(user.department.orEmpty()) }
+    var preferredLang by remember(user.id) { mutableStateOf(user.preferredLang) }
     var expanded by remember { mutableStateOf(false) }
     val role = roles.firstOrNull { it.code == roleCode }
     Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
@@ -180,6 +211,18 @@ private fun EditUserDialog(user: ApiUser, roles: List<ApiRole>, saveError: Strin
             Text("Редагувати користувача", style = MaterialTheme.typography.titleLarge)
             OutlinedTextField(username, { username = it }, label = { Text("Логін") }, modifier = Modifier.fillMaxWidth())
             OutlinedTextField(email, { email = it }, label = { Text("Email") }, modifier = Modifier.fillMaxWidth())
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(firstName, { firstName = it }, label = { Text("Ім'я") }, modifier = Modifier.weight(1f))
+                OutlinedTextField(lastName, { lastName = it }, label = { Text("Прізвище") }, modifier = Modifier.weight(1f))
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(region, { region = it }, label = { Text("Регіон") }, modifier = Modifier.weight(1f))
+                OutlinedTextField(department, { department = it }, label = { Text("Відділ") }, modifier = Modifier.weight(1f))
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                listOf("active", "pending", "disabled").forEach { value -> FilterChip(status == value, { status = value }, label = { Text(value) }) }
+                listOf("uk", "en").forEach { value -> FilterChip(preferredLang == value, { preferredLang = value }, label = { Text(value.uppercase()) }) }
+            }
             Box {
                 OutlinedButton(onClick = { expanded = true }, modifier = Modifier.fillMaxWidth()) { Text(role?.name ?: roleCode) }
                 DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
@@ -191,7 +234,7 @@ private fun EditUserDialog(user: ApiUser, roles: List<ApiRole>, saveError: Strin
             saveError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
                 OutlinedButton(onClick = { expanded = false; onDismiss() }) { Text("Скасувати") }
-                Button(onClick = { onSave(UpdateUserRequest(username, email, roleCode, password.ifBlank { null })) }, enabled = username.isNotBlank() && email.contains('@') && role != null) { Text("Зберегти") }
+                Button(onClick = { onSave(UpdateUserRequest(username, email, roleCode, password.ifBlank { null }, firstName, lastName, status, region.ifBlank { null }, department.ifBlank { null }, preferredLang)) }, enabled = username.isNotBlank() && email.contains('@') && role != null) { Text("Зберегти") }
             }
         }
     }

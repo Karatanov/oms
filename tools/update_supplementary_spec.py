@@ -78,7 +78,7 @@ sections = {
         "Inspection reports support creation, submission, review/approval/rejection, findings, XLSX SIR import, source-file download, report reassignment, and JPEG/PNG photo upload with thumbnails and a main photo.",
         "Financial monitoring supports acts, invoices, payments and advances; XLSX import/export; completed-work totals; and project financial summary based on acts of completed works.",
         "Document management supports file-system storage, typed upload, filtering, original-filename download and role-controlled permanent deletion.",
-        "Administration provides a sortable user table, role colour badges, user editing, role change and password reset by an Administrator.",
+        "Administration provides a sortable user table, role and status colour badges, and full CRUD for user business data (identity, role, status, region, department and preferred language). Administrators can set or reset a password but cannot read an existing password or delete their own account.",
         "The Leaflet/OpenStreetMap map opens at Ukraine-wide extent, filters records locally, and clusters nearby projects, subprojects and subproject parts when zoomed out.",
         "Audit-log events are recorded for relevant authentication and data-change operations and exposed on the dashboard as recent activity.",
     ],

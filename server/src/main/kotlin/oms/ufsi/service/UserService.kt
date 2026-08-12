@@ -54,7 +54,13 @@ class UserService(
         username: String,
         email: String,
         password: String,
-        roleCode: String
+        roleCode: String,
+        firstName: String = "",
+        lastName: String = "",
+        status: String = "active",
+        region: String? = null,
+        department: String? = null,
+        preferredLang: String = "uk"
     ): User {
         /**
          * Спочатку перевіряємо коректність
@@ -101,7 +107,10 @@ class UserService(
             username = username,
             email = email,
             password = passwordHash,
-            roleId = role.id
+            roleId = role.id,
+            firstName = firstName.trim(), lastName = lastName.trim(),
+            status = normalizeStatus(status), region = region?.trim()?.ifBlank { null },
+            department = department?.trim()?.ifBlank { null }, preferredLang = normalizeLanguage(preferredLang)
         )
     }
 
@@ -120,7 +129,29 @@ class UserService(
         val role = request.roleCode?.trim()?.takeIf { it.isNotEmpty() }?.let { roleService.getRoleByCode(it) }
             ?: if (request.roleCode.isNullOrBlank()) current.role else throw IllegalArgumentException("Role does not exist.")
         val passwordHash = if (password.isNullOrBlank()) current.passwordHash else PasswordHasher.hash(password)
-        return userRepository.update(id, username, email, passwordHash, role.id)
+        return userRepository.update(
+            id, username, email, passwordHash, role.id,
+            request.firstName?.trim() ?: current.firstName,
+            request.lastName?.trim() ?: current.lastName,
+            request.status?.let(::normalizeStatus) ?: current.status,
+            request.region?.trim()?.ifBlank { null } ?: current.region,
+            request.department?.trim()?.ifBlank { null } ?: current.department,
+            request.preferredLang?.let(::normalizeLanguage) ?: current.preferredLang
+        )
+    }
+
+    fun deleteUser(id: Long): Boolean = userRepository.delete(id)
+
+    private fun normalizeStatus(value: String): String {
+        val status = value.trim().lowercase()
+        require(status in setOf("active", "pending", "disabled")) { "User status must be active, pending, or disabled." }
+        return status
+    }
+
+    private fun normalizeLanguage(value: String): String {
+        val language = value.trim().lowercase()
+        require(language in setOf("uk", "en")) { "Preferred language must be uk or en." }
+        return language
     }
 
     /**

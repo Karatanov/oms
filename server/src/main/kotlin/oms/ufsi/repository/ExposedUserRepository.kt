@@ -9,6 +9,7 @@ import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.jetbrains.exposed.v1.jdbc.update
 import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import java.time.LocalDateTime
 import java.util.UUID
 
@@ -109,7 +110,13 @@ class ExposedUserRepository : UserRepository {
         username: String,
         email: String,
         password: String,
-        roleId: Long
+        roleId: Long,
+        firstName: String,
+        lastName: String,
+        status: String,
+        region: String?,
+        department: String?,
+        preferredLang: String
     ): User = transaction {
 
         val userId = UserTable.insertAndGetId {
@@ -119,6 +126,12 @@ class ExposedUserRepository : UserRepository {
             it[UserTable.email] = email
             it[UserTable.passwordHash] = password
             it[UserTable.roleId] = roleId
+            it[UserTable.firstName] = firstName
+            it[UserTable.lastName] = lastName
+            it[UserTable.status] = status
+            it[UserTable.region] = region
+            it[UserTable.department] = department
+            it[UserTable.preferredLang] = preferredLang
         }
 
         val role = RoleTable
@@ -178,15 +191,23 @@ class ExposedUserRepository : UserRepository {
             }
     }
 
-    override fun update(id: Long, username: String, email: String, passwordHash: String, roleId: Long): User? = transaction {
+    override fun update(id: Long, username: String, email: String, passwordHash: String, roleId: Long, firstName: String, lastName: String, status: String, region: String?, department: String?, preferredLang: String): User? = transaction {
         val count = UserTable.update({ UserTable.id eq id }) {
             it[UserTable.username] = username
             it[UserTable.email] = email
             it[UserTable.passwordHash] = passwordHash
             it[UserTable.roleId] = roleId
+            it[UserTable.firstName] = firstName
+            it[UserTable.lastName] = lastName
+            it[UserTable.status] = status
+            it[UserTable.region] = region
+            it[UserTable.department] = department
+            it[UserTable.preferredLang] = preferredLang
         }
         if (count == 0) null else findAll().firstOrNull { it.id == id }
     }
+
+    override fun delete(id: Long): Boolean = transaction { UserTable.deleteWhere { UserTable.id eq id } > 0 }
 
     override fun authenticationState(userId: Long): UserRepository.AuthenticationState? = transaction {
         UserTable.selectAll().firstOrNull { it[UserTable.id].value == userId }?.let { row ->

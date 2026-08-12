@@ -138,6 +138,8 @@ object OmsApiClient {
     suspend fun deleteProject(projectUuid: String): Boolean =
         client.delete("$baseUrl/projects/$projectUuid").status.isSuccess()
 
+    suspend fun deleteUser(id: Long): Boolean = client.delete("$baseUrl/users/$id").status.isSuccess()
+
     suspend fun deleteInspectionReport(reportUuid: String): Boolean =
         client.delete("$baseUrl/inspection-reports/$reportUuid").status.isSuccess()
 
@@ -271,11 +273,21 @@ data class UpdateUserRequest(
     val username: String? = null,
     val email: String? = null,
     val roleCode: String? = null,
-    val password: String? = null
+    val password: String? = null,
+    val firstName: String? = null,
+    val lastName: String? = null,
+    val status: String? = null,
+    val region: String? = null,
+    val department: String? = null,
+    val preferredLang: String? = null
 )
 
 @Serializable
-data class CreateUserRequest(val username: String, val email: String, val password: String, val roleCode: String)
+data class CreateUserRequest(
+    val username: String, val email: String, val password: String, val roleCode: String,
+    val firstName: String = "", val lastName: String = "", val status: String = "active",
+    val region: String? = null, val department: String? = null, val preferredLang: String = "uk"
+)
 
 @Serializable
 data class ProjectListPayload(val data: List<ApiProject>)
