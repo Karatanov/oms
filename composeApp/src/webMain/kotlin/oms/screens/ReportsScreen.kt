@@ -54,6 +54,7 @@ fun ReportsScreen(
     var findingsReport by remember { mutableStateOf<ReportRow?>(null) }
     var reportToReview by remember { mutableStateOf<ReportRow?>(null) }
     var reportToView by remember { mutableStateOf<ReportRow?>(null) }
+    var isMovingReport by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     var sort by remember { mutableStateOf(ReportSort.Date) }
     var ascending by remember { mutableStateOf(false) }
@@ -142,17 +143,26 @@ fun ReportsScreen(
             MoveReportDialog(
                 report = report,
                 onDismiss = { reportToMove = null },
+                isMoving = isMovingReport,
                 onMove = { target ->
+                    isMovingReport = true
                     scope.launch {
-                        if (OmsApiClient.moveInspectionReport(report.report.uuid, target.id)) {
-                            reports = reports.map {
-                                if (it.report.uuid == report.report.uuid) {
-                                    val parent = target.parentProjectUuid?.let { parentId -> ProjectRepository.projects.firstOrNull { project -> project.id == parentId } }
-                                    it.copy(projectUuid = target.id, projectName = parent?.name ?: target.name, subprojectName = parent?.let { target.name })
-                                } else it
+                        runCatching { OmsApiClient.moveInspectionReport(report.report.uuid, target.id) }
+                            .onSuccess { moved ->
+                                if (!moved) {
+                                    errorMessage = "Не вдалося перенести звіт. Перевірте права доступу та обраний проєкт."
+                                    return@onSuccess
+                                }
+                                reports = reports.map {
+                                    if (it.report.uuid == report.report.uuid) {
+                                        val parent = target.parentProjectUuid?.let { parentId -> ProjectRepository.projects.firstOrNull { project -> project.id == parentId } }
+                                        it.copy(projectUuid = target.id, projectName = parent?.name ?: target.name, subprojectName = parent?.let { target.name })
+                                    } else it
+                                }
+                                reportToMove = null
                             }
-                            reportToMove = null
-                        } else errorMessage = "Could not move report."
+                            .onFailure { errorMessage = "Не вдалося перенести звіт: ${it.message ?: "невідома помилка"}" }
+                        isMovingReport = false
                     }
                 }
             )
@@ -338,16 +348,23 @@ private fun FindingEditorDialog(
 }
 
 @Composable
-private fun MoveReportDialog(report: ReportRow, onDismiss: () -> Unit, onMove: (oms.model.Project) -> Unit) {
+private fun MoveReportDialog(
+    report: ReportRow,
+    onDismiss: () -> Unit,
+    isMoving: Boolean,
+    onMove: (oms.model.Project) -> Unit
+) {
     var selectedUuid by remember(report.report.uuid) { mutableStateOf<String?>(null) }
     val projects = ProjectRepository.projects.filter { it.id != report.projectUuid }
     val selected = projects.firstOrNull { it.id == selectedUuid }
-    Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+    AlertDialog(
+        onDismissRequest = { if (!isMoving) onDismiss() },
+        title = { Text(LocalizationManager.t("move_report")) },
+        text = {
         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(LocalizationManager.t("move_report"), style = MaterialTheme.typography.titleLarge)
                 var expanded by remember { mutableStateOf(false) }
                 Box {
-                    OutlinedButton(onClick = { expanded = true }, modifier = Modifier.fillMaxWidth()) {
+                    OutlinedButton(onClick = { expanded = true }, enabled = !isMoving, modifier = Modifier.fillMaxWidth()) {
                         Text(selected?.name ?: LocalizationManager.t("select_target_project"))
                     }
                     DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
@@ -360,12 +377,16 @@ private fun MoveReportDialog(report: ReportRow, onDismiss: () -> Unit, onMove: (
                     }
                 }
                 if (projects.isEmpty()) Text(LocalizationManager.t("no_other_project"))
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
-                OutlinedButton(onClick = onDismiss) { Text(LocalizationManager.t("cancel")) }
-                Button(onClick = { selected?.let(onMove) }, enabled = selected != null) { Text(LocalizationManager.t("move")) }
+            }
+        },
+        dismissButton = { OutlinedButton(onClick = onDismiss, enabled = !isMoving) { Text(LocalizationManager.t("cancel")) } },
+        confirmButton = {
+            Button(onClick = { selected?.let(onMove) }, enabled = selected != null && !isMoving) {
+                if (isMoving) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
+                else Text(LocalizationManager.t("move"))
             }
         }
-    }
+    )
 }
 
 @Composable
