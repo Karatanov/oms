@@ -11,6 +11,7 @@ import oms.data.OmsApiClient
 import oms.data.ProjectRepository
 import oms.data.UpdateProjectRequest
 import oms.model.Project
+import oms.components.OmsDateField
 
 @Composable
 fun EditProjectScreen(
@@ -77,9 +78,9 @@ fun EditProjectScreen(
                     Text("Дані субпроєкту", style = MaterialTheme.typography.titleMedium)
                     OutlinedTextField(subprojectContractAmount, { value -> if (value.all(Char::isDigit)) subprojectContractAmount = value }, label = { Text("Сума контракту субпроєкту, грн *") }, singleLine = true, modifier = Modifier.fillMaxWidth())
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        OutlinedTextField(startDate, { startDate = it }, label = { Text("Дата початку * (YYYY-MM-DD)") }, singleLine = true, modifier = Modifier.weight(1f))
-                        OutlinedTextField(contractSignedDate, { contractSignedDate = it }, label = { Text("Дата укладення контракту * (YYYY-MM-DD)") }, singleLine = true, modifier = Modifier.weight(1f))
-                        OutlinedTextField(plannedEndDate, { plannedEndDate = it }, label = { Text("Планова дата завершення * (YYYY-MM-DD)") }, singleLine = true, modifier = Modifier.weight(1f))
+                        OmsDateField(startDate, { startDate = it }, "Дата початку", Modifier.weight(1f), true)
+                        OmsDateField(contractSignedDate, { contractSignedDate = it }, "Дата укладення контракту", Modifier.weight(1f), true)
+                        OmsDateField(plannedEndDate, { plannedEndDate = it }, "Планова дата завершення", Modifier.weight(1f), true)
                     }
                     Text("Тривалість контракту буде розрахована після збереження дат.", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }

@@ -24,6 +24,7 @@ import oms.components.SortableTableHeader
 import oms.components.ReportStatusChip
 import oms.components.TableActionIconButton
 import oms.components.FilterDropdown
+import oms.components.toOmsDate
 import oms.localization.LocalizationManager
 import kotlin.js.JsName
 
@@ -112,7 +113,7 @@ fun ReportsScreen(
                 if (visible.isEmpty()) Text(LocalizationManager.t("no_reports"))
                 visible.forEach { row ->
                     Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                        Text(row.report.inspectionDate, Modifier.width(105.dp))
+                        Text(row.report.inspectionDate.toOmsDate(), Modifier.width(105.dp))
                         Text(row.report.summary ?: LocalizationManager.t("inspection_report"), Modifier.weight(1.1f), style = MaterialTheme.typography.bodyMedium)
                         Text(row.projectName, Modifier.width(190.dp), style = MaterialTheme.typography.bodySmall)
                         Text(row.subprojectName ?: "—", Modifier.width(190.dp), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -196,7 +197,7 @@ private fun ReportViewerDialog(report: ReportRow, onDismiss: () -> Unit) {
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text("${LocalizationManager.t("report_project")}: ${report.projectName}")
-                Text("${LocalizationManager.t("date")}: ${report.report.inspectionDate}")
+                Text("${LocalizationManager.t("date")}: ${report.report.inspectionDate.toOmsDate()}")
                 Text("${LocalizationManager.t("status")}: ${report.report.status.replace('_', ' ')}")
                 report.report.rejectionReason?.let { Text("Причина повернення: $it") }
                 Text("${LocalizationManager.t("inspection_findings")}: ${findings.size}")

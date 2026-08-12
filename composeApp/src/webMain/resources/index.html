@@ -24,6 +24,12 @@
             return `${year}-${month}-${day}`;
         }
 
+        function formatOmsDate(value) {
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(value || "")) return value || "";
+            const [year, month, day] = value.split("-");
+            return `${day}.${month}.${year}`;
+        }
+
         const ukraineBounds = [
             [44.0, 22.0],
             [52.5, 40.5]
@@ -246,7 +252,7 @@
 
             const title = document.createElement("div");
             title.className = "photo-slider-title";
-            title.textContent = inspectionDate ? `Latest inspection: ${inspectionDate}` : "No Inspection Reports yet";
+            title.textContent = inspectionDate ? `Latest inspection: ${formatOmsDate(inspectionDate)}` : "No Inspection Reports yet";
             pane.append(title);
             if (!inspectionDate) return;
 

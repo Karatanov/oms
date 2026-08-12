@@ -26,6 +26,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import oms.data.CreateProjectRequest
+import oms.components.OmsDateField
 import oms.data.ApiProject
 import oms.data.OmsApiClient
 import oms.data.ProjectRepository
@@ -113,9 +114,9 @@ fun CreateProjectScreen(
                 if (projectType == "subproject") {
                     OutlinedTextField(subprojectContractAmount, { value -> if (value.all(Char::isDigit)) subprojectContractAmount = value }, label = { Text("Сума контракту субпроєкту, грн *") }, singleLine = true, modifier = Modifier.fillMaxWidth())
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        OutlinedTextField(startDate, { startDate = it }, label = { Text("Дата початку * (YYYY-MM-DD)") }, singleLine = true, modifier = Modifier.weight(1f))
-                        OutlinedTextField(contractSignedDate, { contractSignedDate = it }, label = { Text("Дата укладення контракту * (YYYY-MM-DD)") }, singleLine = true, modifier = Modifier.weight(1f))
-                        OutlinedTextField(plannedEndDate, { plannedEndDate = it }, label = { Text("Планова дата завершення * (YYYY-MM-DD)") }, singleLine = true, modifier = Modifier.weight(1f))
+                        OmsDateField(startDate, { startDate = it }, "Дата початку", Modifier.weight(1f), true)
+                        OmsDateField(contractSignedDate, { contractSignedDate = it }, "Дата укладення контракту", Modifier.weight(1f), true)
+                        OmsDateField(plannedEndDate, { plannedEndDate = it }, "Планова дата завершення", Modifier.weight(1f), true)
                     }
                 }
                 OutlinedTextField(address, { address = it }, label = { Text("Адреса *") }, modifier = Modifier.fillMaxWidth())

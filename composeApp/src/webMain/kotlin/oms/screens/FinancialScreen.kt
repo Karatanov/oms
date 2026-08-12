@@ -17,6 +17,8 @@ import oms.data.ProjectRepository
 import oms.components.SortableTableHeader
 import oms.components.TableActionIconButton
 import oms.localization.LocalizationManager
+import oms.components.OmsDateField
+import oms.components.toOmsDate
 import kotlin.js.JsName
 
 @JsName("openFinancialImport")
@@ -115,8 +117,8 @@ fun FinancialScreen(
                         Text(row.act.referenceNumber, Modifier.width(130.dp))
                         Text(row.act.recordType.replaceFirstChar { it.uppercase() }, Modifier.width(95.dp))
                         Text(row.projectName, Modifier.weight(1.25f))
-                        Text(row.act.recordDate, Modifier.width(105.dp))
-                        Text(row.act.paymentDate ?: "—", Modifier.width(105.dp))
+                        Text(row.act.recordDate.toOmsDate(), Modifier.width(105.dp))
+                        Text(row.act.paymentDate.toOmsDate(), Modifier.width(105.dp))
                         Text(row.act.amount.toMoney(), Modifier.width(130.dp))
                         Text(row.act.currency, Modifier.width(65.dp))
                         Text(row.act.milestone ?: "—", Modifier.weight(1f))
@@ -212,7 +214,7 @@ private fun ActEditorDialog(existing: ProjectActRow?, projects: List<oms.model.P
                 listOf("invoice", "act", "payment", "advance").forEach { type -> FilterChip(selected = recordType == type, onClick = { recordType = type }, label = { Text(type) }) }
             }
             OutlinedTextField(amount, { amount = it }, label = { Text("Amount, UAH") }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(date, { date = it }, label = { Text("Date (YYYY-MM-DD)") }, modifier = Modifier.fillMaxWidth())
+            OmsDateField(date, { date = it }, "Date", Modifier.fillMaxWidth(), true)
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, androidx.compose.ui.Alignment.End)) {
                 OutlinedButton(onClick = onDismiss) { Text("Cancel") }
                 Button(onClick = { onSave(projectUuid!!, oms.data.FinancialRecordRequest(recordType, reference, amount.toLong(), "UAH", date)) }, enabled = valid) { Text("Save") }

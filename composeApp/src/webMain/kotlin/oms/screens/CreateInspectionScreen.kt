@@ -8,9 +8,6 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -21,6 +18,7 @@ import kotlinx.coroutines.launch
 import oms.data.OmsApiClient
 import oms.data.ProjectRepository
 import oms.localization.LocalizationManager
+import oms.components.OmsDateField
 import kotlin.js.JsName
 
 @JsName("openSirImportDialog")
@@ -32,10 +30,6 @@ external fun openInspectionPhotoPicker(onSelectionChanged: (Int) -> Unit)
 @JsName("uploadSelectedInspectionPhotos")
 external fun uploadSelectedInspectionPhotos(reportUuid: String, onComplete: (String) -> Unit)
 
-@JsName("formatDateForInput")
-external fun formatDateForInput(epochMillis: Double): String
-
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CreateInspectionScreen(
     isEditMode: Boolean = false,
@@ -47,8 +41,6 @@ fun CreateInspectionScreen(
     onImportXls: () -> Unit = {}
 ) {
     var date by remember { mutableStateOf("2026-08-03") }
-    var showDatePicker by remember { mutableStateOf(false) }
-    val datePickerState = rememberDatePickerState()
     var inspectionType by remember { mutableStateOf(InspectionType.PLANNED) }
     var latitude by remember { mutableStateOf("") }
     var longitude by remember { mutableStateOf("") }
@@ -112,33 +104,14 @@ fun CreateInspectionScreen(
                     onSelect = { projectUuid = it }
                 )
 
-                OutlinedTextField(
+                OmsDateField(
                     value = date,
                     onValueChange = { date = it },
-                    label = { Text(LocalizationManager.t("date_label")) },
+                    label = LocalizationManager.t("date_label"),
                     modifier = Modifier.fillMaxWidth(),
-                    trailingIcon = {
-                        IconButton(onClick = { showDatePicker = true }) {
-                            Icon(Icons.Default.CalendarMonth, contentDescription = LocalizationManager.t("choose_date"))
-                        }
-                    },
-                    supportingText = { Text(LocalizationManager.t("cannot_be_future_date")) }
+                    required = true
                 )
-
-                if (showDatePicker) {
-                    DatePickerDialog(
-                        onDismissRequest = { showDatePicker = false },
-                        confirmButton = {
-                            TextButton(onClick = {
-                                datePickerState.selectedDateMillis?.let { date = formatDateForInput(it.toDouble()) }
-                                showDatePicker = false
-                            }) { Text(LocalizationManager.t("save")) }
-                        },
-                        dismissButton = { TextButton(onClick = { showDatePicker = false }) { Text(LocalizationManager.t("cancel")) } }
-                    ) {
-                        DatePicker(state = datePickerState)
-                    }
-                }
+                Text(LocalizationManager.t("cannot_be_future_date"), style = MaterialTheme.typography.bodySmall)
 
                 InspectionTypeDropdown(
                     value = inspectionType,
