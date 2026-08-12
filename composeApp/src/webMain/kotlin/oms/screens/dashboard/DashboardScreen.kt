@@ -13,6 +13,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.delay
 import oms.data.ApiDashboard
 import oms.data.ApiInspectionPhoto
 import oms.data.OmsApiClient
@@ -33,9 +34,14 @@ fun DashboardScreen() {
     var dashboard by remember { mutableStateOf<ApiDashboard?>(null) }
     var latestPhotos by remember { mutableStateOf<List<ApiInspectionPhoto>?>(null) }
     var photoInspectionDate by remember { mutableStateOf<String?>(null) }
-    LaunchedEffect(Unit) { ProjectRepository.refresh() }
     val projects = ProjectRepository.projects
-    LaunchedEffect(projects) { dashboard = runCatching { OmsApiClient.dashboard() }.getOrNull() }
+    LaunchedEffect(Unit) {
+        while (true) {
+            ProjectRepository.refresh()
+            dashboard = runCatching { OmsApiClient.dashboard() }.getOrNull()
+            delay(30_000)
+        }
+    }
 
     val recentInspections = dashboard?.recentInspections.orEmpty().sortedByDescending { it.inspectionDate }
     LaunchedEffect(recentInspections.map { it.uuid }) {
@@ -55,22 +61,18 @@ fun DashboardScreen() {
 
     val primary = MaterialTheme.colorScheme.primary
     val secondary = MaterialTheme.colorScheme.secondary
-    val tertiary = MaterialTheme.colorScheme.tertiary
-    val error = MaterialTheme.colorScheme.error
 
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .padding(start = 24.dp, top = 264.dp, end = 24.dp, bottom = 24.dp),
+            .padding(start = 24.dp, top = 24.dp, end = 24.dp, bottom = 264.dp),
 
         verticalArrangement = Arrangement.spacedBy(24.dp)
     ) {
 
-        item { KPIRow(primary, secondary, error, dashboard) }
+        item { KPIRow(primary, secondary, dashboard) }
 
         item { ProjectsByRegionChart(primary, projects) }
-
-        item { StatisticsSection(primary, secondary, tertiary) }
 
         item { ActivitySection(dashboard?.activities.orEmpty()) }
     }

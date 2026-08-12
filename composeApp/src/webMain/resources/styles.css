@@ -24,7 +24,7 @@ body {
 
 #dashboard-photo-slider {
     position: fixed;
-    top: 24px;
+    bottom: 24px;
     left: 264px;
     right: 24px;
     z-index: 3;

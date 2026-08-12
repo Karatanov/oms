@@ -93,6 +93,8 @@ fun FinancialScreen(
             }
         }
 
+        MonthlyPaymentsChart(acts.map { it.act })
+
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
             Text(LocalizationManager.t("financial_records"), style = MaterialTheme.typography.titleLarge)
             if (canManageFinancials) {
