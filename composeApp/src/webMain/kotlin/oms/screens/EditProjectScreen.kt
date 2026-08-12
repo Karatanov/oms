@@ -75,8 +75,8 @@ fun EditProjectScreen(
                     OutlinedTextField(siteName, { siteName = it }, label = { Text("Код майданчика *") }, modifier = Modifier.weight(1f))
                     OutlinedTextField(siteNumber, { siteNumber = it }, label = { Text("Номер майданчика *") }, modifier = Modifier.weight(1f))
                 }
-                if (projectType == "subproject") {
-                    Text("Дані субпроєкту", style = MaterialTheme.typography.titleMedium)
+                if (projectType != "project") {
+                    Text(if (projectType == "subproject_part") "Дані частини субпроєкту" else "Дані субпроєкту", style = MaterialTheme.typography.titleMedium)
                     OutlinedTextField(subprojectContractAmount, { value -> if (value.all(Char::isDigit)) subprojectContractAmount = value }, label = { Text("Сума контракту субпроєкту, грн *") }, singleLine = true, modifier = Modifier.fillMaxWidth())
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         OmsDateField(startDate, { startDate = it }, "Дата початку", Modifier.weight(1f), true)

@@ -24,7 +24,7 @@ object ProjectTable : LongIdTable("projects") {
 
     /**
      * Тип запису:
-     * project або subproject.
+     * project, subproject або subproject_part.
      */
     val projectType =
         varchar("project_type", 20)

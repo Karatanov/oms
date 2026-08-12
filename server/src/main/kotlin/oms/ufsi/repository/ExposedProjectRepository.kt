@@ -25,10 +25,7 @@ class ExposedProjectRepository : ProjectRepository {
                 Project(
                     id = row[ProjectTable.id].value,
                     uuid = UUID.fromString(row[ProjectTable.uuid]),
-                    projectType = when (row[ProjectTable.projectType]) {
-                        "project" -> ProjectType.PROJECT
-                        else -> ProjectType.SUBPROJECT
-                    },
+                    projectType = row[ProjectTable.projectType].toProjectType(),
                     trancheNumber = row[ProjectTable.trancheNumber],
                     parentProjectId = row[ProjectTable.parentProjectId]?.value,
                     name = row[ProjectTable.name],
@@ -82,15 +79,7 @@ class ExposedProjectRepository : ProjectRepository {
                         row[ProjectTable.uuid]
                     ),
 
-                    projectType =
-                        when (row[ProjectTable.projectType]) {
-
-                            "project" ->
-                                ProjectType.PROJECT
-
-                            else ->
-                                ProjectType.SUBPROJECT
-                        },
+                    projectType = row[ProjectTable.projectType].toProjectType(),
 
                     trancheNumber = row[ProjectTable.trancheNumber],
 
@@ -306,4 +295,11 @@ class ExposedProjectRepository : ProjectRepository {
         }
         return if (updated == 0) null else findByUuid(uuid)
     }
+}
+
+private fun String.toProjectType(): ProjectType = when (this) {
+    "project" -> ProjectType.PROJECT
+    "subproject" -> ProjectType.SUBPROJECT
+    "subproject_part" -> ProjectType.SUBPROJECT_PART
+    else -> error("Unknown project type: $this")
 }

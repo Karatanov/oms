@@ -13,5 +13,8 @@ enum class ProjectType {
     /**
      * Підпроєкт.
      */
-    SUBPROJECT
+    SUBPROJECT,
+
+    /** A constituent part of a subproject. */
+    SUBPROJECT_PART
 }

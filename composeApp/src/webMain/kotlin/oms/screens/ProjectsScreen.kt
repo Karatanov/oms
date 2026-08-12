@@ -136,20 +136,22 @@ fun ProjectsTable(
             if (ascending) comparison else -comparison
         }
 
-        val subprojectsByParent = projects
-            .filter { it.projectType.equals("subproject", ignoreCase = true) }
+        val childrenByParent = projects
+            .filter { !it.projectType.equals("project", ignoreCase = true) }
             .groupBy { it.parentProjectUuid }
-        val parents = sort(projects.filter { !it.projectType.equals("subproject", ignoreCase = true) })
+        val parents = sort(projects.filter { it.projectType.equals("project", ignoreCase = true) })
         val expanded = expandedParentIds ?: parents.map { it.id }.toSet()
         buildList {
-            parents.forEach { parent ->
-                val children = sort(subprojectsByParent[parent.id].orEmpty())
-                add(ProjectTreeRow(parent, false, false, children.size, parent.id in expanded))
-                if (parent.id in expanded) children.forEachIndexed { index, child ->
-                    add(ProjectTreeRow(child, true, index == children.lastIndex))
+            fun addBranch(item: Project, depth: Int, isLast: Boolean) {
+                val children = sort(childrenByParent[item.id].orEmpty())
+                val isExpanded = item.id in expanded
+                add(ProjectTreeRow(item, depth, isLast, children.size, isExpanded))
+                if (isExpanded) children.forEachIndexed { index, child ->
+                    addBranch(child, depth + 1, index == children.lastIndex)
                 }
             }
-            addAll(sort(subprojectsByParent[null].orEmpty()).map { ProjectTreeRow(it, true, true) })
+            parents.forEachIndexed { index, parent -> addBranch(parent, 0, index == parents.lastIndex) }
+            sort(childrenByParent[null].orEmpty()).forEach { addBranch(it, 1, true) }
         }
     }
 
@@ -176,13 +178,14 @@ fun ProjectsTable(
 
                 ProjectRow(
                     project = row.project,
-                    isSubproject = row.isSubproject,
+                    isSubproject = row.depth > 0,
                     isLastSubproject = row.isLastSubproject,
+                    indentLevel = row.depth,
                     childCount = row.childCount,
                     expanded = row.expanded,
                     onToggleChildren = { id ->
-                        val childParentIds = projects.filter { it.projectType.equals("subproject", true) }.mapNotNull { it.parentProjectUuid }.toSet()
-                        val parentIds = projects.filter { !it.projectType.equals("subproject", true) && it.id in childParentIds }.map { it.id }.toSet()
+                        val childParentIds = projects.filter { !it.projectType.equals("project", true) }.mapNotNull { it.parentProjectUuid }.toSet()
+                        val parentIds = projects.filter { it.id in childParentIds }.map { it.id }.toSet()
                         val current = expandedParentIds ?: parentIds
                         expandedParentIds = if (id in current) current - id else current + id
                     },
@@ -198,7 +201,7 @@ fun ProjectsTable(
 
 private data class ProjectTreeRow(
     val project: Project,
-    val isSubproject: Boolean,
+    val depth: Int,
     val isLastSubproject: Boolean = false,
     val childCount: Int = 0,
     val expanded: Boolean = true
@@ -305,6 +308,7 @@ fun ProjectRow(
 
     isSubproject: Boolean = false,
     isLastSubproject: Boolean = false,
+    indentLevel: Int = if (isSubproject) 1 else 0,
     childCount: Int = 0,
     expanded: Boolean = true,
     onToggleChildren: (String) -> Unit = {},
@@ -373,6 +377,7 @@ fun ProjectRow(
         }
 
         if (isSubproject) {
+            repeat(indentLevel - 1) { Spacer(Modifier.width(30.dp)) }
             Box(modifier = Modifier.width(30.dp).height(32.dp), contentAlignment = Alignment.Center) {
                 Box(
                     modifier = Modifier

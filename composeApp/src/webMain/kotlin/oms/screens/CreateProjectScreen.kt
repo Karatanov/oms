@@ -65,7 +65,7 @@ fun CreateProjectScreen(
     val scope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) {
-        parentProjects = runCatching { OmsApiClient.projects().filter { it.projectType == "project" } }.getOrDefault(emptyList())
+        parentProjects = runCatching { OmsApiClient.projects() }.getOrDefault(emptyList())
     }
 
     fun requiredFieldsFilled() = listOf(
@@ -94,14 +94,15 @@ fun CreateProjectScreen(
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     OutlinedButton(onClick = { projectType = "project" }, modifier = Modifier.weight(1f), colors = ButtonDefaults.outlinedButtonColors(containerColor = if (projectType == "project") Primary else MaterialTheme.colorScheme.surface, contentColor = if (projectType == "project") MaterialTheme.colorScheme.onPrimary else Primary)) { Text("Проєкт") }
                     OutlinedButton(onClick = { projectType = "subproject" }, modifier = Modifier.weight(1f), colors = ButtonDefaults.outlinedButtonColors(containerColor = if (projectType == "subproject") Primary else MaterialTheme.colorScheme.surface, contentColor = if (projectType == "subproject") MaterialTheme.colorScheme.onPrimary else Primary)) { Text("Субпроєкт") }
+                    OutlinedButton(onClick = { projectType = "subproject_part" }, modifier = Modifier.weight(1f), colors = ButtonDefaults.outlinedButtonColors(containerColor = if (projectType == "subproject_part") Primary else MaterialTheme.colorScheme.surface, contentColor = if (projectType == "subproject_part") MaterialTheme.colorScheme.onPrimary else Primary)) { Text("Частина субпроєкту") }
                 }
-                if (projectType == "subproject") {
+                if (projectType != "project") {
                     Box {
                         OutlinedButton(onClick = { parentPickerExpanded = true }, modifier = Modifier.fillMaxWidth()) {
-                            Text(parentProjects.firstOrNull { it.uuid == parentProjectUuid }?.name ?: "Оберіть батьківський проєкт *")
+                            Text(parentProjects.firstOrNull { it.uuid == parentProjectUuid }?.name ?: if (projectType == "subproject") "Оберіть батьківський проєкт *" else "Оберіть батьківський субпроєкт *")
                         }
                         DropdownMenu(expanded = parentPickerExpanded, onDismissRequest = { parentPickerExpanded = false }) {
-                            parentProjects.forEach { parent ->
+                            parentProjects.filter { it.projectType == if (projectType == "subproject") "project" else "subproject" }.forEach { parent ->
                                 DropdownMenuItem(text = { Text(parent.name) }, onClick = { parentProjectUuid = parent.uuid; parentPickerExpanded = false })
                             }
                         }
@@ -112,7 +113,7 @@ fun CreateProjectScreen(
                     OutlinedTextField(siteName, { siteName = it }, label = { Text("Код майданчика *") }, modifier = Modifier.weight(1f))
                     OutlinedTextField(siteNumber, { siteNumber = it }, label = { Text("Номер майданчика *") }, modifier = Modifier.weight(1f))
                 }
-                if (projectType == "subproject") {
+                if (projectType != "project") {
                     OutlinedTextField(subprojectContractAmount, { value -> if (value.all(Char::isDigit)) subprojectContractAmount = value }, label = { Text("Сума контракту субпроєкту, грн *") }, singleLine = true, modifier = Modifier.fillMaxWidth())
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         OmsDateField(startDate, { startDate = it }, "Дата початку", Modifier.weight(1f), true)
@@ -179,9 +180,9 @@ fun CreateProjectScreen(
                         parsedManagerId == null || parsedManagerId <= 0 -> "Вкажіть коректний ID відповідального."
                         engineerConsultantContractAmount.isNotBlank() && parsedEngineerConsultantAmount == null -> "Сума договору інженера-консультанта має бути цілим числом."
                         technicalSupervisionAmount.isNotBlank() && parsedTechnicalSupervisionAmount == null -> "Сума технічного нагляду має бути цілим числом."
-                        projectType == "subproject" && parentProjectUuid == null -> "Оберіть батьківський проєкт для субпроєкту."
-                        projectType == "subproject" && (parsedSubprojectContractAmount == null || parsedSubprojectContractAmount <= 0) -> "Вкажіть додатну суму контракту субпроєкту."
-                        projectType == "subproject" && listOf(startDate, contractSignedDate, plannedEndDate).any { it.isBlank() } -> "Заповніть усі дати субпроєкту."
+                        projectType != "project" && parentProjectUuid == null -> "Оберіть батьківський запис."
+                        projectType != "project" && (parsedSubprojectContractAmount == null || parsedSubprojectContractAmount <= 0) -> "Вкажіть додатну суму контракту."
+                        projectType != "project" && listOf(startDate, contractSignedDate, plannedEndDate).any { it.isBlank() } -> "Заповніть усі дати контракту."
                         else -> null
                     }
                     if (errorMessage == null) {

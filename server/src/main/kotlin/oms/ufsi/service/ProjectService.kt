@@ -189,12 +189,12 @@ class ProjectService(
             "Technical supervision amount must not be negative."
         }
 
-        if (projectType == ProjectType.SUBPROJECT) {
+        if (projectType != ProjectType.PROJECT) {
             require(subprojectContractAmount != null && subprojectContractAmount > 0) {
-                "Subproject contract amount must be positive."
+                "Subproject or subproject part contract amount must be positive."
             }
             require(startDate != null && contractSignedDate != null && plannedEndDate != null) {
-                "Subproject start date, contract signing date, and planned end date are required."
+                "Subproject or subproject part start date, contract signing date, and planned end date are required."
             }
             require(!plannedEndDate.isBefore(contractSignedDate)) {
                 "Planned end date must not be before contract signing date."
@@ -230,15 +230,18 @@ class ProjectService(
         val normalizedType = when (projectType.trim().lowercase()) {
             "project" -> ProjectType.PROJECT
             "subproject" -> ProjectType.SUBPROJECT
-            else -> throw IllegalArgumentException("Project type must be project or subproject.")
+            "subproject_part" -> ProjectType.SUBPROJECT_PART
+            else -> throw IllegalArgumentException("Project type must be project, subproject, or subproject_part.")
         }
         val parent = parentProjectUuid?.trim()?.takeIf { it.isNotEmpty() }?.let { parentUuid ->
             getProjectByUuid(parentUuid) ?: throw IllegalArgumentException("Parent project was not found.")
         }
         if (normalizedType == ProjectType.SUBPROJECT) {
             require(parent?.projectType == ProjectType.PROJECT) { "A subproject must reference a parent project." }
+        } else if (normalizedType == ProjectType.SUBPROJECT_PART) {
+            require(parent?.projectType == ProjectType.SUBPROJECT) { "A subproject part must reference a parent subproject." }
         } else {
-            require(parent == null) { "Only a subproject may reference a parent project." }
+            require(parent == null) { "Only a subproject or subproject part may reference a parent." }
         }
         val parsedStartDate = parseOptionalDate(startDate, "Start date")
         val parsedContractSignedDate = parseOptionalDate(contractSignedDate, "Contract signing date")

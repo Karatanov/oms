@@ -31,6 +31,7 @@ fun DocumentTypeChip(type: String) {
         "contract" -> LocalizationManager.t("contract") to Color(0xFF1565C0)
         "project" -> LocalizationManager.t("project") to Color(0xFF6A1B9A)
         "subproject" -> LocalizationManager.t("subproject") to Color(0xFF7B1FA2)
+        "subproject_part" -> LocalizationManager.t("subproject_part") to Color(0xFFAD1457)
         "design" -> LocalizationManager.t("design") to Color(0xFF00838F)
         "estimate" -> LocalizationManager.t("estimate") to Color(0xFFF9A825)
         "invoice", "act" -> LocalizationManager.t("financial_doc") to Color(0xFF2E7D32)

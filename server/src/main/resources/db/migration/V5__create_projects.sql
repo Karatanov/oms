@@ -22,11 +22,13 @@ CREATE TABLE projects
     /*
      * Тип запису:
      * project    - звичайний проєкт;
-     * subproject - підпроєкт.
+     * subproject - підпроєкт;
+     * subproject_part - частина підпроєкту.
      */
     project_type      ENUM (
         'project',
-        'subproject'
+        'subproject',
+        'subproject_part'
         )                            NOT NULL DEFAULT 'project',
 
     /*
