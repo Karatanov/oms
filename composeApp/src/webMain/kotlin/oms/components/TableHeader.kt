@@ -32,7 +32,7 @@ fun TableHeader(
             Modifier.width(130.dp)
         )
 
-        SortableHeader("Tranche", SortColumn.TRANCHE, currentSort, ascending, onSort, Modifier.width(90.dp))
+        SortableHeader(LocalizationManager.t("tranche"), SortColumn.TRANCHE, currentSort, ascending, onSort, Modifier.width(90.dp))
 
         SortableHeader(
             LocalizationManager.t("project"),
@@ -52,8 +52,8 @@ fun TableHeader(
             Modifier.width(160.dp)
         )
 
-        SortableHeader("City", SortColumn.CITY, currentSort, ascending, onSort, Modifier.width(130.dp))
-        SortableHeader("Sector", SortColumn.SECTOR, currentSort, ascending, onSort, Modifier.width(130.dp))
+        SortableHeader(LocalizationManager.t("city"), SortColumn.CITY, currentSort, ascending, onSort, Modifier.width(130.dp))
+        SortableHeader(LocalizationManager.t("sector"), SortColumn.SECTOR, currentSort, ascending, onSort, Modifier.width(130.dp))
         SortableHeader(LocalizationManager.t("construction_type"), SortColumn.CONSTRUCTION_TYPE, currentSort, ascending, onSort, Modifier.width(180.dp))
 
         SortableHeader(
@@ -65,9 +65,9 @@ fun TableHeader(
             Modifier.width(140.dp)
         )
 
-        SortableHeader("Budget", SortColumn.BUDGET, currentSort, ascending, onSort, Modifier.width(120.dp))
-        SortableHeader("Start date", SortColumn.START_DATE, currentSort, ascending, onSort, Modifier.width(120.dp))
-        SortableHeader("Contractor", SortColumn.CONTRACTOR, currentSort, ascending, onSort, Modifier.width(150.dp))
+        SortableHeader(LocalizationManager.t("budget"), SortColumn.BUDGET, currentSort, ascending, onSort, Modifier.width(120.dp))
+        SortableHeader(LocalizationManager.t("start_date"), SortColumn.START_DATE, currentSort, ascending, onSort, Modifier.width(120.dp))
+        SortableHeader(LocalizationManager.t("contractor"), SortColumn.CONTRACTOR, currentSort, ascending, onSort, Modifier.width(150.dp))
 
         Box(
             modifier = Modifier

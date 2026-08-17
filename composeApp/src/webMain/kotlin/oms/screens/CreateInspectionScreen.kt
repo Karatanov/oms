@@ -34,7 +34,7 @@ external fun uploadSelectedInspectionPhotos(reportUuid: String, onComplete: (Str
 @Composable
 fun CreateInspectionScreen(
     isEditMode: Boolean = false,
-    currentUserName: String = "Current User",
+    currentUserName: String = "Поточний користувач",
     isAdmin: Boolean = false,
     rejectedReason: String? = null,
     onSaveDraft: () -> Unit = {},
@@ -68,9 +68,9 @@ fun CreateInspectionScreen(
     }
     val inspectionTargetUuid = selectedSubprojectPartUuid ?: selectedSubprojectUuid ?: selectedProjectUuid
     val selectionError = when {
-        selectedProjectUuid == null -> "Select a project."
-        subprojects.isNotEmpty() && selectedSubprojectUuid == null -> "Select a subproject."
-        subprojectParts.isNotEmpty() && selectedSubprojectPartUuid == null -> "Select a subproject part."
+        selectedProjectUuid == null -> "Оберіть проєкт."
+        subprojects.isNotEmpty() && selectedSubprojectUuid == null -> "Оберіть субпроєкт."
+        subprojectParts.isNotEmpty() && selectedSubprojectPartUuid == null -> "Оберіть частину субпроєкту."
         else -> null
     }
 
@@ -233,7 +233,7 @@ fun CreateInspectionScreen(
                         errorMessage = null
                         uploadSelectedInspectionPhotos(createdReport) { uploadError ->
                             if (uploadError.isBlank()) onSubmit()
-                            else errorMessage = "Photo upload failed: $uploadError. You can retry without creating a second report."
+                            else errorMessage = "Не вдалося завантажити фото: $uploadError. Можна повторити спробу без створення другого звіту."
                             isSubmitting = false
                         }
                         return@Button
@@ -241,8 +241,8 @@ fun CreateInspectionScreen(
                     val selectedProject = inspectionTargetUuid
                     when {
                         selectionError != null -> errorMessage = selectionError
-                        !date.isIsoDate() -> errorMessage = "Date must use YYYY-MM-DD format."
-                        comments.text.isBlank() -> errorMessage = "Add a report summary before submitting."
+                        !date.isIsoDate() -> errorMessage = "Дата має бути у форматі РРРР-ММ-ДД."
+                        comments.text.isBlank() -> errorMessage = "Додайте короткий опис звіту перед надсиланням."
                         else -> {
                             isSubmitting = true
                             errorMessage = null
@@ -258,11 +258,11 @@ fun CreateInspectionScreen(
                                     createdReportUuid = report.uuid
                                     uploadSelectedInspectionPhotos(report.uuid) { uploadError ->
                                         if (uploadError.isBlank()) onSubmit()
-                                        else errorMessage = "Report was created, but photo upload failed: $uploadError"
+                                        else errorMessage = "Звіт створено, але не вдалося завантажити фото: $uploadError"
                                         isSubmitting = false
                                     }
                                 }.onFailure {
-                                    errorMessage = "Could not submit report: ${it.message ?: "unknown error"}"
+                                    errorMessage = "Не вдалося надіслати звіт: ${it.message ?: "невідома помилка"}"
                                     isSubmitting = false
                                 }
                             }

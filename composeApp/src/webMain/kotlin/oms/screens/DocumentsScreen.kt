@@ -118,7 +118,7 @@ fun DocumentsScreen(canManageDocuments: Boolean = true) {
                             scope.launch {
                                 if (OmsApiClient.deleteProjectDocument(row.projectUuid, row.document.uuid)) {
                                     projectFiles = projectFiles.filterNot { it.document.uuid == row.document.uuid }
-                                } else errorMessage = "Could not delete document."
+                                } else errorMessage = LocalizationManager.t("delete_document_error")
                             }
                         }
                         else Spacer(Modifier.width(48.dp))
@@ -133,15 +133,15 @@ fun DocumentsScreen(canManageDocuments: Boolean = true) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 if (sirFiles.isEmpty()) Text(LocalizationManager.t("no_imported_sir_files"))
                 sirFiles.forEach { row ->
-                    val fileName = row.report.summary?.removePrefix("Imported SIR: ") ?: "SIR source file"
+                    val fileName = row.report.summary?.removePrefix("Imported SIR: ") ?: LocalizationManager.t("source_file")
                     Text(fileName, style = MaterialTheme.typography.titleMedium)
                     Text("${row.projectName} • ${row.report.inspectionDate}")
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        TableActionIconButton("Open SIR source file", Icons.AutoMirrored.Filled.OpenInNew) { uriHandler.openUri("http://localhost:8080/api/v1/inspection-reports/${row.report.uuid}/source-file") }
-                        if (canManageDocuments) TableActionIconButton("Delete SIR source file", Icons.Default.Delete) {
+                        TableActionIconButton(LocalizationManager.t("open_source_file"), Icons.AutoMirrored.Filled.OpenInNew) { uriHandler.openUri("http://localhost:8080/api/v1/inspection-reports/${row.report.uuid}/source-file") }
+                        if (canManageDocuments) TableActionIconButton(LocalizationManager.t("delete_source_file"), Icons.Default.Delete) {
                             scope.launch {
                                 if (OmsApiClient.deleteInspectionReport(row.report.uuid)) sirFiles = sirFiles.filterNot { it.report.uuid == row.report.uuid }
-                                else errorMessage = "Could not delete source document."
+                                else errorMessage = LocalizationManager.t("delete_source_file_error")
                             }
                         }
                     }

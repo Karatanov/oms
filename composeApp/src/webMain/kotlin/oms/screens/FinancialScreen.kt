@@ -129,8 +129,8 @@ fun FinancialScreen(
                         Text(row.act.milestone ?: "—", Modifier.weight(1f))
                         Text("admin", Modifier.width(75.dp))
                         if (canManageFinancials) {
-                            TableActionIconButton("Edit act", Icons.Default.Edit) { editAct = row }
-                            TableActionIconButton("Delete act", Icons.Default.Delete) {
+                            TableActionIconButton(LocalizationManager.t("edit_financial_record_tooltip"), Icons.Default.Edit) { editAct = row }
+                            TableActionIconButton(LocalizationManager.t("delete_financial_record_tooltip"), Icons.Default.Delete) {
                                 scope.launch {
                                     if (OmsApiClient.deleteFinancialRecord(row.projectUuid, row.act.uuid)) reloadKey++
                                     else errorMessage = "Could not delete act."

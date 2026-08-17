@@ -131,7 +131,7 @@
                     if (!response.ok) throw new Error(await response.text());
                     window.location.reload();
                 } catch (error) {
-                    window.alert(`Could not import inspection report: ${error.message || error}`);
+                    window.alert(`Не вдалося імпортувати інспекційний звіт: ${error.message || error}`);
                 }
             };
             input.click();
@@ -158,7 +158,7 @@
                     window.alert(successMessage);
                     window.location.reload();
                 } catch (error) {
-                    window.alert(`Upload failed: ${error.message || error}`);
+                    window.alert(`Не вдалося завантажити файл: ${error.message || error}`);
                 } finally {
                     input.remove();
                 }
@@ -167,11 +167,11 @@
         }
 
         function openProjectDocumentUpload(projectUuid, docType) {
-            uploadWithDialog(".pdf,.xlsx,.jpg,.jpeg,.png", `http://localhost:8080/api/v1/projects/${projectUuid}/documents`, { docType }, "Document uploaded successfully.");
+            uploadWithDialog(".pdf,.xlsx,.jpg,.jpeg,.png", `http://localhost:8080/api/v1/projects/${projectUuid}/documents`, { docType }, "Документ успішно завантажено.");
         }
 
         function openInspectionPhotoUpload(reportUuid) {
-            uploadWithDialog("image/jpeg,image/png,image/webp", `http://localhost:8080/api/v1/inspection-reports/${reportUuid}/photos`, {}, "Photo uploaded successfully.");
+            uploadWithDialog("image/jpeg,image/png,image/webp", `http://localhost:8080/api/v1/inspection-reports/${reportUuid}/photos`, {}, "Фото успішно завантажено.");
         }
 
         function openFinancialImport(projectUuid) {
@@ -179,7 +179,7 @@
                 ".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 `http://localhost:8080/api/v1/projects/${projectUuid}/financials/import`,
                 {},
-                "Financial records imported successfully."
+                "Фінансові записи успішно імпортовано."
             );
         }
 
@@ -195,15 +195,15 @@
             const dialog = document.createElement("section");
             dialog.className = "inspection-photo-picker-dialog";
             const title = document.createElement("h2");
-            title.textContent = "Inspection photos";
+            title.textContent = "Фотографії інспекції";
             const rules = document.createElement("p");
-            rules.textContent = "Drag photos here or select files. JPEG/PNG only, up to 10 MB each, maximum 30 photos.";
+            rules.textContent = "Перетягніть фотографії сюди або виберіть файли. Лише JPEG/PNG, до 10 МБ кожен, максимум 30 фотографій.";
             const error = document.createElement("div");
             error.className = "inspection-photo-picker-error";
             const dropZone = document.createElement("button");
             dropZone.type = "button";
             dropZone.className = "inspection-photo-drop-zone";
-            dropZone.textContent = "Drop photos here or click to select";
+            dropZone.textContent = "Перетягніть фотографії сюди або натисніть для вибору";
             const input = document.createElement("input");
             input.type = "file";
             input.accept = "image/jpeg,image/png,.jpg,.jpeg,.png";
@@ -214,7 +214,7 @@
             const done = document.createElement("button");
             done.type = "button";
             done.className = "inspection-photo-done";
-            done.textContent = "Done";
+            done.textContent = "Готово";
 
             const notify = () => onSelectionChanged(ufsiPendingInspectionPhotos.length);
             const render = () => {
@@ -229,7 +229,7 @@
                     remove.type = "button";
                     remove.className = "inspection-photo-remove";
                     remove.textContent = "×";
-                    remove.setAttribute("aria-label", `Remove ${file.name}`);
+                    remove.setAttribute("aria-label", `Видалити ${file.name}`);
                     remove.onclick = () => { ufsiPendingInspectionPhotos.splice(index, 1); notify(); render(); };
                     const name = document.createElement("span");
                     name.textContent = file.name;
@@ -240,8 +240,8 @@
             const addFiles = files => {
                 const candidates = Array.from(files || []);
                 const invalid = candidates.find(file => !["image/jpeg", "image/png"].includes(file.type) || file.size > 10_000_000);
-                if (invalid) { error.textContent = `${invalid.name}: JPEG/PNG files up to 10 MB are allowed.`; return; }
-                if (ufsiPendingInspectionPhotos.length + candidates.length > 30) { error.textContent = "You can attach a maximum of 30 photos."; return; }
+                if (invalid) { error.textContent = `${invalid.name}: дозволені лише JPEG/PNG-файли розміром до 10 МБ.`; return; }
+                if (ufsiPendingInspectionPhotos.length + candidates.length > 30) { error.textContent = "Можна прикріпити максимум 30 фотографій."; return; }
                 error.textContent = "";
                 ufsiPendingInspectionPhotos.push(...candidates);
                 notify(); render();
@@ -288,14 +288,14 @@
 
             const title = document.createElement("div");
             title.className = "photo-slider-title";
-            title.textContent = inspectionDate ? `Latest inspection: ${formatOmsDate(inspectionDate)}` : "No Inspection Reports yet";
+            title.textContent = inspectionDate ? `Остання інспекція: ${formatOmsDate(inspectionDate)}` : "Інспекційних звітів ще немає";
             pane.append(title);
             if (!inspectionDate) return;
 
             if (!photos.length) {
                 const empty = document.createElement("div");
                 empty.className = "photo-slider-empty";
-                empty.textContent = "No photos in the latest inspection.";
+                empty.textContent = "В останній інспекції немає фотографій.";
                 pane.append(empty);
                 return;
             }
@@ -306,7 +306,7 @@
                 const button = document.createElement("button");
                 button.type = "button";
                 button.className = "photo-slider-item";
-                button.setAttribute("aria-label", `Open ${photo.fileName}`);
+                button.setAttribute("aria-label", `Відкрити ${photo.fileName}`);
                 const image = document.createElement("img");
                 image.src = photo.thumbnailUrl;
                 image.alt = photo.fileName;
@@ -326,7 +326,7 @@
             const close = document.createElement("button");
             close.className = "photo-lightbox-close";
             close.textContent = "×";
-            close.setAttribute("aria-label", "Close full-screen photo");
+            close.setAttribute("aria-label", "Закрити повноекранне фото");
             close.onclick = () => overlay.remove();
             const previous = document.createElement("button");
             previous.className = "photo-lightbox-nav previous";

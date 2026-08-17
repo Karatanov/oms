@@ -140,17 +140,17 @@ fun ProjectDetailScreen(
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             DetailMetricCard(
-                title = "Construction Contract",
+                title = LocalizationManager.t("construction_contract"),
                 value = details.value?.financialSummary?.constructionContractAmount?.toMoney() ?: "—",
                 modifier = Modifier.weight(1f)
             )
             DetailMetricCard(
-                title = "Acts of Completed Works",
+                title = LocalizationManager.t("acts_of_completed_works"),
                 value = details.value?.financialSummary?.amountSpent?.toMoney() ?: "—",
                 modifier = Modifier.weight(1f)
             )
             DetailMetricCard(
-                title = "Financial Completion",
+                title = LocalizationManager.t("financial_completion"),
                 value = details.value?.financialSummary?.completionPct?.let { "${it.toInt()}%" } ?: "—",
                 modifier = Modifier.weight(1f)
             )
@@ -423,9 +423,9 @@ private fun ProjectFinancialsTab(
     val actDocuments = documents.filter { it.docType == "act" }
     Card(Modifier.fillMaxSize()) {
         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text("Construction contract: ${financials?.summary?.constructionContractAmount?.toMoney() ?: "—"}", style = MaterialTheme.typography.titleLarge)
+            Text("${LocalizationManager.t("construction_contract")}: ${financials?.summary?.constructionContractAmount?.toMoney() ?: "—"}", style = MaterialTheme.typography.titleLarge)
             Text("${LocalizationManager.t("completed_works_by_acts")}: ${financials?.summary?.amountSpent?.toMoney() ?: "—"}")
-            Text("Financial completion: ${financials?.summary?.completionPct?.let { "${it.toInt()}%" } ?: "—"}")
+            Text("${LocalizationManager.t("financial_completion")}: ${financials?.summary?.completionPct?.let { "${it.toInt()}%" } ?: "—"}")
             if (acts.isEmpty()) Text(LocalizationManager.t("no_acts"))
             acts.forEach { act ->
                 Text("${act.referenceNumber} • ${act.recordDate.toOmsDate()} • ${act.amount.toMoney()}")

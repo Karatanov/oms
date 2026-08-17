@@ -41,7 +41,7 @@ private fun UserStatusChip(status: String) {
     }
     AssistChip(
         onClick = {},
-        label = { Text(status.replaceFirstChar(Char::uppercase)) },
+        label = { Text(LocalizationManager.t("user_status_${status.lowercase()}").takeIf { it != "user_status_${status.lowercase()}" } ?: status) },
         colors = AssistChipDefaults.assistChipColors(containerColor = color, labelColor = Color.White)
     )
 }

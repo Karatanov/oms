@@ -478,7 +478,7 @@ fun ProjectRow(
 
         TableActionIconButton(LocalizationManager.t("view"), Icons.Default.Visibility) { onOpen(project) }
         TableActionIconButton(LocalizationManager.t("edit"), Icons.Default.Edit) { onEdit(project) }
-        TableActionIconButton("Delete project", Icons.Default.Delete) { onDelete(project) }
+        TableActionIconButton(LocalizationManager.t("delete_project"), Icons.Default.Delete) { onDelete(project) }
     }
 
     HorizontalDivider()
