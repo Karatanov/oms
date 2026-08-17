@@ -37,9 +37,15 @@
             const input = document.createElement("input");
             input.type = "date";
             input.value = /^\d{4}-\d{2}-\d{2}$/.test(value || "") ? value : currentIsoDate();
+            const anchor = document.activeElement;
+            const bounds = anchor?.getBoundingClientRect?.();
             input.style.position = "fixed";
-            input.style.left = "-10000px";
+            input.style.left = `${bounds?.left ?? 16}px`;
+            input.style.top = `${bounds?.bottom ?? 16}px`;
+            input.style.width = "1px";
+            input.style.height = "1px";
             input.style.opacity = "0";
+            input.style.pointerEvents = "none";
             document.body.appendChild(input);
             const remove = () => input.remove();
             input.addEventListener("change", () => { if (input.value) onSelected(input.value); remove(); }, { once: true });
