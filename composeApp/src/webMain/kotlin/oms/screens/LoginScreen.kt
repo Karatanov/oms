@@ -45,7 +45,7 @@ fun LoginScreen(
         if (isLoading) return
 
         if (username.isBlank()) {
-            errorMessage = "Вкажіть email або логін"
+            errorMessage = "Вкажіть логін або електронну пошту"
             return
         }
 
@@ -180,7 +180,7 @@ fun LoginScreen(
                             username = it
                             errorMessage = null
                         },
-                        label = { Text("Електронна пошта або логін") },
+                        label = { Text("Логін або електронна пошта") },
                         placeholder = { Text("admin або user@example.com") },
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
