@@ -133,7 +133,7 @@ fun FinancialScreen(
                             TableActionIconButton(LocalizationManager.t("delete_financial_record_tooltip"), Icons.Default.Delete) {
                                 scope.launch {
                                     if (OmsApiClient.deleteFinancialRecord(row.projectUuid, row.act.uuid)) reloadKey++
-                                    else errorMessage = "Could not delete act."
+                                    else errorMessage = LocalizationManager.t("error_delete_act")
                                 }
                             }
                         } else Spacer(Modifier.width(96.dp))
@@ -151,7 +151,7 @@ fun FinancialScreen(
                         if (editAct == null) OmsApiClient.createFinancialRecord(projectUuid, request)
                         else OmsApiClient.updateFinancialRecord(projectUuid, editAct!!.act.uuid, request)
                     }.onSuccess { addAct = false; editAct = null; reloadKey++ }
-                        .onFailure { errorMessage = "Could not save act." }
+                        .onFailure { errorMessage = LocalizationManager.t("error_save_act") }
                 }
             }
         }
@@ -209,7 +209,7 @@ private fun ActEditorDialog(existing: ProjectActRow?, projects: List<oms.model.P
             InlineOptionPicker(options = projects, selected = selected, prompt = LocalizationManager.t("select_project"), onSelect = { projectUuid = it.id }, itemLabel = { it.name })
             OutlinedTextField(reference, { reference = it }, label = { Text(LocalizationManager.t("reference_number")) }, modifier = Modifier.fillMaxWidth())
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                listOf("invoice", "act", "payment", "advance").forEach { type -> FilterChip(selected = recordType == type, onClick = { recordType = type }, label = { Text(type) }) }
+                listOf("invoice", "act", "payment", "advance").forEach { type -> FilterChip(selected = recordType == type, onClick = { recordType = type }, label = { Text(LocalizationManager.t("record_type_$type")) }) }
             }
             OutlinedTextField(
                 value = amount,

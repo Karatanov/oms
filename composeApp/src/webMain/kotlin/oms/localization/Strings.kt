@@ -295,7 +295,21 @@ object Strings {
         "severity_low" to "Низька",
         "severity_medium" to "Середня",
         "severity_high" to "Висока",
-        "severity_critical" to "Критична"
+        "severity_critical" to "Критична",
+        "review_report" to "Перевірити звіт",
+        "error_delete_report" to "Не вдалося видалити звіт.",
+        "error_review_report" to "Не вдалося перевірити звіт: {message}",
+        "error_load_findings" to "Не вдалося завантажити зауваження.",
+        "error_save_finding" to "Не вдалося зберегти зауваження: {message}",
+        "error_update_finding" to "Не вдалося оновити зауваження.",
+        "error_delete_finding" to "Не вдалося видалити зауваження.",
+        "error_delete_project" to "Не вдалося видалити проєкт.",
+        "error_delete_act" to "Не вдалося видалити акт.",
+        "error_save_act" to "Не вдалося зберегти акт.",
+        "error_load_users" to "Не вдалося завантажити користувачів.",
+        "error_save_user" to "Не вдалося зберегти користувача: {message}",
+        "error_create_user" to "Не вдалося створити користувача: {message}",
+        "unknown_error" to "невідома помилка"
     )
 
     val en = mapOf(
@@ -587,6 +601,20 @@ object Strings {
         "severity_low" to "Low",
         "severity_medium" to "Medium",
         "severity_high" to "High",
-        "severity_critical" to "Critical"
+        "severity_critical" to "Critical",
+        "review_report" to "Review report",
+        "error_delete_report" to "Could not delete report.",
+        "error_review_report" to "Could not review report: {message}",
+        "error_load_findings" to "Could not load findings.",
+        "error_save_finding" to "Could not save finding: {message}",
+        "error_update_finding" to "Could not update finding.",
+        "error_delete_finding" to "Could not delete finding.",
+        "error_delete_project" to "Could not delete project.",
+        "error_delete_act" to "Could not delete act.",
+        "error_save_act" to "Could not save act.",
+        "error_load_users" to "Could not load users.",
+        "error_save_user" to "Could not save user: {message}",
+        "error_create_user" to "Could not create user: {message}",
+        "unknown_error" to "unknown error"
     )
 }

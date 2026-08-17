@@ -139,7 +139,7 @@ fun ProjectsScreen(
             onDeleteProject = { project ->
                 scope.launch {
                     if (oms.data.OmsApiClient.deleteProject(project.id)) ProjectRepository.refresh()
-                    else errorMessage = "Could not delete project."
+                    else errorMessage = LocalizationManager.t("error_delete_project")
                 }
             },
             selectedProjectIds = selectedProjectIds,

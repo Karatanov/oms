@@ -87,7 +87,7 @@ fun AdminScreen() {
     var ascending by remember { mutableStateOf(true) }
     val scope = rememberCoroutineScope()
     LaunchedEffect(Unit) {
-        runCatching { OmsApiClient.users() }.onSuccess { users = it }.onFailure { errorMessage = "Could not load users." }
+        runCatching { OmsApiClient.users() }.onSuccess { users = it }.onFailure { errorMessage = LocalizationManager.t("error_load_users") }
         roles = runCatching { OmsApiClient.roles() }.getOrDefault(emptyList())
     }
     val sortedUsers = users.sortedWith(compareBy<ApiUser> {
@@ -163,7 +163,7 @@ fun AdminScreen() {
                 scope.launch {
                     runCatching { OmsApiClient.updateUser(user.id, updated) }
                         .onSuccess { saved -> users = users.map { if (it.id == saved.id) saved else it }; selectedUser = null }
-                        .onFailure { errorMessage = "Could not save user: ${it.message ?: "unknown error"}" }
+                        .onFailure { errorMessage = LocalizationManager.t("error_save_user").replace("{message}", it.message ?: LocalizationManager.t("unknown_error")) }
                 }
             }
         }
@@ -172,7 +172,7 @@ fun AdminScreen() {
                 scope.launch {
                     runCatching { OmsApiClient.createUser(request) }
                         .onSuccess { created -> users = users + created; createUser = false }
-                        .onFailure { errorMessage = "Could not create user: ${it.message ?: "unknown error"}" }
+                        .onFailure { errorMessage = LocalizationManager.t("error_create_user").replace("{message}", it.message ?: LocalizationManager.t("unknown_error")) }
                 }
             }
         }

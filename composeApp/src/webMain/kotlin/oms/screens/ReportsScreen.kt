@@ -132,7 +132,7 @@ fun ReportsScreen(
                         Text("admin", Modifier.width(100.dp))
                         TableActionIconButton(LocalizationManager.t("view"), Icons.Default.Visibility) { reportToView = row }
                         if (canReviewReports && row.report.status == "pending_review") {
-                            TableActionIconButton("Review report", Icons.Default.RateReview) { reportToReview = row }
+                            TableActionIconButton(LocalizationManager.t("review_report"), Icons.Default.RateReview) { reportToReview = row }
                         } else {
                             Spacer(Modifier.width(48.dp))
                         }
@@ -143,7 +143,7 @@ fun ReportsScreen(
                         TableActionIconButton(LocalizationManager.t("delete_report"), Icons.Default.Delete) {
                             scope.launch {
                                 if (OmsApiClient.deleteInspectionReport(row.report.uuid)) reports = reports.filterNot { it.report.uuid == row.report.uuid }
-                                else errorMessage = "Could not delete report."
+                                else errorMessage = LocalizationManager.t("error_delete_report")
                             }
                         }
                     }
@@ -194,7 +194,7 @@ fun ReportsScreen(
                                 reports = reports.map { if (it.report.uuid == reviewed.uuid) it.copy(report = reviewed) else it }
                                 reportToReview = null
                             }
-                            .onFailure { errorMessage = "Could not review report: ${it.message ?: "unknown error"}" }
+                            .onFailure { errorMessage = LocalizationManager.t("error_review_report").replace("{message}", it.message ?: LocalizationManager.t("unknown_error")) }
                     }
                 }
             )
@@ -288,7 +288,7 @@ private fun FindingsDialog(report: ReportRow, onDismiss: () -> Unit) {
     var editing by remember { mutableStateOf<oms.data.ApiInspectionFinding?>(null) }
     var adding by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
-    fun refresh() { scope.launch { findings = runCatching { OmsApiClient.inspectionFindings(report.report.uuid) }.getOrElse { error = "Could not load findings."; emptyList() } } }
+    fun refresh() { scope.launch { findings = runCatching { OmsApiClient.inspectionFindings(report.report.uuid) }.getOrElse { error = LocalizationManager.t("error_load_findings"); emptyList() } } }
     LaunchedEffect(report.report.uuid) { refresh() }
 
     if (adding || editing != null) {
@@ -301,7 +301,7 @@ private fun FindingsDialog(report: ReportRow, onDismiss: () -> Unit) {
                         if (editing == null) OmsApiClient.createInspectionFinding(report.report.uuid, CreateInspectionFindingRequest(category, severity, description, recommendation))
                         else OmsApiClient.updateInspectionFinding(report.report.uuid, editing!!.uuid, UpdateInspectionFindingRequest(category, severity, description, recommendation, isResolved))
                     }.onSuccess { adding = false; editing = null; refresh() }
-                        .onFailure { error = "Could not save finding: ${it.message ?: "unknown error"}" }
+                        .onFailure { error = LocalizationManager.t("error_save_finding").replace("{message}", it.message ?: LocalizationManager.t("unknown_error")) }
                 }
             }
         )
@@ -321,13 +321,13 @@ private fun FindingsDialog(report: ReportRow, onDismiss: () -> Unit) {
                                 TextButton(onClick = {
                                     scope.launch {
                                         runCatching { OmsApiClient.updateInspectionFinding(report.report.uuid, finding.uuid, UpdateInspectionFindingRequest(finding.category, finding.severity, finding.description, finding.recommendation, !finding.isResolved)) }
-                                            .onSuccess { refresh() }.onFailure { error = "Could not update finding." }
+                                            .onSuccess { refresh() }.onFailure { error = LocalizationManager.t("error_update_finding") }
                                     }
                                 }) { Text(if (finding.isResolved) LocalizationManager.t("reopen") else LocalizationManager.t("resolve")) }
                                 TextButton(onClick = {
                                     scope.launch {
                                         if (OmsApiClient.deleteInspectionFinding(report.report.uuid, finding.uuid)) refresh()
-                                        else error = "Could not delete finding."
+                                        else error = LocalizationManager.t("error_delete_finding")
                                     }
                                 }) { Text(LocalizationManager.t("delete")) }
                             }
