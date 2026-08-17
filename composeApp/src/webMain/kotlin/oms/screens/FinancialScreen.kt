@@ -147,11 +147,15 @@ fun FinancialScreen(
         if (addAct || editAct != null) {
             ActEditorDialog(editAct, ProjectRepository.projects, { addAct = false; editAct = null }) { projectUuid, request ->
                 scope.launch {
+                    errorMessage = null
                     runCatching {
                         if (editAct == null) OmsApiClient.createFinancialRecord(projectUuid, request)
                         else OmsApiClient.updateFinancialRecord(projectUuid, editAct!!.act.uuid, request)
-                    }.onSuccess { addAct = false; editAct = null; reloadKey++ }
-                        .onFailure { errorMessage = LocalizationManager.t("error_save_act") }
+                    }.onSuccess { errorMessage = null; addAct = false; editAct = null; reloadKey++ }
+                        .onFailure { exception ->
+                            errorMessage = LocalizationManager.t("error_save_act")
+                                .replace("{message}", exception.message ?: LocalizationManager.t("unknown_error"))
+                        }
                 }
             }
         }
