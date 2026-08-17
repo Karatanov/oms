@@ -94,4 +94,9 @@ private fun String.escapeJson(): String {
     return this
         .replace("\\", "\\\\")
         .replace("\"", "\\\"")
+        .replace("\b", "\\b")
+        .replace("\u000C", "\\f")
+        .replace("\n", "\\n")
+        .replace("\r", "\\r")
+        .replace("\t", "\\t")
 }
