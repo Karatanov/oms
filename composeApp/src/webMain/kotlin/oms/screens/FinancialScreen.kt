@@ -21,6 +21,7 @@ import oms.localization.LocalizationManager
 import oms.components.OmsDateField
 import oms.components.toOmsDate
 import oms.components.InlineOptionPicker
+import oms.components.currentIsoDate
 import kotlin.js.JsName
 
 @JsName("openFinancialImport")
@@ -199,7 +200,7 @@ private fun ActEditorDialog(existing: ProjectActRow?, projects: List<oms.model.P
     var reference by remember { mutableStateOf(existing?.act?.referenceNumber ?: "") }
     var recordType by remember { mutableStateOf(existing?.act?.recordType ?: "act") }
     var amount by remember { mutableStateOf(existing?.act?.amount?.toString() ?: "") }
-    var date by remember { mutableStateOf(existing?.act?.recordDate ?: "") }
+    var date by remember { mutableStateOf(existing?.act?.recordDate ?: currentIsoDate()) }
     val selected = projects.firstOrNull { it.id == projectUuid }
     val valid = projectUuid != null && reference.isNotBlank() && amount.toLongOrNull()?.let { it > 0 } == true && date.matches(Regex("\\d{4}-\\d{2}-\\d{2}"))
     Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {

@@ -27,6 +27,7 @@ import oms.data.CreateProjectRequest
 import oms.components.ConstructionTypeSelector
 import oms.components.OmsDateField
 import oms.components.InlineOptionPicker
+import oms.components.currentIsoDate
 import oms.data.ApiProject
 import oms.data.OmsApiClient
 import oms.data.ProjectRepository
@@ -51,9 +52,9 @@ fun CreateProjectScreen(
     var projectType by remember { mutableStateOf("project") }
     var parentProjectUuid by remember { mutableStateOf<String?>(null) }
     var subprojectContractAmount by remember { mutableStateOf("") }
-    var startDate by remember { mutableStateOf("") }
-    var contractSignedDate by remember { mutableStateOf("") }
-    var plannedEndDate by remember { mutableStateOf("") }
+    var startDate by remember { mutableStateOf(currentIsoDate()) }
+    var contractSignedDate by remember { mutableStateOf(currentIsoDate()) }
+    var plannedEndDate by remember { mutableStateOf(currentIsoDate()) }
     var parentProjects by remember { mutableStateOf<List<ApiProject>>(emptyList()) }
     var latitude by remember { mutableStateOf("") }
     var longitude by remember { mutableStateOf("") }

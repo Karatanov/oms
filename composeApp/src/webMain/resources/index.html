@@ -27,6 +27,12 @@
             return `${year}-${month}-${day}`;
         }
 
+        function currentIsoDate() {
+            const date = new Date();
+            const local = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
+            return local.toISOString().slice(0, 10);
+        }
+
         function formatOmsDate(value) {
             if (!/^\d{4}-\d{2}-\d{2}$/.test(value || "")) return value || "";
             const [year, month, day] = value.split("-");

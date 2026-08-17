@@ -18,6 +18,7 @@ import oms.data.ProjectRepository
 import oms.localization.LocalizationManager
 import oms.components.OmsDateField
 import oms.components.InlineOptionPicker
+import oms.components.currentIsoDate
 import oms.model.Project
 import kotlin.js.JsName
 
@@ -40,7 +41,7 @@ fun CreateInspectionScreen(
     onSubmit: () -> Unit = {},
     onImportXls: () -> Unit = {}
 ) {
-    var date by remember { mutableStateOf("2026-08-03") }
+    var date by remember { mutableStateOf(currentIsoDate()) }
     var inspectionType by remember { mutableStateOf(InspectionType.PLANNED) }
     var latitude by remember { mutableStateOf("") }
     var longitude by remember { mutableStateOf("") }

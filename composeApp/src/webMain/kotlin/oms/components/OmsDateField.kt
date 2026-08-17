@@ -23,6 +23,12 @@ import kotlin.js.JsName
 @JsName("formatDateForInput")
 private external fun formatDateForInput(epochMillis: Double): String
 
+@JsName("currentIsoDate")
+private external fun browserCurrentIsoDate(): String
+
+/** The user's local calendar date in the API's YYYY-MM-DD format. */
+fun currentIsoDate(): String = browserCurrentIsoDate()
+
 /** Displays dates as DD.MM.YYYY while preserving API-safe ISO YYYY-MM-DD values internally. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
