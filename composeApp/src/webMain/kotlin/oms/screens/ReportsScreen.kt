@@ -1,12 +1,14 @@
 package oms.screens
 
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.FactCheck
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.RateReview
 import androidx.compose.material.icons.filled.SwapHoriz
@@ -214,9 +216,21 @@ private fun ReportViewerDialog(report: ReportRow, onDismiss: () -> Unit) {
     }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(report.report.summary ?: LocalizationManager.t("inspection_report")) },
+        title = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    report.report.summary ?: LocalizationManager.t("inspection_report"),
+                    modifier = Modifier.weight(1f),
+                    maxLines = 2
+                )
+                IconButton(onClick = onDismiss) { Icon(Icons.Default.Close, LocalizationManager.t("close")) }
+            }
+        },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Column(
+                modifier = Modifier.heightIn(max = 360.dp).verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
                 Text("${LocalizationManager.t("report_project")}: ${report.projectName}")
                 Text("${LocalizationManager.t("date")}: ${report.report.inspectionDate.toOmsDate()}")
                 Text("${LocalizationManager.t("status")}: ${report.report.status.replace('_', ' ')}")
