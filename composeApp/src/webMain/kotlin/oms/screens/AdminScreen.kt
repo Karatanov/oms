@@ -107,7 +107,11 @@ fun AdminScreen() {
                         Box(Modifier.width(110.dp)) { UserStatusChip(user.status) }
                         Text(user.region ?: "—", Modifier.width(130.dp))
                         Text(user.department ?: "—", Modifier.width(150.dp))
-                        Text(user.preferredLang, Modifier.width(80.dp))
+                        Text(
+                            text = if (user.preferredLang.equals("en", ignoreCase = true)) "🇬🇧" else "🇺🇦",
+                            modifier = Modifier.width(80.dp),
+                            style = MaterialTheme.typography.titleMedium
+                        )
                         Text(user.lastLoginAt ?: "—", Modifier.width(170.dp))
                         Text(user.failedLoginCount.toString(), Modifier.width(120.dp))
                         Text(user.lockedUntil ?: "—", Modifier.width(170.dp))
