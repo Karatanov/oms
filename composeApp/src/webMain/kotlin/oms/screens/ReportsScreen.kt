@@ -26,6 +26,7 @@ import oms.components.SortableTableHeader
 import oms.components.ReportStatusChip
 import oms.components.TableActionIconButton
 import oms.components.FilterDropdown
+import oms.components.InlineOptionPicker
 import oms.components.toOmsDate
 import oms.localization.LocalizationManager
 import kotlin.js.JsName
@@ -372,20 +373,14 @@ private fun MoveReportDialog(
         title = { Text(LocalizationManager.t("move_report")) },
         text = {
         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                var expanded by remember { mutableStateOf(false) }
-                Box {
-                    OutlinedButton(onClick = { expanded = true }, enabled = !isMoving, modifier = Modifier.fillMaxWidth()) {
-                        Text(selected?.name ?: LocalizationManager.t("select_target_project"))
-                    }
-                    DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-                        projects.forEach { project ->
-                            DropdownMenuItem(
-                                text = { Text("${project.name} (${project.region})") },
-                                onClick = { selectedUuid = project.id; expanded = false }
-                            )
-                        }
-                    }
-                }
+                InlineOptionPicker(
+                    options = projects,
+                    selected = selected,
+                    prompt = LocalizationManager.t("select_target_project"),
+                    onSelect = { selectedUuid = it.id },
+                    itemLabel = { "${it.name} (${it.region})" },
+                    enabled = !isMoving
+                )
                 if (projects.isEmpty()) Text(LocalizationManager.t("no_other_project"))
             }
         },

@@ -17,6 +17,7 @@ import oms.data.OmsApiClient
 import oms.data.ProjectRepository
 import oms.localization.LocalizationManager
 import oms.components.OmsDateField
+import oms.components.InlineOptionPicker
 import oms.model.Project
 import kotlin.js.JsName
 
@@ -308,30 +309,17 @@ private fun ProjectLevelDropdown(
     onSelect: (String?) -> Unit,
     enabled: Boolean = true
 ) {
-    var expanded by remember { mutableStateOf(false) }
     val selected = options.firstOrNull { it.id == selectedUuid }
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(label, style = MaterialTheme.typography.labelLarge)
-        Box {
-            OutlinedButton(
-                enabled = enabled,
-                onClick = { expanded = true },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(selected?.let { "${it.siteNumber} — ${it.name}" } ?: label, maxLines = 1)
-            }
-            DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-                options.forEach { option ->
-                    DropdownMenuItem(
-                        text = { Text("${option.siteNumber} — ${option.name}") },
-                        onClick = {
-                            expanded = false
-                            onSelect(option.id)
-                        }
-                    )
-                }
-            }
-        }
+        InlineOptionPicker(
+            options = options,
+            selected = selected,
+            prompt = label,
+            onSelect = { onSelect(it.id) },
+            itemLabel = { "${it.siteNumber} — ${it.name}" },
+            enabled = enabled
+        )
     }
 }
 
@@ -342,28 +330,13 @@ private fun InspectionTypeDropdown(
     value: InspectionType,
     onChange: (InspectionType) -> Unit
 ) {
-    var expanded by remember { mutableStateOf(false) }
-
-    Box {
-        OutlinedButton(onClick = { expanded = true }) {
-            Text(value.label)
-        }
-
-        DropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false }
-        ) {
-            InspectionType.entries.forEach { type ->
-                DropdownMenuItem(
-                    text = { Text(type.label) },
-                    onClick = {
-                        onChange(type)
-                        expanded = false
-                    }
-                )
-            }
-        }
-    }
+    InlineOptionPicker(
+        options = InspectionType.entries,
+        selected = value,
+        prompt = LocalizationManager.t("inspection_type"),
+        onSelect = onChange,
+        itemLabel = { it.label }
+    )
 }
 
 private enum class InspectionType {

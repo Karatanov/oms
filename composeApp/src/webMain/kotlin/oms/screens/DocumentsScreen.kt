@@ -21,6 +21,7 @@ import oms.data.ProjectRepository
 import oms.components.SortableTableHeader
 import oms.components.DocumentTypeChip
 import oms.components.TableActionIconButton
+import oms.components.InlineOptionPicker
 import oms.localization.LocalizationManager
 import kotlin.js.JsName
 
@@ -160,13 +161,17 @@ fun DocumentsScreen(canManageDocuments: Boolean = true) {
 private fun ProjectDocumentUploadDialog(projects: List<oms.model.Project>, onDismiss: () -> Unit, onUpload: (String, String) -> Unit) {
     var projectUuid by remember { mutableStateOf(projects.firstOrNull()?.id) }
     var docType by remember { mutableStateOf("other") }
-    var expanded by remember { mutableStateOf(false) }
     val selected = projects.firstOrNull { it.id == projectUuid }
     Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text(LocalizationManager.t("upload_document"), style = MaterialTheme.typography.titleLarge)
-            Box { OutlinedButton(onClick = { expanded = true }, modifier = Modifier.fillMaxWidth()) { Text(selected?.name ?: LocalizationManager.t("select_project")) }
-                DropdownMenu(expanded, { expanded = false }) { projects.forEach { p -> DropdownMenuItem({ Text(p.name) }, { projectUuid = p.id; expanded = false }) } } }
+            InlineOptionPicker(
+                options = projects,
+                selected = selected,
+                prompt = LocalizationManager.t("select_project"),
+                onSelect = { projectUuid = it.id },
+                itemLabel = { it.name }
+            )
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     listOf("contract", "project", "subproject", "design").forEach { type -> FilterChip(selected = docType == type, onClick = { docType = type }, label = { Text(type.replaceFirstChar(Char::uppercase)) }) }

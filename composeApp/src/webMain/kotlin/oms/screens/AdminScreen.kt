@@ -20,6 +20,7 @@ import oms.data.UpdateUserRequest
 import oms.data.CreateUserRequest
 import oms.components.RoleChip
 import oms.components.TableActionIconButton
+import oms.components.InlineOptionPicker
 import oms.localization.LocalizationManager
 import androidx.compose.ui.graphics.Color
 
@@ -158,7 +159,6 @@ private fun CreateUserDialog(roles: List<ApiRole>, onDismiss: () -> Unit, onSave
     var region by remember { mutableStateOf("") }
     var department by remember { mutableStateOf("") }
     var preferredLang by remember { mutableStateOf("uk") }
-    var expanded by remember { mutableStateOf(false) }
     val role = roles.firstOrNull { it.code == roleCode }
     Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -178,12 +178,7 @@ private fun CreateUserDialog(roles: List<ApiRole>, onDismiss: () -> Unit, onSave
                 listOf("uk", "en").forEach { value -> FilterChip(preferredLang == value, { preferredLang = value }, label = { Text(value.uppercase()) }) }
             }
             OutlinedTextField(password, { password = it }, label = { Text("Пароль") }, modifier = Modifier.fillMaxWidth())
-            Box {
-                OutlinedButton(onClick = { expanded = true }, modifier = Modifier.fillMaxWidth()) { Text(role?.name ?: "Оберіть роль") }
-                DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-                    roles.forEach { item -> DropdownMenuItem(text = { Text(item.name) }, onClick = { roleCode = item.code; expanded = false }) }
-                }
-            }
+            InlineOptionPicker(options = roles, selected = role, prompt = "Оберіть роль", onSelect = { roleCode = it.code }, itemLabel = { it.name })
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
                 OutlinedButton(onClick = onDismiss) { Text("Скасувати") }
                 Button(onClick = { onSave(CreateUserRequest(username.trim(), email.trim(), password, roleCode, firstName.trim(), lastName.trim(), status, region.trim().ifBlank { null }, department.trim().ifBlank { null }, preferredLang)) }, enabled = username.isNotBlank() && email.contains('@') && password.isNotBlank() && role != null) { Text("Створити") }
@@ -204,7 +199,6 @@ private fun EditUserDialog(user: ApiUser, roles: List<ApiRole>, saveError: Strin
     var region by remember(user.id) { mutableStateOf(user.region.orEmpty()) }
     var department by remember(user.id) { mutableStateOf(user.department.orEmpty()) }
     var preferredLang by remember(user.id) { mutableStateOf(user.preferredLang) }
-    var expanded by remember { mutableStateOf(false) }
     val role = roles.firstOrNull { it.code == roleCode }
     Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -223,17 +217,12 @@ private fun EditUserDialog(user: ApiUser, roles: List<ApiRole>, saveError: Strin
                 listOf("active", "pending", "disabled").forEach { value -> FilterChip(status == value, { status = value }, label = { Text(value) }) }
                 listOf("uk", "en").forEach { value -> FilterChip(preferredLang == value, { preferredLang = value }, label = { Text(value.uppercase()) }) }
             }
-            Box {
-                OutlinedButton(onClick = { expanded = true }, modifier = Modifier.fillMaxWidth()) { Text(role?.name ?: roleCode) }
-                DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-                    roles.forEach { item -> DropdownMenuItem(text = { Text(item.name) }, onClick = { roleCode = item.code; expanded = false }) }
-                }
-            }
+            InlineOptionPicker(options = roles, selected = role, prompt = roleCode, onSelect = { roleCode = it.code }, itemLabel = { it.name })
             OutlinedTextField(password, { password = it }, label = { Text("Новий пароль (необов'язково)") }, modifier = Modifier.fillMaxWidth())
             Text(LocalizationManager.t("password_requirements"), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             saveError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
-                OutlinedButton(onClick = { expanded = false; onDismiss() }) { Text("Скасувати") }
+                OutlinedButton(onClick = onDismiss) { Text("Скасувати") }
                 Button(onClick = { onSave(UpdateUserRequest(username, email, roleCode, password.ifBlank { null }, firstName, lastName, status, region.ifBlank { null }, department.ifBlank { null }, preferredLang)) }, enabled = username.isNotBlank() && email.contains('@') && role != null) { Text("Зберегти") }
             }
         }

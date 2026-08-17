@@ -20,6 +20,7 @@ import oms.components.TableActionIconButton
 import oms.localization.LocalizationManager
 import oms.components.OmsDateField
 import oms.components.toOmsDate
+import oms.components.InlineOptionPicker
 import kotlin.js.JsName
 
 @JsName("openFinancialImport")
@@ -172,23 +173,13 @@ private fun FinancialTransferDialog(
     onExport: (String) -> Unit
 ) {
     var projectUuid by remember { mutableStateOf(projects.firstOrNull()?.id) }
-    var expanded by remember { mutableStateOf(false) }
     val selected = projects.firstOrNull { it.id == projectUuid }
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Import or export financial records") },
         text = {
         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Box {
-                OutlinedButton(onClick = { expanded = true }, modifier = Modifier.fillMaxWidth()) {
-                    Text(selected?.name ?: "Select project")
-                }
-                DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-                    projects.forEach { project ->
-                        DropdownMenuItem(text = { Text(project.name) }, onClick = { projectUuid = project.id; expanded = false })
-                    }
-                }
-            }
+            InlineOptionPicker(options = projects, selected = selected, prompt = "Select project", onSelect = { projectUuid = it.id }, itemLabel = { it.name })
             Text("Import accepts an XLSX file exported by the system for the selected project.", color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         },
@@ -209,14 +200,12 @@ private fun ActEditorDialog(existing: ProjectActRow?, projects: List<oms.model.P
     var recordType by remember { mutableStateOf(existing?.act?.recordType ?: "act") }
     var amount by remember { mutableStateOf(existing?.act?.amount?.toString() ?: "") }
     var date by remember { mutableStateOf(existing?.act?.recordDate ?: "") }
-    var expanded by remember { mutableStateOf(false) }
     val selected = projects.firstOrNull { it.id == projectUuid }
     val valid = projectUuid != null && reference.isNotBlank() && amount.toLongOrNull()?.let { it > 0 } == true && date.matches(Regex("\\d{4}-\\d{2}-\\d{2}"))
     Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(if (existing == null) "Add financial record" else "Edit financial record", style = MaterialTheme.typography.titleLarge)
-            Box { OutlinedButton(onClick = { expanded = true }, modifier = Modifier.fillMaxWidth()) { Text(selected?.name ?: "Оберіть проєкт") }
-                DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) { projects.forEach { p -> DropdownMenuItem(text = { Text(p.name) }, onClick = { projectUuid = p.id; expanded = false }) } } }
+            InlineOptionPicker(options = projects, selected = selected, prompt = "Оберіть проєкт", onSelect = { projectUuid = it.id }, itemLabel = { it.name })
             OutlinedTextField(reference, { reference = it }, label = { Text("Reference number") }, modifier = Modifier.fillMaxWidth())
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 listOf("invoice", "act", "payment", "advance").forEach { type -> FilterChip(selected = recordType == type, onClick = { recordType = type }, label = { Text(type) }) }

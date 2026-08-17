@@ -1,17 +1,9 @@
 package oms.components
 
-import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import oms.localization.LocalizationManager
@@ -20,20 +12,14 @@ val constructionTypes = listOf("reconstruction", "capital_repair", "new_construc
 
 @Composable
 fun ConstructionTypeSelector(value: String, onValueChange: (String) -> Unit, modifier: Modifier = Modifier) {
-    var expanded by remember { mutableStateOf(false) }
-    Box(modifier) {
-        OutlinedButton(onClick = { expanded = true }) {
-            Text(value.constructionTypeLabel())
-        }
-        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            constructionTypes.forEach { type ->
-                DropdownMenuItem(
-                    text = { Text(type.constructionTypeLabel()) },
-                    onClick = { onValueChange(type); expanded = false }
-                )
-            }
-        }
-    }
+    InlineOptionPicker(
+        options = constructionTypes,
+        selected = value,
+        prompt = LocalizationManager.t("construction_type"),
+        onSelect = onValueChange,
+        itemLabel = String::constructionTypeLabel,
+        modifier = modifier
+    )
 }
 
 @Composable

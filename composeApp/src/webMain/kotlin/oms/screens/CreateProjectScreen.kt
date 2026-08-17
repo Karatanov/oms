@@ -8,8 +8,6 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -28,6 +26,7 @@ import kotlinx.coroutines.launch
 import oms.data.CreateProjectRequest
 import oms.components.ConstructionTypeSelector
 import oms.components.OmsDateField
+import oms.components.InlineOptionPicker
 import oms.data.ApiProject
 import oms.data.OmsApiClient
 import oms.data.ProjectRepository
@@ -51,7 +50,6 @@ fun CreateProjectScreen(
     var technicalSupervisionAmount by remember { mutableStateOf("") }
     var projectType by remember { mutableStateOf("project") }
     var parentProjectUuid by remember { mutableStateOf<String?>(null) }
-    var parentPickerExpanded by remember { mutableStateOf(false) }
     var subprojectContractAmount by remember { mutableStateOf("") }
     var startDate by remember { mutableStateOf("") }
     var contractSignedDate by remember { mutableStateOf("") }
@@ -97,16 +95,14 @@ fun CreateProjectScreen(
                     OutlinedButton(onClick = { projectType = "subproject_part" }, modifier = Modifier.weight(1f), colors = ButtonDefaults.outlinedButtonColors(containerColor = if (projectType == "subproject_part") Primary else MaterialTheme.colorScheme.surface, contentColor = if (projectType == "subproject_part") MaterialTheme.colorScheme.onPrimary else Primary)) { Text("Частина субпроєкту") }
                 }
                 if (projectType != "project") {
-                    Box {
-                        OutlinedButton(onClick = { parentPickerExpanded = true }, modifier = Modifier.fillMaxWidth()) {
-                            Text(parentProjects.firstOrNull { it.uuid == parentProjectUuid }?.name ?: if (projectType == "subproject") "Оберіть батьківський проєкт *" else "Оберіть батьківський субпроєкт *")
-                        }
-                        DropdownMenu(expanded = parentPickerExpanded, onDismissRequest = { parentPickerExpanded = false }) {
-                            parentProjects.filter { it.projectType == if (projectType == "subproject") "project" else "subproject" }.forEach { parent ->
-                                DropdownMenuItem(text = { Text(parent.name) }, onClick = { parentProjectUuid = parent.uuid; parentPickerExpanded = false })
-                            }
-                        }
-                    }
+                    val eligibleParents = parentProjects.filter { it.projectType == if (projectType == "subproject") "project" else "subproject" }
+                    InlineOptionPicker(
+                        options = eligibleParents,
+                        selected = eligibleParents.firstOrNull { it.uuid == parentProjectUuid },
+                        prompt = if (projectType == "subproject") "Оберіть батьківський проєкт *" else "Оберіть батьківський субпроєкт *",
+                        onSelect = { parentProjectUuid = it.uuid },
+                        itemLabel = { it.name }
+                    )
                 }
                 OutlinedTextField(name, { name = it }, label = { Text("Назва проєкту *") }, modifier = Modifier.fillMaxWidth())
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
