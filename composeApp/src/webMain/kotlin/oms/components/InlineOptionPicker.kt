@@ -30,22 +30,24 @@ fun <T> InlineOptionPicker(
     onSelect: (T) -> Unit,
     itemLabel: (T) -> String = { it.toString() },
     modifier: Modifier = Modifier,
+    fillWidth: Boolean = true,
     enabled: Boolean = true,
     clearLabel: String? = null,
     onClear: (() -> Unit)? = null
 ) {
     var expanded by remember { mutableStateOf(false) }
+    val contentWidth = if (fillWidth) Modifier.fillMaxWidth() else Modifier
     Column(modifier) {
         OutlinedButton(
             enabled = enabled,
             onClick = { expanded = !expanded },
-            modifier = Modifier.fillMaxWidth()
+            modifier = contentWidth
         ) {
             Text(selected?.let(itemLabel) ?: prompt, maxLines = 1)
         }
         if (expanded) {
             Card(
-                modifier = Modifier.fillMaxWidth().heightIn(max = 240.dp),
+                modifier = contentWidth.heightIn(max = 240.dp),
                 colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surfaceContainerHigh)
             ) {
                 LazyColumn {

@@ -55,7 +55,11 @@ fun ProjectsScreen(
 
     val filteredProjects = remember(projects, searchText, regionFilter, statusFilter) {
         fun matches(project: Project) =
-            (searchText.isBlank() || project.name.contains(searchText, true) || project.siteNumber.contains(searchText, true)) &&
+            (searchText.isBlank() ||
+                project.name.contains(searchText, true) ||
+                project.siteNumber.contains(searchText, true) ||
+                project.region.contains(searchText, true) ||
+                project.city.contains(searchText, true)) &&
                 (regionFilter == null || project.region == regionFilter) &&
                 (statusFilter == null || project.status == statusFilter)
         val matchingProjects = projects.filter(::matches)
