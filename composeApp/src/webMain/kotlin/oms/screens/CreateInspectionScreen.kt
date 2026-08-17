@@ -4,8 +4,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -19,6 +17,7 @@ import oms.data.OmsApiClient
 import oms.data.ProjectRepository
 import oms.localization.LocalizationManager
 import oms.components.OmsDateField
+import oms.model.Project
 import kotlin.js.JsName
 
 @JsName("openSirImportDialog")
@@ -46,7 +45,9 @@ fun CreateInspectionScreen(
     var longitude by remember { mutableStateOf("") }
     var comments by remember { mutableStateOf(TextFieldValue("")) }
     var photoCount by remember { mutableStateOf(0) }
-    var projectUuid by remember { mutableStateOf<String?>(null) }
+    var selectedProjectUuid by remember { mutableStateOf<String?>(null) }
+    var selectedSubprojectUuid by remember { mutableStateOf<String?>(null) }
+    var selectedSubprojectPartUuid by remember { mutableStateOf<String?>(null) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var isSubmitting by remember { mutableStateOf(false) }
     var createdReportUuid by remember { mutableStateOf<String?>(null) }
@@ -54,7 +55,21 @@ fun CreateInspectionScreen(
 
     LaunchedEffect(Unit) {
         ProjectRepository.refresh()
-        projectUuid = ProjectRepository.projects.firstOrNull()?.id
+    }
+
+    val projects = ProjectRepository.projects
+    val subprojects = projects.filter {
+        it.projectType.equals("subproject", true) && it.parentProjectUuid == selectedProjectUuid
+    }
+    val subprojectParts = projects.filter {
+        it.projectType.equals("subproject_part", true) && it.parentProjectUuid == selectedSubprojectUuid
+    }
+    val inspectionTargetUuid = selectedSubprojectPartUuid ?: selectedSubprojectUuid ?: selectedProjectUuid
+    val selectionError = when {
+        selectedProjectUuid == null -> "Select a project."
+        subprojects.isNotEmpty() && selectedSubprojectUuid == null -> "Select a subproject."
+        subprojectParts.isNotEmpty() && selectedSubprojectPartUuid == null -> "Select a subproject part."
+        else -> null
     }
 
     val maxComments = 2000
@@ -99,9 +114,21 @@ fun CreateInspectionScreen(
                 modifier = Modifier.padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                ProjectDropdown(
-                    selectedProjectUuid = projectUuid,
-                    onSelect = { projectUuid = it }
+                InspectionProjectSelector(
+                    projects = projects,
+                    selectedProjectUuid = selectedProjectUuid,
+                    selectedSubprojectUuid = selectedSubprojectUuid,
+                    selectedSubprojectPartUuid = selectedSubprojectPartUuid,
+                    onProjectSelect = {
+                        selectedProjectUuid = it
+                        selectedSubprojectUuid = null
+                        selectedSubprojectPartUuid = null
+                    },
+                    onSubprojectSelect = {
+                        selectedSubprojectUuid = it
+                        selectedSubprojectPartUuid = null
+                    },
+                    onSubprojectPartSelect = { selectedSubprojectPartUuid = it }
                 )
 
                 OmsDateField(
@@ -185,10 +212,12 @@ fun CreateInspectionScreen(
             }
 
             OutlinedButton(onClick = {
-                val selectedProject = projectUuid
-                if (selectedProject == null) errorMessage = "Select a project before importing."
-                else openSirImportDialog(selectedProject)
-                onImportXls()
+                val selectedProject = inspectionTargetUuid
+                if (selectionError != null) errorMessage = selectionError
+                else {
+                    openSirImportDialog(requireNotNull(selectedProject))
+                    onImportXls()
+                }
             }) {
                 Text("Завантажити XLS/XLSX")
             }
@@ -207,9 +236,9 @@ fun CreateInspectionScreen(
                         }
                         return@Button
                     }
-                    val selectedProject = projectUuid
+                    val selectedProject = inspectionTargetUuid
                     when {
-                        selectedProject == null -> errorMessage = "Select a project."
+                        selectionError != null -> errorMessage = selectionError
                         !date.isIsoDate() -> errorMessage = "Date must use YYYY-MM-DD format."
                         comments.text.isBlank() -> errorMessage = "Add a report summary before submitting."
                         else -> {
@@ -222,7 +251,7 @@ fun CreateInspectionScreen(
                                     if (latitude.isNotBlank() || longitude.isNotBlank()) append(" | GPS: ${latitude.trim()}, ${longitude.trim()}")
                                 }
                                 runCatching {
-                                    OmsApiClient.createAndSubmitInspectionReport(selectedProject, date, summary)
+                                    OmsApiClient.createAndSubmitInspectionReport(requireNotNull(selectedProject), date, summary)
                                 }.onSuccess { report ->
                                     createdReportUuid = report.uuid
                                     uploadSelectedInspectionPhotos(report.uuid) { uploadError ->
@@ -248,17 +277,59 @@ fun CreateInspectionScreen(
 }
 
 @Composable
-private fun ProjectDropdown(selectedProjectUuid: String?, onSelect: (String) -> Unit) {
-    val projects = ProjectRepository.projects
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Text("Оберіть проєкт", style = MaterialTheme.typography.labelLarge)
-        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            items(projects, key = { it.id }) { project ->
-                FilterChip(
-                    selected = project.id == selectedProjectUuid,
-                    onClick = { onSelect(project.id) },
-                    label = { Text("${project.name} (${project.region})") }
-                )
+private fun InspectionProjectSelector(
+    projects: List<Project>,
+    selectedProjectUuid: String?,
+    selectedSubprojectUuid: String?,
+    selectedSubprojectPartUuid: String?,
+    onProjectSelect: (String?) -> Unit,
+    onSubprojectSelect: (String?) -> Unit,
+    onSubprojectPartSelect: (String?) -> Unit
+) {
+    val rootProjects = projects.filter { it.projectType.equals("project", true) }
+    val subprojects = projects.filter {
+        it.projectType.equals("subproject", true) && it.parentProjectUuid == selectedProjectUuid
+    }
+    val parts = projects.filter {
+        it.projectType.equals("subproject_part", true) && it.parentProjectUuid == selectedSubprojectUuid
+    }
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        ProjectLevelDropdown(LocalizationManager.t("select_project"), rootProjects, selectedProjectUuid, onProjectSelect)
+        ProjectLevelDropdown(LocalizationManager.t("select_subproject"), subprojects, selectedSubprojectUuid, onSubprojectSelect, enabled = subprojects.isNotEmpty())
+        ProjectLevelDropdown(LocalizationManager.t("select_subproject_part"), parts, selectedSubprojectPartUuid, onSubprojectPartSelect, enabled = parts.isNotEmpty())
+    }
+}
+
+@Composable
+private fun ProjectLevelDropdown(
+    label: String,
+    options: List<Project>,
+    selectedUuid: String?,
+    onSelect: (String?) -> Unit,
+    enabled: Boolean = true
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val selected = options.firstOrNull { it.id == selectedUuid }
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(label, style = MaterialTheme.typography.labelLarge)
+        Box {
+            OutlinedButton(
+                enabled = enabled,
+                onClick = { expanded = true },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(selected?.let { "${it.siteNumber} — ${it.name}" } ?: label, maxLines = 1)
+            }
+            DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                options.forEach { option ->
+                    DropdownMenuItem(
+                        text = { Text("${option.siteNumber} — ${option.name}") },
+                        onClick = {
+                            expanded = false
+                            onSelect(option.id)
+                        }
+                    )
+                }
             }
         }
     }
