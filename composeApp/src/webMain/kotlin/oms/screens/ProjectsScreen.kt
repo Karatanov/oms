@@ -366,7 +366,7 @@ fun ProjectRow(
 
     Row(
         modifier = Modifier
-            .widthIn(min = 1_250.dp)
+            .width(1_800.dp)
 
             // hover detection
             .onPointerEvent(
@@ -402,9 +402,13 @@ fun ProjectRow(
             modifier = Modifier.width(32.dp)
         )
 
-        if (childCount > 0) {
+        Box(
+            modifier = Modifier.width(30.dp).height(32.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            if (childCount > 0) {
             Box(
-                modifier = Modifier.width(30.dp).height(32.dp).clickable { onToggleChildren(project.id) },
+                modifier = Modifier.fillMaxSize().clickable { onToggleChildren(project.id) },
                 contentAlignment = Alignment.Center
             ) {
                 Box(
@@ -423,23 +427,14 @@ fun ProjectRow(
                     Text(if (expanded) "−" else "+", color = Color.White, style = MaterialTheme.typography.titleMedium)
                 }
             }
-        } else if (!isSubproject) {
-            Box(
-                modifier = Modifier.width(30.dp).height(32.dp),
-                contentAlignment = Alignment.Center
-            ) {
+            } else if (!isSubproject) {
                 Icon(
                     imageVector = Icons.Default.Folder,
                     contentDescription = "Project without subprojects",
                     tint = Primary,
                     modifier = Modifier.size(20.dp)
                 )
-            }
-        }
-
-        if (isSubproject) {
-            repeat(indentLevel - 1) { Spacer(Modifier.width(30.dp)) }
-            Box(modifier = Modifier.width(30.dp).height(32.dp), contentAlignment = Alignment.Center) {
+            } else {
                 Box(
                     modifier = Modifier
                         .align(Alignment.TopCenter)
@@ -447,7 +442,7 @@ fun ProjectRow(
                         .height(18.dp)
                         .background(Primary.copy(alpha = 0.55f))
                 )
-                Text("↳", color = Primary, style = MaterialTheme.typography.titleMedium)
+                Text(if (indentLevel > 1) "↳" else "•", color = Primary, style = MaterialTheme.typography.titleMedium)
             }
         }
 
@@ -456,7 +451,7 @@ fun ProjectRow(
 
         Text(
             project.name,
-            modifier = Modifier.width(230.dp),
+            modifier = Modifier.weight(1f),
             fontWeight = if (isSubproject) FontWeight.Normal else FontWeight.SemiBold,
             color = if (isSubproject) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface
         )

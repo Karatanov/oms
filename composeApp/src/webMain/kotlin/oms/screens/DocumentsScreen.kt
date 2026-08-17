@@ -3,6 +3,8 @@ package oms.screens
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.Delete
@@ -99,12 +101,12 @@ fun DocumentsScreen(canManageDocuments: Boolean = true) {
         }
         Text(LocalizationManager.t("project_documents"), style = MaterialTheme.typography.titleLarge)
         Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(Modifier.padding(16.dp).horizontalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 DocumentTableHeader(sort, ascending, ::selectSort)
                 HorizontalDivider()
                 if (visibleDocuments.isEmpty()) Text(LocalizationManager.t("no_project_documents"))
                 visibleDocuments.forEach { row ->
-                    Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                    Row(Modifier.width(1_200.dp).padding(vertical = 8.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                         Text(row.document.fileName, Modifier.weight(1.35f))
                         Text(row.projectName, Modifier.weight(1f))
                         Box(Modifier.width(120.dp)) { DocumentTypeChip(row.document.docType) }
@@ -118,6 +120,7 @@ fun DocumentsScreen(canManageDocuments: Boolean = true) {
                                 } else errorMessage = "Could not delete document."
                             }
                         }
+                        else Spacer(Modifier.width(48.dp))
                     }
                     HorizontalDivider()
                 }
@@ -182,7 +185,7 @@ private fun ProjectDocumentUploadDialog(projects: List<oms.model.Project>, onDis
 
 @Composable
 private fun DocumentTableHeader(sort: DocumentSort, ascending: Boolean, onSort: (DocumentSort) -> Unit) {
-    Row(Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
+    Row(Modifier.width(1_200.dp).padding(vertical = 6.dp)) {
         SortableTableHeader(LocalizationManager.t("file_name"), sort == DocumentSort.Name, ascending, { onSort(DocumentSort.Name) }, Modifier.weight(1.35f))
         SortableTableHeader(LocalizationManager.t("project"), sort == DocumentSort.Project, ascending, { onSort(DocumentSort.Project) }, Modifier.weight(1f))
         SortableTableHeader(LocalizationManager.t("type"), sort == DocumentSort.Type, ascending, { onSort(DocumentSort.Type) }, Modifier.width(120.dp))

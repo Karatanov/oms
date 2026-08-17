@@ -1,6 +1,8 @@
 package oms.screens
 
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.FactCheck
 import androidx.compose.material.icons.filled.Add
@@ -113,14 +115,14 @@ fun ReportsScreen(
             )
         }
         Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(Modifier.padding(16.dp).horizontalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 ReportTableHeader(sort, ascending, ::selectSort)
                 HorizontalDivider()
                 if (visible.isEmpty()) Text(LocalizationManager.t("no_reports"))
                 visible.forEach { row ->
-                    Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                    Row(Modifier.width(1_500.dp).padding(vertical = 8.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                         Text(row.report.inspectionDate.toOmsDate(), Modifier.width(105.dp))
-                        Text(row.report.summary ?: LocalizationManager.t("inspection_report"), Modifier.weight(1.1f), style = MaterialTheme.typography.bodyMedium)
+                        Text(row.report.summary ?: LocalizationManager.t("inspection_report"), Modifier.width(497.dp), style = MaterialTheme.typography.bodyMedium)
                         Text(row.projectName, Modifier.width(190.dp), style = MaterialTheme.typography.bodySmall)
                         Text(row.subprojectName ?: "—", Modifier.width(190.dp), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Box(Modifier.width(130.dp)) { ReportStatusChip(row.report.status) }
@@ -128,10 +130,13 @@ fun ReportsScreen(
                         TableActionIconButton(LocalizationManager.t("view"), Icons.Default.Visibility) { reportToView = row }
                         if (canReviewReports && row.report.status == "pending_review") {
                             TableActionIconButton("Review report", Icons.Default.RateReview) { reportToReview = row }
+                        } else {
+                            Spacer(Modifier.width(48.dp))
                         }
                         TableActionIconButton(LocalizationManager.t("upload_photo"), Icons.Default.PhotoCamera) { openInspectionPhotoUpload(row.report.uuid) }
                         TableActionIconButton(LocalizationManager.t("findings"), Icons.AutoMirrored.Filled.FactCheck) { findingsReport = row }
                         if (canMoveReports) TableActionIconButton(LocalizationManager.t("move_report"), Icons.Default.SwapHoriz) { reportToMove = row }
+                        else Spacer(Modifier.width(48.dp))
                         TableActionIconButton(LocalizationManager.t("delete_report"), Icons.Default.Delete) {
                             scope.launch {
                                 if (OmsApiClient.deleteInspectionReport(row.report.uuid)) reports = reports.filterNot { it.report.uuid == row.report.uuid }
@@ -396,13 +401,13 @@ private fun MoveReportDialog(
 
 @Composable
 private fun ReportTableHeader(sort: ReportSort, ascending: Boolean, onSort: (ReportSort) -> Unit) {
-    Row(Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
+    Row(Modifier.width(1_500.dp).padding(vertical = 6.dp)) {
         SortableTableHeader(LocalizationManager.t("date"), sort == ReportSort.Date, ascending, { onSort(ReportSort.Date) }, Modifier.width(105.dp))
-        SortableTableHeader("Назва звіту", sort == ReportSort.ReportTitle, ascending, { onSort(ReportSort.ReportTitle) }, Modifier.weight(1.1f))
+        SortableTableHeader("Назва звіту", sort == ReportSort.ReportTitle, ascending, { onSort(ReportSort.ReportTitle) }, Modifier.width(497.dp))
         SortableTableHeader("Проєкт", sort == ReportSort.Project, ascending, { onSort(ReportSort.Project) }, Modifier.width(190.dp))
         SortableTableHeader("Субпроєкт", sort == ReportSort.Subproject, ascending, { onSort(ReportSort.Subproject) }, Modifier.width(190.dp))
         SortableTableHeader(LocalizationManager.t("status"), sort == ReportSort.Status, ascending, { onSort(ReportSort.Status) }, Modifier.width(130.dp))
         SortableTableHeader(LocalizationManager.t("uploaded_by"), sort == ReportSort.Author, ascending, { onSort(ReportSort.Author) }, Modifier.width(100.dp))
-        Text(LocalizationManager.t("actions"), Modifier.width(192.dp), style = MaterialTheme.typography.labelLarge)
+        Text(LocalizationManager.t("actions"), Modifier.width(288.dp), style = MaterialTheme.typography.labelLarge)
     }
 }

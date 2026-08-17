@@ -2,6 +2,7 @@ package oms.screens
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
@@ -110,12 +111,12 @@ fun FinancialScreen(
             }
         }
         Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(Modifier.padding(16.dp).horizontalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 FinancialTableHeader(sort, ascending, ::selectSort)
                 HorizontalDivider()
                 if (visibleActs.isEmpty()) Text(LocalizationManager.t("no_acts"))
                 visibleActs.forEach { row ->
-                    Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                    Row(Modifier.width(1_500.dp).padding(vertical = 8.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                         Text(row.act.referenceNumber, Modifier.width(130.dp))
                         Text(row.act.recordType.replaceFirstChar { it.uppercase() }, Modifier.width(95.dp))
                         Text(row.projectName, Modifier.weight(1.25f))
@@ -133,7 +134,7 @@ fun FinancialScreen(
                                     else errorMessage = "Could not delete act."
                                 }
                             }
-                        }
+                        } else Spacer(Modifier.width(96.dp))
                     }
                     HorizontalDivider()
                 }
@@ -232,7 +233,7 @@ private fun ActEditorDialog(existing: ProjectActRow?, projects: List<oms.model.P
 
 @Composable
 private fun FinancialTableHeader(sort: FinancialSort, ascending: Boolean, onSort: (FinancialSort) -> Unit) {
-    Row(Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
+    Row(Modifier.width(1_500.dp).padding(vertical = 6.dp)) {
         SortableTableHeader("Номер", sort == FinancialSort.Number, ascending, { onSort(FinancialSort.Number) }, Modifier.width(130.dp))
         SortableTableHeader("Тип", sort == FinancialSort.Type, ascending, { onSort(FinancialSort.Type) }, Modifier.width(95.dp))
         SortableTableHeader("Проєкт", sort == FinancialSort.Project, ascending, { onSort(FinancialSort.Project) }, Modifier.weight(1.25f))

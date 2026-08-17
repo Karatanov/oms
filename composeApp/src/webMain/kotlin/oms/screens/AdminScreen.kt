@@ -80,7 +80,7 @@ fun AdminScreen() {
         Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
             Column(Modifier.padding(16.dp).horizontalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("Повні дані користувачів", style = MaterialTheme.typography.titleMedium)
-                Row(Modifier.width(1740.dp).padding(vertical = 6.dp)) {
+                Row(Modifier.width(2046.dp).padding(vertical = 6.dp)) {
                     SortableTableHeader("Логін", sort == UserSort.Username, ascending, { changeSort(UserSort.Username) }, Modifier.width(130.dp))
                     SortableTableHeader("Ім'я", sort == UserSort.FullName, ascending, { changeSort(UserSort.FullName) }, Modifier.width(180.dp))
                     SortableTableHeader("Email", sort == UserSort.Email, ascending, { changeSort(UserSort.Email) }, Modifier.width(220.dp))
@@ -94,11 +94,11 @@ fun AdminScreen() {
                     Text("Блокування до", Modifier.width(170.dp), style = MaterialTheme.typography.labelLarge)
                     SortableTableHeader("Створено", sort == UserSort.Created, ascending, { changeSort(UserSort.Created) }, Modifier.width(170.dp))
                     Text("Оновлено", Modifier.width(170.dp), style = MaterialTheme.typography.labelLarge)
-                    Text("Дії", Modifier.width(48.dp), style = MaterialTheme.typography.labelLarge)
+                    Text("Дії", Modifier.width(96.dp), style = MaterialTheme.typography.labelLarge)
                 }
                 HorizontalDivider()
                 sortedUsers.forEach { user ->
-                    Row(Modifier.width(1740.dp).padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Row(Modifier.width(2046.dp).padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                         Text(user.username, Modifier.width(130.dp))
                         Text(listOf(user.firstName, user.lastName).filter { it.isNotBlank() }.joinToString(" ").ifBlank { "—" }, Modifier.width(180.dp))
                         Text(user.email, Modifier.width(220.dp))

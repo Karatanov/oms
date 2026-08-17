@@ -18,10 +18,11 @@ fun TableHeader(
 ) {
     Row(
         modifier = Modifier
-            .widthIn(min = 1_500.dp)
+            .width(1_800.dp)
             .padding(vertical = 8.dp)
     ) {
         Box(modifier = Modifier.width(32.dp))
+        Box(modifier = Modifier.width(30.dp))
         SortableHeader(
             "ID",
             SortColumn.ID,
