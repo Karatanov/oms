@@ -79,7 +79,7 @@ fun EditProjectScreen(
         isLoading = false
     }
 
-    val allRequiredFilled = listOf(name, siteName, siteNumber, address, region, city, sector, constructionType).all { it.isNotBlank() }
+    val allRequiredFilled = listOf(name, siteName, address, region, city, sector, constructionType).all { it.isNotBlank() }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Text("Редагувати проєкт", style = MaterialTheme.typography.headlineMedium)
         if (isLoading) {
@@ -90,10 +90,7 @@ fun EditProjectScreen(
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedTextField(name, { name = it }, label = { Text("Назва проєкту *") }, modifier = Modifier.fillMaxWidth())
                 OutlinedTextField(description, { description = it }, label = { Text("Опис") }, minLines = 3, modifier = Modifier.fillMaxWidth())
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    OutlinedTextField(siteName, { siteName = it }, label = { Text("Код майданчика *") }, modifier = Modifier.weight(1f))
-                    OutlinedTextField(siteNumber, { siteNumber = it }, label = { Text("Номер майданчика *") }, modifier = Modifier.weight(1f))
-                }
+                OutlinedTextField(siteName, { siteName = it }, label = { Text("Код проєкту *") }, modifier = Modifier.fillMaxWidth())
                 Text("Статус", style = MaterialTheme.typography.labelLarge)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     listOf("planned", "active", "suspended", "completed", "archived", "dlp").forEach { value ->
@@ -179,7 +176,7 @@ fun EditProjectScreen(
                     scope.launch {
                         runCatching {
                             OmsApiClient.updateProject(project.id, UpdateProjectRequest(
-                                name = name.trim(), siteName = siteName.trim(), siteNumber = siteNumber.trim(),
+                                name = name.trim(), siteName = siteName.trim(), siteNumber = siteNumber.trim().ifBlank { siteName.trim() },
                                 description = description.trim(),
                                 address = address.trim(), region = region.trim(), city = city.trim(),
                                 status = status,

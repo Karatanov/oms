@@ -40,7 +40,6 @@ fun CreateProjectScreen(
 ) {
     var name by remember { mutableStateOf("") }
     var siteName by remember { mutableStateOf("") }
-    var siteNumber by remember { mutableStateOf("") }
     var address by remember { mutableStateOf("") }
     var region by remember { mutableStateOf("") }
     var city by remember { mutableStateOf("") }
@@ -68,7 +67,7 @@ fun CreateProjectScreen(
     }
 
     fun requiredFieldsFilled() = listOf(
-        name, siteName, siteNumber, address, region, city, sector, constructionType
+        name, siteName, address, region, city, sector, constructionType
     ).all { it.isNotBlank() }
 
     Column(
@@ -106,10 +105,7 @@ fun CreateProjectScreen(
                     )
                 }
                 OutlinedTextField(name, { name = it }, label = { Text("Назва проєкту *") }, modifier = Modifier.fillMaxWidth())
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    OutlinedTextField(siteName, { siteName = it }, label = { Text("Код майданчика *") }, modifier = Modifier.weight(1f))
-                    OutlinedTextField(siteNumber, { siteNumber = it }, label = { Text("Номер майданчика *") }, modifier = Modifier.weight(1f))
-                }
+                OutlinedTextField(siteName, { siteName = it }, label = { Text("Код проєкту *") }, modifier = Modifier.fillMaxWidth())
                 if (projectType != "project") {
                     OutlinedTextField(subprojectContractAmount, { value -> if (value.all(Char::isDigit)) subprojectContractAmount = value }, label = { Text("Сума контракту субпроєкту, грн *") }, singleLine = true, modifier = Modifier.fillMaxWidth())
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -188,7 +184,7 @@ fun CreateProjectScreen(
                             runCatching {
                                 OmsApiClient.createProject(
                                     CreateProjectRequest(
-                                        name = name.trim(), siteName = siteName.trim(), siteNumber = siteNumber.trim(),
+                                        name = name.trim(), siteName = siteName.trim(), siteNumber = siteName.trim(),
                                         address = address.trim(), region = region.trim(), city = city.trim(),
                                         latitude = parsedLatitude!!, longitude = parsedLongitude!!, sector = sector.trim(),
                                         constructionType = constructionType.trim(), budgetPlanned = parsedBudget!!,

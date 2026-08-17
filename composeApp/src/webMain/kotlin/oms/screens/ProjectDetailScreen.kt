@@ -333,8 +333,7 @@ private fun ProjectGeneralInfoTab(data: oms.data.ApiProjectDetailsData?) {
                     "subproject_part" -> LocalizationManager.t("subproject_part")
                     else -> LocalizationManager.t("project")
                 },
-                "Назва майданчика" to data.siteName,
-                "Номер майданчика" to data.siteNumber,
+                "Код проєкту" to data.siteName,
                 "Опис" to (data.description ?: "—"),
                 "Адреса" to data.address,
                 "Область" to data.region,
