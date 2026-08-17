@@ -80,7 +80,7 @@ private fun ProcurementTable(
     onDelete: (ApiProcurementRecord) -> Unit
 ) {
     Column(Modifier.fillMaxSize().horizontalScroll(rememberScrollState()).verticalScroll(rememberScrollState())) {
-        ProcurementRow(procurementHeaderLabels() + if (canManage) "Дії" else "", isHeader = true)
+        ProcurementRow(procurementHeaderLabels(), showActions = canManage, isHeader = true)
         HorizontalDivider()
         records.forEach { record ->
             ProcurementRow(listOf(
@@ -90,7 +90,7 @@ private fun ProcurementTable(
                 record.contractorId.orEmpty(), record.contractDate.orEmpty(), record.contractEndDate.orEmpty(),
                 record.contractDurationMonths?.toString().orEmpty(), record.contractAmountUah.format(0),
                 record.contractAmountEur.format(2), record.financingContractDifferencePct?.let { "${(it * 100).format(2)}%" }.orEmpty()
-            ), record.takeIf { canManage }, onEdit, onDelete)
+            ), record.takeIf { canManage }, onEdit, onDelete, showActions = canManage)
             HorizontalDivider()
         }
     }
@@ -102,17 +102,22 @@ private fun ProcurementRow(
     record: ApiProcurementRecord? = null,
     onEdit: (ApiProcurementRecord) -> Unit = {},
     onDelete: (ApiProcurementRecord) -> Unit = {},
+    showActions: Boolean = false,
     isHeader: Boolean = false
 ) {
     Row(Modifier.widthIn(min = 3_300.dp).padding(vertical = 10.dp)) {
+        if (showActions) {
+            if (isHeader) {
+                Text(LocalizationManager.t("actions"), Modifier.width(96.dp).padding(horizontal = 6.dp), style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
+            } else if (record != null) {
+                TableActionIconButton("Редагувати запис закупівлі", Icons.Default.Edit) { onEdit(record) }
+                TableActionIconButton("Видалити запис закупівлі", Icons.Default.Delete) { onDelete(record) }
+            }
+        }
         values.take(columnWidths.size).zip(columnWidths).forEach { (value, width) ->
             Text(value, Modifier.width(width.dp).padding(horizontal = 6.dp), style = MaterialTheme.typography.bodySmall,
                 fontWeight = if (isHeader) FontWeight.SemiBold else FontWeight.Normal)
         }
-        if (record != null) {
-            TableActionIconButton("Редагувати запис закупівлі", Icons.Default.Edit) { onEdit(record) }
-            TableActionIconButton("Видалити запис закупівлі", Icons.Default.Delete) { onDelete(record) }
-        } else if (values.size > columnWidths.size) Text(values.last(), Modifier.width(96.dp), style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
     }
 }
 
