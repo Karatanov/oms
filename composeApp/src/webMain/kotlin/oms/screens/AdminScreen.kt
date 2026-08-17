@@ -3,6 +3,9 @@ package oms.screens
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
@@ -23,6 +26,7 @@ import oms.components.TableActionIconButton
 import oms.components.InlineOptionPicker
 import oms.localization.LocalizationManager
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Stroke
 
 private enum class UserSort { Id, Username, FullName, Email, Role, Status, LastLogin, Region, Department, Language, Created }
 
@@ -39,6 +43,35 @@ private fun UserStatusChip(status: String) {
         label = { Text(status.replaceFirstChar(Char::uppercase)) },
         colors = AssistChipDefaults.assistChipColors(containerColor = color, labelColor = Color.White)
     )
+}
+
+/** Uses vector drawing rather than flag emoji: emoji fonts are not consistently available in Wasm. */
+@Composable
+private fun LanguageFlag(language: String) {
+    Canvas(
+        modifier = Modifier
+            .width(32.dp)
+            .height(21.dp)
+            .background(Color.White, RoundedCornerShape(3.dp))
+    ) {
+        if (language.equals("en", ignoreCase = true)) {
+            // United Kingdom (Union Jack), simplified but recognisable at table scale.
+            drawRect(Color(0xFF012169))
+            drawLine(Color.White, start = androidx.compose.ui.geometry.Offset(0f, 0f), end = androidx.compose.ui.geometry.Offset(size.width, size.height), strokeWidth = size.height * .30f)
+            drawLine(Color.White, start = androidx.compose.ui.geometry.Offset(size.width, 0f), end = androidx.compose.ui.geometry.Offset(0f, size.height), strokeWidth = size.height * .30f)
+            drawLine(Color(0xFFC8102E), start = androidx.compose.ui.geometry.Offset(0f, 0f), end = androidx.compose.ui.geometry.Offset(size.width, size.height), strokeWidth = size.height * .12f)
+            drawLine(Color(0xFFC8102E), start = androidx.compose.ui.geometry.Offset(size.width, 0f), end = androidx.compose.ui.geometry.Offset(0f, size.height), strokeWidth = size.height * .12f)
+            drawLine(Color.White, start = androidx.compose.ui.geometry.Offset(size.width / 2, 0f), end = androidx.compose.ui.geometry.Offset(size.width / 2, size.height), strokeWidth = size.height * .42f)
+            drawLine(Color.White, start = androidx.compose.ui.geometry.Offset(0f, size.height / 2), end = androidx.compose.ui.geometry.Offset(size.width, size.height / 2), strokeWidth = size.height * .42f)
+            drawLine(Color(0xFFC8102E), start = androidx.compose.ui.geometry.Offset(size.width / 2, 0f), end = androidx.compose.ui.geometry.Offset(size.width / 2, size.height), strokeWidth = size.height * .20f)
+            drawLine(Color(0xFFC8102E), start = androidx.compose.ui.geometry.Offset(0f, size.height / 2), end = androidx.compose.ui.geometry.Offset(size.width, size.height / 2), strokeWidth = size.height * .20f)
+        } else {
+            // Ukraine.
+            drawRect(Color(0xFF0057B7), size = androidx.compose.ui.geometry.Size(size.width, size.height / 2))
+            drawRect(Color(0xFFFFDD00), topLeft = androidx.compose.ui.geometry.Offset(0f, size.height / 2), size = androidx.compose.ui.geometry.Size(size.width, size.height / 2))
+        }
+        drawRect(Color(0x22000000), style = Stroke(width = 1.dp.toPx()))
+    }
 }
 
 @Composable
@@ -107,11 +140,9 @@ fun AdminScreen() {
                         Box(Modifier.width(110.dp)) { UserStatusChip(user.status) }
                         Text(user.region ?: "—", Modifier.width(130.dp))
                         Text(user.department ?: "—", Modifier.width(150.dp))
-                        Text(
-                            text = if (user.preferredLang.equals("en", ignoreCase = true)) "🇬🇧" else "🇺🇦",
-                            modifier = Modifier.width(80.dp),
-                            style = MaterialTheme.typography.titleMedium
-                        )
+                        Box(Modifier.width(80.dp), contentAlignment = Alignment.CenterStart) {
+                            LanguageFlag(user.preferredLang)
+                        }
                         Text(user.lastLoginAt ?: "—", Modifier.width(170.dp))
                         Text(user.failedLoginCount.toString(), Modifier.width(120.dp))
                         Text(user.lockedUntil ?: "—", Modifier.width(170.dp))
