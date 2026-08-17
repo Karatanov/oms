@@ -58,7 +58,6 @@ fun ReportsScreen(
     var reportToMove by remember { mutableStateOf<ReportRow?>(null) }
     var findingsReport by remember { mutableStateOf<ReportRow?>(null) }
     var reportToReview by remember { mutableStateOf<ReportRow?>(null) }
-    var reportToView by remember { mutableStateOf<ReportRow?>(null) }
     var isMovingReport by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     var sort by remember { mutableStateOf(ReportSort.Date) }
@@ -130,7 +129,6 @@ fun ReportsScreen(
                         Text(row.subprojectName ?: "—", Modifier.width(190.dp), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Box(Modifier.width(130.dp)) { ReportStatusChip(row.report.status) }
                         Text("admin", Modifier.width(100.dp))
-                        TableActionIconButton(LocalizationManager.t("view"), Icons.Default.Visibility) { reportToView = row }
                         if (canReviewReports && row.report.status == "pending_review") {
                             TableActionIconButton(LocalizationManager.t("review_report"), Icons.Default.RateReview) { reportToReview = row }
                         } else {
@@ -199,56 +197,7 @@ fun ReportsScreen(
                 }
             )
         }
-        reportToView?.let { report ->
-            ReportViewerDialog(report = report, onDismiss = { reportToView = null })
-        }
     }
-}
-
-@Composable
-private fun ReportViewerDialog(report: ReportRow, onDismiss: () -> Unit) {
-    val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
-    var findings by remember(report.report.uuid) { mutableStateOf<List<oms.data.ApiInspectionFinding>>(emptyList()) }
-    var photos by remember(report.report.uuid) { mutableStateOf<List<oms.data.ApiInspectionPhoto>>(emptyList()) }
-    LaunchedEffect(report.report.uuid) {
-        findings = runCatching { OmsApiClient.inspectionFindings(report.report.uuid) }.getOrDefault(emptyList())
-        photos = runCatching { OmsApiClient.inspectionPhotos(report.report.uuid) }.getOrDefault(emptyList())
-    }
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    report.report.summary ?: LocalizationManager.t("inspection_report"),
-                    modifier = Modifier.weight(1f),
-                    maxLines = 2
-                )
-                IconButton(onClick = onDismiss) { Icon(Icons.Default.Close, LocalizationManager.t("close")) }
-            }
-        },
-        text = {
-            Column(
-                modifier = Modifier.heightIn(max = 360.dp).verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                Text("${LocalizationManager.t("report_project")}: ${report.projectName}")
-                Text("${LocalizationManager.t("date")}: ${report.report.inspectionDate.toOmsDate()}")
-                Text("${LocalizationManager.t("status")}: ${report.report.status.replace('_', ' ')}")
-                report.report.rejectionReason?.let { Text("Причина повернення: $it") }
-                Text("${LocalizationManager.t("inspection_findings")}: ${findings.size}")
-                findings.forEach { finding ->
-                    Text("• ${finding.category}: ${finding.description}", style = MaterialTheme.typography.bodySmall)
-                }
-                Text("${LocalizationManager.t("photos")}: ${photos.size}")
-            }
-        },
-        confirmButton = {
-            Button(onClick = { uriHandler.openUri("http://localhost:8080/api/v1/inspection-reports/${report.report.uuid}/source-file") }) {
-                Text("Завантажити XLSX")
-            }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(LocalizationManager.t("close")) } }
-    )
 }
 
 @Composable

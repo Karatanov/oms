@@ -374,32 +374,11 @@ private fun ProjectGeneralInfoTab(data: oms.data.ApiProjectDetailsData?) {
 @Composable
 private fun ProjectReportsTab(reports: List<ApiInspectionReport>) {
     val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
-    var selectedReport by remember { mutableStateOf<ApiInspectionReport?>(null) }
-    selectedReport?.let { report ->
-        AlertDialog(
-            onDismissRequest = { selectedReport = null },
-            title = { Text(report.summary ?: LocalizationManager.t("inspection_report")) },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("${LocalizationManager.t("date")}: ${report.inspectionDate}")
-                    Text("${LocalizationManager.t("status")}: ${report.status.replace('_', ' ')}")
-                    report.rejectionReason?.let { Text("Причина повернення: $it") }
-                }
-            },
-            confirmButton = {
-                Button(onClick = { uriHandler.openUri("http://localhost:8080/api/v1/inspection-reports/${report.uuid}/source-file") }) {
-                    Text("Завантажити XLS/XLSX")
-                }
-            },
-            dismissButton = { TextButton(onClick = { selectedReport = null }) { Text(LocalizationManager.t("close")) } }
-        )
-    }
     Card(Modifier.fillMaxSize()) {
         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             if (reports.isEmpty()) Text(LocalizationManager.t("no_reports"))
             reports.forEach { report ->
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
-                    TextButton(onClick = { selectedReport = report }) { Text("Відкрити") }
                     Button(onClick = { uriHandler.openUri("http://localhost:8080/api/v1/inspection-reports/${report.uuid}/source-file") }) {
                         Text("Завантажити XLS/XLSX")
                     }
