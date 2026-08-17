@@ -318,7 +318,10 @@ private fun ProjectLevelDropdown(
             selected = selected,
             prompt = label,
             onSelect = { onSelect(it.id) },
-            itemLabel = { "${it.siteNumber} — ${it.name}" },
+            itemLabel = {
+                if (it.siteNumber.equals(it.name, ignoreCase = true)) it.name
+                else "${it.siteNumber} — ${it.name}"
+            },
             enabled = enabled
         )
     }
