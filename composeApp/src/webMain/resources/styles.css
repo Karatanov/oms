@@ -118,9 +118,12 @@ canvas {
 }
 
 .oms-project-cluster {
-    display: grid;
-    width: 42px;
-    height: 42px;
+    display: flex;
+    box-sizing: border-box;
+    width: 52px;
+    height: 52px;
+    align-items: center;
+    justify-content: center;
     place-items: center;
     border: 3px solid white;
     border-radius: 50%;
@@ -128,5 +131,6 @@ canvas {
     color: white;
     box-shadow: 0 2px 8px rgba(12, 69, 87, 0.4);
     font-weight: 700;
-    font-size: 14px;
+    font-size: 20px;
+    line-height: 1;
 }

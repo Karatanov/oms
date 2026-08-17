@@ -65,7 +65,8 @@
                 iconCreateFunction: cluster => L.divIcon({
                     html: `<span>${cluster.getChildCount()}</span>`,
                     className: "oms-project-cluster",
-                    iconSize: L.point(42, 42)
+                    iconSize: L.point(52, 52),
+                    iconAnchor: L.point(26, 26)
                 })
             }).addTo(ufsiLeafletMap);
             ufsiLeafletMap.fitBounds(ukraineBounds);
