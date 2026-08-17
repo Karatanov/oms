@@ -33,6 +33,22 @@
             return local.toISOString().slice(0, 10);
         }
 
+        // Browser-native date input is dependable in Wasm and provides a calendar on desktop/mobile.
+        function openNativeDatePicker(value, onSelected) {
+            const input = document.createElement("input");
+            input.type = "date";
+            input.value = /^\d{4}-\d{2}-\d{2}$/.test(value || "") ? value : currentIsoDate();
+            input.style.position = "fixed";
+            input.style.left = "-10000px";
+            input.style.opacity = "0";
+            document.body.appendChild(input);
+            const remove = () => input.remove();
+            input.addEventListener("change", () => { if (input.value) onSelected(input.value); remove(); }, { once: true });
+            input.addEventListener("blur", () => setTimeout(remove, 100), { once: true });
+            input.showPicker?.();
+            input.click();
+        }
+
         function formatOmsDate(value) {
             if (!/^\d{4}-\d{2}-\d{2}$/.test(value || "")) return value || "";
             const [year, month, day] = value.split("-");
