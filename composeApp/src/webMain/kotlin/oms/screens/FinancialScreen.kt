@@ -211,7 +211,18 @@ private fun ActEditorDialog(existing: ProjectActRow?, projects: List<oms.model.P
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 listOf("invoice", "act", "payment", "advance").forEach { type -> FilterChip(selected = recordType == type, onClick = { recordType = type }, label = { Text(type) }) }
             }
-            OutlinedTextField(amount, { amount = it }, label = { Text(LocalizationManager.t("amount_uah")) }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(
+                value = amount,
+                onValueChange = { entered ->
+                    val filtered = entered
+                        .filter { it.isDigit() || it == '.' || it == ',' }
+                        .replace(',', '.')
+                    amount = if (filtered.count { it == '.' } <= 1) filtered else amount
+                },
+                label = { Text(LocalizationManager.t("amount_uah")) },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
             OmsDateField(date, { date = it }, LocalizationManager.t("date"), Modifier.fillMaxWidth(), true)
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, androidx.compose.ui.Alignment.End)) {
                 OutlinedButton(onClick = onDismiss) { Text(LocalizationManager.t("cancel")) }
