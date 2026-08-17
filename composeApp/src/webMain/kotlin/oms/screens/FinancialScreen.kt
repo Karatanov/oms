@@ -102,7 +102,7 @@ fun FinancialScreen(
             Text(LocalizationManager.t("financial_records"), style = MaterialTheme.typography.titleLarge)
             if (canManageFinancials) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(onClick = { showTransferDialog = true }) { Text("Import / export XLSX") }
+                    OutlinedButton(onClick = { showTransferDialog = true }) { Text(LocalizationManager.t("import_export_xlsx")) }
                     Button(onClick = { addAct = true }) { Text(LocalizationManager.t("add_record")) }
                 }
             }
@@ -177,11 +177,11 @@ private fun FinancialTransferDialog(
     val selected = projects.firstOrNull { it.id == projectUuid }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Import or export financial records") },
+        title = { Text(LocalizationManager.t("financial_transfer_title")) },
         text = {
         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            InlineOptionPicker(options = projects, selected = selected, prompt = "Select project", onSelect = { projectUuid = it.id }, itemLabel = { it.name })
-            Text("Import accepts an XLSX file exported by the system for the selected project.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            InlineOptionPicker(options = projects, selected = selected, prompt = LocalizationManager.t("select_project"), onSelect = { projectUuid = it.id }, itemLabel = { it.name })
+            Text(LocalizationManager.t("financial_import_hint"), color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         },
         dismissButton = { OutlinedButton(onClick = onDismiss) { Text(LocalizationManager.t("cancel")) } },
@@ -205,17 +205,17 @@ private fun ActEditorDialog(existing: ProjectActRow?, projects: List<oms.model.P
     val valid = projectUuid != null && reference.isNotBlank() && amount.toLongOrNull()?.let { it > 0 } == true && date.matches(Regex("\\d{4}-\\d{2}-\\d{2}"))
     Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(if (existing == null) "Add financial record" else "Edit financial record", style = MaterialTheme.typography.titleLarge)
-            InlineOptionPicker(options = projects, selected = selected, prompt = "Оберіть проєкт", onSelect = { projectUuid = it.id }, itemLabel = { it.name })
-            OutlinedTextField(reference, { reference = it }, label = { Text("Reference number") }, modifier = Modifier.fillMaxWidth())
+            Text(if (existing == null) LocalizationManager.t("add_financial_record") else LocalizationManager.t("edit_financial_record"), style = MaterialTheme.typography.titleLarge)
+            InlineOptionPicker(options = projects, selected = selected, prompt = LocalizationManager.t("select_project"), onSelect = { projectUuid = it.id }, itemLabel = { it.name })
+            OutlinedTextField(reference, { reference = it }, label = { Text(LocalizationManager.t("reference_number")) }, modifier = Modifier.fillMaxWidth())
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 listOf("invoice", "act", "payment", "advance").forEach { type -> FilterChip(selected = recordType == type, onClick = { recordType = type }, label = { Text(type) }) }
             }
-            OutlinedTextField(amount, { amount = it }, label = { Text("Amount, UAH") }, modifier = Modifier.fillMaxWidth())
-            OmsDateField(date, { date = it }, "Date", Modifier.fillMaxWidth(), true)
+            OutlinedTextField(amount, { amount = it }, label = { Text(LocalizationManager.t("amount_uah")) }, modifier = Modifier.fillMaxWidth())
+            OmsDateField(date, { date = it }, LocalizationManager.t("date"), Modifier.fillMaxWidth(), true)
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, androidx.compose.ui.Alignment.End)) {
-                OutlinedButton(onClick = onDismiss) { Text("Cancel") }
-                Button(onClick = { onSave(projectUuid!!, oms.data.FinancialRecordRequest(recordType, reference, amount.toLong(), "UAH", date)) }, enabled = valid) { Text("Save") }
+                OutlinedButton(onClick = onDismiss) { Text(LocalizationManager.t("cancel")) }
+                Button(onClick = { onSave(projectUuid!!, oms.data.FinancialRecordRequest(recordType, reference, amount.toLong(), "UAH", date)) }, enabled = valid) { Text(LocalizationManager.t("save")) }
             }
         }
     }

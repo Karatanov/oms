@@ -246,12 +246,12 @@ private fun ReviewReportDialog(
     var rejectionReason by remember(report.report.uuid) { mutableStateOf("") }
     Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text("Review inspection report", style = MaterialTheme.typography.titleLarge)
+            Text(LocalizationManager.t("review_inspection_report"), style = MaterialTheme.typography.titleLarge)
             Text(report.report.summary ?: LocalizationManager.t("inspection_report"))
             OutlinedTextField(
                 value = rejectionReason,
                 onValueChange = { rejectionReason = it },
-                label = { Text("Reason for returning for revision") },
+                label = { Text(LocalizationManager.t("revision_reason")) },
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 3
             )
@@ -260,8 +260,8 @@ private fun ReviewReportDialog(
                 OutlinedButton(
                     onClick = { onReview("reject", rejectionReason.trim()) },
                     enabled = rejectionReason.isNotBlank()
-                ) { Text("Return for revision") }
-                Button(onClick = { onReview("approve", null) }) { Text("Approve") }
+                ) { Text(LocalizationManager.t("return_for_revision")) }
+                Button(onClick = { onReview("approve", null) }) { Text(LocalizationManager.t("approve")) }
             }
         }
     }

@@ -131,7 +131,7 @@ fun DocumentsScreen(canManageDocuments: Boolean = true) {
         Text(LocalizationManager.t("sir_source_files"), style = MaterialTheme.typography.titleLarge)
         Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                if (sirFiles.isEmpty()) Text("No imported SIR files found.")
+                if (sirFiles.isEmpty()) Text(LocalizationManager.t("no_imported_sir_files"))
                 sirFiles.forEach { row ->
                     val fileName = row.report.summary?.removePrefix("Imported SIR: ") ?: "SIR source file"
                     Text(fileName, style = MaterialTheme.typography.titleMedium)

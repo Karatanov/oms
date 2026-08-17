@@ -191,14 +191,14 @@ fun CreateInspectionScreen(
                     onClick = { openInspectionPhotoPicker { photoCount = it } },
                     modifier = Modifier.fillMaxWidth().height(56.dp)
                 ) {
-                    Text("Add photos — drag & drop or select files")
+                    Text(LocalizationManager.t("add_inspection_photos"))
                 }
                 Text(
-                    text = if (photoCount == 0) "No photos selected yet." else "$photoCount / 30 photos selected. Open the area again to preview or remove them.",
+                    text = if (photoCount == 0) LocalizationManager.t("no_photos_selected") else LocalizationManager.t("photos_selected").replace("{count}", photoCount.toString()),
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    text = "JPEG or PNG, up to 10 MB each.",
+                    text = LocalizationManager.t("photo_upload_requirements"),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
