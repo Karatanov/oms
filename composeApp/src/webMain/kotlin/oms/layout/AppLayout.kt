@@ -24,7 +24,9 @@ fun AppLayout(appState: AppState) {
         Sidebar(
             currentScreen = appState.currentScreen,
             onNavigate = { appState.navigate(it) },
-            onLogout = { appState.logout() }
+            onLogout = { appState.logout() },
+            username = appState.username,
+            isAdmin = appState.roleCode == "ADMIN"
         )
         // ---------------- CONTENT ----------------
         Box(modifier = Modifier.weight(1f)) {
@@ -76,14 +78,25 @@ fun AppLayout(appState: AppState) {
                 )
 
                 is Screen.Inspections -> ReportsScreen(
-                    onNewInspection = { appState.openCreateInspection() }
+                    onNewInspection = { appState.openCreateInspection() },
+                    canReviewReports = appState.roleCode in setOf("ADMIN", "PROJECT_MANAGER"),
+                    canMoveReports = appState.roleCode in setOf("ADMIN", "PROJECT_MANAGER")
                 )
 
-                is Screen.Financial -> FinancialScreen()
+                is Screen.Financial -> FinancialScreen(
+                    canAccessFinancials = appState.roleCode in setOf("ADMIN", "PROJECT_MANAGER"),
+                    canManageFinancials = appState.roleCode in setOf("ADMIN", "PROJECT_MANAGER")
+                )
 
-                is Screen.Documents -> DocumentsScreen()
+                is Screen.Procurement -> ProcurementScreen(
+                    canManageProcurements = appState.roleCode in setOf("ADMIN", "PROJECT_MANAGER")
+                )
 
-                is Screen.Admin -> AdminScreen()
+                is Screen.Documents -> DocumentsScreen(
+                    canManageDocuments = appState.roleCode in setOf("ADMIN", "PROJECT_MANAGER")
+                )
+
+                is Screen.Admin -> if (appState.roleCode == "ADMIN") AdminScreen()
 
                 else -> {}
             }

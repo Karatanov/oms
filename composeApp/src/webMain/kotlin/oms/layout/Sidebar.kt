@@ -20,7 +20,9 @@ import oms.navigation.Screen
 fun Sidebar(
     currentScreen: Screen,
     onNavigate: (Screen) -> Unit,
-    onLogout: () -> Unit
+    onLogout: () -> Unit,
+    username: String,
+    isAdmin: Boolean
 ) {
 
     Column(
@@ -64,6 +66,7 @@ fun Sidebar(
             currentScreen,
             onNavigate
         )
+        SidebarItem("Закупівлі", Icons.Default.ShoppingCart, Screen.Procurement, currentScreen, onNavigate)
         SidebarItem(
             LocalizationManager.t("documents"),
             Icons.Default.Description,
@@ -71,7 +74,7 @@ fun Sidebar(
             currentScreen,
             onNavigate
         )
-        SidebarItem(
+        if (isAdmin) SidebarItem(
             "Адміністрування",
             Icons.Default.AdminPanelSettings,
             Screen.Admin,
@@ -102,7 +105,7 @@ fun Sidebar(
                 Spacer(modifier = Modifier.width(8.dp))
 
                 Text(
-                    text = "Admin",
+                    text = username,
                     style = MaterialTheme.typography.bodyMedium
                 )
 

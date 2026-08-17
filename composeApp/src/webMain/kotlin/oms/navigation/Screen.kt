@@ -33,6 +33,8 @@ sealed class Screen(val title: String) {
     // 🔹 Фінанси
     object Financial : Screen("Financial Monitoring")
 
+    object Procurement : Screen("Procurement")
+
     // 🔹 Документи
     object Documents : Screen("Documents")
 

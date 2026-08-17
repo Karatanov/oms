@@ -5,40 +5,82 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import oms.data.ApiProcurementRecord
 import oms.data.OmsApiClient
+import oms.data.ProcurementRecordRequest
+import oms.components.OmsDateField
+import oms.components.TableActionIconButton
+import oms.components.currentIsoDate
 import oms.localization.LocalizationManager
+import kotlinx.coroutines.launch
 
 @Composable
-fun ProcurementScreen() {
+fun ProcurementScreen(canManageProcurements: Boolean) {
     var records by remember { mutableStateOf<List<ApiProcurementRecord>?>(null) }
     var error by remember { mutableStateOf<String?>(null) }
+    var editorRecord by remember { mutableStateOf<ApiProcurementRecord?>(null) }
+    var creating by remember { mutableStateOf(false) }
+    var recordPendingDeletion by remember { mutableStateOf<ApiProcurementRecord?>(null) }
+    val scope = rememberCoroutineScope()
     LaunchedEffect(Unit) {
         runCatching { OmsApiClient.procurements() }
             .onSuccess { records = it.sortedWith(compareBy({ record -> record.batchId }, { record -> record.recordNumber })) }
             .onFailure { error = LocalizationManager.t("procurement_load_error") }
     }
     Column(Modifier.fillMaxSize().padding(24.dp)) {
-        Text(LocalizationManager.t("procurement_title"), style = MaterialTheme.typography.headlineMedium)
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+            Text(LocalizationManager.t("procurement_title"), style = MaterialTheme.typography.headlineMedium)
+            if (canManageProcurements) Button(onClick = { creating = true }) { Icon(Icons.Default.Add, null); Spacer(Modifier.width(6.dp)); Text("Додати запис") }
+        }
         Spacer(Modifier.height(8.dp))
         Text(LocalizationManager.t("procurement_subtitle"), style = MaterialTheme.typography.bodyMedium)
         Spacer(Modifier.height(16.dp))
         when {
             error != null -> Text(error!!, color = MaterialTheme.colorScheme.error)
             records == null -> CircularProgressIndicator()
-            else -> ProcurementTable(records!!)
+            else -> ProcurementTable(records!!, canManageProcurements, { editorRecord = it }, { recordPendingDeletion = it })
+        }
+        if (creating) ProcurementEditorDialog(null, onDismiss = { creating = false }) { request ->
+            scope.launch { runCatching { OmsApiClient.createProcurement(request) }
+                .onSuccess { records = (records.orEmpty() + it).sortedBy { record -> record.recordNumber }; creating = false }
+                .onFailure { error = "Не вдалося створити запис закупівлі: ${it.message.orEmpty()}" } }
+        }
+        editorRecord?.let { existing -> ProcurementEditorDialog(existing, onDismiss = { editorRecord = null }) { request ->
+            scope.launch { runCatching { OmsApiClient.updateProcurement(existing.id, request) }
+                .onSuccess { saved -> records = records.orEmpty().map { if (it.id == saved.id) saved else it }; editorRecord = null }
+                .onFailure { error = "Не вдалося зберегти зміни: ${it.message.orEmpty()}" } }
+        }
+        }
+        recordPendingDeletion?.let { record ->
+            AlertDialog(
+                onDismissRequest = { recordPendingDeletion = null },
+                title = { Text("Видалити запис закупівлі?") },
+                text = { Text("Запис №${record.recordNumber} буде видалено без можливості відновлення.") },
+                confirmButton = { Button(onClick = { scope.launch { if (OmsApiClient.deleteProcurement(record.id)) { records = records.orEmpty().filterNot { it.id == record.id }; recordPendingDeletion = null } else error = "Не вдалося видалити запис закупівлі." } }, colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)) { Text("Видалити") } },
+                dismissButton = { OutlinedButton(onClick = { recordPendingDeletion = null }) { Text("Скасувати") } }
+            )
         }
     }
 }
 
 @Composable
-private fun ProcurementTable(records: List<ApiProcurementRecord>) {
+private fun ProcurementTable(
+    records: List<ApiProcurementRecord>,
+    canManage: Boolean,
+    onEdit: (ApiProcurementRecord) -> Unit,
+    onDelete: (ApiProcurementRecord) -> Unit
+) {
     Column(Modifier.fillMaxSize().horizontalScroll(rememberScrollState()).verticalScroll(rememberScrollState())) {
-        ProcurementRow(procurementHeaderLabels(), isHeader = true)
+        ProcurementRow(procurementHeaderLabels() + if (canManage) "Дії" else "", isHeader = true)
         HorizontalDivider()
         records.forEach { record ->
             ProcurementRow(listOf(
@@ -48,19 +90,29 @@ private fun ProcurementTable(records: List<ApiProcurementRecord>) {
                 record.contractorId.orEmpty(), record.contractDate.orEmpty(), record.contractEndDate.orEmpty(),
                 record.contractDurationMonths?.toString().orEmpty(), record.contractAmountUah.format(0),
                 record.contractAmountEur.format(2), record.financingContractDifferencePct?.let { "${(it * 100).format(2)}%" }.orEmpty()
-            ))
+            ), record.takeIf { canManage }, onEdit, onDelete)
             HorizontalDivider()
         }
     }
 }
 
 @Composable
-private fun ProcurementRow(values: List<String>, isHeader: Boolean = false) {
+private fun ProcurementRow(
+    values: List<String>,
+    record: ApiProcurementRecord? = null,
+    onEdit: (ApiProcurementRecord) -> Unit = {},
+    onDelete: (ApiProcurementRecord) -> Unit = {},
+    isHeader: Boolean = false
+) {
     Row(Modifier.widthIn(min = 3_300.dp).padding(vertical = 10.dp)) {
-        values.zip(columnWidths).forEach { (value, width) ->
+        values.take(columnWidths.size).zip(columnWidths).forEach { (value, width) ->
             Text(value, Modifier.width(width.dp).padding(horizontal = 6.dp), style = MaterialTheme.typography.bodySmall,
                 fontWeight = if (isHeader) FontWeight.SemiBold else FontWeight.Normal)
         }
+        if (record != null) {
+            TableActionIconButton("Редагувати запис закупівлі", Icons.Default.Edit) { onEdit(record) }
+            TableActionIconButton("Видалити запис закупівлі", Icons.Default.Delete) { onDelete(record) }
+        } else if (values.size > columnWidths.size) Text(values.last(), Modifier.width(96.dp), style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
     }
 }
 
@@ -77,3 +129,70 @@ private fun Double?.format(decimals: Int): String = this?.let { value ->
     val rounded = kotlin.math.round(value * multiplier) / multiplier
     if (decimals == 0) rounded.toInt().toString() else rounded.toString()
 }.orEmpty()
+
+@Composable
+private fun ProcurementEditorDialog(
+    existing: ApiProcurementRecord?,
+    onDismiss: () -> Unit,
+    onSave: (ProcurementRecordRequest) -> Unit
+) {
+    var number by remember(existing?.id) { mutableStateOf(existing?.recordNumber?.toString().orEmpty()) }
+    var batch by remember(existing?.id) { mutableStateOf(existing?.batchId?.toString().orEmpty()) }
+    var oblastName by remember(existing?.id) { mutableStateOf(existing?.oblastName.orEmpty()) }
+    var oblastId by remember(existing?.id) { mutableStateOf(existing?.oblastId.orEmpty()) }
+    var subprojectId by remember(existing?.id) { mutableStateOf(existing?.subProjectId.orEmpty()) }
+    var lotId by remember(existing?.id) { mutableStateOf(existing?.subProjectLotId.orEmpty()) }
+    var status by remember(existing?.id) { mutableStateOf(existing?.purchaseStatus.orEmpty()) }
+    var tenderId by remember(existing?.id) { mutableStateOf(existing?.tenderId.orEmpty()) }
+    var prozorroId by remember(existing?.id) { mutableStateOf(existing?.prozorroTenderId.orEmpty()) }
+    var contractorUkr by remember(existing?.id) { mutableStateOf(existing?.contractorNameUkr.orEmpty()) }
+    var contractorEng by remember(existing?.id) { mutableStateOf(existing?.contractorNameEng.orEmpty()) }
+    var contractorId by remember(existing?.id) { mutableStateOf(existing?.contractorId.orEmpty()) }
+    var contractDate by remember(existing?.id) { mutableStateOf(existing?.contractDate ?: currentIsoDate()) }
+    var contractEndDate by remember(existing?.id) { mutableStateOf(existing?.contractEndDate ?: currentIsoDate()) }
+    var duration by remember(existing?.id) { mutableStateOf(existing?.contractDurationMonths?.toString().orEmpty()) }
+    var amountUah by remember(existing?.id) { mutableStateOf(existing?.contractAmountUah?.toString().orEmpty()) }
+    var amountEur by remember(existing?.id) { mutableStateOf(existing?.contractAmountEur?.toString().orEmpty()) }
+    var difference by remember(existing?.id) { mutableStateOf(existing?.financingContractDifferencePct?.times(100)?.toString().orEmpty()) }
+    val valid = number.toIntOrNull()?.let { it > 0 } == true && batch.toIntOrNull()?.let { it > 0 } == true &&
+        listOf(oblastName, oblastId, subprojectId, lotId, status).all { it.isNotBlank() }
+    fun numeric(value: String, decimals: Boolean = false, update: (String) -> Unit) {
+        update(value.filter { it.isDigit() || (decimals && (it == '.' || it == ',')) }.replace(',', '.').let { text -> if (decimals && text.count { it == '.' } > 1) text.dropLast(1) else text })
+    }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(if (existing == null) "Додати запис закупівлі" else "Редагувати запис закупівлі") },
+        text = {
+            Column(Modifier.fillMaxWidth().heightIn(max = 520.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(number, { numeric(it, update = { value -> number = value }) }, label = { Text("№ *") }, modifier = Modifier.weight(1f), singleLine = true)
+                    OutlinedTextField(batch, { numeric(it, update = { value -> batch = value }) }, label = { Text("Номер пулу *") }, modifier = Modifier.weight(1f), singleLine = true)
+                }
+                OutlinedTextField(oblastName, { oblastName = it }, label = { Text("Назва області *") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(oblastId, { oblastId = it }, label = { Text("Ідентифікатор області *") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(subprojectId, { subprojectId = it }, label = { Text("Ідентифікатор субпроєкту *") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(lotId, { lotId = it }, label = { Text("Ідентифікатор лоту субпроєкту *") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(status, { status = it }, label = { Text("Статус закупівлі *") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(tenderId, { tenderId = it }, label = { Text("Ідентифікатор тендеру") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(prozorroId, { prozorroId = it }, label = { Text("Ідентифікатор тендеру PROZORRO") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(contractorUkr, { contractorUkr = it }, label = { Text("Назва підрядника (укр.)") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(contractorEng, { contractorEng = it }, label = { Text("Назва підрядника (англ.)") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(contractorId, { contractorId = it }, label = { Text("Код ЄДРПОУ підрядника") }, modifier = Modifier.fillMaxWidth())
+                OmsDateField(contractDate, { contractDate = it }, "Дата контракту", Modifier.fillMaxWidth())
+                OmsDateField(contractEndDate, { contractEndDate = it }, "Дата завершення контракту", Modifier.fillMaxWidth())
+                OutlinedTextField(duration, { numeric(it, update = { value -> duration = value }) }, label = { Text("Тривалість контракту, місяці") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(amountUah, { numeric(it, true) { value -> amountUah = value } }, label = { Text("Сума договору з ПДВ, грн") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(amountEur, { numeric(it, true) { value -> amountEur = value } }, label = { Text("Сума договору з ПДВ, EUR") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(difference, { numeric(it, true) { value -> difference = value } }, label = { Text("Різниця між фінансуванням і сумою договору, %") }, modifier = Modifier.fillMaxWidth())
+            }
+        },
+        confirmButton = {
+            Button(onClick = {
+                onSave(ProcurementRecordRequest(number.toInt(), batch.toInt(), oblastName, oblastId, subprojectId, lotId, status,
+                    tenderId.ifBlank { null }, prozorroId.ifBlank { null }, contractorUkr.ifBlank { null }, contractorEng.ifBlank { null }, contractorId.ifBlank { null },
+                    contractDate.ifBlank { null }, contractEndDate.ifBlank { null }, duration.toIntOrNull(), amountUah.toDoubleOrNull(), amountEur.toDoubleOrNull(), difference.toDoubleOrNull()?.div(100)))
+            }, enabled = valid) { Text("Зберегти") }
+        },
+        dismissButton = { OutlinedButton(onClick = onDismiss) { Text("Скасувати") } }
+    )
+}

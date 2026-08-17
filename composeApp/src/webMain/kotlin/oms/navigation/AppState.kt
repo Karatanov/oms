@@ -23,6 +23,8 @@ class AppState {
 
     // 🔹 JWT токен (поки mock)
     var token: String? by mutableStateOf(null)
+    var username by mutableStateOf("")
+    var roleCode by mutableStateOf("")
 
     // ---------------- NAVIGATION ----------------
 
@@ -52,8 +54,10 @@ class AppState {
     }
 
     // 🔹 Успішний логін
-    fun onLoginSuccess(token: String) {
-        this.token = token
+    fun onLoginSuccess(username: String, roleCode: String) {
+        this.token = "session"
+        this.username = username
+        this.roleCode = roleCode
         isAuthenticated = true
 
         // 🔹 Після логіну завжди відкриваємо Dashboard
@@ -63,6 +67,8 @@ class AppState {
     // 🔹 Logout
     fun logout() {
         token = null
+        username = ""
+        roleCode = ""
         isAuthenticated = false
         selectedProject = null
         currentScreen = Screen.Login

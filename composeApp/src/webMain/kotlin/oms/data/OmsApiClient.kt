@@ -83,6 +83,14 @@ object OmsApiClient {
 
     suspend fun procurements(): List<ApiProcurementRecord> = client.get("$baseUrl/procurements").body()
 
+    suspend fun createProcurement(request: ProcurementRecordRequest): ApiProcurementRecord =
+        client.post("$baseUrl/procurements") { contentType(ContentType.Application.Json); setBody(request) }.body()
+
+    suspend fun updateProcurement(id: Long, request: ProcurementRecordRequest): ApiProcurementRecord =
+        client.patch("$baseUrl/procurements/$id") { contentType(ContentType.Application.Json); setBody(request) }.body()
+
+    suspend fun deleteProcurement(id: Long): Boolean = client.delete("$baseUrl/procurements/$id").status.isSuccess()
+
     suspend fun projectDetails(uuid: String): ApiProjectDetails =
         client.get("$baseUrl/projects/$uuid").body()
 
@@ -362,6 +370,17 @@ data class ApiProcurementRecord(
     val id: Long, val recordNumber: Int, val batchId: Int,
     val oblastName: String, val oblastId: String, val subProjectId: String, val subProjectLotId: String,
     val purchaseStatus: String, val tenderId: String? = null, val prozorroTenderId: String? = null,
+    val contractorNameUkr: String? = null, val contractorNameEng: String? = null, val contractorId: String? = null,
+    val contractDate: String? = null, val contractEndDate: String? = null, val contractDurationMonths: Int? = null,
+    val contractAmountUah: Double? = null, val contractAmountEur: Double? = null,
+    val financingContractDifferencePct: Double? = null
+)
+
+@Serializable
+data class ProcurementRecordRequest(
+    val recordNumber: Int, val batchId: Int, val oblastName: String, val oblastId: String,
+    val subProjectId: String, val subProjectLotId: String, val purchaseStatus: String,
+    val tenderId: String? = null, val prozorroTenderId: String? = null,
     val contractorNameUkr: String? = null, val contractorNameEng: String? = null, val contractorId: String? = null,
     val contractDate: String? = null, val contractEndDate: String? = null, val contractDurationMonths: Int? = null,
     val contractAmountUah: Double? = null, val contractAmountEur: Double? = null,

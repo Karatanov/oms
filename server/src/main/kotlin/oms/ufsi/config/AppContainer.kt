@@ -91,6 +91,9 @@ object AppContainer {
     val financialRecordRepository: FinancialRecordRepository = ExposedFinancialRecordRepository()
     val financialRecordService = FinancialRecordService(financialRecordRepository)
 
+    val procurementRecordRepository: ProcurementRecordRepository = ExposedProcurementRecordRepository()
+    val procurementService = ProcurementService(procurementRecordRepository)
+
     val inspectionReportFileRepository: InspectionReportFileRepository = ExposedInspectionReportFileRepository()
     val inspectionReportFileService = InspectionReportFileService(inspectionReportFileRepository, inspectionReportService)
 

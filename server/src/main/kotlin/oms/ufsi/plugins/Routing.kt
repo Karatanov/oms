@@ -39,6 +39,8 @@ fun Application.configureRouting() {
 
         financialRoutes()
 
+        procurementRoutes()
+
         documentRoutes()
         photoRoutes()
         dashboardRoutes()
