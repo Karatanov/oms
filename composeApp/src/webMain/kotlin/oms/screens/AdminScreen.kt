@@ -3,6 +3,7 @@ package oms.screens
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -79,6 +80,7 @@ fun AdminScreen() {
     var users by remember { mutableStateOf<List<ApiUser>>(emptyList()) }
     var roles by remember { mutableStateOf<List<ApiRole>>(emptyList()) }
     var selectedUser by remember { mutableStateOf<ApiUser?>(null) }
+    var userPendingDeletion by remember { mutableStateOf<ApiUser?>(null) }
     var createUser by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var sort by remember { mutableStateOf(UserSort.Username) }
@@ -149,12 +151,7 @@ fun AdminScreen() {
                         Text(user.createdAt ?: "—", Modifier.width(170.dp))
                         Text(user.updatedAt ?: "—", Modifier.width(170.dp))
                         TableActionIconButton("Редагувати користувача", Icons.Default.Edit) { selectedUser = user }
-                        TableActionIconButton("Видалити користувача", Icons.Default.Delete) {
-                            scope.launch {
-                                if (OmsApiClient.deleteUser(user.id)) users = users.filterNot { it.id == user.id }
-                                else errorMessage = "Не вдалося видалити користувача. Неможливо видалити поточний обліковий запис."
-                            }
-                        }
+                        TableActionIconButton("Видалити користувача", Icons.Default.Delete) { userPendingDeletion = user }
                     }
                     HorizontalDivider()
                 }
@@ -179,6 +176,29 @@ fun AdminScreen() {
                 }
             }
         }
+        userPendingDeletion?.let { user ->
+            AlertDialog(
+                onDismissRequest = { userPendingDeletion = null },
+                title = { Text("Видалити користувача?") },
+                text = { Text("Користувача «${user.username}» буде видалено без можливості відновлення.") },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            scope.launch {
+                                if (OmsApiClient.deleteUser(user.id)) {
+                                    users = users.filterNot { it.id == user.id }
+                                    userPendingDeletion = null
+                                } else {
+                                    errorMessage = "Не вдалося видалити користувача. Неможливо видалити поточний обліковий запис."
+                                }
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                    ) { Text("Видалити") }
+                },
+                dismissButton = { OutlinedButton(onClick = { userPendingDeletion = null }) { Text("Скасувати") } }
+            )
+        }
     }
 }
 
@@ -195,9 +215,14 @@ private fun CreateUserDialog(roles: List<ApiRole>, onDismiss: () -> Unit, onSave
     var department by remember { mutableStateOf("") }
     var preferredLang by remember { mutableStateOf("uk") }
     val role = roles.firstOrNull { it.code == roleCode }
-    Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text("Створити користувача", style = MaterialTheme.typography.titleLarge)
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Створити користувача") },
+        text = {
+            Column(
+                Modifier.fillMaxWidth().heightIn(max = 510.dp).verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
             OutlinedTextField(username, { username = it }, label = { Text("Логін") }, modifier = Modifier.fillMaxWidth())
             OutlinedTextField(email, { email = it }, label = { Text("Email") }, modifier = Modifier.fillMaxWidth())
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -214,12 +239,16 @@ private fun CreateUserDialog(roles: List<ApiRole>, onDismiss: () -> Unit, onSave
             }
             OutlinedTextField(password, { password = it }, label = { Text("Пароль") }, modifier = Modifier.fillMaxWidth())
             InlineOptionPicker(options = roles, selected = role, prompt = "Оберіть роль", onSelect = { roleCode = it.code }, itemLabel = { it.name })
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
-                OutlinedButton(onClick = onDismiss) { Text("Скасувати") }
-                Button(onClick = { onSave(CreateUserRequest(username.trim(), email.trim(), password, roleCode, firstName.trim(), lastName.trim(), status, region.trim().ifBlank { null }, department.trim().ifBlank { null }, preferredLang)) }, enabled = username.isNotBlank() && email.contains('@') && password.isNotBlank() && role != null) { Text("Створити") }
             }
-        }
-    }
+        },
+        confirmButton = {
+            Button(
+                onClick = { onSave(CreateUserRequest(username.trim(), email.trim(), password, roleCode, firstName.trim(), lastName.trim(), status, region.trim().ifBlank { null }, department.trim().ifBlank { null }, preferredLang)) },
+                enabled = username.isNotBlank() && email.contains('@') && password.isNotBlank() && role != null
+            ) { Text("Створити") }
+        },
+        dismissButton = { OutlinedButton(onClick = onDismiss) { Text("Скасувати") } }
+    )
 }
 
 @Composable
@@ -235,9 +264,14 @@ private fun EditUserDialog(user: ApiUser, roles: List<ApiRole>, saveError: Strin
     var department by remember(user.id) { mutableStateOf(user.department.orEmpty()) }
     var preferredLang by remember(user.id) { mutableStateOf(user.preferredLang) }
     val role = roles.firstOrNull { it.code == roleCode }
-    Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text("Редагувати користувача", style = MaterialTheme.typography.titleLarge)
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Редагувати користувача") },
+        text = {
+            Column(
+                Modifier.fillMaxWidth().heightIn(max = 510.dp).verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
             OutlinedTextField(username, { username = it }, label = { Text("Логін") }, modifier = Modifier.fillMaxWidth())
             OutlinedTextField(email, { email = it }, label = { Text("Email") }, modifier = Modifier.fillMaxWidth())
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -256,10 +290,14 @@ private fun EditUserDialog(user: ApiUser, roles: List<ApiRole>, saveError: Strin
             OutlinedTextField(password, { password = it }, label = { Text("Новий пароль (необов'язково)") }, modifier = Modifier.fillMaxWidth())
             Text(LocalizationManager.t("password_requirements"), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             saveError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
-                OutlinedButton(onClick = onDismiss) { Text("Скасувати") }
-                Button(onClick = { onSave(UpdateUserRequest(username, email, roleCode, password.ifBlank { null }, firstName, lastName, status, region.ifBlank { null }, department.ifBlank { null }, preferredLang)) }, enabled = username.isNotBlank() && email.contains('@') && role != null) { Text("Зберегти") }
             }
-        }
-    }
+        },
+        confirmButton = {
+            Button(
+                onClick = { onSave(UpdateUserRequest(username, email, roleCode, password.ifBlank { null }, firstName, lastName, status, region, department, preferredLang)) },
+                enabled = username.isNotBlank() && email.contains('@') && role != null
+            ) { Text("Зберегти") }
+        },
+        dismissButton = { OutlinedButton(onClick = onDismiss) { Text("Скасувати") } }
+    )
 }

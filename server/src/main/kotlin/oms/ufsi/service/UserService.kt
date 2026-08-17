@@ -134,8 +134,8 @@ class UserService(
             request.firstName?.trim() ?: current.firstName,
             request.lastName?.trim() ?: current.lastName,
             request.status?.let(::normalizeStatus) ?: current.status,
-            request.region?.trim()?.ifBlank { null } ?: current.region,
-            request.department?.trim()?.ifBlank { null } ?: current.department,
+            if (request.region == null) current.region else request.region.trim().ifBlank { null },
+            if (request.department == null) current.department else request.department.trim().ifBlank { null },
             request.preferredLang?.let(::normalizeLanguage) ?: current.preferredLang
         )
     }
