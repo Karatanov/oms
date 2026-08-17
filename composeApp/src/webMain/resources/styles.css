@@ -118,19 +118,34 @@ canvas {
 }
 
 .oms-project-cluster {
-    display: flex;
+    display: flex !important;
     box-sizing: border-box;
     width: 52px;
     height: 52px;
-    align-items: center;
-    justify-content: center;
-    place-items: center;
+    align-items: center !important;
+    justify-content: center !important;
     border: 3px solid white;
     border-radius: 50%;
     background: #278DAD;
     color: white;
     box-shadow: 0 2px 8px rgba(12, 69, 87, 0.4);
     font-weight: 700;
-    font-size: 20px;
+    font-size: 22px;
     line-height: 1;
+    text-align: center;
+}
+
+/* MarkerCluster's own stylesheet is loaded after ours and styles nested
+   elements. Force the counter itself to fill and centre in the custom icon. */
+.oms-project-cluster > span {
+    display: flex !important;
+    width: 100% !important;
+    height: 100% !important;
+    align-items: center !important;
+    justify-content: center !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    font: inherit !important;
+    line-height: 1 !important;
+    text-align: center !important;
 }

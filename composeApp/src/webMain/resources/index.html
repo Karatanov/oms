@@ -17,7 +17,6 @@
         let ufsiLeafletMap = null;
         let ufsiMarkersLayer = null;
         let ufsiOnProjectClick = null;
-        let ufsiHasShownInitialCountryView = false;
 
         function formatDateForInput(epochMillis) {
             const date = new Date(epochMillis);
@@ -415,17 +414,9 @@
                     .addTo(ufsiMarkersLayer);
             });
 
-            if (!ufsiHasShownInitialCountryView) {
-                ufsiLeafletMap.fitBounds(ukraineBounds, { padding: [24, 24] });
-                ufsiHasShownInitialCountryView = true;
-            } else if (markerBounds.length === 1) {
-                ufsiLeafletMap.setView(markerBounds[0], 13);
-            } else {
-                ufsiLeafletMap.fitBounds(markerBounds, {
-                    padding: [48, 48],
-                    maxZoom: 16
-                });
-            }
+            // The map is an overview: opening it and changing filters must not
+            // unexpectedly zoom into a single oblast or a group of facilities.
+            ufsiLeafletMap.fitBounds(ukraineBounds, { padding: [24, 24] });
         }
 
         window.addEventListener("load", () => {
