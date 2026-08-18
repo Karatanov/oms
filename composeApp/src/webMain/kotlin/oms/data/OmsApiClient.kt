@@ -115,6 +115,17 @@ object OmsApiClient {
         return client.post("$baseUrl/inspection-reports/${draft.uuid}/submit").body()
     }
 
+    /** Creates a report in DRAFT status without submitting it for review. */
+    suspend fun createInspectionReportDraft(
+        projectUuid: String,
+        inspectionDate: String,
+        summary: String
+    ): ApiInspectionReport =
+        client.post("$baseUrl/projects/$projectUuid/inspection-reports") {
+            contentType(ContentType.Application.Json)
+            setBody(CreateInspectionReportRequest(inspectionDate, summary))
+        }.body()
+
     suspend fun reviewInspectionReport(
         reportUuid: String,
         action: String,

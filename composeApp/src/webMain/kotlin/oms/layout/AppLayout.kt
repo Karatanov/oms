@@ -68,7 +68,7 @@ fun AppLayout(appState: AppState) {
                 }
 
                 is Screen.CreateInspection -> CreateInspectionScreen(
-                    onSaveDraft = { },
+                    onSaveDraft = { appState.navigate(Screen.Inspections) },
                     onSubmit = { appState.navigate(Screen.Inspections) }
                 )
 

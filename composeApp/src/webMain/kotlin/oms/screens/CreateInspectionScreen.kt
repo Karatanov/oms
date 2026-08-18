@@ -209,7 +209,32 @@ fun CreateInspectionScreen(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.End)
         ) {
-            OutlinedButton(onClick = onSaveDraft) {
+            OutlinedButton(
+                enabled = !isSubmitting,
+                onClick = {
+                    val selectedProject = inspectionTargetUuid
+                    when {
+                        selectionError != null -> errorMessage = selectionError
+                        !date.isIsoDate() -> errorMessage = LocalizationManager.t("error_invalid_iso_date")
+                        else -> {
+                            isSubmitting = true
+                            errorMessage = null
+                            scope.launch {
+                                val summary = buildInspectionSummary(inspectionType, comments.text, latitude, longitude)
+                                runCatching {
+                                    OmsApiClient.createInspectionReportDraft(requireNotNull(selectedProject), date, summary)
+                                }.onSuccess {
+                                    onSaveDraft()
+                                }.onFailure {
+                                    errorMessage = LocalizationManager.t("error_save_draft")
+                                        .replace("{message}", it.message ?: LocalizationManager.t("unknown_error"))
+                                    isSubmitting = false
+                                }
+                            }
+                        }
+                    }
+                }
+            ) {
                 Text(LocalizationManager.t("save_draft"))
             }
 
@@ -247,11 +272,7 @@ fun CreateInspectionScreen(
                             isSubmitting = true
                             errorMessage = null
                             scope.launch {
-                                val summary = buildString {
-                                    append("[${inspectionType.name.lowercase()}] ")
-                                    append(comments.text.trim())
-                                    if (latitude.isNotBlank() || longitude.isNotBlank()) append(" | GPS: ${latitude.trim()}, ${longitude.trim()}")
-                                }
+                                val summary = buildInspectionSummary(inspectionType, comments.text, latitude, longitude)
                                 runCatching {
                                     OmsApiClient.createAndSubmitInspectionReport(requireNotNull(selectedProject), date, summary)
                                 }.onSuccess { report ->
@@ -328,6 +349,12 @@ private fun ProjectLevelDropdown(
 }
 
 private fun String.isIsoDate(): Boolean = matches(Regex("\\d{4}-\\d{2}-\\d{2}"))
+
+private fun buildInspectionSummary(type: InspectionType, comments: String, latitude: String, longitude: String): String = buildString {
+    append("[${type.name.lowercase()}]")
+    comments.trim().takeIf { it.isNotEmpty() }?.let { append(" $it") }
+    if (latitude.isNotBlank() || longitude.isNotBlank()) append(" | GPS: ${latitude.trim()}, ${longitude.trim()}")
+}
 
 @Composable
 private fun InspectionTypeDropdown(
