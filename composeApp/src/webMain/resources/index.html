@@ -154,7 +154,7 @@
             ufsiOnProjectClick = handler;
         }
 
-        function openSirImportDialog(projectUuid) {
+        function openSirImportDialog(projectUuid, onComplete) {
             const input = document.createElement("input");
             input.type = "file";
             input.accept = ".xls,.xlsx,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
@@ -170,9 +170,9 @@
                         credentials: "include"
                     });
                     if (!response.ok) throw new Error(await response.text());
-                    window.location.reload();
+                    onComplete("");
                 } catch (error) {
-                    window.alert(`${omsText("importReportError")}: ${error.message || error}`);
+                    onComplete(error.message || String(error));
                 }
             };
             input.click();

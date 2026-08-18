@@ -23,7 +23,7 @@ import oms.model.Project
 import kotlin.js.JsName
 
 @JsName("openSirImportDialog")
-external fun openSirImportDialog(projectUuid: String)
+external fun openSirImportDialog(projectUuid: String, onComplete: (String) -> Unit)
 
 @JsName("openInspectionPhotoPicker")
 external fun openInspectionPhotoPicker(onSelectionChanged: (Int) -> Unit)
@@ -248,8 +248,11 @@ fun CreateInspectionScreen(
                 if (selectionError != null) errorMessage = selectionError
                 else {
                     errorMessage = null
-                    openSirImportDialog(requireNotNull(selectedProject))
-                    onImportXls()
+                    openSirImportDialog(requireNotNull(selectedProject)) { importError ->
+                        if (importError.isBlank()) onImportXls()
+                        else errorMessage = LocalizationManager.t("error_import_inspection_report")
+                            .replace("{message}", importError)
+                    }
                 }
             }) {
                 Text(LocalizationManager.t("upload_xls"))

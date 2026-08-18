@@ -69,7 +69,8 @@ fun AppLayout(appState: AppState) {
 
                 is Screen.CreateInspection -> CreateInspectionScreen(
                     onSaveDraft = { appState.navigate(Screen.Inspections) },
-                    onSubmit = { appState.navigate(Screen.Inspections) }
+                    onSubmit = { appState.navigate(Screen.Inspections) },
+                    onImportXls = { appState.navigate(Screen.Inspections) }
                 )
 
                 is Screen.Map -> MapScreen(
