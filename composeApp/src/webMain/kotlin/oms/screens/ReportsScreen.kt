@@ -8,6 +8,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.FactCheck
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.RateReview
@@ -17,6 +18,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import oms.data.ApiInspectionReport
@@ -62,6 +64,7 @@ fun ReportsScreen(
     val scope = rememberCoroutineScope()
     var sort by remember { mutableStateOf(ReportSort.Date) }
     var ascending by remember { mutableStateOf(false) }
+    val uriHandler = LocalUriHandler.current
     LaunchedEffect(Unit) {
         ProjectRepository.refresh()
         val projectsById = ProjectRepository.projects.associateBy { it.id }
@@ -133,6 +136,9 @@ fun ReportsScreen(
                             TableActionIconButton(LocalizationManager.t("review_report"), Icons.Default.RateReview) { reportToReview = row }
                         } else {
                             Spacer(Modifier.width(48.dp))
+                        }
+                        TableActionIconButton(LocalizationManager.t("open_source_file"), Icons.Default.FileDownload) {
+                            uriHandler.openUri("http://localhost:8080/api/v1/inspection-reports/${row.report.uuid}/source-file")
                         }
                         TableActionIconButton(LocalizationManager.t("upload_photo"), Icons.Default.PhotoCamera) { openInspectionPhotoUpload(row.report.uuid) }
                         TableActionIconButton(LocalizationManager.t("findings"), Icons.AutoMirrored.Filled.FactCheck) { findingsReport = row }
