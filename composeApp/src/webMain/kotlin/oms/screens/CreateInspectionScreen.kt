@@ -106,8 +106,8 @@ fun CreateInspectionScreen(
         )
 
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            FilterChip(entryMode == "manual", { entryMode = "manual" }, label = { Text("Заповнити вручну") })
-            FilterChip(entryMode == "import", { entryMode = "import" }, label = { Text("Імпортувати XLS/XLSX") })
+            FilterChip(entryMode == "manual", { entryMode = "manual" }, label = { Text(LocalizationManager.t("manual_sir_entry")) })
+            FilterChip(entryMode == "import", { entryMode = "import" }, label = { Text(LocalizationManager.t("import_sir_xlsx")) })
         }
 
         if (rejectedReason != null) {
@@ -267,7 +267,7 @@ fun CreateInspectionScreen(
                     if (entryMode == "manual") {
                         val target = inspectionTargetUuid
                         if (selectionError != null) errorMessage = selectionError
-                        else if (contractor.isBlank() || inspectorName.isBlank()) errorMessage = "Заповніть підрядника та інспектора."
+                        else if (contractor.isBlank() || inspectorName.isBlank()) errorMessage = LocalizationManager.t("manual_sir_required")
                         else {
                             isSubmitting = true
                             scope.launch {
@@ -382,51 +382,51 @@ private fun ManualSirForm(
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text("SITE INSPECTION REPORT", style = MaterialTheme.typography.titleLarge, color = Color(0xFF278DAD))
-            Text("Ukrainian Social Investment Fund (USIF)", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(LocalizationManager.t("manual_sir_title"), style = MaterialTheme.typography.titleLarge, color = Color(0xFF278DAD))
+            Text(LocalizationManager.t("manual_sir_fund"), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
 
-            SirSectionTitle("CONTRACTOR")
+            SirSectionTitle(LocalizationManager.t("sir_contractor_section"))
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedTextField(contractor, onContractorChange, label = { Text("Підрядник *") }, modifier = Modifier.weight(1f))
+                OutlinedTextField(contractor, onContractorChange, label = { Text("${LocalizationManager.t("contractor")} *") }, modifier = Modifier.weight(1f))
                 OmsDateField(date, onDateChange, LocalizationManager.t("date_label"), Modifier.weight(1f), required = true)
             }
 
-            SirSectionTitle("REPRESENTATIVES")
-            OutlinedTextField(contractorRepresentative, onContractorRepresentativeChange, label = { Text("CONTRACTOR'S REPRESENTATIVE") }, modifier = Modifier.fillMaxWidth())
+            SirSectionTitle(LocalizationManager.t("sir_representatives"))
+            OutlinedTextField(contractorRepresentative, onContractorRepresentativeChange, label = { Text(LocalizationManager.t("sir_contractor_representative")) }, modifier = Modifier.fillMaxWidth())
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedTextField(qaStaff, onQaStaffChange, label = { Text("M4H QA STAFF") }, modifier = Modifier.weight(1f))
-                OutlinedTextField(usifRepresentative, onUsifRepresentativeChange, label = { Text("USIF / MOH REPRESENTATIVE") }, modifier = Modifier.weight(1f))
+                OutlinedTextField(qaStaff, onQaStaffChange, label = { Text(LocalizationManager.t("sir_qa_staff")) }, modifier = Modifier.weight(1f))
+                OutlinedTextField(usifRepresentative, onUsifRepresentativeChange, label = { Text(LocalizationManager.t("sir_usif_representative")) }, modifier = Modifier.weight(1f))
             }
 
-            SirSectionTitle("PERSONNEL ON SITE / WEATHER CONDITIONS")
+            SirSectionTitle(LocalizationManager.t("sir_personnel_weather"))
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedTextField(skilledLabor, onSkilledLaborChange, label = { Text("SKILLED LABOR") }, modifier = Modifier.weight(1f))
-                OutlinedTextField(unskilledLabor, onUnskilledLaborChange, label = { Text("UNSKILLED LABOR") }, modifier = Modifier.weight(1f))
+                OutlinedTextField(skilledLabor, onSkilledLaborChange, label = { Text(LocalizationManager.t("sir_skilled_labor")) }, modifier = Modifier.weight(1f))
+                OutlinedTextField(unskilledLabor, onUnskilledLaborChange, label = { Text(LocalizationManager.t("sir_unskilled_labor")) }, modifier = Modifier.weight(1f))
             }
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedTextField(siteManagement, onSiteManagementChange, label = { Text("MANAGEMENT ON SITE") }, modifier = Modifier.weight(1f))
-                OutlinedTextField(weather, onWeatherChange, label = { Text("WEATHER CONDITIONS") }, modifier = Modifier.weight(1f))
+                OutlinedTextField(siteManagement, onSiteManagementChange, label = { Text(LocalizationManager.t("sir_site_management")) }, modifier = Modifier.weight(1f))
+                OutlinedTextField(weather, onWeatherChange, label = { Text(LocalizationManager.t("sir_weather_conditions")) }, modifier = Modifier.weight(1f))
             }
 
-            SirSectionTitle("ONGOING ACTIVITIES")
-            OutlinedTextField(activities, onActivitiesChange, label = { Text("BLOCK / LOCATION | DESCRIPTION OF WORK | PER SCHEDULE? | REMARKS") }, minLines = 3, modifier = Modifier.fillMaxWidth())
-            SirSectionTitle("OBSERVANCES ON ONGOING ACTIVITIES")
-            OutlinedTextField(ongoingObservations, onOngoingObservationsChange, label = { Text("Одне спостереження в рядку") }, minLines = 2, modifier = Modifier.fillMaxWidth())
+            SirSectionTitle(LocalizationManager.t("sir_ongoing_activities"))
+            OutlinedTextField(activities, onActivitiesChange, label = { Text(LocalizationManager.t("sir_activities_hint")) }, minLines = 3, modifier = Modifier.fillMaxWidth())
+            SirSectionTitle(LocalizationManager.t("sir_ongoing_observations"))
+            OutlinedTextField(ongoingObservations, onOngoingObservationsChange, label = { Text(LocalizationManager.t("sir_one_per_line")) }, minLines = 2, modifier = Modifier.fillMaxWidth())
 
-            SirSectionTitle("OBSERVANCES ON HEALTH & SAFETY")
-            OutlinedTextField(hse, onHseChange, label = { Text("OBSERVATION | YES/NO | COMMENT") }, minLines = 3, modifier = Modifier.fillMaxWidth())
+            SirSectionTitle(LocalizationManager.t("sir_hse_observations"))
+            OutlinedTextField(hse, onHseChange, label = { Text(LocalizationManager.t("sir_hse_hint")) }, minLines = 3, modifier = Modifier.fillMaxWidth())
 
-            SirSectionTitle("NARRATIVE ASSESSMENT — COMMENTS ON QUALITY")
-            OutlinedTextField(quality, onQualityChange, label = { Text("COMMENT ON QUALITY | RECTIFICATION REMARKS (NNC / NTC)") }, minLines = 3, modifier = Modifier.fillMaxWidth())
+            SirSectionTitle(LocalizationManager.t("sir_quality_assessment"))
+            OutlinedTextField(quality, onQualityChange, label = { Text(LocalizationManager.t("sir_quality_hint")) }, minLines = 3, modifier = Modifier.fillMaxWidth())
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedTextField(progress, onProgressChange, label = { Text("COMMENTS ON PROGRESS") }, minLines = 2, modifier = Modifier.weight(1f))
-                OutlinedTextField(schedule, onScheduleChange, label = { Text("SCHEDULE REVISION REMARKS") }, minLines = 2, modifier = Modifier.weight(1f))
+                OutlinedTextField(progress, onProgressChange, label = { Text(LocalizationManager.t("sir_progress_comments")) }, minLines = 2, modifier = Modifier.weight(1f))
+                OutlinedTextField(schedule, onScheduleChange, label = { Text(LocalizationManager.t("sir_schedule_remarks")) }, minLines = 2, modifier = Modifier.weight(1f))
             }
 
-            SirSectionTitle("M4H QA STAFF")
+            SirSectionTitle(LocalizationManager.t("sir_inspector_section"))
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedTextField(inspectorName, onInspectorNameChange, label = { Text("NAME *") }, modifier = Modifier.weight(1f))
-                OutlinedTextField(inspectorTitle, onInspectorTitleChange, label = { Text("TITLE") }, modifier = Modifier.weight(1f))
+                OutlinedTextField(inspectorName, onInspectorNameChange, label = { Text("${LocalizationManager.t("sir_name")} *") }, modifier = Modifier.weight(1f))
+                OutlinedTextField(inspectorTitle, onInspectorTitleChange, label = { Text(LocalizationManager.t("sir_title_field")) }, modifier = Modifier.weight(1f))
             }
         }
     }
