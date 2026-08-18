@@ -17,6 +17,32 @@
         let ufsiLeafletMap = null;
         let ufsiMarkersLayer = null;
         let ufsiOnProjectClick = null;
+        let omsLanguage = "uk";
+        const omsBrowserStrings = {
+            uk: {
+                importReportError: "Не вдалося імпортувати інспекційний звіт",
+                uploadFileError: "Не вдалося завантажити файл",
+                documentUploaded: "Документ успішно завантажено.", photoUploaded: "Фото успішно завантажено.",
+                financialImported: "Фінансові записи успішно імпортовано.", photoTitle: "Фотографії інспекції",
+                photoRules: "Перетягніть фотографії сюди або виберіть файли. Лише JPEG/PNG, до 10 МБ кожен, максимум 30 фотографій.",
+                photoDrop: "Перетягніть фотографії сюди або натисніть для вибору", done: "Готово", remove: "Видалити",
+                invalidPhoto: "дозволені лише JPEG/PNG-файли розміром до 10 МБ.", maxPhotos: "Можна прикріпити максимум 30 фотографій.",
+                lastInspection: "Остання інспекція", noReports: "Інспекційних звітів ще немає", noPhotos: "В останній інспекції немає фотографій.",
+                open: "Відкрити", closeFullscreenPhoto: "Закрити повноекранне фото", details: "Деталі"
+            },
+            en: {
+                importReportError: "Could not import inspection report", uploadFileError: "Could not upload file",
+                documentUploaded: "Document uploaded successfully.", photoUploaded: "Photo uploaded successfully.",
+                financialImported: "Financial records imported successfully.", photoTitle: "Inspection photos",
+                photoRules: "Drag photos here or choose files. JPEG/PNG only, up to 10 MB each, maximum 30 photos.",
+                photoDrop: "Drag photos here or click to select", done: "Done", remove: "Remove",
+                invalidPhoto: "only JPEG/PNG files up to 10 MB are allowed.", maxPhotos: "You can attach up to 30 photos.",
+                lastInspection: "Latest inspection", noReports: "No Inspection Reports yet", noPhotos: "No photos in the latest inspection.",
+                open: "Open", closeFullscreenPhoto: "Close full-screen photo", details: "Details"
+            }
+        };
+        function setOmsLanguage(language) { omsLanguage = language === "en" ? "en" : "uk"; }
+        function omsText(key) { return omsBrowserStrings[omsLanguage][key] || omsBrowserStrings.uk[key] || key; }
 
         function formatDateForInput(epochMillis) {
             const date = new Date(epochMillis);
@@ -144,7 +170,7 @@
                     if (!response.ok) throw new Error(await response.text());
                     window.location.reload();
                 } catch (error) {
-                    window.alert(`Не вдалося імпортувати інспекційний звіт: ${error.message || error}`);
+                    window.alert(`${omsText("importReportError")}: ${error.message || error}`);
                 }
             };
             input.click();
@@ -171,7 +197,7 @@
                     window.alert(successMessage);
                     window.location.reload();
                 } catch (error) {
-                    window.alert(`Не вдалося завантажити файл: ${error.message || error}`);
+                    window.alert(`${omsText("uploadFileError")}: ${error.message || error}`);
                 } finally {
                     input.remove();
                 }
@@ -180,11 +206,11 @@
         }
 
         function openProjectDocumentUpload(projectUuid, docType) {
-            uploadWithDialog(".pdf,.xlsx,.jpg,.jpeg,.png", `http://localhost:8080/api/v1/projects/${projectUuid}/documents`, { docType }, "Документ успішно завантажено.");
+            uploadWithDialog(".pdf,.xlsx,.jpg,.jpeg,.png", `http://localhost:8080/api/v1/projects/${projectUuid}/documents`, { docType }, omsText("documentUploaded"));
         }
 
         function openInspectionPhotoUpload(reportUuid) {
-            uploadWithDialog("image/jpeg,image/png,image/webp", `http://localhost:8080/api/v1/inspection-reports/${reportUuid}/photos`, {}, "Фото успішно завантажено.");
+            uploadWithDialog("image/jpeg,image/png,image/webp", `http://localhost:8080/api/v1/inspection-reports/${reportUuid}/photos`, {}, omsText("photoUploaded"));
         }
 
         function openFinancialImport(projectUuid) {
@@ -192,7 +218,7 @@
                 ".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 `http://localhost:8080/api/v1/projects/${projectUuid}/financials/import`,
                 {},
-                "Фінансові записи успішно імпортовано."
+                omsText("financialImported")
             );
         }
 
@@ -208,15 +234,15 @@
             const dialog = document.createElement("section");
             dialog.className = "inspection-photo-picker-dialog";
             const title = document.createElement("h2");
-            title.textContent = "Фотографії інспекції";
+            title.textContent = omsText("photoTitle");
             const rules = document.createElement("p");
-            rules.textContent = "Перетягніть фотографії сюди або виберіть файли. Лише JPEG/PNG, до 10 МБ кожен, максимум 30 фотографій.";
+            rules.textContent = omsText("photoRules");
             const error = document.createElement("div");
             error.className = "inspection-photo-picker-error";
             const dropZone = document.createElement("button");
             dropZone.type = "button";
             dropZone.className = "inspection-photo-drop-zone";
-            dropZone.textContent = "Перетягніть фотографії сюди або натисніть для вибору";
+            dropZone.textContent = omsText("photoDrop");
             const input = document.createElement("input");
             input.type = "file";
             input.accept = "image/jpeg,image/png,.jpg,.jpeg,.png";
@@ -227,7 +253,7 @@
             const done = document.createElement("button");
             done.type = "button";
             done.className = "inspection-photo-done";
-            done.textContent = "Готово";
+            done.textContent = omsText("done");
 
             const notify = () => onSelectionChanged(ufsiPendingInspectionPhotos.length);
             const render = () => {
@@ -242,7 +268,7 @@
                     remove.type = "button";
                     remove.className = "inspection-photo-remove";
                     remove.textContent = "×";
-                    remove.setAttribute("aria-label", `Видалити ${file.name}`);
+                    remove.setAttribute("aria-label", `${omsText("remove")} ${file.name}`);
                     remove.onclick = () => { ufsiPendingInspectionPhotos.splice(index, 1); notify(); render(); };
                     const name = document.createElement("span");
                     name.textContent = file.name;
@@ -253,8 +279,8 @@
             const addFiles = files => {
                 const candidates = Array.from(files || []);
                 const invalid = candidates.find(file => !["image/jpeg", "image/png"].includes(file.type) || file.size > 10_000_000);
-                if (invalid) { error.textContent = `${invalid.name}: дозволені лише JPEG/PNG-файли розміром до 10 МБ.`; return; }
-                if (ufsiPendingInspectionPhotos.length + candidates.length > 30) { error.textContent = "Можна прикріпити максимум 30 фотографій."; return; }
+                if (invalid) { error.textContent = `${invalid.name}: ${omsText("invalidPhoto")}`; return; }
+                if (ufsiPendingInspectionPhotos.length + candidates.length > 30) { error.textContent = omsText("maxPhotos"); return; }
                 error.textContent = "";
                 ufsiPendingInspectionPhotos.push(...candidates);
                 notify(); render();
@@ -301,14 +327,14 @@
 
             const title = document.createElement("div");
             title.className = "photo-slider-title";
-            title.textContent = inspectionDate ? `Остання інспекція: ${formatOmsDate(inspectionDate)}` : "Інспекційних звітів ще немає";
+            title.textContent = inspectionDate ? `${omsText("lastInspection")}: ${formatOmsDate(inspectionDate)}` : omsText("noReports");
             pane.append(title);
             if (!inspectionDate) return;
 
             if (!photos.length) {
                 const empty = document.createElement("div");
                 empty.className = "photo-slider-empty";
-                empty.textContent = "В останній інспекції немає фотографій.";
+                empty.textContent = omsText("noPhotos");
                 pane.append(empty);
                 return;
             }
@@ -319,7 +345,7 @@
                 const button = document.createElement("button");
                 button.type = "button";
                 button.className = "photo-slider-item";
-                button.setAttribute("aria-label", `Відкрити ${photo.fileName}`);
+                button.setAttribute("aria-label", `${omsText("open")} ${photo.fileName}`);
                 const image = document.createElement("img");
                 image.src = photo.thumbnailUrl;
                 image.alt = photo.fileName;
@@ -339,7 +365,7 @@
             const close = document.createElement("button");
             close.className = "photo-lightbox-close";
             close.textContent = "×";
-            close.setAttribute("aria-label", "Закрити повноекранне фото");
+            close.setAttribute("aria-label", omsText("closeFullscreenPhoto"));
             close.onclick = () => overlay.remove();
             const previous = document.createElement("button");
             previous.className = "photo-lightbox-nav previous";
@@ -402,7 +428,7 @@
                             font-weight: 600;
                         "
                     >
-                        Деталі
+                        ${omsText("details")}
                     </button>
                 </div>
             `;

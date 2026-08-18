@@ -45,7 +45,7 @@ fun LoginScreen(
         if (isLoading) return
 
         if (username.isBlank()) {
-            errorMessage = "Вкажіть логін або електронну пошту"
+            errorMessage = LocalizationManager.t("login_or_email_required")
             return
         }
 
@@ -70,7 +70,7 @@ fun LoginScreen(
                     onLoginSuccess(authenticated)
                 }
                 .onFailure { exception ->
-                    errorMessage = "Помилка підключення: ${exception.message ?: "невідома помилка"}"
+                    errorMessage = LocalizationManager.t("connection_error").replace("{message}", exception.message ?: LocalizationManager.t("unknown_error"))
                 }
         }
     }
@@ -180,8 +180,8 @@ fun LoginScreen(
                             username = it
                             errorMessage = null
                         },
-                        label = { Text("Логін або електронна пошта") },
-                        placeholder = { Text("admin або user@example.com") },
+                        label = { Text(LocalizationManager.t("login_or_email")) },
+                        placeholder = { Text(LocalizationManager.t("login_or_email_example")) },
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                         keyboardActions = KeyboardActions(onDone = { submitLogin() }),

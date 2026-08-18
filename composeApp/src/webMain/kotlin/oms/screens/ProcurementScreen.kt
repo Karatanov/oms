@@ -40,7 +40,7 @@ fun ProcurementScreen(canManageProcurements: Boolean) {
     Column(Modifier.fillMaxSize().padding(24.dp)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Text(LocalizationManager.t("procurement_title"), style = MaterialTheme.typography.headlineMedium)
-            if (canManageProcurements) Button(onClick = { creating = true }) { Icon(Icons.Default.Add, null); Spacer(Modifier.width(6.dp)); Text("Додати запис") }
+            if (canManageProcurements) Button(onClick = { creating = true }) { Icon(Icons.Default.Add, null); Spacer(Modifier.width(6.dp)); Text(LocalizationManager.t("add_procurement_record")) }
         }
         Spacer(Modifier.height(8.dp))
         Text(LocalizationManager.t("procurement_subtitle"), style = MaterialTheme.typography.bodyMedium)
@@ -53,21 +53,21 @@ fun ProcurementScreen(canManageProcurements: Boolean) {
         if (creating) ProcurementEditorDialog(null, onDismiss = { creating = false }) { request ->
             scope.launch { runCatching { OmsApiClient.createProcurement(request) }
                 .onSuccess { records = (records.orEmpty() + it).sortedBy { record -> record.recordNumber }; creating = false }
-                .onFailure { error = "Не вдалося створити запис закупівлі: ${it.message.orEmpty()}" } }
+                .onFailure { error = LocalizationManager.t("error_create_procurement").replace("{message}", it.message.orEmpty()) } }
         }
         editorRecord?.let { existing -> ProcurementEditorDialog(existing, onDismiss = { editorRecord = null }) { request ->
             scope.launch { runCatching { OmsApiClient.updateProcurement(existing.id, request) }
                 .onSuccess { saved -> records = records.orEmpty().map { if (it.id == saved.id) saved else it }; editorRecord = null }
-                .onFailure { error = "Не вдалося зберегти зміни: ${it.message.orEmpty()}" } }
+                .onFailure { error = LocalizationManager.t("error_update_procurement").replace("{message}", it.message.orEmpty()) } }
         }
         }
         recordPendingDeletion?.let { record ->
             AlertDialog(
                 onDismissRequest = { recordPendingDeletion = null },
-                title = { Text("Видалити запис закупівлі?") },
-                text = { Text("Запис №${record.recordNumber} буде видалено без можливості відновлення.") },
-                confirmButton = { Button(onClick = { scope.launch { if (OmsApiClient.deleteProcurement(record.id)) { records = records.orEmpty().filterNot { it.id == record.id }; recordPendingDeletion = null } else error = "Не вдалося видалити запис закупівлі." } }, colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)) { Text("Видалити") } },
-                dismissButton = { OutlinedButton(onClick = { recordPendingDeletion = null }) { Text("Скасувати") } }
+                title = { Text(LocalizationManager.t("delete_procurement_title")) },
+                text = { Text(LocalizationManager.t("delete_procurement_confirmation").replace("{number}", record.recordNumber.toString())) },
+                confirmButton = { Button(onClick = { scope.launch { if (OmsApiClient.deleteProcurement(record.id)) { records = records.orEmpty().filterNot { it.id == record.id }; recordPendingDeletion = null } else error = LocalizationManager.t("error_delete_procurement") } }, colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)) { Text(LocalizationManager.t("delete")) } },
+                dismissButton = { OutlinedButton(onClick = { recordPendingDeletion = null }) { Text(LocalizationManager.t("cancel")) } }
             )
         }
     }
@@ -115,10 +115,10 @@ private fun ProcurementRow(
                 Text(LocalizationManager.t("actions"), Modifier.width(96.dp).padding(horizontal = 6.dp), style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
             } else if (record != null) {
                 Box(Modifier.offset(y = (-4).dp)) {
-                    TableActionIconButton("Редагувати запис закупівлі", Icons.Default.Edit) { onEdit(record) }
+                TableActionIconButton(LocalizationManager.t("edit_procurement_record"), Icons.Default.Edit) { onEdit(record) }
                 }
                 Box(Modifier.offset(y = (-4).dp)) {
-                    TableActionIconButton("Видалити запис закупівлі", Icons.Default.Delete) { onDelete(record) }
+                TableActionIconButton(LocalizationManager.t("delete_procurement_record"), Icons.Default.Delete) { onDelete(record) }
                 }
             }
         }
@@ -182,17 +182,17 @@ private fun ProcurementEditorDialog(
     }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(if (existing == null) "Додати запис закупівлі" else "Редагувати запис закупівлі") },
+        title = { Text(LocalizationManager.t(if (existing == null) "add_procurement_record" else "edit_procurement_record")) },
         text = {
             Column(Modifier.fillMaxWidth().heightIn(max = 520.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedTextField(number, { numeric(it, update = { value -> number = value }) }, label = { Text("№ *") }, modifier = Modifier.weight(1f), singleLine = true)
-                    OutlinedTextField(batch, { numeric(it, update = { value -> batch = value }) }, label = { Text("Номер пулу *") }, modifier = Modifier.weight(1f), singleLine = true)
+                    OutlinedTextField(batch, { numeric(it, update = { value -> batch = value }) }, label = { Text("${LocalizationManager.t("proc_batch_number")} *") }, modifier = Modifier.weight(1f), singleLine = true)
                 }
-                OutlinedTextField(oblastName, { oblastName = it }, label = { Text("Назва області *") }, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(oblastId, { oblastId = it }, label = { Text("Ідентифікатор області *") }, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(subprojectId, { subprojectId = it }, label = { Text("Ідентифікатор субпроєкту *") }, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(lotId, { lotId = it }, label = { Text("Ідентифікатор лоту субпроєкту *") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(oblastName, { oblastName = it }, label = { Text("${LocalizationManager.t("proc_oblast_name")} *") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(oblastId, { oblastId = it }, label = { Text("${LocalizationManager.t("proc_oblast_id")} *") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(subprojectId, { subprojectId = it }, label = { Text("${LocalizationManager.t("proc_subproject_id")} *") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(lotId, { lotId = it }, label = { Text("${LocalizationManager.t("proc_subproject_lot_id")} *") }, modifier = Modifier.fillMaxWidth())
                 InlineOptionPicker(
                     options = procurementStatuses,
                     selected = status.takeIf { it in procurementStatuses },
@@ -200,17 +200,17 @@ private fun ProcurementEditorDialog(
                     onSelect = { status = it },
                     itemLabel = { it }
                 )
-                OutlinedTextField(tenderId, { tenderId = it }, label = { Text("Ідентифікатор тендеру") }, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(prozorroId, { prozorroId = it }, label = { Text("Ідентифікатор тендеру PROZORRO") }, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(contractorUkr, { contractorUkr = it }, label = { Text("Назва підрядника (укр.)") }, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(contractorEng, { contractorEng = it }, label = { Text("Назва підрядника (англ.)") }, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(contractorId, { contractorId = it }, label = { Text("Код ЄДРПОУ підрядника") }, modifier = Modifier.fillMaxWidth())
-                OmsDateField(contractDate, { contractDate = it }, "Дата контракту", Modifier.fillMaxWidth())
-                OmsDateField(contractEndDate, { contractEndDate = it }, "Дата завершення контракту", Modifier.fillMaxWidth())
-                OutlinedTextField(duration, { numeric(it, update = { value -> duration = value }) }, label = { Text("Тривалість контракту, місяці") }, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(amountUah, { numeric(it, true) { value -> amountUah = value } }, label = { Text("Сума договору з ПДВ, грн") }, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(amountEur, { numeric(it, true) { value -> amountEur = value } }, label = { Text("Сума договору з ПДВ, EUR") }, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(difference, { numeric(it, true) { value -> difference = value } }, label = { Text("Різниця між фінансуванням і сумою договору, %") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(tenderId, { tenderId = it }, label = { Text(LocalizationManager.t("proc_tender_id")) }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(prozorroId, { prozorroId = it }, label = { Text(LocalizationManager.t("proc_prozorro_tender_id")) }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(contractorUkr, { contractorUkr = it }, label = { Text(LocalizationManager.t("proc_contractor_name_uk")) }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(contractorEng, { contractorEng = it }, label = { Text(LocalizationManager.t("proc_contractor_name_en")) }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(contractorId, { contractorId = it }, label = { Text(LocalizationManager.t("proc_contractor_edrpou")) }, modifier = Modifier.fillMaxWidth())
+                OmsDateField(contractDate, { contractDate = it }, LocalizationManager.t("proc_contract_date"), Modifier.fillMaxWidth())
+                OmsDateField(contractEndDate, { contractEndDate = it }, LocalizationManager.t("proc_contract_end_date"), Modifier.fillMaxWidth())
+                OutlinedTextField(duration, { numeric(it, update = { value -> duration = value }) }, label = { Text(LocalizationManager.t("proc_contract_duration")) }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(amountUah, { numeric(it, true) { value -> amountUah = value } }, label = { Text(LocalizationManager.t("proc_contract_amount_uah")) }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(amountEur, { numeric(it, true) { value -> amountEur = value } }, label = { Text(LocalizationManager.t("proc_contract_amount_eur")) }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(difference, { numeric(it, true) { value -> difference = value } }, label = { Text(LocalizationManager.t("proc_financing_difference")) }, modifier = Modifier.fillMaxWidth())
             }
         },
         confirmButton = {
@@ -218,8 +218,8 @@ private fun ProcurementEditorDialog(
                 onSave(ProcurementRecordRequest(number.toInt(), batch.toInt(), oblastName, oblastId, subprojectId, lotId, status,
                     tenderId.ifBlank { null }, prozorroId.ifBlank { null }, contractorUkr.ifBlank { null }, contractorEng.ifBlank { null }, contractorId.ifBlank { null },
                     contractDate.ifBlank { null }, contractEndDate.ifBlank { null }, duration.toIntOrNull(), amountUah.toDoubleOrNull(), amountEur.toDoubleOrNull(), difference.toDoubleOrNull()?.div(100)))
-            }, enabled = valid) { Text("Зберегти") }
+            }, enabled = valid) { Text(LocalizationManager.t("save")) }
         },
-        dismissButton = { OutlinedButton(onClick = onDismiss) { Text("Скасувати") } }
+        dismissButton = { OutlinedButton(onClick = onDismiss) { Text(LocalizationManager.t("cancel")) } }
     )
 }

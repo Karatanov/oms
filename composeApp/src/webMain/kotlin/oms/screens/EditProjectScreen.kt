@@ -15,6 +15,7 @@ import oms.data.UpdateProjectRequest
 import oms.model.Project
 import oms.components.OmsDateField
 import oms.components.ConstructionTypeSelector
+import oms.localization.LocalizationManager
 
 @Composable
 fun EditProjectScreen(
@@ -75,83 +76,83 @@ fun EditProjectScreen(
                 constructionStartDate = details.constructionStartDate.orEmpty(); projectedCompletionTime = details.projectedCompletionTime.orEmpty()
                 currency = details.currency; contractorName = details.contractorName.orEmpty()
             }
-            .onFailure { errorMessage = "Не вдалося завантажити дані проєкту." }
+            .onFailure { errorMessage = LocalizationManager.t("error_load_project") }
         isLoading = false
     }
 
     val allRequiredFilled = listOf(name, siteName, address, region, city, sector, constructionType).all { it.isNotBlank() }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        Text("Редагувати проєкт", style = MaterialTheme.typography.headlineMedium)
+        Text(LocalizationManager.t("edit_project"), style = MaterialTheme.typography.headlineMedium)
         if (isLoading) {
             CircularProgressIndicator()
             return@Column
         }
         Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedTextField(name, { name = it }, label = { Text("Назва проєкту *") }, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(description, { description = it }, label = { Text("Опис") }, minLines = 3, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(siteName, { siteName = it }, label = { Text("Код проєкту *") }, modifier = Modifier.fillMaxWidth())
-                Text("Статус", style = MaterialTheme.typography.labelLarge)
+                OutlinedTextField(name, { name = it }, label = { Text(LocalizationManager.t("project_name_required")) }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(description, { description = it }, label = { Text(LocalizationManager.t("description")) }, minLines = 3, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(siteName, { siteName = it }, label = { Text(LocalizationManager.t("project_code_required")) }, modifier = Modifier.fillMaxWidth())
+                Text(LocalizationManager.t("status"), style = MaterialTheme.typography.labelLarge)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     listOf("planned", "active", "suspended", "completed", "archived", "dlp").forEach { value ->
-                        FilterChip(selected = status == value, onClick = { status = value }, label = { Text(value.replaceFirstChar(Char::uppercase)) })
+                        FilterChip(selected = status == value, onClick = { status = value }, label = { Text(LocalizationManager.t("project_status_$value")) })
                     }
                 }
                 if (projectType != "project") {
-                    Text(if (projectType == "subproject_part") "Дані частини субпроєкту" else "Дані субпроєкту", style = MaterialTheme.typography.titleMedium)
-                    OutlinedTextField(subprojectContractAmount, { value -> if (value.all(Char::isDigit)) subprojectContractAmount = value }, label = { Text("Сума контракту субпроєкту, грн *") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                    Text(LocalizationManager.t(if (projectType == "subproject_part") "subproject_part_data" else "subproject_data"), style = MaterialTheme.typography.titleMedium)
+                    OutlinedTextField(subprojectContractAmount, { value -> if (value.all(Char::isDigit)) subprojectContractAmount = value }, label = { Text(LocalizationManager.t("subproject_contract_amount_required")) }, singleLine = true, modifier = Modifier.fillMaxWidth())
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        OmsDateField(startDate, { startDate = it }, "Дата початку", Modifier.weight(1f), true)
-                        OmsDateField(endDate, { endDate = it }, "Дата завершення", Modifier.weight(1f), true)
-                        OmsDateField(contractSignedDate, { contractSignedDate = it }, "Дата укладення контракту", Modifier.weight(1f), true)
-                        OmsDateField(plannedEndDate, { plannedEndDate = it }, "Планова дата завершення", Modifier.weight(1f), true)
+                        OmsDateField(startDate, { startDate = it }, LocalizationManager.t("start_date"), Modifier.weight(1f), true)
+                        OmsDateField(endDate, { endDate = it }, LocalizationManager.t("end_date"), Modifier.weight(1f), true)
+                        OmsDateField(contractSignedDate, { contractSignedDate = it }, LocalizationManager.t("contract_signed_date"), Modifier.weight(1f), true)
+                        OmsDateField(plannedEndDate, { plannedEndDate = it }, LocalizationManager.t("planned_end_date"), Modifier.weight(1f), true)
                     }
-                    Text("Тривалість контракту буде розрахована після збереження дат.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(LocalizationManager.t("contract_duration_hint"), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-                Text("Дати проєктування та будівництва", style = MaterialTheme.typography.titleMedium)
+                Text(LocalizationManager.t("design_construction_dates"), style = MaterialTheme.typography.titleMedium)
                 if (projectType == "project") {
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        OmsDateField(startDate, { startDate = it }, "Дата початку", Modifier.weight(1f), true)
-                        OmsDateField(endDate, { endDate = it }, "Дата завершення", Modifier.weight(1f), true)
-                        OmsDateField(contractSignedDate, { contractSignedDate = it }, "Дата укладення контракту", Modifier.weight(1f), true)
-                        OmsDateField(plannedEndDate, { plannedEndDate = it }, "Планова дата завершення", Modifier.weight(1f), true)
+                        OmsDateField(startDate, { startDate = it }, LocalizationManager.t("start_date"), Modifier.weight(1f), true)
+                        OmsDateField(endDate, { endDate = it }, LocalizationManager.t("end_date"), Modifier.weight(1f), true)
+                        OmsDateField(contractSignedDate, { contractSignedDate = it }, LocalizationManager.t("contract_signed_date"), Modifier.weight(1f), true)
+                        OmsDateField(plannedEndDate, { plannedEndDate = it }, LocalizationManager.t("planned_end_date"), Modifier.weight(1f), true)
                     }
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    OmsDateField(designContractSigningDate, { designContractSigningDate = it }, "Договір на проєктування", Modifier.weight(1f), true)
-                    OmsDateField(constructionContractSigningDate, { constructionContractSigningDate = it }, "Договір на будівництво", Modifier.weight(1f), true)
+                    OmsDateField(designContractSigningDate, { designContractSigningDate = it }, LocalizationManager.t("design_contract_date"), Modifier.weight(1f), true)
+                    OmsDateField(constructionContractSigningDate, { constructionContractSigningDate = it }, LocalizationManager.t("construction_contract_date"), Modifier.weight(1f), true)
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    OmsDateField(constructionStartDate, { constructionStartDate = it }, "Початок будівництва", Modifier.weight(1f), true)
-                    OmsDateField(projectedCompletionTime, { projectedCompletionTime = it }, "Прогнозована дата завершення", Modifier.weight(1f), true)
+                    OmsDateField(constructionStartDate, { constructionStartDate = it }, LocalizationManager.t("construction_start_date"), Modifier.weight(1f), true)
+                    OmsDateField(projectedCompletionTime, { projectedCompletionTime = it }, LocalizationManager.t("projected_completion_date"), Modifier.weight(1f), true)
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    OutlinedTextField(contractorName, { contractorName = it }, label = { Text("Підрядник") }, singleLine = true, modifier = Modifier.weight(1f))
-                    OutlinedTextField(currency, { value -> if (value.all { it.isLetter() } && value.length <= 3) currency = value.uppercase() }, label = { Text("Валюта (ISO) *") }, singleLine = true, modifier = Modifier.weight(1f))
+                    OutlinedTextField(contractorName, { contractorName = it }, label = { Text(LocalizationManager.t("contractor")) }, singleLine = true, modifier = Modifier.weight(1f))
+                    OutlinedTextField(currency, { value -> if (value.all { it.isLetter() } && value.length <= 3) currency = value.uppercase() }, label = { Text(LocalizationManager.t("currency_iso_required")) }, singleLine = true, modifier = Modifier.weight(1f))
                 }
-                OutlinedTextField(address, { address = it }, label = { Text("Адреса *") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(address, { address = it }, label = { Text(LocalizationManager.t("address_required")) }, modifier = Modifier.fillMaxWidth())
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    OutlinedTextField(region, { region = it }, label = { Text("Область *") }, modifier = Modifier.weight(1f))
-                    OutlinedTextField(city, { city = it }, label = { Text("Населений пункт *") }, modifier = Modifier.weight(1f))
+                    OutlinedTextField(region, { region = it }, label = { Text(LocalizationManager.t("region_required")) }, modifier = Modifier.weight(1f))
+                    OutlinedTextField(city, { city = it }, label = { Text(LocalizationManager.t("city_required")) }, modifier = Modifier.weight(1f))
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    OutlinedTextField(sector, { sector = it }, label = { Text("Сектор *") }, modifier = Modifier.weight(1f))
+                    OutlinedTextField(sector, { sector = it }, label = { Text(LocalizationManager.t("sector_required")) }, modifier = Modifier.weight(1f))
                     ConstructionTypeSelector(constructionType, { constructionType = it }, Modifier.weight(1f))
                 }
-                OutlinedTextField(budgetPlanned, { value -> if (value.matches(Regex("[0-9.,]*"))) budgetPlanned = value }, label = { Text("Плановий бюджет, грн *") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(budgetPlanned, { value -> if (value.matches(Regex("[0-9.,]*"))) budgetPlanned = value }, label = { Text(LocalizationManager.t("planned_budget_required")) }, singleLine = true, modifier = Modifier.fillMaxWidth())
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    OutlinedTextField(engineerConsultantContractAmount, { value -> if (value.all(Char::isDigit)) engineerConsultantContractAmount = value }, label = { Text("Договір інженера-консультанта, грн") }, singleLine = true, modifier = Modifier.weight(1f))
-                    OutlinedTextField(technicalSupervisionAmount, { value -> if (value.all(Char::isDigit)) technicalSupervisionAmount = value }, label = { Text("Технічний нагляд, грн") }, singleLine = true, modifier = Modifier.weight(1f))
+                    OutlinedTextField(engineerConsultantContractAmount, { value -> if (value.all(Char::isDigit)) engineerConsultantContractAmount = value }, label = { Text(LocalizationManager.t("engineer_consultant_amount")) }, singleLine = true, modifier = Modifier.weight(1f))
+                    OutlinedTextField(technicalSupervisionAmount, { value -> if (value.all(Char::isDigit)) technicalSupervisionAmount = value }, label = { Text(LocalizationManager.t("technical_supervision_amount")) }, singleLine = true, modifier = Modifier.weight(1f))
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    OutlinedTextField(latitude, { value -> if (value.matches(Regex("-?[0-9.,]*"))) latitude = value }, label = { Text("Широта *") }, singleLine = true, modifier = Modifier.weight(1f))
-                    OutlinedTextField(longitude, { value -> if (value.matches(Regex("-?[0-9.,]*"))) longitude = value }, label = { Text("Довгота *") }, singleLine = true, modifier = Modifier.weight(1f))
+                    OutlinedTextField(latitude, { value -> if (value.matches(Regex("-?[0-9.,]*"))) latitude = value }, label = { Text(LocalizationManager.t("latitude_required")) }, singleLine = true, modifier = Modifier.weight(1f))
+                    OutlinedTextField(longitude, { value -> if (value.matches(Regex("-?[0-9.,]*"))) longitude = value }, label = { Text(LocalizationManager.t("longitude_required")) }, singleLine = true, modifier = Modifier.weight(1f))
                 }
             }
         }
         errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error) }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.End)) {
-            OutlinedButton(onClick = onCancel, enabled = !isSaving) { Text("Скасувати") }
+            OutlinedButton(onClick = onCancel, enabled = !isSaving) { Text(LocalizationManager.t("cancel")) }
             Button(enabled = !isSaving, onClick = {
                 val budget = budgetPlanned.toLongOrNull()
                 val lat = latitude.replace(',', '.').toDoubleOrNull()
@@ -160,15 +161,15 @@ fun EditProjectScreen(
                 val supervisionAmount = technicalSupervisionAmount.takeIf { it.isNotBlank() }?.toLongOrNull()
                 val subprojectAmount = subprojectContractAmount.takeIf { it.isNotBlank() }?.toLongOrNull()
                 errorMessage = when {
-                    !allRequiredFilled -> "Заповніть усі поля, позначені * ."
-                    budget == null || budget <= 0 -> "Бюджет має бути додатним цілим числом."
-                    lat == null || lat !in -90.0..90.0 -> "Широта має бути в межах від -90 до 90."
-                    lon == null || lon !in -180.0..180.0 -> "Довгота має бути в межах від -180 до 180."
-                    engineerConsultantContractAmount.isNotBlank() && engineerAmount == null -> "Сума договору інженера-консультанта має бути цілим числом."
-                    technicalSupervisionAmount.isNotBlank() && supervisionAmount == null -> "Сума технічного нагляду має бути цілим числом."
-                    projectType != "project" && (subprojectAmount == null || subprojectAmount <= 0) -> "Вкажіть додатну суму контракту субпроєкту."
-                    projectType != "project" && listOf(startDate, contractSignedDate, plannedEndDate).any { it.isBlank() } -> "Заповніть усі дати субпроєкту."
-                    currency.length != 3 -> "Валюта повинна містити трилітерний ISO-код."
+                    !allRequiredFilled -> LocalizationManager.t("error_required_fields")
+                    budget == null || budget <= 0 -> LocalizationManager.t("error_positive_budget")
+                    lat == null || lat !in -90.0..90.0 -> LocalizationManager.t("error_latitude_range")
+                    lon == null || lon !in -180.0..180.0 -> LocalizationManager.t("error_longitude_range")
+                    engineerConsultantContractAmount.isNotBlank() && engineerAmount == null -> LocalizationManager.t("error_engineer_amount")
+                    technicalSupervisionAmount.isNotBlank() && supervisionAmount == null -> LocalizationManager.t("error_supervision_amount")
+                    projectType != "project" && (subprojectAmount == null || subprojectAmount <= 0) -> LocalizationManager.t("error_positive_subproject_contract")
+                    projectType != "project" && listOf(startDate, contractSignedDate, plannedEndDate).any { it.isBlank() } -> LocalizationManager.t("error_subproject_dates_required")
+                    currency.length != 3 -> LocalizationManager.t("error_currency_iso")
                     else -> null
                 }
                 if (errorMessage == null) {
@@ -199,11 +200,11 @@ fun EditProjectScreen(
                         }.onSuccess {
                             ProjectRepository.refresh()
                             onSaved(ProjectRepository.projects.firstOrNull { it.id == project.id } ?: project)
-                        }.onFailure { errorMessage = "Не вдалося зберегти зміни: ${it.message ?: "невідома помилка"}" }
+                        }.onFailure { errorMessage = LocalizationManager.t("error_save_project").replace("{message}", it.message ?: LocalizationManager.t("unknown_error")) }
                         isSaving = false
                     }
                 }
-            }) { if (isSaving) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp) else Text("Зберегти зміни") }
+            }) { if (isSaving) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp) else Text(LocalizationManager.t("save_changes")) }
         }
     }
 }

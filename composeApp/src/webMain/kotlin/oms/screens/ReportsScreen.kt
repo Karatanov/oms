@@ -161,7 +161,7 @@ fun ReportsScreen(
                         runCatching { OmsApiClient.moveInspectionReport(report.report.uuid, target.id) }
                             .onSuccess { moved ->
                                 if (!moved) {
-                                    errorMessage = "Не вдалося перенести звіт. Перевірте права доступу та обраний проєкт."
+                                    errorMessage = LocalizationManager.t("error_move_report")
                                     return@onSuccess
                                 }
                                 reports = reports.map {
@@ -172,7 +172,7 @@ fun ReportsScreen(
                                 }
                                 reportToMove = null
                             }
-                            .onFailure { errorMessage = "Не вдалося перенести звіт: ${it.message ?: "невідома помилка"}" }
+                            .onFailure { errorMessage = LocalizationManager.t("error_move_report_detail").replace("{message}", it.message ?: LocalizationManager.t("unknown_error")) }
                         isMovingReport = false
                     }
                 }
@@ -361,9 +361,9 @@ private fun MoveReportDialog(
 private fun ReportTableHeader(sort: ReportSort, ascending: Boolean, onSort: (ReportSort) -> Unit) {
     Row(Modifier.width(1_500.dp).padding(vertical = 6.dp)) {
         SortableTableHeader(LocalizationManager.t("date"), sort == ReportSort.Date, ascending, { onSort(ReportSort.Date) }, Modifier.width(105.dp))
-        SortableTableHeader("Назва звіту", sort == ReportSort.ReportTitle, ascending, { onSort(ReportSort.ReportTitle) }, Modifier.width(497.dp))
-        SortableTableHeader("Проєкт", sort == ReportSort.Project, ascending, { onSort(ReportSort.Project) }, Modifier.width(190.dp))
-        SortableTableHeader("Субпроєкт", sort == ReportSort.Subproject, ascending, { onSort(ReportSort.Subproject) }, Modifier.width(190.dp))
+        SortableTableHeader(LocalizationManager.t("report_title"), sort == ReportSort.ReportTitle, ascending, { onSort(ReportSort.ReportTitle) }, Modifier.width(497.dp))
+        SortableTableHeader(LocalizationManager.t("project"), sort == ReportSort.Project, ascending, { onSort(ReportSort.Project) }, Modifier.width(190.dp))
+        SortableTableHeader(LocalizationManager.t("subproject"), sort == ReportSort.Subproject, ascending, { onSort(ReportSort.Subproject) }, Modifier.width(190.dp))
         SortableTableHeader(LocalizationManager.t("status"), sort == ReportSort.Status, ascending, { onSort(ReportSort.Status) }, Modifier.width(130.dp))
         SortableTableHeader(LocalizationManager.t("uploaded_by"), sort == ReportSort.Author, ascending, { onSort(ReportSort.Author) }, Modifier.width(100.dp))
         Box(

@@ -66,7 +66,7 @@ fun Sidebar(
             currentScreen,
             onNavigate
         )
-        SidebarItem("Закупівлі", Icons.Default.ShoppingCart, Screen.Procurement, currentScreen, onNavigate)
+        SidebarItem(LocalizationManager.t("procurement_title"), Icons.Default.ShoppingCart, Screen.Procurement, currentScreen, onNavigate)
         SidebarItem(
             LocalizationManager.t("documents"),
             Icons.Default.Description,
@@ -75,7 +75,7 @@ fun Sidebar(
             onNavigate
         )
         if (isAdmin) SidebarItem(
-            "Адміністрування",
+            LocalizationManager.t("admin_title"),
             Icons.Default.AdminPanelSettings,
             Screen.Admin,
             currentScreen,

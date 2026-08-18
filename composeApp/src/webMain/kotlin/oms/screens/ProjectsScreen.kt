@@ -88,7 +88,7 @@ fun ProjectsScreen(
                 LocalizationManager.t("projects_title"),
                 style = MaterialTheme.typography.headlineMedium
             )
-            Button(onClick = onCreateProject) { Text("Створити проєкт") }
+            Button(onClick = onCreateProject) { Text(LocalizationManager.t("create_project")) }
         }
 
         Spacer(Modifier.height(16.dp))
@@ -110,22 +110,22 @@ fun ProjectsScreen(
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("Вибрано: ${selectedProjectIds.size}", modifier = Modifier.weight(1f))
-                    OutlinedButton(onClick = { selectedProjectIds = emptySet() }) { Text("Скасувати вибір") }
+                    Text(LocalizationManager.t("selected_projects").replace("{count}", selectedProjectIds.size.toString()), modifier = Modifier.weight(1f))
+                    OutlinedButton(onClick = { selectedProjectIds = emptySet() }) { Text(LocalizationManager.t("clear_selection")) }
                     Button(onClick = {
                         scope.launch {
                             runCatching { oms.data.OmsApiClient.bulkUpdateProjectStatus(selectedProjectIds.toList(), "suspended") }
                                 .onSuccess { ProjectRepository.refresh(); selectedProjectIds = emptySet() }
-                                .onFailure { errorMessage = it.message ?: "Не вдалося призупинити проєкти." }
+                                .onFailure { errorMessage = it.message ?: LocalizationManager.t("error_suspend_projects") }
                         }
-                    }) { Text("Призупинити") }
+                    }) { Text(LocalizationManager.t("suspend")) }
                     Button(onClick = {
                         scope.launch {
                             runCatching { oms.data.OmsApiClient.bulkUpdateProjectStatus(selectedProjectIds.toList(), "archived") }
                                 .onSuccess { ProjectRepository.refresh(); selectedProjectIds = emptySet() }
-                                .onFailure { errorMessage = it.message ?: "Не вдалося архівувати проєкти." }
+                                .onFailure { errorMessage = it.message ?: LocalizationManager.t("error_archive_projects") }
                         }
-                    }) { Text("Архівувати") }
+                    }) { Text(LocalizationManager.t("archive")) }
                 }
             }
         }

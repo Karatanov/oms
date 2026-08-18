@@ -63,7 +63,7 @@ fun ProjectDetailScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             TextButton(onClick = onBackToProjects) {
-                Text(Screen.Projects.title)
+                Text(LocalizationManager.t("projects"))
             }
 
             Text(">", color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -77,7 +77,7 @@ fun ProjectDetailScreen(
 
         parentProjectName?.let { parentName ->
             Text(
-                text = "Проєкт: $parentName",
+                text = "${LocalizationManager.t("project")}: $parentName",
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -162,13 +162,13 @@ fun ProjectDetailScreen(
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 DetailMetricCard(
-                    title = "Сума контракту субпроєкту",
+                    title = LocalizationManager.t("subproject_contract_amount"),
                     value = details.value?.data?.subprojectContractAmount?.toMoney() ?: "—",
                     modifier = Modifier.weight(1f)
                 )
                 DetailMetricCard(
-                    title = "Тривалість контракту",
-                    value = details.value?.data?.contractDurationDays?.let { "$it днів" } ?: "—",
+                    title = LocalizationManager.t("contract_duration"),
+                    value = details.value?.data?.contractDurationDays?.let { LocalizationManager.t("days_value").replace("{count}", it.toString()) } ?: "—",
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -179,12 +179,12 @@ fun ProjectDetailScreen(
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             DetailMetricCard(
-                title = "Договір інженера-консультанта",
+                title = LocalizationManager.t("engineer_consultant_contract"),
                 value = details.value?.data?.engineerConsultantContractAmount?.toMoney() ?: "—",
                 modifier = Modifier.weight(1f)
             )
             DetailMetricCard(
-                title = "Технічний нагляд",
+                title = LocalizationManager.t("technical_supervision"),
                 value = details.value?.data?.technicalSupervisionAmount?.toMoney() ?: "—",
                 modifier = Modifier.weight(1f)
             )
@@ -328,35 +328,35 @@ private fun ProjectGeneralInfoTab(data: oms.data.ApiProjectDetailsData?) {
             }
         } else {
             val fields = listOf(
-                "Тип запису" to when (data.projectType) {
+                LocalizationManager.t("record_type") to when (data.projectType) {
                     "subproject" -> LocalizationManager.t("subproject")
                     "subproject_part" -> LocalizationManager.t("subproject_part")
                     else -> LocalizationManager.t("project")
                 },
-                "Код проєкту" to data.siteName,
-                "Опис" to (data.description ?: "—"),
-                "Адреса" to data.address,
-                "Область" to data.region,
-                "Населений пункт" to data.city,
-                "Координати" to "${data.latitude}, ${data.longitude}",
-                "Статус" to data.status.replace('_', ' '),
-                "Сектор" to data.sector,
+                LocalizationManager.t("project_code") to data.siteName,
+                LocalizationManager.t("description") to (data.description ?: "—"),
+                LocalizationManager.t("address") to data.address,
+                LocalizationManager.t("region") to data.region,
+                LocalizationManager.t("city") to data.city,
+                LocalizationManager.t("coordinates") to "${data.latitude}, ${data.longitude}",
+                LocalizationManager.t("status") to LocalizationManager.t("project_status_${data.status}"),
+                LocalizationManager.t("sector") to data.sector,
                 LocalizationManager.t("construction_type") to data.constructionType.constructionTypeLabel(),
-                "Підрядник" to (data.contractorName ?: "—"),
-                "Валюта" to data.currency,
-                "Плановий бюджет" to data.budgetPlanned.toMoney(),
-                "Договір інженера-консультанта" to (data.engineerConsultantContractAmount?.toMoney() ?: "—"),
-                "Технічний нагляд" to (data.technicalSupervisionAmount?.toMoney() ?: "—"),
-                "Сума контракту субпроєкту" to (data.subprojectContractAmount?.toMoney() ?: "—"),
-                "Дата початку" to data.startDate.toOmsDate(),
-                "Дата завершення" to data.endDate.toOmsDate(),
-                "Дата підписання контракту" to data.contractSignedDate.toOmsDate(),
-                "Планова дата завершення" to data.plannedEndDate.toOmsDate(),
-                "Дата договору на проєктування" to (data.designContractSigningDate ?: "—"),
-                "Дата договору на будівництво" to (data.constructionContractSigningDate ?: "—"),
-                "Початок будівництва" to (data.constructionStartDate ?: "—"),
-                "Прогнозована дата завершення" to (data.projectedCompletionTime ?: "—"),
-                "Тривалість контракту" to (data.contractDurationDays?.let { "$it днів" } ?: "—")
+                LocalizationManager.t("contractor") to (data.contractorName ?: "—"),
+                LocalizationManager.t("currency") to data.currency,
+                LocalizationManager.t("budget") to data.budgetPlanned.toMoney(),
+                LocalizationManager.t("engineer_consultant_contract") to (data.engineerConsultantContractAmount?.toMoney() ?: "—"),
+                LocalizationManager.t("technical_supervision") to (data.technicalSupervisionAmount?.toMoney() ?: "—"),
+                LocalizationManager.t("subproject_contract_amount") to (data.subprojectContractAmount?.toMoney() ?: "—"),
+                LocalizationManager.t("start_date") to data.startDate.toOmsDate(),
+                LocalizationManager.t("end_date") to data.endDate.toOmsDate(),
+                LocalizationManager.t("contract_signed_date") to data.contractSignedDate.toOmsDate(),
+                LocalizationManager.t("planned_end_date") to data.plannedEndDate.toOmsDate(),
+                LocalizationManager.t("design_contract_date") to (data.designContractSigningDate ?: "—"),
+                LocalizationManager.t("construction_contract_date") to (data.constructionContractSigningDate ?: "—"),
+                LocalizationManager.t("construction_start_date") to (data.constructionStartDate ?: "—"),
+                LocalizationManager.t("projected_completion_date") to (data.projectedCompletionTime ?: "—"),
+                LocalizationManager.t("contract_duration") to (data.contractDurationDays?.let { LocalizationManager.t("days_value").replace("{count}", it.toString()) } ?: "—")
             )
             Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 fields.forEach { (label, value) ->
@@ -380,11 +380,11 @@ private fun ProjectReportsTab(reports: List<ApiInspectionReport>) {
             reports.forEach { report ->
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
                     Button(onClick = { uriHandler.openUri("http://localhost:8080/api/v1/inspection-reports/${report.uuid}/source-file") }) {
-                        Text("Завантажити XLS/XLSX")
+                        Text(LocalizationManager.t("upload_xls"))
                     }
                 }
                 Text(report.summary ?: LocalizationManager.t("inspection_report"), style = MaterialTheme.typography.titleMedium)
-                Text("${report.inspectionDate} • ${report.status.replace('_', ' ')}")
+                Text("${report.inspectionDate} • ${LocalizationManager.t("${report.status}_status")}")
                 HorizontalDivider()
             }
         }
@@ -431,7 +431,7 @@ private fun ProjectDocumentsTab(projectUuid: String, documents: List<ApiProjectD
             if (documents.isEmpty()) Text(LocalizationManager.t("no_project_documents"))
             documents.forEach { document ->
                 Text(document.fileName, style = MaterialTheme.typography.titleMedium)
-                Text("${document.docType} • ${document.fileSizeBytes} bytes")
+                Text("${document.docType} • ${document.fileSizeBytes} ${LocalizationManager.t("bytes")}")
                 Button(onClick = { uriHandler.openUri("http://localhost:8080/api/v1/projects/$projectUuid/documents/${document.uuid}/download") }) { Text(LocalizationManager.t("open_document")) }
                 HorizontalDivider()
             }

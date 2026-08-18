@@ -34,7 +34,7 @@ external fun uploadSelectedInspectionPhotos(reportUuid: String, onComplete: (Str
 @Composable
 fun CreateInspectionScreen(
     isEditMode: Boolean = false,
-    currentUserName: String = "Поточний користувач",
+    currentUserName: String = "",
     isAdmin: Boolean = false,
     rejectedReason: String? = null,
     onSaveDraft: () -> Unit = {},
@@ -68,9 +68,9 @@ fun CreateInspectionScreen(
     }
     val inspectionTargetUuid = selectedSubprojectPartUuid ?: selectedSubprojectUuid ?: selectedProjectUuid
     val selectionError = when {
-        selectedProjectUuid == null -> "Оберіть проєкт."
-        subprojects.isNotEmpty() && selectedSubprojectUuid == null -> "Оберіть субпроєкт."
-        subprojectParts.isNotEmpty() && selectedSubprojectPartUuid == null -> "Оберіть частину субпроєкту."
+        selectedProjectUuid == null -> LocalizationManager.t("select_project_error")
+        subprojects.isNotEmpty() && selectedSubprojectUuid == null -> LocalizationManager.t("select_subproject_error")
+        subprojectParts.isNotEmpty() && selectedSubprojectPartUuid == null -> LocalizationManager.t("select_subproject_part_error")
         else -> null
     }
 
@@ -148,8 +148,8 @@ fun CreateInspectionScreen(
                 )
 
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    OutlinedTextField(latitude, { value -> if (value.matches(Regex("-?[0-9.,]*"))) latitude = value }, label = { Text("Широта") }, modifier = Modifier.weight(1f), supportingText = { Text("-90…90") })
-                    OutlinedTextField(longitude, { value -> if (value.matches(Regex("-?[0-9.,]*"))) longitude = value }, label = { Text("Довгота") }, modifier = Modifier.weight(1f), supportingText = { Text("-180…180") })
+                    OutlinedTextField(latitude, { value -> if (value.matches(Regex("-?[0-9.,]*"))) latitude = value }, label = { Text(LocalizationManager.t("latitude")) }, modifier = Modifier.weight(1f), supportingText = { Text("-90…90") })
+                    OutlinedTextField(longitude, { value -> if (value.matches(Regex("-?[0-9.,]*"))) longitude = value }, label = { Text(LocalizationManager.t("longitude")) }, modifier = Modifier.weight(1f), supportingText = { Text("-180…180") })
                 }
 
                 OutlinedTextField(
@@ -221,7 +221,7 @@ fun CreateInspectionScreen(
                     onImportXls()
                 }
             }) {
-                Text("Завантажити XLS/XLSX")
+                Text(LocalizationManager.t("upload_xls"))
             }
 
             Button(
@@ -233,7 +233,7 @@ fun CreateInspectionScreen(
                         errorMessage = null
                         uploadSelectedInspectionPhotos(createdReport) { uploadError ->
                             if (uploadError.isBlank()) onSubmit()
-                            else errorMessage = "Не вдалося завантажити фото: $uploadError. Можна повторити спробу без створення другого звіту."
+                            else errorMessage = LocalizationManager.t("error_upload_photos_after_report").replace("{message}", uploadError)
                             isSubmitting = false
                         }
                         return@Button
@@ -241,8 +241,8 @@ fun CreateInspectionScreen(
                     val selectedProject = inspectionTargetUuid
                     when {
                         selectionError != null -> errorMessage = selectionError
-                        !date.isIsoDate() -> errorMessage = "Дата має бути у форматі РРРР-ММ-ДД."
-                        comments.text.isBlank() -> errorMessage = "Додайте короткий опис звіту перед надсиланням."
+                        !date.isIsoDate() -> errorMessage = LocalizationManager.t("error_invalid_iso_date")
+                        comments.text.isBlank() -> errorMessage = LocalizationManager.t("error_report_summary_required")
                         else -> {
                             isSubmitting = true
                             errorMessage = null
@@ -258,11 +258,11 @@ fun CreateInspectionScreen(
                                     createdReportUuid = report.uuid
                                     uploadSelectedInspectionPhotos(report.uuid) { uploadError ->
                                         if (uploadError.isBlank()) onSubmit()
-                                        else errorMessage = "Звіт створено, але не вдалося завантажити фото: $uploadError"
+                                        else errorMessage = LocalizationManager.t("error_report_created_photo_upload").replace("{message}", uploadError)
                                         isSubmitting = false
                                     }
                                 }.onFailure {
-                                    errorMessage = "Не вдалося надіслати звіт: ${it.message ?: "невідома помилка"}"
+                                    errorMessage = LocalizationManager.t("error_submit_report").replace("{message}", it.message ?: LocalizationManager.t("unknown_error"))
                                     isSubmitting = false
                                 }
                             }
