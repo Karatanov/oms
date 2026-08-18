@@ -53,6 +53,13 @@ fun CreateInspectionScreen(
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var isSubmitting by remember { mutableStateOf(false) }
     var createdReportUuid by remember { mutableStateOf<String?>(null) }
+    var entryMode by remember { mutableStateOf("manual") }
+    var contractor by remember { mutableStateOf("") }
+    var inspectorName by remember { mutableStateOf("") }
+    var weather by remember { mutableStateOf("") }
+    var activitiesText by remember { mutableStateOf("") }
+    var hseText by remember { mutableStateOf("") }
+    var qualityText by remember { mutableStateOf("") }
     val scope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) {
@@ -87,6 +94,11 @@ fun CreateInspectionScreen(
             text = if (isEditMode) LocalizationManager.t("edit_inspection") else LocalizationManager.t("create_inspection"),
             style = MaterialTheme.typography.headlineMedium
         )
+
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FilterChip(entryMode == "manual", { entryMode = "manual" }, label = { Text("Заповнити вручну") })
+            FilterChip(entryMode == "import", { entryMode = "import" }, label = { Text("Імпортувати XLS/XLSX") })
+        }
 
         if (rejectedReason != null) {
             Card(
@@ -210,6 +222,18 @@ fun CreateInspectionScreen(
             }
         }
 
+        if (entryMode == "manual") Card(Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text("Повний SIR", style = MaterialTheme.typography.titleMedium)
+                OutlinedTextField(contractor, { contractor = it }, label = { Text("Підрядник *") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(inspectorName, { inspectorName = it }, label = { Text("Інспектор *") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(weather, { weather = it }, label = { Text("Погода та персонал на майданчику") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(activitiesText, { activitiesText = it }, label = { Text("Роботи: локація | опис | yes/no | примітка") }, minLines = 3, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(hseText, { hseText = it }, label = { Text("HSE: спостереження | yes/no | коментар") }, minLines = 3, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(qualityText, { qualityText = it }, label = { Text("Якість: зауваження | ректифікація") }, minLines = 3, modifier = Modifier.fillMaxWidth())
+            }
+        }
+
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.End)
@@ -243,7 +267,7 @@ fun CreateInspectionScreen(
                 Text(LocalizationManager.t("save_draft"))
             }
 
-            OutlinedButton(onClick = {
+            OutlinedButton(enabled = entryMode == "import", onClick = {
                 val selectedProject = inspectionTargetUuid
                 if (selectionError != null) errorMessage = selectionError
                 else {
@@ -261,6 +285,12 @@ fun CreateInspectionScreen(
             Button(
                 enabled = !isSubmitting,
                 onClick = {
+                    if (entryMode == "manual") {
+                        val target = inspectionTargetUuid
+                        if (selectionError != null) errorMessage = selectionError
+                        else if (contractor.isBlank() || inspectorName.isBlank()) errorMessage = "Заповніть підрядника та інспектора."
+                        else { isSubmitting = true; scope.launch { runCatching { OmsApiClient.createManualInspectionReport(requireNotNull(target), oms.data.ManualInspectionReportRequest(date, contractor, weather = weather.ifBlank { null }, activities = activitiesText.lines().filter { it.isNotBlank() }.map { val p=it.split('|'); oms.data.ManualActivityRequest(p[0].trim(),p.getOrElse(1){""}.trim(),p.getOrElse(2){"no"}.trim(),p.getOrNull(3)?.trim()) }, hseObservations = hseText.lines().filter { it.isNotBlank() }.map { val p=it.split('|'); oms.data.ManualHseObservationRequest(p[0].trim(),p.getOrNull(1)?.trim(),p.getOrNull(2)?.trim()) }, qualityRemarks = qualityText.lines().filter { it.isNotBlank() }.map { val p=it.split('|'); oms.data.ManualRemarkRequest(p[0].trim(),p.getOrNull(1)?.trim()) }, inspectorName = inspectorName)) }.onSuccess { onSubmit() }.onFailure { errorMessage=it.message; isSubmitting=false } }; return@Button }
+                    }
                     val createdReport = createdReportUuid
                     if (createdReport != null) {
                         isSubmitting = true
