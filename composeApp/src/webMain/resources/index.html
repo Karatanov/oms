@@ -65,6 +65,16 @@
             [52.5, 40.5]
         ];
 
+        // Leaflet calculates the zoom from the current element size.  The map host is
+        // hidden while the other screens are open, so fitting it only during
+        // initialisation can calculate a zoom for a zero-sized element.  Always reset
+        // the overview after the host becomes visible and has been measured.
+        function fitUkraineOverview() {
+            if (!ufsiLeafletMap) return;
+            ufsiLeafletMap.invalidateSize();
+            ufsiLeafletMap.fitBounds(ukraineBounds, { padding: [24, 24] });
+        }
+
         function initLeafletMap() {
             const mapHost = document.getElementById("map-host");
             if (!mapHost || ufsiLeafletMap) return;
@@ -96,7 +106,7 @@
                     iconAnchor: L.point(26, 26)
                 })
             }).addTo(ufsiLeafletMap);
-            ufsiLeafletMap.fitBounds(ukraineBounds);
+            fitUkraineOverview();
         }
 
         function showLeafletMapPane() {
@@ -104,9 +114,7 @@
             initLeafletMap();
 
             setTimeout(() => {
-                if (ufsiLeafletMap) {
-                    ufsiLeafletMap.invalidateSize();
-                }
+                fitUkraineOverview();
             }, 250);
         }
 
@@ -361,7 +369,7 @@
             const projects = JSON.parse(projectsJson);
 
             if (!projects.length) {
-                ufsiLeafletMap.fitBounds(ukraineBounds);
+                fitUkraineOverview();
                 return;
             }
 
@@ -422,7 +430,9 @@
 
             // The map is an overview: opening it and changing filters must not
             // unexpectedly zoom into a single oblast or a group of facilities.
-            ufsiLeafletMap.fitBounds(ukraineBounds, { padding: [24, 24] });
+            // Wait until Compose has made the map host visible.  Without this second
+            // pass Leaflet can retain a zoom calculated while the host had no width.
+            setTimeout(fitUkraineOverview, 0);
         }
 
         window.addEventListener("load", () => {
