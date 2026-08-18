@@ -20,6 +20,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.onPointerEvent
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.text.font.FontWeight
 import kotlinx.coroutines.launch
 import oms.components.FilterDropdown
@@ -49,6 +51,7 @@ fun ProjectsScreen(
     val scope = rememberCoroutineScope()
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var selectedProjectIds by remember { mutableStateOf<Set<String>>(emptySet()) }
+    val pageScrollState = rememberScrollState()
 
     LaunchedEffect(Unit) { ProjectRepository.refresh() }
     val projects = ProjectRepository.projects
@@ -75,7 +78,7 @@ fun ProjectsScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState())
+            .verticalScroll(pageScrollState)
             .padding(16.dp)
     ) {
 
@@ -142,6 +145,7 @@ fun ProjectsScreen(
                     else errorMessage = LocalizationManager.t("error_delete_project")
                 }
             },
+            onExpandRow = { rowTop -> scope.launch { pageScrollState.animateScrollTo((pageScrollState.value + rowTop - 16f).toInt().coerceAtLeast(0)) } },
             selectedProjectIds = selectedProjectIds,
             onSelectionChange = { id, selected -> selectedProjectIds = if (selected) selectedProjectIds + id else selectedProjectIds - id }
         )
@@ -162,6 +166,7 @@ fun ProjectsTable(
     onOpenProject: (Project) -> Unit,
     onEditProject: (Project) -> Unit,
     onDeleteProject: (Project) -> Unit,
+    onExpandRow: (Float) -> Unit,
     selectedProjectIds: Set<String>,
     onSelectionChange: (String, Boolean) -> Unit
 ) {
@@ -232,6 +237,7 @@ fun ProjectsTable(
                         val current = expandedParentIds ?: parentIds
                         expandedParentIds = if (id in current) current - id else current + id
                     },
+                    onExpandRow = onExpandRow,
                     onOpen = onOpenProject,
                     onEdit = onEditProject,
                     onDelete = onDeleteProject,
@@ -357,6 +363,7 @@ fun ProjectRow(
     childCount: Int = 0,
     expanded: Boolean = true,
     onToggleChildren: (String) -> Unit = {},
+    onExpandRow: (Float) -> Unit = {},
 
     onOpen: (Project) -> Unit = {},
     onEdit: (Project) -> Unit = {},
@@ -367,10 +374,12 @@ fun ProjectRow(
 ) {
 
     var hovered by remember { mutableStateOf(false) }
+    var rowTopInRoot by remember { mutableStateOf(0f) }
 
     Row(
         modifier = Modifier
             .width(1_800.dp)
+            .onGloballyPositioned { rowTopInRoot = it.positionInRoot().y }
 
             // hover detection
             .onPointerEvent(
@@ -412,7 +421,7 @@ fun ProjectRow(
         ) {
             if (childCount > 0) {
             Box(
-                modifier = Modifier.fillMaxSize().clickable { onToggleChildren(project.id) },
+                modifier = Modifier.fillMaxSize().clickable { onToggleChildren(project.id); onExpandRow(rowTopInRoot) },
                 contentAlignment = Alignment.Center
             ) {
                 Box(
