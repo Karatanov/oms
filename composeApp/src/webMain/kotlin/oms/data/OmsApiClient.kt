@@ -10,6 +10,7 @@ import io.ktor.client.request.post
 import io.ktor.client.request.patch
 import io.ktor.client.request.put
 import io.ktor.client.request.setBody
+import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import io.ktor.http.isSuccess
@@ -49,11 +50,17 @@ object OmsApiClient {
 
     suspend fun roles(): List<ApiRole> = client.get("$baseUrl/roles").body()
 
-    suspend fun updateUser(id: Long, request: UpdateUserRequest): ApiUser =
-        client.patch("$baseUrl/users/$id") {
+    suspend fun updateUser(id: Long, request: UpdateUserRequest): ApiUser {
+        val response = client.patch("$baseUrl/users/$id") {
             contentType(ContentType.Application.Json)
             setBody(request)
-        }.body()
+        }
+        if (!response.status.isSuccess()) {
+            throw IllegalStateException(response.bodyAsText())
+        }
+        return users().firstOrNull { it.id == id }
+            ?: throw IllegalStateException("Updated user was not returned by the server.")
+    }
 
     suspend fun createUser(request: CreateUserRequest): ApiUser =
         client.post("$baseUrl/users") {
