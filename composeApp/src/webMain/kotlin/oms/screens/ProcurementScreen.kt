@@ -20,6 +20,7 @@ import oms.data.ProcurementRecordRequest
 import oms.components.OmsDateField
 import oms.components.TableActionIconButton
 import oms.components.InlineOptionPicker
+import oms.components.UkraineRegionAutocomplete
 import oms.components.currentIsoDate
 import oms.localization.LocalizationManager
 import kotlinx.coroutines.launch
@@ -189,7 +190,7 @@ private fun ProcurementEditorDialog(
                     OutlinedTextField(number, { numeric(it, update = { value -> number = value }) }, label = { Text("№ *") }, modifier = Modifier.weight(1f), singleLine = true)
                     OutlinedTextField(batch, { numeric(it, update = { value -> batch = value }) }, label = { Text("${LocalizationManager.t("proc_batch_number")} *") }, modifier = Modifier.weight(1f), singleLine = true)
                 }
-                OutlinedTextField(oblastName, { oblastName = it }, label = { Text("${LocalizationManager.t("proc_oblast_name")} *") }, modifier = Modifier.fillMaxWidth())
+                UkraineRegionAutocomplete(oblastName, { oblastName = it }, LocalizationManager.t("proc_oblast_name"), required = true)
                 OutlinedTextField(oblastId, { oblastId = it }, label = { Text("${LocalizationManager.t("proc_oblast_id")} *") }, modifier = Modifier.fillMaxWidth())
                 OutlinedTextField(subprojectId, { subprojectId = it }, label = { Text("${LocalizationManager.t("proc_subproject_id")} *") }, modifier = Modifier.fillMaxWidth())
                 OutlinedTextField(lotId, { lotId = it }, label = { Text("${LocalizationManager.t("proc_subproject_lot_id")} *") }, modifier = Modifier.fillMaxWidth())

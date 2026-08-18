@@ -15,6 +15,7 @@ import oms.data.UpdateProjectRequest
 import oms.model.Project
 import oms.components.OmsDateField
 import oms.components.ConstructionTypeSelector
+import oms.components.UkraineRegionAutocomplete
 import oms.localization.LocalizationManager
 
 @Composable
@@ -132,7 +133,7 @@ fun EditProjectScreen(
                 }
                 OutlinedTextField(address, { address = it }, label = { Text(LocalizationManager.t("address_required")) }, modifier = Modifier.fillMaxWidth())
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    OutlinedTextField(region, { region = it }, label = { Text(LocalizationManager.t("region_required")) }, modifier = Modifier.weight(1f))
+                    UkraineRegionAutocomplete(region, { region = it }, LocalizationManager.t("region"), Modifier.weight(1f), required = true)
                     OutlinedTextField(city, { city = it }, label = { Text(LocalizationManager.t("city_required")) }, modifier = Modifier.weight(1f))
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
