@@ -11,6 +11,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import oms.data.ApiFinancialRecord
 import oms.data.OmsApiClient
@@ -58,6 +59,7 @@ fun FinancialScreen(
     var showTransferDialog by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
+    val pageScrollState = rememberScrollState()
 
     LaunchedEffect(reloadKey) {
         ProjectRepository.refresh()
@@ -65,6 +67,15 @@ fun FinancialScreen(
             runCatching { OmsApiClient.financials(project.id) }.getOrNull()?.data.orEmpty()
                 .map { ProjectActRow(project.id, project.name, it) }
         }.sortedByDescending { it.act.recordDate }
+    }
+
+    // The editor is intentionally placed after the table.  Reveal it as soon as it
+    // is opened so that clicking an action always produces visible feedback.
+    LaunchedEffect(addAct, editAct?.act?.uuid) {
+        if (addAct || editAct != null) {
+            delay(50)
+            pageScrollState.animateScrollTo(pageScrollState.maxValue)
+        }
     }
 
     val completedWorksTotal = acts.filter { it.act.recordType == "act" }.sumOf { it.act.amount }
@@ -83,7 +94,7 @@ fun FinancialScreen(
     }.let { if (ascending) it else it.reversed() })
     fun selectSort(column: FinancialSort) { if (sort == column) ascending = !ascending else { sort = column; ascending = true } }
     Column(
-        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp),
+        modifier = Modifier.fillMaxSize().verticalScroll(pageScrollState).padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Text(LocalizationManager.t("financial_monitoring"), style = MaterialTheme.typography.headlineMedium)
