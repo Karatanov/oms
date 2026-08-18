@@ -55,11 +55,21 @@ fun CreateInspectionScreen(
     var createdReportUuid by remember { mutableStateOf<String?>(null) }
     var entryMode by remember { mutableStateOf("manual") }
     var contractor by remember { mutableStateOf("") }
-    var inspectorName by remember { mutableStateOf("") }
+    var inspectorName by remember { mutableStateOf(currentUserName) }
+    var contractorRepresentative by remember { mutableStateOf("") }
+    var qaStaff by remember { mutableStateOf("") }
+    var usifRepresentative by remember { mutableStateOf("") }
+    var skilledLabor by remember { mutableStateOf("") }
+    var unskilledLabor by remember { mutableStateOf("") }
+    var siteManagement by remember { mutableStateOf("") }
     var weather by remember { mutableStateOf("") }
     var activitiesText by remember { mutableStateOf("") }
+    var ongoingObservationsText by remember { mutableStateOf("") }
     var hseText by remember { mutableStateOf("") }
     var qualityText by remember { mutableStateOf("") }
+    var progressComment by remember { mutableStateOf("") }
+    var scheduleRemark by remember { mutableStateOf("") }
+    var inspectorTitle by remember { mutableStateOf("") }
     val scope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) {
@@ -119,7 +129,7 @@ fun CreateInspectionScreen(
         Card(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surface
+                containerColor = Color.White
             ),
             shape = RoundedCornerShape(12.dp),
             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
@@ -150,47 +160,16 @@ fun CreateInspectionScreen(
                     }
                 )
 
-                OmsDateField(
-                    value = date,
-                    onValueChange = { date = it },
-                    label = LocalizationManager.t("date_label"),
-                    modifier = Modifier.fillMaxWidth(),
-                    required = true
-                )
-                Text(LocalizationManager.t("cannot_be_future_date"), style = MaterialTheme.typography.bodySmall)
-
-                InspectionTypeDropdown(
-                    value = inspectionType,
-                    onChange = { inspectionType = it }
-                )
-
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    OutlinedTextField(latitude, { value -> if (value.matches(Regex("-?[0-9.,]*"))) latitude = value }, label = { Text(LocalizationManager.t("latitude")) }, modifier = Modifier.weight(1f), supportingText = { Text("-90…90") })
-                    OutlinedTextField(longitude, { value -> if (value.matches(Regex("-?[0-9.,]*"))) longitude = value }, label = { Text(LocalizationManager.t("longitude")) }, modifier = Modifier.weight(1f), supportingText = { Text("-180…180") })
+                if (entryMode != "manual") {
+                    InspectionTypeDropdown(value = inspectionType, onChange = { inspectionType = it })
                 }
-
-                OutlinedTextField(
-                    value = comments,
-                    onValueChange = {
-                        if (it.text.length <= maxComments) comments = it
-                    },
-                    label = { Text(LocalizationManager.t("comments")) },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(160.dp),
-                    minLines = 5,
-                    maxLines = 8,
-                    supportingText = {
-                        Text("${comments.text.length} / $maxComments")
-                    }
-                )
             }
         }
 
-        Card(
+        if (entryMode != "import") Card(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surface
+                containerColor = Color.White
             ),
             shape = RoundedCornerShape(12.dp),
             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
@@ -222,17 +201,17 @@ fun CreateInspectionScreen(
             }
         }
 
-        if (entryMode == "manual") Card(Modifier.fillMaxWidth()) {
-            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text("Повний SIR", style = MaterialTheme.typography.titleMedium)
-                OutlinedTextField(contractor, { contractor = it }, label = { Text("Підрядник *") }, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(inspectorName, { inspectorName = it }, label = { Text("Інспектор *") }, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(weather, { weather = it }, label = { Text("Погода та персонал на майданчику") }, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(activitiesText, { activitiesText = it }, label = { Text("Роботи: локація | опис | yes/no | примітка") }, minLines = 3, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(hseText, { hseText = it }, label = { Text("HSE: спостереження | yes/no | коментар") }, minLines = 3, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(qualityText, { qualityText = it }, label = { Text("Якість: зауваження | ректифікація") }, minLines = 3, modifier = Modifier.fillMaxWidth())
-            }
-        }
+        if (entryMode == "manual") ManualSirForm(
+            date = date, onDateChange = { date = it }, contractor = contractor, onContractorChange = { contractor = it },
+            contractorRepresentative = contractorRepresentative, onContractorRepresentativeChange = { contractorRepresentative = it },
+            qaStaff = qaStaff, onQaStaffChange = { qaStaff = it }, usifRepresentative = usifRepresentative, onUsifRepresentativeChange = { usifRepresentative = it },
+            skilledLabor = skilledLabor, onSkilledLaborChange = { skilledLabor = it }, unskilledLabor = unskilledLabor, onUnskilledLaborChange = { unskilledLabor = it },
+            siteManagement = siteManagement, onSiteManagementChange = { siteManagement = it }, weather = weather, onWeatherChange = { weather = it },
+            activities = activitiesText, onActivitiesChange = { activitiesText = it }, ongoingObservations = ongoingObservationsText, onOngoingObservationsChange = { ongoingObservationsText = it },
+            hse = hseText, onHseChange = { hseText = it }, quality = qualityText, onQualityChange = { qualityText = it },
+            progress = progressComment, onProgressChange = { progressComment = it }, schedule = scheduleRemark, onScheduleChange = { scheduleRemark = it },
+            inspectorName = inspectorName, onInspectorNameChange = { inspectorName = it }, inspectorTitle = inspectorTitle, onInspectorTitleChange = { inspectorTitle = it }
+        )
 
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -289,7 +268,45 @@ fun CreateInspectionScreen(
                         val target = inspectionTargetUuid
                         if (selectionError != null) errorMessage = selectionError
                         else if (contractor.isBlank() || inspectorName.isBlank()) errorMessage = "Заповніть підрядника та інспектора."
-                        else { isSubmitting = true; scope.launch { runCatching { OmsApiClient.createManualInspectionReport(requireNotNull(target), oms.data.ManualInspectionReportRequest(date, contractor, weather = weather.ifBlank { null }, activities = activitiesText.lines().filter { it.isNotBlank() }.map { val p=it.split('|'); oms.data.ManualActivityRequest(p[0].trim(),p.getOrElse(1){""}.trim(),p.getOrElse(2){"no"}.trim(),p.getOrNull(3)?.trim()) }, hseObservations = hseText.lines().filter { it.isNotBlank() }.map { val p=it.split('|'); oms.data.ManualHseObservationRequest(p[0].trim(),p.getOrNull(1)?.trim(),p.getOrNull(2)?.trim()) }, qualityRemarks = qualityText.lines().filter { it.isNotBlank() }.map { val p=it.split('|'); oms.data.ManualRemarkRequest(p[0].trim(),p.getOrNull(1)?.trim()) }, inspectorName = inspectorName)) }.onSuccess { onSubmit() }.onFailure { errorMessage=it.message; isSubmitting=false } }; return@Button }
+                        else {
+                            isSubmitting = true
+                            scope.launch {
+                                runCatching {
+                                    OmsApiClient.createManualInspectionReport(
+                                        requireNotNull(target),
+                                        oms.data.ManualInspectionReportRequest(
+                                            inspectionDate = date,
+                                            contractor = contractor,
+                                            contractorRepresentative = contractorRepresentative.ifBlank { null },
+                                            qaStaff = qaStaff.ifBlank { null },
+                                            usifRepresentative = usifRepresentative.ifBlank { null },
+                                            skilledLabor = skilledLabor.ifBlank { null },
+                                            unskilledLabor = unskilledLabor.ifBlank { null },
+                                            siteManagement = siteManagement.ifBlank { null },
+                                            weather = weather.ifBlank { null },
+                                            activities = activitiesText.toManualActivities(),
+                                            ongoingObservations = ongoingObservationsText.lines().map(String::trim).filter(String::isNotBlank),
+                                            hseObservations = hseText.toManualHseObservations(),
+                                            qualityRemarks = qualityText.toManualQualityRemarks(),
+                                            progressComment = progressComment.ifBlank { null },
+                                            scheduleRemark = scheduleRemark.ifBlank { null },
+                                            inspectorName = inspectorName,
+                                            inspectorTitle = inspectorTitle.ifBlank { null }
+                                        )
+                                    )
+                                }.onSuccess { report ->
+                                    uploadSelectedInspectionPhotos(report.uuid) { uploadError ->
+                                        if (uploadError.isBlank()) onSubmit()
+                                        else errorMessage = LocalizationManager.t("error_upload_photos_after_report").replace("{message}", uploadError)
+                                        isSubmitting = false
+                                    }
+                                }.onFailure {
+                                    errorMessage = it.message
+                                    isSubmitting = false
+                                }
+                            }
+                            return@Button
+                        }
                     }
                     val createdReport = createdReportUuid
                     if (createdReport != null) {
@@ -339,6 +356,93 @@ fun CreateInspectionScreen(
 }
 
 @Composable
+private fun ManualSirForm(
+    date: String, onDateChange: (String) -> Unit,
+    contractor: String, onContractorChange: (String) -> Unit,
+    contractorRepresentative: String, onContractorRepresentativeChange: (String) -> Unit,
+    qaStaff: String, onQaStaffChange: (String) -> Unit,
+    usifRepresentative: String, onUsifRepresentativeChange: (String) -> Unit,
+    skilledLabor: String, onSkilledLaborChange: (String) -> Unit,
+    unskilledLabor: String, onUnskilledLaborChange: (String) -> Unit,
+    siteManagement: String, onSiteManagementChange: (String) -> Unit,
+    weather: String, onWeatherChange: (String) -> Unit,
+    activities: String, onActivitiesChange: (String) -> Unit,
+    ongoingObservations: String, onOngoingObservationsChange: (String) -> Unit,
+    hse: String, onHseChange: (String) -> Unit,
+    quality: String, onQualityChange: (String) -> Unit,
+    progress: String, onProgressChange: (String) -> Unit,
+    schedule: String, onScheduleChange: (String) -> Unit,
+    inspectorName: String, onInspectorNameChange: (String) -> Unit,
+    inspectorTitle: String, onInspectorTitleChange: (String) -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text("SITE INSPECTION REPORT", style = MaterialTheme.typography.titleLarge, color = Color(0xFF278DAD))
+            Text("Ukrainian Social Investment Fund (USIF)", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+
+            SirSectionTitle("CONTRACTOR")
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedTextField(contractor, onContractorChange, label = { Text("Підрядник *") }, modifier = Modifier.weight(1f))
+                OmsDateField(date, onDateChange, LocalizationManager.t("date_label"), Modifier.weight(1f), required = true)
+            }
+
+            SirSectionTitle("REPRESENTATIVES")
+            OutlinedTextField(contractorRepresentative, onContractorRepresentativeChange, label = { Text("CONTRACTOR'S REPRESENTATIVE") }, modifier = Modifier.fillMaxWidth())
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedTextField(qaStaff, onQaStaffChange, label = { Text("M4H QA STAFF") }, modifier = Modifier.weight(1f))
+                OutlinedTextField(usifRepresentative, onUsifRepresentativeChange, label = { Text("USIF / MOH REPRESENTATIVE") }, modifier = Modifier.weight(1f))
+            }
+
+            SirSectionTitle("PERSONNEL ON SITE / WEATHER CONDITIONS")
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedTextField(skilledLabor, onSkilledLaborChange, label = { Text("SKILLED LABOR") }, modifier = Modifier.weight(1f))
+                OutlinedTextField(unskilledLabor, onUnskilledLaborChange, label = { Text("UNSKILLED LABOR") }, modifier = Modifier.weight(1f))
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedTextField(siteManagement, onSiteManagementChange, label = { Text("MANAGEMENT ON SITE") }, modifier = Modifier.weight(1f))
+                OutlinedTextField(weather, onWeatherChange, label = { Text("WEATHER CONDITIONS") }, modifier = Modifier.weight(1f))
+            }
+
+            SirSectionTitle("ONGOING ACTIVITIES")
+            OutlinedTextField(activities, onActivitiesChange, label = { Text("BLOCK / LOCATION | DESCRIPTION OF WORK | PER SCHEDULE? | REMARKS") }, minLines = 3, modifier = Modifier.fillMaxWidth())
+            SirSectionTitle("OBSERVANCES ON ONGOING ACTIVITIES")
+            OutlinedTextField(ongoingObservations, onOngoingObservationsChange, label = { Text("Одне спостереження в рядку") }, minLines = 2, modifier = Modifier.fillMaxWidth())
+
+            SirSectionTitle("OBSERVANCES ON HEALTH & SAFETY")
+            OutlinedTextField(hse, onHseChange, label = { Text("OBSERVATION | YES/NO | COMMENT") }, minLines = 3, modifier = Modifier.fillMaxWidth())
+
+            SirSectionTitle("NARRATIVE ASSESSMENT — COMMENTS ON QUALITY")
+            OutlinedTextField(quality, onQualityChange, label = { Text("COMMENT ON QUALITY | RECTIFICATION REMARKS (NNC / NTC)") }, minLines = 3, modifier = Modifier.fillMaxWidth())
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedTextField(progress, onProgressChange, label = { Text("COMMENTS ON PROGRESS") }, minLines = 2, modifier = Modifier.weight(1f))
+                OutlinedTextField(schedule, onScheduleChange, label = { Text("SCHEDULE REVISION REMARKS") }, minLines = 2, modifier = Modifier.weight(1f))
+            }
+
+            SirSectionTitle("M4H QA STAFF")
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedTextField(inspectorName, onInspectorNameChange, label = { Text("NAME *") }, modifier = Modifier.weight(1f))
+                OutlinedTextField(inspectorTitle, onInspectorTitleChange, label = { Text("TITLE") }, modifier = Modifier.weight(1f))
+            }
+        }
+    }
+}
+
+@Composable
+private fun SirSectionTitle(text: String) {
+    Text(
+        text,
+        modifier = Modifier.fillMaxWidth().background(Color(0xFFE3F2F7), RoundedCornerShape(6.dp)).padding(horizontal = 10.dp, vertical = 7.dp),
+        style = MaterialTheme.typography.labelLarge,
+        color = Color(0xFF176B84)
+    )
+}
+
+@Composable
 private fun InspectionProjectSelector(
     projects: List<Project>,
     selectedProjectUuid: String?,
@@ -385,6 +489,26 @@ private fun ProjectLevelDropdown(
             enabled = enabled
         )
     }
+}
+
+private fun String.toManualActivities() = lines().map(String::trim).filter(String::isNotBlank).map { line ->
+    val fields = line.split('|').map(String::trim)
+    oms.data.ManualActivityRequest(
+        location = fields.firstOrNull().orEmpty(),
+        description = fields.getOrElse(1) { "" },
+        onSchedule = fields.getOrElse(2) { "no" },
+        remarks = fields.getOrNull(3)?.ifBlank { null }
+    )
+}
+
+private fun String.toManualHseObservations() = lines().map(String::trim).filter(String::isNotBlank).map { line ->
+    val fields = line.split('|').map(String::trim)
+    oms.data.ManualHseObservationRequest(fields.firstOrNull().orEmpty(), fields.getOrNull(1)?.ifBlank { null }, fields.getOrNull(2)?.ifBlank { null })
+}
+
+private fun String.toManualQualityRemarks() = lines().map(String::trim).filter(String::isNotBlank).map { line ->
+    val fields = line.split('|').map(String::trim)
+    oms.data.ManualRemarkRequest(fields.firstOrNull().orEmpty(), fields.getOrNull(1)?.ifBlank { null })
 }
 
 private fun String.isIsoDate(): Boolean = matches(Regex("\\d{4}-\\d{2}-\\d{2}"))
