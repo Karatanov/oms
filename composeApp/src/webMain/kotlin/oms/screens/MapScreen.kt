@@ -69,7 +69,13 @@ fun MapScreen(
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     OutlinedTextField(search, { search = it }, label = { Text(LocalizationManager.t("search")) }, modifier = Modifier.weight(1f))
                     FilterDropdown(LocalizationManager.t("region"), projects.map { it.region }.distinct().sorted(), region, { region = it })
-                    FilterDropdown(LocalizationManager.t("status"), ProjectStatus.entries, status, { status = it }, itemLabel = { it.name.lowercase() })
+                    FilterDropdown(
+                        LocalizationManager.t("status"),
+                        ProjectStatus.entries,
+                        status,
+                        { status = it },
+                        itemLabel = { LocalizationManager.t("project_status_${it.name.lowercase()}") }
+                    )
                 }
                 Text(text = "${LocalizationManager.t("markers_count")} ${visibleProjects.size}")
             }

@@ -123,14 +123,14 @@ fun ProjectsScreen(
                                 .onSuccess { ProjectRepository.refresh(); selectedProjectIds = emptySet() }
                                 .onFailure { errorMessage = it.message ?: LocalizationManager.t("error_suspend_projects") }
                         }
-                    }) { Text(LocalizationManager.t("suspend")) }
+                    }) { Text(LocalizationManager.t("project_status_suspended")) }
                     Button(onClick = {
                         scope.launch {
                             runCatching { oms.data.OmsApiClient.bulkUpdateProjectStatus(selectedProjectIds.toList(), "archived") }
                                 .onSuccess { ProjectRepository.refresh(); selectedProjectIds = emptySet() }
                                 .onFailure { errorMessage = it.message ?: LocalizationManager.t("error_archive_projects") }
                         }
-                    }) { Text(LocalizationManager.t("archive")) }
+                    }) { Text(LocalizationManager.t("project_status_archived")) }
                 }
             }
         }
@@ -306,11 +306,7 @@ fun ProjectsFilters(
             selected = statusFilter,
             onSelect = onStatusChange,
             itemLabel = { status ->
-                when (status) {
-                    ProjectStatus.ACTIVE -> LocalizationManager.t("active")
-                    ProjectStatus.PLANNING -> LocalizationManager.t("planning")
-                    ProjectStatus.COMPLETED -> LocalizationManager.t("completed")
-                }
+                LocalizationManager.t("project_status_${status.name.lowercase()}")
             }
         )
     }

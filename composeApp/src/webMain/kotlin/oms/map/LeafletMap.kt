@@ -76,14 +76,12 @@ private fun List<Project>.toLeafletJson(): String {
 */
 private fun ProjectStatus.toMapPresentation(): Pair<String, String> {
     return when (this) {
-        ProjectStatus.ACTIVE ->
-            LocalizationManager.t("active") to "#2E7D32"
-
-        ProjectStatus.PLANNING ->
-            LocalizationManager.t("planning") to "#F9A825"
-
-        ProjectStatus.COMPLETED ->
-            LocalizationManager.t("completed") to "#1565C0"
+        ProjectStatus.PLANNED -> LocalizationManager.t("project_status_planned") to "#F9A825"
+        ProjectStatus.ACTIVE -> LocalizationManager.t("project_status_active") to "#2E7D32"
+        ProjectStatus.SUSPENDED -> LocalizationManager.t("project_status_suspended") to "#EF6C00"
+        ProjectStatus.COMPLETED -> LocalizationManager.t("project_status_completed") to "#1565C0"
+        ProjectStatus.ARCHIVED -> LocalizationManager.t("project_status_archived") to "#607D8B"
+        ProjectStatus.DLP -> LocalizationManager.t("project_status_dlp") to "#6A1B9A"
     }
 }
 

@@ -42,4 +42,4 @@ object ProjectRepository {
 }
 
 private fun String.toProjectStatus(): ProjectStatus =
-    runCatching { ProjectStatus.valueOf(uppercase()) }.getOrDefault(ProjectStatus.PLANNING)
+    runCatching { ProjectStatus.valueOf(uppercase()) }.getOrDefault(ProjectStatus.PLANNED)

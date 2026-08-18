@@ -10,8 +10,11 @@ package oms.model
 
 enum class ProjectStatus {
 
+    PLANNED,
     ACTIVE,
-    PLANNING,
-    COMPLETED
+    SUSPENDED,
+    COMPLETED,
+    ARCHIVED,
+    DLP
 
 }
