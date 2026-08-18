@@ -391,6 +391,7 @@ data class ApiActivity(
     val action: String,
     val entityType: String,
     val entityId: Long,
+    val userLogin: String? = null,
     val createdAt: String
 )
 

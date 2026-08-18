@@ -15,4 +15,4 @@ data class DashboardResponse(
 )
 
 @Serializable
-data class ActivityResponse(val action: String, val entityType: String, val entityId: Long, val createdAt: String)
+data class ActivityResponse(val action: String, val entityType: String, val entityId: Long, val userLogin: String? = null, val createdAt: String)

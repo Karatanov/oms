@@ -38,7 +38,7 @@ fun ActivitySection(activities: List<ApiActivity>) {
                 activities.forEach { activity ->
                     HorizontalDivider()
                     Spacer(modifier = Modifier.height(8.dp))
-                    ActivityRow(activity.action.toActivityLabel(), activity.createdAt.replace('T', ' '))
+                    ActivityRow(activity.action.toActivityLabel(), activity.userLogin, activity.createdAt.replace('T', ' '))
                 }
             }
         }

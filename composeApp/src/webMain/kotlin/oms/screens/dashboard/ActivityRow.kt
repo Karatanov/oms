@@ -1,6 +1,7 @@
 package oms.screens.dashboard
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -14,6 +15,7 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun ActivityRow(
     title: String,
+    userLogin: String?,
     time: String
 ) {
 
@@ -25,7 +27,10 @@ fun ActivityRow(
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
 
-        Text(title)
+        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(title)
+            Text(userLogin ?: "—", color = Color.Gray)
+        }
 
         Text(
             text = time,
