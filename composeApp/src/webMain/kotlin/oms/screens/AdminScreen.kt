@@ -109,28 +109,28 @@ fun AdminScreen() {
 
     Column(Modifier.fillMaxSize().padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            Text("Адміністрування", style = MaterialTheme.typography.headlineMedium)
-            Button(onClick = { createUser = true }) { Text("Створити користувача") }
+            Text(LocalizationManager.t("admin_title"), style = MaterialTheme.typography.headlineMedium)
+            Button(onClick = { createUser = true }) { Text(LocalizationManager.t("create_user")) }
         }
-        Text("Користувачі системи", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(LocalizationManager.t("system_users"), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
             Column(Modifier.padding(16.dp).horizontalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Повні дані користувачів", style = MaterialTheme.typography.titleMedium)
+                Text(LocalizationManager.t("user_full_data"), style = MaterialTheme.typography.titleMedium)
                 Row(Modifier.width(2046.dp).padding(vertical = 6.dp)) {
-                    SortableTableHeader("Логін", sort == UserSort.Username, ascending, { changeSort(UserSort.Username) }, Modifier.width(130.dp))
-                    SortableTableHeader("Ім'я", sort == UserSort.FullName, ascending, { changeSort(UserSort.FullName) }, Modifier.width(180.dp))
-                    SortableTableHeader("Email", sort == UserSort.Email, ascending, { changeSort(UserSort.Email) }, Modifier.width(220.dp))
-                    SortableTableHeader("Роль", sort == UserSort.Role, ascending, { changeSort(UserSort.Role) }, Modifier.width(150.dp))
-                    SortableTableHeader("Статус", sort == UserSort.Status, ascending, { changeSort(UserSort.Status) }, Modifier.width(110.dp))
-                    SortableTableHeader("Регіон", sort == UserSort.Region, ascending, { changeSort(UserSort.Region) }, Modifier.width(130.dp))
-                    SortableTableHeader("Відділ", sort == UserSort.Department, ascending, { changeSort(UserSort.Department) }, Modifier.width(150.dp))
-                    SortableTableHeader("Мова", sort == UserSort.Language, ascending, { changeSort(UserSort.Language) }, Modifier.width(80.dp))
-                    SortableTableHeader("Останній вхід", sort == UserSort.LastLogin, ascending, { changeSort(UserSort.LastLogin) }, Modifier.width(170.dp))
-                    SortableTableHeader("Невдалі входи", sort == UserSort.LastLogin, ascending, { changeSort(UserSort.LastLogin) }, Modifier.width(120.dp))
-                    Text("Блокування до", Modifier.width(170.dp), style = MaterialTheme.typography.labelLarge)
-                    SortableTableHeader("Створено", sort == UserSort.Created, ascending, { changeSort(UserSort.Created) }, Modifier.width(170.dp))
-                    Text("Оновлено", Modifier.width(170.dp), style = MaterialTheme.typography.labelLarge)
-                    Text("Дії", Modifier.width(96.dp), style = MaterialTheme.typography.labelLarge)
+                    SortableTableHeader(LocalizationManager.t("username"), sort == UserSort.Username, ascending, { changeSort(UserSort.Username) }, Modifier.width(130.dp))
+                    SortableTableHeader(LocalizationManager.t("full_name"), sort == UserSort.FullName, ascending, { changeSort(UserSort.FullName) }, Modifier.width(180.dp))
+                    SortableTableHeader(LocalizationManager.t("email"), sort == UserSort.Email, ascending, { changeSort(UserSort.Email) }, Modifier.width(220.dp))
+                    SortableTableHeader(LocalizationManager.t("role"), sort == UserSort.Role, ascending, { changeSort(UserSort.Role) }, Modifier.width(150.dp))
+                    SortableTableHeader(LocalizationManager.t("status"), sort == UserSort.Status, ascending, { changeSort(UserSort.Status) }, Modifier.width(110.dp))
+                    SortableTableHeader(LocalizationManager.t("region"), sort == UserSort.Region, ascending, { changeSort(UserSort.Region) }, Modifier.width(130.dp))
+                    SortableTableHeader(LocalizationManager.t("department"), sort == UserSort.Department, ascending, { changeSort(UserSort.Department) }, Modifier.width(150.dp))
+                    SortableTableHeader(LocalizationManager.t("language"), sort == UserSort.Language, ascending, { changeSort(UserSort.Language) }, Modifier.width(80.dp))
+                    SortableTableHeader(LocalizationManager.t("last_login"), sort == UserSort.LastLogin, ascending, { changeSort(UserSort.LastLogin) }, Modifier.width(170.dp))
+                    SortableTableHeader(LocalizationManager.t("failed_login_attempts"), sort == UserSort.LastLogin, ascending, { changeSort(UserSort.LastLogin) }, Modifier.width(120.dp))
+                    Text(LocalizationManager.t("locked_until"), Modifier.width(170.dp), style = MaterialTheme.typography.labelLarge)
+                    SortableTableHeader(LocalizationManager.t("created_at"), sort == UserSort.Created, ascending, { changeSort(UserSort.Created) }, Modifier.width(170.dp))
+                    Text(LocalizationManager.t("updated_at"), Modifier.width(170.dp), style = MaterialTheme.typography.labelLarge)
+                    Text(LocalizationManager.t("actions"), Modifier.width(96.dp), style = MaterialTheme.typography.labelLarge)
                 }
                 HorizontalDivider()
                 sortedUsers.forEach { user ->
@@ -150,8 +150,8 @@ fun AdminScreen() {
                         Text(user.lockedUntil ?: "—", Modifier.width(170.dp))
                         Text(user.createdAt ?: "—", Modifier.width(170.dp))
                         Text(user.updatedAt ?: "—", Modifier.width(170.dp))
-                        TableActionIconButton("Редагувати користувача", Icons.Default.Edit) { selectedUser = user }
-                        TableActionIconButton("Видалити користувача", Icons.Default.Delete) { userPendingDeletion = user }
+                        TableActionIconButton(LocalizationManager.t("edit_user"), Icons.Default.Edit) { selectedUser = user }
+                        TableActionIconButton(LocalizationManager.t("delete_user"), Icons.Default.Delete) { userPendingDeletion = user }
                     }
                     HorizontalDivider()
                 }
@@ -179,8 +179,8 @@ fun AdminScreen() {
         userPendingDeletion?.let { user ->
             AlertDialog(
                 onDismissRequest = { userPendingDeletion = null },
-                title = { Text("Видалити користувача?") },
-                text = { Text("Користувача «${user.username}» буде видалено без можливості відновлення.") },
+                title = { Text(LocalizationManager.t("delete_user_title")) },
+                text = { Text(LocalizationManager.t("delete_user_confirmation").replace("{username}", user.username)) },
                 confirmButton = {
                     Button(
                         onClick = {
@@ -189,14 +189,14 @@ fun AdminScreen() {
                                     users = users.filterNot { it.id == user.id }
                                     userPendingDeletion = null
                                 } else {
-                                    errorMessage = "Не вдалося видалити користувача. Неможливо видалити поточний обліковий запис."
+                                    errorMessage = LocalizationManager.t("error_delete_current_user")
                                 }
                             }
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
-                    ) { Text("Видалити") }
+                    ) { Text(LocalizationManager.t("delete")) }
                 },
-                dismissButton = { OutlinedButton(onClick = { userPendingDeletion = null }) { Text("Скасувати") } }
+                dismissButton = { OutlinedButton(onClick = { userPendingDeletion = null }) { Text(LocalizationManager.t("cancel")) } }
             )
         }
     }
@@ -217,37 +217,37 @@ private fun CreateUserDialog(roles: List<ApiRole>, onDismiss: () -> Unit, onSave
     val role = roles.firstOrNull { it.code == roleCode }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Створити користувача") },
+        title = { Text(LocalizationManager.t("create_user")) },
         text = {
             Column(
                 Modifier.fillMaxWidth().heightIn(max = 510.dp).verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-            OutlinedTextField(username, { username = it }, label = { Text("Логін") }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(email, { email = it }, label = { Text("Email") }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(username, { username = it }, label = { Text(LocalizationManager.t("username")) }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(email, { email = it }, label = { Text(LocalizationManager.t("email")) }, modifier = Modifier.fillMaxWidth())
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(firstName, { firstName = it }, label = { Text("Ім'я") }, modifier = Modifier.weight(1f))
-                OutlinedTextField(lastName, { lastName = it }, label = { Text("Прізвище") }, modifier = Modifier.weight(1f))
+                OutlinedTextField(firstName, { firstName = it }, label = { Text(LocalizationManager.t("first_name")) }, modifier = Modifier.weight(1f))
+                OutlinedTextField(lastName, { lastName = it }, label = { Text(LocalizationManager.t("last_name")) }, modifier = Modifier.weight(1f))
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(region, { region = it }, label = { Text("Регіон") }, modifier = Modifier.weight(1f))
-                OutlinedTextField(department, { department = it }, label = { Text("Відділ") }, modifier = Modifier.weight(1f))
+                OutlinedTextField(region, { region = it }, label = { Text(LocalizationManager.t("region")) }, modifier = Modifier.weight(1f))
+                OutlinedTextField(department, { department = it }, label = { Text(LocalizationManager.t("department")) }, modifier = Modifier.weight(1f))
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                listOf("active", "pending", "disabled").forEach { value -> FilterChip(status == value, { status = value }, label = { Text(value) }) }
+                listOf("active", "pending", "disabled").forEach { value -> FilterChip(status == value, { status = value }, label = { Text(LocalizationManager.t("user_status_$value")) }) }
                 listOf("uk", "en").forEach { value -> FilterChip(preferredLang == value, { preferredLang = value }, label = { Text(value.uppercase()) }) }
             }
-            OutlinedTextField(password, { password = it }, label = { Text("Пароль") }, modifier = Modifier.fillMaxWidth())
-            InlineOptionPicker(options = roles, selected = role, prompt = "Оберіть роль", onSelect = { roleCode = it.code }, itemLabel = { it.name })
+            OutlinedTextField(password, { password = it }, label = { Text(LocalizationManager.t("password")) }, modifier = Modifier.fillMaxWidth())
+            InlineOptionPicker(options = roles, selected = role, prompt = LocalizationManager.t("select_role"), onSelect = { roleCode = it.code }, itemLabel = { it.name })
             }
         },
         confirmButton = {
             Button(
                 onClick = { onSave(CreateUserRequest(username.trim(), email.trim(), password, roleCode, firstName.trim(), lastName.trim(), status, region.trim().ifBlank { null }, department.trim().ifBlank { null }, preferredLang)) },
                 enabled = username.isNotBlank() && email.contains('@') && password.isNotBlank() && role != null
-            ) { Text("Створити") }
+            ) { Text(LocalizationManager.t("create")) }
         },
-        dismissButton = { OutlinedButton(onClick = onDismiss) { Text("Скасувати") } }
+        dismissButton = { OutlinedButton(onClick = onDismiss) { Text(LocalizationManager.t("cancel")) } }
     )
 }
 
@@ -266,28 +266,28 @@ private fun EditUserDialog(user: ApiUser, roles: List<ApiRole>, saveError: Strin
     val role = roles.firstOrNull { it.code == roleCode }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Редагувати користувача") },
+        title = { Text(LocalizationManager.t("edit_user")) },
         text = {
             Column(
                 Modifier.fillMaxWidth().heightIn(max = 510.dp).verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-            OutlinedTextField(username, { username = it }, label = { Text("Логін") }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(email, { email = it }, label = { Text("Email") }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(username, { username = it }, label = { Text(LocalizationManager.t("username")) }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(email, { email = it }, label = { Text(LocalizationManager.t("email")) }, modifier = Modifier.fillMaxWidth())
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(firstName, { firstName = it }, label = { Text("Ім'я") }, modifier = Modifier.weight(1f))
-                OutlinedTextField(lastName, { lastName = it }, label = { Text("Прізвище") }, modifier = Modifier.weight(1f))
+                OutlinedTextField(firstName, { firstName = it }, label = { Text(LocalizationManager.t("first_name")) }, modifier = Modifier.weight(1f))
+                OutlinedTextField(lastName, { lastName = it }, label = { Text(LocalizationManager.t("last_name")) }, modifier = Modifier.weight(1f))
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(region, { region = it }, label = { Text("Регіон") }, modifier = Modifier.weight(1f))
-                OutlinedTextField(department, { department = it }, label = { Text("Відділ") }, modifier = Modifier.weight(1f))
+                OutlinedTextField(region, { region = it }, label = { Text(LocalizationManager.t("region")) }, modifier = Modifier.weight(1f))
+                OutlinedTextField(department, { department = it }, label = { Text(LocalizationManager.t("department")) }, modifier = Modifier.weight(1f))
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                listOf("active", "pending", "disabled").forEach { value -> FilterChip(status == value, { status = value }, label = { Text(value) }) }
+                listOf("active", "pending", "disabled").forEach { value -> FilterChip(status == value, { status = value }, label = { Text(LocalizationManager.t("user_status_$value")) }) }
                 listOf("uk", "en").forEach { value -> FilterChip(preferredLang == value, { preferredLang = value }, label = { Text(value.uppercase()) }) }
             }
             InlineOptionPicker(options = roles, selected = role, prompt = roleCode, onSelect = { roleCode = it.code }, itemLabel = { it.name })
-            OutlinedTextField(password, { password = it }, label = { Text("Новий пароль (необов'язково)") }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(password, { password = it }, label = { Text(LocalizationManager.t("new_password_optional")) }, modifier = Modifier.fillMaxWidth())
             Text(LocalizationManager.t("password_requirements"), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             saveError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
             }
@@ -296,8 +296,8 @@ private fun EditUserDialog(user: ApiUser, roles: List<ApiRole>, saveError: Strin
             Button(
                 onClick = { onSave(UpdateUserRequest(username, email, roleCode, password.ifBlank { null }, firstName, lastName, status, region, department, preferredLang)) },
                 enabled = username.isNotBlank() && email.contains('@') && role != null
-            ) { Text("Зберегти") }
+            ) { Text(LocalizationManager.t("save")) }
         },
-        dismissButton = { OutlinedButton(onClick = onDismiss) { Text("Скасувати") } }
+        dismissButton = { OutlinedButton(onClick = onDismiss) { Text(LocalizationManager.t("cancel")) } }
     )
 }
