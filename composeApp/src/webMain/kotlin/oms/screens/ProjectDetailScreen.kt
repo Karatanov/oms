@@ -19,6 +19,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
@@ -353,17 +354,26 @@ private fun ProjectHealthSafetyTab(data: ApiHealthSafetyObservations?) {
                                 HseAnswerIndicator(item.answer)
                             }
                             item.comment?.let { comment ->
-                                val negative = item.answer.isNegativeHseAnswer()
+                                val backgroundColor = when {
+                                    item.answer.isNegativeHseAnswer() -> MaterialTheme.colorScheme.errorContainer
+                                    item.answer.isPositiveHseAnswer() -> Color(0xFFE8F5E9)
+                                    else -> Color(0xFFFFF3E0)
+                                }
+                                val textColor = when {
+                                    item.answer.isNegativeHseAnswer() -> MaterialTheme.colorScheme.onErrorContainer
+                                    item.answer.isPositiveHseAnswer() -> Color(0xFF1B5E20)
+                                    else -> Color(0xFFE65100)
+                                }
                                 Card(
                                     modifier = Modifier.fillMaxWidth(),
                                     colors = CardDefaults.cardColors(
-                                        containerColor = if (negative) MaterialTheme.colorScheme.errorContainer else Color(0xFFFFF3E0)
+                                        containerColor = backgroundColor
                                     )
                                 ) {
                                     Text(
                                         comment,
                                         modifier = Modifier.padding(10.dp),
-                                        color = if (negative) MaterialTheme.colorScheme.onErrorContainer else Color(0xFFE65100),
+                                        color = textColor,
                                         style = MaterialTheme.typography.bodyMedium
                                     )
                                 }
@@ -379,25 +389,45 @@ private fun ProjectHealthSafetyTab(data: ApiHealthSafetyObservations?) {
 @Composable
 private fun HseAnswerIndicator(answer: String?) {
     when {
-        answer.isPositiveHseAnswer() -> Icon(
-            Icons.Default.CheckCircle,
+        answer.isPositiveHseAnswer() -> HseAnswerBadge(
+            icon = Icons.Default.CheckCircle,
             contentDescription = LocalizationManager.t("hse_compliant"),
-            tint = Color(0xFF2E7D32)
+            iconColor = Color(0xFF1B5E20),
+            containerColor = Color(0xFFE8F5E9)
         )
-        answer.isNegativeHseAnswer() -> Icon(
-            Icons.Default.Cancel,
+        answer.isNegativeHseAnswer() -> HseAnswerBadge(
+            icon = Icons.Default.Cancel,
             contentDescription = LocalizationManager.t("hse_issue"),
-            tint = MaterialTheme.colorScheme.error
+            iconColor = MaterialTheme.colorScheme.error,
+            containerColor = MaterialTheme.colorScheme.errorContainer
         )
-        !answer.isNullOrBlank() -> Icon(
-            Icons.Default.Warning,
+        !answer.isNullOrBlank() -> HseAnswerBadge(
+            icon = Icons.Default.Warning,
             contentDescription = LocalizationManager.t("answer"),
-            tint = Color(0xFFEF6C00)
+            iconColor = Color(0xFFEF6C00),
+            containerColor = Color(0xFFFFF3E0)
         )
     }
 }
 
-private fun String?.isPositiveHseAnswer() = this?.trim()?.lowercase() in setOf("yes", "y", "так")
+@Composable
+private fun HseAnswerBadge(
+    icon: ImageVector,
+    contentDescription: String,
+    iconColor: Color,
+    containerColor: Color
+) {
+    Surface(color = containerColor, shape = MaterialTheme.shapes.extraLarge) {
+        Icon(
+            icon,
+            contentDescription = contentDescription,
+            tint = iconColor,
+            modifier = Modifier.padding(6.dp).size(20.dp)
+        )
+    }
+}
+
+private fun String?.isPositiveHseAnswer() = this?.trim()?.lowercase()?.let { it == "y" || it == "так" || it.startsWith("yes") } == true
 private fun String?.isNegativeHseAnswer() = this?.trim()?.lowercase()?.startsWith("no") == true || this?.trim()?.lowercase() == "ні"
 
 @Composable
