@@ -30,6 +30,7 @@ import oms.components.InlineOptionPicker
 import oms.components.UkraineRegionAutocomplete
 import oms.components.currentIsoDate
 import oms.data.ApiProject
+import oms.data.ApiUser
 import oms.data.OmsApiClient
 import oms.data.ProjectRepository
 import oms.localization.LocalizationManager
@@ -59,13 +60,17 @@ fun CreateProjectScreen(
     var parentProjects by remember { mutableStateOf<List<ApiProject>>(emptyList()) }
     var latitude by remember { mutableStateOf("") }
     var longitude by remember { mutableStateOf("") }
-    var managerId by remember { mutableStateOf("1") }
+    var users by remember { mutableStateOf<List<ApiUser>>(emptyList()) }
+    var managerId by remember { mutableStateOf<Long?>(null) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var isSubmitting by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) {
         parentProjects = runCatching { OmsApiClient.projects() }.getOrDefault(emptyList())
+        users = runCatching { OmsApiClient.users() }.getOrDefault(emptyList())
+            .filter { it.status.equals("active", ignoreCase = true) }
+        managerId = users.firstOrNull()?.id
     }
 
     fun requiredFieldsFilled() = listOf(
@@ -145,7 +150,17 @@ fun CreateProjectScreen(
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     OutlinedTextField(latitude, { value -> if (value.matches(Regex("-?[0-9.,]*"))) latitude = value }, label = { Text(LocalizationManager.t("latitude_required")) }, singleLine = true, modifier = Modifier.weight(1f))
                     OutlinedTextField(longitude, { value -> if (value.matches(Regex("-?[0-9.,]*"))) longitude = value }, label = { Text(LocalizationManager.t("longitude_required")) }, singleLine = true, modifier = Modifier.weight(1f))
-                    OutlinedTextField(managerId, { managerId = it }, label = { Text(LocalizationManager.t("manager_id_required")) }, supportingText = { Text("1 — Admin") }, singleLine = true, modifier = Modifier.weight(1f))
+                    InlineOptionPicker(
+                        options = users,
+                        selected = users.firstOrNull { it.id == managerId },
+                        prompt = LocalizationManager.t("manager_id_required"),
+                        onSelect = { managerId = it.id },
+                        itemLabel = { user ->
+                            listOf(user.firstName, user.lastName).filter { it.isNotBlank() }
+                                .joinToString(" ").ifBlank { user.username } + " (${user.username})"
+                        },
+                        modifier = Modifier.weight(1f)
+                    )
                 }
             }
         }
@@ -163,7 +178,6 @@ fun CreateProjectScreen(
                     val parsedBudget = budgetPlanned.toLongOrNull()
                     val parsedLatitude = latitude.replace(',', '.').toDoubleOrNull()
                     val parsedLongitude = longitude.replace(',', '.').toDoubleOrNull()
-                    val parsedManagerId = managerId.toLongOrNull()
                     val parsedEngineerConsultantAmount = engineerConsultantContractAmount.takeIf { it.isNotBlank() }?.toLongOrNull()
                     val parsedTechnicalSupervisionAmount = technicalSupervisionAmount.takeIf { it.isNotBlank() }?.toLongOrNull()
                     val parsedSubprojectContractAmount = subprojectContractAmount.takeIf { it.isNotBlank() }?.toLongOrNull()
@@ -172,7 +186,7 @@ fun CreateProjectScreen(
                         parsedBudget == null || parsedBudget <= 0 -> LocalizationManager.t("error_positive_budget")
                         parsedLatitude == null || parsedLatitude !in -90.0..90.0 -> LocalizationManager.t("error_latitude_range")
                         parsedLongitude == null || parsedLongitude !in -180.0..180.0 -> LocalizationManager.t("error_longitude_range")
-                        parsedManagerId == null || parsedManagerId <= 0 -> LocalizationManager.t("error_valid_manager")
+                        managerId == null -> LocalizationManager.t("error_valid_manager")
                         engineerConsultantContractAmount.isNotBlank() && parsedEngineerConsultantAmount == null -> LocalizationManager.t("error_engineer_amount")
                         technicalSupervisionAmount.isNotBlank() && parsedTechnicalSupervisionAmount == null -> LocalizationManager.t("error_supervision_amount")
                         projectType != "project" && parentProjectUuid == null -> LocalizationManager.t("error_select_parent")
@@ -192,7 +206,7 @@ fun CreateProjectScreen(
                                         constructionType = constructionType.trim(), budgetPlanned = parsedBudget!!,
                                         engineerConsultantContractAmount = parsedEngineerConsultantAmount,
                                         technicalSupervisionAmount = parsedTechnicalSupervisionAmount,
-                                        managerId = parsedManagerId!!,
+                                        managerId = managerId!!,
                                         projectType = projectType,
                                         parentProjectUuid = parentProjectUuid,
                                         subprojectContractAmount = parsedSubprojectContractAmount,
