@@ -1,6 +1,7 @@
 package oms.screens
 
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -38,6 +39,7 @@ fun ProcurementScreen(canManageProcurements: Boolean) {
             .onSuccess { records = it.sortedWith(compareBy({ record -> record.batchId }, { record -> record.recordNumber })) }
             .onFailure { error = LocalizationManager.t("procurement_load_error") }
     }
+    Box(Modifier.fillMaxSize()) {
     Column(Modifier.fillMaxSize().padding(24.dp)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Text(LocalizationManager.t("procurement_title"), style = MaterialTheme.typography.headlineMedium)
@@ -51,15 +53,20 @@ fun ProcurementScreen(canManageProcurements: Boolean) {
             records == null -> CircularProgressIndicator()
             else -> ProcurementTable(records!!, canManageProcurements, { editorRecord = it }, { recordPendingDeletion = it })
         }
-        if (creating) ProcurementEditorDialog(null, onDismiss = { creating = false }) { request ->
+    }
+        if (creating) ProcurementEditorOverlay {
+            ProcurementEditorDialog(null, onDismiss = { creating = false }) { request ->
             scope.launch { runCatching { OmsApiClient.createProcurement(request) }
                 .onSuccess { records = (records.orEmpty() + it).sortedBy { record -> record.recordNumber }; creating = false }
                 .onFailure { error = LocalizationManager.t("error_create_procurement").replace("{message}", it.message.orEmpty()) } }
+            }
         }
-        editorRecord?.let { existing -> ProcurementEditorDialog(existing, onDismiss = { editorRecord = null }) { request ->
+        editorRecord?.let { existing -> ProcurementEditorOverlay {
+            ProcurementEditorDialog(existing, onDismiss = { editorRecord = null }) { request ->
             scope.launch { runCatching { OmsApiClient.updateProcurement(existing.id, request) }
                 .onSuccess { saved -> records = records.orEmpty().map { if (it.id == saved.id) saved else it }; editorRecord = null }
                 .onFailure { error = LocalizationManager.t("error_update_procurement").replace("{message}", it.message.orEmpty()) } }
+            }
         }
         }
         recordPendingDeletion?.let { record ->
@@ -153,6 +160,16 @@ private fun Double?.format(decimals: Int): String = this?.let { value ->
 }.orEmpty()
 
 @Composable
+private fun ProcurementEditorOverlay(content: @Composable () -> Unit) {
+    Box(
+        Modifier.fillMaxSize()
+            .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.32f))
+            .padding(20.dp),
+        contentAlignment = Alignment.Center
+    ) { content() }
+}
+
+@Composable
 private fun ProcurementEditorDialog(
     existing: ApiProcurementRecord?,
     onDismiss: () -> Unit,
@@ -181,10 +198,12 @@ private fun ProcurementEditorDialog(
     fun numeric(value: String, decimals: Boolean = false, update: (String) -> Unit) {
         update(value.filter { it.isDigit() || (decimals && (it == '.' || it == ',')) }.replace(',', '.').let { text -> if (decimals && text.count { it == '.' } > 1) text.dropLast(1) else text })
     }
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(LocalizationManager.t(if (existing == null) "add_procurement_record" else "edit_procurement_record")) },
-        text = {
+    Card(
+        Modifier.fillMaxWidth().widthIn(max = 760.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+    ) {
+        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(LocalizationManager.t(if (existing == null) "add_procurement_record" else "edit_procurement_record"), style = MaterialTheme.typography.titleLarge)
             Column(Modifier.fillMaxWidth().heightIn(max = 520.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedTextField(number, { numeric(it, update = { value -> number = value }) }, label = { Text("№ *") }, modifier = Modifier.weight(1f), singleLine = true)
@@ -213,14 +232,14 @@ private fun ProcurementEditorDialog(
                 OutlinedTextField(amountEur, { numeric(it, true) { value -> amountEur = value } }, label = { Text(LocalizationManager.t("proc_contract_amount_eur")) }, modifier = Modifier.fillMaxWidth())
                 OutlinedTextField(difference, { numeric(it, true) { value -> difference = value } }, label = { Text(LocalizationManager.t("proc_financing_difference")) }, modifier = Modifier.fillMaxWidth())
             }
-        },
-        confirmButton = {
-            Button(onClick = {
-                onSave(ProcurementRecordRequest(number.toInt(), batch.toInt(), oblastName, oblastId, subprojectId, lotId, status,
-                    tenderId.ifBlank { null }, prozorroId.ifBlank { null }, contractorUkr.ifBlank { null }, contractorEng.ifBlank { null }, contractorId.ifBlank { null },
-                    contractDate.ifBlank { null }, contractEndDate.ifBlank { null }, duration.toIntOrNull(), amountUah.toDoubleOrNull(), amountEur.toDoubleOrNull(), difference.toDoubleOrNull()?.div(100)))
-            }, enabled = valid) { Text(LocalizationManager.t("save")) }
-        },
-        dismissButton = { OutlinedButton(onClick = onDismiss) { Text(LocalizationManager.t("cancel")) } }
-    )
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
+                OutlinedButton(onClick = onDismiss) { Text(LocalizationManager.t("cancel")) }
+                Button(onClick = {
+                    onSave(ProcurementRecordRequest(number.toInt(), batch.toInt(), oblastName, oblastId, subprojectId, lotId, status,
+                        tenderId.ifBlank { null }, prozorroId.ifBlank { null }, contractorUkr.ifBlank { null }, contractorEng.ifBlank { null }, contractorId.ifBlank { null },
+                        contractDate.ifBlank { null }, contractEndDate.ifBlank { null }, duration.toIntOrNull(), amountUah.toDoubleOrNull(), amountEur.toDoubleOrNull(), difference.toDoubleOrNull()?.div(100)))
+                }, enabled = valid) { Text(LocalizationManager.t("save")) }
+            }
+        }
+    }
 }
