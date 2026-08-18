@@ -5,11 +5,13 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -29,12 +31,14 @@ import oms.components.toOmsDate
 import oms.localization.LocalizationManager
 import oms.model.Project
 import oms.navigation.Screen
+import kotlinx.coroutines.launch
 
 @Composable
 fun ProjectDetailScreen(
     project: Project,
     onBackToProjects: () -> Unit = {},
-    onEdit: (Project) -> Unit = {}
+    onEdit: (Project) -> Unit = {},
+    canDeleteProject: Boolean = false
 ) {
     val parentProjectName = project.parentProjectUuid?.let { parentId ->
         ProjectRepository.projects.firstOrNull { it.id == parentId }?.name
@@ -45,6 +49,9 @@ fun ProjectDetailScreen(
     val financials = remember(project.id) { mutableStateOf<ApiFinancialRecords?>(null) }
     val documents = remember(project.id) { mutableStateOf<List<ApiProjectDocument>>(emptyList()) }
     val healthSafetyObservations = remember(project.id) { mutableStateOf<ApiHealthSafetyObservations?>(null) }
+    var confirmDeletion by remember { mutableStateOf(false) }
+    var deleteError by remember { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
     LaunchedEffect(project.id) { details.value = runCatching { OmsApiClient.projectDetails(project.id) }.getOrNull() }
     LaunchedEffect(project.id) { reports.value = runCatching { OmsApiClient.projectReports(project.id) }.getOrDefault(emptyList()) }
     LaunchedEffect(project.id) { financials.value = runCatching { OmsApiClient.financials(project.id) }.getOrNull() }
@@ -123,13 +130,52 @@ fun ProjectDetailScreen(
                         )
                     }
 
-                    Button(onClick = { onEdit(project) }) {
-                        Icon(
-                            imageVector = Icons.Default.Edit,
-                            contentDescription = LocalizationManager.t("edit")
-                        )
-                        Spacer(Modifier.width(8.dp))
-                        Text(LocalizationManager.t("edit"))
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Button(onClick = { onEdit(project) }) {
+                            Icon(
+                                imageVector = Icons.Default.Edit,
+                                contentDescription = LocalizationManager.t("edit")
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Text(LocalizationManager.t("edit"))
+                        }
+                        if (canDeleteProject) {
+                            OutlinedButton(
+                                onClick = { confirmDeletion = true },
+                                colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                            ) {
+                                Icon(Icons.Default.Delete, contentDescription = LocalizationManager.t("delete_project"))
+                                Spacer(Modifier.width(8.dp))
+                                Text(LocalizationManager.t("delete"))
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        if (confirmDeletion) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
+            ) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(LocalizationManager.t("delete_project"), style = MaterialTheme.typography.titleMedium)
+                    Text(LocalizationManager.t("delete_project_confirmation").replace("{name}", project.name))
+                    deleteError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
+                        OutlinedButton(onClick = { confirmDeletion = false }) { Text(LocalizationManager.t("cancel")) }
+                        Button(
+                            onClick = {
+                                scope.launch {
+                                    if (OmsApiClient.deleteProject(project.id)) {
+                                        ProjectRepository.refresh()
+                                        onBackToProjects()
+                                    } else deleteError = LocalizationManager.t("error_delete_project")
+                                }
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                        ) { Text(LocalizationManager.t("delete")) }
                     }
                 }
             }

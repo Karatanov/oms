@@ -61,7 +61,8 @@ fun AppLayout(appState: AppState) {
                             onBackToProjects = {
                                 appState.navigate(Screen.Projects)
                             },
-                            onEdit = { appState.openEditProject(it) }
+                            onEdit = { appState.openEditProject(it) },
+                            canDeleteProject = appState.roleCode in setOf("ADMIN", "PROJECT_MANAGER")
                         )
                     }
                 }
