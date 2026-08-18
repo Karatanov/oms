@@ -6,11 +6,12 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Folder
-import androidx.compose.material.icons.filled.SubdirectoryArrowRight
+import androidx.compose.material.icons.filled.Layers
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -457,12 +458,17 @@ fun ProjectRow(
                         .background(Primary.copy(alpha = 0.55f))
                 )
                 if (indentLevel > 1) {
-                    Icon(
-                        imageVector = Icons.Default.SubdirectoryArrowRight,
-                        contentDescription = "Subproject part",
-                        tint = Primary,
-                        modifier = Modifier.size(20.dp)
-                    )
+                    Box(
+                        modifier = Modifier.size(24.dp).background(Color.White, CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Layers,
+                            contentDescription = "Subproject part",
+                            tint = Primary,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
                 } else {
                     Text("•", color = Primary, style = MaterialTheme.typography.titleMedium)
                 }
