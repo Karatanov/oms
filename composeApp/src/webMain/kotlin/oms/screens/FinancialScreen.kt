@@ -23,6 +23,7 @@ import oms.components.OmsDateField
 import oms.components.toOmsDate
 import oms.components.InlineOptionPicker
 import oms.components.currentIsoDate
+import oms.components.WasmSafeOverlay
 import kotlin.js.JsName
 
 @JsName("openFinancialImport")
@@ -93,6 +94,7 @@ fun FinancialScreen(
         }
     }.let { if (ascending) it else it.reversed() })
     fun selectSort(column: FinancialSort) { if (sort == column) ascending = !ascending else { sort = column; ascending = true } }
+    Box(Modifier.fillMaxSize()) {
     Column(
         modifier = Modifier.fillMaxSize().verticalScroll(pageScrollState).padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -170,13 +172,15 @@ fun FinancialScreen(
                 }
             }
         }
-        if (showTransferDialog) {
+    }
+        if (showTransferDialog) { WasmSafeOverlay {
             FinancialTransferDialog(
                 projects = ProjectRepository.projects,
                 onDismiss = { showTransferDialog = false },
                 onImport = { projectUuid -> openFinancialImport(projectUuid); showTransferDialog = false },
                 onExport = { projectUuid -> downloadFinancialExport(projectUuid); showTransferDialog = false }
             )
+        }
         }
     }
 }
@@ -190,23 +194,18 @@ private fun FinancialTransferDialog(
 ) {
     var projectUuid by remember { mutableStateOf(projects.firstOrNull()?.id) }
     val selected = projects.firstOrNull { it.id == projectUuid }
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(LocalizationManager.t("financial_transfer_title")) },
-        text = {
+    Card(Modifier.fillMaxWidth().widthIn(max = 620.dp)) {
         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(LocalizationManager.t("financial_transfer_title"), style = MaterialTheme.typography.titleLarge)
             InlineOptionPicker(options = projects, selected = selected, prompt = LocalizationManager.t("select_project"), onSelect = { projectUuid = it.id }, itemLabel = { it.name })
             Text(LocalizationManager.t("financial_import_hint"), color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-        },
-        dismissButton = { OutlinedButton(onClick = onDismiss) { Text(LocalizationManager.t("cancel")) } },
-        confirmButton = {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, androidx.compose.ui.Alignment.End)) {
+                OutlinedButton(onClick = onDismiss) { Text(LocalizationManager.t("cancel")) }
                 OutlinedButton(onClick = { projectUuid?.let(onExport) }, enabled = projectUuid != null) { Text(LocalizationManager.t("export_to_excel")) }
                 Button(onClick = { projectUuid?.let(onImport) }, enabled = projectUuid != null) { Text(LocalizationManager.t("import_xls")) }
             }
         }
-    )
+    }
 }
 
 @Composable

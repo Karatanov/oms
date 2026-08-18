@@ -25,6 +25,7 @@ import oms.data.CreateUserRequest
 import oms.components.RoleChip
 import oms.components.TableActionIconButton
 import oms.components.InlineOptionPicker
+import oms.components.WasmSafeOverlay
 import oms.localization.LocalizationManager
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -107,6 +108,7 @@ fun AdminScreen() {
     }.let { if (ascending) it else it.reversed() })
     fun changeSort(column: UserSort) { if (sort == column) ascending = !ascending else { sort = column; ascending = true } }
 
+    Box(Modifier.fillMaxSize()) {
     Column(Modifier.fillMaxSize().padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Text(LocalizationManager.t("admin_title"), style = MaterialTheme.typography.headlineMedium)
@@ -158,7 +160,8 @@ fun AdminScreen() {
             }
         }
         errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-        selectedUser?.let { user ->
+    }
+        selectedUser?.let { user -> WasmSafeOverlay {
             EditUserDialog(user, roles, errorMessage, onDismiss = { selectedUser = null }) { updated ->
                 scope.launch {
                     runCatching { OmsApiClient.updateUser(user.id, updated) }
@@ -167,7 +170,8 @@ fun AdminScreen() {
                 }
             }
         }
-        if (createUser) {
+        }
+        if (createUser) { WasmSafeOverlay {
             CreateUserDialog(roles, onDismiss = { createUser = false }) { request ->
                 scope.launch {
                     runCatching { OmsApiClient.createUser(request) }
@@ -176,12 +180,14 @@ fun AdminScreen() {
                 }
             }
         }
-        userPendingDeletion?.let { user ->
-            AlertDialog(
-                onDismissRequest = { userPendingDeletion = null },
-                title = { Text(LocalizationManager.t("delete_user_title")) },
-                text = { Text(LocalizationManager.t("delete_user_confirmation").replace("{username}", user.username)) },
-                confirmButton = {
+        }
+        userPendingDeletion?.let { user -> WasmSafeOverlay {
+            Card(Modifier.fillMaxWidth().widthIn(max = 520.dp)) {
+                Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Text(LocalizationManager.t("delete_user_title"), style = MaterialTheme.typography.titleLarge)
+                    Text(LocalizationManager.t("delete_user_confirmation").replace("{username}", user.username))
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
+                    OutlinedButton(onClick = { userPendingDeletion = null }) { Text(LocalizationManager.t("cancel")) }
                     Button(
                         onClick = {
                             scope.launch {
@@ -195,9 +201,10 @@ fun AdminScreen() {
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
                     ) { Text(LocalizationManager.t("delete")) }
-                },
-                dismissButton = { OutlinedButton(onClick = { userPendingDeletion = null }) { Text(LocalizationManager.t("cancel")) } }
-            )
+                    }
+                }
+            }
+        }
         }
     }
 }
@@ -223,10 +230,9 @@ private fun CreateUserDialog(roles: List<ApiRole>, onDismiss: () -> Unit, onSave
     var department by remember { mutableStateOf("") }
     var preferredLang by remember { mutableStateOf("uk") }
     val role = roles.firstOrNull { it.code == roleCode }
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(LocalizationManager.t("create_user")) },
-        text = {
+    Card(Modifier.fillMaxWidth().widthIn(max = 760.dp)) {
+        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(LocalizationManager.t("create_user"), style = MaterialTheme.typography.titleLarge)
             Column(
                 Modifier.fillMaxWidth().heightIn(max = 510.dp).verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
@@ -248,15 +254,15 @@ private fun CreateUserDialog(roles: List<ApiRole>, onDismiss: () -> Unit, onSave
             OutlinedTextField(password, { password = it }, label = { Text(LocalizationManager.t("password")) }, modifier = Modifier.fillMaxWidth())
             InlineOptionPicker(options = roles, selected = role, prompt = LocalizationManager.t("select_role"), onSelect = { roleCode = it.code }, itemLabel = { it.name })
             }
-        },
-        confirmButton = {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
+                OutlinedButton(onClick = onDismiss) { Text(LocalizationManager.t("cancel")) }
             Button(
                 onClick = { onSave(CreateUserRequest(username.trim(), email.trim(), password, roleCode, firstName.trim(), lastName.trim(), status, region.trim().ifBlank { null }, department.trim().ifBlank { null }, preferredLang)) },
                 enabled = username.isNotBlank() && email.contains('@') && password.isNotBlank() && role != null
             ) { Text(LocalizationManager.t("create")) }
-        },
-        dismissButton = { OutlinedButton(onClick = onDismiss) { Text(LocalizationManager.t("cancel")) } }
-    )
+            }
+        }
+    }
 }
 
 @Composable
@@ -272,10 +278,9 @@ private fun EditUserDialog(user: ApiUser, roles: List<ApiRole>, saveError: Strin
     var department by remember(user.id) { mutableStateOf(user.department.orEmpty()) }
     var preferredLang by remember(user.id) { mutableStateOf(user.preferredLang) }
     val role = roles.firstOrNull { it.code == roleCode }
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(LocalizationManager.t("edit_user")) },
-        text = {
+    Card(Modifier.fillMaxWidth().widthIn(max = 760.dp)) {
+        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(LocalizationManager.t("edit_user"), style = MaterialTheme.typography.titleLarge)
             Column(
                 Modifier.fillMaxWidth().heightIn(max = 510.dp).verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
@@ -299,13 +304,13 @@ private fun EditUserDialog(user: ApiUser, roles: List<ApiRole>, saveError: Strin
             Text(LocalizationManager.t("password_requirements"), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             saveError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
             }
-        },
-        confirmButton = {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
+                OutlinedButton(onClick = onDismiss) { Text(LocalizationManager.t("cancel")) }
             Button(
                 onClick = { onSave(UpdateUserRequest(username, email, roleCode, password.ifBlank { null }, firstName, lastName, status, region, department, preferredLang)) },
                 enabled = username.isNotBlank() && email.contains('@') && role != null
             ) { Text(LocalizationManager.t("save")) }
-        },
-        dismissButton = { OutlinedButton(onClick = onDismiss) { Text(LocalizationManager.t("cancel")) } }
-    )
+            }
+        }
+    }
 }

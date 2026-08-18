@@ -1,7 +1,6 @@
 package oms.screens
 
 import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -23,6 +22,7 @@ import oms.components.TableActionIconButton
 import oms.components.InlineOptionPicker
 import oms.components.UkraineRegionAutocomplete
 import oms.components.currentIsoDate
+import oms.components.WasmSafeOverlay
 import oms.localization.LocalizationManager
 import kotlinx.coroutines.launch
 
@@ -54,14 +54,14 @@ fun ProcurementScreen(canManageProcurements: Boolean) {
             else -> ProcurementTable(records!!, canManageProcurements, { editorRecord = it }, { recordPendingDeletion = it })
         }
     }
-        if (creating) ProcurementEditorOverlay {
+        if (creating) WasmSafeOverlay {
             ProcurementEditorDialog(null, onDismiss = { creating = false }) { request ->
             scope.launch { runCatching { OmsApiClient.createProcurement(request) }
                 .onSuccess { records = (records.orEmpty() + it).sortedBy { record -> record.recordNumber }; creating = false }
                 .onFailure { error = LocalizationManager.t("error_create_procurement").replace("{message}", it.message.orEmpty()) } }
             }
         }
-        editorRecord?.let { existing -> ProcurementEditorOverlay {
+        editorRecord?.let { existing -> WasmSafeOverlay {
             ProcurementEditorDialog(existing, onDismiss = { editorRecord = null }) { request ->
             scope.launch { runCatching { OmsApiClient.updateProcurement(existing.id, request) }
                 .onSuccess { saved -> records = records.orEmpty().map { if (it.id == saved.id) saved else it }; editorRecord = null }
@@ -69,14 +69,18 @@ fun ProcurementScreen(canManageProcurements: Boolean) {
             }
         }
         }
-        recordPendingDeletion?.let { record ->
-            AlertDialog(
-                onDismissRequest = { recordPendingDeletion = null },
-                title = { Text(LocalizationManager.t("delete_procurement_title")) },
-                text = { Text(LocalizationManager.t("delete_procurement_confirmation").replace("{number}", record.recordNumber.toString())) },
-                confirmButton = { Button(onClick = { scope.launch { if (OmsApiClient.deleteProcurement(record.id)) { records = records.orEmpty().filterNot { it.id == record.id }; recordPendingDeletion = null } else error = LocalizationManager.t("error_delete_procurement") } }, colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)) { Text(LocalizationManager.t("delete")) } },
-                dismissButton = { OutlinedButton(onClick = { recordPendingDeletion = null }) { Text(LocalizationManager.t("cancel")) } }
-            )
+        recordPendingDeletion?.let { record -> WasmSafeOverlay {
+            Card(Modifier.fillMaxWidth().widthIn(max = 520.dp)) {
+                Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Text(LocalizationManager.t("delete_procurement_title"), style = MaterialTheme.typography.titleLarge)
+                    Text(LocalizationManager.t("delete_procurement_confirmation").replace("{number}", record.recordNumber.toString()))
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
+                        OutlinedButton(onClick = { recordPendingDeletion = null }) { Text(LocalizationManager.t("cancel")) }
+                        Button(onClick = { scope.launch { if (OmsApiClient.deleteProcurement(record.id)) { records = records.orEmpty().filterNot { it.id == record.id }; recordPendingDeletion = null } else error = LocalizationManager.t("error_delete_procurement") } }, colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)) { Text(LocalizationManager.t("delete")) }
+                    }
+                }
+            }
+        }
         }
     }
 }
@@ -158,16 +162,6 @@ private fun Double?.format(decimals: Int): String = this?.let { value ->
     val rounded = kotlin.math.round(value * multiplier) / multiplier
     if (decimals == 0) rounded.toInt().toString() else rounded.toString()
 }.orEmpty()
-
-@Composable
-private fun ProcurementEditorOverlay(content: @Composable () -> Unit) {
-    Box(
-        Modifier.fillMaxSize()
-            .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.32f))
-            .padding(20.dp),
-        contentAlignment = Alignment.Center
-    ) { content() }
-}
 
 @Composable
 private fun ProcurementEditorDialog(
