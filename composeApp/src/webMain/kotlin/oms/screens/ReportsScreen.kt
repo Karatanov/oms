@@ -331,30 +331,30 @@ private fun MoveReportDialog(
     var selectedUuid by remember(report.report.uuid) { mutableStateOf<String?>(null) }
     val projects = ProjectRepository.projects.filter { it.id != report.projectUuid }
     val selected = projects.firstOrNull { it.id == selectedUuid }
-    AlertDialog(
-        onDismissRequest = { if (!isMoving) onDismiss() },
-        title = { Text(LocalizationManager.t("move_report")) },
-        text = {
+    // Compose/Wasm AlertDialog can leave a popup focus layer active when an inline
+    // selector changes its state.  Keep this editor in the page layout instead.
+    Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                InlineOptionPicker(
-                    options = projects,
-                    selected = selected,
-                    prompt = LocalizationManager.t("select_target_project"),
-                    onSelect = { selectedUuid = it.id },
-                    itemLabel = { "${it.name} (${it.region})" },
-                    enabled = !isMoving
-                )
-                if (projects.isEmpty()) Text(LocalizationManager.t("no_other_project"))
-            }
-        },
-        dismissButton = { OutlinedButton(onClick = onDismiss, enabled = !isMoving) { Text(LocalizationManager.t("cancel")) } },
-        confirmButton = {
-            Button(onClick = { selected?.let(onMove) }, enabled = selected != null && !isMoving) {
-                if (isMoving) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
-                else Text(LocalizationManager.t("move"))
+            Text(LocalizationManager.t("move_report"), style = MaterialTheme.typography.titleLarge)
+            Text(report.report.summary ?: LocalizationManager.t("inspection_report"), style = MaterialTheme.typography.bodyMedium)
+            InlineOptionPicker(
+                options = projects,
+                selected = selected,
+                prompt = LocalizationManager.t("select_target_project"),
+                onSelect = { selectedUuid = it.id },
+                itemLabel = { "${it.name} (${it.region})" },
+                enabled = !isMoving
+            )
+            if (projects.isEmpty()) Text(LocalizationManager.t("no_other_project"))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
+                OutlinedButton(onClick = onDismiss, enabled = !isMoving) { Text(LocalizationManager.t("cancel")) }
+                Button(onClick = { selected?.let(onMove) }, enabled = selected != null && !isMoving) {
+                    if (isMoving) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
+                    else Text(LocalizationManager.t("move"))
+                }
             }
         }
-    )
+    }
 }
 
 @Composable
