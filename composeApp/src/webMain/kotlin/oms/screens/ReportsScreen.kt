@@ -366,6 +366,11 @@ private fun ReportTableHeader(sort: ReportSort, ascending: Boolean, onSort: (Rep
         SortableTableHeader("Субпроєкт", sort == ReportSort.Subproject, ascending, { onSort(ReportSort.Subproject) }, Modifier.width(190.dp))
         SortableTableHeader(LocalizationManager.t("status"), sort == ReportSort.Status, ascending, { onSort(ReportSort.Status) }, Modifier.width(130.dp))
         SortableTableHeader(LocalizationManager.t("uploaded_by"), sort == ReportSort.Author, ascending, { onSort(ReportSort.Author) }, Modifier.width(100.dp))
-        Text(LocalizationManager.t("actions"), Modifier.width(288.dp), style = MaterialTheme.typography.labelLarge)
+        Box(
+            Modifier.width(288.dp).height(48.dp).padding(start = 16.dp),
+            contentAlignment = Alignment.CenterStart
+        ) {
+            Text(LocalizationManager.t("actions"))
+        }
     }
 }
