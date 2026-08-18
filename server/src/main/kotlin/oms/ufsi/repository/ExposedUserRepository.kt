@@ -191,8 +191,9 @@ class ExposedUserRepository : UserRepository {
             }
     }
 
-    override fun update(id: Long, username: String, email: String, passwordHash: String, roleId: Long, firstName: String, lastName: String, status: String, region: String?, department: String?, preferredLang: String): User? = transaction {
-        val count = UserTable.update({ UserTable.id eq id }) {
+    override fun update(id: Long, username: String, email: String, passwordHash: String, roleId: Long, firstName: String, lastName: String, status: String, region: String?, department: String?, preferredLang: String): User? {
+        val count = transaction {
+            UserTable.update({ UserTable.id eq id }) {
             it[UserTable.username] = username
             it[UserTable.email] = email
             it[UserTable.passwordHash] = passwordHash
@@ -203,8 +204,10 @@ class ExposedUserRepository : UserRepository {
             it[UserTable.region] = region
             it[UserTable.department] = department
             it[UserTable.preferredLang] = preferredLang
+            it[UserTable.updatedAt] = LocalDateTime.now()
+            }
         }
-        if (count == 0) null else findAll().firstOrNull { it.id == id }
+        return if (count == 0) null else findAll().firstOrNull { it.id == id }
     }
 
     override fun delete(id: Long): Boolean = transaction { UserTable.deleteWhere { UserTable.id eq id } > 0 }
