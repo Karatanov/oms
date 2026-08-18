@@ -6,6 +6,9 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Cancel
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -17,6 +20,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import oms.components.StatusChip
 import oms.components.constructionTypeLabel
@@ -340,12 +344,29 @@ private fun ProjectHealthSafetyTab(data: ApiHealthSafetyObservations?) {
                         Text("${LocalizationManager.t("inspection_date_prefix")} ${date.toOmsDate()}", style = MaterialTheme.typography.labelLarge)
                         observations.forEach { item ->
                             HorizontalDivider()
-                            Text(item.observation, style = MaterialTheme.typography.bodyLarge)
-                            item.answer?.let { answer ->
-                                Text("${LocalizationManager.t("answer")}: $answer", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.bodyMedium)
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(item.observation, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
+                                HseAnswerIndicator(item.answer)
                             }
                             item.comment?.let { comment ->
-                                Text(comment, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodyMedium)
+                                val negative = item.answer.isNegativeHseAnswer()
+                                Card(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = CardDefaults.cardColors(
+                                        containerColor = if (negative) MaterialTheme.colorScheme.errorContainer else Color(0xFFFFF3E0)
+                                    )
+                                ) {
+                                    Text(
+                                        comment,
+                                        modifier = Modifier.padding(10.dp),
+                                        color = if (negative) MaterialTheme.colorScheme.onErrorContainer else Color(0xFFE65100),
+                                        style = MaterialTheme.typography.bodyMedium
+                                    )
+                                }
                             }
                         }
                     }
@@ -354,6 +375,30 @@ private fun ProjectHealthSafetyTab(data: ApiHealthSafetyObservations?) {
         }
     }
 }
+
+@Composable
+private fun HseAnswerIndicator(answer: String?) {
+    when {
+        answer.isPositiveHseAnswer() -> Icon(
+            Icons.Default.CheckCircle,
+            contentDescription = LocalizationManager.t("hse_compliant"),
+            tint = Color(0xFF2E7D32)
+        )
+        answer.isNegativeHseAnswer() -> Icon(
+            Icons.Default.Cancel,
+            contentDescription = LocalizationManager.t("hse_issue"),
+            tint = MaterialTheme.colorScheme.error
+        )
+        !answer.isNullOrBlank() -> Icon(
+            Icons.Default.Warning,
+            contentDescription = LocalizationManager.t("answer"),
+            tint = Color(0xFFEF6C00)
+        )
+    }
+}
+
+private fun String?.isPositiveHseAnswer() = this?.trim()?.lowercase() in setOf("yes", "y", "так")
+private fun String?.isNegativeHseAnswer() = this?.trim()?.lowercase()?.startsWith("no") == true || this?.trim()?.lowercase() == "ні"
 
 @Composable
 private fun EmptyProjectTab(title: String, description: String) {
