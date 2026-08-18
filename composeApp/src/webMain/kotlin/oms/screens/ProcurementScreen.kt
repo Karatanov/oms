@@ -19,6 +19,7 @@ import oms.data.OmsApiClient
 import oms.data.ProcurementRecordRequest
 import oms.components.OmsDateField
 import oms.components.TableActionIconButton
+import oms.components.InlineOptionPicker
 import oms.components.currentIsoDate
 import oms.localization.LocalizationManager
 import kotlinx.coroutines.launch
@@ -136,6 +137,14 @@ private fun procurementHeaderLabels() = listOf(
     "proc_financing_difference"
 ).map(LocalizationManager::t)
 private val columnWidths = listOf(55, 85, 180, 100, 145, 160, 220, 185, 250, 260, 260, 160, 120, 160, 160, 190, 180, 180)
+private val procurementStatuses = listOf(
+    "Не розпочато / Not Started",
+    "Закупівля триває / Tender Ongoing",
+    "Повідомлення про намір укласти договір / Contract award notice",
+    "Договір укладено / Contract signed",
+    "Відмінено / Cancelled",
+    "Договір розірвано / Contract terminated"
+)
 private fun Double?.format(decimals: Int): String = this?.let { value ->
     val multiplier = if (decimals == 0) 1.0 else 100.0
     val rounded = kotlin.math.round(value * multiplier) / multiplier
@@ -154,7 +163,7 @@ private fun ProcurementEditorDialog(
     var oblastId by remember(existing?.id) { mutableStateOf(existing?.oblastId.orEmpty()) }
     var subprojectId by remember(existing?.id) { mutableStateOf(existing?.subProjectId.orEmpty()) }
     var lotId by remember(existing?.id) { mutableStateOf(existing?.subProjectLotId.orEmpty()) }
-    var status by remember(existing?.id) { mutableStateOf(existing?.purchaseStatus.orEmpty()) }
+    var status by remember(existing?.id) { mutableStateOf(existing?.purchaseStatus ?: procurementStatuses.first()) }
     var tenderId by remember(existing?.id) { mutableStateOf(existing?.tenderId.orEmpty()) }
     var prozorroId by remember(existing?.id) { mutableStateOf(existing?.prozorroTenderId.orEmpty()) }
     var contractorUkr by remember(existing?.id) { mutableStateOf(existing?.contractorNameUkr.orEmpty()) }
@@ -184,7 +193,13 @@ private fun ProcurementEditorDialog(
                 OutlinedTextField(oblastId, { oblastId = it }, label = { Text("Ідентифікатор області *") }, modifier = Modifier.fillMaxWidth())
                 OutlinedTextField(subprojectId, { subprojectId = it }, label = { Text("Ідентифікатор субпроєкту *") }, modifier = Modifier.fillMaxWidth())
                 OutlinedTextField(lotId, { lotId = it }, label = { Text("Ідентифікатор лоту субпроєкту *") }, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(status, { status = it }, label = { Text("Статус закупівлі *") }, modifier = Modifier.fillMaxWidth())
+                InlineOptionPicker(
+                    options = procurementStatuses,
+                    selected = status.takeIf { it in procurementStatuses },
+                    prompt = LocalizationManager.t("procurement_status"),
+                    onSelect = { status = it },
+                    itemLabel = { it }
+                )
                 OutlinedTextField(tenderId, { tenderId = it }, label = { Text("Ідентифікатор тендеру") }, modifier = Modifier.fillMaxWidth())
                 OutlinedTextField(prozorroId, { prozorroId = it }, label = { Text("Ідентифікатор тендеру PROZORRO") }, modifier = Modifier.fillMaxWidth())
                 OutlinedTextField(contractorUkr, { contractorUkr = it }, label = { Text("Назва підрядника (укр.)") }, modifier = Modifier.fillMaxWidth())
