@@ -30,6 +30,11 @@ class ExposedFinancialRecordRepository : FinancialRecordRepository {
             it[recordType] = type.name.lowercase(); it[referenceNumber] = reference; it[this.amount] = amount; it[this.currency] = currency; it[this.recordDate] = LocalDate.parse(recordDate); it[this.paymentDate] = paymentDate?.let(LocalDate::parse); it[this.description] = description; it[this.milestone] = milestone
         }; if (n == 0) null else findByUuid(projectId, uuid)
     }
+    override fun move(projectId: Long, uuid: String, targetProjectId: Long) = transaction {
+        FinancialRecordTable.update({ (FinancialRecordTable.projectId eq projectId) and (FinancialRecordTable.uuid eq uuid) }) {
+            it[this.projectId] = targetProjectId
+        } > 0
+    }
     override fun delete(projectId: Long, uuid: String) = transaction { FinancialRecordTable.deleteWhere { (FinancialRecordTable.projectId eq projectId) and (FinancialRecordTable.uuid eq uuid) } > 0 }
     private fun map(r: org.jetbrains.exposed.v1.core.ResultRow) = FinancialRecord(r[FinancialRecordTable.id].value, UUID.fromString(r[FinancialRecordTable.uuid]), r[FinancialRecordTable.projectId].value, FinancialRecordType.valueOf(r[FinancialRecordTable.recordType].uppercase()), r[FinancialRecordTable.referenceNumber], r[FinancialRecordTable.amount], r[FinancialRecordTable.currency], r[FinancialRecordTable.recordDate], r[FinancialRecordTable.paymentDate], r[FinancialRecordTable.description], r[FinancialRecordTable.milestone])
 }

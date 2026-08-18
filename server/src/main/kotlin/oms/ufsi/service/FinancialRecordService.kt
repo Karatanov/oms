@@ -22,6 +22,7 @@ class FinancialRecordService(private val repository: FinancialRecordRepository) 
     fun get(projectId: Long, uuid: String) = repository.findByUuid(projectId, uuid.trim())
     fun create(projectId: Long, type: String, reference: String, amount: Long, currency: String, date: String, paymentDate: String?, description: String?, milestone: String?) = repository.create(projectId, validatedType(type), required(reference, "Reference number"), positive(amount), currency(currency), date(date), optionalDate(paymentDate), optional(description), optional(milestone), 1L)
     fun update(projectId: Long, uuid: String, type: String, reference: String, amount: Long, currency: String, date: String, paymentDate: String?, description: String?, milestone: String?) = repository.update(projectId, uuid.trim(), validatedType(type), required(reference, "Reference number"), positive(amount), currency(currency), date(date), optionalDate(paymentDate), optional(description), optional(milestone))
+    fun move(projectId: Long, uuid: String, targetProjectId: Long) = repository.move(projectId, uuid.trim(), targetProjectId)
     fun delete(projectId: Long, uuid: String) = repository.delete(projectId, uuid.trim())
     fun importXlsx(projectId: Long, input: InputStream): Int {
         XSSFWorkbook(input).use { workbook ->
@@ -73,7 +74,12 @@ class FinancialRecordService(private val repository: FinancialRecordRepository) 
             workbook.write(output)
         }
     }
-    fun summary(project: Project): FinancialSummary = FinancialSummary(project.budgetPlanned, getAll(project.id).filter { it.recordType == FinancialRecordType.ACT }.sumOf { it.amount })
+    fun summary(project: Project): FinancialSummary = FinancialSummary(
+        constructionContractAmount = project.subprojectContractAmount ?: project.budgetPlanned,
+        amountSpent = getAll(project.id)
+            .filter { it.recordType == FinancialRecordType.ACT }
+            .sumOf { it.amount }
+    )
     private fun validatedType(value: String) = try { FinancialRecordType.valueOf(value.trim().uppercase()) } catch (_: Exception) { throw IllegalArgumentException("Record type must be invoice, act, payment, or advance.") }
     private fun positive(value: Long): Long { require(value > 0) { "Amount must be positive." }; return value }
     private fun required(value: String, field: String): String { val result = value.trim(); require(result.isNotEmpty()) { "$field is required." }; return result }
@@ -83,4 +89,9 @@ class FinancialRecordService(private val repository: FinancialRecordRepository) 
     private fun optional(value: String?) = value?.trim()?.takeIf { it.isNotEmpty() }
 }
 
-data class FinancialSummary(val budgetPlanned: Long, val amountSpent: Long) { val budgetRemaining = budgetPlanned - amountSpent; val completionPct = if (budgetPlanned == 0L) 0.0 else amountSpent * 100.0 / budgetPlanned }
+data class FinancialSummary(val constructionContractAmount: Long, val amountSpent: Long) {
+    // Kept for existing API consumers; it is the construction-contract balance.
+    val budgetPlanned get() = constructionContractAmount
+    val budgetRemaining get() = constructionContractAmount - amountSpent
+    val completionPct get() = if (constructionContractAmount == 0L) 0.0 else amountSpent * 100.0 / constructionContractAmount
+}

@@ -27,7 +27,7 @@ fun Route.financialRoutes() {
                 call.respond(
                     FinancialRecordListResponse(
                         data = records.map { it.toResponse() },
-                        summary = FinancialSummaryResponse(summary.budgetPlanned, summary.amountSpent, summary.budgetRemaining, summary.completionPct)
+                        summary = FinancialSummaryResponse(summary.budgetPlanned, summary.constructionContractAmount, summary.amountSpent, summary.budgetRemaining, summary.completionPct)
                     )
                 )
             } catch (e: IllegalArgumentException) {
@@ -79,11 +79,23 @@ fun Route.financialRoutes() {
             call.respond(record.toResponse())
         }
         put("{recordUuid}") {
-            call.requireRole("ADMIN", "PROJECT_MANAGER") ?: return@put
+            val session = call.requireRole("ADMIN", "PROJECT_MANAGER") ?: return@put
             val project = call.project() ?: return@put
             val uuid = call.parameters["recordUuid"] ?: return@put call.financeNotFound("Financial record not found.")
             val request = call.receive<UpdateFinancialRecordRequest>()
-            try { val record = AppContainer.financialRecordService.update(project.id, uuid, request.recordType, request.referenceNumber, request.amount, request.currency, request.recordDate, request.paymentDate, request.description, request.milestone) ?: return@put call.financeNotFound("Financial record not found."); call.respond(record.toResponse()) } catch (e: IllegalArgumentException) { call.financeError(e) }
+            try {
+                val target = request.targetProjectUuid?.trim()?.takeIf { it.isNotEmpty() }?.let { targetUuid ->
+                    AppContainer.projectService.getProjectByUuid(targetUuid)
+                        ?: return@put call.financeNotFound("Target project not found.")
+                } ?: project
+                if (target.id != project.id && !AppContainer.financialRecordService.move(project.id, uuid, target.id)) {
+                    return@put call.financeNotFound("Financial record not found.")
+                }
+                val record = AppContainer.financialRecordService.update(target.id, uuid, request.recordType, request.referenceNumber, request.amount, request.currency, request.recordDate, request.paymentDate, request.description, request.milestone)
+                    ?: return@put call.financeNotFound("Financial record not found.")
+                if (target.id != project.id) AppContainer.auditLogService.record(session.userId, "financial_record_moved", "financial_record", record.id)
+                call.respond(record.toResponse())
+            } catch (e: IllegalArgumentException) { call.financeError(e) }
         }
         delete("{recordUuid}") {
             call.requireRole("ADMIN", "PROJECT_MANAGER") ?: return@delete

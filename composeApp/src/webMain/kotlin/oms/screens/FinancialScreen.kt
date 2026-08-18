@@ -163,7 +163,7 @@ fun FinancialScreen(
                     errorMessage = null
                     runCatching {
                         if (editAct == null) OmsApiClient.createFinancialRecord(projectUuid, request)
-                        else OmsApiClient.updateFinancialRecord(projectUuid, editAct!!.act.uuid, request)
+                        else OmsApiClient.updateFinancialRecord(editAct!!.projectUuid, editAct!!.act.uuid, projectUuid, request)
                     }.onSuccess { errorMessage = null; addAct = false; editAct = null; reloadKey++ }
                         .onFailure { exception ->
                             errorMessage = LocalizationManager.t("error_save_act")

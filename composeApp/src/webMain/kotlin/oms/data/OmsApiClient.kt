@@ -137,10 +137,10 @@ object OmsApiClient {
             setBody(request)
         }.body()
 
-    suspend fun updateFinancialRecord(projectUuid: String, recordUuid: String, request: FinancialRecordRequest): ApiFinancialRecord =
-        client.put("$baseUrl/projects/$projectUuid/financials/$recordUuid") {
+    suspend fun updateFinancialRecord(sourceProjectUuid: String, recordUuid: String, targetProjectUuid: String, request: FinancialRecordRequest): ApiFinancialRecord =
+        client.put("$baseUrl/projects/$sourceProjectUuid/financials/$recordUuid") {
             contentType(ContentType.Application.Json)
-            setBody(request)
+            setBody(FinancialRecordUpdateRequest(request, targetProjectUuid))
         }.body()
 
     suspend fun deleteFinancialRecord(projectUuid: String, recordUuid: String): Boolean =
@@ -217,6 +217,24 @@ data class FinancialRecordRequest(
     val description: String? = null,
     val milestone: String? = null
 )
+
+@Serializable
+data class FinancialRecordUpdateRequest(
+    val recordType: String,
+    val referenceNumber: String,
+    val amount: Long,
+    val currency: String,
+    val recordDate: String,
+    val paymentDate: String? = null,
+    val description: String? = null,
+    val milestone: String? = null,
+    val targetProjectUuid: String? = null
+) {
+    constructor(request: FinancialRecordRequest, targetProjectUuid: String) : this(
+        request.recordType, request.referenceNumber, request.amount, request.currency, request.recordDate,
+        request.paymentDate, request.description, request.milestone, targetProjectUuid
+    )
+}
 
 @Serializable
 data class CreateProjectRequest(
