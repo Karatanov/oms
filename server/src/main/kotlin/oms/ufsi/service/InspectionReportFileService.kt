@@ -12,6 +12,8 @@ import java.util.UUID
 import org.apache.poi.ss.usermodel.DataFormatter
 import org.apache.poi.ss.usermodel.Workbook
 import org.apache.poi.ss.usermodel.WorkbookFactory
+import org.apache.poi.xssf.usermodel.XSSFWorkbook
+import oms.ufsi.dto.CreateManualInspectionReportRequest
 
 data class HealthSafetyObservation(
     val observation: String,
@@ -23,6 +25,33 @@ class InspectionReportFileService(
     private val fileRepository: InspectionReportFileRepository,
     private val reportService: InspectionReportService
 ) {
+    fun createManual(projectId: Long, request: CreateManualInspectionReportRequest, createdBy: Long): InspectionReport {
+        val report = reportService.createReport(projectId, request.inspectionDate, "Manual SIR: ${request.contractor}", createdBy)
+        val fileName = "SIR-USIF_${request.inspectionDate.replace("-", "")}.xlsx"
+        val directory = Path.of("uploads", "inspection-reports").toAbsolutePath().normalize()
+        Files.createDirectories(directory)
+        val target = directory.resolve("${report.uuid}.xlsx")
+        XSSFWorkbook().use { workbook ->
+            val sheet = workbook.createSheet("SIR")
+            var rowIndex = 0
+            fun row(vararg cells: String?) = sheet.createRow(rowIndex++).apply { cells.forEachIndexed { index, value -> createCell(index).setCellValue(value.orEmpty()) } }
+            row("Ukrainian Social Investment Fund (USIF)"); row("SITE INSPECTION REPORT")
+            row("CONTRACTOR", request.contractor, "DATE", request.inspectionDate)
+            row("CONTRACTOR'S REPRESENTATIVE", request.contractorRepresentative, "M4H QA STAFF", request.qaStaff, "USIF / MOH REPRESENTATIVE", request.usifRepresentative)
+            row("SKILLED LABOR", request.skilledLabor, "UNSKILLED LABOR", request.unskilledLabor, "MANAGEMENT ON SITE", request.siteManagement, "WEATHER CONDITIONS", request.weather)
+            row("ONGOING ACTIVITIES"); row("BLOCK / LOCATION", "DESCRIPTION OF WORK (PER BOQ ITEM)", "PER SCHEDULE?", "REMARKS")
+            request.activities.forEach { row(it.location, it.description, it.onSchedule, it.remarks) }
+            row("OBSERVANCES ON ONGOING ACTIVITIES"); request.ongoingObservations.forEach { row(it) }
+            row("OBSERVANCES ON HEALTH & SAFETY"); request.hseObservations.forEach { row(it.observation, it.answer, it.comment) }
+            row("NARRATIVE ASSESSMENT - COMMENTS ON QUALITY", "RECTIFICATION REMARKS (NNC / NTC)"); request.qualityRemarks.forEach { row(it.comment, it.rectification) }
+            row("NARRATIVE ASSESSMENT - COMMENTS ON PROGRESS", "SCHEDULE REVISION REMARKS"); row(request.progressComment, request.scheduleRemark)
+            row("M4H QA STAFF"); row("NAME", request.inspectorName, "TITLE", request.inspectorTitle, "DATE", request.inspectionDate)
+            sheet.setColumnWidth(0, 9000); sheet.setColumnWidth(1, 18000); sheet.setColumnWidth(2, 5000); sheet.setColumnWidth(3, 14000)
+            Files.newOutputStream(target).use(workbook::write)
+        }
+        fileRepository.create(InspectionReportFile(report.id, fileName, target.toString(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", Files.size(target)))
+        return report
+    }
     fun import(projectId: Long, originalName: String, contentType: String?, input: java.io.InputStream, createdBy: Long): InspectionReport {
         val extension = originalName.substringAfterLast('.', "").lowercase()
         require(extension in setOf("xls", "xlsx")) { "Only XLS or XLSX inspection reports are supported." }

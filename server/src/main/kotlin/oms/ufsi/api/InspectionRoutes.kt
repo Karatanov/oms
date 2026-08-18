@@ -13,6 +13,16 @@ import oms.ufsi.dto.*
 
 /** REST endpoints for inspection findings. */
 fun Route.inspectionRoutes() {
+    post("/api/v1/projects/{projectUuid}/inspection-reports/manual") {
+        val session = call.requireRole("ADMIN", "PROJECT_MANAGER", "INSPECTOR") ?: return@post
+        val projectUuid = call.parameters["projectUuid"] ?: return@post call.notFound("Project not found.")
+        val project = AppContainer.projectService.getProjectByUuid(projectUuid) ?: return@post call.notFound("Project not found.")
+        try {
+            val report = AppContainer.inspectionReportFileService.createManual(project.id, call.receive(), session.userId)
+            AppContainer.auditLogService.record(session.userId, "inspection_manual_created", "inspection_report", report.id)
+            call.respond(HttpStatusCode.Created, report.toResponse())
+        } catch (exception: IllegalArgumentException) { call.validationError(exception) }
+    }
     post("/api/v1/projects/{projectUuid}/inspection-reports/import") {
         val session = call.requireRole("ADMIN", "PROJECT_MANAGER", "INSPECTOR") ?: return@post
         val projectUuid = call.parameters["projectUuid"] ?: return@post call.notFound("Project not found.")
