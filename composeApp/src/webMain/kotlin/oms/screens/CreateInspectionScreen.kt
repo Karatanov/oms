@@ -122,15 +122,20 @@ fun CreateInspectionScreen(
                     selectedSubprojectUuid = selectedSubprojectUuid,
                     selectedSubprojectPartUuid = selectedSubprojectPartUuid,
                     onProjectSelect = {
+                        errorMessage = null
                         selectedProjectUuid = it
                         selectedSubprojectUuid = null
                         selectedSubprojectPartUuid = null
                     },
                     onSubprojectSelect = {
+                        errorMessage = null
                         selectedSubprojectUuid = it
                         selectedSubprojectPartUuid = null
                     },
-                    onSubprojectPartSelect = { selectedSubprojectPartUuid = it }
+                    onSubprojectPartSelect = {
+                        errorMessage = null
+                        selectedSubprojectPartUuid = it
+                    }
                 )
 
                 OmsDateField(
@@ -242,6 +247,7 @@ fun CreateInspectionScreen(
                 val selectedProject = inspectionTargetUuid
                 if (selectionError != null) errorMessage = selectionError
                 else {
+                    errorMessage = null
                     openSirImportDialog(requireNotNull(selectedProject))
                     onImportXls()
                 }
