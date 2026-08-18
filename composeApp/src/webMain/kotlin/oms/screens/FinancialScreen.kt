@@ -27,7 +27,7 @@ import oms.components.WasmSafeOverlay
 import kotlin.js.JsName
 
 @JsName("openFinancialImport")
-external fun openFinancialImport(projectUuid: String)
+external fun openFinancialImport(projectUuid: String, onComplete: (String) -> Unit)
 
 @JsName("downloadFinancialExport")
 external fun downloadFinancialExport(projectUuid: String)
@@ -177,7 +177,13 @@ fun FinancialScreen(
             FinancialTransferDialog(
                 projects = ProjectRepository.projects,
                 onDismiss = { showTransferDialog = false },
-                onImport = { projectUuid -> openFinancialImport(projectUuid); showTransferDialog = false },
+                onImport = { projectUuid ->
+                    openFinancialImport(projectUuid) { importError ->
+                        if (importError.isBlank()) reloadKey++
+                        else errorMessage = LocalizationManager.t("error_import_financial_records").replace("{message}", importError)
+                    }
+                    showTransferDialog = false
+                },
                 onExport = { projectUuid -> downloadFinancialExport(projectUuid); showTransferDialog = false }
             )
         }
