@@ -127,10 +127,10 @@ fun AdminScreen() {
                     SortableTableHeader(LocalizationManager.t("language"), sort == UserSort.Language, ascending, { changeSort(UserSort.Language) }, Modifier.width(80.dp))
                     SortableTableHeader(LocalizationManager.t("last_login"), sort == UserSort.LastLogin, ascending, { changeSort(UserSort.LastLogin) }, Modifier.width(170.dp))
                     SortableTableHeader(LocalizationManager.t("failed_login_attempts"), sort == UserSort.LastLogin, ascending, { changeSort(UserSort.LastLogin) }, Modifier.width(120.dp))
-                    Text(LocalizationManager.t("locked_until"), Modifier.width(170.dp), style = MaterialTheme.typography.labelLarge)
+                    AdminStaticHeader(LocalizationManager.t("locked_until"), 170.dp)
                     SortableTableHeader(LocalizationManager.t("created_at"), sort == UserSort.Created, ascending, { changeSort(UserSort.Created) }, Modifier.width(170.dp))
-                    Text(LocalizationManager.t("updated_at"), Modifier.width(170.dp), style = MaterialTheme.typography.labelLarge)
-                    Text(LocalizationManager.t("actions"), Modifier.width(96.dp), style = MaterialTheme.typography.labelLarge)
+                    AdminStaticHeader(LocalizationManager.t("updated_at"), 170.dp)
+                    AdminStaticHeader(LocalizationManager.t("actions"), 96.dp)
                 }
                 HorizontalDivider()
                 sortedUsers.forEach { user ->
@@ -200,6 +200,14 @@ fun AdminScreen() {
             )
         }
     }
+}
+
+@Composable
+private fun AdminStaticHeader(text: String, width: androidx.compose.ui.unit.Dp) {
+    Box(
+        Modifier.width(width).height(48.dp).padding(start = 16.dp),
+        contentAlignment = Alignment.CenterStart
+    ) { Text(text) }
 }
 
 @Composable
