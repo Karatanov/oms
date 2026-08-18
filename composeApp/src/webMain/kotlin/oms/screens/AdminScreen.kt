@@ -120,6 +120,7 @@ fun AdminScreen() {
                 Text(LocalizationManager.t("user_full_data"), style = MaterialTheme.typography.titleMedium)
                 Row(Modifier.width(2046.dp).padding(vertical = 6.dp)) {
                     SortableTableHeader(LocalizationManager.t("username"), sort == UserSort.Username, ascending, { changeSort(UserSort.Username) }, Modifier.width(130.dp))
+                    AdminStaticHeader(LocalizationManager.t("actions"), 96.dp)
                     SortableTableHeader(LocalizationManager.t("full_name"), sort == UserSort.FullName, ascending, { changeSort(UserSort.FullName) }, Modifier.width(180.dp))
                     SortableTableHeader(LocalizationManager.t("email"), sort == UserSort.Email, ascending, { changeSort(UserSort.Email) }, Modifier.width(220.dp))
                     SortableTableHeader(LocalizationManager.t("role"), sort == UserSort.Role, ascending, { changeSort(UserSort.Role) }, Modifier.width(150.dp))
@@ -132,12 +133,13 @@ fun AdminScreen() {
                     AdminStaticHeader(LocalizationManager.t("locked_until"), 170.dp)
                     SortableTableHeader(LocalizationManager.t("created_at"), sort == UserSort.Created, ascending, { changeSort(UserSort.Created) }, Modifier.width(170.dp))
                     AdminStaticHeader(LocalizationManager.t("updated_at"), 170.dp)
-                    AdminStaticHeader(LocalizationManager.t("actions"), 96.dp)
                 }
                 HorizontalDivider()
                 sortedUsers.forEach { user ->
                     Row(Modifier.width(2046.dp).padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                         Text(user.username, Modifier.width(130.dp))
+                        TableActionIconButton(LocalizationManager.t("edit_user"), Icons.Default.Edit) { selectedUser = user }
+                        TableActionIconButton(LocalizationManager.t("delete_user"), Icons.Default.Delete) { userPendingDeletion = user }
                         Text(listOf(user.firstName, user.lastName).filter { it.isNotBlank() }.joinToString(" ").ifBlank { "—" }, Modifier.width(180.dp))
                         Text(user.email, Modifier.width(220.dp))
                         Box(Modifier.width(150.dp)) { RoleChip(user.role.code) }
@@ -152,8 +154,6 @@ fun AdminScreen() {
                         Text(user.lockedUntil ?: "—", Modifier.width(170.dp))
                         Text(user.createdAt ?: "—", Modifier.width(170.dp))
                         Text(user.updatedAt ?: "—", Modifier.width(170.dp))
-                        TableActionIconButton(LocalizationManager.t("edit_user"), Icons.Default.Edit) { selectedUser = user }
-                        TableActionIconButton(LocalizationManager.t("delete_user"), Icons.Default.Delete) { userPendingDeletion = user }
                     }
                     HorizontalDivider()
                 }
