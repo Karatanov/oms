@@ -12,6 +12,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.Icon
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountBalanceWallet
+import androidx.compose.material.icons.filled.Folder
+import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -95,7 +100,7 @@ fun CreateProjectScreen(
                 modifier = Modifier.padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Text(LocalizationManager.t("basic_information"), style = MaterialTheme.typography.titleMedium)
+                SectionTitle(Icons.Default.Folder, LocalizationManager.t("basic_information"))
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     OutlinedButton(onClick = { projectType = "project" }, modifier = Modifier.weight(1f), colors = ButtonDefaults.outlinedButtonColors(containerColor = if (projectType == "project") Primary else MaterialTheme.colorScheme.surface, contentColor = if (projectType == "project") MaterialTheme.colorScheme.onPrimary else Primary)) { Text(LocalizationManager.t("project")) }
                     OutlinedButton(onClick = { projectType = "subproject" }, modifier = Modifier.weight(1f), colors = ButtonDefaults.outlinedButtonColors(containerColor = if (projectType == "subproject") Primary else MaterialTheme.colorScheme.surface, contentColor = if (projectType == "subproject") MaterialTheme.colorScheme.onPrimary else Primary)) { Text(LocalizationManager.t("subproject")) }
@@ -113,18 +118,41 @@ fun CreateProjectScreen(
                 }
                 OutlinedTextField(name, { name = it }, label = { Text(LocalizationManager.t("project_name_required")) }, modifier = Modifier.fillMaxWidth())
                 OutlinedTextField(siteName, { siteName = it }, label = { Text(LocalizationManager.t("project_code_required")) }, modifier = Modifier.fillMaxWidth())
-                if (projectType != "project") {
-                    OutlinedTextField(subprojectContractAmount, { value -> if (value.all(Char::isDigit)) subprojectContractAmount = value }, label = { Text(LocalizationManager.t("subproject_contract_amount_required")) }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        OmsDateField(startDate, { startDate = it }, LocalizationManager.t("start_date"), Modifier.weight(1f), true)
-                        OmsDateField(contractSignedDate, { contractSignedDate = it }, LocalizationManager.t("contract_signed_date"), Modifier.weight(1f), true)
-                        OmsDateField(plannedEndDate, { plannedEndDate = it }, LocalizationManager.t("planned_end_date"), Modifier.weight(1f), true)
-                    }
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    OutlinedTextField(sector, { sector = it }, label = { Text(LocalizationManager.t("sector_required")) }, modifier = Modifier.weight(1f))
+                    ConstructionTypeSelector(constructionType, { constructionType = it }, Modifier.weight(1f))
                 }
+                InlineOptionPicker(
+                    options = users,
+                    selected = users.firstOrNull { it.id == managerId },
+                    prompt = LocalizationManager.t("manager_id_required"),
+                    onSelect = { managerId = it.id },
+                    itemLabel = { user ->
+                        listOf(user.firstName, user.lastName).filter { it.isNotBlank() }
+                            .joinToString(" ").ifBlank { user.username } + " (${user.username})"
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        }
+
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                SectionTitle(Icons.Default.LocationOn, LocalizationManager.t("parameters_and_location"))
                 OutlinedTextField(address, { address = it }, label = { Text(LocalizationManager.t("address_required")) }, modifier = Modifier.fillMaxWidth())
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     UkraineRegionAutocomplete(region, { region = it }, LocalizationManager.t("region"), Modifier.weight(1f), required = true)
                     OutlinedTextField(city, { city = it }, label = { Text(LocalizationManager.t("city_required")) }, modifier = Modifier.weight(1f))
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    OutlinedTextField(latitude, { value -> if (value.matches(Regex("-?[0-9.,]*"))) latitude = value }, label = { Text(LocalizationManager.t("latitude_required")) }, singleLine = true, modifier = Modifier.weight(1f))
+                    OutlinedTextField(longitude, { value -> if (value.matches(Regex("-?[0-9.,]*"))) longitude = value }, label = { Text(LocalizationManager.t("longitude_required")) }, singleLine = true, modifier = Modifier.weight(1f))
                 }
             }
         }
@@ -137,30 +165,19 @@ fun CreateProjectScreen(
                 modifier = Modifier.padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Text(LocalizationManager.t("parameters_and_location"), style = MaterialTheme.typography.titleMedium)
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    OutlinedTextField(sector, { sector = it }, label = { Text(LocalizationManager.t("sector_required")) }, modifier = Modifier.weight(1f))
-                    ConstructionTypeSelector(constructionType, { constructionType = it }, Modifier.weight(1f))
-                }
+                SectionTitle(Icons.Default.AccountBalanceWallet, LocalizationManager.t("financial_parameters"))
                 OutlinedTextField(budgetPlanned, { value -> if (value.matches(Regex("[0-9.,]*"))) budgetPlanned = value }, label = { Text(LocalizationManager.t("planned_budget_required")) }, singleLine = true, modifier = Modifier.fillMaxWidth())
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     OutlinedTextField(engineerConsultantContractAmount, { value -> if (value.all(Char::isDigit)) engineerConsultantContractAmount = value }, label = { Text(LocalizationManager.t("engineer_consultant_amount")) }, singleLine = true, modifier = Modifier.weight(1f))
                     OutlinedTextField(technicalSupervisionAmount, { value -> if (value.all(Char::isDigit)) technicalSupervisionAmount = value }, label = { Text(LocalizationManager.t("technical_supervision_amount")) }, singleLine = true, modifier = Modifier.weight(1f))
                 }
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    OutlinedTextField(latitude, { value -> if (value.matches(Regex("-?[0-9.,]*"))) latitude = value }, label = { Text(LocalizationManager.t("latitude_required")) }, singleLine = true, modifier = Modifier.weight(1f))
-                    OutlinedTextField(longitude, { value -> if (value.matches(Regex("-?[0-9.,]*"))) longitude = value }, label = { Text(LocalizationManager.t("longitude_required")) }, singleLine = true, modifier = Modifier.weight(1f))
-                    InlineOptionPicker(
-                        options = users,
-                        selected = users.firstOrNull { it.id == managerId },
-                        prompt = LocalizationManager.t("manager_id_required"),
-                        onSelect = { managerId = it.id },
-                        itemLabel = { user ->
-                            listOf(user.firstName, user.lastName).filter { it.isNotBlank() }
-                                .joinToString(" ").ifBlank { user.username } + " (${user.username})"
-                        },
-                        modifier = Modifier.weight(1f)
-                    )
+                if (projectType != "project") {
+                    OutlinedTextField(subprojectContractAmount, { value -> if (value.all(Char::isDigit)) subprojectContractAmount = value }, label = { Text(LocalizationManager.t("subproject_contract_amount_required")) }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        OmsDateField(startDate, { startDate = it }, LocalizationManager.t("start_date"), Modifier.weight(1f), true)
+                        OmsDateField(contractSignedDate, { contractSignedDate = it }, LocalizationManager.t("contract_signed_date"), Modifier.weight(1f), true)
+                        OmsDateField(plannedEndDate, { plannedEndDate = it }, LocalizationManager.t("planned_end_date"), Modifier.weight(1f), true)
+                    }
                 }
             }
         }
@@ -230,5 +247,13 @@ fun CreateProjectScreen(
                 else Text(LocalizationManager.t("create_project"))
             }
         }
+    }
+}
+
+@Composable
+private fun SectionTitle(icon: androidx.compose.ui.graphics.vector.ImageVector, text: String) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Icon(icon, contentDescription = null, tint = Primary)
+        Text(text, style = MaterialTheme.typography.titleMedium)
     }
 }
