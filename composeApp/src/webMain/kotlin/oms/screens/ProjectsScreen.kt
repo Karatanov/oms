@@ -10,6 +10,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Folder
+import androidx.compose.material.icons.filled.SubdirectoryArrowRight
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -455,7 +456,16 @@ fun ProjectRow(
                         .height(18.dp)
                         .background(Primary.copy(alpha = 0.55f))
                 )
-                Text(if (indentLevel > 1) "↳" else "•", color = Primary, style = MaterialTheme.typography.titleMedium)
+                if (indentLevel > 1) {
+                    Icon(
+                        imageVector = Icons.Default.SubdirectoryArrowRight,
+                        contentDescription = "Subproject part",
+                        tint = Primary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                } else {
+                    Text("•", color = Primary, style = MaterialTheme.typography.titleMedium)
+                }
             }
         }
 
