@@ -105,13 +105,20 @@ private fun ProcurementRow(
     showActions: Boolean = false,
     isHeader: Boolean = false
 ) {
-    Row(Modifier.widthIn(min = 3_300.dp).padding(vertical = 10.dp)) {
+    Row(
+        Modifier.widthIn(min = 3_300.dp).padding(vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
         if (showActions) {
             if (isHeader) {
                 Text(LocalizationManager.t("actions"), Modifier.width(96.dp).padding(horizontal = 6.dp), style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
             } else if (record != null) {
-                TableActionIconButton("Редагувати запис закупівлі", Icons.Default.Edit) { onEdit(record) }
-                TableActionIconButton("Видалити запис закупівлі", Icons.Default.Delete) { onDelete(record) }
+                Box(Modifier.offset(y = (-4).dp)) {
+                    TableActionIconButton("Редагувати запис закупівлі", Icons.Default.Edit) { onEdit(record) }
+                }
+                Box(Modifier.offset(y = (-4).dp)) {
+                    TableActionIconButton("Видалити запис закупівлі", Icons.Default.Delete) { onDelete(record) }
+                }
             }
         }
         values.take(columnWidths.size).zip(columnWidths).forEach { (value, width) ->
