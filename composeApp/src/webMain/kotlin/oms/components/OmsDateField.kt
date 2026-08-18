@@ -7,7 +7,13 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInWindow
 import oms.localization.LocalizationManager
 import kotlin.js.JsName
 
@@ -15,7 +21,7 @@ import kotlin.js.JsName
 private external fun browserCurrentIsoDate(): String
 
 @JsName("openNativeDatePicker")
-private external fun openNativeDatePicker(value: String, onSelected: (String) -> Unit)
+private external fun openNativeDatePicker(value: String, anchorLeft: Float, anchorTop: Float, onSelected: (String) -> Unit)
 
 /** The user's local calendar date in the API's YYYY-MM-DD format. */
 fun currentIsoDate(): String = browserCurrentIsoDate()
@@ -29,6 +35,8 @@ fun OmsDateField(
     modifier: Modifier = Modifier,
     required: Boolean = false
 ) {
+    var anchorLeft by remember { mutableStateOf(16f) }
+    var anchorTop by remember { mutableStateOf(16f) }
     OutlinedTextField(
         value = value.toOmsDate(),
         onValueChange = {},
@@ -37,7 +45,14 @@ fun OmsDateField(
         readOnly = true,
         singleLine = true,
         trailingIcon = {
-            IconButton(onClick = { openNativeDatePicker(value, onValueChange) }) {
+            IconButton(
+                onClick = { openNativeDatePicker(value, anchorLeft, anchorTop, onValueChange) },
+                modifier = Modifier.onGloballyPositioned { coordinates ->
+                    val position = coordinates.positionInWindow()
+                    anchorLeft = position.x
+                    anchorTop = position.y + coordinates.size.height
+                }
+            ) {
                 Icon(Icons.Default.CalendarMonth, contentDescription = LocalizationManager.t("choose_date"))
             }
         }

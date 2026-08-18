@@ -59,15 +59,17 @@
         }
 
         // Browser-native date input is dependable in Wasm and provides a calendar on desktop/mobile.
-        function openNativeDatePicker(value, onSelected) {
+        function openNativeDatePicker(value, anchorLeft, anchorTop, onSelected) {
             const input = document.createElement("input");
             input.type = "date";
             input.value = /^\d{4}-\d{2}-\d{2}$/.test(value || "") ? value : currentIsoDate();
-            const anchor = document.activeElement;
-            const bounds = anchor?.getBoundingClientRect?.();
             input.style.position = "fixed";
-            input.style.left = `${bounds?.left ?? 16}px`;
-            input.style.top = `${bounds?.bottom ?? 16}px`;
+            // Compose/Wasm controls do not reliably become document.activeElement.
+            // Position the native input from the measured calendar-button coordinates instead.
+            const left = Math.max(12, Math.min(Number(anchorLeft) || 16, window.innerWidth - 280));
+            const top = Math.max(12, Math.min(Number(anchorTop) || 16, window.innerHeight - 40));
+            input.style.left = `${left}px`;
+            input.style.top = `${top}px`;
             input.style.width = "1px";
             input.style.height = "1px";
             input.style.opacity = "0";
