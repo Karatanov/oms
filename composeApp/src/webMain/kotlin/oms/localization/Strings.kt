@@ -745,7 +745,7 @@ object Strings {
         "full_name" to "Full name",
         "role" to "Role",
         "department" to "Department",
-        "language" to "Language",
+        "language" to "Lang",
         "last_login" to "Last login",
         "failed_login_attempts" to "Failed logins",
         "locked_until" to "Locked until",
