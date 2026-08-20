@@ -15,6 +15,7 @@ fun Application.configureDatabase() {
     val driver = environment.config.property("database.driver").getString()
     val user = environment.config.property("database.user").getString()
     val dbPassword = environment.config.property("database.password").getString()
+    val dialect = environment.config.property("database.dialect").getString().lowercase()
 
     val maxPoolSize =
         environment.config.property("database.pool.maxSize").getString().toInt()
@@ -31,6 +32,13 @@ fun Application.configureDatabase() {
     val flyway = Flyway
         .configure()
         .dataSource(url, user, dbPassword)
+        .locations(
+            when (dialect) {
+                "mysql" -> "classpath:db/migration"
+                "tidb" -> "classpath:db/migration-tidb"
+                else -> error("Unsupported database dialect: $dialect")
+            }
+        )
         .load()
 
     // Opt-in recovery for a locally interrupted development migration.

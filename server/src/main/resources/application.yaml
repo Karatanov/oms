@@ -30,6 +30,9 @@ database:
   # Облікові дані робочого користувача застосунку.
   user: "${DATABASE_USER:usif_user}"
   password: "${DATABASE_PASSWORD:usif_password}"
+  # mysql keeps the existing local Flyway migration set. Set to `tidb` on
+  # Render when DATABASE_URL points to TiDB Cloud.
+  dialect: "${DATABASE_DIALECT:mysql}"
   pool:
 
     # Максимальна кількість одночасних з'єднань.
