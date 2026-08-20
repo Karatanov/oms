@@ -61,7 +61,8 @@ RENAME TABLE project_documents TO documents;
 ALTER TABLE documents
     ADD COLUMN related_entity ENUM('inspection', 'financial_record', 'incident') NULL,
     ADD COLUMN related_id BIGINT NULL,
-    ADD COLUMN description TEXT NULL,
+    ADD COLUMN description TEXT NULL;
+ALTER TABLE documents
     ADD INDEX idx_documents_related_entity (related_entity, related_id);
 
 CREATE TABLE incidents (
