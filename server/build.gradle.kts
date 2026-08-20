@@ -31,7 +31,7 @@ tasks.named<ProcessResources>("processResources") {
     from(copyRenderWebAssets) {
         into("static")
     }
-    from(copyTiDbMigrations)
+    from(layout.buildDirectory.dir("generated/tidb-migrations"))
 }
 
 group = "oms.usif.ua.ufsi"
