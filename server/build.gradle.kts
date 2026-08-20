@@ -19,6 +19,8 @@ val copyRenderWebAssets by tasks.registering(Copy::class) {
 // checksums untouched for local installations.
 val copyTiDbMigrations by tasks.registering(Copy::class) {
     from(layout.projectDirectory.dir("src/main/resources/db/migration"))
+    // A few TiDB limitations need a full SQL replacement, not a line rewrite.
+    from(layout.projectDirectory.dir("src/main/resources/db/tidb-overrides"))
     into(layout.buildDirectory.dir("generated/tidb-migrations/db/migration-tidb"))
     filter { line: String ->
         line.replace(Regex("\\s+AFTER\\s+`?[A-Za-z0-9_]+`?", RegexOption.IGNORE_CASE), "")
