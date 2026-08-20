@@ -8,12 +8,8 @@ import oms.ufsi.api.*
 /**
  * Реєструє всі HTTP-маршрути застосунку.
  *
- * У майбутньому тут будуть підключатися:
- * - authRoutes();
- * - userRoutes();
- * - projectRoutes();
- * - inspectionRoutes();
- * - financialRoutes();
+ * API routes are registered before the packaged Web static resources so that
+ * the UI fallback can never shadow an API or health endpoint.
  */
 fun Application.configureRouting() {
 

@@ -36,6 +36,9 @@ tasks.named<ProcessResources>("processResources") {
 
 group = "oms.usif.ua.ufsi"
 version = "1.0.0"
+kotlin {
+    jvmToolchain(21)
+}
 application {
     mainClass.set("oms.ufsi.ApplicationKt")
 
@@ -49,8 +52,6 @@ dependencies {
     implementation(libs.ktor.serverCore)
     implementation(libs.ktor.serverNetty)
 
-    // ... existing code ...
-
     implementation("io.ktor:ktor-server-config-yaml")
     implementation("io.ktor:ktor-server-content-negotiation")
     implementation("io.ktor:ktor-serialization-kotlinx-json")
@@ -63,7 +64,6 @@ dependencies {
     implementation("org.jetbrains.exposed:exposed-jdbc:1.0.0")
     implementation("org.jetbrains.exposed:exposed-java-time:1.0.0")
     implementation("org.flywaydb:flyway-mysql:11.12.0")
-    implementation("org.flywaydb:flyway-database-tidb:11.12.0")
     implementation("com.zaxxer:HikariCP:6.3.0")
     implementation("org.mindrot:jbcrypt:0.4")
     implementation("org.apache.poi:poi-ooxml:5.4.1")

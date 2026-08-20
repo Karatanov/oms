@@ -1,36 +1,46 @@
 services:
-
   mysql:
-
     image: mysql:8.4
-
-    container_name: usif-mysql
-
     restart: unless-stopped
-
-    ports:
-      - "3306:3306"
-
     environment:
-
-      # Пароль суперпользователя MySQL.
-      MYSQL_ROOT_PASSWORD: root
-
-      # База даних, яка буде створена автоматично.
-      MYSQL_DATABASE: usif
-
-      # Робочий користувач застосунку.
-      MYSQL_USER: usif_user
-
-      # Пароль робочого користувача.
-      MYSQL_PASSWORD: usif_password
-
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?set in .env}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-usif}
+      MYSQL_USER: ${DATABASE_USER:?set in .env}
+      MYSQL_PASSWORD: ${DATABASE_PASSWORD:?set in .env}
     volumes:
-
-      # Дані БД зберігатимуться між перезапусками контейнера.
       - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
 
+  oms:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    ports:
+      - "${OMS_PORT:-8080}:8080"
+    environment:
+      DATABASE_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE:-usif}
+      DATABASE_USER: ${DATABASE_USER:?set in .env}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD:?set in .env}
+      OMS_JWT_SECRET: ${OMS_JWT_SECRET:?set in .env}
+      OMS_PUBLIC_BASE_URL: ${OMS_PUBLIC_BASE_URL:-http://localhost:8080}
+      OMS_UPLOAD_DIR: /var/lib/oms/uploads
+      DATABASE_POOL_MAX_SIZE: ${DATABASE_POOL_MAX_SIZE:-10}
+      DATABASE_POOL_MIN_IDLE: ${DATABASE_POOL_MIN_IDLE:-2}
+      OMS_LOG_LEVEL: ${OMS_LOG_LEVEL:-INFO}
+    volumes:
+      - oms-uploads:/var/lib/oms/uploads
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/health >/dev/null"]
+      interval: 15s
+      timeout: 5s
+      retries: 8
 
 volumes:
-
   mysql-data:
+  oms-uploads:

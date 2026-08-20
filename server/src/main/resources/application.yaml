@@ -9,11 +9,6 @@ ktor:
     # Render requires the public HTTP listener to bind to all interfaces.
     host: "0.0.0.0"
 
-    # Дозволяє автоматично перезапускати сервер
-    # після зміни коду під час розробки.
-    watch:
-      - classes
-
   application:
 
     # Список модулів, які Ktor повинен викликати
@@ -29,7 +24,8 @@ database:
   driver: "com.mysql.cj.jdbc.Driver"
   # Облікові дані робочого користувача застосунку.
   user: "${DATABASE_USER:usif_user}"
-  password: "${DATABASE_PASSWORD:usif_password}"
+  # Required for every database-backed startup; no password is stored in source.
+  password: "${DATABASE_PASSWORD:}"
   # mysql keeps the existing local Flyway migration set. Set to `tidb` on
   # Render when DATABASE_URL points to TiDB Cloud.
   dialect: "${DATABASE_DIALECT:mysql}"

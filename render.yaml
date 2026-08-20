@@ -1,6 +1,8 @@
 # One public service: Ktor serves both the Compose Web/Wasm UI and the API.
-# DATABASE_* values are intentionally not declared here: add them as secret
-# environment variables in the Render dashboard after choosing a MySQL provider.
+# Add DATABASE_URL, DATABASE_USER, DATABASE_PASSWORD and OMS_JWT_SECRET as
+# secret environment variables in Render after choosing a MySQL/TiDB provider.
+# Set DATABASE_DIALECT=tidb only for TiDB. The free filesystem is ephemeral;
+# mount a persistent disk and set OMS_UPLOAD_DIR, or use this service as a demo.
 services:
   - type: web
     name: oms-demo
