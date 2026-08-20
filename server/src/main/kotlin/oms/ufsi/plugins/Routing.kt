@@ -1,6 +1,7 @@
 package oms.ufsi.plugins
 
 import io.ktor.server.application.*
+import io.ktor.server.http.content.*
 import io.ktor.server.routing.*
 import oms.ufsi.api.*
 
@@ -44,5 +45,9 @@ fun Application.configureRouting() {
         documentRoutes()
         photoRoutes()
         dashboardRoutes()
+
+        // The Render image packages the Compose Web/Wasm distribution here.
+        // Register this last so API and health routes always take precedence.
+        staticResources("/", "static")
     }
 }

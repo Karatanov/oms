@@ -32,7 +32,7 @@ fun LoginScreen(
 
     val savedCredentials = remember { BrowserCredentialStorage.load() }
     var username by remember { mutableStateOf(savedCredentials?.username.orEmpty()) }
-    var password by remember { mutableStateOf(savedCredentials?.password.orEmpty()) }
+    var password by remember { mutableStateOf("") }
 
     var passwordVisible by remember { mutableStateOf(false) }
     var rememberMe by remember { mutableStateOf(savedCredentials != null) }
@@ -63,7 +63,7 @@ fun LoginScreen(
             loginResult
                 .onSuccess { authenticated ->
                     if (rememberMe) {
-                        BrowserCredentialStorage.save(username.trim(), password)
+                        BrowserCredentialStorage.save(username.trim())
                     } else {
                         BrowserCredentialStorage.clear()
                     }

@@ -26,7 +26,7 @@ data class CreateUserRequest(
      *
      * Поки що зберігається без хешування.
      */
-    val password: String,
+    val password: String = "",
 
     /**
      * Код ролі користувача.

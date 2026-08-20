@@ -500,7 +500,7 @@ private fun ProjectReportsTab(reports: List<ApiInspectionReport>) {
             if (reports.isEmpty()) Text(LocalizationManager.t("no_reports"))
             reports.forEach { report ->
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
-                    Button(onClick = { uriHandler.openUri("http://localhost:8080/api/v1/inspection-reports/${report.uuid}/source-file") }) {
+                    Button(onClick = { uriHandler.openUri(oms.data.omsApiUrl("/inspection-reports/${report.uuid}/source-file")) }) {
                         Text(LocalizationManager.t("upload_xls"))
                     }
                 }
@@ -535,7 +535,7 @@ private fun ProjectFinancialsTab(
                 Text(LocalizationManager.t("act_documents"), style = MaterialTheme.typography.titleMedium)
                 actDocuments.forEach { document ->
                     Text(document.fileName)
-                    Button(onClick = { uriHandler.openUri("http://localhost:8080/api/v1/projects/$projectUuid/documents/${document.uuid}/download") }) {
+                    Button(onClick = { uriHandler.openUri(oms.data.omsApiUrl("/projects/$projectUuid/documents/${document.uuid}/download")) }) {
                         Text(LocalizationManager.t("open_document"))
                     }
                 }
@@ -553,7 +553,7 @@ private fun ProjectDocumentsTab(projectUuid: String, documents: List<ApiProjectD
             documents.forEach { document ->
                 Text(document.fileName, style = MaterialTheme.typography.titleMedium)
                 Text("${document.docType} • ${document.fileSizeBytes} ${LocalizationManager.t("bytes")}")
-                Button(onClick = { uriHandler.openUri("http://localhost:8080/api/v1/projects/$projectUuid/documents/${document.uuid}/download") }) { Text(LocalizationManager.t("open_document")) }
+                Button(onClick = { uriHandler.openUri(oms.data.omsApiUrl("/projects/$projectUuid/documents/${document.uuid}/download")) }) { Text(LocalizationManager.t("open_document")) }
                 HorizontalDivider()
             }
         }

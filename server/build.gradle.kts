@@ -1,8 +1,23 @@
+import org.gradle.language.jvm.tasks.ProcessResources
+
 plugins {
     alias(libs.plugins.kotlinJvm)
     alias(libs.plugins.ktor)
     alias(libs.plugins.kotlinSerialization)
     application
+}
+
+val copyRenderWebAssets by tasks.registering(Copy::class) {
+    dependsOn(":composeApp:wasmJsBrowserDistribution")
+    from(project(":composeApp").layout.buildDirectory.dir("dist/wasmJs/productionExecutable"))
+    into(layout.buildDirectory.dir("generated/render-web"))
+}
+
+tasks.named<ProcessResources>("processResources") {
+    dependsOn(copyRenderWebAssets)
+    from(copyRenderWebAssets) {
+        into("static")
+    }
 }
 
 group = "oms.usif.ua.ufsi"

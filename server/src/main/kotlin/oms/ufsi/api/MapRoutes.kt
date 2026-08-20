@@ -7,7 +7,11 @@ import oms.ufsi.dto.ProjectMapPointResponse
 
 fun Route.mapRoutes() {
     get("/api/v1/projects/map") {
-        call.respond(AppContainer.projectService.getAllProjects().map {
+        val session = call.requireRole("ADMIN", "PROJECT_MANAGER", "INSPECTOR", "VIEWER", "GUEST") ?: return@get
+        call.respond(AppContainer.projectService.getAllProjects().filter {
+            !session.roleCode.equals("PROJECT_MANAGER", ignoreCase = true) ||
+                AppContainer.projectService.isManagedBy(it.uuid.toString(), session.userId)
+        }.map {
             ProjectMapPointResponse(
                 uuid = it.uuid.toString(),
                 name = it.name,

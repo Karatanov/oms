@@ -11,3 +11,6 @@ data class BulkProjectUpdateRequest(
 
 @Serializable
 data class BulkProjectUpdateResponse(val updated: Int)
+
+@Serializable
+data class BulkProjectReassignRequest(val projectUuids: List<String>, val managerId: Long)

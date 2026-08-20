@@ -138,7 +138,7 @@ fun ReportsScreen(
                             Spacer(Modifier.width(48.dp))
                         }
                         TableActionIconButton(LocalizationManager.t("open_source_file"), Icons.Default.FileDownload) {
-                            uriHandler.openUri("http://localhost:8080/api/v1/inspection-reports/${row.report.uuid}/source-file")
+                            uriHandler.openUri(oms.data.omsApiUrl("/inspection-reports/${row.report.uuid}/source-file"))
                         }
                         TableActionIconButton(LocalizationManager.t("upload_photo"), Icons.Default.PhotoCamera) { openInspectionPhotoUpload(row.report.uuid) }
                         TableActionIconButton(LocalizationManager.t("findings"), Icons.AutoMirrored.Filled.FactCheck) { findingsReport = row }

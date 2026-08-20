@@ -14,6 +14,7 @@ import org.apache.poi.ss.usermodel.Workbook
 import org.apache.poi.ss.usermodel.WorkbookFactory
 import org.apache.poi.xssf.usermodel.XSSFWorkbook
 import oms.ufsi.dto.CreateManualInspectionReportRequest
+import oms.ufsi.storage.uploadDirectory
 
 data class HealthSafetyObservation(
     val observation: String,
@@ -28,7 +29,7 @@ class InspectionReportFileService(
     fun createManual(projectId: Long, request: CreateManualInspectionReportRequest, createdBy: Long): InspectionReport {
         val report = reportService.createReport(projectId, request.inspectionDate, "Manual SIR: ${request.contractor}", createdBy)
         val fileName = "SIR-USIF_${request.inspectionDate.replace("-", "")}.xlsx"
-        val directory = Path.of("uploads", "inspection-reports").toAbsolutePath().normalize()
+        val directory = uploadDirectory("inspection-reports")
         Files.createDirectories(directory)
         val target = directory.resolve("${report.uuid}.xlsx")
         XSSFWorkbook().use { workbook ->
@@ -60,7 +61,7 @@ class InspectionReportFileService(
         val completed = reportService.submitReport(report.uuid.toString())?.let {
             reportService.reviewReport(it.uuid.toString(), "approve", null)
         } ?: error("Could not finalize imported inspection report.")
-        val directory = Path.of("uploads", "inspection-reports").toAbsolutePath().normalize()
+        val directory = uploadDirectory("inspection-reports")
         Files.createDirectories(directory)
         val target = directory.resolve("${completed.uuid}.$extension")
         try {

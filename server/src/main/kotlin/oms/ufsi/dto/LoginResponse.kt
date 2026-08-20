@@ -5,7 +5,8 @@ import kotlinx.serialization.Serializable
 /**
  * Відповідь після успішної автентифікації.
  *
- * JWT-токен буде додано на наступній ітерації.
+ * The browser also receives a secure session cookie; API/mobile clients can
+ * use the short-lived bearer token.
  */
 @Serializable
 data class LoginResponse(
@@ -13,5 +14,6 @@ data class LoginResponse(
     /**
      * Інформація про поточного користувача.
      */
-    val user: UserResponse
+    val user: UserResponse,
+    val accessToken: String
 )

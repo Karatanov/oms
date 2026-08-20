@@ -8,6 +8,13 @@ import io.ktor.server.plugins.cors.routing.CORS
 
 /** Enables the local Compose web client to use the cookie-based MVP API. */
 fun Application.configureCors() {
+    val configuredHosts = environment.config.propertyOrNull("cors.allowedHost")
+        ?.getString()
+        ?.split(',')
+        ?.map(String::trim)
+        ?.filter(String::isNotBlank)
+        .orEmpty()
+
     install(CORS) {
         allowHost("localhost:8081", schemes = listOf("http"))
         allowHost("127.0.0.1:8081", schemes = listOf("http"))
@@ -21,5 +28,11 @@ fun Application.configureCors() {
         allowMethod(HttpMethod.Options)
         allowNonSimpleContentTypes = true
         allowCredentials = true
+
+        configuredHosts.forEach { value ->
+                val secure = value.startsWith("https://")
+                val host = value.removePrefix("https://").removePrefix("http://").trimEnd('/')
+                allowHost(host, schemes = listOf(if (secure) "https" else "http"))
+        }
     }
 }

@@ -70,12 +70,15 @@ fun Route.photoRoutes() = route("/api/v1/inspection-reports/{reportUuid}/photos"
     }
 }
 
-private suspend fun ApplicationCall.photoReport(): InspectionReport? =
-    parameters["reportUuid"]?.let { AppContainer.inspectionReportService.getByUuid(it) }
-        ?: run {
-            respond(HttpStatusCode.NotFound, ErrorResponse("NOT_FOUND", "Inspection report not found."))
-            null
-        }
+private suspend fun ApplicationCall.photoReport(): InspectionReport? {
+    val session = requireRole("ADMIN", "PROJECT_MANAGER", "INSPECTOR", "VIEWER", "GUEST") ?: return null
+    val report = parameters["reportUuid"]?.let { AppContainer.inspectionReportService.getByUuid(it) }
+        ?: run { respond(HttpStatusCode.NotFound, ErrorResponse("NOT_FOUND", "Inspection report not found.")); return null }
+    val project = AppContainer.projectService.getAllProjects().firstOrNull { it.id == report.projectId }
+        ?: run { respond(HttpStatusCode.NotFound, ErrorResponse("NOT_FOUND", "Project not found.")); return null }
+    if (!requireProjectAccess(session, project.uuid.toString())) return null
+    return report
+}
 
 private suspend fun ApplicationCall.editablePhotoReport(): InspectionReport? {
     val report = photoReport() ?: return null

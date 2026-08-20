@@ -13,6 +13,7 @@ import java.time.LocalDate
 class ProjectService(
     private val projectRepository: ProjectRepository
 ) {
+    fun isManagedBy(uuid: String, userId: Long): Boolean = projectRepository.managerIdForUuid(uuid) == userId
 
     /**
      * Повертає перелік проєктів.
@@ -344,6 +345,13 @@ class ProjectService(
         val projectStatus = runCatching { ProjectStatus.valueOf(status.trim().uppercase()) }
             .getOrElse { throw IllegalArgumentException("Unknown project status.") }
         return projectRepository.updateStatusByUuids(uuids, projectStatus)
+    }
+
+    fun bulkReassign(projectUuids: List<String>, managerId: Long): Int {
+        val uuids = projectUuids.map(String::trim).filter(String::isNotEmpty).distinct()
+        require(uuids.isNotEmpty()) { "Select at least one project." }
+        require(managerId > 0) { "Project manager is required." }
+        return projectRepository.updateManagerByUuids(uuids, managerId)
     }
 
     fun updateProject(uuid: String, request: oms.ufsi.dto.UpdateProjectRequest): Project? {

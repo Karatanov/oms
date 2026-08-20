@@ -55,7 +55,7 @@ object Strings {
 
         "projects_map" to "Карта проєктів",
         "map_controls" to "Елементи керування картою",
-        "map_projects_info" to "На карті відображаються всі проєкти з локального репозиторію.",
+        "map_projects_info" to "На карті відображаються проєкти, доступні поточному користувачу.",
         "map_marker_info" to "Колір маркера відповідає статусу проєкту.",
         "markers_count" to "Кількість маркерів:",
         "active" to "Активний",
@@ -133,6 +133,9 @@ object Strings {
         "reports_by_month" to "Звіти за місяцями",
         "chart_placeholder" to "Заглушка графіка",
         "total_budget" to "Загальний бюджет",
+        "active_projects" to "Активні проєкти",
+        "completed_this_month" to "Завершено цього місяця",
+        "pending_inspections" to "Інспекції на перевірці",
         "in_progress" to "У процесі",
         "delayed" to "Затримано",
 
@@ -516,7 +519,7 @@ object Strings {
 
         "projects_map" to "Projects Map",
         "map_controls" to "Map Controls",
-        "map_projects_info" to "The map shows all projects from the local repository.",
+        "map_projects_info" to "The map shows projects available to the current user.",
         "map_marker_info" to "Marker color matches the project status.",
         "markers_count" to "Markers count:",
         "region" to "Region",
@@ -598,6 +601,9 @@ object Strings {
         "reports_by_month" to "Reports by Month",
         "chart_placeholder" to "Chart placeholder",
         "total_budget" to "Total Budget",
+        "active_projects" to "Active projects",
+        "completed_this_month" to "Completed this month",
+        "pending_inspections" to "Pending inspections",
         "in_progress" to "In Progress",
         "delayed" to "Delayed",
 

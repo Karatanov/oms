@@ -113,7 +113,7 @@ fun DocumentsScreen(canManageDocuments: Boolean = true) {
                         Box(Modifier.width(120.dp)) { DocumentTypeChip(row.document.docType) }
                         Text(formatFileSize(row.document.fileSizeBytes), Modifier.width(90.dp))
                         Text("admin", Modifier.width(85.dp))
-                        TableActionIconButton(LocalizationManager.t("open_document"), Icons.AutoMirrored.Filled.OpenInNew) { uriHandler.openUri("http://localhost:8080/api/v1/projects/${row.projectUuid}/documents/${row.document.uuid}/download") }
+                        TableActionIconButton(LocalizationManager.t("open_document"), Icons.AutoMirrored.Filled.OpenInNew) { uriHandler.openUri(oms.data.omsApiUrl("/projects/${row.projectUuid}/documents/${row.document.uuid}/download")) }
                         if (canManageDocuments) TableActionIconButton(LocalizationManager.t("delete"), Icons.Default.Delete) {
                             scope.launch {
                                 if (OmsApiClient.deleteProjectDocument(row.projectUuid, row.document.uuid)) {
@@ -137,7 +137,7 @@ fun DocumentsScreen(canManageDocuments: Boolean = true) {
                     Text(fileName, style = MaterialTheme.typography.titleMedium)
                     Text("${row.projectName} • ${row.report.inspectionDate}")
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        TableActionIconButton(LocalizationManager.t("open_source_file"), Icons.AutoMirrored.Filled.OpenInNew) { uriHandler.openUri("http://localhost:8080/api/v1/inspection-reports/${row.report.uuid}/source-file") }
+                        TableActionIconButton(LocalizationManager.t("open_source_file"), Icons.AutoMirrored.Filled.OpenInNew) { uriHandler.openUri(oms.data.omsApiUrl("/inspection-reports/${row.report.uuid}/source-file")) }
                         if (canManageDocuments) TableActionIconButton(LocalizationManager.t("delete_source_file"), Icons.Default.Delete) {
                             scope.launch {
                                 if (OmsApiClient.deleteInspectionReport(row.report.uuid)) sirFiles = sirFiles.filterNot { it.report.uuid == row.report.uuid }

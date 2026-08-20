@@ -9,6 +9,7 @@ import oms.ufsi.domain.Project
  * за отримання та збереження даних.
  */
 interface ProjectRepository {
+    fun managerIdForUuid(uuid: String): Long?
 
     /**
      * Повертає всі доступні проєкти.
@@ -55,6 +56,8 @@ interface ProjectRepository {
     fun updateByUuid(uuid: String, patch: oms.ufsi.domain.ProjectPatch): Project?
 
     fun updateStatusByUuids(uuids: List<String>, status: oms.ufsi.domain.ProjectStatus): Int
+
+    fun updateManagerByUuids(uuids: List<String>, managerId: Long): Int
 
     fun deleteByUuid(uuid: String): Boolean
 }

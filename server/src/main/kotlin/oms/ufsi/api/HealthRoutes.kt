@@ -13,16 +13,6 @@ import oms.ufsi.dto.HealthResponse
 fun Routing.healthRoutes() {
 
     /**
-     * Головна сторінка сервера.
-     *
-     * Поки що використовується лише для швидкої перевірки,
-     * що backend успішно запущений.
-     */
-    get("/") {
-        call.respondText("OMS backend is running")
-    }
-
-    /**
      * Endpoint для перевірки стану системи.
      *
      * У майбутньому тут з'являться перевірки:
@@ -33,6 +23,16 @@ fun Routing.healthRoutes() {
     /**
      * Endpoint перевірки працездатності API.
      */
+    get("/health") {
+
+        call.respond(
+            HealthResponse(
+                status = "UP"
+            )
+        )
+    }
+
+    // Keep the existing API health-check URL for local tools and API clients.
     get("/api/v1/health") {
 
         call.respond(

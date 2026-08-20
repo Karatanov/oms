@@ -14,6 +14,9 @@ data class FinancialSummaryResponse(
      */
     val budgetPlanned: Long,
 
+    /** Construction-contract amount used as the completion baseline. */
+    val constructionContractAmount: Long = budgetPlanned,
+
     /**
      * Витрачена сума.
      */

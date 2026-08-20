@@ -3,7 +3,11 @@ ktor:
   deployment:
 
     # HTTP-порт серверного застосунку.
-    port: 8080
+    # Render provides PORT; 8080 keeps the existing local workflow working.
+    port: ${PORT:8080}
+
+    # Render requires the public HTTP listener to bind to all interfaces.
+    host: "0.0.0.0"
 
     # Дозволяє автоматично перезапускати сервер
     # після зміни коду під час розробки.
@@ -20,16 +24,24 @@ ktor:
 database:
 
   # JDBC-рядок підключення до локальної MySQL.
-  url: "jdbc:mysql://localhost:3306/usif"
+  url: "${DATABASE_URL:jdbc:mysql://localhost:3306/usif}"
   # JDBC-драйвер MySQL.
   driver: "com.mysql.cj.jdbc.Driver"
   # Облікові дані робочого користувача застосунку.
-  user: "usif_user"
-  password: "usif_password"
+  user: "${DATABASE_USER:usif_user}"
+  password: "${DATABASE_PASSWORD:usif_password}"
   pool:
 
     # Максимальна кількість одночасних з'єднань.
-    maxSize: 10
+    maxSize: ${DATABASE_POOL_MAX_SIZE:10}
 
     # Мінімальна кількість готових з'єднань.
-    minIdle: 2
+    minIdle: ${DATABASE_POOL_MIN_IDLE:2}
+
+cors:
+  # Not required for the Render demo because UI and API share one origin.
+  # Set this only if a separately hosted frontend needs to call the API.
+  allowedHost: "${CORS_ALLOWED_HOST:}"
+
+# Set OMS_JWT_SECRET to a random value of at least 32 characters in every
+# persistent deployment. Without it the server creates an ephemeral development key.

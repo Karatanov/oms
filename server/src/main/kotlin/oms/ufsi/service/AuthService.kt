@@ -15,7 +15,8 @@ class AccountLockedException(val lockedUntil: LocalDateTime) : IllegalArgumentEx
  * - перевірка пароля;
  * - повернення автентифікованого користувача.
  *
- * Видача JWT-токенів буде додана пізніше.
+ * The route layer issues the short-lived JWT after this service has verified
+ * credentials; this service remains responsible only for authentication state.
  */
 class AuthService(
     private val userService: UserService,

@@ -11,12 +11,21 @@ import java.time.LocalDateTime
 data class ActivityEntry(val action: String, val entityType: String, val entityId: Long, val userLogin: String?, val createdAt: LocalDateTime)
 
 class AuditLogService {
-    fun record(userId: Long?, action: String, entityType: String, entityId: Long) = transaction {
+    fun record(
+        userId: Long?,
+        action: String,
+        entityType: String,
+        entityId: Long,
+        oldValues: String? = null,
+        newValues: String? = null
+    ) = transaction {
         AuditLogTable.insert {
             it[AuditLogTable.userId] = userId
             it[AuditLogTable.action] = action
             it[AuditLogTable.entityType] = entityType
             it[AuditLogTable.entityId] = entityId
+            it[AuditLogTable.oldValues] = oldValues
+            it[AuditLogTable.newValues] = newValues
             it[AuditLogTable.createdAt] = LocalDateTime.now()
         }
     }

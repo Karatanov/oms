@@ -238,4 +238,31 @@ class ExposedUserRepository : UserRepository {
         }
         Unit
     }
+
+    override fun storeActivationToken(userId: Long, tokenHash: String, expiresAt: LocalDateTime) = transaction {
+        UserTable.update({ UserTable.id eq userId }) {
+            it[activationTokenHash] = tokenHash
+            it[activationTokenExpiresAt] = expiresAt
+            it[activatedAt] = null
+            it[status] = "pending"
+        }
+        Unit
+    }
+
+    override fun activationState(tokenHash: String): UserRepository.ActivationState? = transaction {
+        UserTable.selectAll().firstOrNull { it[UserTable.activationTokenHash] == tokenHash }?.let {
+            UserRepository.ActivationState(it[UserTable.id].value, it[UserTable.activationTokenExpiresAt])
+        }
+    }
+
+    override fun activate(userId: Long, passwordHash: String, at: LocalDateTime): Boolean = transaction {
+        UserTable.update({ UserTable.id eq userId }) {
+            it[UserTable.passwordHash] = passwordHash
+            it[status] = "active"
+            it[activationTokenHash] = null
+            it[activationTokenExpiresAt] = null
+            it[activatedAt] = at
+            it[updatedAt] = at
+        } > 0
+    }
 }

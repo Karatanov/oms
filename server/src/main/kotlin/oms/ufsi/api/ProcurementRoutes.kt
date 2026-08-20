@@ -16,7 +16,7 @@ import oms.ufsi.dto.ProcurementRecordResponse
 
 fun Route.procurementRoutes() {
     get("/api/v1/procurements") {
-        call.requireRole("ADMIN", "PROJECT_MANAGER", "INSPECTOR", "CONTRACTOR", "VIEWER") ?: return@get
+        call.requireRole("ADMIN", "PROJECT_MANAGER", "INSPECTOR", "VIEWER", "GUEST") ?: return@get
         call.respond(AppContainer.procurementService.getAll().map(ProcurementRecord::toResponse))
     }
 

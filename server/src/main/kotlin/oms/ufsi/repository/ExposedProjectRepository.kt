@@ -3,6 +3,8 @@ package oms.ufsi.repository
 import oms.ufsi.database.tables.ProjectTable
 import oms.ufsi.database.tables.ProjectDocumentTable
 import oms.ufsi.database.tables.FinancialRecordTable
+import oms.ufsi.database.tables.IncidentTable
+import oms.ufsi.database.tables.InspectionReportTable
 import oms.ufsi.domain.Project
 import oms.ufsi.domain.ProjectStatus
 import oms.ufsi.domain.ProjectType
@@ -18,6 +20,11 @@ import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import java.util.*
 
 class ExposedProjectRepository : ProjectRepository {
+    override fun managerIdForUuid(uuid: String): Long? = transaction {
+        ProjectTable.selectAll().firstOrNull { it[ProjectTable.uuid] == uuid }
+            ?.get(ProjectTable.managerId)
+            ?.value
+    }
 
     override fun findAll(): List<Project> = transaction {
         ProjectTable
@@ -266,10 +273,27 @@ class ExposedProjectRepository : ProjectRepository {
 
     override fun deleteByUuid(uuid: String): Boolean = transaction {
         val project = ProjectTable.selectAll().firstOrNull { it[ProjectTable.uuid] == uuid } ?: return@transaction false
-        val projectId = project[ProjectTable.id].value
-        ProjectDocumentTable.deleteWhere { ProjectDocumentTable.projectId eq projectId }
-        FinancialRecordTable.deleteWhere { FinancialRecordTable.projectId eq projectId }
-        ProjectTable.deleteWhere { ProjectTable.id eq projectId } > 0
+        val projectIds = mutableListOf<Long>()
+
+        // Children are collected before their parent, so self-referential FK restrictions
+        // do not block removal of a complete project/subproject/part hierarchy.
+        fun collectSubtree(projectId: Long) {
+            ProjectTable.selectAll()
+                .filter { it[ProjectTable.parentProjectId]?.value == projectId }
+                .forEach { collectSubtree(it[ProjectTable.id].value) }
+            projectIds += projectId
+        }
+        collectSubtree(project[ProjectTable.id].value)
+
+        projectIds.forEach { projectId ->
+            ProjectDocumentTable.deleteWhere { ProjectDocumentTable.projectId eq projectId }
+            FinancialRecordTable.deleteWhere { FinancialRecordTable.projectId eq projectId }
+            IncidentTable.deleteWhere { IncidentTable.projectId eq projectId }
+            // Report descendants (source files, photos and findings) use DB cascades.
+            InspectionReportTable.deleteWhere { InspectionReportTable.projectId eq projectId }
+            ProjectTable.deleteWhere { ProjectTable.id eq projectId }
+        }
+        true
     }
 
     override fun updateByUuid(uuid: String, patch: ProjectPatch): Project? {
@@ -309,6 +333,12 @@ class ExposedProjectRepository : ProjectRepository {
     override fun updateStatusByUuids(uuids: List<String>, status: ProjectStatus): Int = transaction {
         ProjectTable.update({ ProjectTable.uuid inList uuids }) {
             it[ProjectTable.status] = status.name.lowercase()
+        }
+    }
+
+    override fun updateManagerByUuids(uuids: List<String>, managerId: Long): Int = transaction {
+        ProjectTable.update({ ProjectTable.uuid inList uuids }) {
+            it[ProjectTable.managerId] = managerId
         }
     }
 }

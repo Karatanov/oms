@@ -18,3 +18,6 @@ data class LoginRequest(
      */
     val password: String
 )
+
+@Serializable
+data class ActivateAccountRequest(val token: String, val password: String)

@@ -19,7 +19,9 @@ import java.nio.file.Path
 
 fun Route.documentRoutes() = route("/api/v1/projects/{projectUuid}/documents") {
     get {
+        val session = call.requireRole("ADMIN", "PROJECT_MANAGER", "INSPECTOR", "VIEWER", "GUEST") ?: return@get
         val project = call.documentProject() ?: return@get
+        if (!call.requireProjectAccess(session, project.uuid.toString())) return@get
         val type = call.request.queryParameters["doc_type"]?.trim()?.lowercase()?.takeIf { it.isNotEmpty() }
         val related = call.request.queryParameters["related_entity"]?.trim()?.lowercase()?.takeIf { it.isNotEmpty() }
         val query = call.request.queryParameters["search"]?.trim()?.takeIf { it.isNotEmpty() }
@@ -32,8 +34,9 @@ fun Route.documentRoutes() = route("/api/v1/projects/{projectUuid}/documents") {
     }
 
     post {
-        call.requireRole("ADMIN", "PROJECT_MANAGER") ?: return@post
+        val session = call.requireRole("ADMIN", "PROJECT_MANAGER") ?: return@post
         val project = call.documentProject() ?: return@post
+        if (!call.requireProjectAccess(session, project.uuid.toString())) return@post
         var documentType: String? = null
         var relatedEntity: String? = null
         var relatedId: Long? = null
@@ -76,7 +79,9 @@ fun Route.documentRoutes() = route("/api/v1/projects/{projectUuid}/documents") {
     }
 
     get("{documentUuid}/download") {
+        val session = call.requireRole("ADMIN", "PROJECT_MANAGER", "INSPECTOR", "VIEWER", "GUEST") ?: return@get
         val project = call.documentProject() ?: return@get
+        if (!call.requireProjectAccess(session, project.uuid.toString())) return@get
         val document = call.parameters["documentUuid"]?.let { AppContainer.projectDocumentService.get(project.id, it) }
             ?: return@get call.respond(HttpStatusCode.NotFound, ErrorResponse("NOT_FOUND", "Document not found."))
         val path = Path.of(document.storagePath)
@@ -87,8 +92,9 @@ fun Route.documentRoutes() = route("/api/v1/projects/{projectUuid}/documents") {
     }
 
     delete("{documentUuid}") {
-        call.requireRole("ADMIN", "PROJECT_MANAGER") ?: return@delete
+        val session = call.requireRole("ADMIN", "PROJECT_MANAGER") ?: return@delete
         val project = call.documentProject() ?: return@delete
+        if (!call.requireProjectAccess(session, project.uuid.toString())) return@delete
         val uuid = call.parameters["documentUuid"] ?: return@delete call.respond(HttpStatusCode.NotFound, ErrorResponse("NOT_FOUND", "Document not found."))
         if (!AppContainer.projectDocumentService.delete(project.id, uuid)) return@delete call.respond(HttpStatusCode.NotFound, ErrorResponse("NOT_FOUND", "Document not found."))
         call.respond(HttpStatusCode.NoContent)

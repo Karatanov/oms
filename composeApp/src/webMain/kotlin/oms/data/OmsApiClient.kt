@@ -24,7 +24,7 @@ import org.w3c.fetch.RequestCredentials
 
 @OptIn(ExperimentalWasmJsInterop::class)
 object OmsApiClient {
-    private const val baseUrl = "http://localhost:8080/api/v1"
+    private val baseUrl = omsApiBaseUrl
 
     private val client = HttpClient(Js) {
         engine {
@@ -42,6 +42,14 @@ object OmsApiClient {
             contentType(ContentType.Application.Json)
             setBody(LoginRequest(username, password))
         }.body<LoginPayload>().user
+
+    suspend fun activate(token: String, password: String) {
+        val response = client.post("$baseUrl/auth/activate") {
+            contentType(ContentType.Application.Json)
+            setBody(ActivateAccountRequest(token, password))
+        }
+        if (!response.status.isSuccess()) throw IllegalStateException(response.bodyAsText())
+    }
 
     suspend fun projects(): List<ApiProject> =
         client.get("$baseUrl/projects?page=1&pageSize=100").body<ProjectListPayload>().data
@@ -85,6 +93,15 @@ object OmsApiClient {
             contentType(ContentType.Application.Json)
             setBody(BulkProjectUpdateRequest(projectUuids, status))
         }.body<BulkProjectUpdateResponse>().updated
+
+    suspend fun bulkReassignProjects(projectUuids: List<String>, managerId: Long): Int =
+        client.patch("$baseUrl/projects/bulk-reassign") {
+            contentType(ContentType.Application.Json)
+            setBody(BulkProjectReassignRequest(projectUuids, managerId))
+        }.body<BulkProjectUpdateResponse>().updated
+
+    fun projectExportUrl(projectUuids: Collection<String>): String =
+        "$baseUrl/projects/export" + projectUuids.joinToString(prefix = "?", separator = "&") { "uuid=$it" }
 
     suspend fun dashboard(): ApiDashboard = client.get("$baseUrl/dashboard").body()
 
@@ -205,6 +222,7 @@ object OmsApiClient {
 
 @Serializable
 data class LoginRequest(val username: String, val password: String)
+@Serializable data class ActivateAccountRequest(val token: String, val password: String)
 
 @Serializable
 data class LoginPayload(val user: ApiUser)
@@ -328,6 +346,7 @@ data class BulkProjectUpdateRequest(val projectUuids: List<String>, val status: 
 
 @Serializable
 data class BulkProjectUpdateResponse(val updated: Int)
+@Serializable data class BulkProjectReassignRequest(val projectUuids: List<String>, val managerId: Long)
 
 @Serializable
 data class UpdateUserRequest(
@@ -345,7 +364,7 @@ data class UpdateUserRequest(
 
 @Serializable
 data class CreateUserRequest(
-    val username: String, val email: String, val password: String, val roleCode: String,
+    val username: String, val email: String, val password: String = "", val roleCode: String,
     val firstName: String = "", val lastName: String = "", val status: String = "active",
     val region: String? = null, val department: String? = null, val preferredLang: String = "uk"
 )
@@ -399,9 +418,11 @@ data class ApiRole(val id: Long, val code: String, val name: String)
 data class ApiDashboard(
     val projectsTotal: Long,
     val projectsActive: Long,
+    val projectsCompletedThisMonth: Long,
     val budgetPlanned: Long,
     val amountSpent: Long,
     val inspectionsTotal: Long,
+    val pendingInspections: Long,
     val findingsTotal: Long,
     val recentInspections: List<ApiInspectionReport>,
     val activities: List<ApiActivity> = emptyList()

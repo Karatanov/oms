@@ -57,6 +57,9 @@ object UserTable : LongIdTable("users") {
     val lastLoginAt = datetime("last_login_at").nullable()
     val failedLoginCount = integer("failed_login_count")
     val lockedUntil = datetime("locked_until").nullable()
+    val activationTokenHash = varchar("activation_token_hash", 64).nullable()
+    val activationTokenExpiresAt = datetime("activation_token_expires_at").nullable()
+    val activatedAt = datetime("activated_at").nullable()
     val createdAt = datetime("created_at")
     val updatedAt = datetime("updated_at")
 }

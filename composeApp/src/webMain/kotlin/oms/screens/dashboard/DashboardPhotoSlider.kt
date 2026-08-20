@@ -5,6 +5,7 @@ import androidx.compose.runtime.DisposableEffect
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import oms.data.ApiInspectionPhoto
+import oms.data.omsApiUrl
 import kotlin.js.JsName
 
 @JsName("showDashboardPhotoSlider")
@@ -32,4 +33,4 @@ fun DashboardPhotoSlider(inspectionDate: String?, photos: List<ApiInspectionPhot
 }
 
 private fun String.toOmsUrl(): String =
-    if (startsWith("http://") || startsWith("https://")) this else "http://localhost:8080$this"
+    if (startsWith("http://") || startsWith("https://")) this else omsApiUrl(this)

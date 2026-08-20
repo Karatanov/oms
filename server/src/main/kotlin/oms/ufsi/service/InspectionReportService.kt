@@ -49,16 +49,6 @@ class InspectionReportService(
     ): InspectionReport {
         validateDate(inspectionDate)
 
-        /**
-         * Тимчасово використовуємо
-         * системного адміністратора.
-         *
-         * Після впровадження JWT
-         * значення буде братися
-         * з поточного користувача.
-         */
-        val currentUserId = 1L
-
         return repository.create(
 
             projectId = projectId,

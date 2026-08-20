@@ -11,16 +11,21 @@ import oms.layout.AppLayout
 import oms.navigation.AppState
 import oms.navigation.Screen
 import oms.screens.LoginScreen
+import oms.screens.ActivationScreen
 import oms.data.OmsApiClient
 import oms.theme.OMSTheme
+import kotlinx.browser.window
 
 @Composable
 fun App() {
     val appState = remember { AppState() }
+    val activationToken = remember { window.location.search.removePrefix("?").split("&").firstOrNull { it.startsWith("token=") }?.removePrefix("token=") }
 
     OMSTheme {
         SelectionContainer {
-            if (!appState.isAuthenticated) {
+            if (!appState.isAuthenticated && !activationToken.isNullOrBlank()) {
+                ActivationScreen(activationToken) { window.location.href = window.location.pathname }
+            } else if (!appState.isAuthenticated) {
                 LoginScreen(
                     onLoginSuccess = { user ->
                         appState.onLoginSuccess(user.username, user.role.code)

@@ -13,6 +13,8 @@ interface UserRepository {
         val lockedUntil: java.time.LocalDateTime?
     )
 
+    data class ActivationState(val userId: Long, val expiresAt: java.time.LocalDateTime?)
+
     /**
      * Повертає всіх користувачів.
      */
@@ -67,4 +69,10 @@ interface UserRepository {
     fun recordFailedLogin(userId: Long, lockedUntil: java.time.LocalDateTime?)
 
     fun recordSuccessfulLogin(userId: Long, at: java.time.LocalDateTime)
+
+    fun storeActivationToken(userId: Long, tokenHash: String, expiresAt: java.time.LocalDateTime)
+
+    fun activationState(tokenHash: String): ActivationState?
+
+    fun activate(userId: Long, passwordHash: String, at: java.time.LocalDateTime): Boolean
 }

@@ -17,6 +17,7 @@ fun Route.inspectionRoutes() {
         val session = call.requireRole("ADMIN", "PROJECT_MANAGER", "INSPECTOR") ?: return@post
         val projectUuid = call.parameters["projectUuid"] ?: return@post call.notFound("Project not found.")
         val project = AppContainer.projectService.getProjectByUuid(projectUuid) ?: return@post call.notFound("Project not found.")
+        if (!call.requireProjectAccess(session, projectUuid)) return@post
         try {
             val report = AppContainer.inspectionReportFileService.createManual(project.id, call.receive(), session.userId)
             AppContainer.auditLogService.record(session.userId, "inspection_manual_created", "inspection_report", report.id)
@@ -28,6 +29,7 @@ fun Route.inspectionRoutes() {
         val projectUuid = call.parameters["projectUuid"] ?: return@post call.notFound("Project not found.")
         val project = AppContainer.projectService.getProjectByUuid(projectUuid)
             ?: return@post call.notFound("Project not found.")
+        if (!call.requireProjectAccess(session, projectUuid)) return@post
         val multipart = call.receiveMultipart()
         var imported: oms.ufsi.domain.InspectionReport? = null
         try {
@@ -137,18 +139,18 @@ fun Route.inspectionRoutes() {
 
         delete {
             call.requireRole("ADMIN", "PROJECT_MANAGER", "INSPECTOR") ?: return@delete
-            val reportUuid = call.parameters["reportUuid"] ?: return@delete call.notFound("Inspection report not found.")
-            if (!AppContainer.inspectionReportService.deleteReport(reportUuid)) return@delete call.notFound("Inspection report not found.")
+            val report = call.findReport() ?: return@delete
+            if (!AppContainer.inspectionReportService.deleteReport(report.uuid.toString())) return@delete call.notFound("Inspection report not found.")
             call.respond(HttpStatusCode.NoContent)
         }
 
         put {
             call.requireRole("ADMIN", "PROJECT_MANAGER", "INSPECTOR") ?: return@put
-            val reportUuid = call.parameters["reportUuid"] ?: return@put call.notFound("Inspection report not found.")
+            val report = call.findReport() ?: return@put
             val request = call.receive<UpdateInspectionReportRequest>()
             try {
                 val report = AppContainer.inspectionReportService.updateReport(
-                    reportUuid, request.inspectionDate, request.summary
+                    report.uuid.toString(), request.inspectionDate, request.summary
                 ) ?: return@put call.notFound("Inspection report not found.")
                 call.respond(report.toResponse())
             } catch (exception: IllegalArgumentException) {
@@ -157,21 +159,22 @@ fun Route.inspectionRoutes() {
         }
 
         patch("project") {
-            call.requireRole("ADMIN", "PROJECT_MANAGER") ?: return@patch
-            val reportUuid = call.parameters["reportUuid"] ?: return@patch call.notFound("Inspection report not found.")
+            val session = call.requireRole("ADMIN", "PROJECT_MANAGER") ?: return@patch
+            val sourceReport = call.findReport() ?: return@patch
             val request = call.receive<MoveInspectionReportRequest>()
             val targetProject = AppContainer.projectService.getProjectByUuid(request.projectUuid.trim())
                 ?: return@patch call.notFound("Target project not found.")
-            val report = AppContainer.inspectionReportService.moveToProject(reportUuid, targetProject.id)
+            if (!call.requireProjectAccess(session, targetProject.uuid.toString())) return@patch
+            val report = AppContainer.inspectionReportService.moveToProject(sourceReport.uuid.toString(), targetProject.id)
                 ?: return@patch call.notFound("Inspection report not found.")
             call.respond(report.toResponse())
         }
 
         post("submit") {
             call.requireRole("ADMIN", "PROJECT_MANAGER", "INSPECTOR") ?: return@post
-            val reportUuid = call.parameters["reportUuid"] ?: return@post call.notFound("Inspection report not found.")
+            val report = call.findReport() ?: return@post
             try {
-                val report = AppContainer.inspectionReportService.submitReport(reportUuid)
+                val report = AppContainer.inspectionReportService.submitReport(report.uuid.toString())
                     ?: return@post call.notFound("Inspection report not found.")
                 call.respond(report.toResponse())
             } catch (exception: IllegalArgumentException) {
@@ -181,11 +184,11 @@ fun Route.inspectionRoutes() {
 
         post("review") {
             call.requireRole("ADMIN", "PROJECT_MANAGER") ?: return@post
-            val reportUuid = call.parameters["reportUuid"] ?: return@post call.notFound("Inspection report not found.")
+            val report = call.findReport() ?: return@post
             val request = call.receive<ReviewInspectionReportRequest>()
             try {
                 val report = AppContainer.inspectionReportService.reviewReport(
-                    reportUuid, request.action, request.rejectionReason
+                    report.uuid.toString(), request.action, request.rejectionReason
                 ) ?: return@post call.notFound("Inspection report not found.")
                 call.respond(report.toResponse())
             } catch (exception: IllegalArgumentException) {
@@ -195,15 +198,21 @@ fun Route.inspectionRoutes() {
     }
 }
 
-private suspend fun ApplicationCall.findReport() =
-    parameters["reportUuid"]
+private suspend fun ApplicationCall.findReport(): oms.ufsi.domain.InspectionReport? {
+    val session = requireRole("ADMIN", "PROJECT_MANAGER", "INSPECTOR", "VIEWER", "GUEST") ?: return null
+    val report = parameters["reportUuid"]
         ?.trim()
         ?.takeIf { it.isNotEmpty() }
         ?.let { AppContainer.inspectionReportService.getByUuid(it) }
         ?: run {
             notFound("Inspection report not found.")
-            null
+            return null
         }
+    val project = AppContainer.projectService.getAllProjects().firstOrNull { it.id == report.projectId }
+        ?: run { notFound("Project not found."); return null }
+    if (!requireProjectAccess(session, project.uuid.toString())) return null
+    return report
+}
 
 private suspend fun ApplicationCall.requireEditableReport(report: oms.ufsi.domain.InspectionReport): Boolean {
     if (report.status != oms.ufsi.domain.InspectionReportStatus.COMPLETED) return true

@@ -13,8 +13,9 @@ import oms.ufsi.dto.*
 fun Route.financialRoutes() {
     route("/api/v1/projects/{projectUuid}/financials") {
         get {
-            call.requireRole("ADMIN", "PROJECT_MANAGER") ?: return@get
+            val session = call.requireRole("ADMIN", "PROJECT_MANAGER") ?: return@get
             val project = call.project() ?: return@get
+            if (!call.requireProjectAccess(session, project.uuid.toString())) return@get
             val service = AppContainer.financialRecordService
             try {
                 val summary = service.summary(project)
@@ -37,34 +38,46 @@ fun Route.financialRoutes() {
         post {
             val session = call.requireRole("ADMIN", "PROJECT_MANAGER") ?: return@post
             val project = call.project() ?: return@post
+            if (!call.requireProjectAccess(session, project.uuid.toString())) return@post
             val request = call.receive<CreateFinancialRecordRequest>()
             try { val record = AppContainer.financialRecordService.create(project.id, request.recordType, request.referenceNumber, request.amount, request.currency, request.recordDate, request.paymentDate, request.description, request.milestone); AppContainer.auditLogService.record(session.userId, "financial_record_created", "financial_record", record.id); call.respond(HttpStatusCode.Created, record.toResponse()) } catch (e: IllegalArgumentException) { call.financeError(e) }
         }
         post("import") {
             val session = call.requireRole("ADMIN", "PROJECT_MANAGER") ?: return@post
             val project = call.project() ?: return@post
-            var imported: Int? = null
+            if (!call.requireProjectAccess(session, project.uuid.toString())) return@post
+            var imported: oms.ufsi.service.FinancialImportResult? = null
 
             try {
                 call.receiveMultipart().forEachPart { part ->
                     if (part is PartData.FileItem && part.name == "file") {
+                        require((part.originalFileName ?: "").substringAfterLast('.', "").lowercase() in setOf("xls", "xlsx")) { "Only XLS or XLSX files are supported." }
                         val bytes = part.provider().readRemaining(20_000_001).readByteArray()
-                        imported = AppContainer.financialRecordService.importXlsx(
+                        require(bytes.size <= 20_000_000) { "File size must not exceed 20 MB." }
+                        imported = AppContainer.financialRecordService.importWorkbook(
                             project.id,
                             java.io.ByteArrayInputStream(bytes)
                         )
                     }
                     part.dispose()
                 }
-                if ((imported ?: 0) > 0) AppContainer.auditLogService.record(session.userId, "financial_records_imported", "project", project.id)
-                call.respond(mapOf("imported" to (imported ?: throw IllegalArgumentException("Field file is required."))))
+                val result = imported ?: throw IllegalArgumentException("Field file is required.")
+                if (result.imported > 0) AppContainer.auditLogService.record(session.userId, "financial_records_imported", "project", project.id)
+                call.respond(
+                    FinancialImportResponse(
+                        imported = result.imported,
+                        skipped = result.skipped,
+                        errors = result.errors.map { FinancialImportErrorResponse(it.row, it.field, it.message) }
+                    )
+                )
             } catch (e: IllegalArgumentException) {
                 call.financeError(e)
             }
         }
         get("export") {
-            call.requireRole("ADMIN", "PROJECT_MANAGER") ?: return@get
+            val session = call.requireRole("ADMIN", "PROJECT_MANAGER") ?: return@get
             val project = call.project() ?: return@get
+            if (!call.requireProjectAccess(session, project.uuid.toString())) return@get
             call.response.header(HttpHeaders.ContentDisposition, "attachment; filename=financials.xlsx")
             call.respondOutputStream(
                 ContentType.parse("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
@@ -73,14 +86,16 @@ fun Route.financialRoutes() {
             }
         }
         get("{recordUuid}") {
-            call.requireRole("ADMIN", "PROJECT_MANAGER") ?: return@get
+            val session = call.requireRole("ADMIN", "PROJECT_MANAGER") ?: return@get
             val project = call.project() ?: return@get
+            if (!call.requireProjectAccess(session, project.uuid.toString())) return@get
             val record = call.parameters["recordUuid"]?.let { AppContainer.financialRecordService.get(project.id, it) } ?: return@get call.financeNotFound("Financial record not found.")
             call.respond(record.toResponse())
         }
         put("{recordUuid}") {
             val session = call.requireRole("ADMIN", "PROJECT_MANAGER") ?: return@put
             val project = call.project() ?: return@put
+            if (!call.requireProjectAccess(session, project.uuid.toString())) return@put
             val uuid = call.parameters["recordUuid"] ?: return@put call.financeNotFound("Financial record not found.")
             val request = call.receive<UpdateFinancialRecordRequest>()
             try {
@@ -88,6 +103,7 @@ fun Route.financialRoutes() {
                     AppContainer.projectService.getProjectByUuid(targetUuid)
                         ?: return@put call.financeNotFound("Target project not found.")
                 } ?: project
+                if (!call.requireProjectAccess(session, target.uuid.toString())) return@put
                 if (target.id != project.id && !AppContainer.financialRecordService.move(project.id, uuid, target.id)) {
                     return@put call.financeNotFound("Financial record not found.")
                 }
@@ -98,8 +114,9 @@ fun Route.financialRoutes() {
             } catch (e: IllegalArgumentException) { call.financeError(e) }
         }
         delete("{recordUuid}") {
-            call.requireRole("ADMIN", "PROJECT_MANAGER") ?: return@delete
+            val session = call.requireRole("ADMIN", "PROJECT_MANAGER") ?: return@delete
             val project = call.project() ?: return@delete
+            if (!call.requireProjectAccess(session, project.uuid.toString())) return@delete
             val uuid = call.parameters["recordUuid"] ?: return@delete call.financeNotFound("Financial record not found.")
             if (!AppContainer.financialRecordService.delete(project.id, uuid)) return@delete call.financeNotFound("Financial record not found.")
             call.respond(HttpStatusCode.NoContent)

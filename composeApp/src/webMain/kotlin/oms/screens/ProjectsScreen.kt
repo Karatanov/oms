@@ -37,6 +37,9 @@ import oms.model.ProjectStatus
 import oms.theme.Primary
 import oms.components.toOmsDate
 import oms.components.ConstructionTypeChip
+import oms.components.InlineOptionPicker
+import oms.data.ApiUser
+import kotlinx.browser.window
 
 // ... existing code ...
 
@@ -44,7 +47,8 @@ import oms.components.ConstructionTypeChip
 fun ProjectsScreen(
     onOpenProject: (Project) -> Unit = {},
     onCreateProject: () -> Unit = {},
-    onEditProject: (Project) -> Unit = {}
+    onEditProject: (Project) -> Unit = {},
+    canBulkReassign: Boolean = false
 ) {
 
     var searchText by remember { mutableStateOf("") }
@@ -53,9 +57,14 @@ fun ProjectsScreen(
     val scope = rememberCoroutineScope()
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var selectedProjectIds by remember { mutableStateOf<Set<String>>(emptySet()) }
+    var managers by remember { mutableStateOf<List<ApiUser>>(emptyList()) }
+    var showReassign by remember { mutableStateOf(false) }
     val pageScrollState = rememberScrollState()
 
-    LaunchedEffect(Unit) { ProjectRepository.refresh() }
+    LaunchedEffect(Unit) {
+        ProjectRepository.refresh()
+        if (canBulkReassign) managers = runCatching { oms.data.OmsApiClient.users().filter { it.role.code == "PROJECT_MANAGER" && it.status == "active" } }.getOrDefault(emptyList())
+    }
     val projects = ProjectRepository.projects
 
     val filteredProjects = remember(projects, searchText, regionFilter, statusFilter) {
@@ -117,6 +126,8 @@ fun ProjectsScreen(
                 ) {
                     Text(LocalizationManager.t("selected_projects").replace("{count}", selectedProjectIds.size.toString()), modifier = Modifier.weight(1f))
                     OutlinedButton(onClick = { selectedProjectIds = emptySet() }) { Text(LocalizationManager.t("clear_selection")) }
+                    OutlinedButton(onClick = { window.open(oms.data.OmsApiClient.projectExportUrl(selectedProjectIds), "_blank") }) { Text("XLSX") }
+                    if (canBulkReassign) Button(onClick = { showReassign = true }, enabled = managers.isNotEmpty()) { Text("Reassign") }
                     Button(onClick = {
                         scope.launch {
                             runCatching { oms.data.OmsApiClient.bulkUpdateProjectStatus(selectedProjectIds.toList(), "suspended") }
@@ -153,6 +164,26 @@ fun ProjectsScreen(
         )
 
         errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+
+        if (showReassign) {
+            var selectedManager by remember { mutableStateOf(managers.firstOrNull()) }
+            AlertDialog(
+                onDismissRequest = { showReassign = false },
+                title = { Text("Reassign projects") },
+                text = { InlineOptionPicker(managers, selectedManager, "Project manager", { selectedManager = it }, { "${it.firstName} ${it.lastName} (${it.username})" }) },
+                confirmButton = {
+                    Button(onClick = {
+                        val manager = selectedManager ?: return@Button
+                        scope.launch {
+                            runCatching { oms.data.OmsApiClient.bulkReassignProjects(selectedProjectIds.toList(), manager.id) }
+                                .onSuccess { ProjectRepository.refresh(); selectedProjectIds = emptySet(); showReassign = false }
+                                .onFailure { errorMessage = it.message ?: "Project reassignment failed." }
+                        }
+                    }, enabled = selectedManager != null) { Text("Reassign") }
+                },
+                dismissButton = { OutlinedButton(onClick = { showReassign = false }) { Text(LocalizationManager.t("cancel")) } }
+            )
+        }
 
         Spacer(Modifier.height(16.dp))
 

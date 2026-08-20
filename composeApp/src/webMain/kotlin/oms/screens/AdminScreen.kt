@@ -221,11 +221,9 @@ private fun AdminStaticHeader(text: String, width: androidx.compose.ui.unit.Dp) 
 private fun CreateUserDialog(roles: List<ApiRole>, onDismiss: () -> Unit, onSave: (CreateUserRequest) -> Unit) {
     var username by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
     var roleCode by remember { mutableStateOf(roles.firstOrNull()?.code ?: "") }
     var firstName by remember { mutableStateOf("") }
     var lastName by remember { mutableStateOf("") }
-    var status by remember { mutableStateOf("active") }
     var region by remember { mutableStateOf("") }
     var department by remember { mutableStateOf("") }
     var preferredLang by remember { mutableStateOf("uk") }
@@ -248,17 +246,30 @@ private fun CreateUserDialog(roles: List<ApiRole>, onDismiss: () -> Unit, onSave
                 OutlinedTextField(department, { department = it }, label = { Text(LocalizationManager.t("department")) }, modifier = Modifier.weight(1f))
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                listOf("active", "pending", "disabled").forEach { value -> FilterChip(status == value, { status = value }, label = { Text(LocalizationManager.t("user_status_$value")) }) }
+                Text(LocalizationManager.t("user_status_pending"), style = MaterialTheme.typography.bodyMedium)
                 listOf("uk", "en").forEach { value -> FilterChip(preferredLang == value, { preferredLang = value }, label = { Text(value.uppercase()) }) }
             }
-            OutlinedTextField(password, { password = it }, label = { Text(LocalizationManager.t("password")) }, modifier = Modifier.fillMaxWidth())
             InlineOptionPicker(options = roles, selected = role, prompt = LocalizationManager.t("select_role"), onSelect = { roleCode = it.code }, itemLabel = { it.name })
             }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
                 OutlinedButton(onClick = onDismiss) { Text(LocalizationManager.t("cancel")) }
             Button(
-                onClick = { onSave(CreateUserRequest(username.trim(), email.trim(), password, roleCode, firstName.trim(), lastName.trim(), status, region.trim().ifBlank { null }, department.trim().ifBlank { null }, preferredLang)) },
-                enabled = username.isNotBlank() && email.contains('@') && password.isNotBlank() && role != null
+                onClick = {
+                    onSave(
+                        CreateUserRequest(
+                            username = username.trim(),
+                            email = email.trim(),
+                            roleCode = roleCode,
+                            firstName = firstName.trim(),
+                            lastName = lastName.trim(),
+                            status = "pending",
+                            region = region.trim().ifBlank { null },
+                            department = department.trim().ifBlank { null },
+                            preferredLang = preferredLang
+                        )
+                    )
+                },
+                enabled = username.isNotBlank() && email.contains('@') && role != null
             ) { Text(LocalizationManager.t("create")) }
             }
         }

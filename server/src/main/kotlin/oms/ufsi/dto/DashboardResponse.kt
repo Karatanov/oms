@@ -6,9 +6,11 @@ import kotlinx.serialization.Serializable
 data class DashboardResponse(
     val projectsTotal: Long,
     val projectsActive: Long,
+    val projectsCompletedThisMonth: Long,
     val budgetPlanned: Long,
     val amountSpent: Long,
     val inspectionsTotal: Long,
+    val pendingInspections: Long,
     val findingsTotal: Long,
     val recentInspections: List<InspectionReportResponse>,
     val activities: List<ActivityResponse>

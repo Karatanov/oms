@@ -4,6 +4,7 @@ import io.ktor.http.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import org.apache.poi.xssf.usermodel.XSSFWorkbook
 import oms.ufsi.config.AppContainer
 import oms.ufsi.dto.*
 
@@ -23,6 +24,7 @@ fun Route.projectRoutes() {
      * перша сторінка.
      */
     get("/api/v1/projects") {
+        val session = call.requireRole("ADMIN", "PROJECT_MANAGER", "INSPECTOR", "VIEWER", "GUEST") ?: return@get
         val page = call.request.queryParameters["page"]?.toIntOrNull() ?: 1
         val pageSize = call.request.queryParameters["pageSize"]?.toIntOrNull() ?: 20
         if (page < 1 || pageSize !in 1..100) {
@@ -32,7 +34,10 @@ fun Route.projectRoutes() {
             status = call.request.queryParameters["status"],
             region = call.request.queryParameters["region"],
             search = call.request.queryParameters["search"]
-        )
+        ).filter { project ->
+            !session.roleCode.equals("PROJECT_MANAGER", ignoreCase = true) ||
+                projectService.isManagedBy(project.uuid.toString(), session.userId)
+        }
         val total = projects.size.toLong()
         val pagedProjects = projects.drop((page - 1) * pageSize).take(pageSize)
 
@@ -73,8 +78,12 @@ fun Route.projectRoutes() {
     post("/api/v1/projects") {
         val session = call.requireRole("ADMIN", "PROJECT_MANAGER") ?: return@post
 
-        val request =
-            call.receive<CreateProjectRequest>()
+        val request = call.receive<CreateProjectRequest>().let {
+            if (session.roleCode.equals("PROJECT_MANAGER", ignoreCase = true)) it.copy(managerId = session.userId) else it
+        }
+        if (session.roleCode.equals("PROJECT_MANAGER", ignoreCase = true) &&
+            request.parentProjectUuid != null && !call.requireProjectAccess(session, request.parentProjectUuid)
+        ) return@post
 
         try {
 
@@ -151,6 +160,7 @@ fun Route.projectRoutes() {
      * про проєкт.
      */
     get("/api/v1/projects/{uuid}") {
+        val session = call.requireRole("ADMIN", "PROJECT_MANAGER", "INSPECTOR", "VIEWER", "GUEST") ?: return@get
 
         val uuid =
             call.parameters["uuid"]
@@ -179,6 +189,7 @@ fun Route.projectRoutes() {
 
             return@get
         }
+        if (!call.requireProjectAccess(session, uuid)) return@get
 
         call.respond(
 
@@ -198,6 +209,9 @@ fun Route.projectRoutes() {
         val session = call.requireRole("ADMIN", "PROJECT_MANAGER") ?: return@patch
         try {
             val request = call.receive<BulkProjectUpdateRequest>()
+            if (session.roleCode.equals("PROJECT_MANAGER", ignoreCase = true) &&
+                request.projectUuids.any { !projectService.isManagedBy(it, session.userId) }
+            ) return@patch call.respond(HttpStatusCode.Forbidden, ErrorResponse("FORBIDDEN", "You can update only projects assigned to you."))
             val updated = projectService.bulkUpdateStatus(request.projectUuids, request.status)
             AppContainer.auditLogService.record(session.userId, "projects_bulk_status_updated", "project", 0)
             call.respond(BulkProjectUpdateResponse(updated))
@@ -206,9 +220,59 @@ fun Route.projectRoutes() {
         }
     }
 
+    patch("/api/v1/projects/bulk-reassign") {
+        val session = call.requireRole("ADMIN") ?: return@patch
+        try {
+            val request = call.receive<BulkProjectReassignRequest>()
+            val manager = AppContainer.userService.getAllUsers().firstOrNull { it.id == request.managerId }
+                ?: return@patch call.respond(HttpStatusCode.BadRequest, ErrorResponse("VALIDATION_ERROR", "Project manager was not found."))
+            require(manager.role.code.equals("PROJECT_MANAGER", ignoreCase = true) && manager.status.equals("active", ignoreCase = true)) {
+                "Assignee must be an active Project Manager."
+            }
+            val updated = projectService.bulkReassign(request.projectUuids, request.managerId)
+            AppContainer.auditLogService.record(session.userId, "projects_bulk_reassigned", "project", 0)
+            call.respond(BulkProjectUpdateResponse(updated))
+        } catch (exception: IllegalArgumentException) {
+            call.respond(HttpStatusCode.BadRequest, ErrorResponse("VALIDATION_ERROR", exception.message ?: "Invalid bulk reassignment."))
+        }
+    }
+
+    get("/api/v1/projects/export") {
+        val session = call.requireRole("ADMIN", "PROJECT_MANAGER") ?: return@get
+        val requestedUuids = call.request.queryParameters.getAll("uuid")?.map(String::trim)?.filter(String::isNotEmpty).orEmpty()
+        val projects = projectService.getAllProjects().filter { project ->
+            (requestedUuids.isEmpty() || project.uuid.toString() in requestedUuids) &&
+                (session.roleCode.equals("ADMIN", ignoreCase = true) || projectService.isManagedBy(project.uuid.toString(), session.userId))
+        }
+        call.response.header(HttpHeaders.ContentDisposition, "attachment; filename=oms-projects.xlsx")
+        call.respondOutputStream(ContentType.parse("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")) {
+            XSSFWorkbook().use { workbook ->
+                val sheet = workbook.createSheet("projects")
+                val headers = listOf("uuid", "name", "project_type", "parent_project_id", "status", "region", "city", "budget_planned", "currency")
+                sheet.createRow(0).apply { headers.forEachIndexed { index, header -> createCell(index).setCellValue(header) } }
+                projects.forEachIndexed { index, project ->
+                    sheet.createRow(index + 1).apply {
+                        createCell(0).setCellValue(project.uuid.toString())
+                        createCell(1).setCellValue(project.name)
+                        createCell(2).setCellValue(project.projectType.name.lowercase())
+                        createCell(3).setCellValue(project.parentProjectId?.toString().orEmpty())
+                        createCell(4).setCellValue(project.status.name.lowercase())
+                        createCell(5).setCellValue(project.region)
+                        createCell(6).setCellValue(project.city)
+                        createCell(7).setCellValue(project.budgetPlanned.toDouble())
+                        createCell(8).setCellValue(project.currency)
+                    }
+                }
+                headers.indices.forEach(sheet::autoSizeColumn)
+                workbook.write(this)
+            }
+        }
+    }
+
     patch("/api/v1/projects/{uuid}") {
-        call.requireRole("ADMIN", "PROJECT_MANAGER") ?: return@patch
+        val session = call.requireRole("ADMIN", "PROJECT_MANAGER") ?: return@patch
         val uuid = call.parameters["uuid"] ?: return@patch call.respond(HttpStatusCode.BadRequest, ErrorResponse("VALIDATION_ERROR", "Project UUID is required."))
+        if (!call.requireProjectAccess(session, uuid)) return@patch
         try {
             val project = projectService.updateProject(uuid, call.receive<UpdateProjectRequest>())
                 ?: return@patch call.respond(HttpStatusCode.NotFound, ErrorResponse("NOT_FOUND", "Project not found."))
@@ -222,6 +286,7 @@ fun Route.projectRoutes() {
         val session = call.requireRole("ADMIN", "PROJECT_MANAGER") ?: return@delete
         val uuid = call.parameters["uuid"] ?: return@delete call.respond(HttpStatusCode.BadRequest, ErrorResponse("VALIDATION_ERROR", "Project UUID is required."))
         val project = projectService.getProjectByUuid(uuid) ?: return@delete call.respond(HttpStatusCode.NotFound, ErrorResponse("NOT_FOUND", "Project not found."))
+        if (!call.requireProjectAccess(session, uuid)) return@delete
         if (!projectService.deleteProject(uuid)) return@delete call.respond(HttpStatusCode.NotFound, ErrorResponse("NOT_FOUND", "Project not found."))
         AppContainer.auditLogService.record(session.userId, "project_deleted", project.projectType.name.lowercase(), project.id)
         call.respond(HttpStatusCode.NoContent)
@@ -233,6 +298,7 @@ fun Route.projectRoutes() {
     get(
         "/api/v1/projects/{uuid}/inspection-reports"
     ) {
+        val session = call.requireRole("ADMIN", "PROJECT_MANAGER", "INSPECTOR", "VIEWER", "GUEST") ?: return@get
 
         val uuid =
             call.parameters["uuid"]
@@ -265,6 +331,7 @@ fun Route.projectRoutes() {
 
             return@get
         }
+        if (!call.requireProjectAccess(session, uuid)) return@get
 
         val reports =
             AppContainer
@@ -283,10 +350,12 @@ fun Route.projectRoutes() {
     }
 
     get("/api/v1/projects/{uuid}/health-safety-observations") {
+        val session = call.requireRole("ADMIN", "PROJECT_MANAGER", "INSPECTOR", "VIEWER", "GUEST") ?: return@get
         val uuid = call.parameters["uuid"]
             ?: return@get call.respond(HttpStatusCode.BadRequest, ErrorResponse("VALIDATION_ERROR", "Project UUID is required."))
         val project = projectService.getProjectByUuid(uuid)
             ?: return@get call.respond(HttpStatusCode.NotFound, ErrorResponse("NOT_FOUND", "Project not found."))
+        if (!call.requireProjectAccess(session, uuid)) return@get
         val reports = AppContainer.inspectionReportService.getProjectReports(project.id)
         val observations = reports.flatMap { report ->
             AppContainer.inspectionReportFileService.healthSafetyObservations(report.id).map { observation ->
@@ -341,6 +410,7 @@ fun Route.projectRoutes() {
 
             return@post
         }
+        if (!call.requireProjectAccess(session, uuid)) return@post
 
         val request =
             call.receive<

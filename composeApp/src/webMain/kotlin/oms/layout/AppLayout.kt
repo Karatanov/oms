@@ -38,7 +38,8 @@ fun AppLayout(appState: AppState) {
                 is Screen.Projects -> ProjectsScreen(
                     onOpenProject = { project -> appState.openProjectDetail(project) },
                     onCreateProject = { appState.openCreateProject() },
-                    onEditProject = { appState.openEditProject(it) }
+                    onEditProject = { appState.openEditProject(it) },
+                    canBulkReassign = appState.roleCode == "ADMIN"
                 )
 
                 is Screen.CreateProject -> CreateProjectScreen(

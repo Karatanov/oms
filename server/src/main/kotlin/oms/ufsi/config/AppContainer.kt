@@ -45,6 +45,8 @@ object AppContainer {
     val authService =
         AuthService(userService, userRepository)
 
+    val activationService = ActivationService(userRepository)
+
     /**
      * Репозиторій проєктів.
      */

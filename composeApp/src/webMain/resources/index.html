@@ -14,6 +14,11 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
     <script>
+        function omsApiUrl(path) {
+            const local = ["localhost", "127.0.0.1"].includes(window.location.hostname);
+            return `${local ? "http://localhost:8080/api/v1" : "/api/v1"}${path}`;
+        }
+
         let ufsiLeafletMap = null;
         let ufsiMarkersLayer = null;
         let ufsiOnProjectClick = null;
@@ -164,7 +169,7 @@
                 const formData = new FormData();
                 formData.append("file", file, file.name);
                 try {
-                    const response = await fetch(`http://localhost:8080/api/v1/projects/${projectUuid}/inspection-reports/import`, {
+                    const response = await fetch(omsApiUrl(`/projects/${projectUuid}/inspection-reports/import`), {
                         method: "POST",
                         body: formData,
                         credentials: "include"
@@ -210,17 +215,17 @@
         }
 
         function openProjectDocumentUpload(projectUuid, docType) {
-            uploadWithDialog(".pdf,.xlsx,.jpg,.jpeg,.png", `http://localhost:8080/api/v1/projects/${projectUuid}/documents`, { docType }, omsText("documentUploaded"));
+            uploadWithDialog(".pdf,.xlsx,.jpg,.jpeg,.png", omsApiUrl(`/projects/${projectUuid}/documents`), { docType }, omsText("documentUploaded"));
         }
 
         function openInspectionPhotoUpload(reportUuid) {
-            uploadWithDialog("image/jpeg,image/png,image/webp", `http://localhost:8080/api/v1/inspection-reports/${reportUuid}/photos`, {}, omsText("photoUploaded"));
+            uploadWithDialog("image/jpeg,image/png,image/webp", omsApiUrl(`/inspection-reports/${reportUuid}/photos`), {}, omsText("photoUploaded"));
         }
 
         function openFinancialImport(projectUuid, onComplete) {
             uploadWithDialog(
                 ".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                `http://localhost:8080/api/v1/projects/${projectUuid}/financials/import`,
+                omsApiUrl(`/projects/${projectUuid}/financials/import`),
                 {},
                 omsText("financialImported"),
                 onComplete
@@ -228,7 +233,7 @@
         }
 
         function downloadFinancialExport(projectUuid) {
-            window.location.assign(`http://localhost:8080/api/v1/projects/${projectUuid}/financials/export`);
+            window.location.assign(omsApiUrl(`/projects/${projectUuid}/financials/export`));
         }
 
         let ufsiPendingInspectionPhotos = [];
@@ -308,7 +313,7 @@
                 for (const file of ufsiPendingInspectionPhotos) {
                     const formData = new FormData();
                     formData.append("file", file, file.name);
-                    const response = await fetch(`http://localhost:8080/api/v1/inspection-reports/${reportUuid}/photos`, { method: "POST", body: formData, credentials: "include" });
+                    const response = await fetch(omsApiUrl(`/inspection-reports/${reportUuid}/photos`), { method: "POST", body: formData, credentials: "include" });
                     if (!response.ok) throw new Error(await response.text());
                 }
                 ufsiPendingInspectionPhotos = [];
