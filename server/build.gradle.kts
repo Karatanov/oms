@@ -18,7 +18,9 @@ val copyRenderWebAssets by tasks.registering(Copy::class) {
 // migrations for it, leaving the canonical MySQL files and their Flyway
 // checksums untouched for local installations.
 val copyTiDbMigrations by tasks.registering(Copy::class) {
-    from(layout.projectDirectory.dir("src/main/resources/db/migration"))
+    from(layout.projectDirectory.dir("src/main/resources/db/migration")) {
+        exclude("V18__align_data_model_with_table_definitions.sql")
+    }
     // A few TiDB limitations need a full SQL replacement, not a line rewrite.
     from(layout.projectDirectory.dir("src/main/resources/db/tidb-overrides"))
     into(layout.buildDirectory.dir("generated/tidb-migrations/db/migration-tidb"))
