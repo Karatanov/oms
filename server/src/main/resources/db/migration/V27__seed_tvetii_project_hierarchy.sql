@@ -11,7 +11,9 @@ DELETE FROM inspection_reports;
 DELETE FROM financial_records;
 DELETE FROM documents;
 DELETE FROM incidents;
-DELETE FROM procurement_records;
+-- Procurement records are seeded by V24 and are reference data rather than
+-- disposable project activity. Keep them so the Procurement screen remains
+-- populated after this project-data reset.
 DELETE FROM projects;
 DELETE FROM users WHERE username <> 'admin';
 SET FOREIGN_KEY_CHECKS = 1;

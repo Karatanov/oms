@@ -1,0 +1,11 @@
+# One public service: Ktor serves both the Compose Web/Wasm UI and the API.
+# DATABASE_* values are intentionally not declared here: add them as secret
+# environment variables in the Render dashboard after choosing a MySQL provider.
+services:
+  - type: web
+    name: oms-demo
+    runtime: docker
+    plan: free
+    healthCheckPath: /health
+    dockerfilePath: ./Dockerfile
+    autoDeploy: true

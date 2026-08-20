@@ -18,3 +18,7 @@ captures
 **/xcshareddata/WorkspaceSettings.xcsettings
 node_modules/
 server/uploads/
+.env
+render-build.log
+docker-build.log
+docker-build.err
