@@ -39,7 +39,8 @@ ALTER TABLE inspection_reports
     ADD COLUMN inspection_type ENUM('planned', 'unplanned', 'final') NOT NULL DEFAULT 'planned',
     ADD COLUMN reviewed_by BIGINT NULL,
     ADD COLUMN latitude DECIMAL(10, 7) NULL,
-    ADD COLUMN longitude DECIMAL(10, 7) NULL,
+    ADD COLUMN longitude DECIMAL(10, 7) NULL;
+ALTER TABLE inspection_reports
     ADD CONSTRAINT fk_inspection_reviewer FOREIGN KEY (reviewed_by) REFERENCES users(id);
 ALTER TABLE inspection_reports ADD UNIQUE INDEX uk_inspection_reports_report_code (report_code);
 
@@ -47,7 +48,8 @@ ALTER TABLE inspection_photos
     ADD COLUMN caption VARCHAR(500) NULL,
     ADD COLUMN taken_at DATETIME NULL,
     ADD COLUMN sort_order SMALLINT NOT NULL DEFAULT 0,
-    ADD COLUMN uploaded_by BIGINT NULL,
+    ADD COLUMN uploaded_by BIGINT NULL;
+ALTER TABLE inspection_photos
     ADD CONSTRAINT fk_photo_uploader FOREIGN KEY (uploaded_by) REFERENCES users(id),
     ADD INDEX idx_photos_sort_order (inspection_report_id, sort_order);
 
