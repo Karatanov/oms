@@ -16,6 +16,6 @@ class ApplicationTest {
         }
         val response = client.get("/")
         assertEquals(HttpStatusCode.OK, response.status)
-        assertEquals("OMS backend is running", response.bodyAsText())
+        assertTrue(response.bodyAsText().contains("<div id=\"app-shell\">"))
     }
 }

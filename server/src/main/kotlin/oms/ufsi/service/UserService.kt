@@ -192,7 +192,7 @@ class UserService(
 
         if (password.length < 8 || password.none { it.isLetter() } || password.none { it.isDigit() }) {
             throw IllegalArgumentException(
-                "Пароль повинен містити щонайменше 5 символів."
+                "Пароль повинен містити щонайменше 8 символів, літеру та цифру."
             )
         }
     }

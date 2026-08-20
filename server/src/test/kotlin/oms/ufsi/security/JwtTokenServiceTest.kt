@@ -18,7 +18,9 @@ class JwtTokenServiceTest {
     @Test
     fun `modified token is rejected`() {
         val token = JwtTokenService.issue(42, "ADMIN")
-        val modified = token.dropLast(1) + if (token.last() == 'a') "b" else "a"
+        val parts = token.split('.')
+        val modifiedPayload = parts[1].dropLast(1) + if (parts[1].last() == 'a') "b" else "a"
+        val modified = "${parts[0]}.$modifiedPayload.${parts[2]}"
 
         assertNull(JwtTokenService.verify(modified))
     }

@@ -291,25 +291,6 @@ private fun DetailMetricCard(
     }
 }
 
-@Composable
-private fun PlaceholderTabContent(title: String) {
-    Card(
-        modifier = Modifier.fillMaxSize()
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(24.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = "$title — ${LocalizationManager.t("coming_next")}",
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    }
-}
-
 private enum class ProjectDetailTab(val titleKey: String) {
     GeneralInfo("general_info_tab"),
     InspectionReports("inspection_reports_tab"),

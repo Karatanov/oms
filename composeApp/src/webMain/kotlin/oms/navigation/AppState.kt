@@ -21,7 +21,8 @@ class AppState {
     // 🔹 Чи авторизований користувач
     var isAuthenticated by mutableStateOf(false)
 
-    // 🔹 JWT токен (поки mock)
+    // Browser authentication is held by the HttpOnly server session cookie.
+    // This marker is UI state only; bearer credentials are deliberately not persisted.
     var token: String? by mutableStateOf(null)
     var username by mutableStateOf("")
     var roleCode by mutableStateOf("")
