@@ -27,7 +27,7 @@ class InspectionReportFileService(
     private val reportService: InspectionReportService
 ) {
     fun createManual(projectId: Long, request: CreateManualInspectionReportRequest, createdBy: Long): InspectionReport {
-        val report = reportService.createReport(projectId, request.inspectionDate, "Manual SIR: ${request.contractor}", createdBy)
+        val report = reportService.createReport(projectId, request.inspectionDate, "Manual SIR [${request.inspectionType}]: ${request.contractor}", createdBy)
         val fileName = "SIR-USIF_${request.inspectionDate.replace("-", "")}.xlsx"
         val directory = uploadDirectory("inspection-reports")
         Files.createDirectories(directory)

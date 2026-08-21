@@ -33,16 +33,23 @@ import oms.data.ProjectRepository
 @Composable
 fun DashboardScreen() {
     var dashboard by remember { mutableStateOf<ApiDashboard?>(null) }
+    var inspectionReports by remember { mutableStateOf<List<oms.data.ApiInspectionReport>>(emptyList()) }
     var latestPhotos by remember { mutableStateOf<List<ApiInspectionPhoto>?>(null) }
     var photoInspectionDate by remember { mutableStateOf<String?>(null) }
     var photoInspectionCode by remember { mutableStateOf<String?>(null) }
     val projects = ProjectRepository.projects
     LaunchedEffect(Unit) {
-        ProjectRepository.refresh()
-        dashboard = runCatching { OmsApiClient.dashboard() }.getOrNull()
+        coroutineScope {
+            val refreshProjects = async { ProjectRepository.refresh() }
+            val loadDashboard = async { runCatching { OmsApiClient.dashboard() }.getOrNull() }
+            val loadReports = async { runCatching { OmsApiClient.inspectionReports().map { it.report } }.getOrDefault(emptyList()) }
+            refreshProjects.await()
+            dashboard = loadDashboard.await()
+            inspectionReports = loadReports.await()
+        }
     }
 
-    val recentInspections = dashboard?.recentInspections.orEmpty().sortedByDescending { it.inspectionDate }
+    val recentInspections = inspectionReports.sortedByDescending { it.inspectionDate }
     LaunchedEffect(recentInspections.map { it.uuid }) {
         latestPhotos = null
         photoInspectionDate = recentInspections.firstOrNull()?.inspectionDate

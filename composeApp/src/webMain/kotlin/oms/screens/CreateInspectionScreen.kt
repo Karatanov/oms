@@ -63,9 +63,9 @@ fun CreateInspectionScreen(
     var unskilledLabor by remember { mutableStateOf("") }
     var siteManagement by remember { mutableStateOf("") }
     var weather by remember { mutableStateOf("") }
-    var activitiesText by remember { mutableStateOf("") }
-    var ongoingObservationsText by remember { mutableStateOf("") }
-    var hseText by remember { mutableStateOf("") }
+    var activities by remember { mutableStateOf(listOf("")) }
+    var ongoingObservations by remember { mutableStateOf(listOf("")) }
+    var hseObservations by remember { mutableStateOf(defaultHseObservations) }
     var qualityText by remember { mutableStateOf("") }
     var progressComment by remember { mutableStateOf("") }
     var scheduleRemark by remember { mutableStateOf("") }
@@ -153,6 +153,7 @@ fun CreateInspectionScreen(
                         errorMessage = null
                         selectedSubprojectUuid = it
                         selectedSubprojectPartUuid = null
+                        contractor = projects.firstOrNull { project -> project.id == it }?.contractorName.orEmpty()
                     },
                     onSubprojectPartSelect = {
                         errorMessage = null
@@ -160,9 +161,7 @@ fun CreateInspectionScreen(
                     }
                 )
 
-                if (entryMode != "manual") {
-                    InspectionTypeDropdown(value = inspectionType, onChange = { inspectionType = it })
-                }
+                InspectionTypeDropdown(value = inspectionType, onChange = { inspectionType = it })
             }
         }
 
@@ -207,8 +206,8 @@ fun CreateInspectionScreen(
             qaStaff = qaStaff, onQaStaffChange = { qaStaff = it }, usifRepresentative = usifRepresentative, onUsifRepresentativeChange = { usifRepresentative = it },
             skilledLabor = skilledLabor, onSkilledLaborChange = { skilledLabor = it }, unskilledLabor = unskilledLabor, onUnskilledLaborChange = { unskilledLabor = it },
             siteManagement = siteManagement, onSiteManagementChange = { siteManagement = it }, weather = weather, onWeatherChange = { weather = it },
-            activities = activitiesText, onActivitiesChange = { activitiesText = it }, ongoingObservations = ongoingObservationsText, onOngoingObservationsChange = { ongoingObservationsText = it },
-            hse = hseText, onHseChange = { hseText = it }, quality = qualityText, onQualityChange = { qualityText = it },
+            activities = activities, onActivitiesChange = { activities = it }, ongoingObservations = ongoingObservations, onOngoingObservationsChange = { ongoingObservations = it },
+            hseObservations = hseObservations, onHseObservationsChange = { hseObservations = it }, quality = qualityText, onQualityChange = { qualityText = it },
             progress = progressComment, onProgressChange = { progressComment = it }, schedule = scheduleRemark, onScheduleChange = { scheduleRemark = it },
             inspectorName = inspectorName, onInspectorNameChange = { inspectorName = it }, inspectorTitle = inspectorTitle, onInspectorTitleChange = { inspectorTitle = it }
         )
@@ -276,6 +275,7 @@ fun CreateInspectionScreen(
                                         requireNotNull(target),
                                         oms.data.ManualInspectionReportRequest(
                                             inspectionDate = date,
+                                            inspectionType = inspectionType.name.lowercase(),
                                             contractor = contractor,
                                             contractorRepresentative = contractorRepresentative.ifBlank { null },
                                             qaStaff = qaStaff.ifBlank { null },
@@ -284,9 +284,9 @@ fun CreateInspectionScreen(
                                             unskilledLabor = unskilledLabor.ifBlank { null },
                                             siteManagement = siteManagement.ifBlank { null },
                                             weather = weather.ifBlank { null },
-                                            activities = activitiesText.toManualActivities(),
-                                            ongoingObservations = ongoingObservationsText.lines().map(String::trim).filter(String::isNotBlank),
-                                            hseObservations = hseText.toManualHseObservations(),
+                                            activities = activities.joinToString("\n").toManualActivities(),
+                                            ongoingObservations = ongoingObservations.map(String::trim).filter(String::isNotBlank),
+                                            hseObservations = hseObservations.map { oms.data.ManualHseObservationRequest(it.observation, if (it.isYes) "Yes" else "No", it.comment.ifBlank { null }) },
                                             qualityRemarks = qualityText.toManualQualityRemarks(),
                                             progressComment = progressComment.ifBlank { null },
                                             scheduleRemark = scheduleRemark.ifBlank { null },
@@ -366,9 +366,9 @@ private fun ManualSirForm(
     unskilledLabor: String, onUnskilledLaborChange: (String) -> Unit,
     siteManagement: String, onSiteManagementChange: (String) -> Unit,
     weather: String, onWeatherChange: (String) -> Unit,
-    activities: String, onActivitiesChange: (String) -> Unit,
-    ongoingObservations: String, onOngoingObservationsChange: (String) -> Unit,
-    hse: String, onHseChange: (String) -> Unit,
+    activities: List<String>, onActivitiesChange: (List<String>) -> Unit,
+    ongoingObservations: List<String>, onOngoingObservationsChange: (List<String>) -> Unit,
+    hseObservations: List<HseObservationInput>, onHseObservationsChange: (List<HseObservationInput>) -> Unit,
     quality: String, onQualityChange: (String) -> Unit,
     progress: String, onProgressChange: (String) -> Unit,
     schedule: String, onScheduleChange: (String) -> Unit,
@@ -400,8 +400,8 @@ private fun ManualSirForm(
 
             SirSectionTitle(LocalizationManager.t("sir_personnel_weather"))
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedTextField(skilledLabor, onSkilledLaborChange, label = { Text(LocalizationManager.t("sir_skilled_labor")) }, modifier = Modifier.weight(1f))
-                OutlinedTextField(unskilledLabor, onUnskilledLaborChange, label = { Text(LocalizationManager.t("sir_unskilled_labor")) }, modifier = Modifier.weight(1f))
+                OutlinedTextField(skilledLabor, { onSkilledLaborChange(it.filter(Char::isDigit)) }, label = { Text(LocalizationManager.t("sir_skilled_labor")) }, modifier = Modifier.weight(1f))
+                OutlinedTextField(unskilledLabor, { value -> onUnskilledLaborChange(value.filter { it.isDigit() || it == '-' }.takeIf { it == "-" || it.all(Char::isDigit) } ?: unskilledLabor) }, label = { Text(LocalizationManager.t("sir_unskilled_labor")) }, modifier = Modifier.weight(1f))
             }
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedTextField(siteManagement, onSiteManagementChange, label = { Text(LocalizationManager.t("sir_site_management")) }, modifier = Modifier.weight(1f))
@@ -409,12 +409,18 @@ private fun ManualSirForm(
             }
 
             SirSectionTitle(LocalizationManager.t("sir_ongoing_activities"))
-            OutlinedTextField(activities, onActivitiesChange, label = { Text(LocalizationManager.t("sir_activities_hint")) }, minLines = 3, modifier = Modifier.fillMaxWidth())
+            RepeatableSirRows(activities, onActivitiesChange, LocalizationManager.t("sir_activities_hint"))
             SirSectionTitle(LocalizationManager.t("sir_ongoing_observations"))
-            OutlinedTextField(ongoingObservations, onOngoingObservationsChange, label = { Text(LocalizationManager.t("sir_one_per_line")) }, minLines = 2, modifier = Modifier.fillMaxWidth())
+            RepeatableSirRows(ongoingObservations, onOngoingObservationsChange, LocalizationManager.t("sir_one_per_line"))
 
             SirSectionTitle(LocalizationManager.t("sir_hse_observations"))
-            OutlinedTextField(hse, onHseChange, label = { Text(LocalizationManager.t("sir_hse_hint")) }, minLines = 3, modifier = Modifier.fillMaxWidth())
+            hseObservations.forEachIndexed { index, item ->
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Checkbox(checked = item.isYes, onCheckedChange = { checked -> onHseObservationsChange(hseObservations.mapIndexed { current, value -> if (current == index) value.copy(isYes = checked) else value }) })
+                    Text(item.observation, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
+                    OutlinedTextField(item.comment, { comment -> onHseObservationsChange(hseObservations.mapIndexed { current, value -> if (current == index) value.copy(comment = comment) else value }) }, label = { Text(LocalizationManager.t("comment")) }, modifier = Modifier.widthIn(min = 220.dp).weight(1f))
+                }
+            }
 
             SirSectionTitle(LocalizationManager.t("sir_quality_assessment"))
             OutlinedTextField(quality, onQualityChange, label = { Text(LocalizationManager.t("sir_quality_hint")) }, minLines = 3, modifier = Modifier.fillMaxWidth())
@@ -431,6 +437,27 @@ private fun ManualSirForm(
         }
     }
 }
+
+@Composable
+private fun RepeatableSirRows(values: List<String>, onChange: (List<String>) -> Unit, label: String) {
+    values.forEachIndexed { index, value ->
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+            OutlinedTextField(value, { text -> onChange(values.mapIndexed { current, item -> if (current == index) text else item }) }, label = { Text(label) }, modifier = Modifier.weight(1f))
+            if (values.size > 1) TextButton(onClick = { onChange(values.filterIndexed { current, _ -> current != index }) }) { Text("−") }
+        }
+    }
+    TextButton(onClick = { onChange(values + "") }) { Text("+") }
+}
+
+private data class HseObservationInput(val observation: String, val isYes: Boolean = false, val comment: String = "")
+private val defaultHseObservations = listOf(
+    "All workers wear PPE equipment as relevant.",
+    "The fire shield / firefighting equipment is present at site.",
+    "The site is appropriately fenced.",
+    "There is lavatories on the site.",
+    "There are safety briefing logs.",
+    "Safety information plate is in tact."
+).map(::HseObservationInput)
 
 @Composable
 private fun SirSectionTitle(text: String) {
