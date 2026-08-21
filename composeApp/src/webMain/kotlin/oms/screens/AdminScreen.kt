@@ -252,8 +252,8 @@ private fun CreateUserDialog(roles: List<ApiRole>, onDismiss: () -> Unit, onSave
                 OutlinedTextField(region, { region = it }, label = { Text(LocalizationManager.t("region")) }, modifier = Modifier.weight(1f))
                 OutlinedTextField(department, { department = it }, label = { Text(LocalizationManager.t("department")) }, modifier = Modifier.weight(1f))
             }
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(LocalizationManager.t("user_status_pending"), style = MaterialTheme.typography.bodyMedium)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text(LocalizationManager.t("language"), style = MaterialTheme.typography.bodyMedium)
                 listOf("uk", "en").forEach { value -> FilterChip(preferredLang == value, { preferredLang = value }, label = { Text(value.uppercase()) }) }
             }
             InlineOptionPicker(options = roles, selected = role, prompt = LocalizationManager.t("select_role"), onSelect = { roleCode = it.code }, itemLabel = { it.name })
