@@ -246,8 +246,8 @@
             input.click();
         }
 
-        function openProjectDocumentUpload(projectUuid, docType) {
-            uploadWithDialog(".pdf,.xlsx,.jpg,.jpeg,.png", omsApiUrl(`/projects/${projectUuid}/documents`), { docType }, omsText("documentUploaded"));
+        function openProjectDocumentUpload(projectUuid, docType, onComplete) {
+            uploadWithDialog(".pdf,.xls,.xlsx,.jpg,.jpeg,.png", omsApiUrl(`/projects/${projectUuid}/documents`), { docType }, omsText("documentUploaded"), onComplete);
         }
 
         function openInspectionPhotoUpload(reportUuid) {

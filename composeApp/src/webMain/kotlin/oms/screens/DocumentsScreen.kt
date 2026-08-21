@@ -26,7 +26,7 @@ import oms.localization.LocalizationManager
 import kotlin.js.JsName
 
 @JsName("openProjectDocumentUpload")
-external fun openProjectDocumentUpload(projectUuid: String, docType: String)
+external fun openProjectDocumentUpload(projectUuid: String, docType: String, onComplete: (String) -> Unit)
 
 private data class DocumentRow(
     val projectUuid: String,
@@ -67,7 +67,8 @@ fun DocumentsScreen(canManageDocuments: Boolean = true) {
     var typeFilter by remember { mutableStateOf(DocumentTypeFilter.ALL) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var showUploadDialog by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) {
+    var reloadKey by remember { mutableStateOf(0) }
+    LaunchedEffect(reloadKey) {
         val (reports, loadedDocuments) = coroutineScope {
             val refreshProjects = async { ProjectRepository.refresh() }
             val loadReports = async { OmsApiClient.inspectionReports() }
@@ -177,7 +178,13 @@ fun DocumentsScreen(canManageDocuments: Boolean = true) {
         if (showUploadDialog) ProjectDocumentUploadDialog(
             projects = ProjectRepository.projects,
             onDismiss = { showUploadDialog = false },
-            onUpload = { projectUuid, type -> openProjectDocumentUpload(projectUuid, type); showUploadDialog = false }
+            onUpload = { projectUuid, type ->
+                openProjectDocumentUpload(projectUuid, type) { uploadError ->
+                    if (uploadError.isBlank()) reloadKey++
+                    else errorMessage = LocalizationManager.t("upload_document_error").replace("{message}", uploadError)
+                }
+                showUploadDialog = false
+            }
         )
     }
 }
@@ -199,7 +206,7 @@ private fun ProjectDocumentUploadDialog(projects: List<oms.model.Project>, onDis
             )
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    listOf("contract", "project", "subproject", "design").forEach { type -> FilterChip(selected = docType == type, onClick = { docType = type }, label = { Text(type.replaceFirstChar(Char::uppercase)) }) }
+                    listOf("contract", "project", "subproject", "subproject_part", "design").forEach { type -> FilterChip(selected = docType == type, onClick = { docType = type }, label = { Text(type.replaceFirstChar(Char::uppercase)) }) }
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     listOf("estimate", "invoice", "act", "photo", "other").forEach { type -> FilterChip(selected = docType == type, onClick = { docType = type }, label = { Text(type.replaceFirstChar(Char::uppercase)) }) }
