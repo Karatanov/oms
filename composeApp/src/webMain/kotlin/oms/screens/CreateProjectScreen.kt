@@ -32,6 +32,7 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import oms.data.CreateProjectRequest
 import oms.components.ConstructionTypeSelector
+import oms.components.SectorSelector
 import oms.components.OmsDateField
 import oms.components.InlineOptionPicker
 import oms.components.UkraineRegionAutocomplete
@@ -53,7 +54,7 @@ fun CreateProjectScreen(
     var address by remember { mutableStateOf("") }
     var region by remember { mutableStateOf("") }
     var city by remember { mutableStateOf("") }
-    var sector by remember { mutableStateOf("") }
+    var sector by remember { mutableStateOf("Education") }
     var constructionType by remember { mutableStateOf("reconstruction") }
     var budgetPlanned by remember { mutableStateOf("") }
     var engineerConsultantContractAmount by remember { mutableStateOf("") }
@@ -125,7 +126,7 @@ fun CreateProjectScreen(
                 OutlinedTextField(name, { name = it }, label = { Text(LocalizationManager.t("project_name_required")) }, modifier = Modifier.fillMaxWidth())
                 OutlinedTextField(siteName, { siteName = it }, label = { Text(LocalizationManager.t("project_code_required")) }, modifier = Modifier.fillMaxWidth())
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    OutlinedTextField(sector, { sector = it }, label = { Text(LocalizationManager.t("sector_required")) }, modifier = Modifier.weight(1f))
+                    SectorSelector(sector, { sector = it }, Modifier.weight(1f))
                     ConstructionTypeSelector(constructionType, { constructionType = it }, Modifier.weight(1f))
                 }
                 InlineOptionPicker(

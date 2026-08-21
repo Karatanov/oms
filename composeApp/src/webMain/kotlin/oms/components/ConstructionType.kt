@@ -1,11 +1,14 @@
 package oms.components
 
-import androidx.compose.material3.AssistChip
-import androidx.compose.material3.AssistChipDefaults
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
 import oms.localization.LocalizationManager
 
 val constructionTypes = listOf("reconstruction", "capital_repair", "new_construction")
@@ -23,17 +26,20 @@ fun ConstructionTypeSelector(value: String, onValueChange: (String) -> Unit, mod
 }
 
 @Composable
-fun ConstructionTypeChip(value: String) {
+fun ConstructionTypeChip(value: String, fontWeight: FontWeight = FontWeight.Medium) {
     val color = when (value) {
         "reconstruction" -> Color(0xFF1565C0)
         "capital_repair" -> Color(0xFFEF6C00)
         "new_construction" -> Color(0xFF2E7D32)
         else -> Color(0xFF546E7A)
     }
-    AssistChip(
-        onClick = {},
-        label = { Text(value.constructionTypeLabel()) },
-        colors = AssistChipDefaults.assistChipColors(containerColor = color, labelColor = Color.White)
+    Text(
+        text = value.constructionTypeLabel(),
+        color = color,
+        fontWeight = fontWeight,
+        modifier = Modifier
+            .background(color.copy(alpha = 0.13f), RoundedCornerShape(6.dp))
+            .padding(horizontal = 8.dp, vertical = 4.dp)
     )
 }
 

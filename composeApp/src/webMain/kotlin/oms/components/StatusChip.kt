@@ -1,10 +1,14 @@
 package oms.components
 
-import androidx.compose.material3.AssistChip
-import androidx.compose.material3.AssistChipDefaults
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
 import oms.localization.LocalizationManager
 import oms.model.ProjectStatus
 
@@ -14,7 +18,7 @@ import oms.model.ProjectStatus
 */
 
 @Composable
-fun StatusChip(status: ProjectStatus) {
+fun StatusChip(status: ProjectStatus, fontWeight: FontWeight = FontWeight.Medium) {
 
     val (text, color) = when (status) {
         ProjectStatus.PLANNED -> LocalizationManager.t("project_status_planned") to Color(0xFFF9A825)
@@ -25,19 +29,12 @@ fun StatusChip(status: ProjectStatus) {
         ProjectStatus.DLP -> LocalizationManager.t("project_status_dlp") to Color(0xFF6A1B9A)
     }
 
-    AssistChip(
-
-        onClick = { },
-
-        label = {
-            Text(text)
-        },
-
-        colors = AssistChipDefaults.assistChipColors(
-
-            labelColor = Color.White,
-
-            containerColor = color
-        )
+    Text(
+        text = text,
+        color = color,
+        fontWeight = fontWeight,
+        modifier = Modifier
+            .background(color.copy(alpha = 0.13f), RoundedCornerShape(6.dp))
+            .padding(horizontal = 8.dp, vertical = 4.dp)
     )
 }

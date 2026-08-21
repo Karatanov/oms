@@ -11,7 +11,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Folder
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Layers
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -39,7 +42,12 @@ import oms.model.ProjectStatus
 import oms.theme.Primary
 import oms.components.toOmsDate
 import oms.components.ConstructionTypeChip
+import oms.components.constructionTypes
+import oms.components.constructionTypeLabel
 import oms.components.InlineOptionPicker
+import oms.components.SectorChip
+import oms.components.sectors
+import oms.components.sectorLabel
 import oms.data.ApiUser
 import kotlinx.browser.window
 
@@ -57,6 +65,8 @@ fun ProjectsScreen(
     var searchText by remember { mutableStateOf("") }
     var regionFilter by remember { mutableStateOf<String?>(null) }
     var statusFilter by remember { mutableStateOf<ProjectStatus?>(null) }
+    var constructionTypeFilter by remember { mutableStateOf<String?>(null) }
+    var sectorFilter by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var selectedProjectIds by remember { mutableStateOf<Set<String>>(emptySet()) }
@@ -79,7 +89,7 @@ fun ProjectsScreen(
     }
     val projects = ProjectRepository.projects
 
-    val filteredProjects = remember(projects, searchText, regionFilter, statusFilter) {
+    val filteredProjects = remember(projects, searchText, regionFilter, statusFilter, constructionTypeFilter, sectorFilter) {
         fun matches(project: Project) =
             (searchText.isBlank() ||
                 project.name.contains(searchText, true) ||
@@ -87,7 +97,9 @@ fun ProjectsScreen(
                 project.region.contains(searchText, true) ||
                 project.city.contains(searchText, true)) &&
                 (regionFilter == null || project.region == regionFilter) &&
-                (statusFilter == null || project.status == statusFilter)
+                (statusFilter == null || project.status == statusFilter) &&
+                (constructionTypeFilter == null || project.constructionType.equals(constructionTypeFilter, ignoreCase = true)) &&
+                (sectorFilter == null || project.sector.equals(sectorFilter, ignoreCase = true))
         val matchingProjects = projects.filter(::matches)
         val projectsById = projects.associateBy { it.id }
         val visibleIds = matchingProjects
@@ -125,7 +137,11 @@ fun ProjectsScreen(
             regionFilter = regionFilter,
             onRegionChange = { regionFilter = it },
             statusFilter = statusFilter,
-            onStatusChange = { statusFilter = it }
+            onStatusChange = { statusFilter = it },
+            constructionTypeFilter = constructionTypeFilter,
+            onConstructionTypeChange = { constructionTypeFilter = it },
+            sectorFilter = sectorFilter,
+            onSectorChange = { sectorFilter = it }
         )
 
         if (canManageProjects && selectedProjectIds.isNotEmpty()) {
@@ -162,6 +178,7 @@ fun ProjectsScreen(
 
         ProjectsTable(
             projects = filteredProjects,
+            searchText = searchText,
             onOpenProject = onOpenProject,
             onEditProject = onEditProject,
             onDeleteProject = { project ->
@@ -209,6 +226,7 @@ fun ProjectsScreen(
 @Composable
 fun ProjectsTable(
     projects: List<Project>,
+    searchText: String,
     onOpenProject: (Project) -> Unit,
     onEditProject: (Project) -> Unit,
     onDeleteProject: (Project) -> Unit,
@@ -273,6 +291,7 @@ fun ProjectsTable(
 
                 ProjectRow(
                     project = row.project,
+                    highlightSearchMatch = searchText.isNotBlank() && row.project.matchesProjectSearch(searchText),
                     isSubproject = row.depth > 0,
                     isLastSubproject = row.isLastSubproject,
                     indentLevel = row.depth,
@@ -317,22 +336,27 @@ fun ProjectsFilters(
     regionFilter: String?,
     onRegionChange: (String?) -> Unit,
     statusFilter: ProjectStatus?,
-    onStatusChange: (ProjectStatus?) -> Unit
+    onStatusChange: (ProjectStatus?) -> Unit,
+    constructionTypeFilter: String?,
+    onConstructionTypeChange: (String?) -> Unit,
+    sectorFilter: String?,
+    onSectorChange: (String?) -> Unit
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.Top
     ) {
         OutlinedTextField(
             value = searchText,
             onValueChange = onSearchChange,
             label = { Text(LocalizationManager.t("search_project")) },
+            leadingIcon = { Icon(Icons.Default.Search, contentDescription = LocalizationManager.t("search_project")) },
             modifier = Modifier.weight(1f)
         )
 
         FilterDropdown(
-            label = LocalizationManager.t("region"),
+            label = LocalizationManager.t("filter_label").replace("{name}", LocalizationManager.t("region")),
             options = ProjectRepository.projects.map { it.region }.filter { it.isNotBlank() }.distinct().sorted(),
             selected = regionFilter,
             onSelect = onRegionChange,
@@ -347,13 +371,29 @@ fun ProjectsFilters(
         )
 
         FilterDropdown(
-            label = LocalizationManager.t("status"),
+            label = LocalizationManager.t("filter_label").replace("{name}", LocalizationManager.t("status")),
             options = ProjectStatus.entries,
             selected = statusFilter,
             onSelect = onStatusChange,
             itemLabel = { status ->
                 LocalizationManager.t("project_status_${status.name.lowercase()}")
             }
+        )
+
+        FilterDropdown(
+            label = LocalizationManager.t("filter_label").replace("{name}", LocalizationManager.t("construction_type")),
+            options = constructionTypes,
+            selected = constructionTypeFilter,
+            onSelect = onConstructionTypeChange,
+            itemLabel = String::constructionTypeLabel
+        )
+
+        FilterDropdown(
+            label = LocalizationManager.t("filter_label").replace("{name}", LocalizationManager.t("sector")),
+            options = sectors,
+            selected = sectorFilter,
+            onSelect = onSectorChange,
+            itemLabel = String::sectorLabel
         )
     }
 }
@@ -413,6 +453,7 @@ fun ProjectRow(
     onEdit: (Project) -> Unit = {},
     onDelete: (Project) -> Unit = {},
     canManageProjects: Boolean = false,
+    highlightSearchMatch: Boolean = false,
     isSelected: Boolean = false,
     onSelectedChange: (Boolean) -> Unit = {}
 
@@ -445,14 +486,18 @@ fun ProjectRow(
             }
 
             .background(
-                if (hovered)
-                    MaterialTheme.colorScheme.primary.copy(alpha = 0.06f)
-                else
-                    Color.Transparent
+                when {
+                    hovered -> MaterialTheme.colorScheme.primary.copy(alpha = 0.10f)
+                    highlightSearchMatch -> MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.50f)
+                    else -> Color.Transparent
+                }
             )
 
-            .padding(vertical = 10.dp)
+            .padding(vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
+
+        val rowFontWeight = if (!isSubproject) FontWeight.Bold else FontWeight.Normal
 
         if (canManageProjects) Checkbox(
             checked = isSelected,
@@ -482,7 +527,11 @@ fun ProjectRow(
                         .background(Primary, MaterialTheme.shapes.extraLarge),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(if (expanded) "−" else "+", color = Color.White, style = MaterialTheme.typography.titleMedium)
+                    Icon(
+                        imageVector = if (expanded) Icons.Default.KeyboardArrowDown else Icons.Default.KeyboardArrowUp,
+                        contentDescription = if (expanded) LocalizationManager.t("collapse") else LocalizationManager.t("expand"),
+                        tint = Color.White
+                    )
                 }
             }
             } else if (!isSubproject) {
@@ -518,31 +567,31 @@ fun ProjectRow(
             }
         }
 
-        Text(project.siteNumber, modifier = Modifier.width(130.dp), fontWeight = FontWeight.Medium)
-        Text(project.trancheNumber.toString(), modifier = Modifier.width(90.dp))
+        Text(project.siteNumber, modifier = Modifier.width(130.dp), fontWeight = rowFontWeight)
+        Text(project.trancheNumber.toString(), modifier = Modifier.width(90.dp), fontWeight = rowFontWeight)
 
         Text(
             project.name,
             modifier = Modifier.weight(1f),
-            fontWeight = if (isSubproject) FontWeight.Normal else FontWeight.SemiBold,
+            fontWeight = rowFontWeight,
             color = if (isSubproject) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface
         )
 
-        Text(project.region, modifier = Modifier.width(160.dp))
+        Text(project.region, modifier = Modifier.width(160.dp), fontWeight = rowFontWeight)
 
-        Text(project.city, modifier = Modifier.width(130.dp))
-        Text(project.sector, modifier = Modifier.width(130.dp))
-        Box(modifier = Modifier.width(180.dp)) { ConstructionTypeChip(project.constructionType) }
+        Text(project.city, modifier = Modifier.width(130.dp), fontWeight = rowFontWeight)
+        Box(modifier = Modifier.width(130.dp)) { SectorChip(project.sector, rowFontWeight) }
+        Box(modifier = Modifier.width(180.dp)) { ConstructionTypeChip(project.constructionType, rowFontWeight) }
 
         Box(
             modifier = Modifier.width(140.dp)
         ) {
-            StatusChip(project.status)
+            StatusChip(project.status, rowFontWeight)
         }
 
-        Text(project.budgetPlanned.toString(), modifier = Modifier.width(120.dp))
-        Text(project.startDate.toOmsDate(), modifier = Modifier.width(120.dp))
-        Text(project.contractorName.orEmpty(), modifier = Modifier.width(150.dp))
+        Text(project.budgetPlanned.toString(), modifier = Modifier.width(120.dp), fontWeight = rowFontWeight)
+        Text(project.startDate.toOmsDate(), modifier = Modifier.width(120.dp), fontWeight = rowFontWeight)
+        Text(project.contractorName.orEmpty(), modifier = Modifier.width(150.dp), fontWeight = rowFontWeight)
 
         TableActionIconButton(LocalizationManager.t("view"), Icons.Default.Visibility) { onOpen(project) }
         if (canManageProjects) {
@@ -553,6 +602,12 @@ fun ProjectRow(
 
     HorizontalDivider()
 }
+
+private fun Project.matchesProjectSearch(query: String): Boolean =
+    name.contains(query, ignoreCase = true) ||
+        siteNumber.contains(query, ignoreCase = true) ||
+        region.contains(query, ignoreCase = true) ||
+        city.contains(query, ignoreCase = true)
 /*
    ---------- PAGINATION ----------
 */

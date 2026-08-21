@@ -15,6 +15,7 @@ import oms.data.UpdateProjectRequest
 import oms.model.Project
 import oms.components.OmsDateField
 import oms.components.ConstructionTypeSelector
+import oms.components.SectorSelector
 import oms.components.UkraineRegionAutocomplete
 import oms.localization.LocalizationManager
 
@@ -137,7 +138,7 @@ fun EditProjectScreen(
                     OutlinedTextField(city, { city = it }, label = { Text(LocalizationManager.t("city_required")) }, modifier = Modifier.weight(1f))
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    OutlinedTextField(sector, { sector = it }, label = { Text(LocalizationManager.t("sector_required")) }, modifier = Modifier.weight(1f))
+                    SectorSelector(sector, { sector = it }, Modifier.weight(1f))
                     ConstructionTypeSelector(constructionType, { constructionType = it }, Modifier.weight(1f))
                 }
                 OutlinedTextField(budgetPlanned, { value -> if (value.matches(Regex("[0-9.,]*"))) budgetPlanned = value }, label = { Text(LocalizationManager.t("planned_budget_required")) }, singleLine = true, modifier = Modifier.fillMaxWidth())
