@@ -118,8 +118,8 @@ class UserService(
         val current = getAllUsers().firstOrNull { it.id == id } ?: return null
         val username = request.username?.trim() ?: current.username
         val email = request.email?.trim() ?: current.email
-        val password = request.password?.trim()
-        validateUserData(username, email, password ?: "valid-existing-password")
+        val password = request.password?.trim()?.takeIf { it.isNotBlank() }
+        validateUserData(username, email, password)
         if (username != current.username && userRepository.existsByUsername(username)) {
             throw IllegalArgumentException("A user with this username already exists.")
         }
@@ -163,7 +163,7 @@ class UserService(
     private fun validateUserData(
         username: String,
         email: String,
-        password: String
+        password: String?
     ) {
 
         if (username.isBlank()) {
@@ -190,7 +190,7 @@ class UserService(
             )
         }
 
-        if (password.length < 8 || password.none { it.isLetter() } || password.none { it.isDigit() }) {
+        if (password != null && (password.length < 8 || password.none { it.isLetter() } || password.none { it.isDigit() })) {
             throw IllegalArgumentException(
                 "Пароль повинен містити щонайменше 8 символів, літеру та цифру."
             )
