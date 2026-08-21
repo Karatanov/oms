@@ -15,6 +15,9 @@ fun Route.dashboardRoutes() {
             AppContainer.projectService.getAllProjects().filter { AppContainer.projectService.isManagedBy(it.uuid.toString(), session.userId) }.map { it.id }.toSet()
         } else null
         val d = AppContainer.dashboardService.get(allowedProjectIds)
-        call.respond(DashboardResponse(d.projectsTotal, d.projectsActive, d.projectsCompletedThisMonth, d.budgetPlanned, d.amountSpent, d.inspectionsTotal, d.pendingInspections, d.findingsTotal, d.recentInspections.map { it.toResponse() }, d.activities.map { ActivityResponse(it.action, it.entityType, it.entityId, it.userLogin, it.createdAt.toString()) }, d.monthlyActPayments.map { MonthlyActPaymentResponse(it.month, it.amount) }))
+        val activities = if (session.roleCode.equals("ADMIN", ignoreCase = true)) {
+            d.activities.map { ActivityResponse(it.action, it.entityType, it.entityId, it.userLogin, it.createdAt.toString()) }
+        } else emptyList()
+        call.respond(DashboardResponse(d.projectsTotal, d.projectsActive, d.projectsCompletedThisMonth, d.budgetPlanned, d.amountSpent, d.inspectionsTotal, d.pendingInspections, d.findingsTotal, d.recentInspections.map { it.toResponse() }, activities, d.monthlyActPayments.map { MonthlyActPaymentResponse(it.month, it.amount) }))
     }
 }

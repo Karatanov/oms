@@ -21,6 +21,7 @@ import kotlinx.coroutines.launch
 import oms.components.SortableTableHeader
 import oms.data.ApiRole
 import oms.data.ApiUser
+import oms.data.ApiActivity
 import oms.data.OmsApiClient
 import oms.data.UpdateUserRequest
 import oms.data.CreateUserRequest
@@ -29,6 +30,7 @@ import oms.components.TableActionIconButton
 import oms.components.InlineOptionPicker
 import oms.components.WasmSafeOverlay
 import oms.localization.LocalizationManager
+import oms.screens.dashboard.ActivitySection
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 
@@ -82,6 +84,7 @@ private fun LanguageFlag(language: String) {
 fun AdminScreen() {
     var users by remember { mutableStateOf<List<ApiUser>>(emptyList()) }
     var roles by remember { mutableStateOf<List<ApiRole>>(emptyList()) }
+    var activities by remember { mutableStateOf<List<ApiActivity>>(emptyList()) }
     var selectedUser by remember { mutableStateOf<ApiUser?>(null) }
     var userPendingDeletion by remember { mutableStateOf<ApiUser?>(null) }
     var createUser by remember { mutableStateOf(false) }
@@ -90,13 +93,21 @@ fun AdminScreen() {
     var sort by remember { mutableStateOf(UserSort.Username) }
     var ascending by remember { mutableStateOf(true) }
     val scope = rememberCoroutineScope()
+    fun refreshActivities() {
+        scope.launch {
+            activities = runCatching { OmsApiClient.dashboard().activities }.getOrDefault(activities)
+        }
+    }
     LaunchedEffect(Unit) {
-        val (loadedUsers, loadedRoles) = coroutineScope {
-            async { runCatching { OmsApiClient.users() } } .await() to
-                async { runCatching { OmsApiClient.roles() } }.await()
+        val (loadedUsers, loadedRoles, loadedActivities) = coroutineScope {
+            val usersRequest = async { runCatching { OmsApiClient.users() } }
+            val rolesRequest = async { runCatching { OmsApiClient.roles() } }
+            val activitiesRequest = async { runCatching { OmsApiClient.dashboard().activities } }
+            Triple(usersRequest.await(), rolesRequest.await(), activitiesRequest.await())
         }
         loadedUsers.onSuccess { users = it }.onFailure { errorMessage = LocalizationManager.t("error_load_users") }
         roles = loadedRoles.getOrDefault(emptyList())
+        activities = loadedActivities.getOrDefault(emptyList())
     }
     val sortedUsers = users.sortedWith(compareBy<ApiUser> {
         when (sort) {
@@ -116,7 +127,10 @@ fun AdminScreen() {
     fun changeSort(column: UserSort) { if (sort == column) ascending = !ascending else { sort = column; ascending = true } }
 
     Box(Modifier.fillMaxSize()) {
-    Column(Modifier.fillMaxSize().padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    Column(
+        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Text(LocalizationManager.t("admin_title"), style = MaterialTheme.typography.headlineMedium)
             Button(onClick = { createUser = true }) { Text(LocalizationManager.t("create_user")) }
@@ -167,6 +181,7 @@ fun AdminScreen() {
                 }
             }
         }
+        ActivitySection(activities)
         errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error) }
     }
         selectedUser?.let { user -> WasmSafeOverlay {
@@ -178,6 +193,7 @@ fun AdminScreen() {
                     runCatching { OmsApiClient.updateUser(user.id, updated) }
                         .onSuccess { saved ->
                             users = users.map { if (it.id == saved.id) saved else it }
+                            refreshActivities()
                             editUserError = null
                             selectedUser = null
                         }
@@ -193,7 +209,7 @@ fun AdminScreen() {
             CreateUserDialog(roles, onDismiss = { createUser = false }) { request ->
                 scope.launch {
                     runCatching { OmsApiClient.createUser(request) }
-                        .onSuccess { created -> users = users + created; createUser = false }
+                        .onSuccess { created -> users = users + created; createUser = false; refreshActivities() }
                         .onFailure { errorMessage = LocalizationManager.t("error_create_user").replace("{message}", it.message ?: LocalizationManager.t("unknown_error")) }
                 }
             }
@@ -212,6 +228,7 @@ fun AdminScreen() {
                                 if (OmsApiClient.deleteUser(user.id)) {
                                     users = users.filterNot { it.id == user.id }
                                     userPendingDeletion = null
+                                    refreshActivities()
                                 } else {
                                     errorMessage = LocalizationManager.t("error_delete_current_user")
                                 }

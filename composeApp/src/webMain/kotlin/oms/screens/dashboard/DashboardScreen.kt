@@ -28,7 +28,6 @@ import oms.data.ProjectRepository
    Головний екран системи.
    Тут розміщуються:
    - графіки
-   - останні активності
 */
 
 @Composable
@@ -81,6 +80,5 @@ fun DashboardScreen() {
 
         item { MonthlyActPaymentsChart(primary, dashboard?.monthlyActPayments.orEmpty()) }
 
-        item { ActivitySection(dashboard?.activities.orEmpty()) }
     }
 }

@@ -49,7 +49,7 @@ fun ProjectsByRegionChart(primary: Color, projects: List<Project>) {
     }
 }
 
-private fun String.toStartMonthLabel(): String {
+internal fun String.toStartMonthLabel(): String {
     val year = take(4)
     val month = takeLast(2).toIntOrNull() ?: return this
     val monthKey = when (month) {
