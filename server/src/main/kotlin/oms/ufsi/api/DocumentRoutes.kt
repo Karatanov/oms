@@ -17,7 +17,22 @@ import java.net.URLEncoder
 import java.nio.file.Files
 import java.nio.file.Path
 
-fun Route.documentRoutes() = route("/api/v1/projects/{projectUuid}/documents") {
+fun Route.documentRoutes() {
+    get("/api/v1/documents") {
+        val session = call.requireRole("ADMIN", "PROJECT_MANAGER", "INSPECTOR", "VIEWER", "GUEST") ?: return@get
+        val accessibleProjects = AppContainer.projectService.getAllProjects().filter { project ->
+            !session.roleCode.equals("PROJECT_MANAGER", ignoreCase = true) ||
+                AppContainer.projectService.isManagedBy(project.uuid.toString(), session.userId)
+        }
+        val projectUuidsById = accessibleProjects.associate { it.id to it.uuid.toString() }
+        call.respond(AppContainer.projectDocumentService.listAll().mapNotNull { document ->
+            projectUuidsById[document.projectId]?.let { projectUuid ->
+                oms.ufsi.dto.ProjectDocumentListItemResponse(projectUuid, document.toResponse())
+            }
+        })
+    }
+
+    route("/api/v1/projects/{projectUuid}/documents") {
     get {
         val session = call.requireRole("ADMIN", "PROJECT_MANAGER", "INSPECTOR", "VIEWER", "GUEST") ?: return@get
         val project = call.documentProject() ?: return@get
@@ -98,6 +113,7 @@ fun Route.documentRoutes() = route("/api/v1/projects/{projectUuid}/documents") {
         val uuid = call.parameters["documentUuid"] ?: return@delete call.respond(HttpStatusCode.NotFound, ErrorResponse("NOT_FOUND", "Document not found."))
         if (!AppContainer.projectDocumentService.delete(project.id, uuid)) return@delete call.respond(HttpStatusCode.NotFound, ErrorResponse("NOT_FOUND", "Document not found."))
         call.respond(HttpStatusCode.NoContent)
+    }
     }
 }
 

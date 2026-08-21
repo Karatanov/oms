@@ -13,6 +13,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import oms.data.ApiInspectionReport
 import oms.data.ApiProjectDocument
@@ -59,15 +61,22 @@ fun DocumentsScreen(canManageDocuments: Boolean = true) {
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var showUploadDialog by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
-        ProjectRepository.refresh()
-        sirFiles = ProjectRepository.projects.flatMap { project ->
-            runCatching { OmsApiClient.projectReports(project.id) }.getOrDefault(emptyList())
-                .filter { it.summary?.startsWith("Imported SIR:") == true }
-                .map { SirDocumentRow(project.name, it) }
+        val (reports, documents) = coroutineScope {
+            val refreshProjects = async { ProjectRepository.refresh() }
+            val loadReports = async { OmsApiClient.inspectionReports() }
+            val loadDocuments = async { OmsApiClient.allProjectDocuments() }
+            refreshProjects.await()
+            loadReports.await() to loadDocuments.await()
+        }
+        val projectsById = ProjectRepository.projects.associateBy { it.id }
+        sirFiles = reports.mapNotNull { item ->
+            projectsById[item.projectUuid]?.takeIf { item.report.summary?.startsWith("Imported SIR:") == true }
+                ?.let { project -> SirDocumentRow(project.name, item.report) }
         }.sortedByDescending { it.report.inspectionDate }
-        projectFiles = ProjectRepository.projects.flatMap { project ->
-            runCatching { OmsApiClient.projectDocuments(project.id) }.getOrDefault(emptyList())
-                .map { ProjectDocumentRow(project.id, project.name, it) }
+        projectFiles = documents.mapNotNull { item ->
+            projectsById[item.projectUuid]?.let { project ->
+                ProjectDocumentRow(project.id, project.name, item.document)
+            }
         }
     }
     val visibleDocuments = remember(projectFiles, typeFilter, sort, ascending) {

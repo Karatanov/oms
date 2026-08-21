@@ -10,6 +10,7 @@ import java.nio.file.StandardCopyOption
 import java.util.UUID
 
 class ProjectDocumentService(private val repository: ProjectDocumentRepository) {
+    fun listAll() = repository.findAll()
     fun list(projectId: Long) = repository.findByProjectId(projectId)
     fun get(projectId: Long, uuid: String) = repository.findByUuid(projectId, uuid)
     fun delete(projectId: Long, uuid: String): Boolean {

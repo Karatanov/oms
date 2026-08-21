@@ -54,14 +54,40 @@ fun ProjectDetailScreen(
     val financials = remember(project.id) { mutableStateOf<ApiFinancialRecords?>(null) }
     val documents = remember(project.id) { mutableStateOf<List<ApiProjectDocument>>(emptyList()) }
     val healthSafetyObservations = remember(project.id) { mutableStateOf<ApiHealthSafetyObservations?>(null) }
+    var loadedResources by remember(project.id) { mutableStateOf<Set<ProjectDetailResource>>(emptySet()) }
     var confirmDeletion by remember { mutableStateOf(false) }
     var deleteError by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
-    LaunchedEffect(project.id) { details.value = runCatching { OmsApiClient.projectDetails(project.id) }.getOrNull() }
-    LaunchedEffect(project.id) { reports.value = runCatching { OmsApiClient.projectReports(project.id) }.getOrDefault(emptyList()) }
-    LaunchedEffect(project.id) { financials.value = runCatching { OmsApiClient.financials(project.id) }.getOrNull() }
-    LaunchedEffect(project.id) { documents.value = runCatching { OmsApiClient.projectDocuments(project.id) }.getOrDefault(emptyList()) }
-    LaunchedEffect(project.id) { healthSafetyObservations.value = runCatching { OmsApiClient.healthSafetyObservations(project.id) }.getOrNull() }
+    LaunchedEffect(project.id, selectedTab) {
+        suspend fun load(resource: ProjectDetailResource, block: suspend () -> Unit) {
+            if (resource !in loadedResources) {
+                block()
+                loadedResources = loadedResources + resource
+            }
+        }
+        when (selectedTab) {
+            ProjectDetailTab.GeneralInfo -> load(ProjectDetailResource.Details) {
+                details.value = runCatching { OmsApiClient.projectDetails(project.id) }.getOrNull()
+            }
+            ProjectDetailTab.InspectionReports -> load(ProjectDetailResource.Reports) {
+                reports.value = runCatching { OmsApiClient.projectReports(project.id) }.getOrDefault(emptyList())
+            }
+            ProjectDetailTab.Financials -> {
+                load(ProjectDetailResource.Financials) {
+                    financials.value = runCatching { OmsApiClient.financials(project.id) }.getOrNull()
+                }
+                load(ProjectDetailResource.Documents) {
+                    documents.value = runCatching { OmsApiClient.projectDocuments(project.id) }.getOrDefault(emptyList())
+                }
+            }
+            ProjectDetailTab.Documents -> load(ProjectDetailResource.Documents) {
+                documents.value = runCatching { OmsApiClient.projectDocuments(project.id) }.getOrDefault(emptyList())
+            }
+            ProjectDetailTab.Incidents -> load(ProjectDetailResource.Incidents) {
+                healthSafetyObservations.value = runCatching { OmsApiClient.healthSafetyObservations(project.id) }.getOrNull()
+            }
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -298,6 +324,8 @@ private enum class ProjectDetailTab(val titleKey: String) {
     Documents("documents"),
     Incidents("incidents_hse")
 }
+
+private enum class ProjectDetailResource { Details, Reports, Financials, Documents, Incidents }
 
 @Composable
 private fun ProjectHealthSafetyTab(data: ApiHealthSafetyObservations?) {

@@ -87,8 +87,7 @@ object OmsApiClient {
         if (!response.status.isSuccess()) {
             throw IllegalStateException(response.bodyAsText())
         }
-        return users().firstOrNull { it.id == id }
-            ?: throw IllegalStateException("Updated user was not returned by the server.")
+        return response.body()
     }
 
     suspend fun createUser(request: CreateUserRequest): ApiUser =
@@ -199,6 +198,9 @@ object OmsApiClient {
 
     suspend fun projectDocuments(projectUuid: String): List<ApiProjectDocument> =
         client.get("$baseUrl/projects/$projectUuid/documents").body()
+
+    suspend fun allProjectDocuments(): List<ApiProjectDocumentListItem> =
+        client.get("$baseUrl/documents").body()
 
     suspend fun financials(projectUuid: String): ApiFinancialRecords =
         client.get("$baseUrl/projects/$projectUuid/financials").body()
@@ -611,6 +613,9 @@ data class ApiFinancialSummary(
 
 @Serializable
 data class ApiProjectDocument(val uuid: String, val docType: String, val fileName: String, val contentType: String, val fileSizeBytes: Long)
+
+@Serializable
+data class ApiProjectDocumentListItem(val projectUuid: String, val document: ApiProjectDocument)
 
 @Serializable
 data class ApiFinancialRecords(val data: List<ApiFinancialRecord>, val summary: ApiFinancialSummary)

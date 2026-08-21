@@ -25,6 +25,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.text.font.FontWeight
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import oms.components.FilterDropdown
 import oms.components.StatusChip
@@ -62,8 +64,17 @@ fun ProjectsScreen(
     val pageScrollState = rememberScrollState()
 
     LaunchedEffect(Unit) {
-        ProjectRepository.refresh()
-        if (canBulkReassign) managers = runCatching { oms.data.OmsApiClient.users().filter { it.role.code == "PROJECT_MANAGER" && it.status == "active" } }.getOrDefault(emptyList())
+        coroutineScope {
+            val refreshProjects = async { ProjectRepository.refresh() }
+            val loadManagers = async {
+                if (canBulkReassign) runCatching { oms.data.OmsApiClient.users() }
+                    .getOrDefault(emptyList())
+                    .filter { it.role.code == "PROJECT_MANAGER" && it.status == "active" }
+                else emptyList()
+            }
+            refreshProjects.await()
+            managers = loadManagers.await()
+        }
     }
     val projects = ProjectRepository.projects
 

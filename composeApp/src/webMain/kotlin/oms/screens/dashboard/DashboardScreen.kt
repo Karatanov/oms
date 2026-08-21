@@ -13,6 +13,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import oms.data.ApiDashboard
 import oms.data.ApiInspectionPhoto
@@ -47,8 +50,14 @@ fun DashboardScreen() {
     LaunchedEffect(recentInspections.map { it.uuid }) {
         latestPhotos = null
         photoInspectionDate = recentInspections.firstOrNull()?.inspectionDate
-        for (inspection in recentInspections) {
-            val photos = runCatching { OmsApiClient.inspectionPhotos(inspection.uuid) }.getOrDefault(emptyList())
+        val photosByInspection = coroutineScope {
+            recentInspections.map { inspection ->
+                async {
+                    inspection to runCatching { OmsApiClient.inspectionPhotos(inspection.uuid) }.getOrDefault(emptyList())
+                }
+            }.awaitAll()
+        }
+        for ((inspection, photos) in photosByInspection) {
             if (photos.isNotEmpty()) {
                 latestPhotos = photos
                 photoInspectionDate = inspection.inspectionDate

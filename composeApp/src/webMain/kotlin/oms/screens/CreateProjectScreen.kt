@@ -27,6 +27,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import oms.data.CreateProjectRequest
 import oms.components.ConstructionTypeSelector
@@ -72,8 +74,12 @@ fun CreateProjectScreen(
     val scope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) {
-        parentProjects = runCatching { OmsApiClient.projects() }.getOrDefault(emptyList())
-        users = runCatching { OmsApiClient.users() }.getOrDefault(emptyList())
+        val (loadedProjects, loadedUsers) = coroutineScope {
+            async { runCatching { OmsApiClient.projects() }.getOrDefault(emptyList()) }.await() to
+                async { runCatching { OmsApiClient.users() }.getOrDefault(emptyList()) }.await()
+        }
+        parentProjects = loadedProjects
+        users = loadedUsers
             .filter { it.status.equals("active", ignoreCase = true) }
         managerId = users.firstOrNull()?.id
     }

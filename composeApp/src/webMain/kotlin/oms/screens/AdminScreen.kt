@@ -15,6 +15,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import oms.components.SortableTableHeader
 import oms.data.ApiRole
@@ -88,8 +90,12 @@ fun AdminScreen() {
     var ascending by remember { mutableStateOf(true) }
     val scope = rememberCoroutineScope()
     LaunchedEffect(Unit) {
-        runCatching { OmsApiClient.users() }.onSuccess { users = it }.onFailure { errorMessage = LocalizationManager.t("error_load_users") }
-        roles = runCatching { OmsApiClient.roles() }.getOrDefault(emptyList())
+        val (loadedUsers, loadedRoles) = coroutineScope {
+            async { runCatching { OmsApiClient.users() } } .await() to
+                async { runCatching { OmsApiClient.roles() } }.await()
+        }
+        loadedUsers.onSuccess { users = it }.onFailure { errorMessage = LocalizationManager.t("error_load_users") }
+        roles = loadedRoles.getOrDefault(emptyList())
     }
     val sortedUsers = users.sortedWith(compareBy<ApiUser> {
         when (sort) {

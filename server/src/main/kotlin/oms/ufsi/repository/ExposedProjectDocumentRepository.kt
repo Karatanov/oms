@@ -11,6 +11,7 @@ import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import java.util.UUID
 
 class ExposedProjectDocumentRepository : ProjectDocumentRepository {
+    override fun findAll() = transaction { ProjectDocumentTable.selectAll().map(::map) }
     override fun findByProjectId(projectId: Long) = transaction { ProjectDocumentTable.selectAll().filter { it[ProjectDocumentTable.projectId].value == projectId }.map(::map) }
     override fun findByUuid(projectId: Long, uuid: String) = transaction { ProjectDocumentTable.selectAll().firstOrNull { it[ProjectDocumentTable.projectId].value == projectId && it[ProjectDocumentTable.uuid] == uuid }?.let(::map) }
     override fun create(document: ProjectDocument) { transaction { ProjectDocumentTable.insertAndGetId { it[uuid] = document.uuid.toString(); it[projectId] = document.projectId; it[relatedEntity] = document.relatedEntity; it[relatedId] = document.relatedId; it[docType] = document.docType; it[description] = document.description; it[originalName] = document.originalName; it[storagePath] = document.storagePath; it[contentType] = document.contentType; it[fileSizeBytes] = document.fileSizeBytes; it[createdBy] = 1L } } }
