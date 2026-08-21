@@ -26,7 +26,7 @@ fun ProjectsByRegionChart(primary: Color, projects: List<Project>) {
         .eachCount()
         .toList()
         .sortedBy { it.first }
-        .map { (month, count) -> BarData(month, count.toFloat()) }
+        .map { (month, count) -> BarData(month.toStartMonthLabel(), count.toFloat()) }
 
     Card(modifier = Modifier.fillMaxWidth().height(320.dp), shape = RoundedCornerShape(12.dp)) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -36,4 +36,16 @@ fun ProjectsByRegionChart(primary: Color, projects: List<Project>) {
             else VerticalBarChart(data = data, color = primary)
         }
     }
+}
+
+private fun String.toStartMonthLabel(): String {
+    val year = take(4)
+    val month = takeLast(2).toIntOrNull() ?: return this
+    val monthKey = when (month) {
+        1 -> "month_january"; 2 -> "month_february"; 3 -> "month_march"; 4 -> "month_april"
+        5 -> "month_may"; 6 -> "month_june"; 7 -> "month_july"; 8 -> "month_august"
+        9 -> "month_september"; 10 -> "month_october"; 11 -> "month_november"; 12 -> "month_december"
+        else -> return this
+    }
+    return "${LocalizationManager.t(monthKey)}\n$year"
 }
