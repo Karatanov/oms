@@ -150,8 +150,18 @@ object OmsApiClient {
             setBody(CreateInspectionReportRequest(inspectionDate, summary))
         }.body()
 
-    suspend fun createManualInspectionReport(projectUuid: String, request: ManualInspectionReportRequest): ApiInspectionReport =
-        client.post("$baseUrl/projects/$projectUuid/inspection-reports/manual") { contentType(ContentType.Application.Json); setBody(request) }.body()
+    suspend fun createManualInspectionReport(projectUuid: String, request: ManualInspectionReportRequest): ApiInspectionReport {
+        val response = client.post("$baseUrl/projects/$projectUuid/inspection-reports/manual") {
+            contentType(ContentType.Application.Json)
+            setBody(request)
+        }
+        if (!response.status.isSuccess()) throw IllegalStateException(response.bodyAsText())
+        return runCatching { response.body<ApiInspectionReport>() }.getOrElse {
+            projectReports(projectUuid)
+                .lastOrNull { it.inspectionDate == request.inspectionDate && it.summary == "Manual SIR: ${request.contractor}" }
+                ?: throw IllegalStateException("Created inspection report was not returned by the server.")
+        }
+    }
 
     suspend fun reviewInspectionReport(
         reportUuid: String,

@@ -197,38 +197,44 @@ class ExposedInspectionReportRepository :
         uuid: String,
         inspectionDate: String,
         summary: String?
-    ): InspectionReport? = transaction {
-        val count = InspectionReportTable.update({ InspectionReportTable.uuid eq uuid }) {
-            it[this.inspectionDate] = LocalDate.parse(inspectionDate)
-            it[this.summary] = summary
+    ): InspectionReport? {
+        val count = transaction {
+            InspectionReportTable.update({ InspectionReportTable.uuid eq uuid }) {
+                it[this.inspectionDate] = LocalDate.parse(inspectionDate)
+                it[this.summary] = summary
+            }
         }
-        if (count == 0) null else findByUuid(uuid)
+        return if (count == 0) null else findByUuid(uuid)
     }
 
     override fun changeStatus(
         uuid: String,
         status: String,
         rejectionReason: String?
-    ): InspectionReport? = transaction {
-        val now = java.time.LocalDateTime.now()
-        val count = InspectionReportTable.update({ InspectionReportTable.uuid eq uuid }) {
-            it[InspectionReportTable.status] = status
-            it[this.rejectionReason] = rejectionReason
-            if (status == "pending_review") {
-                it[this.submittedAt] = now
-            }
-            if (status == "completed") {
-                it[this.reviewedAt] = now
+    ): InspectionReport? {
+        val count = transaction {
+            val now = java.time.LocalDateTime.now()
+            InspectionReportTable.update({ InspectionReportTable.uuid eq uuid }) {
+                it[InspectionReportTable.status] = status
+                it[this.rejectionReason] = rejectionReason
+                if (status == "pending_review") {
+                    it[this.submittedAt] = now
+                }
+                if (status == "completed") {
+                    it[this.reviewedAt] = now
+                }
             }
         }
-        if (count == 0) null else findByUuid(uuid)
+        return if (count == 0) null else findByUuid(uuid)
     }
 
-    override fun moveToProject(uuid: String, projectId: Long): InspectionReport? = transaction {
-        val count = InspectionReportTable.update({ InspectionReportTable.uuid eq uuid }) {
-            it[this.projectId] = projectId
+    override fun moveToProject(uuid: String, projectId: Long): InspectionReport? {
+        val count = transaction {
+            InspectionReportTable.update({ InspectionReportTable.uuid eq uuid }) {
+                it[this.projectId] = projectId
+            }
         }
-        if (count == 0) null else findByUuid(uuid)
+        return if (count == 0) null else findByUuid(uuid)
     }
 
     override fun delete(uuid: String): Boolean = transaction {
