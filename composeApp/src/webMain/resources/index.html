@@ -163,9 +163,14 @@
             const input = document.createElement("input");
             input.type = "file";
             input.accept = ".xls,.xlsx,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+            input.style.display = "none";
+            document.body.appendChild(input);
             input.onchange = async () => {
                 const file = input.files && input.files[0];
-                if (!file) return;
+                if (!file) {
+                    input.remove();
+                    return;
+                }
                 const formData = new FormData();
                 formData.append("file", file, file.name);
                 try {
@@ -178,6 +183,8 @@
                     onComplete("");
                 } catch (error) {
                     onComplete(error.message || String(error));
+                } finally {
+                    input.remove();
                 }
             };
             input.click();
