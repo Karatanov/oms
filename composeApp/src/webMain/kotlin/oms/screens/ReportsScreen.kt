@@ -8,6 +8,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.FactCheck
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.PhotoCamera
@@ -33,6 +34,7 @@ import oms.components.ReportStatusChip
 import oms.components.TableActionIconButton
 import oms.components.FilterDropdown
 import oms.components.InlineOptionPicker
+import oms.components.OmsDateField
 import oms.components.toOmsDate
 import oms.localization.LocalizationManager
 import kotlin.js.JsName
@@ -62,6 +64,7 @@ fun ReportsScreen(
     var subprojectPartCodeFilter by remember { mutableStateOf<String?>(null) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var reportToMove by remember { mutableStateOf<ReportRow?>(null) }
+    var reportToEdit by remember { mutableStateOf<ReportRow?>(null) }
     var findingsReport by remember { mutableStateOf<ReportRow?>(null) }
     var reportToReview by remember { mutableStateOf<ReportRow?>(null) }
     var isMovingReport by remember { mutableStateOf(false) }
@@ -135,7 +138,7 @@ fun ReportsScreen(
                 HorizontalDivider()
                 if (visible.isEmpty()) Text(LocalizationManager.t("no_reports"))
                 visible.forEach { row ->
-                    Row(Modifier.width(1_525.dp).padding(vertical = 8.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                    Row(Modifier.width(1_575.dp).padding(vertical = 8.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                         Text(row.report.inspectionDate.toOmsDate(), Modifier.width(105.dp))
                         Text(row.report.summary ?: LocalizationManager.t("inspection_report"), Modifier.width(400.dp), style = MaterialTheme.typography.bodyMedium)
                         Text(row.projectName, Modifier.width(180.dp), style = MaterialTheme.typography.bodySmall)
@@ -143,6 +146,7 @@ fun ReportsScreen(
                         Text(row.subprojectPartCode ?: "—", Modifier.width(160.dp), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Box(Modifier.width(130.dp)) { ReportStatusChip(row.report.status) }
                         Text("admin", Modifier.width(80.dp))
+                        TableActionIconButton(LocalizationManager.t("edit_inspection"), Icons.Default.Edit) { reportToEdit = row }
                         if (canReviewReports && row.report.status == "pending_review") {
                             TableActionIconButton(LocalizationManager.t("review_report"), Icons.Default.RateReview) { reportToReview = row }
                         } else {
@@ -167,6 +171,22 @@ fun ReportsScreen(
             }
         }
         errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+        reportToEdit?.let { report ->
+            ReportEditorDialog(
+                report = report,
+                onDismiss = { reportToEdit = null },
+                onSave = { date, summary ->
+                    scope.launch {
+                        runCatching { OmsApiClient.updateInspectionReport(report.report.uuid, date, summary) }
+                            .onSuccess { updated ->
+                                reports = reports.map { if (it.report.uuid == updated.uuid) it.copy(report = updated) else it }
+                                reportToEdit = null
+                            }
+                            .onFailure { errorMessage = LocalizationManager.t("error_update_report").replace("{message}", it.message ?: LocalizationManager.t("unknown_error")) }
+                    }
+                }
+            )
+        }
         reportToMove?.let { report ->
             MoveReportDialog(
                 report = report,
@@ -219,6 +239,34 @@ fun ReportsScreen(
                     }
                 }
             )
+        }
+    }
+}
+
+@Composable
+private fun ReportEditorDialog(
+    report: ReportRow,
+    onDismiss: () -> Unit,
+    onSave: (String, String) -> Unit
+) {
+    var date by remember(report.report.uuid) { mutableStateOf(report.report.inspectionDate) }
+    var summary by remember(report.report.uuid) { mutableStateOf(report.report.summary.orEmpty()) }
+    val valid = date.matches(Regex("\\d{4}-\\d{2}-\\d{2}"))
+    Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(LocalizationManager.t("edit_inspection"), style = MaterialTheme.typography.titleLarge)
+            OmsDateField(date, { date = it }, LocalizationManager.t("date"), Modifier.fillMaxWidth(), true)
+            OutlinedTextField(
+                value = summary,
+                onValueChange = { summary = it },
+                label = { Text(LocalizationManager.t("report_title")) },
+                modifier = Modifier.fillMaxWidth(),
+                minLines = 3
+            )
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
+                OutlinedButton(onClick = onDismiss) { Text(LocalizationManager.t("cancel")) }
+                Button(onClick = { onSave(date, summary) }, enabled = valid) { Text(LocalizationManager.t("save")) }
+            }
         }
     }
 }
@@ -412,7 +460,7 @@ private fun ReportTableHeader(
         .toList()
     val statuses = listOf("draft", "pending_review", "completed")
 
-    Column(Modifier.width(1_525.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    Column(Modifier.width(1_575.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Row(verticalAlignment = Alignment.Top) {
             Box(Modifier.width(105.dp).padding(top = 14.dp)) {
                 Text(LocalizationManager.t("filters"), style = MaterialTheme.typography.labelLarge)
@@ -436,7 +484,7 @@ private fun ReportTableHeader(
                     Modifier.fillMaxWidth()
                 ) { LocalizationManager.t("${it}_status") }
             }
-            Spacer(Modifier.width(80.dp + 288.dp))
+            Spacer(Modifier.width(80.dp + 336.dp))
         }
         Row(Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
             SortableTableHeader(LocalizationManager.t("date"), sort == ReportSort.Date, ascending, { onSort(ReportSort.Date) }, Modifier.width(105.dp))
@@ -446,7 +494,7 @@ private fun ReportTableHeader(
             SortableTableHeader(LocalizationManager.t("subproject_part_code_label"), sort == ReportSort.SubprojectPartCode, ascending, { onSort(ReportSort.SubprojectPartCode) }, Modifier.width(160.dp))
             SortableTableHeader(LocalizationManager.t("status"), sort == ReportSort.Status, ascending, { onSort(ReportSort.Status) }, Modifier.width(130.dp))
             SortableTableHeader(LocalizationManager.t("uploaded_by_short"), sort == ReportSort.Author, ascending, { onSort(ReportSort.Author) }, Modifier.width(80.dp))
-            Box(Modifier.width(288.dp).height(48.dp), contentAlignment = Alignment.Center) {
+            Box(Modifier.width(336.dp).height(48.dp), contentAlignment = Alignment.Center) {
                 Text(LocalizationManager.t("actions"))
             }
         }

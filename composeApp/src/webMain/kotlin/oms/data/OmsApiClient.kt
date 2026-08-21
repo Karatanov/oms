@@ -195,6 +195,12 @@ object OmsApiClient {
             setBody(CreateInspectionReportRequest(inspectionDate, summary))
         }.body()
 
+    suspend fun updateInspectionReport(reportUuid: String, inspectionDate: String, summary: String): ApiInspectionReport =
+        client.put("$baseUrl/inspection-reports/$reportUuid") {
+            contentType(ContentType.Application.Json)
+            setBody(UpdateInspectionReportRequest(inspectionDate, summary))
+        }.body()
+
     suspend fun createManualInspectionReport(projectUuid: String, request: ManualInspectionReportRequest): ApiInspectionReport {
         val response = client.post("$baseUrl/projects/$projectUuid/inspection-reports/manual") {
             contentType(ContentType.Application.Json)
@@ -313,6 +319,12 @@ data class ManualActivityRequest(val location: String, val description: String, 
 
 @Serializable
 data class CreateInspectionReportRequest(
+    val inspectionDate: String,
+    val summary: String
+)
+
+@Serializable
+data class UpdateInspectionReportRequest(
     val inspectionDate: String,
     val summary: String
 )
