@@ -63,14 +63,14 @@ fun CreateProjectScreen(
     var projectType by remember { mutableStateOf("project") }
     var parentProjectUuid by remember { mutableStateOf<String?>(null) }
     var subprojectContractAmount by remember { mutableStateOf("") }
-    var startDate by remember { mutableStateOf(currentIsoDate()) }
-    var endDate by remember { mutableStateOf(currentIsoDate()) }
-    var contractSignedDate by remember { mutableStateOf(currentIsoDate()) }
-    var plannedEndDate by remember { mutableStateOf(currentIsoDate()) }
-    var designContractSigningDate by remember { mutableStateOf(currentIsoDate()) }
-    var constructionContractSigningDate by remember { mutableStateOf(currentIsoDate()) }
-    var constructionStartDate by remember { mutableStateOf(currentIsoDate()) }
-    var projectedCompletionTime by remember { mutableStateOf(currentIsoDate()) }
+    var startDate by remember { mutableStateOf("") }
+    var endDate by remember { mutableStateOf("") }
+    var contractSignedDate by remember { mutableStateOf("") }
+    var plannedEndDate by remember { mutableStateOf("") }
+    var designContractSigningDate by remember { mutableStateOf("") }
+    var constructionContractSigningDate by remember { mutableStateOf("") }
+    var constructionStartDate by remember { mutableStateOf("") }
+    var projectedCompletionTime by remember { mutableStateOf("") }
     var currency by remember { mutableStateOf("UAH") }
     var contractorName by remember { mutableStateOf("") }
     var parentProjects by remember { mutableStateOf<List<ApiProject>>(emptyList()) }
@@ -84,9 +84,7 @@ fun CreateProjectScreen(
         parentProjects = runCatching { OmsApiClient.projects() }.getOrDefault(emptyList())
     }
 
-    fun requiredFieldsFilled() = listOf(
-        name, siteName, address, region, city, sector, constructionType
-    ).all { it.isNotBlank() }
+    fun requiredFieldsFilled() = listOf(name, siteName).all { it.isNotBlank() }
 
     Column(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp),
@@ -132,23 +130,25 @@ fun CreateProjectScreen(
             }
         }
 
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-        ) {
-            Column(
-                modifier = Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+        if (projectType != "project") {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
             ) {
-                SectionTitle(Icons.Default.LocationOn, LocalizationManager.t("parameters_and_location"))
-                OutlinedTextField(address, { address = it }, label = { Text(LocalizationManager.t("address_required")) }, modifier = Modifier.fillMaxWidth())
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    UkraineRegionAutocomplete(region, { region = it }, LocalizationManager.t("region"), Modifier.weight(1f), required = true)
-                    UkraineCityAutocomplete(city, { city = it }, LocalizationManager.t("city"), Modifier.weight(1f), required = true)
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    OutlinedTextField(latitude, { value -> if (value.matches(Regex("-?[0-9.,]*"))) latitude = value }, label = { Text(LocalizationManager.t("latitude_required")) }, singleLine = true, modifier = Modifier.weight(1f))
-                    OutlinedTextField(longitude, { value -> if (value.matches(Regex("-?[0-9.,]*"))) longitude = value }, label = { Text(LocalizationManager.t("longitude_required")) }, singleLine = true, modifier = Modifier.weight(1f))
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    SectionTitle(Icons.Default.LocationOn, LocalizationManager.t("parameters_and_location"))
+                    OutlinedTextField(address, { address = it }, label = { Text(LocalizationManager.t("address")) }, modifier = Modifier.fillMaxWidth())
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        UkraineRegionAutocomplete(region, { region = it }, LocalizationManager.t("region"), Modifier.weight(1f), required = false)
+                        UkraineCityAutocomplete(city, { city = it }, LocalizationManager.t("city"), Modifier.weight(1f), required = false)
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        OutlinedTextField(latitude, { value -> if (value.matches(Regex("-?[0-9.,]*"))) latitude = value }, label = { Text(LocalizationManager.t("latitude")) }, singleLine = true, modifier = Modifier.weight(1f))
+                        OutlinedTextField(longitude, { value -> if (value.matches(Regex("-?[0-9.,]*"))) longitude = value }, label = { Text(LocalizationManager.t("longitude")) }, singleLine = true, modifier = Modifier.weight(1f))
+                    }
                 }
             }
         }
@@ -168,7 +168,7 @@ fun CreateProjectScreen(
                     OutlinedTextField(technicalSupervisionAmount, { value -> if (value.all(Char::isDigit)) technicalSupervisionAmount = value }, label = { Text(LocalizationManager.t("technical_supervision_amount")) }, singleLine = true, modifier = Modifier.weight(1f))
                 }
                 if (projectType != "project") {
-                    OutlinedTextField(subprojectContractAmount, { value -> if (value.all(Char::isDigit)) subprojectContractAmount = value }, label = { Text(LocalizationManager.t("subproject_contract_amount_required")) }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                    OutlinedTextField(subprojectContractAmount, { value -> if (value.all(Char::isDigit)) subprojectContractAmount = value }, label = { Text(LocalizationManager.t("subproject_contract_amount")) }, singleLine = true, modifier = Modifier.fillMaxWidth())
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         OmsDateField(startDate, { startDate = it }, LocalizationManager.t("start_date"), Modifier.weight(1f), true)
                         OmsDateField(endDate, { endDate = it }, LocalizationManager.t("end_date"), Modifier.weight(1f), true)
@@ -219,14 +219,11 @@ fun CreateProjectScreen(
                     errorMessage = when {
                         !requiredFieldsFilled() -> LocalizationManager.t("error_required_fields")
                         parsedBudget == null || parsedBudget <= 0 -> LocalizationManager.t("error_positive_budget")
-                        parsedLatitude == null || parsedLatitude !in -90.0..90.0 -> LocalizationManager.t("error_latitude_range")
-                        parsedLongitude == null || parsedLongitude !in -180.0..180.0 -> LocalizationManager.t("error_longitude_range")
+                        parsedLatitude != null && parsedLatitude !in -90.0..90.0 -> LocalizationManager.t("error_latitude_range")
+                        parsedLongitude != null && parsedLongitude !in -180.0..180.0 -> LocalizationManager.t("error_longitude_range")
                         engineerConsultantContractAmount.isNotBlank() && parsedEngineerConsultantAmount == null -> LocalizationManager.t("error_engineer_amount")
                         technicalSupervisionAmount.isNotBlank() && parsedTechnicalSupervisionAmount == null -> LocalizationManager.t("error_supervision_amount")
-                        projectType != "project" && parentProjectUuid == null -> LocalizationManager.t("error_select_parent")
-                        projectType != "project" && (parsedSubprojectContractAmount == null || parsedSubprojectContractAmount <= 0) -> LocalizationManager.t("error_positive_contract_amount")
-                        projectType != "project" && listOf(startDate, contractSignedDate, plannedEndDate).any { it.isBlank() } -> LocalizationManager.t("error_contract_dates_required")
-                        currency.length != 3 -> LocalizationManager.t("error_currency_iso")
+                        currency.isNotBlank() && currency.length != 3 -> LocalizationManager.t("error_currency_iso")
                         else -> null
                     }
                     if (errorMessage == null) {
@@ -237,7 +234,7 @@ fun CreateProjectScreen(
                                     CreateProjectRequest(
                                         name = name.trim(), siteName = siteName.trim(), siteNumber = siteName.trim(), description = description.trim().ifBlank { null },
                                         address = address.trim(), region = region.trim(), city = city.trim(),
-                                        latitude = parsedLatitude!!, longitude = parsedLongitude!!, sector = sector.trim(),
+                                        latitude = parsedLatitude ?: 0.0, longitude = parsedLongitude ?: 0.0, sector = sector.trim(),
                                         constructionType = constructionType.trim(), budgetPlanned = parsedBudget!!,
                                         engineerConsultantContractAmount = parsedEngineerConsultantAmount,
                                         technicalSupervisionAmount = parsedTechnicalSupervisionAmount,
@@ -252,7 +249,7 @@ fun CreateProjectScreen(
                                         constructionContractSigningDate = constructionContractSigningDate.takeIf { it.isNotBlank() },
                                         constructionStartDate = constructionStartDate.takeIf { it.isNotBlank() },
                                         projectedCompletionTime = projectedCompletionTime.takeIf { it.isNotBlank() },
-                                        currency = currency,
+                                        currency = currency.ifBlank { "UAH" },
                                         contractorName = contractorName.trim().ifBlank { null }
                                     )
                                 )

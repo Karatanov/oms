@@ -154,10 +154,12 @@ fun ProjectDetailScreen(
                         ) {
                             StatusChip(project.status)
 
-                            Text(
-                                text = "${LocalizationManager.t("address")}: ${details.value?.data?.address ?: project.region}",
-                                style = MaterialTheme.typography.bodyMedium
-                            )
+                            if (!project.projectType.equals("project", ignoreCase = true)) {
+                                Text(
+                                    text = "${LocalizationManager.t("address")}: ${details.value?.data?.address ?: project.region}",
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                            }
                         }
 
                         Text(
@@ -468,7 +470,8 @@ private fun ProjectGeneralInfoTab(data: oms.data.ApiProjectDetailsData?) {
                 CircularProgressIndicator()
             }
         } else {
-            val fields = listOf(
+            val fields = buildList {
+                addAll(listOf(
                 LocalizationManager.t("record_type") to when (data.projectType) {
                     "subproject" -> LocalizationManager.t("subproject")
                     "subproject_part" -> LocalizationManager.t("subproject_part")
@@ -476,10 +479,6 @@ private fun ProjectGeneralInfoTab(data: oms.data.ApiProjectDetailsData?) {
                 },
                 LocalizationManager.t("project_code") to data.siteName,
                 LocalizationManager.t("description") to (data.description ?: "—"),
-                LocalizationManager.t("address") to data.address,
-                LocalizationManager.t("region") to data.region,
-                LocalizationManager.t("city") to data.city,
-                LocalizationManager.t("coordinates") to "${data.latitude}, ${data.longitude}",
                 LocalizationManager.t("status") to LocalizationManager.t("project_status_${data.status}"),
                 LocalizationManager.t("sector") to data.sector,
                 LocalizationManager.t("construction_type") to data.constructionType.constructionTypeLabel(),
@@ -498,7 +497,14 @@ private fun ProjectGeneralInfoTab(data: oms.data.ApiProjectDetailsData?) {
                 LocalizationManager.t("construction_start_date") to (data.constructionStartDate ?: "—"),
                 LocalizationManager.t("projected_completion_date") to (data.projectedCompletionTime ?: "—"),
                 LocalizationManager.t("contract_duration") to (data.contractDurationDays?.let { LocalizationManager.t("days_value").replace("{count}", it.toString()) } ?: "—")
-            )
+                ))
+                if (!data.projectType.equals("project", ignoreCase = true)) {
+                    add(LocalizationManager.t("address") to data.address)
+                    add(LocalizationManager.t("region") to data.region)
+                    add(LocalizationManager.t("city") to data.city)
+                    add(LocalizationManager.t("coordinates") to "${data.latitude}, ${data.longitude}")
+                }
+            }
             Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 fields.forEach { (label, value) ->
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {

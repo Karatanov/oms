@@ -83,7 +83,7 @@ fun EditProjectScreen(
         isLoading = false
     }
 
-    val allRequiredFilled = listOf(name, siteName, address, region, city, sector, constructionType).all { it.isNotBlank() }
+    val allRequiredFilled = listOf(name, siteName).all { it.isNotBlank() }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Text(LocalizationManager.t("edit_project"), style = MaterialTheme.typography.headlineMedium)
         if (isLoading) {
@@ -103,7 +103,7 @@ fun EditProjectScreen(
                 }
                 if (projectType != "project") {
                     Text(LocalizationManager.t(if (projectType == "subproject_part") "subproject_part_data" else "subproject_data"), style = MaterialTheme.typography.titleMedium)
-                    OutlinedTextField(subprojectContractAmount, { value -> if (value.all(Char::isDigit)) subprojectContractAmount = value }, label = { Text(LocalizationManager.t("subproject_contract_amount_required")) }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                    OutlinedTextField(subprojectContractAmount, { value -> if (value.all(Char::isDigit)) subprojectContractAmount = value }, label = { Text(LocalizationManager.t("subproject_contract_amount")) }, singleLine = true, modifier = Modifier.fillMaxWidth())
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         OmsDateField(startDate, { startDate = it }, LocalizationManager.t("start_date"), Modifier.weight(1f), true)
                         OmsDateField(endDate, { endDate = it }, LocalizationManager.t("end_date"), Modifier.weight(1f), true)
@@ -133,10 +133,12 @@ fun EditProjectScreen(
                     OutlinedTextField(contractorName, { contractorName = it }, label = { Text(LocalizationManager.t("contractor")) }, singleLine = true, modifier = Modifier.weight(1f))
                     OutlinedTextField(currency, { value -> if (value.all { it.isLetter() } && value.length <= 3) currency = value.uppercase() }, label = { Text(LocalizationManager.t("currency_iso_required")) }, singleLine = true, modifier = Modifier.weight(1f))
                 }
-                OutlinedTextField(address, { address = it }, label = { Text(LocalizationManager.t("address_required")) }, modifier = Modifier.fillMaxWidth())
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    UkraineRegionAutocomplete(region, { region = it }, LocalizationManager.t("region"), Modifier.weight(1f), required = true)
-                    UkraineCityAutocomplete(city, { city = it }, LocalizationManager.t("city"), Modifier.weight(1f), required = true)
+                if (projectType != "project") {
+                    OutlinedTextField(address, { address = it }, label = { Text(LocalizationManager.t("address")) }, modifier = Modifier.fillMaxWidth())
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        UkraineRegionAutocomplete(region, { region = it }, LocalizationManager.t("region"), Modifier.weight(1f), required = false)
+                        UkraineCityAutocomplete(city, { city = it }, LocalizationManager.t("city"), Modifier.weight(1f), required = false)
+                    }
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     SectorSelector(sector, { sector = it }, Modifier.weight(1f))
@@ -147,9 +149,11 @@ fun EditProjectScreen(
                     OutlinedTextField(engineerConsultantContractAmount, { value -> if (value.all(Char::isDigit)) engineerConsultantContractAmount = value }, label = { Text(LocalizationManager.t("engineer_consultant_amount")) }, singleLine = true, modifier = Modifier.weight(1f))
                     OutlinedTextField(technicalSupervisionAmount, { value -> if (value.all(Char::isDigit)) technicalSupervisionAmount = value }, label = { Text(LocalizationManager.t("technical_supervision_amount")) }, singleLine = true, modifier = Modifier.weight(1f))
                 }
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    OutlinedTextField(latitude, { value -> if (value.matches(Regex("-?[0-9.,]*"))) latitude = value }, label = { Text(LocalizationManager.t("latitude_required")) }, singleLine = true, modifier = Modifier.weight(1f))
-                    OutlinedTextField(longitude, { value -> if (value.matches(Regex("-?[0-9.,]*"))) longitude = value }, label = { Text(LocalizationManager.t("longitude_required")) }, singleLine = true, modifier = Modifier.weight(1f))
+                if (projectType != "project") {
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        OutlinedTextField(latitude, { value -> if (value.matches(Regex("-?[0-9.,]*"))) latitude = value }, label = { Text(LocalizationManager.t("latitude")) }, singleLine = true, modifier = Modifier.weight(1f))
+                        OutlinedTextField(longitude, { value -> if (value.matches(Regex("-?[0-9.,]*"))) longitude = value }, label = { Text(LocalizationManager.t("longitude")) }, singleLine = true, modifier = Modifier.weight(1f))
+                    }
                 }
             }
         }
@@ -166,13 +170,11 @@ fun EditProjectScreen(
                 errorMessage = when {
                     !allRequiredFilled -> LocalizationManager.t("error_required_fields")
                     budget == null || budget <= 0 -> LocalizationManager.t("error_positive_budget")
-                    lat == null || lat !in -90.0..90.0 -> LocalizationManager.t("error_latitude_range")
-                    lon == null || lon !in -180.0..180.0 -> LocalizationManager.t("error_longitude_range")
+                    lat != null && lat !in -90.0..90.0 -> LocalizationManager.t("error_latitude_range")
+                    lon != null && lon !in -180.0..180.0 -> LocalizationManager.t("error_longitude_range")
                     engineerConsultantContractAmount.isNotBlank() && engineerAmount == null -> LocalizationManager.t("error_engineer_amount")
                     technicalSupervisionAmount.isNotBlank() && supervisionAmount == null -> LocalizationManager.t("error_supervision_amount")
-                    projectType != "project" && (subprojectAmount == null || subprojectAmount <= 0) -> LocalizationManager.t("error_positive_subproject_contract")
-                    projectType != "project" && listOf(startDate, contractSignedDate, plannedEndDate).any { it.isBlank() } -> LocalizationManager.t("error_subproject_dates_required")
-                    currency.length != 3 -> LocalizationManager.t("error_currency_iso")
+                    currency.isNotBlank() && currency.length != 3 -> LocalizationManager.t("error_currency_iso")
                     else -> null
                 }
                 if (errorMessage == null) {
@@ -184,7 +186,7 @@ fun EditProjectScreen(
                                 description = description.trim(),
                                 address = address.trim(), region = region.trim(), city = city.trim(),
                                 status = status,
-                                latitude = lat!!, longitude = lon!!, sector = sector.trim(),
+                                latitude = lat, longitude = lon, sector = sector.trim(),
                                 constructionType = constructionType.trim(), budgetPlanned = budget!!,
                                 engineerConsultantContractAmount = engineerAmount,
                                 technicalSupervisionAmount = supervisionAmount,
@@ -197,7 +199,7 @@ fun EditProjectScreen(
                                 constructionContractSigningDate = constructionContractSigningDate.takeIf { it.isNotBlank() },
                                 constructionStartDate = constructionStartDate.takeIf { it.isNotBlank() },
                                 projectedCompletionTime = projectedCompletionTime.takeIf { it.isNotBlank() },
-                                currency = currency,
+                                currency = currency.ifBlank { "UAH" },
                                 contractorName = contractorName.trim()
                             ))
                         }.onSuccess {

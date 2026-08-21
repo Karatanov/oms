@@ -31,6 +31,8 @@ fun MapScreen(
     var status by remember { mutableStateOf<ProjectStatus?>(null) }
     val visibleProjects = remember(projects, search, region, status) {
         projects.filter { project ->
+            !project.projectType.equals("project", ignoreCase = true) &&
+                (project.latitude != 0.0 || project.longitude != 0.0) &&
             (search.isBlank() || project.name.contains(search, ignoreCase = true)) &&
                 (region == null || project.region == region) &&
                 (status == null || project.status == status)

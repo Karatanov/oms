@@ -35,37 +35,37 @@ data class CreateProjectRequest(
     /**
      * Повна адреса.
      */
-    val address: String,
+    val address: String = "",
 
     /**
      * Область.
      */
-    val region: String,
+    val region: String = "",
 
     /**
      * Населений пункт.
      */
-    val city: String,
+    val city: String = "",
 
     /**
      * Географічна широта.
      */
-    val latitude: Double,
+    val latitude: Double = 0.0,
 
     /**
      * Географічна довгота.
      */
-    val longitude: Double,
+    val longitude: Double = 0.0,
 
     /**
      * Галузь.
      */
-    val sector: String,
+    val sector: String = "",
 
     /**
      * Тип будівництва.
      */
-    val constructionType: String,
+    val constructionType: String = "reconstruction",
 
     /**
      * Плановий бюджет у гривнях.

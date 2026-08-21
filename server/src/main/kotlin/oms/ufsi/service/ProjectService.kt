@@ -62,12 +62,12 @@ class ProjectService(
         managerId: Long
     ): Project {
 
-        val normalizedConstructionType = normalizeConstructionType(constructionType)
+        val normalizedConstructionType = normalizeConstructionTypeOrDefault(constructionType)
 
         validateProjectData(
             name = name,
-            region = region,
-            city = city,
+            siteName = siteName,
+            siteNumber = siteNumber,
             budgetPlanned = budgetPlanned,
             engineerConsultantContractAmount = engineerConsultantContractAmount,
             technicalSupervisionAmount = technicalSupervisionAmount,
@@ -144,8 +144,8 @@ class ProjectService(
      */
     private fun validateProjectData(
         name: String,
-        region: String,
-        city: String,
+        siteName: String,
+        siteNumber: String,
         budgetPlanned: Long,
         engineerConsultantContractAmount: Long? = null,
         technicalSupervisionAmount: Long? = null,
@@ -163,18 +163,8 @@ class ProjectService(
             )
         }
 
-        if (region.isBlank()) {
-
-            throw IllegalArgumentException(
-                "Область не може бути порожньою."
-            )
-        }
-
-        if (city.isBlank()) {
-
-            throw IllegalArgumentException(
-                "Населений пункт не може бути порожнім."
-            )
+        require(siteName.isNotBlank() || siteNumber.isNotBlank()) {
+            "Project code must not be blank."
         }
 
         if (budgetPlanned <= 0) {
@@ -191,13 +181,7 @@ class ProjectService(
             "Technical supervision amount must not be negative."
         }
 
-        if (projectType != ProjectType.PROJECT) {
-            require(subprojectContractAmount != null && subprojectContractAmount > 0) {
-                "Subproject or subproject part contract amount must be positive."
-            }
-            require(startDate != null && contractSignedDate != null && plannedEndDate != null) {
-                "Subproject or subproject part start date, contract signing date, and planned end date are required."
-            }
+        if (contractSignedDate != null && plannedEndDate != null) {
             require(!plannedEndDate.isBefore(contractSignedDate)) {
                 "Planned end date must not be before contract signing date."
             }
@@ -228,7 +212,7 @@ class ProjectService(
         managerId: Long
     ): Project {
 
-        val normalizedConstructionType = normalizeConstructionType(constructionType)
+        val normalizedConstructionType = normalizeConstructionTypeOrDefault(constructionType)
         val normalizedType = when (projectType.trim().lowercase()) {
             "project" -> ProjectType.PROJECT
             "subproject" -> ProjectType.SUBPROJECT
@@ -238,10 +222,10 @@ class ProjectService(
         val parent = parentProjectUuid?.trim()?.takeIf { it.isNotEmpty() }?.let { parentUuid ->
             getProjectByUuid(parentUuid) ?: throw IllegalArgumentException("Parent project was not found.")
         }
-        if (normalizedType == ProjectType.SUBPROJECT) {
-            require(parent?.projectType == ProjectType.PROJECT) { "A subproject must reference a parent project." }
-        } else if (normalizedType == ProjectType.SUBPROJECT_PART) {
-            require(parent?.projectType == ProjectType.SUBPROJECT) { "A subproject part must reference a parent subproject." }
+        if (normalizedType == ProjectType.SUBPROJECT && parent != null) {
+            require(parent.projectType == ProjectType.PROJECT) { "A subproject must reference a parent project." }
+        } else if (normalizedType == ProjectType.SUBPROJECT_PART && parent != null) {
+            require(parent.projectType == ProjectType.SUBPROJECT) { "A subproject part must reference a parent subproject." }
         } else {
             require(parent == null) { "Only a subproject or subproject part may reference a parent." }
         }
@@ -250,8 +234,8 @@ class ProjectService(
         val parsedPlannedEndDate = parseOptionalDate(plannedEndDate, "Planned end date")
         validateProjectData(
             name = name,
-            region = region,
-            city = city,
+            siteName = siteName,
+            siteNumber = siteNumber,
             budgetPlanned = budgetPlanned,
             engineerConsultantContractAmount = engineerConsultantContractAmount,
             technicalSupervisionAmount = technicalSupervisionAmount,
@@ -370,7 +354,7 @@ class ProjectService(
             latitude = request.latitude ?: current.latitude,
             longitude = request.longitude ?: current.longitude,
             sector = request.sector?.trim() ?: current.sector,
-            constructionType = request.constructionType?.let(::normalizeConstructionType) ?: current.constructionType,
+            constructionType = request.constructionType?.let(::normalizeConstructionTypeOrDefault) ?: current.constructionType,
             budgetPlanned = request.budgetPlanned ?: current.budgetPlanned,
             engineerConsultantContractAmount = request.engineerConsultantContractAmount ?: current.engineerConsultantContractAmount,
             technicalSupervisionAmount = request.technicalSupervisionAmount ?: current.technicalSupervisionAmount,
@@ -386,7 +370,7 @@ class ProjectService(
             currency = request.currency?.trim()?.uppercase()?.also { require(it.matches(Regex("[A-Z]{3}"))) { "Currency must be a three-letter code." } } ?: current.currency,
             contractorName = request.contractorName?.trim()?.takeIf { it.isNotEmpty() } ?: current.contractorName
         )
-        validateProjectData(patch.name, patch.region, patch.city, patch.budgetPlanned, patch.engineerConsultantContractAmount, patch.technicalSupervisionAmount, current.projectType, patch.subprojectContractAmount, patch.startDate, patch.contractSignedDate, patch.plannedEndDate)
+        validateProjectData(patch.name, patch.siteName, patch.siteNumber, patch.budgetPlanned, patch.engineerConsultantContractAmount, patch.technicalSupervisionAmount, current.projectType, patch.subprojectContractAmount, patch.startDate, patch.contractSignedDate, patch.plannedEndDate)
         if (patch.latitude !in -90.0..90.0) throw IllegalArgumentException("Latitude must be between -90 and 90.")
         if (patch.longitude !in -180.0..180.0) throw IllegalArgumentException("Longitude must be between -180 and 180.")
         return projectRepository.updateByUuid(uuid.trim(), patch)
@@ -402,6 +386,9 @@ class ProjectService(
         }
         return normalized
     }
+
+    private fun normalizeConstructionTypeOrDefault(value: String): String =
+        value.trim().takeIf { it.isNotEmpty() }?.let(::normalizeConstructionType) ?: "reconstruction"
 
     private fun parseRequiredDate(value: String, label: String): LocalDate = try {
         LocalDate.parse(value)
