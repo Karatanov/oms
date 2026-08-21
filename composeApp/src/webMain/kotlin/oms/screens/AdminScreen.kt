@@ -228,7 +228,10 @@ private fun CreateUserDialog(roles: List<ApiRole>, onDismiss: () -> Unit, onSave
     var department by remember { mutableStateOf("") }
     var preferredLang by remember { mutableStateOf("uk") }
     val role = roles.firstOrNull { it.code == roleCode }
-    Card(Modifier.fillMaxWidth().widthIn(max = 760.dp)) {
+    Card(
+        modifier = Modifier.fillMaxWidth().widthIn(max = 760.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+    ) {
         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(LocalizationManager.t("create_user"), style = MaterialTheme.typography.titleLarge)
             Column(
@@ -289,7 +292,10 @@ private fun EditUserDialog(user: ApiUser, roles: List<ApiRole>, saveError: Strin
     var department by remember(user.id) { mutableStateOf(user.department.orEmpty()) }
     var preferredLang by remember(user.id) { mutableStateOf(user.preferredLang) }
     val role = roles.firstOrNull { it.code == roleCode }
-    Card(Modifier.fillMaxWidth().widthIn(max = 760.dp)) {
+    Card(
+        modifier = Modifier.fillMaxWidth().widthIn(max = 760.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+    ) {
         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(LocalizationManager.t("edit_user"), style = MaterialTheme.typography.titleLarge)
             Column(
