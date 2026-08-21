@@ -96,7 +96,12 @@ fun EditProjectScreen(
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedTextField(name, { name = it }, label = { Text(LocalizationManager.t("project_name_required")) }, modifier = Modifier.fillMaxWidth())
                 OutlinedTextField(description, { description = it }, label = { Text(LocalizationManager.t("description")) }, minLines = 3, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(siteName, { siteName = it }, label = { Text(LocalizationManager.t("project_code_required")) }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(
+                    siteName,
+                    { siteName = it },
+                    label = { Text(LocalizationManager.t(if (projectType == "subproject_part") "subproject_part_code" else "project_code_required")) },
+                    modifier = Modifier.fillMaxWidth()
+                )
                 Text(LocalizationManager.t("status"), style = MaterialTheme.typography.labelLarge)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     listOf("planned", "active", "suspended", "completed", "archived", "dlp").forEach { value ->

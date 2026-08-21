@@ -110,7 +110,7 @@ fun CreateProjectScreen(
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     OutlinedButton(onClick = { projectType = "project" }, modifier = Modifier.weight(1f), colors = ButtonDefaults.outlinedButtonColors(containerColor = if (projectType == "project") Primary else MaterialTheme.colorScheme.surface, contentColor = if (projectType == "project") MaterialTheme.colorScheme.onPrimary else Primary)) { Text(LocalizationManager.t("project")) }
                     OutlinedButton(onClick = { projectType = "subproject" }, modifier = Modifier.weight(1f), colors = ButtonDefaults.outlinedButtonColors(containerColor = if (projectType == "subproject") Primary else MaterialTheme.colorScheme.surface, contentColor = if (projectType == "subproject") MaterialTheme.colorScheme.onPrimary else Primary)) { Text(LocalizationManager.t("subproject")) }
-                    OutlinedButton(onClick = { projectType = "subproject_part" }, modifier = Modifier.weight(1f), colors = ButtonDefaults.outlinedButtonColors(containerColor = if (projectType == "subproject_part") Primary else MaterialTheme.colorScheme.surface, contentColor = if (projectType == "subproject_part") MaterialTheme.colorScheme.onPrimary else Primary)) { Text(LocalizationManager.t("subproject_part")) }
+                    OutlinedButton(onClick = { projectType = "subproject_part"; siteName = "" }, modifier = Modifier.weight(1f), colors = ButtonDefaults.outlinedButtonColors(containerColor = if (projectType == "subproject_part") Primary else MaterialTheme.colorScheme.surface, contentColor = if (projectType == "subproject_part") MaterialTheme.colorScheme.onPrimary else Primary)) { Text(LocalizationManager.t("subproject_part")) }
                 }
                 if (projectType != "project") {
                     val eligibleParents = parentProjects.filter { it.projectType == if (projectType == "subproject") "project" else "subproject" }
@@ -118,13 +118,21 @@ fun CreateProjectScreen(
                         options = eligibleParents,
                         selected = eligibleParents.firstOrNull { it.uuid == parentProjectUuid },
                         prompt = LocalizationManager.t(if (projectType == "subproject") "select_parent_project" else "select_parent_subproject"),
-                        onSelect = { parentProjectUuid = it.uuid },
+                        onSelect = {
+                            parentProjectUuid = it.uuid
+                            if (projectType == "subproject_part") siteName = nextSubprojectPartCode(it, parentProjects)
+                        },
                         itemLabel = { it.name }
                     )
                 }
                 OutlinedTextField(name, { name = it }, label = { Text(LocalizationManager.t("project_name_required")) }, modifier = Modifier.fillMaxWidth())
                 OutlinedTextField(description, { description = it }, label = { Text(LocalizationManager.t("description")) }, minLines = 3, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(siteName, { siteName = it }, label = { Text(LocalizationManager.t("project_code_required")) }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(
+                    siteName,
+                    { siteName = it },
+                    label = { Text(LocalizationManager.t(if (projectType == "subproject_part") "subproject_part_code" else "project_code_required")) },
+                    modifier = Modifier.fillMaxWidth()
+                )
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     SectorSelector(sector, { sector = it }, Modifier.weight(1f))
                     ConstructionTypeSelector(constructionType, { constructionType = it }, Modifier.weight(1f))
@@ -283,6 +291,19 @@ fun CreateProjectScreen(
             }
         }
     }
+}
+
+private fun nextSubprojectPartCode(parent: ApiProject, projects: List<ApiProject>): String {
+    val parentCode = parent.siteNumber.trim()
+    val pattern = Regex("^${Regex.escape(parentCode)}-(\\d+)$")
+    val nextNumber = projects
+        .asSequence()
+        .filter { it.projectType == "subproject_part" && it.parentProjectUuid == parent.uuid }
+        .mapNotNull { pattern.matchEntire(it.siteNumber.trim())?.groupValues?.get(1)?.toIntOrNull() }
+        .maxOrNull()
+        ?.plus(1)
+        ?: 1
+    return "$parentCode-${nextNumber.toString().padStart(2, '0')}"
 }
 
 @Composable

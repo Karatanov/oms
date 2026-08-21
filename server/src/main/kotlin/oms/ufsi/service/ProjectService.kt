@@ -229,13 +229,18 @@ class ProjectService(
         } else {
             require(parent == null) { "Only a subproject or subproject part may reference a parent." }
         }
+        val generatedPartCode = if (normalizedType == ProjectType.SUBPROJECT_PART && parent != null) {
+            nextSubprojectPartCode(parent)
+        } else null
+        val resolvedSiteName = siteName.trim().ifBlank { siteNumber.trim().ifBlank { generatedPartCode.orEmpty() } }
+        val resolvedSiteNumber = siteNumber.trim().ifBlank { siteName.trim().ifBlank { generatedPartCode.orEmpty() } }
         val parsedStartDate = parseOptionalDate(startDate, "Start date")
         val parsedContractSignedDate = parseOptionalDate(contractSignedDate, "Contract signing date")
         val parsedPlannedEndDate = parseOptionalDate(plannedEndDate, "Planned end date")
         validateProjectData(
             name = name,
-            siteName = siteName,
-            siteNumber = siteNumber,
+            siteName = resolvedSiteName,
+            siteNumber = resolvedSiteNumber,
             budgetPlanned = budgetPlanned,
             engineerConsultantContractAmount = engineerConsultantContractAmount,
             technicalSupervisionAmount = technicalSupervisionAmount,
@@ -268,9 +273,9 @@ class ProjectService(
 
             name = name,
 
-            siteName = siteName,
+            siteName = resolvedSiteName,
 
-            siteNumber = siteNumber,
+            siteNumber = resolvedSiteNumber,
 
             address = address,
 
@@ -389,6 +394,19 @@ class ProjectService(
 
     private fun normalizeConstructionTypeOrDefault(value: String): String =
         value.trim().takeIf { it.isNotEmpty() }?.let(::normalizeConstructionType) ?: "reconstruction"
+
+    private fun nextSubprojectPartCode(parent: Project): String {
+        val parentCode = parent.siteNumber.trim().ifBlank { parent.siteName.trim() }
+        val pattern = Regex("^${Regex.escape(parentCode)}-(\\d+)$")
+        val nextNumber = getAllProjects()
+            .asSequence()
+            .filter { it.projectType == ProjectType.SUBPROJECT_PART && it.parentProjectId == parent.id }
+            .mapNotNull { pattern.matchEntire(it.siteNumber.trim())?.groupValues?.get(1)?.toIntOrNull() }
+            .maxOrNull()
+            ?.plus(1)
+            ?: 1
+        return "$parentCode-${nextNumber.toString().padStart(2, '0')}"
+    }
 
     private fun parseRequiredDate(value: String, label: String): LocalDate = try {
         LocalDate.parse(value)
