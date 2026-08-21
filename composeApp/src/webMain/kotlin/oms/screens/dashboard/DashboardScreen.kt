@@ -16,7 +16,6 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.delay
 import oms.data.ApiDashboard
 import oms.data.ApiInspectionPhoto
 import oms.data.OmsApiClient
@@ -39,11 +38,8 @@ fun DashboardScreen() {
     var photoInspectionDate by remember { mutableStateOf<String?>(null) }
     val projects = ProjectRepository.projects
     LaunchedEffect(Unit) {
-        while (true) {
-            ProjectRepository.refresh()
-            dashboard = runCatching { OmsApiClient.dashboard() }.getOrNull()
-            delay(30_000)
-        }
+        ProjectRepository.refresh()
+        dashboard = runCatching { OmsApiClient.dashboard() }.getOrNull()
     }
 
     val recentInspections = dashboard?.recentInspections.orEmpty().sortedByDescending { it.inspectionDate }
