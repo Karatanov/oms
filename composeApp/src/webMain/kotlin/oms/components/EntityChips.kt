@@ -1,10 +1,19 @@
 package oms.components
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
 import oms.localization.LocalizationManager
 
 @Composable
@@ -15,7 +24,15 @@ fun ReportStatusChip(status: String) {
         "completed" -> LocalizationManager.t("completed_status") to Color(0xFF2E7D32)
         else -> status.replace('_', ' ') to Color(0xFF546E7A)
     }
-    AssistChip(onClick = {}, label = { Text(label) }, colors = AssistChipDefaults.assistChipColors(containerColor = color, labelColor = Color.White))
+    Box(
+        modifier = Modifier
+            .width(120.dp)
+            .background(color.copy(alpha = 0.13f), RoundedCornerShape(6.dp))
+            .padding(horizontal = 8.dp, vertical = 4.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(label, color = color, fontWeight = FontWeight.Medium, maxLines = 1)
+    }
 }
 
 @Composable
