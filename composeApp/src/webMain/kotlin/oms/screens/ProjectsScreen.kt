@@ -31,7 +31,6 @@ import androidx.compose.ui.text.font.FontWeight
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
-import oms.components.FilterDropdown
 import oms.components.StatusChip
 import oms.components.TableHeader
 import oms.components.TableActionIconButton
@@ -342,6 +341,7 @@ fun ProjectsFilters(
     sectorFilter: String?,
     onSectorChange: (String?) -> Unit
 ) {
+    var openFilter by remember { mutableStateOf<ProjectFilterMenu?>(null) }
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -355,11 +355,19 @@ fun ProjectsFilters(
             modifier = Modifier.weight(1f)
         )
 
-        FilterDropdown(
-            label = LocalizationManager.t("filter_label").replace("{name}", LocalizationManager.t("region")),
+        Text(
+            LocalizationManager.t("filters"),
+            style = MaterialTheme.typography.labelLarge,
+            modifier = Modifier.padding(top = 16.dp)
+        )
+
+        ProjectFilterDropdown(
+            label = LocalizationManager.t("region"),
             options = ProjectRepository.projects.map { it.region }.filter { it.isNotBlank() }.distinct().sorted(),
             selected = regionFilter,
             onSelect = onRegionChange,
+            expanded = openFilter == ProjectFilterMenu.Region,
+            onExpandedChange = { openFilter = if (it) ProjectFilterMenu.Region else null },
             itemLabel = { region ->
                 when (region) {
                     "Kyiv" -> "Kyiv"
@@ -370,31 +378,77 @@ fun ProjectsFilters(
             }
         )
 
-        FilterDropdown(
-            label = LocalizationManager.t("filter_label").replace("{name}", LocalizationManager.t("status")),
+        ProjectFilterDropdown(
+            label = LocalizationManager.t("status"),
             options = ProjectStatus.entries,
             selected = statusFilter,
             onSelect = onStatusChange,
+            expanded = openFilter == ProjectFilterMenu.Status,
+            onExpandedChange = { openFilter = if (it) ProjectFilterMenu.Status else null },
             itemLabel = { status ->
                 LocalizationManager.t("project_status_${status.name.lowercase()}")
             }
         )
 
-        FilterDropdown(
-            label = LocalizationManager.t("filter_label").replace("{name}", LocalizationManager.t("construction_type")),
+        ProjectFilterDropdown(
+            label = LocalizationManager.t("construction_type"),
             options = constructionTypes,
             selected = constructionTypeFilter,
             onSelect = onConstructionTypeChange,
+            expanded = openFilter == ProjectFilterMenu.ConstructionType,
+            onExpandedChange = { openFilter = if (it) ProjectFilterMenu.ConstructionType else null },
             itemLabel = String::constructionTypeLabel
         )
 
-        FilterDropdown(
-            label = LocalizationManager.t("filter_label").replace("{name}", LocalizationManager.t("sector")),
+        ProjectFilterDropdown(
+            label = LocalizationManager.t("sector"),
             options = sectors,
             selected = sectorFilter,
             onSelect = onSectorChange,
+            expanded = openFilter == ProjectFilterMenu.Sector,
+            onExpandedChange = { openFilter = if (it) ProjectFilterMenu.Sector else null },
             itemLabel = String::sectorLabel
         )
+    }
+}
+
+private enum class ProjectFilterMenu { Region, Status, ConstructionType, Sector }
+
+@OptIn(ExperimentalComposeUiApi::class)
+@Composable
+private fun <T> ProjectFilterDropdown(
+    label: String,
+    options: List<T>,
+    selected: T?,
+    onSelect: (T?) -> Unit,
+    expanded: Boolean,
+    onExpandedChange: (Boolean) -> Unit,
+    itemLabel: (T) -> String
+) {
+    Box(
+        modifier = Modifier
+            .widthIn(min = 140.dp, max = 220.dp)
+            .onPointerEvent(PointerEventType.Enter) { onExpandedChange(true) }
+    ) {
+        OutlinedButton(onClick = { onExpandedChange(!expanded) }) {
+            Text(selected?.let(itemLabel) ?: label, maxLines = 1)
+        }
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { onExpandedChange(false) },
+            modifier = Modifier.heightIn(max = 240.dp)
+        ) {
+            DropdownMenuItem(
+                text = { Text(LocalizationManager.t("all")) },
+                onClick = { onExpandedChange(false); onSelect(null) }
+            )
+            options.forEach { option ->
+                DropdownMenuItem(
+                    text = { Text(itemLabel(option)) },
+                    onClick = { onExpandedChange(false); onSelect(option) }
+                )
+            }
+        }
     }
 }
 
@@ -516,13 +570,6 @@ fun ProjectRow(
             ) {
                 Box(
                     modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .width(2.dp)
-                        .height(8.dp)
-                        .background(Primary.copy(alpha = 0.65f))
-                )
-                Box(
-                    modifier = Modifier
                         .size(24.dp)
                         .background(Primary, MaterialTheme.shapes.extraLarge),
                     contentAlignment = Alignment.Center
@@ -542,13 +589,6 @@ fun ProjectRow(
                     modifier = Modifier.size(20.dp)
                 )
             } else {
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.TopCenter)
-                        .width(2.dp)
-                        .height(18.dp)
-                        .background(Primary.copy(alpha = 0.55f))
-                )
                 if (indentLevel > 1) {
                     Box(
                         modifier = Modifier.size(24.dp).background(Color.White, CircleShape),
