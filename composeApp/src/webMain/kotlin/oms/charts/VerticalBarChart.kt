@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -30,12 +31,21 @@ fun VerticalBarChart(
     color: Color,
     labelWidth: Dp = 76.dp,
     labelMaxLines: Int = 2,
+    maxVisibleItems: Int? = null,
+    initialScrollToEnd: Boolean = false,
     valueLabel: (Float) -> String = { it.toInt().toString() }
 ) {
     if (data.isEmpty()) return
     val maxValue = data.maxOf { it.value }.coerceAtLeast(1f)
+    val scrollState = rememberScrollState()
+    LaunchedEffect(data, initialScrollToEnd) {
+        if (initialScrollToEnd) scrollState.scrollTo(scrollState.maxValue)
+    }
+    val viewportWidth = maxVisibleItems?.let { minOf(data.size, it) * (labelWidth.value + 12f) }
     Row(
-        modifier = Modifier.horizontalScroll(rememberScrollState()).height(230.dp),
+        modifier = (if (viewportWidth == null) Modifier else Modifier.width(viewportWidth.dp))
+            .horizontalScroll(scrollState)
+            .height(230.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.Bottom
     ) {

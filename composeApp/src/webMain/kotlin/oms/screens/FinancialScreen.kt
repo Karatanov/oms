@@ -36,11 +36,12 @@ external fun downloadFinancialExport(projectUuid: String)
 
 private data class ProjectActRow(
     val projectUuid: String,
-    val projectName: String,
+    val subprojectName: String,
+    val subprojectPartCode: String?,
     val act: ApiFinancialRecord
 )
 
-private enum class FinancialSort { Number, Type, Project, ActDate, PaymentDate, Amount, Currency, Milestone, Author }
+private enum class FinancialSort { Number, Type, Subproject, SubprojectPartCode, ActDate, PaymentDate, Amount, Currency, Description, Author }
 
 @Composable
 fun FinancialScreen(
@@ -74,7 +75,10 @@ fun FinancialScreen(
         val projectsById = ProjectRepository.projects.associateBy { it.id }
         acts = records.mapNotNull { item ->
             projectsById[item.projectUuid]?.let { project ->
-                ProjectActRow(project.id, project.name, item.record)
+                val ancestry = generateSequence(project) { current -> current.parentProjectUuid?.let(projectsById::get) }.toList().asReversed()
+                val subproject = ancestry.firstOrNull { it.projectType == "subproject" }
+                val partCode = ancestry.firstOrNull { it.projectType == "subproject_part" }?.siteNumber
+                ProjectActRow(project.id, subproject?.name ?: project.name, partCode, item.record)
             }
         }.sortedByDescending { it.act.recordDate }
     }
@@ -88,17 +92,21 @@ fun FinancialScreen(
         }
     }
 
-    val completedWorksTotal = acts.filter { it.act.recordType == "act" }.sumOf { it.act.amount }
+    val completedWorksTotals = acts
+        .filter { it.act.recordType == "act" }
+        .groupBy { it.act.currency }
+        .mapValues { (_, rows) -> rows.sumOf { it.act.amount } }
     val visibleActs = acts.filter { recordTypeFilter == null || it.act.recordType == recordTypeFilter }.sortedWith(compareBy<ProjectActRow> {
         when (sort) {
             FinancialSort.Number -> it.act.referenceNumber
             FinancialSort.Type -> it.act.recordType
-            FinancialSort.Project -> it.projectName
+            FinancialSort.Subproject -> it.subprojectName
+            FinancialSort.SubprojectPartCode -> it.subprojectPartCode.orEmpty()
             FinancialSort.ActDate -> it.act.recordDate
             FinancialSort.PaymentDate -> it.act.paymentDate.orEmpty()
             FinancialSort.Amount -> it.act.amount.toString().padStart(20, '0')
             FinancialSort.Currency -> it.act.currency
-            FinancialSort.Milestone -> it.act.milestone.orEmpty()
+            FinancialSort.Description -> (it.act.description ?: it.act.milestone).orEmpty()
             FinancialSort.Author -> "admin"
         }
     }.let { if (ascending) it else it.reversed() })
@@ -114,7 +122,7 @@ fun FinancialScreen(
         Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(LocalizationManager.t("completed_works_by_acts"), style = MaterialTheme.typography.titleMedium)
-                Text(completedWorksTotal.toMoney(), style = MaterialTheme.typography.headlineMedium)
+                Text(completedWorksTotals.entries.joinToString(" • ") { (currency, amount) -> amount.toMoney(currency) }.ifBlank { "—" }, style = MaterialTheme.typography.headlineMedium)
             }
         }
 
@@ -140,15 +148,16 @@ fun FinancialScreen(
                 HorizontalDivider()
                 if (visibleActs.isEmpty()) Text(LocalizationManager.t("no_acts"))
                 visibleActs.forEach { row ->
-                    Row(Modifier.width(1_500.dp).padding(vertical = 8.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                    Row(Modifier.width(1_420.dp).padding(vertical = 8.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                         Text(row.act.referenceNumber, Modifier.width(130.dp))
                         Text(row.act.recordType.replaceFirstChar { it.uppercase() }, Modifier.width(95.dp))
-                        Text(row.projectName, Modifier.weight(1.25f))
+                        Text(row.subprojectName, Modifier.width(200.dp))
+                        Text(row.subprojectPartCode ?: "—", Modifier.width(160.dp))
                         Text(row.act.recordDate.toOmsDate(), Modifier.width(105.dp))
                         Text(row.act.paymentDate.toOmsDate(), Modifier.width(105.dp))
-                        Text(row.act.amount.toMoney(), Modifier.width(130.dp))
+                        Text(row.act.amount.toMoney(row.act.currency), Modifier.width(130.dp))
                         Text(row.act.currency, Modifier.width(65.dp))
-                        Text(row.act.milestone ?: "—", Modifier.weight(1f))
+                        Text(row.act.description ?: row.act.milestone ?: "—", Modifier.width(250.dp))
                         Text("admin", Modifier.width(75.dp))
                         if (canManageFinancials) {
                             TableActionIconButton(LocalizationManager.t("edit_financial_record_tooltip"), Icons.Default.Edit) { editAct = row }
@@ -231,6 +240,7 @@ private fun ActEditorDialog(existing: ProjectActRow?, projects: List<oms.model.P
     var amount by remember { mutableStateOf(existing?.act?.amount?.toString() ?: "") }
     var currency by remember { mutableStateOf(existing?.act?.currency ?: "EUR") }
     var date by remember { mutableStateOf(existing?.act?.recordDate ?: currentIsoDate()) }
+    var description by remember { mutableStateOf(existing?.act?.description ?: existing?.act?.milestone ?: "") }
     val selected = projects.firstOrNull { it.id == projectUuid }
     val valid = projectUuid != null && reference.isNotBlank() && amount.toLongOrNull()?.let { it > 0 } == true && date.matches(Regex("\\d{4}-\\d{2}-\\d{2}"))
     Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
@@ -264,9 +274,17 @@ private fun ActEditorDialog(existing: ProjectActRow?, projects: List<oms.model.P
                 }
             }
             OmsDateField(date, { date = it }, LocalizationManager.t("date"), Modifier.fillMaxWidth(), true)
+            OutlinedTextField(
+                value = description,
+                onValueChange = { description = it },
+                label = { Text(LocalizationManager.t(if (recordType == "payment") "payment_basis" else "description")) },
+                placeholder = if (recordType == "payment") { { Text(LocalizationManager.t("payment_basis_hint")) } } else null,
+                modifier = Modifier.fillMaxWidth(),
+                minLines = if (recordType == "payment") 2 else 1
+            )
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, androidx.compose.ui.Alignment.End)) {
                 OutlinedButton(onClick = onDismiss) { Text(LocalizationManager.t("cancel")) }
-                Button(onClick = { onSave(projectUuid!!, oms.data.FinancialRecordRequest(recordType, reference, amount.toLong(), currency, date)) }, enabled = valid) { Text(LocalizationManager.t("save")) }
+                Button(onClick = { onSave(projectUuid!!, oms.data.FinancialRecordRequest(recordType, reference, amount.toLong(), currency, date, description = description.ifBlank { null }, milestone = null)) }, enabled = valid) { Text(LocalizationManager.t("save")) }
             }
         }
     }
@@ -274,15 +292,16 @@ private fun ActEditorDialog(existing: ProjectActRow?, projects: List<oms.model.P
 
 @Composable
 private fun FinancialTableHeader(sort: FinancialSort, ascending: Boolean, onSort: (FinancialSort) -> Unit) {
-    Row(Modifier.width(1_500.dp).padding(vertical = 6.dp)) {
+    Row(Modifier.width(1_420.dp).padding(vertical = 6.dp)) {
         SortableTableHeader(LocalizationManager.t("reference_number"), sort == FinancialSort.Number, ascending, { onSort(FinancialSort.Number) }, Modifier.width(130.dp))
         SortableTableHeader(LocalizationManager.t("type"), sort == FinancialSort.Type, ascending, { onSort(FinancialSort.Type) }, Modifier.width(95.dp))
-        SortableTableHeader(LocalizationManager.t("project"), sort == FinancialSort.Project, ascending, { onSort(FinancialSort.Project) }, Modifier.weight(1.25f))
+        SortableTableHeader(LocalizationManager.t("subproject"), sort == FinancialSort.Subproject, ascending, { onSort(FinancialSort.Subproject) }, Modifier.width(200.dp))
+        SortableTableHeader(LocalizationManager.t("subproject_part_code_label"), sort == FinancialSort.SubprojectPartCode, ascending, { onSort(FinancialSort.SubprojectPartCode) }, Modifier.width(160.dp))
         SortableTableHeader(LocalizationManager.t("act_date"), sort == FinancialSort.ActDate, ascending, { onSort(FinancialSort.ActDate) }, Modifier.width(105.dp))
         SortableTableHeader(LocalizationManager.t("payment_date"), sort == FinancialSort.PaymentDate, ascending, { onSort(FinancialSort.PaymentDate) }, Modifier.width(105.dp))
         SortableTableHeader(LocalizationManager.t("amount"), sort == FinancialSort.Amount, ascending, { onSort(FinancialSort.Amount) }, Modifier.width(130.dp))
         SortableTableHeader(LocalizationManager.t("currency_short"), sort == FinancialSort.Currency, ascending, { onSort(FinancialSort.Currency) }, Modifier.width(65.dp))
-        SortableTableHeader(LocalizationManager.t("milestone"), sort == FinancialSort.Milestone, ascending, { onSort(FinancialSort.Milestone) }, Modifier.weight(1f))
+        SortableTableHeader(LocalizationManager.t("description"), sort == FinancialSort.Description, ascending, { onSort(FinancialSort.Description) }, Modifier.width(250.dp))
         SortableTableHeader(LocalizationManager.t("author"), sort == FinancialSort.Author, ascending, { onSort(FinancialSort.Author) }, Modifier.width(75.dp))
         Spacer(Modifier.width(96.dp))
     }
@@ -303,4 +322,4 @@ private fun FinancialAccessDenied() {
     }
 }
 
-private fun Long.toMoney(): String = "${toString().reversed().chunked(3).joinToString(" ").reversed()} UAH"
+private fun Long.toMoney(currency: String): String = "${toString().reversed().chunked(3).joinToString(" ").reversed()} $currency"

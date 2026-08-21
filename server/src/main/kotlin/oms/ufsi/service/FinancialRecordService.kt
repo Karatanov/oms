@@ -23,8 +23,8 @@ class FinancialRecordService(private val repository: FinancialRecordRepository) 
         }
     }
     fun get(projectId: Long, uuid: String) = repository.findByUuid(projectId, uuid.trim())
-    fun create(projectId: Long, type: String, reference: String, amount: Long, currency: String, date: String, paymentDate: String?, description: String?, milestone: String?) = repository.create(projectId, validatedType(type), required(reference, "Reference number"), positive(amount), currency(currency), date(date), optionalDate(paymentDate), optional(description), optional(milestone), 1L)
-    fun update(projectId: Long, uuid: String, type: String, reference: String, amount: Long, currency: String, date: String, paymentDate: String?, description: String?, milestone: String?) = repository.update(projectId, uuid.trim(), validatedType(type), required(reference, "Reference number"), positive(amount), currency(currency), date(date), optionalDate(paymentDate), optional(description), optional(milestone))
+    fun create(projectId: Long, type: String, reference: String, amount: Long, currency: String, date: String, paymentDate: String?, description: String?, milestone: String?) = repository.create(projectId, validatedType(type), required(reference, "Reference number"), positive(amount), currency(currency), date(date), optionalDate(paymentDate), optional(description) ?: optional(milestone), null, 1L)
+    fun update(projectId: Long, uuid: String, type: String, reference: String, amount: Long, currency: String, date: String, paymentDate: String?, description: String?, milestone: String?) = repository.update(projectId, uuid.trim(), validatedType(type), required(reference, "Reference number"), positive(amount), currency(currency), date(date), optionalDate(paymentDate), optional(description) ?: optional(milestone), null)
     fun move(projectId: Long, uuid: String, targetProjectId: Long) = repository.move(projectId, uuid.trim(), targetProjectId)
     fun delete(projectId: Long, uuid: String) = repository.delete(projectId, uuid.trim())
     fun importWorkbook(projectId: Long, input: InputStream): FinancialImportResult {

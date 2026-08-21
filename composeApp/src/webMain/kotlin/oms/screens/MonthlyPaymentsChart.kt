@@ -20,21 +20,27 @@ import oms.localization.LocalizationManager
 fun MonthlyPaymentsChart(records: List<ApiFinancialRecord>) {
     val data = records
         .filter { it.recordType in setOf("payment", "advance") }
-        .mapNotNull { record -> (record.paymentDate ?: record.recordDate).takeIf { it.matches(Regex("\\d{4}-\\d{2}-\\d{2}")) }?.take(7)?.let { it to record.amount } }
+        .mapNotNull { record -> (record.paymentDate ?: record.recordDate).takeIf { it.matches(Regex("\\d{4}-\\d{2}-\\d{2}")) }?.take(7)?.let { month -> (month to record.currency) to record.amount } }
         .groupBy({ it.first }, { it.second })
         .toList()
-        .sortedBy { it.first }
-        .map { entry -> BarData(entry.first, entry.second.sum().toFloat()) }
+        .sortedWith(compareBy({ it.first.first }, { it.first.second }))
+        .map { entry -> BarData("${entry.first.first} ${entry.first.second}", entry.second.sum().toFloat()) }
 
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp)) {
             Text(LocalizationManager.t("monthly_project_payments"), style = MaterialTheme.typography.titleMedium)
             Spacer(Modifier.height(16.dp))
             if (data.isEmpty()) Text(LocalizationManager.t("no_payments_yet"), color = MaterialTheme.colorScheme.onSurfaceVariant)
-            else VerticalBarChart(data, MaterialTheme.colorScheme.primary) { value -> formatPaymentAmount(value.toLong()) }
+            else VerticalBarChart(
+                data = data,
+                color = MaterialTheme.colorScheme.primary,
+                labelMaxLines = 2,
+                maxVisibleItems = 12,
+                initialScrollToEnd = true
+            ) { value -> formatPaymentAmount(value.toLong()) }
         }
     }
 }
 
 private fun formatPaymentAmount(amount: Long): String =
-    "${amount.toString().reversed().chunked(3).joinToString(" ").reversed()} UAH"
+    amount.toString().reversed().chunked(3).joinToString(" ").reversed()
