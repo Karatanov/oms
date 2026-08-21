@@ -16,6 +16,20 @@ fun Route.projectRoutes() {
     val projectService =
         AppContainer.projectService
 
+    post("/api/v1/geocode/address") {
+        call.requireRole("ADMIN", "PROJECT_MANAGER") ?: return@post
+        val request = call.receive<GeocodeAddressRequest>()
+        try {
+            val result = AppContainer.geocodingService.geocode(request.address, request.city, request.region)
+            if (result == null) call.respond(HttpStatusCode.NotFound, ErrorResponse("NOT_FOUND", "Address was not found."))
+            else call.respond(result)
+        } catch (exception: IllegalArgumentException) {
+            call.respond(HttpStatusCode.BadRequest, ErrorResponse("VALIDATION_ERROR", exception.message ?: "Invalid address."))
+        } catch (exception: Exception) {
+            call.respond(HttpStatusCode.BadGateway, ErrorResponse("GEOCODING_ERROR", "Unable to resolve the address."))
+        }
+    }
+
     /**
      * Повертає перелік проєктів.
      *

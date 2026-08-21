@@ -18,6 +18,7 @@ import oms.components.ConstructionTypeSelector
 import oms.components.SectorSelector
 import oms.components.UkraineRegionAutocomplete
 import oms.components.UkraineCityAutocomplete
+import oms.components.AddressCoordinatesCalculator
 import oms.localization.LocalizationManager
 
 @Composable
@@ -53,6 +54,7 @@ fun EditProjectScreen(
     var contractorName by remember { mutableStateOf("") }
     var latitude by remember { mutableStateOf(project.latitude.toString()) }
     var longitude by remember { mutableStateOf(project.longitude.toString()) }
+    var isCalculatingCoordinates by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(true) }
     var isSaving by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
@@ -154,6 +156,18 @@ fun EditProjectScreen(
                         OutlinedTextField(latitude, { value -> if (value.matches(Regex("-?[0-9.,]*"))) latitude = value }, label = { Text(LocalizationManager.t("latitude")) }, singleLine = true, modifier = Modifier.weight(1f))
                         OutlinedTextField(longitude, { value -> if (value.matches(Regex("-?[0-9.,]*"))) longitude = value }, label = { Text(LocalizationManager.t("longitude")) }, singleLine = true, modifier = Modifier.weight(1f))
                     }
+                    AddressCoordinatesCalculator(
+                        address = address,
+                        city = city,
+                        region = region,
+                        calculationRequested = isCalculatingCoordinates,
+                        onCalculationRequestedChange = { isCalculatingCoordinates = it },
+                        onCoordinatesResolved = { resolvedLatitude, resolvedLongitude ->
+                            latitude = resolvedLatitude
+                            longitude = resolvedLongitude
+                        },
+                        onError = { errorMessage = it }
+                    )
                 }
             }
         }

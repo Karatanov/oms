@@ -59,6 +59,8 @@ object AppContainer {
     val projectService =
         ProjectService(projectRepository)
 
+    val geocodingService = GeocodingService()
+
     /**
      * Репозиторій інспекцій.
      */

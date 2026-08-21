@@ -115,6 +115,15 @@ object OmsApiClient {
             setBody(request)
         }.body()
 
+    suspend fun geocodeAddress(address: String, city: String, region: String): GeocodeAddressResponse {
+        val response = client.post("$baseUrl/geocode/address") {
+            contentType(ContentType.Application.Json)
+            setBody(GeocodeAddressRequest(address, city, region))
+        }
+        if (!response.status.isSuccess()) throw IllegalStateException(response.bodyAsText())
+        return response.body()
+    }
+
     suspend fun updateProject(projectUuid: String, request: UpdateProjectRequest): ApiProject =
         client.patch("$baseUrl/projects/$projectUuid") {
             contentType(ContentType.Application.Json)
@@ -381,6 +390,12 @@ data class CreateProjectRequest(
     val currency: String? = null,
     val contractorName: String? = null
 )
+
+@Serializable
+data class GeocodeAddressRequest(val address: String, val city: String, val region: String)
+
+@Serializable
+data class GeocodeAddressResponse(val latitude: Double, val longitude: Double)
 
 @Serializable
 data class UpdateProjectRequest(

@@ -38,6 +38,7 @@ import oms.components.InlineOptionPicker
 import oms.components.UkraineRegionAutocomplete
 import oms.components.UkraineCityAutocomplete
 import oms.components.currentIsoDate
+import oms.components.AddressCoordinatesCalculator
 import oms.data.ApiProject
 import oms.data.OmsApiClient
 import oms.data.ProjectRepository
@@ -76,6 +77,7 @@ fun CreateProjectScreen(
     var parentProjects by remember { mutableStateOf<List<ApiProject>>(emptyList()) }
     var latitude by remember { mutableStateOf("") }
     var longitude by remember { mutableStateOf("") }
+    var isCalculatingCoordinates by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var isSubmitting by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
@@ -149,6 +151,18 @@ fun CreateProjectScreen(
                         OutlinedTextField(latitude, { value -> if (value.matches(Regex("-?[0-9.,]*"))) latitude = value }, label = { Text(LocalizationManager.t("latitude")) }, singleLine = true, modifier = Modifier.weight(1f))
                         OutlinedTextField(longitude, { value -> if (value.matches(Regex("-?[0-9.,]*"))) longitude = value }, label = { Text(LocalizationManager.t("longitude")) }, singleLine = true, modifier = Modifier.weight(1f))
                     }
+                    AddressCoordinatesCalculator(
+                        address = address,
+                        city = city,
+                        region = region,
+                        calculationRequested = isCalculatingCoordinates,
+                        onCalculationRequestedChange = { isCalculatingCoordinates = it },
+                        onCoordinatesResolved = { resolvedLatitude, resolvedLongitude ->
+                            latitude = resolvedLatitude
+                            longitude = resolvedLongitude
+                        },
+                        onError = { errorMessage = it }
+                    )
                 }
             }
         }
