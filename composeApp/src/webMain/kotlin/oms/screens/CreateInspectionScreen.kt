@@ -106,8 +106,8 @@ fun CreateInspectionScreen(
         )
 
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            FilterChip(entryMode == "manual", { entryMode = "manual" }, label = { Text(LocalizationManager.t("manual_sir_entry")) })
-            FilterChip(entryMode == "import", { entryMode = "import" }, label = { Text(LocalizationManager.t("import_sir_xlsx")) })
+            FilterChip(entryMode == "manual", { entryMode = "manual"; errorMessage = null }, label = { Text(LocalizationManager.t("manual_sir_entry")) })
+            FilterChip(entryMode == "import", { entryMode = "import"; errorMessage = null }, label = { Text(LocalizationManager.t("import_sir_xlsx")) })
         }
 
         if (rejectedReason != null) {
