@@ -3,6 +3,7 @@ package oms.ufsi.plugins
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
 import io.ktor.server.plugins.contentnegotiation.*
+import kotlinx.serialization.json.Json
 
 /**
  * Налаштовує серіалізацію та десеріалізацію JSON.
@@ -25,6 +26,9 @@ fun Application.configureSerialization() {
          * - ігнорування невідомих полів;
          * - інші параметри серіалізації.
          */
-        json()
+        json(Json {
+            ignoreUnknownKeys = true
+            explicitNulls = false
+        })
     }
 }
