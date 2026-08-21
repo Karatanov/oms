@@ -33,7 +33,8 @@
                 photoDrop: "Перетягніть фотографії сюди або натисніть для вибору", done: "Готово", remove: "Видалити",
                 invalidPhoto: "дозволені лише JPEG/PNG-файли розміром до 10 МБ.", maxPhotos: "Можна прикріпити максимум 30 фотографій.",
                 lastInspection: "Остання інспекція", noReports: "Інспекційних звітів ще немає", noPhotos: "В останній інспекції немає фотографій.",
-                open: "Відкрити", closeFullscreenPhoto: "Закрити повноекранне фото", details: "Деталі"
+                open: "Відкрити", closeFullscreenPhoto: "Закрити повноекранне фото", details: "Деталі",
+                loading: "Завантаження даних…", uploadingFile: "Завантаження файлу…", importingInspection: "Імпорт інспекційного звіту…", importingFinancial: "Імпорт фінансових записів…"
             },
             en: {
                 importReportError: "Could not import inspection report", uploadFileError: "Could not upload file",
@@ -43,11 +44,31 @@
                 photoDrop: "Drag photos here or click to select", done: "Done", remove: "Remove",
                 invalidPhoto: "only JPEG/PNG files up to 10 MB are allowed.", maxPhotos: "You can attach up to 30 photos.",
                 lastInspection: "Latest inspection", noReports: "No Inspection Reports yet", noPhotos: "No photos in the latest inspection.",
-                open: "Open", closeFullscreenPhoto: "Close full-screen photo", details: "Details"
+                open: "Open", closeFullscreenPhoto: "Close full-screen photo", details: "Details",
+                loading: "Loading data…", uploadingFile: "Uploading file…", importingInspection: "Importing inspection report…", importingFinancial: "Importing financial records…"
             }
         };
         function setOmsLanguage(language) { omsLanguage = language === "en" ? "en" : "uk"; }
         function omsText(key) { return omsBrowserStrings[omsLanguage][key] || omsBrowserStrings.uk[key] || key; }
+
+        let omsLoadingRequests = 0;
+        function showOmsLoading(message) {
+            let overlay = document.getElementById("oms-loading-overlay");
+            if (!overlay) {
+                overlay = document.createElement("div");
+                overlay.id = "oms-loading-overlay";
+                overlay.innerHTML = '<div class="oms-loading-card"><span class="oms-loading-spinner"></span><span class="oms-loading-message"></span></div>';
+                document.body.appendChild(overlay);
+            }
+            omsLoadingRequests += 1;
+            overlay.querySelector(".oms-loading-message").textContent = message || omsText("loading");
+            overlay.classList.add("visible");
+        }
+
+        function hideOmsLoading() {
+            omsLoadingRequests = Math.max(0, omsLoadingRequests - 1);
+            if (omsLoadingRequests === 0) document.getElementById("oms-loading-overlay")?.classList.remove("visible");
+        }
 
         function formatDateForInput(epochMillis) {
             const date = new Date(epochMillis);
@@ -173,6 +194,7 @@
                 }
                 const formData = new FormData();
                 formData.append("file", file, file.name);
+                showOmsLoading(omsText("importingInspection"));
                 try {
                     const response = await fetch(omsApiUrl(`/projects/${projectUuid}/inspection-reports/import`), {
                         method: "POST",
@@ -184,13 +206,14 @@
                 } catch (error) {
                     onComplete(error.message || String(error));
                 } finally {
+                    hideOmsLoading();
                     input.remove();
                 }
             };
             input.click();
         }
 
-        function uploadWithDialog(accept, url, extraFields, successMessage, onComplete = null) {
+        function uploadWithDialog(accept, url, extraFields, successMessage, onComplete = null, loadingMessage = omsText("uploadingFile")) {
             const input = document.createElement("input");
             input.type = "file";
             input.accept = accept;
@@ -205,6 +228,7 @@
                 const formData = new FormData();
                 Object.entries(extraFields).forEach(([key, value]) => formData.append(key, value));
                 formData.append("file", file, file.name);
+                showOmsLoading(loadingMessage);
                 try {
                     const response = await fetch(url, { method: "POST", body: formData, credentials: "include" });
                     if (!response.ok) throw new Error(await response.text());
@@ -215,6 +239,7 @@
                     window.alert(`${omsText("uploadFileError")}: ${error.message || error}`);
                     if (onComplete) onComplete(error.message || String(error));
                 } finally {
+                    hideOmsLoading();
                     input.remove();
                 }
             };
@@ -235,7 +260,8 @@
                 omsApiUrl(`/projects/${projectUuid}/financials/import`),
                 {},
                 omsText("financialImported"),
-                onComplete
+                onComplete,
+                omsText("importingFinancial")
             );
         }
 
@@ -316,6 +342,7 @@
         }
 
         async function uploadSelectedInspectionPhotos(reportUuid, onComplete) {
+            showOmsLoading(omsText("uploadingFile"));
             try {
                 for (const file of ufsiPendingInspectionPhotos) {
                     const formData = new FormData();
@@ -327,6 +354,8 @@
                 onComplete("");
             } catch (error) {
                 onComplete(error.message || String(error));
+            } finally {
+                hideOmsLoading();
             }
         }
 

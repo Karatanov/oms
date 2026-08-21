@@ -27,3 +27,10 @@ data class InspectionReportResponse(
 
     val rejectionReason: String?
 )
+
+/** A report together with the project it belongs to, for the reports list. */
+@Serializable
+data class InspectionReportListItemResponse(
+    val projectUuid: String,
+    val report: InspectionReportResponse
+)

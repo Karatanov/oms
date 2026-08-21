@@ -68,15 +68,15 @@ fun ReportsScreen(
     LaunchedEffect(Unit) {
         ProjectRepository.refresh()
         val projectsById = ProjectRepository.projects.associateBy { it.id }
-        reports = ProjectRepository.projects.flatMap { attachedProject ->
+        reports = runCatching { OmsApiClient.inspectionReports() }.getOrDefault(emptyList()).mapNotNull { item ->
+            val attachedProject = projectsById[item.projectUuid] ?: return@mapNotNull null
             val ancestry = generateSequence(attachedProject) { current ->
                 current.parentProjectUuid?.let(projectsById::get)
             }.toList().asReversed()
             val root = ancestry.firstOrNull() ?: attachedProject
             val projectName = root.name
             val subprojectName = ancestry.getOrNull(1)?.name
-            runCatching { OmsApiClient.projectReports(attachedProject.id) }.getOrDefault(emptyList())
-                .map { ReportRow(attachedProject.id, projectName, subprojectName, it) }
+            ReportRow(attachedProject.id, projectName, subprojectName, item.report)
         }.sortedByDescending { it.report.inspectionDate }
     }
     val visible = remember(reports, status, projectFilter, subprojectFilter, sort, ascending) {

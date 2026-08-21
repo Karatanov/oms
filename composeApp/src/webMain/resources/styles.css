@@ -149,3 +149,41 @@ canvas {
     line-height: 1 !important;
     text-align: center !important;
 }
+
+#oms-loading-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 20000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: rgba(18, 45, 56, 0.22);
+    backdrop-filter: blur(2px);
+}
+
+#oms-loading-overlay.visible { display: flex; }
+
+.oms-loading-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    max-width: min(420px, calc(100vw - 32px));
+    padding: 18px 22px;
+    border-radius: 14px;
+    background: #fff;
+    color: #164d60;
+    box-shadow: 0 12px 32px rgba(12, 69, 87, 0.25);
+    font-weight: 600;
+}
+
+.oms-loading-spinner {
+    width: 22px;
+    height: 22px;
+    flex: 0 0 22px;
+    border: 3px solid #b9dce7;
+    border-top-color: #278DAD;
+    border-radius: 50%;
+    animation: oms-loading-rotate 0.8s linear infinite;
+}
+
+@keyframes oms-loading-rotate { to { transform: rotate(360deg); } }

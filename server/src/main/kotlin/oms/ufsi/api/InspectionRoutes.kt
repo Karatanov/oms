@@ -13,6 +13,21 @@ import oms.ufsi.dto.*
 
 /** REST endpoints for inspection findings. */
 fun Route.inspectionRoutes() {
+    get("/api/v1/inspection-reports") {
+        val session = call.requireRole("ADMIN", "PROJECT_MANAGER", "INSPECTOR", "VIEWER", "GUEST") ?: return@get
+        val projects = AppContainer.projectService.getAllProjects().filter { project ->
+            !session.roleCode.equals("PROJECT_MANAGER", ignoreCase = true) ||
+                AppContainer.projectService.isManagedBy(project.uuid.toString(), session.userId)
+        }
+        call.respond(
+            projects.flatMap { project ->
+                AppContainer.inspectionReportService.getProjectReports(project.id).map { report ->
+                    InspectionReportListItemResponse(project.uuid.toString(), report.toResponse())
+                }
+            }
+        )
+    }
+
     post("/api/v1/projects/{projectUuid}/inspection-reports/manual") {
         val session = call.requireRole("ADMIN", "PROJECT_MANAGER", "INSPECTOR") ?: return@post
         val projectUuid = call.parameters["projectUuid"] ?: return@post call.notFound("Project not found.")

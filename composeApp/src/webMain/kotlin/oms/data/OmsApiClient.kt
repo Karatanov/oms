@@ -4,6 +4,8 @@ import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.engine.js.Js
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.client.plugins.HttpSend
+import io.ktor.client.plugins.plugin
 import io.ktor.client.request.get
 import io.ktor.client.request.delete
 import io.ktor.client.request.post
@@ -18,9 +20,17 @@ import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlin.js.ExperimentalWasmJsInterop
+import kotlin.js.JsName
 import kotlin.js.unsafeCast
 import kotlin.js.toJsString
 import org.w3c.fetch.RequestCredentials
+import oms.localization.LocalizationManager
+
+@JsName("showOmsLoading")
+private external fun showOmsLoading(message: String)
+
+@JsName("hideOmsLoading")
+private external fun hideOmsLoading()
 
 @OptIn(ExperimentalWasmJsInterop::class)
 object OmsApiClient {
@@ -34,6 +44,17 @@ object OmsApiClient {
         }
         install(ContentNegotiation) {
             json(Json { ignoreUnknownKeys = true })
+        }
+    }
+
+    init {
+        client.plugin(HttpSend).intercept { request ->
+            showOmsLoading(request.url.build().encodedPath.toOmsLoadingMessage())
+            try {
+                execute(request)
+            } finally {
+                hideOmsLoading()
+            }
         }
     }
 
@@ -120,6 +141,9 @@ object OmsApiClient {
 
     suspend fun projectReports(projectUuid: String): List<ApiInspectionReport> =
         client.get("$baseUrl/projects/$projectUuid/inspection-reports").body()
+
+    suspend fun inspectionReports(): List<ApiProjectInspectionReport> =
+        client.get("$baseUrl/inspection-reports").body()
 
     suspend fun healthSafetyObservations(projectUuid: String): ApiHealthSafetyObservations =
         client.get("$baseUrl/projects/$projectUuid/health-safety-observations").body()
@@ -228,6 +252,17 @@ object OmsApiClient {
 
     suspend fun deleteProjectDocument(projectUuid: String, documentUuid: String): Boolean =
         client.delete("$baseUrl/projects/$projectUuid/documents/$documentUuid").status.isSuccess()
+}
+
+private fun String.toOmsLoadingMessage(): String = when {
+    contains("/dashboard") -> LocalizationManager.t("loading_dashboard")
+    contains("/inspection-reports") -> LocalizationManager.t("loading_reports")
+    contains("/financial") -> LocalizationManager.t("loading_financials")
+    contains("/documents") -> LocalizationManager.t("loading_documents")
+    contains("/photos") -> LocalizationManager.t("loading_photos")
+    contains("/users") -> LocalizationManager.t("loading_users")
+    contains("/projects") -> LocalizationManager.t("loading_projects")
+    else -> LocalizationManager.t("loading_data")
 }
 
 @Serializable
@@ -476,6 +511,12 @@ data class ApiInspectionReport(
     val summary: String? = null,
     val status: String,
     val rejectionReason: String? = null
+)
+
+@Serializable
+data class ApiProjectInspectionReport(
+    val projectUuid: String,
+    val report: ApiInspectionReport
 )
 
 @Serializable
