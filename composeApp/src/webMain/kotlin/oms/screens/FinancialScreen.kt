@@ -11,6 +11,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import oms.data.ApiFinancialRecord
@@ -63,10 +65,17 @@ fun FinancialScreen(
     val pageScrollState = rememberScrollState()
 
     LaunchedEffect(reloadKey) {
-        ProjectRepository.refresh()
-        acts = ProjectRepository.projects.flatMap { project ->
-            runCatching { OmsApiClient.financials(project.id) }.getOrNull()?.data.orEmpty()
-                .map { ProjectActRow(project.id, project.name, it) }
+        val records = coroutineScope {
+            val refreshProjects = async { ProjectRepository.refresh() }
+            val loadRecords = async { OmsApiClient.allFinancialRecords() }
+            refreshProjects.await()
+            loadRecords.await()
+        }
+        val projectsById = ProjectRepository.projects.associateBy { it.id }
+        acts = records.mapNotNull { item ->
+            projectsById[item.projectUuid]?.let { project ->
+                ProjectActRow(project.id, project.name, item.record)
+            }
         }.sortedByDescending { it.act.recordDate }
     }
 

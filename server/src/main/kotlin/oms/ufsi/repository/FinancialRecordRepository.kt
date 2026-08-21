@@ -4,6 +4,7 @@ import oms.ufsi.domain.FinancialRecord
 import oms.ufsi.domain.FinancialRecordType
 
 interface FinancialRecordRepository {
+    fun findAll(): List<FinancialRecord>
     fun findByProjectId(projectId: Long): List<FinancialRecord>
     fun findByUuid(projectId: Long, uuid: String): FinancialRecord?
     fun create(projectId: Long, type: FinancialRecordType, reference: String, amount: Long, currency: String, recordDate: String, paymentDate: String?, description: String?, milestone: String?, createdBy: Long): FinancialRecord

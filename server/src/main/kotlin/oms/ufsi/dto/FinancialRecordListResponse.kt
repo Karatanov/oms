@@ -13,3 +13,10 @@ data class FinancialRecordListResponse(
     val data: List<FinancialRecordResponse>,
     val summary: FinancialSummaryResponse
 )
+
+/** A financial record together with the project it belongs to, for global lists. */
+@Serializable
+data class FinancialRecordListItemResponse(
+    val projectUuid: String,
+    val record: FinancialRecordResponse
+)

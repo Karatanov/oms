@@ -11,6 +11,22 @@ import oms.ufsi.config.AppContainer
 import oms.ufsi.dto.*
 
 fun Route.financialRoutes() {
+    get("/api/v1/financials") {
+        val session = call.requireRole("ADMIN", "PROJECT_MANAGER") ?: return@get
+        val accessibleProjects = AppContainer.projectService.getAllProjects().filter { project ->
+            !session.roleCode.equals("PROJECT_MANAGER", ignoreCase = true) ||
+                AppContainer.projectService.isManagedBy(project.uuid.toString(), session.userId)
+        }
+        val projectUuidsById = accessibleProjects.associate { it.id to it.uuid.toString() }
+        call.respond(
+            AppContainer.financialRecordService.getAll().mapNotNull { record ->
+                projectUuidsById[record.projectId]?.let { projectUuid ->
+                    FinancialRecordListItemResponse(projectUuid, record.toResponse())
+                }
+            }
+        )
+    }
+
     route("/api/v1/projects/{projectUuid}/financials") {
         get {
             val session = call.requireRole("ADMIN", "PROJECT_MANAGER") ?: return@get

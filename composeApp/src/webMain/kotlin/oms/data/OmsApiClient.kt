@@ -203,6 +203,9 @@ object OmsApiClient {
     suspend fun financials(projectUuid: String): ApiFinancialRecords =
         client.get("$baseUrl/projects/$projectUuid/financials").body()
 
+    suspend fun allFinancialRecords(): List<ApiProjectFinancialRecord> =
+        client.get("$baseUrl/financials").body()
+
     suspend fun createFinancialRecord(projectUuid: String, request: FinancialRecordRequest): ApiFinancialRecord =
         client.post("$baseUrl/projects/$projectUuid/financials") {
             contentType(ContentType.Application.Json)
@@ -517,6 +520,12 @@ data class ApiInspectionReport(
 data class ApiProjectInspectionReport(
     val projectUuid: String,
     val report: ApiInspectionReport
+)
+
+@Serializable
+data class ApiProjectFinancialRecord(
+    val projectUuid: String,
+    val record: ApiFinancialRecord
 )
 
 @Serializable

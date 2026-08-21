@@ -10,6 +10,7 @@ import java.time.LocalDate
 import java.util.UUID
 
 class ExposedFinancialRecordRepository : FinancialRecordRepository {
+    override fun findAll() = transaction { FinancialRecordTable.selectAll().map(::map) }
     override fun findByProjectId(projectId: Long) = transaction {
         FinancialRecordTable.selectAll().filter { it[FinancialRecordTable.projectId].value == projectId }.map(::map)
     }

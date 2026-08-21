@@ -9,6 +9,7 @@ import java.io.InputStream
 import java.io.OutputStream
 
 class FinancialRecordService(private val repository: FinancialRecordRepository) {
+    fun getAll() = repository.findAll()
     fun getAll(projectId: Long) = repository.findByProjectId(projectId)
     fun filtered(projectId: Long, recordType: String?, dateFrom: String?, dateTo: String?): List<FinancialRecord> {
         val type = recordType?.trim()?.takeIf { it.isNotEmpty() }?.let(::validatedType)
