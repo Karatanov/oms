@@ -86,6 +86,7 @@ fun AdminScreen() {
     var userPendingDeletion by remember { mutableStateOf<ApiUser?>(null) }
     var createUser by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    var editUserError by remember { mutableStateOf<String?>(null) }
     var sort by remember { mutableStateOf(UserSort.Username) }
     var ascending by remember { mutableStateOf(true) }
     val scope = rememberCoroutineScope()
@@ -142,7 +143,10 @@ fun AdminScreen() {
                 sortedUsers.forEach { user ->
                     Row(Modifier.width(2046.dp).padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                         Text(user.username, Modifier.width(130.dp))
-                        TableActionIconButton(LocalizationManager.t("edit_user"), Icons.Default.Edit) { selectedUser = user }
+                        TableActionIconButton(LocalizationManager.t("edit_user"), Icons.Default.Edit) {
+                            editUserError = null
+                            selectedUser = user
+                        }
                         TableActionIconButton(LocalizationManager.t("delete_user"), Icons.Default.Delete) { userPendingDeletion = user }
                         Text(listOf(user.firstName, user.lastName).filter { it.isNotBlank() }.joinToString(" ").ifBlank { "—" }, Modifier.width(180.dp))
                         Text(user.email, Modifier.width(220.dp))
@@ -166,11 +170,21 @@ fun AdminScreen() {
         errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error) }
     }
         selectedUser?.let { user -> WasmSafeOverlay {
-            EditUserDialog(user, roles, errorMessage, onDismiss = { selectedUser = null }) { updated ->
+            EditUserDialog(user, roles, editUserError, onDismiss = {
+                editUserError = null
+                selectedUser = null
+            }) { updated ->
                 scope.launch {
                     runCatching { OmsApiClient.updateUser(user.id, updated) }
-                        .onSuccess { saved -> users = users.map { if (it.id == saved.id) saved else it }; selectedUser = null }
-                        .onFailure { errorMessage = LocalizationManager.t("error_save_user").replace("{message}", it.message ?: LocalizationManager.t("unknown_error")) }
+                        .onSuccess { saved ->
+                            users = users.map { if (it.id == saved.id) saved else it }
+                            editUserError = null
+                            selectedUser = null
+                        }
+                        .onFailure {
+                            editUserError = LocalizationManager.t("error_save_user")
+                                .replace("{message}", it.message ?: LocalizationManager.t("unknown_error"))
+                        }
                 }
             }
         }
