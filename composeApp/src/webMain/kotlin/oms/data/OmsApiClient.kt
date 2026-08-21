@@ -64,6 +64,11 @@ object OmsApiClient {
             setBody(LoginRequest(username, password))
         }.body<LoginPayload>().user
 
+    suspend fun startGuestSession() {
+        val response = client.post("$baseUrl/auth/guest")
+        if (!response.status.isSuccess()) throw IllegalStateException(response.bodyAsText())
+    }
+
     suspend fun activate(token: String, password: String) {
         val response = client.post("$baseUrl/auth/activate") {
             contentType(ContentType.Application.Json)

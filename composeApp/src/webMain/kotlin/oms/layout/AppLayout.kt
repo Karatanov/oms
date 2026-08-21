@@ -26,28 +26,30 @@ fun AppLayout(appState: AppState) {
             onNavigate = { appState.navigate(it) },
             onLogout = { appState.logout() },
             username = appState.username,
-            isAdmin = appState.roleCode == "ADMIN"
+            isAdmin = appState.roleCode == "ADMIN",
+            isGuest = appState.roleCode == "GUEST"
         )
         // ---------------- CONTENT ----------------
         Box(modifier = Modifier.weight(1f)) {
 
             when (appState.currentScreen) {
 
-                is Screen.Dashboard -> DashboardScreen()
+                is Screen.Dashboard -> if (appState.roleCode != "GUEST") DashboardScreen()
 
                 is Screen.Projects -> ProjectsScreen(
                     onOpenProject = { project -> appState.openProjectDetail(project) },
                     onCreateProject = { appState.openCreateProject() },
                     onEditProject = { appState.openEditProject(it) },
+                    canManageProjects = appState.roleCode in setOf("ADMIN", "PROJECT_MANAGER"),
                     canBulkReassign = appState.roleCode == "ADMIN"
                 )
 
-                is Screen.CreateProject -> CreateProjectScreen(
+                is Screen.CreateProject -> if (appState.roleCode != "GUEST") CreateProjectScreen(
                     onCancel = { appState.navigate(Screen.Projects) },
                     onCreated = { appState.navigate(Screen.Projects) }
                 )
 
-                is Screen.EditProject -> appState.selectedProject?.let { project ->
+                is Screen.EditProject -> if (appState.roleCode != "GUEST") appState.selectedProject?.let { project ->
                     EditProjectScreen(
                         project = project,
                         onCancel = { appState.openProjectDetail(project) },
@@ -63,12 +65,13 @@ fun AppLayout(appState: AppState) {
                                 appState.navigate(Screen.Projects)
                             },
                             onEdit = { appState.openEditProject(it) },
-                            canDeleteProject = appState.roleCode in setOf("ADMIN", "PROJECT_MANAGER")
+                            canDeleteProject = appState.roleCode in setOf("ADMIN", "PROJECT_MANAGER"),
+                            isGuest = appState.roleCode == "GUEST"
                         )
                     }
                 }
 
-                is Screen.CreateInspection -> CreateInspectionScreen(
+                is Screen.CreateInspection -> if (appState.roleCode != "GUEST") CreateInspectionScreen(
                     onSaveDraft = { appState.navigate(Screen.Inspections) },
                     onSubmit = { appState.navigate(Screen.Inspections) },
                     onImportXls = { appState.navigate(Screen.Inspections) }
@@ -80,22 +83,22 @@ fun AppLayout(appState: AppState) {
                     }
                 )
 
-                is Screen.Inspections -> ReportsScreen(
+                is Screen.Inspections -> if (appState.roleCode != "GUEST") ReportsScreen(
                     onNewInspection = { appState.openCreateInspection() },
                     canReviewReports = appState.roleCode in setOf("ADMIN", "PROJECT_MANAGER"),
                     canMoveReports = appState.roleCode in setOf("ADMIN", "PROJECT_MANAGER")
                 )
 
-                is Screen.Financial -> FinancialScreen(
+                is Screen.Financial -> if (appState.roleCode != "GUEST") FinancialScreen(
                     canAccessFinancials = appState.roleCode in setOf("ADMIN", "PROJECT_MANAGER"),
                     canManageFinancials = appState.roleCode in setOf("ADMIN", "PROJECT_MANAGER")
                 )
 
-                is Screen.Procurement -> ProcurementScreen(
+                is Screen.Procurement -> if (appState.roleCode != "GUEST") ProcurementScreen(
                     canManageProcurements = appState.roleCode in setOf("ADMIN", "PROJECT_MANAGER")
                 )
 
-                is Screen.Documents -> DocumentsScreen(
+                is Screen.Documents -> if (appState.roleCode != "GUEST") DocumentsScreen(
                     canManageDocuments = appState.roleCode in setOf("ADMIN", "PROJECT_MANAGER")
                 )
 

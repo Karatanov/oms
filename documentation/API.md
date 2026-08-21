@@ -21,5 +21,4 @@ The API base is `/api/v1`; JSON is the default representation. `server/requests.
 
 List routes accept the filters/pagination implemented by their route DTO parsing; response metadata is represented by `PageMetadata`. Upload routes use multipart form data, validate size/type in their services, save bytes under `OMS_UPLOAD_DIR`, and persist metadata only after storage succeeds. Download performs authorization before resolving the stored file and returns controlled `404` for absent metadata or bytes.
 
-Backend authorization is authoritative: Admin has full access; Project Manager mutates only assigned projects; Inspector writes SIR/photo content; Viewer and Guest are read-only. Financial and document mutations are Admin/PM only, and user administration is Admin only.
-
+Backend authorization is authoritative: Admin has full access; Project Manager mutates only assigned projects; Inspector writes SIR/photo content; Viewer is the authenticated read-only role. `POST /auth/guest` creates an anonymous browser session, not a user account or role; it is limited to the public map, project registry and general project-information endpoint. Financial and document mutations are Admin/PM only, and user administration is Admin only.

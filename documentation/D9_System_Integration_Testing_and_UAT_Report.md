@@ -6,7 +6,7 @@
 
 ## Environment and approach
 
-Testing used the repository revision containing migration `V29__add_viewer_and_guest_roles.sql`, Gradle/JDK 21 and Docker Desktop with an isolated MySQL 8.4 database. The API UAT environment was built from the already verified OMS distribution image; Flyway applied its packaged migrations to an empty database, and the new D9 migration was validated separately as idempotent MySQL SQL. HTTP checks used real session login and Bearer JWTs.
+Testing used the repository revision containing migration `V29__add_viewer_and_guest_roles.sql`, Gradle/JDK 21 and Docker Desktop with an isolated MySQL 8.4 database. The API UAT environment was built from the already verified OMS distribution image; Flyway applied its packaged migrations to an empty database, and the new D9 migration was validated separately as idempotent MySQL SQL. HTTP checks used real session login and Bearer JWTs. This report is historical: migration V30 supersedes the Guest-account model. Guest is now an anonymous public-access session, while historical Guest accounts are migrated to Viewer.
 
 The test approach combined server unit tests, Web/Wasm compilation, shared-module tests, static review, and API-to-service-to-MySQL UAT. Temporary containers, users, tokens and projects were isolated from the developer database.
 

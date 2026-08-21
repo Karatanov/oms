@@ -65,6 +65,14 @@ class AppState {
         currentScreen = Screen.Dashboard
     }
 
+    fun onGuestAccess() {
+        token = "guest-session"
+        username = "Guest"
+        roleCode = "GUEST"
+        isAuthenticated = true
+        currentScreen = Screen.Map
+    }
+
     // 🔹 Logout
     fun logout() {
         token = null

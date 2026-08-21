@@ -14,6 +14,12 @@ internal suspend fun ApplicationCall.requireRole(vararg roles: String): UserSess
         respond(HttpStatusCode.Unauthorized, ErrorResponse("AUTHENTICATION_REQUIRED", "Login is required."))
         return null
     }
+    // Guest access is an anonymous browser session, not a user record or RBAC role.
+    if (session.roleCode.equals("GUEST", ignoreCase = true) && session.userId == 0L) {
+        if (roles.any { it.equals("GUEST", ignoreCase = true) }) return session
+        respond(HttpStatusCode.Forbidden, ErrorResponse("FORBIDDEN", "Guest access is limited to public screens."))
+        return null
+    }
     val user = AppContainer.userService.getAllUsers().firstOrNull { it.id == session.userId }
     if (user == null || !user.status.equals("active", ignoreCase = true)) {
         sessions.clear<UserSession>()

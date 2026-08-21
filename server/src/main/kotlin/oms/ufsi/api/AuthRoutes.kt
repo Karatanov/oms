@@ -71,6 +71,11 @@ fun Route.authRoutes() {
         call.respond(HttpStatusCode.NoContent)
     }
 
+    post("/api/v1/auth/guest") {
+        call.sessions.set(UserSession(0L, "GUEST"))
+        call.respond(HttpStatusCode.NoContent)
+    }
+
     post("/api/v1/auth/password-reset") {
         val identifier = call.receive<PasswordResetRequest>().identifier.trim()
         if (identifier.isNotEmpty()) {

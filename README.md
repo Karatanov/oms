@@ -1,6 +1,6 @@
 # OMS Phase 1 / MVP
 
-OMS is a project monitoring system for the TVET II programme. Phase 1 provides authentication and RBAC, dashboard, project registry and map, project details, inspections/SIR, financial monitoring, documents, procurement reference data, and user administration.
+OMS is a project monitoring system for the TVET II programme. Phase 1 provides authentication and RBAC, dashboard, project registry and map, project details, inspections/SIR, financial monitoring, documents, procurement reference data, and user administration. The login page also provides an anonymous Guest mode for the public map and project information; Guest is not a user role.
 
 ## Technology and modules
 

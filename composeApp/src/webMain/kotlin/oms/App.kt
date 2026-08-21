@@ -29,7 +29,8 @@ fun App() {
                 LoginScreen(
                     onLoginSuccess = { user ->
                         appState.onLoginSuccess(user.username, user.role.code)
-                    }
+                    },
+                    onGuestAccess = { appState.onGuestAccess() }
                 )
             } else if (appState.isAuthenticated) {
                 AppLayout(appState)

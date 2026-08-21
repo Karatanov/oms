@@ -298,7 +298,7 @@ fun Route.projectRoutes() {
     get(
         "/api/v1/projects/{uuid}/inspection-reports"
     ) {
-        val session = call.requireRole("ADMIN", "PROJECT_MANAGER", "INSPECTOR", "VIEWER", "GUEST") ?: return@get
+        val session = call.requireRole("ADMIN", "PROJECT_MANAGER", "INSPECTOR", "VIEWER") ?: return@get
 
         val uuid =
             call.parameters["uuid"]
@@ -350,7 +350,7 @@ fun Route.projectRoutes() {
     }
 
     get("/api/v1/projects/{uuid}/health-safety-observations") {
-        val session = call.requireRole("ADMIN", "PROJECT_MANAGER", "INSPECTOR", "VIEWER", "GUEST") ?: return@get
+        val session = call.requireRole("ADMIN", "PROJECT_MANAGER", "INSPECTOR", "VIEWER") ?: return@get
         val uuid = call.parameters["uuid"]
             ?: return@get call.respond(HttpStatusCode.BadRequest, ErrorResponse("VALIDATION_ERROR", "Project UUID is required."))
         val project = projectService.getProjectByUuid(uuid)

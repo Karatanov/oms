@@ -70,6 +70,8 @@ fun Route.userRoutes() {
 
         try {
 
+            require(!request.roleCode.equals("GUEST", ignoreCase = true)) { "Guest access is not a user role." }
+
             val user = userService.createUser(
                 username = request.username,
                 email = request.email,
@@ -111,6 +113,7 @@ fun Route.userRoutes() {
             ?: return@patch call.respond(HttpStatusCode.BadRequest, ErrorResponse("VALIDATION_ERROR", "User ID is required."))
         try {
             val request = call.receive<UpdateUserRequest>()
+            require(!request.roleCode.equals("GUEST", ignoreCase = true)) { "Guest access is not a user role." }
             val before = userService.getAllUsers().firstOrNull { it.id == id }
             val user = userService.updateUser(id, request)
                 ?: return@patch call.respond(HttpStatusCode.NotFound, ErrorResponse("NOT_FOUND", "User not found."))

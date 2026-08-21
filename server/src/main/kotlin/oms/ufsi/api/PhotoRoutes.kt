@@ -79,7 +79,7 @@ fun Route.photoRoutes() = route("/api/v1/inspection-reports/{reportUuid}/photos"
 }
 
 private suspend fun ApplicationCall.photoReport(): InspectionReport? {
-    val session = requireRole("ADMIN", "PROJECT_MANAGER", "INSPECTOR", "VIEWER", "GUEST") ?: return null
+    val session = requireRole("ADMIN", "PROJECT_MANAGER", "INSPECTOR", "VIEWER") ?: return null
     val report = parameters["reportUuid"]?.let { AppContainer.inspectionReportService.getByUuid(it) }
         ?: run { respond(HttpStatusCode.NotFound, ErrorResponse("NOT_FOUND", "Inspection report not found.")); return null }
     val project = AppContainer.projectService.getAllProjects().firstOrNull { it.id == report.projectId }

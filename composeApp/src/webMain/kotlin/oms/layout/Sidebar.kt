@@ -22,7 +22,8 @@ fun Sidebar(
     onNavigate: (Screen) -> Unit,
     onLogout: () -> Unit,
     username: String,
-    isAdmin: Boolean
+    isAdmin: Boolean,
+    isGuest: Boolean
 ) {
 
     Column(
@@ -37,7 +38,7 @@ fun Sidebar(
 
         Spacer(Modifier.height(16.dp))
 
-        SidebarItem(
+        if (!isGuest) SidebarItem(
             LocalizationManager.t("dashboard"),
             Icons.Default.Dashboard,
             Screen.Dashboard,
@@ -52,22 +53,22 @@ fun Sidebar(
             onNavigate
         )
         SidebarItem(LocalizationManager.t("map"), Icons.Default.Map, Screen.Map, currentScreen, onNavigate)
-        SidebarItem(
+        if (!isGuest) SidebarItem(
             LocalizationManager.t("inspection_reports"),
             Icons.Default.Description,
             Screen.Inspections,
             currentScreen,
             onNavigate
         )
-        SidebarItem(
+        if (!isGuest) SidebarItem(
             LocalizationManager.t("financial_monitoring"),
             Icons.Default.AccountBalance,
             Screen.Financial,
             currentScreen,
             onNavigate
         )
-        SidebarItem(LocalizationManager.t("procurement_title"), Icons.Default.ShoppingCart, Screen.Procurement, currentScreen, onNavigate)
-        SidebarItem(
+        if (!isGuest) SidebarItem(LocalizationManager.t("procurement_title"), Icons.Default.ShoppingCart, Screen.Procurement, currentScreen, onNavigate)
+        if (!isGuest) SidebarItem(
             LocalizationManager.t("documents"),
             Icons.Default.Description,
             Screen.Documents,

@@ -19,7 +19,7 @@ import java.nio.file.Path
 
 fun Route.documentRoutes() {
     get("/api/v1/documents") {
-        val session = call.requireRole("ADMIN", "PROJECT_MANAGER", "INSPECTOR", "VIEWER", "GUEST") ?: return@get
+        val session = call.requireRole("ADMIN", "PROJECT_MANAGER", "INSPECTOR", "VIEWER") ?: return@get
         val accessibleProjects = AppContainer.projectService.getAllProjects().filter { project ->
             !session.roleCode.equals("PROJECT_MANAGER", ignoreCase = true) ||
                 AppContainer.projectService.isManagedBy(project.uuid.toString(), session.userId)
@@ -34,7 +34,7 @@ fun Route.documentRoutes() {
 
     route("/api/v1/projects/{projectUuid}/documents") {
     get {
-        val session = call.requireRole("ADMIN", "PROJECT_MANAGER", "INSPECTOR", "VIEWER", "GUEST") ?: return@get
+        val session = call.requireRole("ADMIN", "PROJECT_MANAGER", "INSPECTOR", "VIEWER") ?: return@get
         val project = call.documentProject() ?: return@get
         if (!call.requireProjectAccess(session, project.uuid.toString())) return@get
         val type = call.request.queryParameters["doc_type"]?.trim()?.lowercase()?.takeIf { it.isNotEmpty() }
@@ -94,7 +94,7 @@ fun Route.documentRoutes() {
     }
 
     get("{documentUuid}/download") {
-        val session = call.requireRole("ADMIN", "PROJECT_MANAGER", "INSPECTOR", "VIEWER", "GUEST") ?: return@get
+        val session = call.requireRole("ADMIN", "PROJECT_MANAGER", "INSPECTOR", "VIEWER") ?: return@get
         val project = call.documentProject() ?: return@get
         if (!call.requireProjectAccess(session, project.uuid.toString())) return@get
         val document = call.parameters["documentUuid"]?.let { AppContainer.projectDocumentService.get(project.id, it) }

@@ -43,7 +43,8 @@ fun ProjectDetailScreen(
     project: Project,
     onBackToProjects: () -> Unit = {},
     onEdit: (Project) -> Unit = {},
-    canDeleteProject: Boolean = false
+    canDeleteProject: Boolean = false,
+    isGuest: Boolean = false
 ) {
     val parentProjectName = project.parentProjectUuid?.let { parentId ->
         ProjectRepository.projects.firstOrNull { it.id == parentId }?.name
@@ -58,6 +59,11 @@ fun ProjectDetailScreen(
     var confirmDeletion by remember { mutableStateOf(false) }
     var deleteError by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
+    val availableTabs = if (isGuest) {
+        listOf(ProjectDetailTab.GeneralInfo)
+    } else {
+        ProjectDetailTab.entries
+    }
     LaunchedEffect(project.id, selectedTab) {
         suspend fun load(resource: ProjectDetailResource, block: suspend () -> Unit) {
             if (resource !in loadedResources) {
@@ -161,7 +167,7 @@ fun ProjectDetailScreen(
                         )
                     }
 
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (!isGuest) Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Button(onClick = { onEdit(project) }) {
                             Icon(
                                 imageVector = Icons.Default.Edit,
@@ -212,7 +218,7 @@ fun ProjectDetailScreen(
             }
         }
 
-        Row(
+        if (!isGuest) Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
@@ -233,7 +239,7 @@ fun ProjectDetailScreen(
             )
         }
 
-        if (details.value?.data?.projectType == "subproject") {
+        if (!isGuest && details.value?.data?.projectType == "subproject") {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
@@ -251,7 +257,7 @@ fun ProjectDetailScreen(
             }
         }
 
-        Row(
+        if (!isGuest) Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
@@ -270,8 +276,8 @@ fun ProjectDetailScreen(
         Column(
             modifier = Modifier.fillMaxWidth()
         ) {
-            PrimaryTabRow(selectedTabIndex = selectedTab.ordinal) {
-                ProjectDetailTab.entries.forEach { tab ->
+            PrimaryTabRow(selectedTabIndex = availableTabs.indexOf(selectedTab).coerceAtLeast(0)) {
+                availableTabs.forEach { tab ->
                     Tab(
                         selected = selectedTab == tab,
                         onClick = { selectedTab = tab },

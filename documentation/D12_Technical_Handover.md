@@ -51,7 +51,7 @@ The D11 report is the production procedure and go-live checklist. Before cutover
 
 Browser sessions are HTTP-only cookies; API clients can use the issued JWT. Passwords are BCrypt hashes and activation tokens are stored as hashes. Runtime logs default to INFO and credential fields from the pool are masked. Protected requests revalidate Active status and role.
 
-Admin is unrestricted. Project Manager is scoped to assigned projects and can manage projects, financials, documents and SIR review. Inspector creates/edits/submits SIR content. Viewer and Guest are read-only. Only Admin manages users. `401` and `403` semantics are documented in `API.md`.
+Admin is unrestricted. Project Manager is scoped to assigned projects and can manage projects, financials, documents and SIR review. Inspector creates/edits/submits SIR content. Viewer is an authenticated read-only role. Guest is an anonymous browser session created with `POST /api/v1/auth/guest`, not a user role: it can only view the public map, project registry and general project information. Only Admin manages users. `401` and `403` semantics are documented in `API.md`.
 
 Audit events include user create/update/delete/activation, project create/delete/bulk changes, inspection creation/import, and financial create/import/move. Records carry actor, action, entity, timestamp and optional old/new values; passwords, JWTs and activation tokens are not written as audit payloads.
 

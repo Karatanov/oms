@@ -50,6 +50,7 @@ fun ProjectsScreen(
     onOpenProject: (Project) -> Unit = {},
     onCreateProject: () -> Unit = {},
     onEditProject: (Project) -> Unit = {},
+    canManageProjects: Boolean = false,
     canBulkReassign: Boolean = false
 ) {
 
@@ -113,7 +114,7 @@ fun ProjectsScreen(
                 LocalizationManager.t("projects_title"),
                 style = MaterialTheme.typography.headlineMedium
             )
-            Button(onClick = onCreateProject) { Text(LocalizationManager.t("create_project")) }
+            if (canManageProjects) Button(onClick = onCreateProject) { Text(LocalizationManager.t("create_project")) }
         }
 
         Spacer(Modifier.height(16.dp))
@@ -127,7 +128,7 @@ fun ProjectsScreen(
             onStatusChange = { statusFilter = it }
         )
 
-        if (selectedProjectIds.isNotEmpty()) {
+        if (canManageProjects && selectedProjectIds.isNotEmpty()) {
             Spacer(Modifier.height(12.dp))
             Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)) {
                 Row(
@@ -169,6 +170,7 @@ fun ProjectsScreen(
                     else errorMessage = LocalizationManager.t("error_delete_project")
                 }
             },
+            canManageProjects = canManageProjects,
             onExpandRow = { rowTop -> scope.launch { pageScrollState.animateScrollTo((pageScrollState.value + rowTop - 16f).toInt().coerceAtLeast(0)) } },
             selectedProjectIds = selectedProjectIds,
             onSelectionChange = { id, selected -> selectedProjectIds = if (selected) selectedProjectIds + id else selectedProjectIds - id }
@@ -210,6 +212,7 @@ fun ProjectsTable(
     onOpenProject: (Project) -> Unit,
     onEditProject: (Project) -> Unit,
     onDeleteProject: (Project) -> Unit,
+    canManageProjects: Boolean,
     onExpandRow: (Float) -> Unit,
     selectedProjectIds: Set<String>,
     onSelectionChange: (String, Boolean) -> Unit
@@ -285,6 +288,7 @@ fun ProjectsTable(
                     onOpen = onOpenProject,
                     onEdit = onEditProject,
                     onDelete = onDeleteProject,
+                    canManageProjects = canManageProjects,
                     isSelected = row.project.id in selectedProjectIds,
                     onSelectedChange = { onSelectionChange(row.project.id, it) }
                 )
@@ -408,6 +412,7 @@ fun ProjectRow(
     onOpen: (Project) -> Unit = {},
     onEdit: (Project) -> Unit = {},
     onDelete: (Project) -> Unit = {},
+    canManageProjects: Boolean = false,
     isSelected: Boolean = false,
     onSelectedChange: (Boolean) -> Unit = {}
 
@@ -449,11 +454,11 @@ fun ProjectRow(
             .padding(vertical = 10.dp)
     ) {
 
-        Checkbox(
+        if (canManageProjects) Checkbox(
             checked = isSelected,
             onCheckedChange = onSelectedChange,
             modifier = Modifier.width(32.dp)
-        )
+        ) else Spacer(Modifier.width(32.dp))
 
         Box(
             modifier = Modifier.width(30.dp).height(32.dp),
@@ -540,8 +545,10 @@ fun ProjectRow(
         Text(project.contractorName.orEmpty(), modifier = Modifier.width(150.dp))
 
         TableActionIconButton(LocalizationManager.t("view"), Icons.Default.Visibility) { onOpen(project) }
-        TableActionIconButton(LocalizationManager.t("edit"), Icons.Default.Edit) { onEdit(project) }
-        TableActionIconButton(LocalizationManager.t("delete_project"), Icons.Default.Delete) { onDelete(project) }
+        if (canManageProjects) {
+            TableActionIconButton(LocalizationManager.t("edit"), Icons.Default.Edit) { onEdit(project) }
+            TableActionIconButton(LocalizationManager.t("delete_project"), Icons.Default.Delete) { onDelete(project) }
+        }
     }
 
     HorizontalDivider()

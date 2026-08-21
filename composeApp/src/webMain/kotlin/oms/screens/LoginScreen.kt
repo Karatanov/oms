@@ -26,7 +26,8 @@ import oms.localization.LocalizationManager
 
 @Composable
 fun LoginScreen(
-    onLoginSuccess: (ApiUser) -> Unit
+    onLoginSuccess: (ApiUser) -> Unit,
+    onGuestAccess: () -> Unit
 ) {
 
     // ---------------- STATE ----------------
@@ -41,6 +42,7 @@ fun LoginScreen(
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var isLoading by remember { mutableStateOf(false) }
     var showPasswordReset by remember { mutableStateOf(false) }
+    var isStartingGuestSession by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
     fun submitLogin() {
@@ -272,6 +274,19 @@ fun LoginScreen(
                             Text(LocalizationManager.t("sign_in"))
                         }
                     }
+                    TextButton(
+                        onClick = {
+                            isStartingGuestSession = true
+                            scope.launch {
+                                runCatching { OmsApiClient.startGuestSession() }
+                                    .onSuccess { onGuestAccess() }
+                                    .onFailure { errorMessage = LocalizationManager.t("guest_access_error") }
+                                isStartingGuestSession = false
+                            }
+                        },
+                        enabled = !isStartingGuestSession,
+                        modifier = Modifier.fillMaxWidth()
+                    ) { Text(LocalizationManager.t("continue_as_guest")) }
                 }
             }
         }

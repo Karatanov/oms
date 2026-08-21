@@ -43,11 +43,12 @@ fun Route.roleRoutes() {
      * Повертає всі ролі системи.
      */
     get("/api/v1/roles") {
-        call.requireRole("ADMIN", "PROJECT_MANAGER", "INSPECTOR", "VIEWER", "GUEST") ?: return@get
+        call.requireRole("ADMIN", "PROJECT_MANAGER", "INSPECTOR", "VIEWER") ?: return@get
 
         call.respond(
             roleService
                 .getAllRoles()
+                .filterNot { it.code.equals("GUEST", ignoreCase = true) }
                 .map { role ->
 
                     role.toResponse()
@@ -61,7 +62,7 @@ fun Route.roleRoutes() {
      * GET /api/v1/roles/ADMIN
      */
     get("/api/v1/roles/{code}") {
-        call.requireRole("ADMIN", "PROJECT_MANAGER", "INSPECTOR", "VIEWER", "GUEST") ?: return@get
+        call.requireRole("ADMIN", "PROJECT_MANAGER", "INSPECTOR", "VIEWER") ?: return@get
 
         val code = call.parameters["code"]
 
