@@ -396,6 +396,16 @@
                 image.src = photo.thumbnailUrl;
                 image.alt = photo.fileName;
                 image.loading = "lazy";
+                image.addEventListener("error", () => {
+                    if (image.dataset.originalAttempted !== "true") {
+                        image.dataset.originalAttempted = "true";
+                        image.src = photo.downloadUrl;
+                    } else {
+                        image.remove();
+                        button.classList.add("photo-slider-item-unavailable");
+                        button.textContent = omsText("noPhotos");
+                    }
+                });
                 button.append(image);
                 button.addEventListener("click", () => openPhotoLightbox(photos, photo.uuid));
                 track.append(button);
@@ -423,6 +433,11 @@
             image.className = "photo-lightbox-image";
             const caption = document.createElement("div");
             caption.className = "photo-lightbox-caption";
+            image.onerror = () => {
+                image.removeAttribute("src");
+                image.alt = omsText("noPhotos");
+                caption.textContent = omsText("noPhotos");
+            };
             const render = () => { image.src = photos[index].downloadUrl; image.alt = photos[index].fileName; caption.textContent = `${photos[index].fileName} (${index + 1}/${photos.length})`; };
             previous.onclick = () => { index = (index - 1 + photos.length) % photos.length; render(); };
             next.onclick = () => { index = (index + 1) % photos.length; render(); };

@@ -64,7 +64,15 @@ fun Route.photoRoutes() = route("/api/v1/inspection-reports/{reportUuid}/photos"
         val report = call.photoReport() ?: return@get
         val photo = call.parameters["photoUuid"]?.let { AppContainer.inspectionPhotoService.get(report.id, it) }
             ?: return@get call.respond(HttpStatusCode.NotFound, ErrorResponse("NOT_FOUND", "Photo not found."))
-        val path = Path.of(if (call.parameters["kind"] == "thumbnail") photo.thumbnailPath else photo.storagePath)
+        val kind = call.parameters["kind"]
+        val requestedPath = Path.of(if (kind == "thumbnail") photo.thumbnailPath else photo.storagePath)
+        // A thumbnail can be absent after an interrupted upload while the
+        // original is available. Serving it here keeps the dashboard usable.
+        val path = if (kind == "thumbnail" && !Files.isRegularFile(requestedPath)) {
+            Path.of(photo.storagePath)
+        } else {
+            requestedPath
+        }
         if (!Files.isRegularFile(path)) return@get call.respond(HttpStatusCode.NotFound)
         call.respondFile(path.toFile())
     }

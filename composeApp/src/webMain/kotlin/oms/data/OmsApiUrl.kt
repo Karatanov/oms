@@ -12,4 +12,15 @@ val omsApiBaseUrl: String = when (window.location.hostname) {
     else -> "/api/v1"
 }
 
-fun omsApiUrl(path: String): String = "$omsApiBaseUrl$path"
+/**
+ * Converts an API-relative path into a URL suitable for the current runtime.
+ * DTOs returned by the server already contain paths beginning with `/api/v1`,
+ * whereas callers in the UI normally pass a path relative to that prefix.
+ */
+fun omsApiUrl(path: String): String = when {
+    path.startsWith("http://") || path.startsWith("https://") -> path
+    path.startsWith("/api/v1/") && omsApiBaseUrl.startsWith("http") ->
+        "${omsApiBaseUrl.removeSuffix("/api/v1")}$path"
+    path.startsWith("/api/v1/") -> path
+    else -> "$omsApiBaseUrl$path"
+}
