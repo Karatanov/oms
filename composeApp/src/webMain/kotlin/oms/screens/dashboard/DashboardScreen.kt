@@ -18,6 +18,7 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import oms.data.ApiDashboard
 import oms.data.ApiInspectionPhoto
+import oms.data.ApiMonthlyActPayment
 import oms.data.OmsApiClient
 import oms.data.ProjectRepository
 
@@ -26,7 +27,6 @@ import oms.data.ProjectRepository
 
    Головний екран системи.
    Тут розміщуються:
-   - KPI картки
    - графіки
    - останні активності
 */
@@ -36,6 +36,7 @@ fun DashboardScreen() {
     var dashboard by remember { mutableStateOf<ApiDashboard?>(null) }
     var latestPhotos by remember { mutableStateOf<List<ApiInspectionPhoto>?>(null) }
     var photoInspectionDate by remember { mutableStateOf<String?>(null) }
+    var photoInspectionCode by remember { mutableStateOf<String?>(null) }
     val projects = ProjectRepository.projects
     LaunchedEffect(Unit) {
         ProjectRepository.refresh()
@@ -46,6 +47,7 @@ fun DashboardScreen() {
     LaunchedEffect(recentInspections.map { it.uuid }) {
         latestPhotos = null
         photoInspectionDate = recentInspections.firstOrNull()?.inspectionDate
+        photoInspectionCode = recentInspections.firstOrNull()?.inspectionCode
         val photosByInspection = coroutineScope {
             recentInspections.map { inspection ->
                 async {
@@ -57,15 +59,15 @@ fun DashboardScreen() {
             if (photos.isNotEmpty()) {
                 latestPhotos = photos
                 photoInspectionDate = inspection.inspectionDate
+                photoInspectionCode = inspection.inspectionCode
                 return@LaunchedEffect
             }
         }
         latestPhotos = emptyList()
     }
-    DashboardPhotoSlider(photoInspectionDate, latestPhotos)
+    DashboardPhotoSlider(photoInspectionDate, photoInspectionCode, latestPhotos)
 
     val primary = MaterialTheme.colorScheme.primary
-    val secondary = MaterialTheme.colorScheme.secondary
 
     LazyColumn(
         modifier = Modifier
@@ -75,9 +77,9 @@ fun DashboardScreen() {
         verticalArrangement = Arrangement.spacedBy(24.dp)
     ) {
 
-        item { KPIRow(primary, secondary, dashboard) }
-
         item { ProjectsByRegionChart(primary, projects) }
+
+        item { MonthlyActPaymentsChart(primary, dashboard?.monthlyActPayments.orEmpty()) }
 
         item { ActivitySection(dashboard?.activities.orEmpty()) }
     }

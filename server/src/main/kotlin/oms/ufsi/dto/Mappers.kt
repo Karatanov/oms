@@ -172,6 +172,9 @@ fun InspectionReport.toResponse():
         uuid =
             uuid.toString(),
 
+        inspectionCode =
+            "SIR-${uuid.toString().substringBefore('-').uppercase()}",
+
         inspectionDate =
             inspectionDate.toString(),
 

@@ -9,15 +9,15 @@ import oms.data.omsApiUrl
 import kotlin.js.JsName
 
 @JsName("showDashboardPhotoSlider")
-external fun showDashboardPhotoSlider(inspectionDate: String?, photosJson: String)
+external fun showDashboardPhotoSlider(inspectionDate: String?, inspectionCode: String?, photosJson: String)
 
 @JsName("hideDashboardPhotoSlider")
 external fun hideDashboardPhotoSlider()
 
 /** Browser-native image element is used here so remote thumbnails work in both JS and Wasm builds. */
 @Composable
-fun DashboardPhotoSlider(inspectionDate: String?, photos: List<ApiInspectionPhoto>?) {
-    DisposableEffect(inspectionDate, photos) {
+fun DashboardPhotoSlider(inspectionDate: String?, inspectionCode: String?, photos: List<ApiInspectionPhoto>?) {
+    DisposableEffect(inspectionDate, inspectionCode, photos) {
         val sliderPhotos = photos.orEmpty()
             .sortedByDescending { it.isMain }
             .take(7)
@@ -27,7 +27,7 @@ fun DashboardPhotoSlider(inspectionDate: String?, photos: List<ApiInspectionPhot
                     thumbnailUrl = photo.thumbnailUrl.toOmsUrl()
                 )
             }
-        showDashboardPhotoSlider(inspectionDate, Json.encodeToString(sliderPhotos))
+        showDashboardPhotoSlider(inspectionDate, inspectionCode, Json.encodeToString(sliderPhotos))
         onDispose(::hideDashboardPhotoSlider)
     }
 }

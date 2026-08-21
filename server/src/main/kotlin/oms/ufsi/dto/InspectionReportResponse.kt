@@ -13,6 +13,9 @@ data class InspectionReportResponse(
      */
     val uuid: String,
 
+    /** Stable human-readable code derived from the report UUID. */
+    val inspectionCode: String,
+
     /**
      * Дата проведення інспекції.
      */

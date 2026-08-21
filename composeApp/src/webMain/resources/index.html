@@ -32,7 +32,7 @@
                 photoRules: "Перетягніть фотографії сюди або виберіть файли. Лише JPEG/PNG, до 10 МБ кожен, максимум 30 фотографій.",
                 photoDrop: "Перетягніть фотографії сюди або натисніть для вибору", done: "Готово", remove: "Видалити",
                 invalidPhoto: "дозволені лише JPEG/PNG-файли розміром до 10 МБ.", maxPhotos: "Можна прикріпити максимум 30 фотографій.",
-                lastInspection: "Остання інспекція", noReports: "Інспекційних звітів ще немає", noPhotos: "В останній інспекції немає фотографій.",
+                lastInspection: "Остання інспекція", inspectionCode: "Код інспекції", noReports: "Інспекційних звітів ще немає", noPhotos: "В останній інспекції немає фотографій.",
                 open: "Відкрити", closeFullscreenPhoto: "Закрити повноекранне фото", details: "Деталі",
                 loading: "Завантаження даних…", uploadingFile: "Завантаження файлу…", importingInspection: "Імпорт інспекційного звіту…", importingFinancial: "Імпорт фінансових записів…"
             },
@@ -43,7 +43,7 @@
                 photoRules: "Drag photos here or choose files. JPEG/PNG only, up to 10 MB each, maximum 30 photos.",
                 photoDrop: "Drag photos here or click to select", done: "Done", remove: "Remove",
                 invalidPhoto: "only JPEG/PNG files up to 10 MB are allowed.", maxPhotos: "You can attach up to 30 photos.",
-                lastInspection: "Latest inspection", noReports: "No Inspection Reports yet", noPhotos: "No photos in the latest inspection.",
+                lastInspection: "Latest inspection", inspectionCode: "Inspection code", noReports: "No Inspection Reports yet", noPhotos: "No photos in the latest inspection.",
                 open: "Open", closeFullscreenPhoto: "Close full-screen photo", details: "Details",
                 loading: "Loading data…", uploadingFile: "Uploading file…", importingInspection: "Importing inspection report…", importingFinancial: "Importing financial records…"
             }
@@ -364,7 +364,7 @@
             if (pane) pane.classList.remove("visible");
         }
 
-        function showDashboardPhotoSlider(inspectionDate, photosJson) {
+        function showDashboardPhotoSlider(inspectionDate, inspectionCode, photosJson) {
             const pane = document.getElementById("dashboard-photo-slider");
             if (!pane) return;
             const photos = JSON.parse(photosJson);
@@ -373,7 +373,9 @@
 
             const title = document.createElement("div");
             title.className = "photo-slider-title";
-            title.textContent = inspectionDate ? `${omsText("lastInspection")}: ${formatOmsDate(inspectionDate)}` : omsText("noReports");
+            title.textContent = inspectionDate
+                ? `${omsText("lastInspection")}: ${formatOmsDate(inspectionDate)}${inspectionCode ? ` · ${omsText("inspectionCode")}: ${inspectionCode}` : ""}`
+                : omsText("noReports");
             pane.append(title);
             if (!inspectionDate) return;
 

@@ -489,8 +489,12 @@ data class ApiDashboard(
     val pendingInspections: Long,
     val findingsTotal: Long,
     val recentInspections: List<ApiInspectionReport>,
-    val activities: List<ApiActivity> = emptyList()
+    val activities: List<ApiActivity> = emptyList(),
+    val monthlyActPayments: List<ApiMonthlyActPayment> = emptyList()
 )
+
+@Serializable
+data class ApiMonthlyActPayment(val month: String, val amount: Long)
 
 @Serializable
 data class ApiActivity(
@@ -526,6 +530,7 @@ data class ProcurementRecordRequest(
 @Serializable
 data class ApiInspectionReport(
     val uuid: String,
+    val inspectionCode: String = "",
     val inspectionDate: String,
     val summary: String? = null,
     val status: String,

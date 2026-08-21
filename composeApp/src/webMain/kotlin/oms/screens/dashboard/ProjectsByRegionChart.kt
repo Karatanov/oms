@@ -20,7 +20,8 @@ import oms.model.Project
 
 @Composable
 fun ProjectsByRegionChart(primary: Color, projects: List<Project>) {
-    val data = projects
+    val subprojects = projects.filter { it.projectType.equals("subproject", ignoreCase = true) }
+    val data = subprojects
         .mapNotNull { it.startDate?.takeIf { date -> date.matches(Regex("\\d{4}-\\d{2}-\\d{2}")) }?.take(7) }
         .groupingBy { it }
         .eachCount()
@@ -31,6 +32,11 @@ fun ProjectsByRegionChart(primary: Color, projects: List<Project>) {
     Card(modifier = Modifier.fillMaxWidth().height(320.dp), shape = RoundedCornerShape(12.dp)) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(LocalizationManager.t("projects_by_start_month"), style = MaterialTheme.typography.titleMedium)
+            Text(
+                LocalizationManager.t("subprojects_count").replace("{count}", subprojects.size.toString()),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.primary
+            )
             Text(
                 LocalizationManager.t("start_month_axis_label"),
                 style = MaterialTheme.typography.bodySmall,
