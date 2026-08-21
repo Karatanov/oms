@@ -393,7 +393,6 @@
                 button.className = "photo-slider-item";
                 button.setAttribute("aria-label", `${omsText("open")} ${photo.fileName}`);
                 const image = document.createElement("img");
-                image.src = photo.thumbnailUrl;
                 image.alt = photo.fileName;
                 image.loading = "lazy";
                 image.addEventListener("error", () => {
@@ -406,6 +405,7 @@
                         button.textContent = omsText("noPhotos");
                     }
                 });
+                image.src = photo.thumbnailUrl;
                 button.append(image);
                 button.addEventListener("click", () => openPhotoLightbox(photos, photo.uuid));
                 track.append(button);

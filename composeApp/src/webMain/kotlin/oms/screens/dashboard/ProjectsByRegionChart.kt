@@ -31,6 +31,11 @@ fun ProjectsByRegionChart(primary: Color, projects: List<Project>) {
     Card(modifier = Modifier.fillMaxWidth().height(320.dp), shape = RoundedCornerShape(12.dp)) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(LocalizationManager.t("projects_by_start_month"), style = MaterialTheme.typography.titleMedium)
+            Text(
+                LocalizationManager.t("start_month_axis_label"),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
             Spacer(Modifier.height(16.dp))
             if (data.isEmpty()) Text(LocalizationManager.t("no_projects_with_start_date"))
             else VerticalBarChart(data = data, color = primary)
@@ -47,5 +52,5 @@ private fun String.toStartMonthLabel(): String {
         9 -> "month_september"; 10 -> "month_october"; 11 -> "month_november"; 12 -> "month_december"
         else -> return this
     }
-    return "${LocalizationManager.t(monthKey)}\n$year"
+    return "${LocalizationManager.t(monthKey)} $year"
 }
