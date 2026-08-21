@@ -78,9 +78,7 @@ fun Route.projectRoutes() {
     post("/api/v1/projects") {
         val session = call.requireRole("ADMIN", "PROJECT_MANAGER") ?: return@post
 
-        val request = call.receive<CreateProjectRequest>().let {
-            if (session.roleCode.equals("PROJECT_MANAGER", ignoreCase = true)) it.copy(managerId = session.userId) else it
-        }
+        val request = call.receive<CreateProjectRequest>()
         if (session.roleCode.equals("PROJECT_MANAGER", ignoreCase = true) &&
             request.parentProjectUuid != null && !call.requireProjectAccess(session, request.parentProjectUuid)
         ) return@post
@@ -130,13 +128,27 @@ fun Route.projectRoutes() {
 
                     plannedEndDate = request.plannedEndDate,
 
-                    managerId = request.managerId,
+                    managerId = session.userId,
                 )
 
-            AppContainer.auditLogService.record(session.userId, "project_created", project.projectType.name.lowercase(), project.id)
+            val result = projectService.updateProject(
+                project.uuid.toString(),
+                UpdateProjectRequest(
+                    description = request.description,
+                    endDate = request.endDate,
+                    designContractSigningDate = request.designContractSigningDate,
+                    constructionContractSigningDate = request.constructionContractSigningDate,
+                    constructionStartDate = request.constructionStartDate,
+                    projectedCompletionTime = request.projectedCompletionTime,
+                    currency = request.currency,
+                    contractorName = request.contractorName
+                )
+            ) ?: project
+
+            AppContainer.auditLogService.record(session.userId, "project_created", result.projectType.name.lowercase(), result.id)
             call.respond(
                 HttpStatusCode.Created,
-                project.toResponse()
+                result.toResponse()
             )
 
         } catch (exception: IllegalArgumentException) {

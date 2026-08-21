@@ -36,9 +36,9 @@ import oms.components.SectorSelector
 import oms.components.OmsDateField
 import oms.components.InlineOptionPicker
 import oms.components.UkraineRegionAutocomplete
+import oms.components.UkraineCityAutocomplete
 import oms.components.currentIsoDate
 import oms.data.ApiProject
-import oms.data.ApiUser
 import oms.data.OmsApiClient
 import oms.data.ProjectRepository
 import oms.localization.LocalizationManager
@@ -50,6 +50,7 @@ fun CreateProjectScreen(
     onCreated: () -> Unit = {}
 ) {
     var name by remember { mutableStateOf("") }
+    var description by remember { mutableStateOf("") }
     var siteName by remember { mutableStateOf("") }
     var address by remember { mutableStateOf("") }
     var region by remember { mutableStateOf("") }
@@ -63,26 +64,24 @@ fun CreateProjectScreen(
     var parentProjectUuid by remember { mutableStateOf<String?>(null) }
     var subprojectContractAmount by remember { mutableStateOf("") }
     var startDate by remember { mutableStateOf(currentIsoDate()) }
+    var endDate by remember { mutableStateOf(currentIsoDate()) }
     var contractSignedDate by remember { mutableStateOf(currentIsoDate()) }
     var plannedEndDate by remember { mutableStateOf(currentIsoDate()) }
+    var designContractSigningDate by remember { mutableStateOf(currentIsoDate()) }
+    var constructionContractSigningDate by remember { mutableStateOf(currentIsoDate()) }
+    var constructionStartDate by remember { mutableStateOf(currentIsoDate()) }
+    var projectedCompletionTime by remember { mutableStateOf(currentIsoDate()) }
+    var currency by remember { mutableStateOf("UAH") }
+    var contractorName by remember { mutableStateOf("") }
     var parentProjects by remember { mutableStateOf<List<ApiProject>>(emptyList()) }
     var latitude by remember { mutableStateOf("") }
     var longitude by remember { mutableStateOf("") }
-    var users by remember { mutableStateOf<List<ApiUser>>(emptyList()) }
-    var managerId by remember { mutableStateOf<Long?>(null) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var isSubmitting by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) {
-        val (loadedProjects, loadedUsers) = coroutineScope {
-            async { runCatching { OmsApiClient.projects() }.getOrDefault(emptyList()) }.await() to
-                async { runCatching { OmsApiClient.users() }.getOrDefault(emptyList()) }.await()
-        }
-        parentProjects = loadedProjects
-        users = loadedUsers
-            .filter { it.status.equals("active", ignoreCase = true) }
-        managerId = users.firstOrNull()?.id
+        parentProjects = runCatching { OmsApiClient.projects() }.getOrDefault(emptyList())
     }
 
     fun requiredFieldsFilled() = listOf(
@@ -124,22 +123,12 @@ fun CreateProjectScreen(
                     )
                 }
                 OutlinedTextField(name, { name = it }, label = { Text(LocalizationManager.t("project_name_required")) }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(description, { description = it }, label = { Text(LocalizationManager.t("description")) }, minLines = 3, modifier = Modifier.fillMaxWidth())
                 OutlinedTextField(siteName, { siteName = it }, label = { Text(LocalizationManager.t("project_code_required")) }, modifier = Modifier.fillMaxWidth())
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     SectorSelector(sector, { sector = it }, Modifier.weight(1f))
                     ConstructionTypeSelector(constructionType, { constructionType = it }, Modifier.weight(1f))
                 }
-                InlineOptionPicker(
-                    options = users,
-                    selected = users.firstOrNull { it.id == managerId },
-                    prompt = LocalizationManager.t("manager_id_required"),
-                    onSelect = { managerId = it.id },
-                    itemLabel = { user ->
-                        listOf(user.firstName, user.lastName).filter { it.isNotBlank() }
-                            .joinToString(" ").ifBlank { user.username } + " (${user.username})"
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                )
             }
         }
 
@@ -155,7 +144,7 @@ fun CreateProjectScreen(
                 OutlinedTextField(address, { address = it }, label = { Text(LocalizationManager.t("address_required")) }, modifier = Modifier.fillMaxWidth())
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     UkraineRegionAutocomplete(region, { region = it }, LocalizationManager.t("region"), Modifier.weight(1f), required = true)
-                    OutlinedTextField(city, { city = it }, label = { Text(LocalizationManager.t("city_required")) }, modifier = Modifier.weight(1f))
+                    UkraineCityAutocomplete(city, { city = it }, LocalizationManager.t("city"), Modifier.weight(1f), required = true)
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     OutlinedTextField(latitude, { value -> if (value.matches(Regex("-?[0-9.,]*"))) latitude = value }, label = { Text(LocalizationManager.t("latitude_required")) }, singleLine = true, modifier = Modifier.weight(1f))
@@ -182,9 +171,31 @@ fun CreateProjectScreen(
                     OutlinedTextField(subprojectContractAmount, { value -> if (value.all(Char::isDigit)) subprojectContractAmount = value }, label = { Text(LocalizationManager.t("subproject_contract_amount_required")) }, singleLine = true, modifier = Modifier.fillMaxWidth())
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         OmsDateField(startDate, { startDate = it }, LocalizationManager.t("start_date"), Modifier.weight(1f), true)
+                        OmsDateField(endDate, { endDate = it }, LocalizationManager.t("end_date"), Modifier.weight(1f), true)
                         OmsDateField(contractSignedDate, { contractSignedDate = it }, LocalizationManager.t("contract_signed_date"), Modifier.weight(1f), true)
                         OmsDateField(plannedEndDate, { plannedEndDate = it }, LocalizationManager.t("planned_end_date"), Modifier.weight(1f), true)
                     }
+                }
+                if (projectType == "project") {
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        OmsDateField(startDate, { startDate = it }, LocalizationManager.t("start_date"), Modifier.weight(1f), true)
+                        OmsDateField(endDate, { endDate = it }, LocalizationManager.t("end_date"), Modifier.weight(1f), true)
+                        OmsDateField(contractSignedDate, { contractSignedDate = it }, LocalizationManager.t("contract_signed_date"), Modifier.weight(1f), true)
+                        OmsDateField(plannedEndDate, { plannedEndDate = it }, LocalizationManager.t("planned_end_date"), Modifier.weight(1f), true)
+                    }
+                }
+                Text(LocalizationManager.t("design_construction_dates"), style = MaterialTheme.typography.titleMedium)
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    OmsDateField(designContractSigningDate, { designContractSigningDate = it }, LocalizationManager.t("design_contract_date"), Modifier.weight(1f), true)
+                    OmsDateField(constructionContractSigningDate, { constructionContractSigningDate = it }, LocalizationManager.t("construction_contract_date"), Modifier.weight(1f), true)
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    OmsDateField(constructionStartDate, { constructionStartDate = it }, LocalizationManager.t("construction_start_date"), Modifier.weight(1f), true)
+                    OmsDateField(projectedCompletionTime, { projectedCompletionTime = it }, LocalizationManager.t("projected_completion_date"), Modifier.weight(1f), true)
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    OutlinedTextField(contractorName, { contractorName = it }, label = { Text(LocalizationManager.t("contractor")) }, singleLine = true, modifier = Modifier.weight(1f))
+                    OutlinedTextField(currency, { value -> if (value.all { it.isLetter() } && value.length <= 3) currency = value.uppercase() }, label = { Text(LocalizationManager.t("currency_iso_required")) }, singleLine = true, modifier = Modifier.weight(1f))
                 }
             }
         }
@@ -210,12 +221,12 @@ fun CreateProjectScreen(
                         parsedBudget == null || parsedBudget <= 0 -> LocalizationManager.t("error_positive_budget")
                         parsedLatitude == null || parsedLatitude !in -90.0..90.0 -> LocalizationManager.t("error_latitude_range")
                         parsedLongitude == null || parsedLongitude !in -180.0..180.0 -> LocalizationManager.t("error_longitude_range")
-                        managerId == null -> LocalizationManager.t("error_valid_manager")
                         engineerConsultantContractAmount.isNotBlank() && parsedEngineerConsultantAmount == null -> LocalizationManager.t("error_engineer_amount")
                         technicalSupervisionAmount.isNotBlank() && parsedTechnicalSupervisionAmount == null -> LocalizationManager.t("error_supervision_amount")
                         projectType != "project" && parentProjectUuid == null -> LocalizationManager.t("error_select_parent")
                         projectType != "project" && (parsedSubprojectContractAmount == null || parsedSubprojectContractAmount <= 0) -> LocalizationManager.t("error_positive_contract_amount")
                         projectType != "project" && listOf(startDate, contractSignedDate, plannedEndDate).any { it.isBlank() } -> LocalizationManager.t("error_contract_dates_required")
+                        currency.length != 3 -> LocalizationManager.t("error_currency_iso")
                         else -> null
                     }
                     if (errorMessage == null) {
@@ -224,19 +235,25 @@ fun CreateProjectScreen(
                             runCatching {
                                 OmsApiClient.createProject(
                                     CreateProjectRequest(
-                                        name = name.trim(), siteName = siteName.trim(), siteNumber = siteName.trim(),
+                                        name = name.trim(), siteName = siteName.trim(), siteNumber = siteName.trim(), description = description.trim().ifBlank { null },
                                         address = address.trim(), region = region.trim(), city = city.trim(),
                                         latitude = parsedLatitude!!, longitude = parsedLongitude!!, sector = sector.trim(),
                                         constructionType = constructionType.trim(), budgetPlanned = parsedBudget!!,
                                         engineerConsultantContractAmount = parsedEngineerConsultantAmount,
                                         technicalSupervisionAmount = parsedTechnicalSupervisionAmount,
-                                        managerId = managerId!!,
                                         projectType = projectType,
                                         parentProjectUuid = parentProjectUuid,
                                         subprojectContractAmount = parsedSubprojectContractAmount,
                                         startDate = startDate.takeIf { it.isNotBlank() },
+                                        endDate = endDate.takeIf { it.isNotBlank() },
                                         contractSignedDate = contractSignedDate.takeIf { it.isNotBlank() },
-                                        plannedEndDate = plannedEndDate.takeIf { it.isNotBlank() }
+                                        plannedEndDate = plannedEndDate.takeIf { it.isNotBlank() },
+                                        designContractSigningDate = designContractSigningDate.takeIf { it.isNotBlank() },
+                                        constructionContractSigningDate = constructionContractSigningDate.takeIf { it.isNotBlank() },
+                                        constructionStartDate = constructionStartDate.takeIf { it.isNotBlank() },
+                                        projectedCompletionTime = projectedCompletionTime.takeIf { it.isNotBlank() },
+                                        currency = currency,
+                                        contractorName = contractorName.trim().ifBlank { null }
                                     )
                                 )
                             }.onSuccess {

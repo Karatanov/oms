@@ -1,6 +1,7 @@
 package oms.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
@@ -23,14 +24,16 @@ fun String.sectorLabel(): String = when (lowercase()) {
 
 @Composable
 fun SectorSelector(value: String, onValueChange: (String) -> Unit, modifier: Modifier = Modifier) {
-    InlineOptionPicker(
-        options = sectors,
-        selected = value.takeIf { it in sectors },
-        prompt = LocalizationManager.t("sector_required"),
-        onSelect = onValueChange,
-        itemLabel = String::sectorLabel,
-        modifier = modifier
-    )
+    Column(modifier) {
+        Text(LocalizationManager.t("sector_required"))
+        InlineOptionPicker(
+            options = sectors,
+            selected = value.takeIf { it in sectors },
+            prompt = LocalizationManager.t("sector_required"),
+            onSelect = onValueChange,
+            itemLabel = String::sectorLabel
+        )
+    }
 }
 
 @Composable

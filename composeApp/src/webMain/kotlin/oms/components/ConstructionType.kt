@@ -1,6 +1,7 @@
 package oms.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
@@ -15,14 +16,16 @@ val constructionTypes = listOf("reconstruction", "capital_repair", "new_construc
 
 @Composable
 fun ConstructionTypeSelector(value: String, onValueChange: (String) -> Unit, modifier: Modifier = Modifier) {
-    InlineOptionPicker(
-        options = constructionTypes,
-        selected = value,
-        prompt = LocalizationManager.t("construction_type"),
-        onSelect = onValueChange,
-        itemLabel = String::constructionTypeLabel,
-        modifier = modifier
-    )
+    Column(modifier) {
+        Text(LocalizationManager.t("construction_type"))
+        InlineOptionPicker(
+            options = constructionTypes,
+            selected = value,
+            prompt = LocalizationManager.t("construction_type"),
+            onSelect = onValueChange,
+            itemLabel = String::constructionTypeLabel
+        )
+    }
 }
 
 @Composable

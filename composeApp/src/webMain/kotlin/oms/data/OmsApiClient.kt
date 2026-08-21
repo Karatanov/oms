@@ -366,13 +366,20 @@ data class CreateProjectRequest(
     val budgetPlanned: Long,
     val engineerConsultantContractAmount: Long? = null,
     val technicalSupervisionAmount: Long? = null,
-    val managerId: Long,
+    val managerId: Long? = null,
     val projectType: String = "project",
     val parentProjectUuid: String? = null,
     val subprojectContractAmount: Long? = null,
     val startDate: String? = null,
     val contractSignedDate: String? = null,
-    val plannedEndDate: String? = null
+    val plannedEndDate: String? = null,
+    val endDate: String? = null,
+    val designContractSigningDate: String? = null,
+    val constructionContractSigningDate: String? = null,
+    val constructionStartDate: String? = null,
+    val projectedCompletionTime: String? = null,
+    val currency: String? = null,
+    val contractorName: String? = null
 )
 
 @Serializable

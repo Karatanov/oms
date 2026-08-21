@@ -30,6 +30,8 @@ data class CreateProjectRequest(
      */
     val siteNumber: String,
 
+    val description: String? = null,
+
     /**
      * Повна адреса.
      */
@@ -79,7 +81,7 @@ data class CreateProjectRequest(
     /**
      * Ідентифікатор керівника проєкту.
      */
-    val managerId: Long,
+    val managerId: Long? = null,
 
     /** Project hierarchy. A subproject must reference a parent project UUID. */
     val projectType: String = "project",
@@ -89,5 +91,12 @@ data class CreateProjectRequest(
     val subprojectContractAmount: Long? = null,
     val startDate: String? = null,
     val contractSignedDate: String? = null,
-    val plannedEndDate: String? = null
+    val plannedEndDate: String? = null,
+    val endDate: String? = null,
+    val designContractSigningDate: String? = null,
+    val constructionContractSigningDate: String? = null,
+    val constructionStartDate: String? = null,
+    val projectedCompletionTime: String? = null,
+    val currency: String? = null,
+    val contractorName: String? = null
 )
