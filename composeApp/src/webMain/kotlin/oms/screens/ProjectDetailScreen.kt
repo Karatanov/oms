@@ -233,8 +233,13 @@ fun ProjectDetailScreen(
                 modifier = Modifier.weight(1f)
             )
             DetailMetricCard(
-                title = LocalizationManager.t("financial_completion"),
+                title = LocalizationManager.t("completed_works_percentage"),
                 value = details.value?.financialSummary?.completionPct?.let { "${it.toInt()}%" } ?: "—",
+                modifier = Modifier.weight(1f)
+            )
+            DetailMetricCard(
+                title = LocalizationManager.t("financial_completion"),
+                value = details.value?.financialSummary?.financialCompletionPct?.let { "${it.toInt()}%" } ?: "—",
                 modifier = Modifier.weight(1f)
             )
         }
@@ -540,7 +545,8 @@ private fun ProjectFinancialsTab(
         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text("${LocalizationManager.t("construction_contract")}: ${financials?.summary?.constructionContractAmount?.toMoney() ?: "—"}", style = MaterialTheme.typography.titleLarge)
             Text("${LocalizationManager.t("completed_works_by_acts")}: ${financials?.summary?.amountSpent?.toMoney() ?: "—"}")
-            Text("${LocalizationManager.t("financial_completion")}: ${financials?.summary?.completionPct?.let { "${it.toInt()}%" } ?: "—"}")
+            Text("${LocalizationManager.t("completed_works_percentage")}: ${financials?.summary?.completionPct?.let { "${it.toInt()}%" } ?: "—"}")
+            Text("${LocalizationManager.t("financial_completion")}: ${financials?.summary?.financialCompletionPct?.let { "${it.toInt()}%" } ?: "—"}")
             if (acts.isEmpty()) Text(LocalizationManager.t("no_acts"))
             acts.forEach { act ->
                 Text("${act.referenceNumber} • ${act.recordDate.toOmsDate()} • ${act.amount.toMoney()}")

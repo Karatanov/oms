@@ -77,12 +77,14 @@ class FinancialRecordService(private val repository: FinancialRecordRepository) 
             workbook.write(output)
         }
     }
-    fun summary(project: Project): FinancialSummary = FinancialSummary(
-        constructionContractAmount = project.subprojectContractAmount ?: project.budgetPlanned,
-        amountSpent = getAll(project.id)
-            .filter { it.recordType == FinancialRecordType.ACT }
-            .sumOf { it.amount }
-    )
+    fun summary(project: Project): FinancialSummary {
+        val records = getAll(project.id)
+        return FinancialSummary(
+            constructionContractAmount = project.subprojectContractAmount ?: project.budgetPlanned,
+            amountSpent = records.filter { it.recordType == FinancialRecordType.ACT }.sumOf { it.amount },
+            financialDocumentsAmount = records.sumOf { it.amount }
+        )
+    }
     private fun validatedType(value: String) = try { FinancialRecordType.valueOf(value.trim().uppercase()) } catch (_: Exception) { throw IllegalArgumentException("Record type must be invoice, act, payment, or advance.") }
     private fun positive(value: Long): Long { require(value > 0) { "Amount must be positive." }; return value }
     private fun required(value: String, field: String): String { val result = value.trim(); require(result.isNotEmpty()) { "$field is required." }; return result }
@@ -95,9 +97,14 @@ class FinancialRecordService(private val repository: FinancialRecordRepository) 
 data class FinancialImportError(val row: Int, val field: String?, val message: String)
 data class FinancialImportResult(val imported: Int, val skipped: Int, val errors: List<FinancialImportError>)
 
-data class FinancialSummary(val constructionContractAmount: Long, val amountSpent: Long) {
+data class FinancialSummary(
+    val constructionContractAmount: Long,
+    val amountSpent: Long,
+    val financialDocumentsAmount: Long
+) {
     // Kept for existing API consumers; it is the construction-contract balance.
     val budgetPlanned get() = constructionContractAmount
     val budgetRemaining get() = constructionContractAmount - amountSpent
     val completionPct get() = if (constructionContractAmount == 0L) 0.0 else amountSpent * 100.0 / constructionContractAmount
+    val financialCompletionPct get() = if (constructionContractAmount == 0L) 0.0 else financialDocumentsAmount * 100.0 / constructionContractAmount
 }

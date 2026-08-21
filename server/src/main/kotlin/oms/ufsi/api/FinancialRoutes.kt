@@ -44,7 +44,15 @@ fun Route.financialRoutes() {
                 call.respond(
                     FinancialRecordListResponse(
                         data = records.map { it.toResponse() },
-                        summary = FinancialSummaryResponse(summary.budgetPlanned, summary.constructionContractAmount, summary.amountSpent, summary.budgetRemaining, summary.completionPct)
+                        summary = FinancialSummaryResponse(
+                            summary.budgetPlanned,
+                            summary.constructionContractAmount,
+                            summary.amountSpent,
+                            summary.financialDocumentsAmount,
+                            summary.budgetRemaining,
+                            summary.completionPct,
+                            summary.financialCompletionPct
+                        )
                     )
                 )
             } catch (e: IllegalArgumentException) {

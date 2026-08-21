@@ -633,8 +633,10 @@ data class ApiFinancialSummary(
     val budgetPlanned: Long,
     val constructionContractAmount: Long = budgetPlanned,
     val amountSpent: Long,
+    val financialDocumentsAmount: Long = amountSpent,
     val budgetRemaining: Long,
-    val completionPct: Double = 0.0
+    val completionPct: Double = 0.0,
+    val financialCompletionPct: Double = completionPct
 )
 
 @Serializable

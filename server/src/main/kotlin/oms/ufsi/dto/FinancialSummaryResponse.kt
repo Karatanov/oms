@@ -22,6 +22,9 @@ data class FinancialSummaryResponse(
      */
     val amountSpent: Long,
 
+    /** Total amount across all financial documents. */
+    val financialDocumentsAmount: Long = amountSpent,
+
     /**
      * Залишок бюджету.
      */
@@ -30,5 +33,8 @@ data class FinancialSummaryResponse(
     /**
      * Відсоток виконання бюджету.
      */
-    val completionPct: Double
+    val completionPct: Double,
+
+    /** All financial documents as a percentage of the construction contract. */
+    val financialCompletionPct: Double = completionPct
 )
