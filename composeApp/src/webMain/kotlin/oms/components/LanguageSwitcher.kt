@@ -20,9 +20,9 @@ fun LanguageSwitcher() {
     ) {
         Text(
             if (LocalizationManager.currentLanguage == Language.UK)
-                "UA"
-            else
                 "EN"
+            else
+                "UA"
         )
     }
 }
