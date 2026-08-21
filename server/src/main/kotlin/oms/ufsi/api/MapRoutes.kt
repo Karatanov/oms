@@ -4,13 +4,16 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import oms.ufsi.config.AppContainer
 import oms.ufsi.dto.ProjectMapPointResponse
+import oms.ufsi.domain.ProjectType
 
 fun Route.mapRoutes() {
     get("/api/v1/projects/map") {
         val session = call.requireRole("ADMIN", "PROJECT_MANAGER", "INSPECTOR", "VIEWER", "GUEST") ?: return@get
         call.respond(AppContainer.projectService.getAllProjects().filter {
-            !session.roleCode.equals("PROJECT_MANAGER", ignoreCase = true) ||
-                AppContainer.projectService.isManagedBy(it.uuid.toString(), session.userId)
+            it.projectType != ProjectType.PROJECT &&
+                (it.latitude != 0.0 || it.longitude != 0.0) &&
+                (!session.roleCode.equals("PROJECT_MANAGER", ignoreCase = true) ||
+                    AppContainer.projectService.isManagedBy(it.uuid.toString(), session.userId))
         }.map {
             ProjectMapPointResponse(
                 uuid = it.uuid.toString(),
