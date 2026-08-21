@@ -21,3 +21,6 @@ data class LoginRequest(
 
 @Serializable
 data class ActivateAccountRequest(val token: String, val password: String)
+
+@Serializable
+data class PasswordResetRequest(val identifier: String)

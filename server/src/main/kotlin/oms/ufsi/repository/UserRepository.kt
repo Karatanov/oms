@@ -72,6 +72,8 @@ interface UserRepository {
 
     fun storeActivationToken(userId: Long, tokenHash: String, expiresAt: java.time.LocalDateTime)
 
+    fun storePasswordResetToken(userId: Long, tokenHash: String, expiresAt: java.time.LocalDateTime)
+
     fun activationState(tokenHash: String): ActivationState?
 
     fun activate(userId: Long, passwordHash: String, at: java.time.LocalDateTime): Boolean

@@ -72,6 +72,14 @@ object OmsApiClient {
         if (!response.status.isSuccess()) throw IllegalStateException(response.bodyAsText())
     }
 
+    suspend fun requestPasswordReset(identifier: String) {
+        val response = client.post("$baseUrl/auth/password-reset") {
+            contentType(ContentType.Application.Json)
+            setBody(PasswordResetRequest(identifier))
+        }
+        if (!response.status.isSuccess()) throw IllegalStateException(response.bodyAsText())
+    }
+
     suspend fun projects(): List<ApiProject> =
         client.get("$baseUrl/projects?page=1&pageSize=100").body<ProjectListPayload>().data
 
@@ -273,6 +281,7 @@ private fun String.toOmsLoadingMessage(): String = when {
 @Serializable
 data class LoginRequest(val username: String, val password: String)
 @Serializable data class ActivateAccountRequest(val token: String, val password: String)
+@Serializable data class PasswordResetRequest(val identifier: String)
 
 @Serializable
 data class LoginPayload(val user: ApiUser)

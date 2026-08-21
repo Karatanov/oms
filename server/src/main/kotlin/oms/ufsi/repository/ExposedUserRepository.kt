@@ -249,6 +249,14 @@ class ExposedUserRepository : UserRepository {
         Unit
     }
 
+    override fun storePasswordResetToken(userId: Long, tokenHash: String, expiresAt: LocalDateTime) = transaction {
+        UserTable.update({ UserTable.id eq userId }) {
+            it[activationTokenHash] = tokenHash
+            it[activationTokenExpiresAt] = expiresAt
+        }
+        Unit
+    }
+
     override fun activationState(tokenHash: String): UserRepository.ActivationState? = transaction {
         UserTable.selectAll().firstOrNull { it[UserTable.activationTokenHash] == tokenHash }?.let {
             UserRepository.ActivationState(it[UserTable.id].value, it[UserTable.activationTokenExpiresAt])

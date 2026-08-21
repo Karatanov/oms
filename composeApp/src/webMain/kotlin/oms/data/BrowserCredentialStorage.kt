@@ -6,10 +6,7 @@ data class SavedCredentials(
     val username: String
 )
 
-/**
- * "Remember me" retains only the login identifier in this browser. Passwords
- * and bearer tokens must never be persisted in browser storage.
- */
+/** Retains only the login identifier. Passwords are delegated to the browser password manager. */
 object BrowserCredentialStorage {
     private const val UsernameKey = "oms.saved.username"
 

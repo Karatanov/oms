@@ -16,14 +16,15 @@ import java.util.Base64
  */
 class ActivationService(private val userRepository: UserRepository) {
     fun issue(userId: Long, email: String) {
-        val token = ByteArray(32).also(SecureRandom()::nextBytes).let { Base64.getUrlEncoder().withoutPadding().encodeToString(it) }
-        val expiresAt = LocalDateTime.now().plusHours(24)
-        userRepository.storeActivationToken(userId, hash(token), expiresAt)
-        val baseUrl = System.getenv("OMS_PUBLIC_BASE_URL")?.trim()?.trimEnd('/')?.ifBlank { null } ?: "http://localhost:8080"
-        val outbox = uploadDirectory("activation-outbox")
-        Files.createDirectories(outbox)
-        val body = "To: $email\nSubject: OMS account activation\n\nActivate your OMS account within 24 hours:\n$baseUrl/activate?token=$token\n"
-        Files.writeString(outbox.resolve("activation-$userId.eml"), body, StandardCharsets.UTF_8, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)
+        issueLink(userId, email, "account activation") { token, expiresAt ->
+            userRepository.storeActivationToken(userId, hash(token), expiresAt)
+        }
+    }
+
+    fun issuePasswordReset(userId: Long, email: String) {
+        issueLink(userId, email, "password reset") { token, expiresAt ->
+            userRepository.storePasswordResetToken(userId, hash(token), expiresAt)
+        }
     }
 
     fun activate(token: String, password: String): Long {
@@ -32,6 +33,16 @@ class ActivationService(private val userRepository: UserRepository) {
         require(state.expiresAt?.isAfter(LocalDateTime.now()) == true) { "Activation link has expired." }
         require(userRepository.activate(state.userId, PasswordHasher.hash(password), LocalDateTime.now())) { "Activation failed." }
         return state.userId
+    }
+
+    private fun issueLink(userId: Long, email: String, subject: String, store: (String, LocalDateTime) -> Unit) {
+        val token = ByteArray(32).also(SecureRandom()::nextBytes).let { Base64.getUrlEncoder().withoutPadding().encodeToString(it) }
+        store(token, LocalDateTime.now().plusHours(24))
+        val baseUrl = System.getenv("OMS_PUBLIC_BASE_URL")?.trim()?.trimEnd('/')?.ifBlank { null } ?: "http://localhost:8080"
+        val outbox = uploadDirectory("activation-outbox")
+        Files.createDirectories(outbox)
+        val body = "To: $email\nSubject: OMS $subject\n\nSet a new password within 24 hours:\n$baseUrl/?token=$token\n"
+        Files.writeString(outbox.resolve("${subject.replace(' ', '-') }-$userId.eml"), body, StandardCharsets.UTF_8, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)
     }
 
     private fun hash(value: String): String = MessageDigest.getInstance("SHA-256")

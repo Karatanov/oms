@@ -9,6 +9,7 @@ import oms.ufsi.config.AppContainer
 import oms.ufsi.dto.ErrorResponse
 import oms.ufsi.dto.LoginRequest
 import oms.ufsi.dto.ActivateAccountRequest
+import oms.ufsi.dto.PasswordResetRequest
 import oms.ufsi.dto.LoginResponse
 import oms.ufsi.dto.toResponse
 import oms.ufsi.security.UserSession
@@ -67,6 +68,17 @@ fun Route.authRoutes() {
 
     post("/api/v1/auth/logout") {
         call.sessions.clear<UserSession>()
+        call.respond(HttpStatusCode.NoContent)
+    }
+
+    post("/api/v1/auth/password-reset") {
+        val identifier = call.receive<PasswordResetRequest>().identifier.trim()
+        if (identifier.isNotEmpty()) {
+            AppContainer.userService.getAllUsers().firstOrNull {
+                it.username.equals(identifier, ignoreCase = true) || it.email.equals(identifier, ignoreCase = true)
+            }?.let { user -> AppContainer.activationService.issuePasswordReset(user.id, user.email) }
+        }
+        // Do not reveal whether an account with this identifier exists.
         call.respond(HttpStatusCode.NoContent)
     }
 

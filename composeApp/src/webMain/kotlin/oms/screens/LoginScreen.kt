@@ -18,6 +18,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import oms.components.FeatureItem
+import oms.components.WasmSafeOverlay
 import oms.data.BrowserCredentialStorage
 import oms.data.OmsApiClient
 import oms.data.ApiUser
@@ -39,6 +40,7 @@ fun LoginScreen(
 
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var isLoading by remember { mutableStateOf(false) }
+    var showPasswordReset by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
     fun submitLogin() {
@@ -77,6 +79,7 @@ fun LoginScreen(
 
     // ---------------- LAYOUT ----------------
 
+    Box(modifier = Modifier.fillMaxSize()) {
     Row(modifier = Modifier.fillMaxSize()) {
 
 // ---------------- LEFT PANEL (enhanced branding) ----------------
@@ -238,7 +241,7 @@ fun LoginScreen(
                             Text(LocalizationManager.t("remember_me"))
                         }
 
-                        TextButton(onClick = { }) {
+                        TextButton(onClick = { showPasswordReset = true }) {
                             Text(LocalizationManager.t("forgot_password"))
                         }
                     }
@@ -269,6 +272,60 @@ fun LoginScreen(
                             Text(LocalizationManager.t("sign_in"))
                         }
                     }
+                }
+            }
+        }
+    }
+        if (showPasswordReset) {
+            WasmSafeOverlay {
+                PasswordResetDialog(
+                    initialIdentifier = username,
+                    onDismiss = { showPasswordReset = false }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun PasswordResetDialog(initialIdentifier: String, onDismiss: () -> Unit) {
+    var identifier by remember { mutableStateOf(initialIdentifier) }
+    var isSending by remember { mutableStateOf(false) }
+    var sent by remember { mutableStateOf(false) }
+    var error by remember { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
+    Card(
+        modifier = Modifier.fillMaxWidth().widthIn(max = 460.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+    ) {
+        Column(Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            Text(LocalizationManager.t("password_reset_title"), style = MaterialTheme.typography.titleLarge)
+            Text(LocalizationManager.t("password_reset_hint"), color = MaterialTheme.colorScheme.onSurfaceVariant)
+            OutlinedTextField(
+                value = identifier,
+                onValueChange = { identifier = it; error = null },
+                label = { Text(LocalizationManager.t("login_or_email")) },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+            if (sent) Text(LocalizationManager.t("password_reset_sent"), color = MaterialTheme.colorScheme.primary)
+            error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
+                OutlinedButton(onClick = onDismiss) { Text(LocalizationManager.t("close")) }
+                Button(
+                    onClick = {
+                        isSending = true
+                        scope.launch {
+                            runCatching { OmsApiClient.requestPasswordReset(identifier.trim()) }
+                                .onSuccess { sent = true }
+                                .onFailure { error = LocalizationManager.t("password_reset_failed") }
+                            isSending = false
+                        }
+                    },
+                    enabled = identifier.isNotBlank() && !isSending
+                ) {
+                    if (isSending) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
+                    else Text(LocalizationManager.t("password_reset_send"))
                 }
             }
         }
