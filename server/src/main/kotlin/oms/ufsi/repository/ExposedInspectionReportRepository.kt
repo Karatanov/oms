@@ -20,6 +20,10 @@ import java.util.*
 class ExposedInspectionReportRepository :
     InspectionReportRepository {
 
+    override fun findAll(): List<InspectionReport> = transaction {
+        InspectionReportTable.selectAll().map(::toInspectionReport)
+    }
+
     override fun findByProjectId(
         projectId: Long
     ): List<InspectionReport> = transaction {
@@ -32,50 +36,19 @@ class ExposedInspectionReportRepository :
                     InspectionReportTable.projectId
                 ].value == projectId
             }
-            .map { row ->
-
-                InspectionReport(
-
-                    id =
-                        row[
-                            InspectionReportTable.id
-                        ].value,
-
-                    uuid =
-                        UUID.fromString(
-                            row[
-                                InspectionReportTable.uuid
-                            ]
-                        ),
-
-                    projectId =
-                        row[
-                            InspectionReportTable.projectId
-                        ].value,
-
-                    inspectionDate =
-                        row[
-                            InspectionReportTable.inspectionDate
-                        ],
-
-                    summary =
-                        row[
-                            InspectionReportTable.summary
-                        ],
-
-                    status = InspectionReportStatus.valueOf(
-                        row[InspectionReportTable.status].uppercase()
-                    ),
-
-                    rejectionReason = row[InspectionReportTable.rejectionReason],
-
-                    createdBy =
-                        row[
-                            InspectionReportTable.createdBy
-                        ].value
-                )
-            }
+            .map(::toInspectionReport)
     }
+
+    private fun toInspectionReport(row: org.jetbrains.exposed.v1.core.ResultRow) = InspectionReport(
+        id = row[InspectionReportTable.id].value,
+        uuid = UUID.fromString(row[InspectionReportTable.uuid]),
+        projectId = row[InspectionReportTable.projectId].value,
+        inspectionDate = row[InspectionReportTable.inspectionDate],
+        summary = row[InspectionReportTable.summary],
+        status = InspectionReportStatus.valueOf(row[InspectionReportTable.status].uppercase()),
+        rejectionReason = row[InspectionReportTable.rejectionReason],
+        createdBy = row[InspectionReportTable.createdBy].value
+    )
 
 
     /**

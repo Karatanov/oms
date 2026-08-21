@@ -13,6 +13,8 @@ class InspectionReportService(
     InspectionReportRepository
 ) {
 
+    fun getAllReports(): List<InspectionReport> = repository.findAll()
+
     /**
      * Повертає всі інспекції проєкту.
      */

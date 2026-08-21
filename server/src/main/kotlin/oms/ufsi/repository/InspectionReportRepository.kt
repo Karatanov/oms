@@ -7,6 +7,9 @@ import oms.ufsi.domain.InspectionReport
  */
 interface InspectionReportRepository {
 
+    /** Returns every inspection report in one database query. */
+    fun findAll(): List<InspectionReport>
+
     /**
      * Повертає всі інспекції проєкту.
      */

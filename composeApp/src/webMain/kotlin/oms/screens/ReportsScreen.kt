@@ -20,6 +20,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import oms.data.ApiInspectionReport
 import oms.data.CreateInspectionFindingRequest
@@ -66,9 +68,14 @@ fun ReportsScreen(
     var ascending by remember { mutableStateOf(false) }
     val uriHandler = LocalUriHandler.current
     LaunchedEffect(Unit) {
-        ProjectRepository.refresh()
+        val reportItems = coroutineScope {
+            val refreshProjects = async { ProjectRepository.refresh() }
+            val loadReports = async { OmsApiClient.inspectionReports() }
+            refreshProjects.await()
+            loadReports.await()
+        }
         val projectsById = ProjectRepository.projects.associateBy { it.id }
-        reports = runCatching { OmsApiClient.inspectionReports() }.getOrDefault(emptyList()).mapNotNull { item ->
+        reports = reportItems.mapNotNull { item ->
             val attachedProject = projectsById[item.projectUuid] ?: return@mapNotNull null
             val ancestry = generateSequence(attachedProject) { current ->
                 current.parentProjectUuid?.let(projectsById::get)

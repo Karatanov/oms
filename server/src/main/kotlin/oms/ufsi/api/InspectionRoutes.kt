@@ -19,10 +19,11 @@ fun Route.inspectionRoutes() {
             !session.roleCode.equals("PROJECT_MANAGER", ignoreCase = true) ||
                 AppContainer.projectService.isManagedBy(project.uuid.toString(), session.userId)
         }
+        val projectUuidsById = projects.associate { it.id to it.uuid.toString() }
         call.respond(
-            projects.flatMap { project ->
-                AppContainer.inspectionReportService.getProjectReports(project.id).map { report ->
-                    InspectionReportListItemResponse(project.uuid.toString(), report.toResponse())
+            AppContainer.inspectionReportService.getAllReports().mapNotNull { report ->
+                projectUuidsById[report.projectId]?.let { projectUuid ->
+                    InspectionReportListItemResponse(projectUuid, report.toResponse())
                 }
             }
         )
