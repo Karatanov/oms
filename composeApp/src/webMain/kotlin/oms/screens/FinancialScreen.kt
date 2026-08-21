@@ -229,6 +229,7 @@ private fun ActEditorDialog(existing: ProjectActRow?, projects: List<oms.model.P
     var reference by remember { mutableStateOf(existing?.act?.referenceNumber ?: "") }
     var recordType by remember { mutableStateOf(existing?.act?.recordType ?: "act") }
     var amount by remember { mutableStateOf(existing?.act?.amount?.toString() ?: "") }
+    var currency by remember { mutableStateOf(existing?.act?.currency ?: "EUR") }
     var date by remember { mutableStateOf(existing?.act?.recordDate ?: currentIsoDate()) }
     val selected = projects.firstOrNull { it.id == projectUuid }
     val valid = projectUuid != null && reference.isNotBlank() && amount.toLongOrNull()?.let { it > 0 } == true && date.matches(Regex("\\d{4}-\\d{2}-\\d{2}"))
@@ -248,14 +249,24 @@ private fun ActEditorDialog(existing: ProjectActRow?, projects: List<oms.model.P
                         .replace(',', '.')
                     amount = if (filtered.count { it == '.' } <= 1) filtered else amount
                 },
-                label = { Text(LocalizationManager.t("amount_uah")) },
+                label = { Text("${LocalizationManager.t("amount")}, $currency") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
             )
+            Text(LocalizationManager.t("currency"), style = MaterialTheme.typography.labelLarge)
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                listOf("EUR", "UAH").forEach { code ->
+                    FilterChip(
+                        selected = currency == code,
+                        onClick = { currency = code },
+                        label = { Text(LocalizationManager.t("currency_${code.lowercase()}")) }
+                    )
+                }
+            }
             OmsDateField(date, { date = it }, LocalizationManager.t("date"), Modifier.fillMaxWidth(), true)
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, androidx.compose.ui.Alignment.End)) {
                 OutlinedButton(onClick = onDismiss) { Text(LocalizationManager.t("cancel")) }
-                Button(onClick = { onSave(projectUuid!!, oms.data.FinancialRecordRequest(recordType, reference, amount.toLong(), "UAH", date)) }, enabled = valid) { Text(LocalizationManager.t("save")) }
+                Button(onClick = { onSave(projectUuid!!, oms.data.FinancialRecordRequest(recordType, reference, amount.toLong(), currency, date)) }, enabled = valid) { Text(LocalizationManager.t("save")) }
             }
         }
     }

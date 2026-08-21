@@ -325,7 +325,7 @@ data class FinancialRecordRequest(
     val recordType: String,
     val referenceNumber: String,
     val amount: Long,
-    val currency: String = "UAH",
+    val currency: String = "EUR",
     val recordDate: String,
     val paymentDate: String? = null,
     val description: String? = null,
