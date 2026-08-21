@@ -228,7 +228,7 @@ private fun CreateUserDialog(roles: List<ApiRole>, onDismiss: () -> Unit, onSave
     val role = roles.firstOrNull { it.code == roleCode }
     Card(
         modifier = Modifier.fillMaxWidth().widthIn(max = 760.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        colors = CardDefaults.cardColors(containerColor = Color.White)
     ) {
         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(LocalizationManager.t("create_user"), style = MaterialTheme.typography.titleLarge)
@@ -292,7 +292,7 @@ private fun EditUserDialog(user: ApiUser, roles: List<ApiRole>, saveError: Strin
     val role = roles.firstOrNull { it.code == roleCode }
     Card(
         modifier = Modifier.fillMaxWidth().widthIn(max = 760.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        colors = CardDefaults.cardColors(containerColor = Color.White)
     ) {
         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(LocalizationManager.t("edit_user"), style = MaterialTheme.typography.titleLarge)
