@@ -19,11 +19,19 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 /** Compact vertical bar chart for time-series counts and monetary totals. */
 @Composable
-fun VerticalBarChart(data: List<BarData>, color: Color, valueLabel: (Float) -> String = { it.toInt().toString() }) {
+fun VerticalBarChart(
+    data: List<BarData>,
+    color: Color,
+    labelWidth: Dp = 76.dp,
+    labelMaxLines: Int = 2,
+    valueLabel: (Float) -> String = { it.toInt().toString() }
+) {
     if (data.isEmpty()) return
     val maxValue = data.maxOf { it.value }.coerceAtLeast(1f)
     Row(
@@ -34,7 +42,7 @@ fun VerticalBarChart(data: List<BarData>, color: Color, valueLabel: (Float) -> S
         data.forEach { item ->
             val barHeight = (156f * (item.value / maxValue)).coerceAtLeast(6f).dp
             Column(
-                modifier = Modifier.width(76.dp).fillMaxHeight(),
+                modifier = Modifier.width(labelWidth).fillMaxHeight(),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Bottom
             ) {
@@ -48,7 +56,21 @@ fun VerticalBarChart(data: List<BarData>, color: Color, valueLabel: (Float) -> S
                         .background(color.copy(alpha = 0.86f))
                 )
                 Spacer(Modifier.height(8.dp))
-                Text(item.label, style = MaterialTheme.typography.labelSmall, maxLines = 2)
+                Text(
+                    item.label,
+                    style = MaterialTheme.typography.labelSmall,
+                    maxLines = labelMaxLines,
+                    softWrap = labelMaxLines > 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                if (data.any { it.groupLabel != null }) {
+                    Text(
+                        item.groupLabel.orEmpty(),
+                        style = MaterialTheme.typography.labelSmall,
+                        maxLines = 1,
+                        softWrap = false
+                    )
+                }
             }
         }
     }

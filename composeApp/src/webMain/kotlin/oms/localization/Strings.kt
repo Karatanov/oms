@@ -34,7 +34,7 @@ object Strings {
         "projects_by_start_month" to "Проєкти за місяцем початку робіт",
         "subprojects_count" to "Кількість субпроєктів: {count}",
         "start_month_axis_label" to "Місяць початку робіт",
-        "monthly_act_payments" to "Виплати за актами по місяцях",
+        "monthly_act_payments" to "Сума по погодженим актам виконаних робіт",
         "monthly_act_payments_hint" to "Суми актів згруповано за датою оплати (або датою акта).",
         "no_projects_with_start_date" to "Немає проєктів із вказаною датою початку.",
         "monthly_project_payments" to "Виплати за проєктами по місяцях",

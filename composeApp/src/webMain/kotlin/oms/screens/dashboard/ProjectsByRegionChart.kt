@@ -51,6 +51,10 @@ fun ProjectsByRegionChart(primary: Color, projects: List<Project>) {
 
 internal fun String.toStartMonthLabel(): String {
     val year = take(4)
+    return "${toMonthName()} $year"
+}
+
+internal fun String.toMonthName(): String {
     val month = takeLast(2).toIntOrNull() ?: return this
     val monthKey = when (month) {
         1 -> "month_january"; 2 -> "month_february"; 3 -> "month_march"; 4 -> "month_april"
@@ -58,5 +62,5 @@ internal fun String.toStartMonthLabel(): String {
         9 -> "month_september"; 10 -> "month_october"; 11 -> "month_november"; 12 -> "month_december"
         else -> return this
     }
-    return "${LocalizationManager.t(monthKey)} $year"
+    return LocalizationManager.t(monthKey)
 }
