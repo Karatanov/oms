@@ -49,7 +49,18 @@ private fun String.toActivityLabel(): String = when (this) {
     "project_created" -> LocalizationManager.t("activity_project_created")
     "project_deleted" -> LocalizationManager.t("activity_project_deleted")
     "inspection_imported" -> LocalizationManager.t("activity_inspection_imported")
+    "inspection_manual_created" -> LocalizationManager.t("activity_inspection_manual_created")
     "financial_record_created" -> LocalizationManager.t("activity_financial_created")
     "financial_records_imported" -> LocalizationManager.t("activity_financial_imported")
+    "financial_record_moved" -> LocalizationManager.t("activity_financial_moved")
+    "projects_bulk_status_updated" -> LocalizationManager.t("activity_projects_bulk_status_updated")
+    "projects_bulk_reassigned" -> LocalizationManager.t("activity_projects_bulk_reassigned")
+    "user_created" -> LocalizationManager.t("activity_user_created")
+    "user_updated" -> LocalizationManager.t("activity_user_updated")
+    "user_status_changed" -> LocalizationManager.t("activity_user_status_changed")
+    "user_role_changed" -> LocalizationManager.t("activity_user_role_changed")
+    "user_password_reset" -> LocalizationManager.t("activity_user_password_reset")
+    "user_deleted" -> LocalizationManager.t("activity_user_deleted")
+    "user_activated" -> LocalizationManager.t("activity_user_activated")
     else -> this
 }
