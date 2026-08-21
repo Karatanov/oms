@@ -53,6 +53,7 @@ fun DocumentTypeChip(type: String) {
         "estimate" -> LocalizationManager.t("estimate") to Color(0xFFF9A825)
         "invoice", "act" -> LocalizationManager.t("financial_doc") to Color(0xFF2E7D32)
         "photo" -> LocalizationManager.t("photo") to Color(0xFFE65100)
+        "sir_source" -> LocalizationManager.t("source_file") to Color(0xFF5C6BC0)
         else -> LocalizationManager.t("other") to Color(0xFF546E7A)
     }
     AssistChip(onClick = {}, label = { Text(label) }, colors = AssistChipDefaults.assistChipColors(containerColor = color, labelColor = Color.White))

@@ -16,8 +16,6 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
-import oms.data.ApiInspectionReport
-import oms.data.ApiProjectDocument
 import oms.data.OmsApiClient
 import oms.data.ProjectRepository
 import oms.components.SortableTableHeader
@@ -30,22 +28,32 @@ import kotlin.js.JsName
 @JsName("openProjectDocumentUpload")
 external fun openProjectDocumentUpload(projectUuid: String, docType: String)
 
-private data class SirDocumentRow(val projectName: String, val report: ApiInspectionReport)
-private data class ProjectDocumentRow(val projectUuid: String, val projectName: String, val document: ApiProjectDocument)
-private enum class DocumentSort { Name, Project, Type, Size, Author }
+private data class DocumentRow(
+    val projectUuid: String,
+    val projectName: String,
+    val subprojectPartCode: String?,
+    val fileName: String,
+    val documentType: String,
+    val date: String?,
+    val fileSizeBytes: Long?,
+    val uuid: String,
+    val isSirSource: Boolean = false
+)
+private enum class DocumentSort { Name, Project, SubprojectPartCode, Type, Date, Size, Author }
 private enum class DocumentTypeFilter(val labelKey: String) {
     ALL("all"), CONTRACT("contract"), PROJECT("project_documents"), DESIGN("design"),
-    ESTIMATE("estimate"), FINANCIAL("financial_doc"), PHOTO("photo"), OTHER("other");
+    ESTIMATE("estimate"), FINANCIAL("financial_doc"), PHOTO("photo"), SIR("sir_source_files"), OTHER("other");
 
-    fun matches(type: String): Boolean = when (this) {
+    fun matches(type: String, isSirSource: Boolean): Boolean = when (this) {
         ALL -> true
+        SIR -> isSirSource
         CONTRACT -> type == "contract"
         PROJECT -> type == "project" || type == "subproject"
         DESIGN -> type == "design"
         ESTIMATE -> type == "estimate"
         FINANCIAL -> type == "invoice" || type == "act"
         PHOTO -> type == "photo"
-        OTHER -> type == "other"
+        OTHER -> !isSirSource && type == "other"
     }
 }
 
@@ -53,15 +61,14 @@ private enum class DocumentTypeFilter(val labelKey: String) {
 fun DocumentsScreen(canManageDocuments: Boolean = true) {
     val uriHandler = LocalUriHandler.current
     val scope = rememberCoroutineScope()
-    var sirFiles by remember { mutableStateOf<List<SirDocumentRow>>(emptyList()) }
-    var projectFiles by remember { mutableStateOf<List<ProjectDocumentRow>>(emptyList()) }
+    var documents by remember { mutableStateOf<List<DocumentRow>>(emptyList()) }
     var sort by remember { mutableStateOf(DocumentSort.Name) }
     var ascending by remember { mutableStateOf(true) }
     var typeFilter by remember { mutableStateOf(DocumentTypeFilter.ALL) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var showUploadDialog by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
-        val (reports, documents) = coroutineScope {
+        val (reports, loadedDocuments) = coroutineScope {
             val refreshProjects = async { ProjectRepository.refresh() }
             val loadReports = async { OmsApiClient.inspectionReports() }
             val loadDocuments = async { OmsApiClient.allProjectDocuments() }
@@ -69,26 +76,50 @@ fun DocumentsScreen(canManageDocuments: Boolean = true) {
             loadReports.await() to loadDocuments.await()
         }
         val projectsById = ProjectRepository.projects.associateBy { it.id }
-        sirFiles = reports.mapNotNull { item ->
-            projectsById[item.projectUuid]?.takeIf { item.report.summary?.startsWith("Imported SIR:") == true }
-                ?.let { project -> SirDocumentRow(project.name, item.report) }
-        }.sortedByDescending { it.report.inspectionDate }
-        projectFiles = documents.mapNotNull { item ->
+        fun projectContext(project: oms.model.Project): Pair<String, String?> {
+            val ancestry = generateSequence(project) { current -> current.parentProjectUuid?.let(projectsById::get) }.toList().asReversed()
+            val subproject = ancestry.firstOrNull { it.projectType == "subproject" }
+            val partCode = ancestry.firstOrNull { it.projectType == "subproject_part" }?.siteNumber
+            return (subproject?.name ?: project.name) to partCode
+        }
+        val projectDocumentRows = loadedDocuments.mapNotNull { item ->
             projectsById[item.projectUuid]?.let { project ->
-                ProjectDocumentRow(project.id, project.name, item.document)
+                val (projectName, partCode) = projectContext(project)
+                DocumentRow(project.id, projectName, partCode, item.document.fileName, item.document.docType, null, item.document.fileSizeBytes, item.document.uuid)
             }
         }
+        val sirDocumentRows = reports.mapNotNull { item ->
+            projectsById[item.projectUuid]
+                ?.takeIf { item.report.summary?.startsWith("Imported SIR:") == true }
+                ?.let { project ->
+                    val (projectName, partCode) = projectContext(project)
+                    DocumentRow(
+                        projectUuid = project.id,
+                        projectName = projectName,
+                        subprojectPartCode = partCode,
+                        fileName = item.report.summary?.removePrefix("Imported SIR: ") ?: LocalizationManager.t("source_file"),
+                        documentType = "sir_source",
+                        date = item.report.inspectionDate,
+                        fileSizeBytes = null,
+                        uuid = item.report.uuid,
+                        isSirSource = true
+                    )
+                }
+        }
+        documents = projectDocumentRows + sirDocumentRows
     }
-    val visibleDocuments = remember(projectFiles, typeFilter, sort, ascending) {
-        projectFiles
+    val visibleDocuments = remember(documents, typeFilter, sort, ascending) {
+        documents
             .asSequence()
-            .filter { typeFilter.matches(it.document.docType.lowercase()) }
-            .sortedWith(compareBy<ProjectDocumentRow> {
+            .filter { typeFilter.matches(it.documentType.lowercase(), it.isSirSource) }
+            .sortedWith(compareBy<DocumentRow> {
                 when (sort) {
-                    DocumentSort.Name -> it.document.fileName
+                    DocumentSort.Name -> it.fileName
                     DocumentSort.Project -> it.projectName
-                    DocumentSort.Type -> it.document.docType
-                    DocumentSort.Size -> it.document.fileSizeBytes.toString().padStart(20, '0')
+                    DocumentSort.SubprojectPartCode -> it.subprojectPartCode.orEmpty()
+                    DocumentSort.Type -> it.documentType
+                    DocumentSort.Date -> it.date.orEmpty()
+                    DocumentSort.Size -> it.fileSizeBytes?.toString()?.padStart(20, '0').orEmpty()
                     DocumentSort.Author -> "admin"
                 }
             }.let { if (ascending) it else it.reversed() })
@@ -109,24 +140,30 @@ fun DocumentsScreen(canManageDocuments: Boolean = true) {
                 )
             }
         }
-        Text(LocalizationManager.t("project_documents"), style = MaterialTheme.typography.titleLarge)
         Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
             Column(Modifier.padding(16.dp).horizontalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 DocumentTableHeader(sort, ascending, ::selectSort)
                 HorizontalDivider()
-                if (visibleDocuments.isEmpty()) Text(LocalizationManager.t("no_project_documents"))
+                if (visibleDocuments.isEmpty()) Text(LocalizationManager.t("no_documents"))
                 visibleDocuments.forEach { row ->
-                    Row(Modifier.width(1_200.dp).padding(vertical = 8.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                        Text(row.document.fileName, Modifier.weight(1.35f))
-                        Text(row.projectName, Modifier.weight(1f))
-                        Box(Modifier.width(120.dp)) { DocumentTypeChip(row.document.docType) }
-                        Text(formatFileSize(row.document.fileSizeBytes), Modifier.width(90.dp))
+                    Row(Modifier.width(1_370.dp).padding(vertical = 8.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                        Text(row.fileName, Modifier.width(260.dp))
+                        Text(row.projectName, Modifier.width(210.dp))
+                        Text(row.subprojectPartCode ?: "—", Modifier.width(165.dp))
+                        Box(Modifier.width(140.dp)) { DocumentTypeChip(row.documentType) }
+                        Text(row.date ?: "—", Modifier.width(105.dp))
+                        Text(row.fileSizeBytes?.let(::formatFileSize) ?: "—", Modifier.width(90.dp))
                         Text("admin", Modifier.width(85.dp))
-                        TableActionIconButton(LocalizationManager.t("open_document"), Icons.AutoMirrored.Filled.OpenInNew) { uriHandler.openUri(oms.data.omsApiUrl("/projects/${row.projectUuid}/documents/${row.document.uuid}/download")) }
+                        TableActionIconButton(if (row.isSirSource) LocalizationManager.t("open_source_file") else LocalizationManager.t("open_document"), Icons.AutoMirrored.Filled.OpenInNew) {
+                            val path = if (row.isSirSource) "/inspection-reports/${row.uuid}/source-file" else "/projects/${row.projectUuid}/documents/${row.uuid}/download"
+                            uriHandler.openUri(oms.data.omsApiUrl(path))
+                        }
                         if (canManageDocuments) TableActionIconButton(LocalizationManager.t("delete"), Icons.Default.Delete) {
                             scope.launch {
-                                if (OmsApiClient.deleteProjectDocument(row.projectUuid, row.document.uuid)) {
-                                    projectFiles = projectFiles.filterNot { it.document.uuid == row.document.uuid }
+                                val deleted = if (row.isSirSource) OmsApiClient.deleteInspectionReport(row.uuid)
+                                else OmsApiClient.deleteProjectDocument(row.projectUuid, row.uuid)
+                                if (deleted) {
+                                    documents = documents.filterNot { it.uuid == row.uuid && it.isSirSource == row.isSirSource }
                                 } else errorMessage = LocalizationManager.t("delete_document_error")
                             }
                         }
@@ -137,27 +174,6 @@ fun DocumentsScreen(canManageDocuments: Boolean = true) {
             }
         }
         errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-        Text(LocalizationManager.t("sir_source_files"), style = MaterialTheme.typography.titleLarge)
-        Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                if (sirFiles.isEmpty()) Text(LocalizationManager.t("no_imported_sir_files"))
-                sirFiles.forEach { row ->
-                    val fileName = row.report.summary?.removePrefix("Imported SIR: ") ?: LocalizationManager.t("source_file")
-                    Text(fileName, style = MaterialTheme.typography.titleMedium)
-                    Text("${row.projectName} • ${row.report.inspectionDate}")
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        TableActionIconButton(LocalizationManager.t("open_source_file"), Icons.AutoMirrored.Filled.OpenInNew) { uriHandler.openUri(oms.data.omsApiUrl("/inspection-reports/${row.report.uuid}/source-file")) }
-                        if (canManageDocuments) TableActionIconButton(LocalizationManager.t("delete_source_file"), Icons.Default.Delete) {
-                            scope.launch {
-                                if (OmsApiClient.deleteInspectionReport(row.report.uuid)) sirFiles = sirFiles.filterNot { it.report.uuid == row.report.uuid }
-                                else errorMessage = LocalizationManager.t("delete_source_file_error")
-                            }
-                        }
-                    }
-                    HorizontalDivider()
-                }
-            }
-        }
         if (showUploadDialog) ProjectDocumentUploadDialog(
             projects = ProjectRepository.projects,
             onDismiss = { showUploadDialog = false },
@@ -199,12 +215,14 @@ private fun ProjectDocumentUploadDialog(projects: List<oms.model.Project>, onDis
 
 @Composable
 private fun DocumentTableHeader(sort: DocumentSort, ascending: Boolean, onSort: (DocumentSort) -> Unit) {
-    Row(Modifier.width(1_200.dp).padding(vertical = 6.dp)) {
-        SortableTableHeader(LocalizationManager.t("file_name"), sort == DocumentSort.Name, ascending, { onSort(DocumentSort.Name) }, Modifier.weight(1.35f))
-        SortableTableHeader(LocalizationManager.t("project"), sort == DocumentSort.Project, ascending, { onSort(DocumentSort.Project) }, Modifier.weight(1f))
-        SortableTableHeader(LocalizationManager.t("type"), sort == DocumentSort.Type, ascending, { onSort(DocumentSort.Type) }, Modifier.width(120.dp))
+    Row(Modifier.width(1_370.dp).padding(vertical = 6.dp)) {
+        SortableTableHeader(LocalizationManager.t("file_name"), sort == DocumentSort.Name, ascending, { onSort(DocumentSort.Name) }, Modifier.width(260.dp))
+        SortableTableHeader(LocalizationManager.t("subproject"), sort == DocumentSort.Project, ascending, { onSort(DocumentSort.Project) }, Modifier.width(210.dp))
+        SortableTableHeader(LocalizationManager.t("subproject_part_code_label"), sort == DocumentSort.SubprojectPartCode, ascending, { onSort(DocumentSort.SubprojectPartCode) }, Modifier.width(165.dp))
+        SortableTableHeader(LocalizationManager.t("type"), sort == DocumentSort.Type, ascending, { onSort(DocumentSort.Type) }, Modifier.width(140.dp))
+        SortableTableHeader(LocalizationManager.t("date"), sort == DocumentSort.Date, ascending, { onSort(DocumentSort.Date) }, Modifier.width(105.dp))
         SortableTableHeader(LocalizationManager.t("size"), sort == DocumentSort.Size, ascending, { onSort(DocumentSort.Size) }, Modifier.width(90.dp))
-        SortableTableHeader(LocalizationManager.t("uploaded_by"), sort == DocumentSort.Author, ascending, { onSort(DocumentSort.Author) }, Modifier.width(85.dp))
+        SortableTableHeader(LocalizationManager.t("uploaded_by_short"), sort == DocumentSort.Author, ascending, { onSort(DocumentSort.Author) }, Modifier.width(85.dp))
         Spacer(Modifier.width(96.dp))
     }
 }
