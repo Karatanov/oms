@@ -114,10 +114,8 @@ fun AdminScreen() {
             Text(LocalizationManager.t("admin_title"), style = MaterialTheme.typography.headlineMedium)
             Button(onClick = { createUser = true }) { Text(LocalizationManager.t("create_user")) }
         }
-        Text(LocalizationManager.t("system_users"), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
             Column(Modifier.padding(16.dp).horizontalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(LocalizationManager.t("user_full_data"), style = MaterialTheme.typography.titleMedium)
                 Row(Modifier.width(2046.dp).padding(vertical = 6.dp)) {
                     SortableTableHeader(LocalizationManager.t("username"), sort == UserSort.Username, ascending, { changeSort(UserSort.Username) }, Modifier.width(130.dp))
                     AdminStaticHeader(LocalizationManager.t("actions"), 96.dp)
