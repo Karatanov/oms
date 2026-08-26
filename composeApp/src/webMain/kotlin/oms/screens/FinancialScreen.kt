@@ -129,10 +129,11 @@ fun FinancialScreen(
             }
         }
 
-        MonthlyPaymentsChart(acts.map { it.act })
-        MonthlyEquipmentPaymentsChart(acts.map { it.act })
-        MonthlyTechnicalSupervisionPaymentsChart(acts.map { it.act })
-        MonthlyEngineerConsultantPaymentsChart(acts.map { it.act })
+        val financialChartRecords = acts.map { FinancialChartRecord(it.act, it.subprojectName) }
+        MonthlyPaymentsChart(financialChartRecords)
+        MonthlyEquipmentPaymentsChart(financialChartRecords)
+        MonthlyTechnicalSupervisionPaymentsChart(financialChartRecords)
+        MonthlyEngineerConsultantPaymentsChart(financialChartRecords)
 
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
             Text(LocalizationManager.t("financial_records"), style = MaterialTheme.typography.titleLarge)

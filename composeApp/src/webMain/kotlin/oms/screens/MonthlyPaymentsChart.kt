@@ -11,29 +11,34 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import oms.charts.BarData
 import oms.charts.VerticalBarChart
 import oms.data.ApiFinancialRecord
 import oms.data.ApiMonthlyActPayment
 import oms.localization.LocalizationManager
 
+data class FinancialChartRecord(
+    val record: ApiFinancialRecord,
+    val subprojectCode: String
+)
+
+private data class MonthlyFinancialAggregation(
+    val payments: List<ApiMonthlyActPayment>,
+    val tooltipByMonth: Map<String, String>
+)
+
 @Composable
-fun MonthlyPaymentsChart(records: List<ApiFinancialRecord>) {
-    val data = records
-        .filter { it.recordType in setOf("payment", "advance") }
-        .mapNotNull { record -> record.amountEurCents?.let { cents -> (record.paymentDate ?: record.recordDate).takeIf { it.matches(Regex("\\d{4}-\\d{2}-\\d{2}")) }?.take(7)?.let { month -> month to cents } } }
-        .groupBy({ it.first }, { it.second })
-        .toList()
-        .sortedBy { it.first }
-        .map { entry -> BarData(entry.first, entry.second.sum().toFloat()) }
+fun MonthlyPaymentsChart(records: List<FinancialChartRecord>) {
+    val aggregation = aggregateMonthlyPayments(records)
 
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp)) {
             Text(LocalizationManager.t("monthly_project_payments"), style = MaterialTheme.typography.titleMedium)
             Spacer(Modifier.height(16.dp))
-            if (data.isEmpty()) Text(LocalizationManager.t("no_payments_yet"), color = MaterialTheme.colorScheme.onSurfaceVariant)
+            if (aggregation.payments.isEmpty()) Text(LocalizationManager.t("no_payments_yet"), color = MaterialTheme.colorScheme.onSurfaceVariant)
             else VerticalBarChart(
-                data = data,
+                data = aggregation.payments.map { payment ->
+                    oms.charts.BarData(payment.month, payment.amountEurCents.toFloat(), tooltip = aggregation.tooltipByMonth[payment.month])
+                },
                 color = MaterialTheme.colorScheme.primary,
                 labelMaxLines = 2,
                 maxVisibleItems = 12,
@@ -45,7 +50,7 @@ fun MonthlyPaymentsChart(records: List<ApiFinancialRecord>) {
 }
 
 @Composable
-fun MonthlyEquipmentPaymentsChart(records: List<ApiFinancialRecord>) {
+fun MonthlyEquipmentPaymentsChart(records: List<FinancialChartRecord>) {
     MonthlyPurposePaymentsChart(
         records = records,
         purpose = "equipment",
@@ -55,7 +60,7 @@ fun MonthlyEquipmentPaymentsChart(records: List<ApiFinancialRecord>) {
 }
 
 @Composable
-fun MonthlyTechnicalSupervisionPaymentsChart(records: List<ApiFinancialRecord>) {
+fun MonthlyTechnicalSupervisionPaymentsChart(records: List<FinancialChartRecord>) {
     MonthlyPurposePaymentsChart(
         records = records,
         purpose = "technical_supervision",
@@ -65,7 +70,7 @@ fun MonthlyTechnicalSupervisionPaymentsChart(records: List<ApiFinancialRecord>) 
 }
 
 @Composable
-fun MonthlyEngineerConsultantPaymentsChart(records: List<ApiFinancialRecord>) {
+fun MonthlyEngineerConsultantPaymentsChart(records: List<FinancialChartRecord>) {
     MonthlyPurposePaymentsChart(
         records = records,
         purpose = "engineer_consultant",
@@ -76,18 +81,39 @@ fun MonthlyEngineerConsultantPaymentsChart(records: List<ApiFinancialRecord>) {
 
 @Composable
 private fun MonthlyPurposePaymentsChart(
-    records: List<ApiFinancialRecord>,
+    records: List<FinancialChartRecord>,
     purpose: String,
     titleKey: String,
     hintKey: String
 ) {
-    val payments = records
-        .filter { it.paymentPurpose == purpose && it.recordType in setOf("payment", "advance") }
-        .mapNotNull { record -> record.amountEurCents?.let { cents -> (record.paymentDate ?: record.recordDate).takeIf { it.matches(Regex("\\d{4}-\\d{2}-\\d{2}")) }?.take(7)?.let { it to cents } } }
+    val aggregation = aggregateMonthlyPayments(records, purpose)
+    if (aggregation.payments.isEmpty()) return
+    MonthlyAmountsChart(titleKey, hintKey, aggregation.payments, aggregation.tooltipByMonth)
+}
+
+private fun aggregateMonthlyPayments(
+    records: List<FinancialChartRecord>,
+    purpose: String? = null
+): MonthlyFinancialAggregation {
+    val monthlyRecords = records
+        .filter { it.record.recordType in setOf("payment", "advance") && (purpose == null || it.record.paymentPurpose == purpose) }
+        .mapNotNull { chartRecord ->
+            chartRecord.record.amountEurCents?.let { cents ->
+                (chartRecord.record.paymentDate ?: chartRecord.record.recordDate)
+                    .takeIf { it.matches(Regex("\\d{4}-\\d{2}-\\d{2}")) }
+                    ?.take(7)
+                    ?.let { month -> month to (chartRecord to cents) }
+            }
+        }
         .groupBy({ it.first }, { it.second })
-        .map { ApiMonthlyActPayment(it.key, it.value.sum()) }
-    if (payments.isEmpty()) return
-    MonthlyAmountsChart(titleKey, hintKey, payments)
+    val payments = monthlyRecords.entries
+        .sortedBy { it.key }
+        .map { (month, entries) -> ApiMonthlyActPayment(month, entries.sumOf { it.second }) }
+    val tooltipByMonth = monthlyRecords.mapValues { (_, entries) ->
+        val codes = entries.map { it.first.subprojectCode }.filter { it.isNotBlank() }.distinct().sorted()
+        "${LocalizationManager.t("subproject_codes")}: ${codes.joinToString(", ").ifBlank { "—" }}"
+    }
+    return MonthlyFinancialAggregation(payments, tooltipByMonth)
 }
 
 private fun formatPaymentAmount(cents: Long): String =

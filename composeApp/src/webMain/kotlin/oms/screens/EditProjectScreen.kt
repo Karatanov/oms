@@ -22,6 +22,7 @@ import oms.components.AddressCoordinatesCalculator
 import oms.localization.LocalizationManager
 
 @Composable
+@OptIn(ExperimentalMaterial3Api::class)
 fun EditProjectScreen(
     project: Project,
     onCancel: () -> Unit = {},
@@ -151,7 +152,19 @@ fun EditProjectScreen(
                     SectorSelector(sector, { sector = it }, Modifier.weight(1f))
                     ConstructionTypeSelector(constructionType, { constructionType = it }, Modifier.weight(1f))
                 }
-                OutlinedTextField(budgetPlanned, { value -> if (value.matches(Regex("[0-9.,]*"))) budgetPlanned = value }, label = { Text(LocalizationManager.t("planned_budget_required")) }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                TooltipBox(
+                    positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
+                    tooltip = { PlainTooltip { Text(LocalizationManager.t("planned_budget_hint")) } },
+                    state = rememberTooltipState()
+                ) {
+                    OutlinedTextField(
+                        budgetPlanned,
+                        { value -> if (value.matches(Regex("[0-9.,]*"))) budgetPlanned = value },
+                        label = { Text(LocalizationManager.t("planned_budget_required")) },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     OutlinedTextField(engineerConsultantContractAmount, { value -> if (value.all(Char::isDigit)) engineerConsultantContractAmount = value }, label = { Text(LocalizationManager.t("engineer_consultant_amount")) }, singleLine = true, modifier = Modifier.weight(1f))
                     OutlinedTextField(technicalSupervisionAmount, { value -> if (value.all(Char::isDigit)) technicalSupervisionAmount = value }, label = { Text(LocalizationManager.t("technical_supervision_amount")) }, singleLine = true, modifier = Modifier.weight(1f))

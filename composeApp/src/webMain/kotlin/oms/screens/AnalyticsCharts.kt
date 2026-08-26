@@ -73,8 +73,15 @@ fun MetricsChart(
 }
 
 @Composable
-fun MonthlyAmountsChart(titleKey: String, hintKey: String, payments: List<ApiMonthlyActPayment>) {
-    val data = payments.sortedBy { it.month }.map { BarData(it.month.toChartMonth(), it.amountEurCents.toFloat()) }
+fun MonthlyAmountsChart(
+    titleKey: String,
+    hintKey: String,
+    payments: List<ApiMonthlyActPayment>,
+    tooltipByMonth: Map<String, String> = emptyMap()
+) {
+    val data = payments.sortedBy { it.month }.map {
+        BarData(it.month.toChartMonth(), it.amountEurCents.toFloat(), tooltip = tooltipByMonth[it.month])
+    }
     AnalyticsCard(titleKey, hintKey, data, { euro(it.toInt().toLong()) })
 }
 

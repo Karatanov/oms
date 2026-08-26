@@ -14,7 +14,12 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.PlainTooltip
 import androidx.compose.material3.Text
+import androidx.compose.material3.TooltipBox
+import androidx.compose.material3.TooltipDefaults
+import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
@@ -27,6 +32,7 @@ import androidx.compose.ui.unit.dp
 
 /** Compact vertical bar chart for time-series counts and monetary totals. */
 @Composable
+@OptIn(ExperimentalMaterial3Api::class)
 fun VerticalBarChart(
     data: List<BarData>,
     color: Color,
@@ -62,13 +68,17 @@ fun VerticalBarChart(
             ) {
                 Text(valueLabel(item.value), style = MaterialTheme.typography.labelMedium)
                 Spacer(Modifier.height(6.dp))
-                Box(
-                    modifier = Modifier
-                        .width(40.dp)
-                        .height(barHeight)
-                        .clip(MaterialTheme.shapes.small)
-                        .background((item.color ?: color).copy(alpha = 0.86f))
-                )
+                if (item.tooltip == null) {
+                    ChartBar(barHeight, item.color ?: color)
+                } else {
+                    TooltipBox(
+                        positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
+                        tooltip = { PlainTooltip { Text(item.tooltip) } },
+                        state = rememberTooltipState()
+                    ) {
+                        ChartBar(barHeight, item.color ?: color)
+                    }
+                }
                 Spacer(Modifier.height(8.dp))
                 Text(
                     item.label,
@@ -88,4 +98,15 @@ fun VerticalBarChart(
             }
         }
     }
+}
+
+@Composable
+private fun ChartBar(height: Dp, color: Color) {
+    Box(
+        modifier = Modifier
+            .width(40.dp)
+            .height(height)
+            .clip(MaterialTheme.shapes.small)
+            .background(color.copy(alpha = 0.86f))
+    )
 }
