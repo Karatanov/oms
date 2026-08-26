@@ -129,8 +129,6 @@ fun DashboardScreen(onOpenProject: (oms.model.Project) -> Unit = {}, onOpenFinan
         verticalArrangement = Arrangement.spacedBy(24.dp)
     ) {
 
-        item { ProjectsByRegionChart(primary, projects) }
-
         item { FundingByOblastChart(dashboard?.subprojectFunding.orEmpty()) }
 
         item {
