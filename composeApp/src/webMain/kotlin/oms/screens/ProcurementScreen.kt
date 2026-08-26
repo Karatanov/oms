@@ -12,6 +12,8 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -143,13 +145,18 @@ fun ProcurementScreen(canManageProcurements: Boolean) {
 }
 
 @Composable
+@OptIn(ExperimentalMaterial3Api::class)
 private fun ProcurementTable(
     records: List<ApiProcurementRecord>,
     canManage: Boolean,
     onEdit: (ApiProcurementRecord) -> Unit,
     onDelete: (ApiProcurementRecord) -> Unit
 ) {
-    Column(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
+    val horizontalScrollState = rememberScrollState()
+    val scope = rememberCoroutineScope()
+    fun scrollHorizontally(delta: Float) = scope.launch { horizontalScrollState.animateScrollBy(delta) }
+    Box(Modifier.fillMaxWidth()) {
+    Column(Modifier.fillMaxWidth().horizontalScroll(horizontalScrollState)) {
         ProcurementRow(procurementHeaderLabels(), showActions = canManage, isHeader = true)
         HorizontalDivider()
         records.forEach { record ->
@@ -163,6 +170,27 @@ private fun ProcurementTable(
             ), record.takeIf { canManage }, onEdit, onDelete, showActions = canManage)
             HorizontalDivider()
         }
+    }
+    TooltipBox(
+        modifier = Modifier.align(Alignment.CenterStart).padding(start = 8.dp),
+        positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
+        tooltip = { PlainTooltip { Text(LocalizationManager.t("scroll_table_left")) } },
+        state = rememberTooltipState()
+    ) {
+        FilledIconButton(onClick = { scrollHorizontally(-620f) }) {
+            Icon(Icons.Default.KeyboardArrowLeft, LocalizationManager.t("scroll_table_left"))
+        }
+    }
+    TooltipBox(
+        modifier = Modifier.align(Alignment.CenterEnd).padding(end = 8.dp),
+        positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
+        tooltip = { PlainTooltip { Text(LocalizationManager.t("scroll_table_right")) } },
+        state = rememberTooltipState()
+    ) {
+        FilledIconButton(onClick = { scrollHorizontally(620f) }) {
+            Icon(Icons.Default.KeyboardArrowRight, LocalizationManager.t("scroll_table_right"))
+        }
+    }
     }
 }
 
