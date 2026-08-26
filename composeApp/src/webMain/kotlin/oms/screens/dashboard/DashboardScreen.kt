@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -129,17 +130,29 @@ fun DashboardScreen(onOpenProject: (oms.model.Project) -> Unit = {}, onOpenFinan
         verticalArrangement = Arrangement.spacedBy(24.dp)
     ) {
 
-        item { FundingByOblastChart(dashboard?.subprojectFunding.orEmpty()) }
-
         item {
-            SubprojectProgressChart(dashboard?.subprojectProgress.orEmpty()) { uuid ->
-                projects.firstOrNull { it.id == uuid }?.let(onOpenProject)
+            androidx.compose.foundation.layout.Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(24.dp)
+            ) {
+                Box(Modifier.weight(1f)) { FundingByOblastChart(dashboard?.subprojectFunding.orEmpty()) }
+                Box(Modifier.weight(1f)) {
+                    SubprojectProgressChart(dashboard?.subprojectProgress.orEmpty()) { uuid ->
+                        projects.firstOrNull { it.id == uuid }?.let(onOpenProject)
+                    }
+                }
             }
         }
 
-        item { MetricsChart("procurement_status_by_subprojects", metrics = dashboard?.procurementStatusCounts.orEmpty()) }
-
-        item { MonthlyActPaymentsChart(primary, dashboard?.monthlyActPayments.orEmpty(), onOpenFinancial) }
+        item {
+            androidx.compose.foundation.layout.Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(24.dp)
+            ) {
+                Box(Modifier.weight(1f)) { MetricsChart("procurement_status_by_subprojects", metrics = dashboard?.procurementStatusCounts.orEmpty()) }
+                Box(Modifier.weight(1f)) { MonthlyActPaymentsChart(primary, dashboard?.monthlyActPayments.orEmpty(), onOpenFinancial) }
+            }
+        }
 
     }
     Column(
