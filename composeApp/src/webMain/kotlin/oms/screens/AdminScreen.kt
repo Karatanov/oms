@@ -44,10 +44,13 @@ private fun UserStatusChip(status: String) {
         "disabled", "locked" -> Color(0xFFC62828)
         else -> Color(0xFF546E7A)
     }
-    AssistChip(
-        onClick = {},
-        label = { Text(LocalizationManager.t("user_status_${status.lowercase()}").takeIf { it != "user_status_${status.lowercase()}" } ?: status) },
-        colors = AssistChipDefaults.assistChipColors(containerColor = color, labelColor = Color.White)
+    Text(
+        text = LocalizationManager.t("user_status_${status.lowercase()}").takeIf { it != "user_status_${status.lowercase()}" } ?: status,
+        color = color,
+        style = MaterialTheme.typography.bodyMedium,
+        modifier = Modifier
+            .background(color.copy(alpha = 0.13f), RoundedCornerShape(6.dp))
+            .padding(horizontal = 8.dp, vertical = 4.dp)
     )
 }
 

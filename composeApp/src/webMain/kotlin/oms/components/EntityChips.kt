@@ -5,8 +5,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.AssistChip
-import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -39,7 +37,14 @@ fun ReportStatusChip(status: String) {
 fun RoleChip(role: String) {
     val color = when (role.uppercase()) { "ADMIN" -> Color(0xFF6A1B9A); "PROJECT_MANAGER" -> Color(0xFF1565C0); "INSPECTOR" -> Color(0xFF00838F); else -> Color(0xFF546E7A) }
     val label = when (role.uppercase()) { "ADMIN" -> LocalizationManager.t("role_admin"); "PROJECT_MANAGER" -> LocalizationManager.t("role_project_manager"); "INSPECTOR" -> LocalizationManager.t("role_inspector"); else -> role.replace('_', ' ') }
-    AssistChip(onClick = {}, label = { Text(label) }, colors = AssistChipDefaults.assistChipColors(containerColor = color, labelColor = Color.White))
+    Text(
+        text = label,
+        color = color,
+        fontWeight = FontWeight.Medium,
+        modifier = Modifier
+            .background(color.copy(alpha = 0.13f), RoundedCornerShape(6.dp))
+            .padding(horizontal = 8.dp, vertical = 4.dp)
+    )
 }
 
 @Composable
@@ -56,5 +61,12 @@ fun DocumentTypeChip(type: String) {
         "sir_source" -> LocalizationManager.t("source_file") to Color(0xFF5C6BC0)
         else -> LocalizationManager.t("other") to Color(0xFF546E7A)
     }
-    AssistChip(onClick = {}, label = { Text(label) }, colors = AssistChipDefaults.assistChipColors(containerColor = color, labelColor = Color.White))
+    Text(
+        text = label,
+        color = color,
+        fontWeight = FontWeight.Medium,
+        modifier = Modifier
+            .background(color.copy(alpha = 0.13f), RoundedCornerShape(6.dp))
+            .padding(horizontal = 8.dp, vertical = 4.dp)
+    )
 }
