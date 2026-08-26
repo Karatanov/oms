@@ -29,7 +29,7 @@ fun MonthlyActPaymentsChart(primary: Color, payments: List<ApiMonthlyActPayment>
             previousYear = year
             BarData(
                 label = payment.month.toMonthName(),
-                value = payment.amount.toFloat(),
+                value = payment.amountEurCents.toFloat(),
                 groupLabel = yearLabel
             )
         }
@@ -55,5 +55,5 @@ fun MonthlyActPaymentsChart(primary: Color, payments: List<ApiMonthlyActPayment>
     }
 }
 
-private fun formatActAmount(amount: Long): String =
-    "${amount.toString().reversed().chunked(3).joinToString(" ").reversed()} грн"
+private fun formatActAmount(cents: Long): String =
+    "€ " + (cents / 100).toString() + "." + (cents % 100).toString().padStart(2, '0')

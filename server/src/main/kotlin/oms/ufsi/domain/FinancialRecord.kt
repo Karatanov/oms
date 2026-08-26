@@ -15,5 +15,8 @@ data class FinancialRecord(
     val paymentDate: LocalDate?,
     val description: String?,
     val milestone: String?,
-    val paymentPurpose: String = "works"
+    val paymentPurpose: String = "works",
+    val eurExchangeRate: Double? = null,
+    val eurExchangeDate: LocalDate? = null,
+    val amountEurCents: Long? = null
 )

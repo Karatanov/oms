@@ -21,11 +21,11 @@ import oms.localization.LocalizationManager
 fun MonthlyPaymentsChart(records: List<ApiFinancialRecord>) {
     val data = records
         .filter { it.recordType in setOf("payment", "advance") }
-        .mapNotNull { record -> (record.paymentDate ?: record.recordDate).takeIf { it.matches(Regex("\\d{4}-\\d{2}-\\d{2}")) }?.take(7)?.let { month -> (month to record.currency) to record.amount } }
+        .mapNotNull { record -> record.amountEurCents?.let { cents -> (record.paymentDate ?: record.recordDate).takeIf { it.matches(Regex("\\d{4}-\\d{2}-\\d{2}")) }?.take(7)?.let { month -> month to cents } } }
         .groupBy({ it.first }, { it.second })
         .toList()
-        .sortedWith(compareBy({ it.first.first }, { it.first.second }))
-        .map { entry -> BarData("${entry.first.first} ${entry.first.second}", entry.second.sum().toFloat()) }
+        .sortedBy { it.first }
+        .map { entry -> BarData(entry.first, entry.second.sum().toFloat()) }
 
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp)) {
@@ -48,11 +48,11 @@ fun MonthlyPaymentsChart(records: List<ApiFinancialRecord>) {
 fun MonthlyEquipmentPaymentsChart(records: List<ApiFinancialRecord>) {
     val payments = records
         .filter { it.paymentPurpose == "equipment" && it.recordType in setOf("payment", "advance") }
-        .mapNotNull { record -> (record.paymentDate ?: record.recordDate).takeIf { it.matches(Regex("\\d{4}-\\d{2}-\\d{2}")) }?.take(7)?.let { it to record.amount } }
+        .mapNotNull { record -> record.amountEurCents?.let { cents -> (record.paymentDate ?: record.recordDate).takeIf { it.matches(Regex("\\d{4}-\\d{2}-\\d{2}")) }?.take(7)?.let { it to cents } } }
         .groupBy({ it.first }, { it.second })
         .map { ApiMonthlyActPayment(it.key, it.value.sum()) }
     MonthlyAmountsChart("monthly_equipment_payments", "monthly_equipment_payments_hint", payments)
 }
 
-private fun formatPaymentAmount(amount: Long): String =
-    amount.toString().reversed().chunked(3).joinToString(" ").reversed()
+private fun formatPaymentAmount(cents: Long): String =
+    "€ " + (cents / 100).toString() + "." + (cents % 100).toString().padStart(2, '0')

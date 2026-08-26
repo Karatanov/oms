@@ -218,7 +218,7 @@ fun InspectionFinding.toResponse():
     )
 }
 
-fun FinancialRecord.toResponse() = FinancialRecordResponse(uuid.toString(), recordType.name.lowercase(), referenceNumber, amount, currency, recordDate.toString(), paymentDate?.toString(), description, milestone, paymentPurpose)
+fun FinancialRecord.toResponse() = FinancialRecordResponse(uuid.toString(), recordType.name.lowercase(), referenceNumber, amount, currency, recordDate.toString(), paymentDate?.toString(), description, milestone, paymentPurpose, eurExchangeRate, eurExchangeDate?.toString(), amountEurCents)
 
 fun ProjectDocument.toResponse() = ProjectDocumentResponse(uuid.toString(), docType, originalName, contentType, fileSizeBytes, relatedEntity, relatedId, description)
 

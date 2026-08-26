@@ -8,7 +8,10 @@ import org.apache.poi.ss.usermodel.WorkbookFactory
 import java.io.InputStream
 import java.io.OutputStream
 
-class FinancialRecordService(private val repository: FinancialRecordRepository) {
+class FinancialRecordService(
+    private val repository: FinancialRecordRepository,
+    private val exchangeRateService: NbuExchangeRateService
+) {
     fun getAll() = repository.findAll()
     fun getAll(projectId: Long) = repository.findByProjectId(projectId)
     fun filtered(projectId: Long, recordType: String?, dateFrom: String?, dateTo: String?): List<FinancialRecord> {
@@ -23,8 +26,18 @@ class FinancialRecordService(private val repository: FinancialRecordRepository) 
         }
     }
     fun get(projectId: Long, uuid: String) = repository.findByUuid(projectId, uuid.trim())
-    fun create(projectId: Long, type: String, reference: String, amount: Long, currency: String, date: String, paymentDate: String?, description: String?, milestone: String?, paymentPurpose: String = "works") = repository.create(projectId, validatedType(type), required(reference, "Reference number"), positive(amount), currency(currency), date(date), optionalDate(paymentDate), optional(description) ?: optional(milestone), null, paymentPurpose(paymentPurpose), 1L)
-    fun update(projectId: Long, uuid: String, type: String, reference: String, amount: Long, currency: String, date: String, paymentDate: String?, description: String?, milestone: String?, paymentPurpose: String = "works") = repository.update(projectId, uuid.trim(), validatedType(type), required(reference, "Reference number"), positive(amount), currency(currency), date(date), optionalDate(paymentDate), optional(description) ?: optional(milestone), null, paymentPurpose(paymentPurpose))
+    fun create(projectId: Long, type: String, reference: String, amount: Long, currency: String, date: String, paymentDate: String?, description: String?, milestone: String?, paymentPurpose: String = "works"): FinancialRecord {
+        val normalizedCurrency = currency(currency)
+        val normalizedDate = date(date)
+        val conversion = exchangeRateService.convertToEur(positive(amount), normalizedCurrency, java.time.LocalDate.parse(normalizedDate))
+        return repository.create(projectId, validatedType(type), required(reference, "Reference number"), amount, normalizedCurrency, normalizedDate, optionalDate(paymentDate), optional(description) ?: optional(milestone), null, paymentPurpose(paymentPurpose), conversion.rate, conversion.effectiveDate.toString(), conversion.amountEurCents, 1L)
+    }
+    fun update(projectId: Long, uuid: String, type: String, reference: String, amount: Long, currency: String, date: String, paymentDate: String?, description: String?, milestone: String?, paymentPurpose: String = "works"): FinancialRecord? {
+        val normalizedCurrency = currency(currency)
+        val normalizedDate = date(date)
+        val conversion = exchangeRateService.convertToEur(positive(amount), normalizedCurrency, java.time.LocalDate.parse(normalizedDate))
+        return repository.update(projectId, uuid.trim(), validatedType(type), required(reference, "Reference number"), amount, normalizedCurrency, normalizedDate, optionalDate(paymentDate), optional(description) ?: optional(milestone), null, paymentPurpose(paymentPurpose), conversion.rate, conversion.effectiveDate.toString(), conversion.amountEurCents)
+    }
     fun move(projectId: Long, uuid: String, targetProjectId: Long) = repository.move(projectId, uuid.trim(), targetProjectId)
     fun delete(projectId: Long, uuid: String) = repository.delete(projectId, uuid.trim())
     fun importWorkbook(projectId: Long, input: InputStream): FinancialImportResult {
@@ -59,7 +72,7 @@ class FinancialRecordService(private val repository: FinancialRecordRepository) 
     fun exportXlsx(projectId: Long, output: OutputStream) {
         XSSFWorkbook().use { workbook ->
             val sheet = workbook.createSheet("financials")
-            val headers = listOf("record_type", "reference_number", "amount", "currency", "record_date", "payment_date", "description", "milestone", "payment_purpose")
+            val headers = listOf("record_type", "reference_number", "amount", "currency", "record_date", "payment_date", "description", "milestone", "payment_purpose", "eur_exchange_rate", "eur_exchange_date", "amount_eur")
             sheet.createRow(0).apply { headers.forEachIndexed { index, header -> createCell(index).setCellValue(header) } }
             getAll(projectId).forEachIndexed { index, record ->
                 sheet.createRow(index + 1).apply {
@@ -72,6 +85,9 @@ class FinancialRecordService(private val repository: FinancialRecordRepository) 
                     createCell(6).setCellValue(record.description.orEmpty())
                     createCell(7).setCellValue(record.milestone.orEmpty())
                     createCell(8).setCellValue(record.paymentPurpose)
+                    createCell(9).setCellValue(record.eurExchangeRate ?: 0.0)
+                    createCell(10).setCellValue(record.eurExchangeDate?.toString().orEmpty())
+                    createCell(11).setCellValue(record.amountEurCents?.div(100.0) ?: 0.0)
                 }
             }
             headers.indices.forEach(sheet::autoSizeColumn)

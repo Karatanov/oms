@@ -8,7 +8,7 @@ import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import java.util.UUID
 import java.time.LocalDate
 
-data class MonthlyActPayment(val month: String, val amount: Long)
+data class MonthlyActPayment(val month: String, val amountEurCents: Long)
 data class DashboardSubprojectFunding(val projectUuid: String, val name: String, val region: String, val amount: Long)
 data class DashboardSubprojectProgress(val projectUuid: String, val name: String, val completionPct: Double)
 data class DashboardMetric(val label: String, val value: Long)
@@ -32,9 +32,9 @@ class DashboardService(private val auditLogService: AuditLogService) {
             it[FinancialRecordTable.projectId].value in projectIds && it[FinancialRecordTable.recordType] == "act"
         }
         val spent = actRecords.sumOf { it[FinancialRecordTable.amount] }
-        val monthlyActPayments = actRecords
+        val monthlyActPayments = actRecords.filter { it[FinancialRecordTable.amountEurCents] != null }
             .groupBy { (it[FinancialRecordTable.paymentDate] ?: it[FinancialRecordTable.recordDate]).toString().take(7) }
-            .map { (month, records) -> MonthlyActPayment(month, records.sumOf { it[FinancialRecordTable.amount] }) }
+            .map { (month, records) -> MonthlyActPayment(month, records.sumOf { it[FinancialRecordTable.amountEurCents] ?: 0L }) }
             .sortedBy { it.month }
         val projectsById = projects.associateBy { it[ProjectTable.id].value }
         val subprojects = projects.filter { it[ProjectTable.projectType] == "subproject" }
@@ -75,8 +75,9 @@ class DashboardService(private val auditLogService: AuditLogService) {
             .map { DashboardMetric(it.key!!, it.value.size.toLong()) }.sortedBy { it.label }
         val monthlyEquipmentPayments = FinancialRecordTable.selectAll().toList()
             .filter { it[FinancialRecordTable.projectId].value in projectIds && it[FinancialRecordTable.paymentPurpose] == "equipment" && it[FinancialRecordTable.recordType] in setOf("payment", "advance") }
+            .filter { it[FinancialRecordTable.amountEurCents] != null }
             .groupBy { month(it[FinancialRecordTable.paymentDate] ?: it[FinancialRecordTable.recordDate]) }
-            .map { MonthlyActPayment(it.key, it.value.sumOf { row -> row[FinancialRecordTable.amount] }) }.sortedBy { it.month }
+            .map { MonthlyActPayment(it.key, it.value.sumOf { row -> row[FinancialRecordTable.amountEurCents] ?: 0L }) }.sortedBy { it.month }
         // Procurement reference rows do not carry a project foreign key. Do not
         // expose their global aggregate to a manager whose dashboard is scoped.
         val procurementRecords = if (allowedProjectIds == null) ProcurementRecordTable.selectAll().toList() else emptyList()

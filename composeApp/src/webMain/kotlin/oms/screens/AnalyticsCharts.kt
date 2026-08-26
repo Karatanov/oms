@@ -49,8 +49,8 @@ fun MetricsChart(titleKey: String, hintKey: String, metrics: List<ApiDashboardMe
 
 @Composable
 fun MonthlyAmountsChart(titleKey: String, hintKey: String, payments: List<ApiMonthlyActPayment>) {
-    val data = payments.sortedBy { it.month }.map { BarData(it.month.toChartMonth(), it.amount.toFloat()) }
-    AnalyticsCard(titleKey, hintKey, data, { money(it.toInt().toLong()) })
+    val data = payments.sortedBy { it.month }.map { BarData(it.month.toChartMonth(), it.amountEurCents.toFloat()) }
+    AnalyticsCard(titleKey, hintKey, data, { euro(it.toInt().toLong()) })
 }
 
 @Composable
@@ -74,3 +74,4 @@ private fun AnalyticsCard(
 
 private fun String.toChartMonth(): String = if (matches(Regex("\\d{4}-\\d{2}"))) "${toMonthName()} ${take(4)}" else this
 private fun money(value: Long): String = "${value.toString().reversed().chunked(3).joinToString(" ").reversed()} грн"
+private fun euro(cents: Long): String = "€ " + (cents / 100).toString() + "." + (cents % 100).toString().padStart(2, '0')
