@@ -1,6 +1,8 @@
 package oms.screens
 
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.focusable
+import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -10,6 +12,8 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.FileDownload
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.RateReview
@@ -20,6 +24,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -53,6 +62,7 @@ private data class ReportRow(
 private enum class ReportSort { Date, ReportTitle, Project, Subproject, SubprojectPartCode, Status, Author }
 
 @Composable
+@OptIn(ExperimentalMaterial3Api::class)
 fun ReportsScreen(
     onNewInspection: () -> Unit = {},
     canReviewReports: Boolean = true,
@@ -74,6 +84,7 @@ fun ReportsScreen(
     var sort by remember { mutableStateOf(ReportSort.Date) }
     var ascending by remember { mutableStateOf(false) }
     val uriHandler = LocalUriHandler.current
+    val contentScrollState = rememberScrollState()
     LaunchedEffect(Unit) {
         val reportItems = coroutineScope {
             val refreshProjects = async { ProjectRepository.refresh() }
@@ -117,8 +128,29 @@ fun ReportsScreen(
         ).toList()
     }
     fun selectSort(column: ReportSort) { if (sort == column) ascending = !ascending else { sort = column; ascending = true } }
+    fun scrollBy(delta: Float) = scope.launch { contentScrollState.animateScrollBy(delta) }
 
-    Column(Modifier.fillMaxSize().padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    Box(Modifier.fillMaxSize()) {
+    Column(
+        Modifier
+            .fillMaxSize()
+            .focusable()
+            .onPreviewKeyEvent { event ->
+                if (event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
+                when (event.key) {
+                    Key.DirectionUp -> { scrollBy(-420f); true }
+                    Key.DirectionDown -> { scrollBy(420f); true }
+                    Key.PageUp -> { scrollBy(-720f); true }
+                    Key.PageDown -> { scrollBy(720f); true }
+                    Key.MoveHome -> { scope.launch { contentScrollState.animateScrollTo(0) }; true }
+                    Key.MoveEnd -> { scope.launch { contentScrollState.animateScrollTo(contentScrollState.maxValue) }; true }
+                    else -> false
+                }
+            }
+            .verticalScroll(contentScrollState)
+            .padding(start = 24.dp, top = 24.dp, end = 76.dp, bottom = 24.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Text(LocalizationManager.t("reports_title"), style = MaterialTheme.typography.headlineMedium)
             Button(onClick = onNewInspection) { Icon(Icons.Default.Add, null); Spacer(Modifier.width(8.dp)); Text(LocalizationManager.t("new_inspection")) }
@@ -248,6 +280,19 @@ fun ReportsScreen(
                 }
             )
         }
+    }
+    Column(
+        modifier = Modifier.align(Alignment.CenterEnd).padding(end = 20.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        TooltipBox(positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(), tooltip = { PlainTooltip { Text(LocalizationManager.t("dashboard_scroll_up")) } }, state = rememberTooltipState()) {
+            FilledIconButton(onClick = { scrollBy(-420f) }) { Icon(Icons.Default.KeyboardArrowUp, LocalizationManager.t("dashboard_scroll_up")) }
+        }
+        TooltipBox(positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(), tooltip = { PlainTooltip { Text(LocalizationManager.t("dashboard_scroll_down")) } }, state = rememberTooltipState()) {
+            FilledIconButton(onClick = { scrollBy(420f) }) { Icon(Icons.Default.KeyboardArrowDown, LocalizationManager.t("dashboard_scroll_down")) }
+        }
+    }
     }
 }
 
