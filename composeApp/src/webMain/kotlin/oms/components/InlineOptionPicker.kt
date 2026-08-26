@@ -1,6 +1,6 @@
 package oms.components
 
-import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.weight
@@ -20,12 +20,16 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.zIndex
+import androidx.compose.ui.offset
 import androidx.compose.ui.unit.dp
 
 /**
- * WASM-safe selector. Unlike Material DropdownMenu it is composed in the page
- * layout rather than a popup layer, which avoids browser focus/positioning hangs.
+ * WASM-safe selector. The option card is drawn over the page rather than added
+ * to the layout flow, so opening it never moves neighbouring controls. It avoids
+ * Material DropdownMenu's browser popup layer, which was unstable in Compose/Wasm.
  */
 @Composable
 fun <T> InlineOptionPicker(
@@ -42,7 +46,7 @@ fun <T> InlineOptionPicker(
 ) {
     var expanded by remember { mutableStateOf(false) }
     val contentWidth = if (fillWidth) Modifier.fillMaxWidth() else Modifier
-    Column(modifier) {
+    Box(modifier) {
         OutlinedButton(
             enabled = enabled,
             onClick = { expanded = !expanded },
@@ -56,7 +60,11 @@ fun <T> InlineOptionPicker(
         }
         if (expanded) {
             Card(
-                modifier = contentWidth.heightIn(max = 240.dp),
+                modifier = contentWidth
+                    .align(Alignment.TopStart)
+                    .offset(y = 48.dp)
+                    .zIndex(10f)
+                    .heightIn(max = 240.dp),
                 colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surfaceContainerHigh)
             ) {
                 LazyColumn {
