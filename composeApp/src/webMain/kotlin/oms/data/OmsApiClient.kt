@@ -350,7 +350,8 @@ data class FinancialRecordRequest(
     val recordDate: String,
     val paymentDate: String? = null,
     val description: String? = null,
-    val milestone: String? = null
+    val milestone: String? = null,
+    val paymentPurpose: String = "works"
 )
 
 @Serializable
@@ -363,11 +364,12 @@ data class FinancialRecordUpdateRequest(
     val paymentDate: String? = null,
     val description: String? = null,
     val milestone: String? = null,
+    val paymentPurpose: String = "works",
     val targetProjectUuid: String? = null
 ) {
     constructor(request: FinancialRecordRequest, targetProjectUuid: String) : this(
         request.recordType, request.referenceNumber, request.amount, request.currency, request.recordDate,
-        request.paymentDate, request.description, request.milestone, targetProjectUuid
+        request.paymentDate, request.description, request.milestone, request.paymentPurpose, targetProjectUuid
     )
 }
 
@@ -524,11 +526,21 @@ data class ApiDashboard(
     val findingsTotal: Long,
     val recentInspections: List<ApiInspectionReport>,
     val activities: List<ApiActivity> = emptyList(),
-    val monthlyActPayments: List<ApiMonthlyActPayment> = emptyList()
+    val monthlyActPayments: List<ApiMonthlyActPayment> = emptyList(),
+    val subprojectFunding: List<ApiSubprojectFunding> = emptyList(),
+    val subprojectProgress: List<ApiSubprojectProgress> = emptyList(),
+    val procurementStatusCounts: List<ApiDashboardMetric> = emptyList(),
+    val monthlyInspectionCounts: List<ApiDashboardMetric> = emptyList(),
+    val monthlyEshsViolations: List<ApiDashboardMetric> = emptyList(),
+    val monthlyEquipmentPayments: List<ApiMonthlyActPayment> = emptyList(),
+    val monthlySignedConstructionContracts: List<ApiDashboardMetric> = emptyList()
 )
 
 @Serializable
 data class ApiMonthlyActPayment(val month: String, val amount: Long)
+@Serializable data class ApiSubprojectFunding(val projectUuid: String, val name: String, val region: String, val amount: Long)
+@Serializable data class ApiSubprojectProgress(val projectUuid: String, val name: String, val completionPct: Double)
+@Serializable data class ApiDashboardMetric(val label: String, val value: Long)
 
 @Serializable
 data class ApiActivity(
@@ -685,5 +697,6 @@ data class ApiFinancialRecord(
     val recordDate: String,
     val paymentDate: String? = null,
     val description: String? = null,
-    val milestone: String? = null
+    val milestone: String? = null,
+    val paymentPurpose: String = "works"
 )

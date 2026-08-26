@@ -19,7 +19,7 @@ import oms.data.ApiMonthlyActPayment
 import oms.localization.LocalizationManager
 
 @Composable
-fun MonthlyActPaymentsChart(primary: Color, payments: List<ApiMonthlyActPayment>) {
+fun MonthlyActPaymentsChart(primary: Color, payments: List<ApiMonthlyActPayment>, onOpenFinancial: () -> Unit = {}) {
     var previousYear: String? = null
     val data = payments
         .sortedBy { it.month }
@@ -46,9 +46,10 @@ fun MonthlyActPaymentsChart(primary: Color, payments: List<ApiMonthlyActPayment>
             else VerticalBarChart(
                 data = data,
                 color = primary,
-                valueLabel = { formatActAmount(it.toLong()) },
+                valueLabel = { formatActAmount(it.toInt().toLong()) },
                 labelWidth = 76.dp,
-                labelMaxLines = 1
+                labelMaxLines = 1,
+                onItemClick = { onOpenFinancial() }
             )
         }
     }

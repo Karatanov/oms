@@ -15,5 +15,7 @@ object FinancialRecordTable : LongIdTable("financial_records") {
     val paymentDate = date("payment_date").nullable()
     val description = text("description").nullable()
     val milestone = varchar("milestone", 255).nullable()
+    /** Business purpose of a payment: works or equipment. */
+    val paymentPurpose = varchar("payment_purpose", 20).default("works")
     val createdBy = reference("created_by", UserTable, onDelete = ReferenceOption.RESTRICT)
 }

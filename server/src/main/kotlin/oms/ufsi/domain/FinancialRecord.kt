@@ -14,5 +14,6 @@ data class FinancialRecord(
     val recordDate: LocalDate,
     val paymentDate: LocalDate?,
     val description: String?,
-    val milestone: String?
+    val milestone: String?,
+    val paymentPurpose: String = "works"
 )

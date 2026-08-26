@@ -34,7 +34,10 @@ fun AppLayout(appState: AppState) {
 
             when (appState.currentScreen) {
 
-                is Screen.Dashboard -> if (appState.roleCode != "GUEST") DashboardScreen()
+                is Screen.Dashboard -> if (appState.roleCode != "GUEST") DashboardScreen(
+                    onOpenProject = appState::openProjectDetail,
+                    onOpenFinancial = { appState.navigate(Screen.Financial) }
+                )
 
                 is Screen.Projects -> ProjectsScreen(
                     onOpenProject = { project -> appState.openProjectDetail(project) },

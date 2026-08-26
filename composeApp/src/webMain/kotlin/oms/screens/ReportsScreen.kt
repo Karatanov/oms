@@ -29,6 +29,7 @@ import oms.data.CreateInspectionFindingRequest
 import oms.data.OmsApiClient
 import oms.data.ProjectRepository
 import oms.data.UpdateInspectionFindingRequest
+import oms.data.ApiDashboard
 import oms.components.SortableTableHeader
 import oms.components.ReportStatusChip
 import oms.components.TableActionIconButton
@@ -68,6 +69,7 @@ fun ReportsScreen(
     var findingsReport by remember { mutableStateOf<ReportRow?>(null) }
     var reportToReview by remember { mutableStateOf<ReportRow?>(null) }
     var isMovingReport by remember { mutableStateOf(false) }
+    var dashboard by remember { mutableStateOf<ApiDashboard?>(null) }
     val scope = rememberCoroutineScope()
     var sort by remember { mutableStateOf(ReportSort.Date) }
     var ascending by remember { mutableStateOf(false) }
@@ -76,7 +78,9 @@ fun ReportsScreen(
         val reportItems = coroutineScope {
             val refreshProjects = async { ProjectRepository.refresh() }
             val loadReports = async { OmsApiClient.inspectionReports() }
+            val loadDashboard = async { runCatching { OmsApiClient.dashboard() }.getOrNull() }
             refreshProjects.await()
+            dashboard = loadDashboard.await()
             loadReports.await()
         }
         val projectsById = ProjectRepository.projects.associateBy { it.id }
@@ -118,6 +122,10 @@ fun ReportsScreen(
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Text(LocalizationManager.t("reports_title"), style = MaterialTheme.typography.headlineMedium)
             Button(onClick = onNewInspection) { Icon(Icons.Default.Add, null); Spacer(Modifier.width(8.dp)); Text(LocalizationManager.t("new_inspection")) }
+        }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            Box(Modifier.weight(1f)) { MetricsChart("inspections_by_month", "inspections_by_month_hint", dashboard?.monthlyInspectionCounts.orEmpty()) }
+            Box(Modifier.weight(1f)) { MetricsChart("eshs_violations_by_month", "eshs_violations_by_month_hint", dashboard?.monthlyEshsViolations.orEmpty()) }
         }
         Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
             Column(Modifier.padding(16.dp).horizontalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {

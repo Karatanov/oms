@@ -7,6 +7,9 @@ import oms.ufsi.dto.DashboardResponse
 import oms.ufsi.dto.ActivityResponse
 import oms.ufsi.dto.toResponse
 import oms.ufsi.dto.MonthlyActPaymentResponse
+import oms.ufsi.dto.SubprojectFundingResponse
+import oms.ufsi.dto.SubprojectProgressResponse
+import oms.ufsi.dto.DashboardMetricResponse
 
 fun Route.dashboardRoutes() {
     get("/api/v1/dashboard") {
@@ -18,6 +21,6 @@ fun Route.dashboardRoutes() {
         val activities = if (session.roleCode.equals("ADMIN", ignoreCase = true)) {
             d.activities.map { ActivityResponse(it.action, it.entityType, it.entityId, it.userLogin, it.createdAt.toString()) }
         } else emptyList()
-        call.respond(DashboardResponse(d.projectsTotal, d.projectsActive, d.projectsCompletedThisMonth, d.budgetPlanned, d.amountSpent, d.inspectionsTotal, d.pendingInspections, d.findingsTotal, d.recentInspections.map { it.toResponse() }, activities, d.monthlyActPayments.map { MonthlyActPaymentResponse(it.month, it.amount) }))
+        call.respond(DashboardResponse(d.projectsTotal, d.projectsActive, d.projectsCompletedThisMonth, d.budgetPlanned, d.amountSpent, d.inspectionsTotal, d.pendingInspections, d.findingsTotal, d.recentInspections.map { it.toResponse() }, activities, d.monthlyActPayments.map { MonthlyActPaymentResponse(it.month, it.amount) }, d.subprojectFunding.map { SubprojectFundingResponse(it.projectUuid, it.name, it.region, it.amount) }, d.subprojectProgress.map { SubprojectProgressResponse(it.projectUuid, it.name, it.completionPct) }, d.procurementStatusCounts.map { DashboardMetricResponse(it.label, it.value) }, d.monthlyInspectionCounts.map { DashboardMetricResponse(it.label, it.value) }, d.monthlyEshsViolations.map { DashboardMetricResponse(it.label, it.value) }, d.monthlyEquipmentPayments.map { MonthlyActPaymentResponse(it.month, it.amount) }, d.monthlySignedConstructionContracts.map { DashboardMetricResponse(it.label, it.value) }))
     }
 }

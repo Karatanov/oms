@@ -2,6 +2,7 @@ package oms.charts
 
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -33,7 +34,8 @@ fun VerticalBarChart(
     labelMaxLines: Int = 2,
     maxVisibleItems: Int? = null,
     initialScrollToEnd: Boolean = false,
-    valueLabel: (Float) -> String = { it.toInt().toString() }
+    valueLabel: (Float) -> String = { it.toInt().toString() },
+    onItemClick: ((BarData) -> Unit)? = null
 ) {
     if (data.isEmpty()) return
     val maxValue = data.maxOf { it.value }.coerceAtLeast(1f)
@@ -52,7 +54,9 @@ fun VerticalBarChart(
         data.forEach { item ->
             val barHeight = (156f * (item.value / maxValue)).coerceAtLeast(6f).dp
             Column(
-                modifier = Modifier.width(labelWidth).fillMaxHeight(),
+                modifier = Modifier.width(labelWidth).fillMaxHeight().then(
+                    if (onItemClick == null) Modifier else Modifier.clickable { onItemClick(item) }
+                ),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Bottom
             ) {
@@ -63,7 +67,7 @@ fun VerticalBarChart(
                         .width(40.dp)
                         .height(barHeight)
                         .clip(MaterialTheme.shapes.small)
-                        .background(color.copy(alpha = 0.86f))
+                        .background((item.color ?: color).copy(alpha = 0.86f))
                 )
                 Spacer(Modifier.height(8.dp))
                 Text(

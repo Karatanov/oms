@@ -14,7 +14,14 @@ data class DashboardResponse(
     val findingsTotal: Long,
     val recentInspections: List<InspectionReportResponse>,
     val activities: List<ActivityResponse>,
-    val monthlyActPayments: List<MonthlyActPaymentResponse> = emptyList()
+    val monthlyActPayments: List<MonthlyActPaymentResponse> = emptyList(),
+    val subprojectFunding: List<SubprojectFundingResponse> = emptyList(),
+    val subprojectProgress: List<SubprojectProgressResponse> = emptyList(),
+    val procurementStatusCounts: List<DashboardMetricResponse> = emptyList(),
+    val monthlyInspectionCounts: List<DashboardMetricResponse> = emptyList(),
+    val monthlyEshsViolations: List<DashboardMetricResponse> = emptyList(),
+    val monthlyEquipmentPayments: List<MonthlyActPaymentResponse> = emptyList(),
+    val monthlySignedConstructionContracts: List<DashboardMetricResponse> = emptyList()
 )
 
 @Serializable
@@ -22,3 +29,6 @@ data class ActivityResponse(val action: String, val entityType: String, val enti
 
 @Serializable
 data class MonthlyActPaymentResponse(val month: String, val amount: Long)
+@Serializable data class SubprojectFundingResponse(val projectUuid: String, val name: String, val region: String, val amount: Long)
+@Serializable data class SubprojectProgressResponse(val projectUuid: String, val name: String, val completionPct: Double)
+@Serializable data class DashboardMetricResponse(val label: String, val value: Long)

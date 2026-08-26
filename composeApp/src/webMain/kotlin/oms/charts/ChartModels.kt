@@ -7,5 +7,6 @@ package oms.charts
 data class BarData(
     val label: String,
     val value: Float,
-    val groupLabel: String? = null
+    val groupLabel: String? = null,
+    val color: androidx.compose.ui.graphics.Color? = null
 )

@@ -17,18 +17,18 @@ class ExposedFinancialRecordRepository : FinancialRecordRepository {
     override fun findByUuid(projectId: Long, uuid: String) = transaction {
         FinancialRecordTable.selectAll().firstOrNull { it[FinancialRecordTable.projectId].value == projectId && it[FinancialRecordTable.uuid] == uuid }?.let(::map)
     }
-    override fun create(projectId: Long, type: FinancialRecordType, reference: String, amount: Long, currency: String, recordDate: String, paymentDate: String?, description: String?, milestone: String?, createdBy: Long) = transaction {
+    override fun create(projectId: Long, type: FinancialRecordType, reference: String, amount: Long, currency: String, recordDate: String, paymentDate: String?, description: String?, milestone: String?, paymentPurpose: String, createdBy: Long) = transaction {
         val uuid = UUID.randomUUID()
         val id = FinancialRecordTable.insertAndGetId {
             it[this.uuid] = uuid.toString(); it[this.projectId] = projectId; it[recordType] = type.name.lowercase(); it[referenceNumber] = reference
             it[this.amount] = amount; it[this.currency] = currency; it[this.recordDate] = LocalDate.parse(recordDate); it[this.paymentDate] = paymentDate?.let(LocalDate::parse)
-            it[this.description] = description; it[this.milestone] = milestone; it[this.createdBy] = createdBy
+            it[this.description] = description; it[this.milestone] = milestone; it[this.paymentPurpose] = paymentPurpose; it[this.createdBy] = createdBy
         }
-        FinancialRecord(id.value, uuid, projectId, type, reference, amount, currency, LocalDate.parse(recordDate), paymentDate?.let(LocalDate::parse), description, milestone)
+        FinancialRecord(id.value, uuid, projectId, type, reference, amount, currency, LocalDate.parse(recordDate), paymentDate?.let(LocalDate::parse), description, milestone, paymentPurpose)
     }
-    override fun update(projectId: Long, uuid: String, type: FinancialRecordType, reference: String, amount: Long, currency: String, recordDate: String, paymentDate: String?, description: String?, milestone: String?) = transaction {
+    override fun update(projectId: Long, uuid: String, type: FinancialRecordType, reference: String, amount: Long, currency: String, recordDate: String, paymentDate: String?, description: String?, milestone: String?, paymentPurpose: String) = transaction {
         val n = FinancialRecordTable.update({ (FinancialRecordTable.projectId eq projectId) and (FinancialRecordTable.uuid eq uuid) }) {
-            it[recordType] = type.name.lowercase(); it[referenceNumber] = reference; it[this.amount] = amount; it[this.currency] = currency; it[this.recordDate] = LocalDate.parse(recordDate); it[this.paymentDate] = paymentDate?.let(LocalDate::parse); it[this.description] = description; it[this.milestone] = milestone
+            it[recordType] = type.name.lowercase(); it[referenceNumber] = reference; it[this.amount] = amount; it[this.currency] = currency; it[this.recordDate] = LocalDate.parse(recordDate); it[this.paymentDate] = paymentDate?.let(LocalDate::parse); it[this.description] = description; it[this.milestone] = milestone; it[this.paymentPurpose] = paymentPurpose
         }; if (n == 0) null else findByUuid(projectId, uuid)
     }
     override fun move(projectId: Long, uuid: String, targetProjectId: Long) = transaction {
@@ -37,5 +37,5 @@ class ExposedFinancialRecordRepository : FinancialRecordRepository {
         } > 0
     }
     override fun delete(projectId: Long, uuid: String) = transaction { FinancialRecordTable.deleteWhere { (FinancialRecordTable.projectId eq projectId) and (FinancialRecordTable.uuid eq uuid) } > 0 }
-    private fun map(r: org.jetbrains.exposed.v1.core.ResultRow) = FinancialRecord(r[FinancialRecordTable.id].value, UUID.fromString(r[FinancialRecordTable.uuid]), r[FinancialRecordTable.projectId].value, FinancialRecordType.valueOf(r[FinancialRecordTable.recordType].uppercase()), r[FinancialRecordTable.referenceNumber], r[FinancialRecordTable.amount], r[FinancialRecordTable.currency], r[FinancialRecordTable.recordDate], r[FinancialRecordTable.paymentDate], r[FinancialRecordTable.description], r[FinancialRecordTable.milestone])
+    private fun map(r: org.jetbrains.exposed.v1.core.ResultRow) = FinancialRecord(r[FinancialRecordTable.id].value, UUID.fromString(r[FinancialRecordTable.uuid]), r[FinancialRecordTable.projectId].value, FinancialRecordType.valueOf(r[FinancialRecordTable.recordType].uppercase()), r[FinancialRecordTable.referenceNumber], r[FinancialRecordTable.amount], r[FinancialRecordTable.currency], r[FinancialRecordTable.recordDate], r[FinancialRecordTable.paymentDate], r[FinancialRecordTable.description], r[FinancialRecordTable.milestone], r[FinancialRecordTable.paymentPurpose])
 }

@@ -23,8 +23,8 @@ class FinancialRecordService(private val repository: FinancialRecordRepository) 
         }
     }
     fun get(projectId: Long, uuid: String) = repository.findByUuid(projectId, uuid.trim())
-    fun create(projectId: Long, type: String, reference: String, amount: Long, currency: String, date: String, paymentDate: String?, description: String?, milestone: String?) = repository.create(projectId, validatedType(type), required(reference, "Reference number"), positive(amount), currency(currency), date(date), optionalDate(paymentDate), optional(description) ?: optional(milestone), null, 1L)
-    fun update(projectId: Long, uuid: String, type: String, reference: String, amount: Long, currency: String, date: String, paymentDate: String?, description: String?, milestone: String?) = repository.update(projectId, uuid.trim(), validatedType(type), required(reference, "Reference number"), positive(amount), currency(currency), date(date), optionalDate(paymentDate), optional(description) ?: optional(milestone), null)
+    fun create(projectId: Long, type: String, reference: String, amount: Long, currency: String, date: String, paymentDate: String?, description: String?, milestone: String?, paymentPurpose: String = "works") = repository.create(projectId, validatedType(type), required(reference, "Reference number"), positive(amount), currency(currency), date(date), optionalDate(paymentDate), optional(description) ?: optional(milestone), null, paymentPurpose(paymentPurpose), 1L)
+    fun update(projectId: Long, uuid: String, type: String, reference: String, amount: Long, currency: String, date: String, paymentDate: String?, description: String?, milestone: String?, paymentPurpose: String = "works") = repository.update(projectId, uuid.trim(), validatedType(type), required(reference, "Reference number"), positive(amount), currency(currency), date(date), optionalDate(paymentDate), optional(description) ?: optional(milestone), null, paymentPurpose(paymentPurpose))
     fun move(projectId: Long, uuid: String, targetProjectId: Long) = repository.move(projectId, uuid.trim(), targetProjectId)
     fun delete(projectId: Long, uuid: String) = repository.delete(projectId, uuid.trim())
     fun importWorkbook(projectId: Long, input: InputStream): FinancialImportResult {
@@ -49,7 +49,7 @@ class FinancialRecordService(private val repository: FinancialRecordRepository) 
                     continue
                 }
                 try {
-                    create(projectId, cell(row, "record_type"), reference, cell(row, "amount").toDouble().toLong(), cell(row, "currency").ifBlank { "UAH" }, cell(row, "record_date"), cell(row, "payment_date").ifBlank { null }, cell(row, "description").ifBlank { null }, cell(row, "milestone").ifBlank { null })
+                    create(projectId, cell(row, "record_type"), reference, cell(row, "amount").toDouble().toLong(), cell(row, "currency").ifBlank { "UAH" }, cell(row, "record_date"), cell(row, "payment_date").ifBlank { null }, cell(row, "description").ifBlank { null }, cell(row, "milestone").ifBlank { null }, cell(row, "payment_purpose").ifBlank { "works" })
                     imported++
                 } catch (exception: Exception) { errors += FinancialImportError(index + 1, null, exception.message ?: "Invalid row.") }
             }
@@ -59,7 +59,7 @@ class FinancialRecordService(private val repository: FinancialRecordRepository) 
     fun exportXlsx(projectId: Long, output: OutputStream) {
         XSSFWorkbook().use { workbook ->
             val sheet = workbook.createSheet("financials")
-            val headers = listOf("record_type", "reference_number", "amount", "currency", "record_date", "payment_date", "description", "milestone")
+            val headers = listOf("record_type", "reference_number", "amount", "currency", "record_date", "payment_date", "description", "milestone", "payment_purpose")
             sheet.createRow(0).apply { headers.forEachIndexed { index, header -> createCell(index).setCellValue(header) } }
             getAll(projectId).forEachIndexed { index, record ->
                 sheet.createRow(index + 1).apply {
@@ -71,6 +71,7 @@ class FinancialRecordService(private val repository: FinancialRecordRepository) 
                     createCell(5).setCellValue(record.paymentDate?.toString().orEmpty())
                     createCell(6).setCellValue(record.description.orEmpty())
                     createCell(7).setCellValue(record.milestone.orEmpty())
+                    createCell(8).setCellValue(record.paymentPurpose)
                 }
             }
             headers.indices.forEach(sheet::autoSizeColumn)
@@ -92,6 +93,9 @@ class FinancialRecordService(private val repository: FinancialRecordRepository) 
     private fun date(value: String): String = try { java.time.LocalDate.parse(value.trim()).toString() } catch (_: Exception) { throw IllegalArgumentException("Date must use YYYY-MM-DD format.") }
     private fun optionalDate(value: String?) = value?.trim()?.takeIf { it.isNotEmpty() }?.let(::date)
     private fun optional(value: String?) = value?.trim()?.takeIf { it.isNotEmpty() }
+    private fun paymentPurpose(value: String): String = value.trim().lowercase().also {
+        require(it in setOf("works", "equipment")) { "Payment purpose must be works or equipment." }
+    }
 }
 
 data class FinancialImportError(val row: Int, val field: String?, val message: String)

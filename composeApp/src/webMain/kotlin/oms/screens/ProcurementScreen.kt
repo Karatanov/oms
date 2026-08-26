@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import oms.data.ApiProcurementRecord
+import oms.data.ApiDashboard
 import oms.data.OmsApiClient
 import oms.data.ProcurementRecordRequest
 import oms.components.OmsDateField
@@ -33,11 +34,13 @@ fun ProcurementScreen(canManageProcurements: Boolean) {
     var editorRecord by remember { mutableStateOf<ApiProcurementRecord?>(null) }
     var creating by remember { mutableStateOf(false) }
     var recordPendingDeletion by remember { mutableStateOf<ApiProcurementRecord?>(null) }
+    var dashboard by remember { mutableStateOf<ApiDashboard?>(null) }
     val scope = rememberCoroutineScope()
     LaunchedEffect(Unit) {
         runCatching { OmsApiClient.procurements() }
             .onSuccess { records = it.sortedWith(compareBy({ record -> record.batchId }, { record -> record.recordNumber })) }
             .onFailure { error = LocalizationManager.t("procurement_load_error") }
+        dashboard = runCatching { OmsApiClient.dashboard() }.getOrNull()
     }
     Box(Modifier.fillMaxSize()) {
     Column(Modifier.fillMaxSize().padding(24.dp)) {
@@ -47,6 +50,11 @@ fun ProcurementScreen(canManageProcurements: Boolean) {
         }
         Spacer(Modifier.height(8.dp))
         Text(LocalizationManager.t("procurement_subtitle"), style = MaterialTheme.typography.bodyMedium)
+        Spacer(Modifier.height(16.dp))
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            Box(Modifier.weight(1f)) { MetricsChart("procurement_status_chart", "procurement_status_chart_hint", dashboard?.procurementStatusCounts.orEmpty()) }
+            Box(Modifier.weight(1f)) { MetricsChart("signed_construction_contracts", "signed_construction_contracts_hint", dashboard?.monthlySignedConstructionContracts.orEmpty()) }
+        }
         Spacer(Modifier.height(16.dp))
         when {
             error != null -> Text(error!!, color = MaterialTheme.colorScheme.error)
@@ -119,7 +127,7 @@ private fun ProcurementRow(
     isHeader: Boolean = false
 ) {
     Row(
-        Modifier.widthIn(min = 3_300.dp).padding(vertical = 10.dp),
+        Modifier.widthIn(min = 3_300.dp).padding(vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         if (showActions) {

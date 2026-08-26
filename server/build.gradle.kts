@@ -22,6 +22,7 @@ val copyTiDbMigrations by tasks.registering(Copy::class) {
         exclude("V18__align_data_model_with_table_definitions.sql")
         exclude("V28__add_user_activation_tokens.sql")
         exclude("V30__replace_guest_role_with_anonymous_access.sql")
+        exclude("V31__add_financial_payment_purpose.sql")
     }
     // A few TiDB limitations need a full SQL replacement, not a line rewrite.
     from(layout.projectDirectory.dir("src/main/resources/db/tidb-overrides"))

@@ -127,6 +127,7 @@ fun FinancialScreen(
         }
 
         MonthlyPaymentsChart(acts.map { it.act })
+        MonthlyEquipmentPaymentsChart(acts.map { it.act })
 
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
             Text(LocalizationManager.t("financial_records"), style = MaterialTheme.typography.titleLarge)
@@ -241,6 +242,7 @@ private fun ActEditorDialog(existing: ProjectActRow?, projects: List<oms.model.P
     var currency by remember { mutableStateOf(existing?.act?.currency ?: "EUR") }
     var date by remember { mutableStateOf(existing?.act?.recordDate ?: currentIsoDate()) }
     var description by remember { mutableStateOf(existing?.act?.description ?: existing?.act?.milestone ?: "") }
+    var paymentPurpose by remember { mutableStateOf(existing?.act?.paymentPurpose ?: "works") }
     val selected = projects.firstOrNull { it.id == projectUuid }
     val valid = projectUuid != null && reference.isNotBlank() && amount.toLongOrNull()?.let { it > 0 } == true && date.matches(Regex("\\d{4}-\\d{2}-\\d{2}"))
     Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
@@ -250,6 +252,18 @@ private fun ActEditorDialog(existing: ProjectActRow?, projects: List<oms.model.P
             OutlinedTextField(reference, { reference = it }, label = { Text(LocalizationManager.t("reference_number")) }, modifier = Modifier.fillMaxWidth())
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 listOf("invoice", "act", "payment", "advance").forEach { type -> FilterChip(selected = recordType == type, onClick = { recordType = type }, label = { Text(LocalizationManager.t("record_type_$type")) }) }
+            }
+            if (recordType in setOf("payment", "advance")) {
+                Text(LocalizationManager.t("payment_purpose"), style = MaterialTheme.typography.labelLarge)
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    listOf("works", "equipment").forEach { purpose ->
+                        FilterChip(
+                            selected = paymentPurpose == purpose,
+                            onClick = { paymentPurpose = purpose },
+                            label = { Text(LocalizationManager.t("payment_purpose_$purpose")) }
+                        )
+                    }
+                }
             }
             OutlinedTextField(
                 value = amount,
@@ -284,7 +298,7 @@ private fun ActEditorDialog(existing: ProjectActRow?, projects: List<oms.model.P
             )
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, androidx.compose.ui.Alignment.End)) {
                 OutlinedButton(onClick = onDismiss) { Text(LocalizationManager.t("cancel")) }
-                Button(onClick = { onSave(projectUuid!!, oms.data.FinancialRecordRequest(recordType, reference, amount.toLong(), currency, date, description = description.ifBlank { null }, milestone = null)) }, enabled = valid) { Text(LocalizationManager.t("save")) }
+                Button(onClick = { onSave(projectUuid!!, oms.data.FinancialRecordRequest(recordType, reference, amount.toLong(), currency, date, description = description.ifBlank { null }, milestone = null, paymentPurpose = paymentPurpose)) }, enabled = valid) { Text(LocalizationManager.t("save")) }
             }
         }
     }

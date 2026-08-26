@@ -14,6 +14,7 @@ import androidx.compose.ui.unit.dp
 import oms.charts.BarData
 import oms.charts.VerticalBarChart
 import oms.data.ApiFinancialRecord
+import oms.data.ApiMonthlyActPayment
 import oms.localization.LocalizationManager
 
 @Composable
@@ -36,10 +37,21 @@ fun MonthlyPaymentsChart(records: List<ApiFinancialRecord>) {
                 color = MaterialTheme.colorScheme.primary,
                 labelMaxLines = 2,
                 maxVisibleItems = 12,
-                initialScrollToEnd = true
-            ) { value -> formatPaymentAmount(value.toLong()) }
+                initialScrollToEnd = true,
+                valueLabel = { value -> formatPaymentAmount(value.toInt().toLong()) }
+            )
         }
     }
+}
+
+@Composable
+fun MonthlyEquipmentPaymentsChart(records: List<ApiFinancialRecord>) {
+    val payments = records
+        .filter { it.paymentPurpose == "equipment" && it.recordType in setOf("payment", "advance") }
+        .mapNotNull { record -> (record.paymentDate ?: record.recordDate).takeIf { it.matches(Regex("\\d{4}-\\d{2}-\\d{2}")) }?.take(7)?.let { it to record.amount } }
+        .groupBy({ it.first }, { it.second })
+        .map { ApiMonthlyActPayment(it.key, it.value.sum()) }
+    MonthlyAmountsChart("monthly_equipment_payments", "monthly_equipment_payments_hint", payments)
 }
 
 private fun formatPaymentAmount(amount: Long): String =

@@ -21,6 +21,9 @@ import oms.data.ApiInspectionPhoto
 import oms.data.ApiMonthlyActPayment
 import oms.data.OmsApiClient
 import oms.data.ProjectRepository
+import oms.screens.FundingByOblastChart
+import oms.screens.SubprojectProgressChart
+import oms.screens.MetricsChart
 
 /*
    DashboardScreen
@@ -31,7 +34,7 @@ import oms.data.ProjectRepository
 */
 
 @Composable
-fun DashboardScreen() {
+fun DashboardScreen(onOpenProject: (oms.model.Project) -> Unit = {}, onOpenFinancial: () -> Unit = {}) {
     var dashboard by remember { mutableStateOf<ApiDashboard?>(null) }
     var inspectionReports by remember { mutableStateOf<List<oms.data.ApiInspectionReport>>(emptyList()) }
     var latestPhotos by remember { mutableStateOf<List<ApiInspectionPhoto>?>(null) }
@@ -85,7 +88,21 @@ fun DashboardScreen() {
 
         item { ProjectsByRegionChart(primary, projects) }
 
-        item { MonthlyActPaymentsChart(primary, dashboard?.monthlyActPayments.orEmpty()) }
+        item {
+            FundingByOblastChart(dashboard?.subprojectFunding.orEmpty()) { uuid ->
+                projects.firstOrNull { it.id == uuid }?.let(onOpenProject)
+            }
+        }
+
+        item {
+            SubprojectProgressChart(dashboard?.subprojectProgress.orEmpty()) { uuid ->
+                projects.firstOrNull { it.id == uuid }?.let(onOpenProject)
+            }
+        }
+
+        item { MetricsChart("procurement_status_by_subprojects", "procurement_status_by_subprojects_hint", dashboard?.procurementStatusCounts.orEmpty()) }
+
+        item { MonthlyActPaymentsChart(primary, dashboard?.monthlyActPayments.orEmpty(), onOpenFinancial) }
 
     }
 }
