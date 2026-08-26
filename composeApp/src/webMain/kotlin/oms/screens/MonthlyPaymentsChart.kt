@@ -51,6 +51,7 @@ fun MonthlyEquipmentPaymentsChart(records: List<ApiFinancialRecord>) {
         .mapNotNull { record -> record.amountEurCents?.let { cents -> (record.paymentDate ?: record.recordDate).takeIf { it.matches(Regex("\\d{4}-\\d{2}-\\d{2}")) }?.take(7)?.let { it to cents } } }
         .groupBy({ it.first }, { it.second })
         .map { ApiMonthlyActPayment(it.key, it.value.sum()) }
+    if (payments.isEmpty()) return
     MonthlyAmountsChart("monthly_equipment_payments", "monthly_equipment_payments_hint", payments)
 }
 
