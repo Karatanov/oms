@@ -40,19 +40,24 @@ class InspectionReportServiceTest {
         id = 1,
         uuid = UUID.fromString(REPORT_UUID),
         projectId = 10,
+        reportCode = null,
+        inspectionType = "planned",
         inspectionDate = LocalDate.parse("2026-08-20"),
         summary = "Draft",
         status = InspectionReportStatus.DRAFT,
         rejectionReason = null,
+        latitude = null,
+        longitude = null,
         createdBy = 7
     )
 
     private class InMemoryInspectionReportRepository(initial: InspectionReport) : InspectionReportRepository {
         private var report = initial
+        override fun findAll() = listOf(report)
         override fun findByProjectId(projectId: Long) = listOf(report).filter { it.projectId == projectId }
         override fun findByUuid(uuid: String) = report.takeIf { it.uuid.toString() == uuid }
-        override fun create(projectId: Long, inspectionDate: String, summary: String?, createdBy: Long): InspectionReport = report
-        override fun update(uuid: String, inspectionDate: String, summary: String?) = report
+        override fun create(projectId: Long, inspectionDate: String, summary: String?, createdBy: Long, reportCode: String?, inspectionType: String, latitude: Double?, longitude: Double?): InspectionReport = report
+        override fun update(uuid: String, inspectionDate: String, summary: String?, reportCode: String?, inspectionType: String, latitude: Double?, longitude: Double?) = report
         override fun changeStatus(uuid: String, status: String, rejectionReason: String?): InspectionReport? {
             if (report.uuid.toString() != uuid) return null
             report = report.copy(status = InspectionReportStatus.valueOf(status.uppercase()), rejectionReason = rejectionReason)

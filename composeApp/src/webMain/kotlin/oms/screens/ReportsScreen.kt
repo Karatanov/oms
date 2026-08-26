@@ -221,9 +221,13 @@ fun ReportsScreen(
         ReportEditorDialog(
             report = report,
             onDismiss = { reportToEdit = null },
-            onSave = { date, summary ->
+            onSave = { date, summary, reportCode, inspectionType, latitude, longitude ->
                 scope.launch {
-                    runCatching { OmsApiClient.updateInspectionReport(report.report.uuid, date, summary) }
+                    runCatching {
+                        OmsApiClient.updateInspectionReport(
+                            report.report.uuid, date, summary, reportCode, inspectionType, latitude, longitude
+                        )
+                    }
                         .onSuccess { updated ->
                             reports = reports.map { if (it.report.uuid == updated.uuid) it.copy(report = updated) else it }
                             reportToEdit = null
@@ -307,15 +311,38 @@ fun ReportsScreen(
 private fun ReportEditorDialog(
     report: ReportRow,
     onDismiss: () -> Unit,
-    onSave: (String, String) -> Unit
+    onSave: (String, String, String?, String, Double?, Double?) -> Unit
 ) {
     var date by remember(report.report.uuid) { mutableStateOf(report.report.inspectionDate) }
     var summary by remember(report.report.uuid) { mutableStateOf(report.report.summary.orEmpty()) }
-    val valid = date.matches(Regex("\\d{4}-\\d{2}-\\d{2}"))
+    var reportCode by remember(report.report.uuid) { mutableStateOf(report.report.reportCode.orEmpty()) }
+    var inspectionType by remember(report.report.uuid) { mutableStateOf(report.report.inspectionType) }
+    var latitude by remember(report.report.uuid) { mutableStateOf(report.report.latitude?.toString().orEmpty()) }
+    var longitude by remember(report.report.uuid) { mutableStateOf(report.report.longitude?.toString().orEmpty()) }
+    val latitudeValue = latitude.replace(',', '.').toDoubleOrNull()
+    val longitudeValue = longitude.replace(',', '.').toDoubleOrNull()
+    val latitudeInvalid = latitude.isNotBlank() && (latitudeValue == null || latitudeValue !in -90.0..90.0)
+    val longitudeInvalid = longitude.isNotBlank() && (longitudeValue == null || longitudeValue !in -180.0..180.0)
+    val valid = date.matches(Regex("\\d{4}-\\d{2}-\\d{2}")) && !latitudeInvalid && !longitudeInvalid
     Card(Modifier.fillMaxWidth().widthIn(max = 720.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
         Column(Modifier.padding(20.dp).heightIn(max = 560.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(LocalizationManager.t("edit_inspection"), style = MaterialTheme.typography.titleLarge)
             OmsDateField(date, { date = it }, LocalizationManager.t("date"), Modifier.fillMaxWidth(), true)
+            OutlinedTextField(
+                value = reportCode,
+                onValueChange = { reportCode = it },
+                label = { Text(LocalizationManager.t("inspection_code")) },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+            InlineOptionPicker(
+                options = listOf("planned", "unplanned", "final"),
+                selected = inspectionType,
+                prompt = LocalizationManager.t("inspection_type"),
+                onSelect = { inspectionType = it },
+                itemLabel = { LocalizationManager.t(it) },
+                modifier = Modifier.fillMaxWidth()
+            )
             OutlinedTextField(
                 value = summary,
                 onValueChange = { summary = it },
@@ -323,9 +350,35 @@ private fun ReportEditorDialog(
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 3
             )
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedTextField(
+                    value = latitude,
+                    onValueChange = { value -> if (value.matches(Regex("-?[0-9.,]*"))) latitude = value },
+                    label = { Text(LocalizationManager.t("latitude")) },
+                    modifier = Modifier.weight(1f),
+                    singleLine = true,
+                    isError = latitudeInvalid
+                )
+                OutlinedTextField(
+                    value = longitude,
+                    onValueChange = { value -> if (value.matches(Regex("-?[0-9.,]*"))) longitude = value },
+                    label = { Text(LocalizationManager.t("longitude")) },
+                    modifier = Modifier.weight(1f),
+                    singleLine = true,
+                    isError = longitudeInvalid
+                )
+            }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
                 OutlinedButton(onClick = onDismiss) { Text(LocalizationManager.t("cancel")) }
-                Button(onClick = { onSave(date, summary) }, enabled = valid) { Text(LocalizationManager.t("save")) }
+                Button(
+                    onClick = {
+                        onSave(
+                            date, summary, reportCode.trim().ifBlank { null }, inspectionType,
+                            latitudeValue, longitudeValue
+                        )
+                    },
+                    enabled = valid
+                ) { Text(LocalizationManager.t("save")) }
             }
         }
     }

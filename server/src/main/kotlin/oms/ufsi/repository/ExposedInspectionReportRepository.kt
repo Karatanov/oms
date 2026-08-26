@@ -43,10 +43,14 @@ class ExposedInspectionReportRepository :
         id = row[InspectionReportTable.id].value,
         uuid = UUID.fromString(row[InspectionReportTable.uuid]),
         projectId = row[InspectionReportTable.projectId].value,
+        reportCode = row[InspectionReportTable.reportCode],
+        inspectionType = row[InspectionReportTable.inspectionType],
         inspectionDate = row[InspectionReportTable.inspectionDate],
         summary = row[InspectionReportTable.summary],
         status = InspectionReportStatus.valueOf(row[InspectionReportTable.status].uppercase()),
         rejectionReason = row[InspectionReportTable.rejectionReason],
+        latitude = row[InspectionReportTable.latitude]?.toDouble(),
+        longitude = row[InspectionReportTable.longitude]?.toDouble(),
         createdBy = row[InspectionReportTable.createdBy].value
     )
 
@@ -83,6 +87,10 @@ class ExposedInspectionReportRepository :
                             InspectionReportTable.projectId
                         ].value,
 
+                    reportCode = row[InspectionReportTable.reportCode],
+
+                    inspectionType = row[InspectionReportTable.inspectionType],
+
                     inspectionDate =
                         row[
                             InspectionReportTable.inspectionDate
@@ -99,6 +107,10 @@ class ExposedInspectionReportRepository :
 
                     rejectionReason = row[InspectionReportTable.rejectionReason],
 
+                    latitude = row[InspectionReportTable.latitude]?.toDouble(),
+
+                    longitude = row[InspectionReportTable.longitude]?.toDouble(),
+
                     createdBy =
                         row[
                             InspectionReportTable.createdBy
@@ -114,7 +126,11 @@ class ExposedInspectionReportRepository :
         projectId: Long,
         inspectionDate: String,
         summary: String?,
-        createdBy: Long
+        createdBy: Long,
+        reportCode: String?,
+        inspectionType: String,
+        latitude: Double?,
+        longitude: Double?
     ): InspectionReport = transaction {
 
         val reportUuid = UUID.randomUUID()
@@ -129,6 +145,10 @@ class ExposedInspectionReportRepository :
                     it[this.projectId] =
                         projectId
 
+                    it[this.reportCode] = reportCode
+
+                    it[this.inspectionType] = inspectionType
+
                     it[this.inspectionDate] =
                         LocalDate.parse(
                             inspectionDate
@@ -141,6 +161,10 @@ class ExposedInspectionReportRepository :
                         createdBy
 
                     it[status] = "draft"
+
+                    it[this.latitude] = latitude?.toBigDecimal()
+
+                    it[this.longitude] = longitude?.toBigDecimal()
                 }
 
         InspectionReport(
@@ -150,6 +174,10 @@ class ExposedInspectionReportRepository :
             uuid = reportUuid,
 
             projectId = projectId,
+
+            reportCode = reportCode,
+
+            inspectionType = inspectionType,
 
             inspectionDate =
                 LocalDate.parse(
@@ -162,6 +190,10 @@ class ExposedInspectionReportRepository :
 
             rejectionReason = null,
 
+            latitude = latitude,
+
+            longitude = longitude,
+
             createdBy = createdBy
         )
     }
@@ -169,12 +201,20 @@ class ExposedInspectionReportRepository :
     override fun update(
         uuid: String,
         inspectionDate: String,
-        summary: String?
+        summary: String?,
+        reportCode: String?,
+        inspectionType: String,
+        latitude: Double?,
+        longitude: Double?
     ): InspectionReport? {
         val count = transaction {
             InspectionReportTable.update({ InspectionReportTable.uuid eq uuid }) {
                 it[this.inspectionDate] = LocalDate.parse(inspectionDate)
                 it[this.summary] = summary
+                it[this.reportCode] = reportCode
+                it[this.inspectionType] = inspectionType
+                it[this.latitude] = latitude?.toBigDecimal()
+                it[this.longitude] = longitude?.toBigDecimal()
             }
         }
         return if (count == 0) null else findByUuid(uuid)

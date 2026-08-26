@@ -467,7 +467,11 @@ fun Route.projectRoutes() {
                         summary =
                             request.summary,
 
-                        createdBy = session.userId
+                        createdBy = session.userId,
+                        reportCode = request.reportCode,
+                        inspectionType = request.inspectionType,
+                        latitude = request.latitude,
+                        longitude = request.longitude
                     )
 
             call.respond(

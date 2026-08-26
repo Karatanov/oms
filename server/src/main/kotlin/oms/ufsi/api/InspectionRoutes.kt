@@ -166,7 +166,8 @@ fun Route.inspectionRoutes() {
             val request = call.receive<UpdateInspectionReportRequest>()
             try {
                 val report = AppContainer.inspectionReportService.updateReport(
-                    report.uuid.toString(), request.inspectionDate, request.summary
+                    report.uuid.toString(), request.inspectionDate, request.summary,
+                    request.reportCode, request.inspectionType, request.latitude, request.longitude
                 ) ?: return@put call.notFound("Inspection report not found.")
                 call.respond(report.toResponse())
             } catch (exception: IllegalArgumentException) {

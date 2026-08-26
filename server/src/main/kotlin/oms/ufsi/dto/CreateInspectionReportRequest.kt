@@ -18,5 +18,9 @@ data class CreateInspectionReportRequest(
     /**
      * Короткий підсумок інспекції.
      */
-    val summary: String?
+    val summary: String?,
+    val reportCode: String? = null,
+    val inspectionType: String = "planned",
+    val latitude: Double? = null,
+    val longitude: Double? = null
 )

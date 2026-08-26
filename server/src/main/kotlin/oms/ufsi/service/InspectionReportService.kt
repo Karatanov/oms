@@ -47,7 +47,11 @@ class InspectionReportService(
         projectId: Long,
         inspectionDate: String,
         summary: String?,
-        createdBy: Long
+        createdBy: Long,
+        reportCode: String? = null,
+        inspectionType: String = "planned",
+        latitude: Double? = null,
+        longitude: Double? = null
     ): InspectionReport {
         validateDate(inspectionDate)
 
@@ -59,21 +63,32 @@ class InspectionReportService(
 
             summary = summary,
 
-            createdBy = createdBy
+            createdBy = createdBy,
+            reportCode = reportCode?.trim()?.takeIf(String::isNotBlank),
+            inspectionType = validateType(inspectionType),
+            latitude = validateLatitude(latitude),
+            longitude = validateLongitude(longitude)
         )
     }
 
     fun updateReport(
         uuid: String,
         inspectionDate: String,
-        summary: String?
+        summary: String?,
+        reportCode: String?,
+        inspectionType: String,
+        latitude: Double?,
+        longitude: Double?
     ): InspectionReport? {
         validateDate(inspectionDate)
-        val report = getByUuid(uuid) ?: return null
-        require(report.status == InspectionReportStatus.DRAFT) {
-            "Only draft inspection reports can be edited."
-        }
-        return repository.update(uuid.trim(), inspectionDate, summary?.trim())
+        getByUuid(uuid) ?: return null
+        // Metadata corrections (date, type, SIR code and coordinates) remain possible
+        // after review; the workflow status itself is still changed only via submit/review.
+        return repository.update(
+            uuid.trim(), inspectionDate, summary?.trim(),
+            reportCode?.trim()?.takeIf(String::isNotBlank), validateType(inspectionType),
+            validateLatitude(latitude), validateLongitude(longitude)
+        )
     }
 
     fun submitReport(uuid: String): InspectionReport? {
@@ -118,5 +133,23 @@ class InspectionReportService(
         } catch (_: Exception) {
             throw IllegalArgumentException("Inspection date must use YYYY-MM-DD format.")
         }
+    }
+
+    private fun validateType(value: String): String {
+        val normalized = value.trim().lowercase()
+        require(normalized in setOf("planned", "unplanned", "final")) {
+            "Inspection type must be planned, unplanned or final."
+        }
+        return normalized
+    }
+
+    private fun validateLatitude(value: Double?): Double? {
+        require(value == null || value in -90.0..90.0) { "Latitude must be between -90 and 90." }
+        return value
+    }
+
+    private fun validateLongitude(value: Double?): Double? {
+        require(value == null || value in -180.0..180.0) { "Longitude must be between -180 and 180." }
+        return value
     }
 }

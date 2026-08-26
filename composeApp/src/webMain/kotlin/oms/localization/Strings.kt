@@ -224,6 +224,7 @@ object Strings {
         "planned" to "Плановий",
         "unplanned" to "Позаплановий",
         "final" to "Підсумковий",
+        "inspection_code" to "Код інспекції",
 
         "edit_inspection" to "Редагувати інспекцію",
         "create_inspection" to "Створити інспекцію",
@@ -781,6 +782,7 @@ object Strings {
         "planned" to "Planned",
         "unplanned" to "Unplanned",
         "final" to "Final",
+        "inspection_code" to "Inspection code",
 
         "edit_inspection" to "Edit Inspection",
         "create_inspection" to "Create Inspection",

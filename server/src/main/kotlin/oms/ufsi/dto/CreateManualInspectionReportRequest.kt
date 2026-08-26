@@ -14,5 +14,6 @@ import kotlinx.serialization.Serializable
     val weather: String? = null, val activities: List<ManualActivity> = emptyList(),
     val ongoingObservations: List<String> = emptyList(), val hseObservations: List<ManualHseObservation> = emptyList(),
     val qualityRemarks: List<ManualRemark> = emptyList(), val progressComment: String? = null,
-    val scheduleRemark: String? = null, val inspectorName: String = "", val inspectorTitle: String? = null
+    val scheduleRemark: String? = null, val inspectorName: String = "", val inspectorTitle: String? = null,
+    val latitude: Double? = null, val longitude: Double? = null
 )

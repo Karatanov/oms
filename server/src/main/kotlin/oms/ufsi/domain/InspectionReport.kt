@@ -26,6 +26,12 @@ data class InspectionReport(
      */
     val projectId: Long,
 
+    /** Human-readable SIR code. Legacy reports use a UUID-derived fallback. */
+    val reportCode: String?,
+
+    /** Planned, unplanned or final inspection. */
+    val inspectionType: String,
+
     /**
      * Дата проведення інспекції.
      */
@@ -39,6 +45,11 @@ data class InspectionReport(
     val status: InspectionReportStatus,
 
     val rejectionReason: String?,
+
+    /** Optional coordinates captured during the inspection. */
+    val latitude: Double?,
+
+    val longitude: Double?,
 
     /**
      * Автор звіту.

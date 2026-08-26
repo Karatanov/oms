@@ -32,13 +32,21 @@ interface InspectionReportRepository {
         projectId: Long,
         inspectionDate: String,
         summary: String?,
-        createdBy: Long
+        createdBy: Long,
+        reportCode: String? = null,
+        inspectionType: String = "planned",
+        latitude: Double? = null,
+        longitude: Double? = null
     ): InspectionReport
 
     fun update(
         uuid: String,
         inspectionDate: String,
-        summary: String?
+        summary: String?,
+        reportCode: String?,
+        inspectionType: String,
+        latitude: Double?,
+        longitude: Double?
     ): InspectionReport?
 
     fun changeStatus(

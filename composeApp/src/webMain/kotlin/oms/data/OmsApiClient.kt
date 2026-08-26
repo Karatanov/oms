@@ -175,11 +175,14 @@ object OmsApiClient {
     suspend fun createAndSubmitInspectionReport(
         projectUuid: String,
         inspectionDate: String,
-        summary: String
+        summary: String,
+        inspectionType: String = "planned",
+        latitude: Double? = null,
+        longitude: Double? = null
     ): ApiInspectionReport {
         val draft: ApiInspectionReport = client.post("$baseUrl/projects/$projectUuid/inspection-reports") {
             contentType(ContentType.Application.Json)
-            setBody(CreateInspectionReportRequest(inspectionDate, summary))
+            setBody(CreateInspectionReportRequest(inspectionDate, summary, inspectionType = inspectionType, latitude = latitude, longitude = longitude))
         }.body()
         return client.post("$baseUrl/inspection-reports/${draft.uuid}/submit").body()
     }
@@ -188,17 +191,28 @@ object OmsApiClient {
     suspend fun createInspectionReportDraft(
         projectUuid: String,
         inspectionDate: String,
-        summary: String
+        summary: String,
+        inspectionType: String = "planned",
+        latitude: Double? = null,
+        longitude: Double? = null
     ): ApiInspectionReport =
         client.post("$baseUrl/projects/$projectUuid/inspection-reports") {
             contentType(ContentType.Application.Json)
-            setBody(CreateInspectionReportRequest(inspectionDate, summary))
+            setBody(CreateInspectionReportRequest(inspectionDate, summary, inspectionType = inspectionType, latitude = latitude, longitude = longitude))
         }.body()
 
-    suspend fun updateInspectionReport(reportUuid: String, inspectionDate: String, summary: String): ApiInspectionReport =
+    suspend fun updateInspectionReport(
+        reportUuid: String,
+        inspectionDate: String,
+        summary: String,
+        reportCode: String?,
+        inspectionType: String,
+        latitude: Double?,
+        longitude: Double?
+    ): ApiInspectionReport =
         client.put("$baseUrl/inspection-reports/$reportUuid") {
             contentType(ContentType.Application.Json)
-            setBody(UpdateInspectionReportRequest(inspectionDate, summary))
+            setBody(UpdateInspectionReportRequest(inspectionDate, summary, reportCode, inspectionType, latitude, longitude))
         }.body()
 
     suspend fun createManualInspectionReport(projectUuid: String, request: ManualInspectionReportRequest): ApiInspectionReport {
@@ -314,19 +328,28 @@ data class ManualActivityRequest(val location: String, val description: String, 
     val inspectionDate: String, val inspectionType: String = "planned", val contractor: String, val contractorRepresentative: String? = null, val qaStaff: String? = null, val usifRepresentative: String? = null,
     val skilledLabor: String? = null, val unskilledLabor: String? = null, val siteManagement: String? = null, val weather: String? = null,
     val activities: List<ManualActivityRequest> = emptyList(), val ongoingObservations: List<String> = emptyList(), val hseObservations: List<ManualHseObservationRequest> = emptyList(),
-    val qualityRemarks: List<ManualRemarkRequest> = emptyList(), val progressComment: String? = null, val scheduleRemark: String? = null, val inspectorName: String, val inspectorTitle: String? = null
+    val qualityRemarks: List<ManualRemarkRequest> = emptyList(), val progressComment: String? = null, val scheduleRemark: String? = null, val inspectorName: String, val inspectorTitle: String? = null,
+    val latitude: Double? = null, val longitude: Double? = null
 )
 
 @Serializable
 data class CreateInspectionReportRequest(
     val inspectionDate: String,
-    val summary: String
+    val summary: String,
+    val reportCode: String? = null,
+    val inspectionType: String = "planned",
+    val latitude: Double? = null,
+    val longitude: Double? = null
 )
 
 @Serializable
 data class UpdateInspectionReportRequest(
     val inspectionDate: String,
-    val summary: String
+    val summary: String,
+    val reportCode: String? = null,
+    val inspectionType: String = "planned",
+    val latitude: Double? = null,
+    val longitude: Double? = null
 )
 
 @Serializable
@@ -577,10 +600,14 @@ data class ProcurementRecordRequest(
 data class ApiInspectionReport(
     val uuid: String,
     val inspectionCode: String = "",
+    val reportCode: String? = null,
+    val inspectionType: String = "planned",
     val inspectionDate: String,
     val summary: String? = null,
     val status: String,
-    val rejectionReason: String? = null
+    val rejectionReason: String? = null,
+    val latitude: Double? = null,
+    val longitude: Double? = null
 )
 
 @Serializable

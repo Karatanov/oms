@@ -53,6 +53,10 @@ object InspectionReportTable :
             onDelete = ReferenceOption.RESTRICT
         )
 
+    val reportCode = varchar("report_code", 100).nullable()
+
+    val inspectionType = varchar("inspection_type", 20)
+
     val status = varchar("status", 20)
 
     val rejectionReason = text("rejection_reason").nullable()
@@ -60,4 +64,8 @@ object InspectionReportTable :
     val submittedAt = datetime("submitted_at").nullable()
 
     val reviewedAt = datetime("reviewed_at").nullable()
+
+    val latitude = decimal("latitude", 10, 7).nullable()
+
+    val longitude = decimal("longitude", 10, 7).nullable()
 }

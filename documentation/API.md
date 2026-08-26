@@ -13,7 +13,7 @@ The API base is `/api/v1`; JSON is the default representation. `server/requests.
 - Health: **GET** `/health`, **GET** `/api/v1/health`.
 - Dashboard/map: **GET** `/dashboard`, **GET** `/projects/map`.
 - Projects: list/detail/create/update/delete, bulk status/reassignment, XLSX export and health/safety observations under `/projects`.
-- Inspections/SIR: manual create, XLS/XLSX import, report edit/delete/move/submit/review, findings, photos and original source-file download.
+- Inspections/SIR: manual create, XLS/XLSX import, report edit/delete/move/submit/review, findings, photos and original source-file download. Report editing supports the SIR code, date, title/summary, planned/unplanned/final type and optional GPS coordinates; report assignment is changed with the dedicated move operation. Workflow status remains controlled by submit/review rather than direct editing.
 - Financials: CRUD, import and export under `/projects/{projectUuid}/financials`.
 - Documents: list/upload/download/delete under `/projects/{projectUuid}/documents`.
 - Procurement: list and Admin/PM mutations under `/procurements`.

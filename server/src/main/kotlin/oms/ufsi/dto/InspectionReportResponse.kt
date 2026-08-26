@@ -16,6 +16,10 @@ data class InspectionReportResponse(
     /** Stable human-readable code derived from the report UUID. */
     val inspectionCode: String,
 
+    val reportCode: String? = null,
+
+    val inspectionType: String = "planned",
+
     /**
      * Дата проведення інспекції.
      */
@@ -28,7 +32,11 @@ data class InspectionReportResponse(
 
     val status: String,
 
-    val rejectionReason: String?
+    val rejectionReason: String?,
+
+    val latitude: Double? = null,
+
+    val longitude: Double? = null
 )
 
 /** A report together with the project it belongs to, for the reports list. */

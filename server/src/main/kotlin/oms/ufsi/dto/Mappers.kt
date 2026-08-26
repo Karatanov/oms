@@ -173,7 +173,11 @@ fun InspectionReport.toResponse():
             uuid.toString(),
 
         inspectionCode =
-            "SIR-${uuid.toString().substringBefore('-').uppercase()}",
+            reportCode ?: "SIR-${uuid.toString().substringBefore('-').uppercase()}",
+
+        reportCode = reportCode,
+
+        inspectionType = inspectionType,
 
         inspectionDate =
             inspectionDate.toString(),
@@ -185,7 +189,11 @@ fun InspectionReport.toResponse():
             status.name.lowercase(),
 
         rejectionReason =
-            rejectionReason
+            rejectionReason,
+
+        latitude = latitude,
+
+        longitude = longitude
     )
 }
 

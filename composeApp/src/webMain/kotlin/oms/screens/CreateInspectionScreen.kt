@@ -229,7 +229,12 @@ fun CreateInspectionScreen(
                             scope.launch {
                                 val summary = buildInspectionSummary(inspectionType, comments.text, latitude, longitude)
                                 runCatching {
-                                    OmsApiClient.createInspectionReportDraft(requireNotNull(selectedProject), date, summary)
+                                    OmsApiClient.createInspectionReportDraft(
+                                        requireNotNull(selectedProject), date, summary,
+                                        inspectionType.name.lowercase(),
+                                        latitude.replace(',', '.').toDoubleOrNull(),
+                                        longitude.replace(',', '.').toDoubleOrNull()
+                                    )
                                 }.onSuccess {
                                     onSaveDraft()
                                 }.onFailure {
@@ -291,7 +296,9 @@ fun CreateInspectionScreen(
                                             progressComment = progressComment.ifBlank { null },
                                             scheduleRemark = scheduleRemark.ifBlank { null },
                                             inspectorName = inspectorName,
-                                            inspectorTitle = inspectorTitle.ifBlank { null }
+                                            inspectorTitle = inspectorTitle.ifBlank { null },
+                                            latitude = latitude.replace(',', '.').toDoubleOrNull(),
+                                            longitude = longitude.replace(',', '.').toDoubleOrNull()
                                         )
                                     )
                                 }.onSuccess { report ->
@@ -330,7 +337,12 @@ fun CreateInspectionScreen(
                             scope.launch {
                                 val summary = buildInspectionSummary(inspectionType, comments.text, latitude, longitude)
                                 runCatching {
-                                    OmsApiClient.createAndSubmitInspectionReport(requireNotNull(selectedProject), date, summary)
+                                    OmsApiClient.createAndSubmitInspectionReport(
+                                        requireNotNull(selectedProject), date, summary,
+                                        inspectionType.name.lowercase(),
+                                        latitude.replace(',', '.').toDoubleOrNull(),
+                                        longitude.replace(',', '.').toDoubleOrNull()
+                                    )
                                 }.onSuccess { report ->
                                     createdReportUuid = report.uuid
                                     uploadSelectedInspectionPhotos(report.uuid) { uploadError ->
