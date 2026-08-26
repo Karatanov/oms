@@ -143,7 +143,7 @@ fun DashboardScreen(onOpenProject: (oms.model.Project) -> Unit = {}, onOpenFinan
             }
         }
 
-        item { MetricsChart("procurement_status_by_subprojects", "procurement_status_by_subprojects_hint", dashboard?.procurementStatusCounts.orEmpty()) }
+        item { MetricsChart("procurement_status_by_subprojects", metrics = dashboard?.procurementStatusCounts.orEmpty()) }
 
         item { MonthlyActPaymentsChart(primary, dashboard?.monthlyActPayments.orEmpty(), onOpenFinancial) }
 

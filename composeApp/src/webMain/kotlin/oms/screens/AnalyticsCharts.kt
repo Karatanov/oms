@@ -45,7 +45,7 @@ fun SubprojectProgressChart(items: List<ApiSubprojectProgress>, onOpenProject: (
 }
 
 @Composable
-fun MetricsChart(titleKey: String, hintKey: String, metrics: List<ApiDashboardMetric>) {
+fun MetricsChart(titleKey: String, hintKey: String? = null, metrics: List<ApiDashboardMetric>) {
     val data = metrics.sortedBy { it.label }.map { BarData(it.label.toChartMonth(), it.value.toFloat()) }
     AnalyticsCard(titleKey, hintKey, data)
 }
@@ -59,7 +59,7 @@ fun MonthlyAmountsChart(titleKey: String, hintKey: String, payments: List<ApiMon
 @Composable
 private fun AnalyticsCard(
     titleKey: String,
-    hintKey: String,
+    hintKey: String?,
     data: List<BarData>,
     valueLabel: (Float) -> String = { it.toInt().toString() },
     onItemClick: ((BarData) -> Unit)? = null
@@ -74,12 +74,14 @@ private fun AnalyticsCard(
                 )
             }
             Box(Modifier.fillMaxWidth().height(40.dp), contentAlignment = Alignment.Center) {
-                Text(
-                    LocalizationManager.t(hintKey),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center
-                )
+                hintKey?.let {
+                    Text(
+                        LocalizationManager.t(it),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center
+                    )
+                }
             }
             Spacer(Modifier.height(16.dp))
             if (data.isEmpty()) Text(LocalizationManager.t("no_chart_data"), color = MaterialTheme.colorScheme.onSurfaceVariant)
