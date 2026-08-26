@@ -12,6 +12,15 @@ data class MonthlyActPayment(val month: String, val amountEurCents: Long)
 data class DashboardSubprojectFunding(val projectUuid: String, val name: String, val region: String, val amount: Long)
 data class DashboardSubprojectProgress(val projectUuid: String, val name: String, val completionPct: Double)
 data class DashboardMetric(val label: String, val value: Long)
+
+private val procurementStatusOrder = listOf(
+    "Не розпочато / Not Started",
+    "Закупівля триває / Tender Ongoing",
+    "Повідомлення про намір укласти договір / Contract award notice",
+    "Договір укладено / Contract signed",
+    "Відмінено / Cancelled",
+    "Договір розірвано / Contract terminated"
+)
 data class DashboardData(
     val projectsTotal:Long, val projectsActive:Long, val projectsCompletedThisMonth:Long, val budgetPlanned:Long,
     val amountSpent:Long, val inspectionsTotal:Long, val pendingInspections:Long, val findingsTotal:Long,
@@ -86,9 +95,14 @@ class DashboardService(
         // Procurement reference rows do not carry a project foreign key. Do not
         // expose their global aggregate to a manager whose dashboard is scoped.
         val procurementRecords = if (allowedProjectIds == null) ProcurementRecordTable.selectAll().toList() else emptyList()
-        val procurementStatusCounts = procurementRecords.groupBy { it[ProcurementRecordTable.purchaseStatus] }
-            .map { (status, rows) -> DashboardMetric(status, rows.map { it[ProcurementRecordTable.subProjectId] }.distinct().size.toLong()) }
-            .sortedBy { it.label }
+        val procurementCountByStatus = procurementRecords.groupBy { it[ProcurementRecordTable.purchaseStatus] }
+            .mapValues { (_, rows) -> rows.map { it[ProcurementRecordTable.subProjectId] }.distinct().size.toLong() }
+        val procurementStatusCounts = procurementStatusOrder.map { status ->
+            DashboardMetric(status, procurementCountByStatus[status] ?: 0L)
+        } + procurementCountByStatus
+            .filterKeys { it !in procurementStatusOrder }
+            .toSortedMap()
+            .map { (status, count) -> DashboardMetric(status, count) }
         val monthlySignedConstructionContracts = procurementRecords
             .filter { it[ProcurementRecordTable.purchaseStatus].contains("Договір укладено", true) || it[ProcurementRecordTable.purchaseStatus].contains("Contract signed", true) }
             .mapNotNull { row -> row[ProcurementRecordTable.contractDate]?.let { date -> month(date) } }
