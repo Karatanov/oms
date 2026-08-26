@@ -46,13 +46,48 @@ fun MonthlyPaymentsChart(records: List<ApiFinancialRecord>) {
 
 @Composable
 fun MonthlyEquipmentPaymentsChart(records: List<ApiFinancialRecord>) {
+    MonthlyPurposePaymentsChart(
+        records = records,
+        purpose = "equipment",
+        titleKey = "monthly_equipment_payments",
+        hintKey = "monthly_equipment_payments_hint"
+    )
+}
+
+@Composable
+fun MonthlyTechnicalSupervisionPaymentsChart(records: List<ApiFinancialRecord>) {
+    MonthlyPurposePaymentsChart(
+        records = records,
+        purpose = "technical_supervision",
+        titleKey = "monthly_technical_supervision_payments",
+        hintKey = "monthly_technical_supervision_payments_hint"
+    )
+}
+
+@Composable
+fun MonthlyEngineerConsultantPaymentsChart(records: List<ApiFinancialRecord>) {
+    MonthlyPurposePaymentsChart(
+        records = records,
+        purpose = "engineer_consultant",
+        titleKey = "monthly_engineer_consultant_payments",
+        hintKey = "monthly_engineer_consultant_payments_hint"
+    )
+}
+
+@Composable
+private fun MonthlyPurposePaymentsChart(
+    records: List<ApiFinancialRecord>,
+    purpose: String,
+    titleKey: String,
+    hintKey: String
+) {
     val payments = records
-        .filter { it.paymentPurpose == "equipment" && it.recordType in setOf("payment", "advance") }
+        .filter { it.paymentPurpose == purpose && it.recordType in setOf("payment", "advance") }
         .mapNotNull { record -> record.amountEurCents?.let { cents -> (record.paymentDate ?: record.recordDate).takeIf { it.matches(Regex("\\d{4}-\\d{2}-\\d{2}")) }?.take(7)?.let { it to cents } } }
         .groupBy({ it.first }, { it.second })
         .map { ApiMonthlyActPayment(it.key, it.value.sum()) }
     if (payments.isEmpty()) return
-    MonthlyAmountsChart("monthly_equipment_payments", "monthly_equipment_payments_hint", payments)
+    MonthlyAmountsChart(titleKey, hintKey, payments)
 }
 
 private fun formatPaymentAmount(cents: Long): String =

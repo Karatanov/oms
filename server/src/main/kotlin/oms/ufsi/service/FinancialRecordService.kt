@@ -119,7 +119,9 @@ class FinancialRecordService(
     private fun optionalDate(value: String?) = value?.trim()?.takeIf { it.isNotEmpty() }?.let(::date)
     private fun optional(value: String?) = value?.trim()?.takeIf { it.isNotEmpty() }
     private fun paymentPurpose(value: String): String = value.trim().lowercase().also {
-        require(it in setOf("works", "equipment")) { "Payment purpose must be works or equipment." }
+        require(it in setOf("works", "equipment", "technical_supervision", "engineer_consultant")) {
+            "Payment purpose must be works, equipment, technical supervision, or engineer consultant."
+        }
     }
 }
 

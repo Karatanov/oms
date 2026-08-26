@@ -15,8 +15,8 @@ object FinancialRecordTable : LongIdTable("financial_records") {
     val paymentDate = date("payment_date").nullable()
     val description = text("description").nullable()
     val milestone = varchar("milestone", 255).nullable()
-    /** Business purpose of a payment: works or equipment. */
-    val paymentPurpose = varchar("payment_purpose", 20).default("works")
+    /** Business purpose of a payment or advance. */
+    val paymentPurpose = varchar("payment_purpose", 32).default("works")
     /** Frozen NBU EUR rate used to convert the record at save time. */
     val eurExchangeRate = decimal("eur_exchange_rate", 18, 8).nullable()
     val eurExchangeDate = date("eur_exchange_date").nullable()

@@ -128,6 +128,8 @@ fun FinancialScreen(
 
         MonthlyPaymentsChart(acts.map { it.act })
         MonthlyEquipmentPaymentsChart(acts.map { it.act })
+        MonthlyTechnicalSupervisionPaymentsChart(acts.map { it.act })
+        MonthlyEngineerConsultantPaymentsChart(acts.map { it.act })
 
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
             Text(LocalizationManager.t("financial_records"), style = MaterialTheme.typography.titleLarge)
@@ -256,7 +258,7 @@ private fun ActEditorDialog(existing: ProjectActRow?, projects: List<oms.model.P
             if (recordType in setOf("payment", "advance")) {
                 Text(LocalizationManager.t("payment_purpose"), style = MaterialTheme.typography.labelLarge)
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    listOf("works", "equipment").forEach { purpose ->
+                    listOf("works", "equipment", "technical_supervision", "engineer_consultant").forEach { purpose ->
                         FilterChip(
                             selected = paymentPurpose == purpose,
                             onClick = { paymentPurpose = purpose },
