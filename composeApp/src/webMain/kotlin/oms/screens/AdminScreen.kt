@@ -15,6 +15,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.font.FontWeight
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
@@ -48,8 +49,9 @@ private fun UserStatusChip(status: String) {
         text = LocalizationManager.t("user_status_${status.lowercase()}").takeIf { it != "user_status_${status.lowercase()}" } ?: status,
         color = color,
         style = MaterialTheme.typography.bodyMedium,
+        fontWeight = FontWeight.Medium,
         modifier = Modifier
-            .background(color.copy(alpha = 0.13f), RoundedCornerShape(6.dp))
+            .background(color.copy(alpha = 0.10f), RoundedCornerShape(4.dp))
             .padding(horizontal = 8.dp, vertical = 4.dp)
     )
 }

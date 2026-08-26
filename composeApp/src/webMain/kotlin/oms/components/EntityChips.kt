@@ -42,7 +42,7 @@ fun RoleChip(role: String) {
         color = color,
         fontWeight = FontWeight.Medium,
         modifier = Modifier
-            .background(color.copy(alpha = 0.13f), RoundedCornerShape(6.dp))
+            .background(color.copy(alpha = 0.10f), RoundedCornerShape(4.dp))
             .padding(horizontal = 8.dp, vertical = 4.dp)
     )
 }
