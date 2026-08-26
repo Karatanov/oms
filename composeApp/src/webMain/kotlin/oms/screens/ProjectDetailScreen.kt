@@ -25,6 +25,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import oms.components.StatusChip
 import oms.components.constructionTypeLabel
+import oms.components.sectorLabel
 import oms.data.ApiProjectDetails
 import oms.data.ApiInspectionReport
 import oms.data.ApiFinancialRecords
@@ -164,7 +165,7 @@ fun ProjectDetailScreen(
                         }
 
                         Text(
-                            text = "${LocalizationManager.t("sector")}: ${details.value?.data?.sector ?: "—"} • ${LocalizationManager.t("construction_type")}: ${details.value?.data?.constructionType?.constructionTypeLabel() ?: "—"}",
+                            text = "${LocalizationManager.t("sector")}: ${details.value?.data?.sector?.sectorLabel() ?: "—"} • ${LocalizationManager.t("construction_type")}: ${details.value?.data?.constructionType?.constructionTypeLabel() ?: "—"}",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -483,7 +484,7 @@ private fun ProjectGeneralInfoTab(data: oms.data.ApiProjectDetailsData?) {
                 LocalizationManager.t("project_code") to data.siteName,
                 LocalizationManager.t("description") to (data.description ?: "—"),
                 LocalizationManager.t("status") to LocalizationManager.t("project_status_${data.status}"),
-                LocalizationManager.t("sector") to data.sector,
+                LocalizationManager.t("sector") to data.sector.sectorLabel(),
                 LocalizationManager.t("construction_type") to data.constructionType.constructionTypeLabel(),
                 LocalizationManager.t("contractor") to (data.contractorName ?: "—"),
                 LocalizationManager.t("currency") to data.currency,
