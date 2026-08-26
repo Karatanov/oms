@@ -83,7 +83,14 @@ fun ProcurementScreen(canManageProcurements: Boolean) {
         Spacer(Modifier.height(16.dp))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             Box(Modifier.weight(1f)) { MetricsChart("procurement_status_chart", "procurement_status_chart_hint", dashboard?.procurementStatusCounts.orEmpty()) }
-            Box(Modifier.weight(1f)) { MetricsChart("signed_construction_contracts", "signed_construction_contracts_hint", dashboard?.monthlySignedConstructionContracts.orEmpty()) }
+            Box(Modifier.weight(1f)) {
+                MetricsChart(
+                    "signed_construction_contracts",
+                    "signed_construction_contracts_hint",
+                    dashboard?.monthlySignedConstructionContracts.orEmpty(),
+                    centerYearLabels = true
+                )
+            }
         }
         Spacer(Modifier.height(16.dp))
         when {

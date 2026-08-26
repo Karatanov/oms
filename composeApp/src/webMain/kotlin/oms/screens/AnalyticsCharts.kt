@@ -45,8 +45,28 @@ fun SubprojectProgressChart(items: List<ApiSubprojectProgress>, onOpenProject: (
 }
 
 @Composable
-fun MetricsChart(titleKey: String, hintKey: String? = null, metrics: List<ApiDashboardMetric>) {
-    val data = metrics.sortedBy { it.label }.map { BarData(it.label.toChartMonth(), it.value.toFloat()) }
+fun MetricsChart(
+    titleKey: String,
+    hintKey: String? = null,
+    metrics: List<ApiDashboardMetric>,
+    centerYearLabels: Boolean = false
+) {
+    val sortedMetrics = metrics.sortedBy { it.label }
+    val yearCenterIndexes = if (centerYearLabels) {
+        sortedMetrics.withIndex()
+            .filter { it.value.label.matches(Regex("\\d{4}-\\d{2}")) }
+            .groupBy { it.value.label.take(4) }
+            .values
+            .associate { group -> group[group.size / 2].index to group.first().value.label.take(4) }
+    } else emptyMap()
+    val data = sortedMetrics.mapIndexed { index, metric ->
+        val isMonth = metric.label.matches(Regex("\\d{4}-\\d{2}"))
+        BarData(
+            label = if (centerYearLabels && isMonth) metric.label.toMonthName() else metric.label.toChartMonth(),
+            value = metric.value.toFloat(),
+            groupLabel = yearCenterIndexes[index]
+        )
+    }
     AnalyticsCard(titleKey, hintKey, data)
 }
 
