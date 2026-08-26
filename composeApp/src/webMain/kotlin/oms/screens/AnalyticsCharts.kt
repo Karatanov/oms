@@ -1,6 +1,7 @@
 package oms.screens
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -12,6 +13,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import oms.charts.BarData
 import oms.charts.VerticalBarChart
@@ -63,8 +66,21 @@ private fun AnalyticsCard(
 ) {
     Card(Modifier.fillMaxWidth().height(320.dp), shape = RoundedCornerShape(12.dp)) {
         Column(Modifier.padding(16.dp)) {
-            Text(LocalizationManager.t(titleKey), style = MaterialTheme.typography.titleMedium)
-            Text(LocalizationManager.t(hintKey), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Box(Modifier.fillMaxWidth().height(28.dp), contentAlignment = Alignment.Center) {
+                Text(
+                    LocalizationManager.t(titleKey),
+                    style = MaterialTheme.typography.titleMedium,
+                    textAlign = TextAlign.Center
+                )
+            }
+            Box(Modifier.fillMaxWidth().height(40.dp), contentAlignment = Alignment.Center) {
+                Text(
+                    LocalizationManager.t(hintKey),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center
+                )
+            }
             Spacer(Modifier.height(16.dp))
             if (data.isEmpty()) Text(LocalizationManager.t("no_chart_data"), color = MaterialTheme.colorScheme.onSurfaceVariant)
             else VerticalBarChart(data, MaterialTheme.colorScheme.primary, labelWidth = 116.dp, labelMaxLines = 2, maxVisibleItems = 6, valueLabel = valueLabel, onItemClick = onItemClick)
