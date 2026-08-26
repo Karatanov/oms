@@ -34,40 +34,50 @@ fun AddressCoordinatesCalculator(
 ) {
     val scope = rememberCoroutineScope()
     var successMessage by remember { mutableStateOf<String?>(null) }
+    var isCalculating by remember { mutableStateOf(false) }
     fun calculate() {
-        if (calculationRequested) return
+        if (isCalculating) return
         successMessage = null
         if (listOf(address, city, region).all { it.isBlank() }) {
+            onCalculationRequestedChange(false)
             onError(LocalizationManager.t("geocode_address_required"))
             return
         }
-        onCalculationRequestedChange(true)
+        isCalculating = true
         scope.launch {
             runCatching { OmsApiClient.geocodeAddress(address, city, region) }
                 .onSuccess { result ->
-                    onCalculationRequestedChange(false)
+                    isCalculating = false
                     onCoordinatesResolved(result.latitude.toString(), result.longitude.toString())
                     successMessage = LocalizationManager.t("geocode_address_success")
                 }
                 .onFailure {
-                    onCalculationRequestedChange(false)
+                    isCalculating = false
                     onError(LocalizationManager.t("geocode_address_not_found"))
                 }
         }
     }
     Row(
-        modifier = Modifier.clickable(enabled = !calculationRequested) { calculate() },
+        modifier = Modifier.clickable(enabled = !isCalculating) {
+            if (!calculationRequested) {
+                onCalculationRequestedChange(true)
+                calculate()
+            }
+        },
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         Checkbox(
             checked = calculationRequested,
             onCheckedChange = { checked ->
-                if (checked) calculate() else onCalculationRequestedChange(false)
+                if (checked) {
+                    onCalculationRequestedChange(true)
+                    calculate()
+                } else onCalculationRequestedChange(false)
             }
         )
-        Text(LocalizationManager.t(if (calculationRequested) "geocode_address_loading" else "geocode_address"))
-        if (calculationRequested) {
+        Text(LocalizationManager.t(if (isCalculating) "geocode_address_loading" else "geocode_address"))
+        if (isCalculating) {
             Spacer(Modifier.width(4.dp))
             CircularProgressIndicator(Modifier.width(16.dp), strokeWidth = 2.dp)
         }
