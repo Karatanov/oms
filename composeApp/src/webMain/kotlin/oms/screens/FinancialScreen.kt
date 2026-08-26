@@ -1,5 +1,6 @@
 package oms.screens
 
+import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.horizontalScroll
@@ -8,6 +9,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -46,6 +49,7 @@ private data class ProjectActRow(
 private enum class FinancialSort { Number, Type, Purpose, Subproject, SubprojectPartCode, ActDate, PaymentDate, Amount, Currency, Description, Author }
 
 @Composable
+@OptIn(ExperimentalMaterial3Api::class)
 fun FinancialScreen(
     canAccessFinancials: Boolean = true,
     canManageFinancials: Boolean = true
@@ -66,6 +70,7 @@ fun FinancialScreen(
     var errorMessage by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
     val pageScrollState = rememberScrollState()
+    val tableScrollState = rememberScrollState()
 
     LaunchedEffect(reloadKey) {
         val records = coroutineScope {
@@ -150,34 +155,56 @@ fun FinancialScreen(
             }
         }
         Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-            Column(Modifier.padding(16.dp).horizontalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                FinancialTableHeader(sort, ascending, ::selectSort)
-                HorizontalDivider()
-                if (visibleActs.isEmpty()) Text(LocalizationManager.t("no_acts"))
-                visibleActs.forEach { row ->
-                    Row(Modifier.width(1_630.dp).padding(vertical = 8.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                        Text(row.act.referenceNumber, Modifier.width(130.dp))
-                        Text(row.act.recordType.replaceFirstChar { it.uppercase() }, Modifier.width(95.dp))
-                        Box(Modifier.width(210.dp)) { FinancialPaymentPurposeBadge(row.act.recordType, row.act.paymentPurpose) }
-                        Text(row.subprojectName, Modifier.width(200.dp))
-                        Text(row.subprojectPartCode ?: "—", Modifier.width(160.dp))
-                        Text(row.act.recordDate.toOmsDate(), Modifier.width(105.dp))
-                        Text(row.act.paymentDate.toOmsDate(), Modifier.width(105.dp))
-                        Text(row.act.amount.toMoney(row.act.currency), Modifier.width(130.dp))
-                        Text(row.act.currency, Modifier.width(65.dp))
-                        Text(row.act.description ?: row.act.milestone ?: "—", Modifier.width(250.dp))
-                        Text("admin", Modifier.width(75.dp))
-                        if (canManageFinancials) {
-                            TableActionIconButton(LocalizationManager.t("edit_financial_record_tooltip"), Icons.Default.Edit) { editAct = row }
-                            TableActionIconButton(LocalizationManager.t("delete_financial_record_tooltip"), Icons.Default.Delete) {
-                                scope.launch {
-                                    if (OmsApiClient.deleteFinancialRecord(row.projectUuid, row.act.uuid)) reloadKey++
-                                    else errorMessage = LocalizationManager.t("error_delete_act")
-                                }
-                            }
-                        } else Spacer(Modifier.width(96.dp))
-                    }
+            Box(Modifier.fillMaxWidth()) {
+                Column(Modifier.fillMaxWidth().padding(16.dp).horizontalScroll(tableScrollState), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FinancialTableHeader(sort, ascending, ::selectSort)
                     HorizontalDivider()
+                    if (visibleActs.isEmpty()) Text(LocalizationManager.t("no_acts"))
+                    visibleActs.forEach { row ->
+                        Row(Modifier.width(1_630.dp).padding(vertical = 8.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                            Text(row.act.referenceNumber, Modifier.width(130.dp))
+                            Text(row.act.recordType.replaceFirstChar { it.uppercase() }, Modifier.width(95.dp))
+                            Box(Modifier.width(210.dp)) { FinancialPaymentPurposeBadge(row.act.recordType, row.act.paymentPurpose) }
+                            Text(row.subprojectName, Modifier.width(200.dp))
+                            Text(row.subprojectPartCode ?: "—", Modifier.width(160.dp))
+                            Text(row.act.recordDate.toOmsDate(), Modifier.width(105.dp))
+                            Text(row.act.paymentDate.toOmsDate(), Modifier.width(105.dp))
+                            Text(row.act.amount.toMoney(row.act.currency), Modifier.width(130.dp))
+                            Text(row.act.currency, Modifier.width(65.dp))
+                            Text(row.act.description ?: row.act.milestone ?: "—", Modifier.width(250.dp))
+                            Text("admin", Modifier.width(75.dp))
+                            if (canManageFinancials) {
+                                TableActionIconButton(LocalizationManager.t("edit_financial_record_tooltip"), Icons.Default.Edit) { editAct = row }
+                                TableActionIconButton(LocalizationManager.t("delete_financial_record_tooltip"), Icons.Default.Delete) {
+                                    scope.launch {
+                                        if (OmsApiClient.deleteFinancialRecord(row.projectUuid, row.act.uuid)) reloadKey++
+                                        else errorMessage = LocalizationManager.t("error_delete_act")
+                                    }
+                                }
+                            } else Spacer(Modifier.width(96.dp))
+                        }
+                        HorizontalDivider()
+                    }
+                }
+                TooltipBox(
+                    modifier = Modifier.align(androidx.compose.ui.Alignment.CenterStart).padding(start = 8.dp),
+                    positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
+                    tooltip = { PlainTooltip { Text(LocalizationManager.t("scroll_table_left")) } },
+                    state = rememberTooltipState()
+                ) {
+                    FilledIconButton(onClick = { scope.launch { tableScrollState.animateScrollBy(-620f) } }) {
+                        Icon(Icons.Default.KeyboardArrowLeft, LocalizationManager.t("scroll_table_left"))
+                    }
+                }
+                TooltipBox(
+                    modifier = Modifier.align(androidx.compose.ui.Alignment.CenterEnd).padding(end = 8.dp),
+                    positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
+                    tooltip = { PlainTooltip { Text(LocalizationManager.t("scroll_table_right")) } },
+                    state = rememberTooltipState()
+                ) {
+                    FilledIconButton(onClick = { scope.launch { tableScrollState.animateScrollBy(620f) } }) {
+                        Icon(Icons.Default.KeyboardArrowRight, LocalizationManager.t("scroll_table_right"))
+                    }
                 }
             }
         }
