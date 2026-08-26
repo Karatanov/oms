@@ -162,7 +162,7 @@ private fun ProcurementTable(
         records.forEach { record ->
             ProcurementRow(listOf(
                 record.recordNumber.toString(), record.batchId.toString(), record.oblastName, record.oblastId,
-                record.subProjectId, record.subProjectLotId, record.purchaseStatus, record.tenderId.orEmpty(),
+                record.subProjectId, record.subProjectLotId, LocalizationManager.procurementStatus(record.purchaseStatus), record.tenderId.orEmpty(),
                 record.prozorroTenderId.orEmpty(), record.contractorNameUkr.orEmpty(), record.contractorNameEng.orEmpty(),
                 record.contractorId.orEmpty(), record.contractDate.orEmpty(), record.contractEndDate.orEmpty(),
                 record.contractDurationMonths?.toString().orEmpty(), record.contractAmountUah.format(0),
@@ -297,7 +297,7 @@ private fun ProcurementEditorDialog(
                     selected = status.takeIf { it in procurementStatuses },
                     prompt = LocalizationManager.t("procurement_status"),
                     onSelect = { status = it },
-                    itemLabel = { it }
+                    itemLabel = LocalizationManager::procurementStatus
                 )
                 OutlinedTextField(tenderId, { tenderId = it }, label = { Text(LocalizationManager.t("proc_tender_id")) }, modifier = Modifier.fillMaxWidth())
                 OutlinedTextField(prozorroId, { prozorroId = it }, label = { Text(LocalizationManager.t("proc_prozorro_tender_id")) }, modifier = Modifier.fillMaxWidth())

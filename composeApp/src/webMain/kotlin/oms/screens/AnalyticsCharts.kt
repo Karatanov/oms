@@ -63,8 +63,11 @@ fun MetricsChart(
     } else emptyMap()
     val data = sortedMetrics.mapIndexed { index, metric ->
         val isMonth = metric.label.matches(Regex("\\d{4}-\\d{2}"))
+        val displayLabel = if (titleKey.contains("procurement_status")) {
+            LocalizationManager.procurementStatus(metric.label)
+        } else metric.label
         BarData(
-            label = if (centerYearLabels && isMonth) metric.label.toMonthName() else metric.label.toChartMonth(),
+            label = if (centerYearLabels && isMonth) displayLabel.toMonthName() else displayLabel.toChartMonth(),
             value = metric.value.toFloat(),
             groupLabel = yearCenterIndexes[index]
         )
