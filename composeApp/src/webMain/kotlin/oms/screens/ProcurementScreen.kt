@@ -155,42 +155,46 @@ private fun ProcurementTable(
     val horizontalScrollState = rememberScrollState()
     val scope = rememberCoroutineScope()
     fun scrollHorizontally(delta: Float) = scope.launch { horizontalScrollState.animateScrollBy(delta) }
-    Box(Modifier.fillMaxWidth()) {
-    Column(Modifier.fillMaxWidth().horizontalScroll(horizontalScrollState)) {
-        ProcurementRow(procurementHeaderLabels(), showActions = canManage, isHeader = true)
-        HorizontalDivider()
-        records.forEach { record ->
-            ProcurementRow(listOf(
-                record.recordNumber.toString(), record.batchId.toString(), record.oblastName, record.oblastId,
-                record.subProjectId, record.subProjectLotId, LocalizationManager.procurementStatus(record.purchaseStatus), record.tenderId.orEmpty(),
-                record.prozorroTenderId.orEmpty(), record.contractorNameUkr.orEmpty(), record.contractorNameEng.orEmpty(),
-                record.contractorId.orEmpty(), record.contractDate.orEmpty(), record.contractEndDate.orEmpty(),
-                record.contractDurationMonths?.toString().orEmpty(), record.contractAmountUah.format(0),
-                record.contractAmountEur.format(2), record.financingContractDifferencePct?.let { "${(it * 100).format(2)}%" }.orEmpty()
-            ), record.takeIf { canManage }, onEdit, onDelete, showActions = canManage)
+    Column(Modifier.fillMaxWidth()) {
+        Column(Modifier.fillMaxWidth().horizontalScroll(horizontalScrollState)) {
+            ProcurementRow(procurementHeaderLabels(), showActions = canManage, isHeader = true)
             HorizontalDivider()
+            records.forEach { record ->
+                ProcurementRow(listOf(
+                    record.recordNumber.toString(), record.batchId.toString(), record.oblastName, record.oblastId,
+                    record.subProjectId, record.subProjectLotId, LocalizationManager.procurementStatus(record.purchaseStatus), record.tenderId.orEmpty(),
+                    record.prozorroTenderId.orEmpty(), record.contractorNameUkr.orEmpty(), record.contractorNameEng.orEmpty(),
+                    record.contractorId.orEmpty(), record.contractDate.orEmpty(), record.contractEndDate.orEmpty(),
+                    record.contractDurationMonths?.toString().orEmpty(), record.contractAmountUah.format(0),
+                    record.contractAmountEur.format(2), record.financingContractDifferencePct?.let { "${(it * 100).format(2)}%" }.orEmpty()
+                ), record.takeIf { canManage }, onEdit, onDelete, showActions = canManage)
+                HorizontalDivider()
+            }
         }
-    }
-    TooltipBox(
-        modifier = Modifier.align(Alignment.CenterStart).padding(start = 8.dp),
-        positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
-        tooltip = { PlainTooltip { Text(LocalizationManager.t("scroll_table_left")) } },
-        state = rememberTooltipState()
-    ) {
-        FilledIconButton(onClick = { scrollHorizontally(-620f) }) {
-            Icon(Icons.Default.KeyboardArrowLeft, LocalizationManager.t("scroll_table_left"))
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            TooltipBox(
+                positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
+                tooltip = { PlainTooltip { Text(LocalizationManager.t("scroll_table_left")) } },
+                state = rememberTooltipState()
+            ) {
+                FilledIconButton(onClick = { scrollHorizontally(-620f) }) {
+                    Icon(Icons.Default.KeyboardArrowLeft, LocalizationManager.t("scroll_table_left"))
+                }
+            }
+            TooltipBox(
+                positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
+                tooltip = { PlainTooltip { Text(LocalizationManager.t("scroll_table_right")) } },
+                state = rememberTooltipState()
+            ) {
+                FilledIconButton(onClick = { scrollHorizontally(620f) }) {
+                    Icon(Icons.Default.KeyboardArrowRight, LocalizationManager.t("scroll_table_right"))
+                }
+            }
         }
-    }
-    TooltipBox(
-        modifier = Modifier.align(Alignment.CenterEnd).padding(end = 8.dp),
-        positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
-        tooltip = { PlainTooltip { Text(LocalizationManager.t("scroll_table_right")) } },
-        state = rememberTooltipState()
-    ) {
-        FilledIconButton(onClick = { scrollHorizontally(620f) }) {
-            Icon(Icons.Default.KeyboardArrowRight, LocalizationManager.t("scroll_table_right"))
-        }
-    }
     }
 }
 
