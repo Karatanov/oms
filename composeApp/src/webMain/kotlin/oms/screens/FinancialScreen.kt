@@ -4,12 +4,14 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -41,7 +43,7 @@ private data class ProjectActRow(
     val act: ApiFinancialRecord
 )
 
-private enum class FinancialSort { Number, Type, Subproject, SubprojectPartCode, ActDate, PaymentDate, Amount, Currency, Description, Author }
+private enum class FinancialSort { Number, Type, Purpose, Subproject, SubprojectPartCode, ActDate, PaymentDate, Amount, Currency, Description, Author }
 
 @Composable
 fun FinancialScreen(
@@ -100,6 +102,7 @@ fun FinancialScreen(
         when (sort) {
             FinancialSort.Number -> it.act.referenceNumber
             FinancialSort.Type -> it.act.recordType
+            FinancialSort.Purpose -> it.act.paymentPurpose
             FinancialSort.Subproject -> it.subprojectName
             FinancialSort.SubprojectPartCode -> it.subprojectPartCode.orEmpty()
             FinancialSort.ActDate -> it.act.recordDate
@@ -151,9 +154,10 @@ fun FinancialScreen(
                 HorizontalDivider()
                 if (visibleActs.isEmpty()) Text(LocalizationManager.t("no_acts"))
                 visibleActs.forEach { row ->
-                    Row(Modifier.width(1_420.dp).padding(vertical = 8.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                    Row(Modifier.width(1_630.dp).padding(vertical = 8.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                         Text(row.act.referenceNumber, Modifier.width(130.dp))
                         Text(row.act.recordType.replaceFirstChar { it.uppercase() }, Modifier.width(95.dp))
+                        Box(Modifier.width(210.dp)) { FinancialPaymentPurposeBadge(row.act.recordType, row.act.paymentPurpose) }
                         Text(row.subprojectName, Modifier.width(200.dp))
                         Text(row.subprojectPartCode ?: "—", Modifier.width(160.dp))
                         Text(row.act.recordDate.toOmsDate(), Modifier.width(105.dp))
@@ -308,9 +312,10 @@ private fun ActEditorDialog(existing: ProjectActRow?, projects: List<oms.model.P
 
 @Composable
 private fun FinancialTableHeader(sort: FinancialSort, ascending: Boolean, onSort: (FinancialSort) -> Unit) {
-    Row(Modifier.width(1_420.dp).padding(vertical = 6.dp)) {
+    Row(Modifier.width(1_630.dp).padding(vertical = 6.dp)) {
         SortableTableHeader(LocalizationManager.t("reference_number"), sort == FinancialSort.Number, ascending, { onSort(FinancialSort.Number) }, Modifier.width(130.dp))
         SortableTableHeader(LocalizationManager.t("type"), sort == FinancialSort.Type, ascending, { onSort(FinancialSort.Type) }, Modifier.width(95.dp))
+        SortableTableHeader(LocalizationManager.t("payment_purpose"), sort == FinancialSort.Purpose, ascending, { onSort(FinancialSort.Purpose) }, Modifier.width(210.dp))
         SortableTableHeader(LocalizationManager.t("subproject"), sort == FinancialSort.Subproject, ascending, { onSort(FinancialSort.Subproject) }, Modifier.width(200.dp))
         SortableTableHeader(LocalizationManager.t("subproject_part_code_label"), sort == FinancialSort.SubprojectPartCode, ascending, { onSort(FinancialSort.SubprojectPartCode) }, Modifier.width(160.dp))
         SortableTableHeader(LocalizationManager.t("act_date"), sort == FinancialSort.ActDate, ascending, { onSort(FinancialSort.ActDate) }, Modifier.width(105.dp))
@@ -320,6 +325,31 @@ private fun FinancialTableHeader(sort: FinancialSort, ascending: Boolean, onSort
         SortableTableHeader(LocalizationManager.t("description"), sort == FinancialSort.Description, ascending, { onSort(FinancialSort.Description) }, Modifier.width(250.dp))
         SortableTableHeader(LocalizationManager.t("author"), sort == FinancialSort.Author, ascending, { onSort(FinancialSort.Author) }, Modifier.width(75.dp))
         Spacer(Modifier.width(96.dp))
+    }
+}
+
+@Composable
+private fun FinancialPaymentPurposeBadge(recordType: String, purpose: String) {
+    if (recordType !in setOf("payment", "advance")) {
+        Text("—", color = MaterialTheme.colorScheme.onSurfaceVariant)
+        return
+    }
+    val (labelKey, color) = when (purpose) {
+        "equipment" -> "payment_purpose_equipment" to Color(0xFFC68642)
+        "technical_supervision" -> "payment_purpose_technical_supervision" to Color(0xFF4D9F76)
+        "engineer_consultant" -> "payment_purpose_engineer_consultant" to Color(0xFF7666A5)
+        else -> "payment_purpose_works" to MaterialTheme.colorScheme.primary
+    }
+    Surface(
+        shape = RoundedCornerShape(10.dp),
+        color = color.copy(alpha = 0.12f),
+        contentColor = color
+    ) {
+        Text(
+            LocalizationManager.t(labelKey),
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            style = MaterialTheme.typography.labelSmall
+        )
     }
 }
 
