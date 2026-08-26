@@ -26,14 +26,16 @@ import oms.localization.LocalizationManager
 import oms.screens.dashboard.toMonthName
 
 @Composable
-fun FundingByOblastChart(items: List<ApiSubprojectFunding>, onOpenProject: (String) -> Unit) {
+fun FundingByOblastChart(items: List<ApiSubprojectFunding>) {
     val colors = listOf(Color(0xFF278DAD), Color(0xFF4D9F76), Color(0xFFC68642), Color(0xFF7666A5), Color(0xFFB85E75))
-    val data = items.sortedWith(compareBy({ it.region }, { it.name })).mapIndexed { index, item ->
-        BarData("${item.region}: ${item.name}", item.amount.toFloat(), color = colors[index % colors.size])
-    }
-    AnalyticsCard("approved_funding_by_oblast", "approved_funding_by_oblast_hint", data, { money(it.toInt().toLong()) }) { bar ->
-        items.firstOrNull { "${it.region}: ${it.name}" == bar.label }?.let { onOpenProject(it.projectUuid) }
-    }
+    val data = items
+        .groupBy { it.region.toOblastChartLabel() }
+        .entries
+        .sortedBy { it.key }
+        .mapIndexed { index, entry ->
+            BarData(entry.key, entry.value.sumOf { it.amount }.toFloat(), color = colors[index % colors.size])
+        }
+    AnalyticsCard("approved_funding_by_oblast", "approved_funding_by_oblast_hint", data, { money(it.toInt().toLong()) })
 }
 
 @Composable
@@ -111,5 +113,6 @@ private fun AnalyticsCard(
 }
 
 private fun String.toChartMonth(): String = if (matches(Regex("\\d{4}-\\d{2}"))) "${toMonthName()} ${take(4)}" else this
+private fun String.toOblastChartLabel(): String = replace(Regex("(?i)\\s+(область|oblast)$"), "").trim()
 private fun money(value: Long): String = "${value.toString().reversed().chunked(3).joinToString(" ").reversed()} грн"
 private fun euro(cents: Long): String = "€ " + (cents / 100).toString() + "." + (cents % 100).toString().padStart(2, '0')

@@ -131,11 +131,7 @@ fun DashboardScreen(onOpenProject: (oms.model.Project) -> Unit = {}, onOpenFinan
 
         item { ProjectsByRegionChart(primary, projects) }
 
-        item {
-            FundingByOblastChart(dashboard?.subprojectFunding.orEmpty()) { uuid ->
-                projects.firstOrNull { it.id == uuid }?.let(onOpenProject)
-            }
-        }
+        item { FundingByOblastChart(dashboard?.subprojectFunding.orEmpty()) }
 
         item {
             SubprojectProgressChart(dashboard?.subprojectProgress.orEmpty()) { uuid ->
