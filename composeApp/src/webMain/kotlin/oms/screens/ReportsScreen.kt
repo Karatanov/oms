@@ -32,6 +32,7 @@ import androidx.compose.ui.input.key.type
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import oms.data.ApiInspectionReport
 import oms.data.CreateInspectionFindingRequest
@@ -108,6 +109,14 @@ fun ReportsScreen(
             val subprojectPartCode = ancestry.getOrNull(2)?.siteNumber
             ReportRow(attachedProject.id, projectName, subprojectName, subprojectPartCode, item.report)
         }.sortedByDescending { it.report.inspectionDate }
+    }
+    // The move editor is rendered after the report registry. Bring it into view
+    // immediately so that the action has an obvious visual response on long lists.
+    LaunchedEffect(reportToMove?.report?.uuid) {
+        if (reportToMove != null) {
+            delay(50)
+            contentScrollState.animateScrollTo(contentScrollState.maxValue)
+        }
     }
     val visible = remember(reports, status, projectFilter, subprojectFilter, subprojectPartCodeFilter, sort, ascending) {
         reports.asSequence().filter {
