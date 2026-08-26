@@ -46,6 +46,7 @@ import oms.components.FilterDropdown
 import oms.components.InlineOptionPicker
 import oms.components.OmsDateField
 import oms.components.toOmsDate
+import oms.components.WasmSafeOverlay
 import oms.localization.LocalizationManager
 import kotlin.js.JsName
 
@@ -211,22 +212,6 @@ fun ReportsScreen(
             }
         }
         errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-        reportToEdit?.let { report ->
-            ReportEditorDialog(
-                report = report,
-                onDismiss = { reportToEdit = null },
-                onSave = { date, summary ->
-                    scope.launch {
-                        runCatching { OmsApiClient.updateInspectionReport(report.report.uuid, date, summary) }
-                            .onSuccess { updated ->
-                                reports = reports.map { if (it.report.uuid == updated.uuid) it.copy(report = updated) else it }
-                                reportToEdit = null
-                            }
-                            .onFailure { errorMessage = LocalizationManager.t("error_update_report").replace("{message}", it.message ?: LocalizationManager.t("unknown_error")) }
-                    }
-                }
-            )
-        }
         reportToMove?.let { report ->
             MoveReportDialog(
                 report = report,
@@ -281,6 +266,25 @@ fun ReportsScreen(
             )
         }
     }
+    reportToEdit?.let { report -> WasmSafeOverlay {
+        ReportEditorDialog(
+            report = report,
+            onDismiss = { reportToEdit = null },
+            onSave = { date, summary ->
+                scope.launch {
+                    runCatching { OmsApiClient.updateInspectionReport(report.report.uuid, date, summary) }
+                        .onSuccess { updated ->
+                            reports = reports.map { if (it.report.uuid == updated.uuid) it.copy(report = updated) else it }
+                            reportToEdit = null
+                        }
+                        .onFailure {
+                            errorMessage = LocalizationManager.t("error_update_report")
+                                .replace("{message}", it.message ?: LocalizationManager.t("unknown_error"))
+                        }
+                }
+            }
+        )
+    } }
     Column(
         modifier = Modifier.align(Alignment.CenterEnd).padding(end = 20.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
