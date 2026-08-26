@@ -20,17 +20,18 @@ import oms.localization.LocalizationManager
 
 @Composable
 fun MonthlyActPaymentsChart(primary: Color, payments: List<ApiMonthlyActPayment>, onOpenFinancial: () -> Unit = {}) {
-    var previousYear: String? = null
-    val data = payments
-        .sortedBy { it.month }
-        .map { payment ->
-            val year = payment.month.take(4)
-            val yearLabel = year.takeIf { it != previousYear }
-            previousYear = year
+    val sortedPayments = payments.sortedBy { it.month }
+    val yearCenterIndexes = sortedPayments
+        .withIndex()
+        .groupBy { it.value.month.take(4) }
+        .values
+        .associate { group -> group[group.size / 2].index to group.first().value.month.take(4) }
+    val data = sortedPayments
+        .mapIndexed { index, payment ->
             BarData(
                 label = payment.month.toMonthName(),
                 value = payment.amountEurCents.toFloat(),
-                groupLabel = yearLabel
+                groupLabel = yearCenterIndexes[index]
             )
         }
     Card(modifier = Modifier.fillMaxWidth().height(320.dp), shape = RoundedCornerShape(12.dp)) {
