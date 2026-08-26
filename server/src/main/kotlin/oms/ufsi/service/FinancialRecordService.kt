@@ -39,6 +39,15 @@ class FinancialRecordService(
         return repository.update(projectId, uuid.trim(), validatedType(type), required(reference, "Reference number"), amount, normalizedCurrency, normalizedDate, optionalDate(paymentDate), optional(description) ?: optional(milestone), null, paymentPurpose(paymentPurpose), conversion.rate, conversion.effectiveDate.toString(), conversion.amountEurCents)
     }
     fun move(projectId: Long, uuid: String, targetProjectId: Long) = repository.move(projectId, uuid.trim(), targetProjectId)
+    /** One-time safe upgrade for existing UAH rows created before EUR storage existed. */
+    fun backfillMissingEurEquivalents() {
+        repository.findAll().filter { it.amountEurCents == null }.forEach { record ->
+            runCatching {
+                val conversion = exchangeRateService.convertToEur(record.amount, record.currency, record.recordDate)
+                repository.updateEurConversion(record.uuid.toString(), conversion.rate, conversion.effectiveDate.toString(), conversion.amountEurCents)
+            }
+        }
+    }
     fun delete(projectId: Long, uuid: String) = repository.delete(projectId, uuid.trim())
     fun importWorkbook(projectId: Long, input: InputStream): FinancialImportResult {
         WorkbookFactory.create(input).use { workbook ->

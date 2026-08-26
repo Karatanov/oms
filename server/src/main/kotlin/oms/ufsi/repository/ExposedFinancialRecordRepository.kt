@@ -36,6 +36,13 @@ class ExposedFinancialRecordRepository : FinancialRecordRepository {
             it[this.projectId] = targetProjectId
         } > 0
     }
+    override fun updateEurConversion(uuid: String, eurExchangeRate: Double, eurExchangeDate: String, amountEurCents: Long) = transaction {
+        FinancialRecordTable.update({ FinancialRecordTable.uuid eq uuid }) {
+            it[this.eurExchangeRate] = java.math.BigDecimal.valueOf(eurExchangeRate)
+            it[this.eurExchangeDate] = LocalDate.parse(eurExchangeDate)
+            it[this.amountEurCents] = amountEurCents
+        } > 0
+    }
     override fun delete(projectId: Long, uuid: String) = transaction { FinancialRecordTable.deleteWhere { (FinancialRecordTable.projectId eq projectId) and (FinancialRecordTable.uuid eq uuid) } > 0 }
     private fun map(r: org.jetbrains.exposed.v1.core.ResultRow) = FinancialRecord(r[FinancialRecordTable.id].value, UUID.fromString(r[FinancialRecordTable.uuid]), r[FinancialRecordTable.projectId].value, FinancialRecordType.valueOf(r[FinancialRecordTable.recordType].uppercase()), r[FinancialRecordTable.referenceNumber], r[FinancialRecordTable.amount], r[FinancialRecordTable.currency], r[FinancialRecordTable.recordDate], r[FinancialRecordTable.paymentDate], r[FinancialRecordTable.description], r[FinancialRecordTable.milestone], r[FinancialRecordTable.paymentPurpose], r[FinancialRecordTable.eurExchangeRate]?.toDouble(), r[FinancialRecordTable.eurExchangeDate], r[FinancialRecordTable.amountEurCents])
 }

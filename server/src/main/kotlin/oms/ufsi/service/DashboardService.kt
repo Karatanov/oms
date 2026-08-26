@@ -22,8 +22,13 @@ data class DashboardData(
     val monthlySignedConstructionContracts: List<DashboardMetric>
 )
 
-class DashboardService(private val auditLogService: AuditLogService) {
-    fun get(allowedProjectIds: Set<Long>? = null) = transaction {
+class DashboardService(
+    private val auditLogService: AuditLogService,
+    private val financialRecordService: FinancialRecordService
+) {
+    fun get(allowedProjectIds: Set<Long>? = null): DashboardData {
+        financialRecordService.backfillMissingEurEquivalents()
+        return transaction {
         val projects = ProjectTable.selectAll().toList().filter { allowedProjectIds == null || it[ProjectTable.id].value in allowedProjectIds }
         val projectIds = projects.map { it[ProjectTable.id].value }.toSet()
         val reports = InspectionReportTable.selectAll().toList().filter { it[InspectionReportTable.projectId].value in projectIds }
@@ -92,5 +97,6 @@ class DashboardService(private val auditLogService: AuditLogService) {
         val activities = if (allowedProjectIds == null) auditLogService.recent() else emptyList()
         val currentMonth = LocalDate.now()
         DashboardData(projects.size.toLong(), projects.count { it[ProjectTable.status] == "active" }.toLong(), projects.count { it[ProjectTable.status] == "completed" && it[ProjectTable.endDate]?.let { date -> date.year == currentMonth.year && date.month == currentMonth.month } == true }.toLong(), projects.sumOf { it[ProjectTable.budgetPlanned] }, spent, reports.size.toLong(), reports.count { it[InspectionReportTable.status] == "pending_review" }.toLong(), findings.toLong(), reports.sortedByDescending { it[InspectionReportTable.inspectionDate] }.take(5).map { r -> InspectionReport(r[InspectionReportTable.id].value, UUID.fromString(r[InspectionReportTable.uuid]), r[InspectionReportTable.projectId].value, r[InspectionReportTable.inspectionDate], r[InspectionReportTable.summary], InspectionReportStatus.valueOf(r[InspectionReportTable.status].uppercase()), r[InspectionReportTable.rejectionReason], r[InspectionReportTable.createdBy].value) }, activities, monthlyActPayments, subprojectFunding, subprojectProgress, procurementStatusCounts, monthlyInspectionCounts, monthlyEshsViolations, monthlyEquipmentPayments, monthlySignedConstructionContracts)
+        }
     }
 }

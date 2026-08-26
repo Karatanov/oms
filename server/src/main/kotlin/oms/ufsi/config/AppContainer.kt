@@ -109,5 +109,5 @@ object AppContainer {
     val inspectionPhotoService = InspectionPhotoService(inspectionPhotoRepository)
 
     val auditLogService = AuditLogService()
-    val dashboardService = DashboardService(auditLogService)
+    val dashboardService = DashboardService(auditLogService, financialRecordService)
 }
