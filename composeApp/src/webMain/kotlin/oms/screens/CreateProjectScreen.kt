@@ -72,7 +72,7 @@ fun CreateProjectScreen(
     var constructionContractSigningDate by remember { mutableStateOf("") }
     var constructionStartDate by remember { mutableStateOf("") }
     var projectedCompletionTime by remember { mutableStateOf("") }
-    var currency by remember { mutableStateOf("UAH") }
+    var currency by remember { mutableStateOf("EUR") }
     var contractorName by remember { mutableStateOf("") }
     var parentProjects by remember { mutableStateOf<List<ApiProject>>(emptyList()) }
     var latitude by remember { mutableStateOf("") }
@@ -271,7 +271,7 @@ fun CreateProjectScreen(
                                         constructionContractSigningDate = constructionContractSigningDate.takeIf { it.isNotBlank() },
                                         constructionStartDate = constructionStartDate.takeIf { it.isNotBlank() },
                                         projectedCompletionTime = projectedCompletionTime.takeIf { it.isNotBlank() },
-                                        currency = currency.ifBlank { "UAH" },
+                                        currency = currency.ifBlank { "EUR" },
                                         contractorName = contractorName.trim().ifBlank { null }
                                     )
                                 )

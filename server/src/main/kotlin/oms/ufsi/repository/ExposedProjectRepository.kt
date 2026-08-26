@@ -232,7 +232,7 @@ class ExposedProjectRepository : ProjectRepository {
             it[ProjectTable.startDate] = startDate
             it[ProjectTable.contractSignedDate] = contractSignedDate
             it[ProjectTable.plannedEndDate] = plannedEndDate
-            it[ProjectTable.currency] = "UAH"
+            it[ProjectTable.currency] = "EUR"
             it[ProjectTable.managerId] = managerId
         }
 
@@ -266,7 +266,7 @@ class ExposedProjectRepository : ProjectRepository {
             constructionContractSigningDate = null,
             constructionStartDate = null,
             projectedCompletionTime = null,
-            currency = "UAH",
+            currency = "EUR",
             contractorName = null
         )
     }

@@ -51,7 +51,7 @@ fun EditProjectScreen(
     var constructionContractSigningDate by remember { mutableStateOf("") }
     var constructionStartDate by remember { mutableStateOf("") }
     var projectedCompletionTime by remember { mutableStateOf("") }
-    var currency by remember { mutableStateOf("UAH") }
+    var currency by remember { mutableStateOf("EUR") }
     var contractorName by remember { mutableStateOf("") }
     var latitude by remember { mutableStateOf(project.latitude.toString()) }
     var longitude by remember { mutableStateOf(project.longitude.toString()) }
@@ -231,7 +231,7 @@ fun EditProjectScreen(
                                 constructionContractSigningDate = constructionContractSigningDate.takeIf { it.isNotBlank() },
                                 constructionStartDate = constructionStartDate.takeIf { it.isNotBlank() },
                                 projectedCompletionTime = projectedCompletionTime.takeIf { it.isNotBlank() },
-                                currency = currency.ifBlank { "UAH" },
+                                currency = currency.ifBlank { "EUR" },
                                 contractorName = contractorName.trim()
                             ))
                         }.onSuccess {
