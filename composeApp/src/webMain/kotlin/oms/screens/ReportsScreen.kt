@@ -66,6 +66,7 @@ private enum class ReportSort { Date, ReportTitle, Project, Subproject, Subproje
 @OptIn(ExperimentalMaterial3Api::class)
 fun ReportsScreen(
     onNewInspection: () -> Unit = {},
+    canCreateReports: Boolean = true,
     canReviewReports: Boolean = true,
     canMoveReports: Boolean = true
 ) {
@@ -154,7 +155,7 @@ fun ReportsScreen(
     ) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Text(LocalizationManager.t("reports_title"), style = MaterialTheme.typography.headlineMedium)
-            Button(onClick = onNewInspection) { Icon(Icons.Default.Add, null); Spacer(Modifier.width(8.dp)); Text(LocalizationManager.t("new_inspection")) }
+            if (canCreateReports) Button(onClick = onNewInspection) { Icon(Icons.Default.Add, null); Spacer(Modifier.width(8.dp)); Text(LocalizationManager.t("new_inspection")) }
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             Box(Modifier.weight(1f)) { MetricsChart("inspections_by_month", "inspections_by_month_hint", dashboard?.monthlyInspectionCounts.orEmpty()) }
@@ -187,7 +188,8 @@ fun ReportsScreen(
                         Text(row.subprojectPartCode ?: "—", Modifier.width(160.dp), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Box(Modifier.width(130.dp)) { ReportStatusChip(row.report.status) }
                         Text("admin", Modifier.width(80.dp))
-                        TableActionIconButton(LocalizationManager.t("edit_inspection"), Icons.Default.Edit) { reportToEdit = row }
+                        if (canCreateReports) TableActionIconButton(LocalizationManager.t("edit_inspection"), Icons.Default.Edit) { reportToEdit = row }
+                        else Spacer(Modifier.width(48.dp))
                         if (canReviewReports && row.report.status == "pending_review") {
                             TableActionIconButton(LocalizationManager.t("review_report"), Icons.Default.RateReview) { reportToReview = row }
                         } else {
@@ -196,75 +198,24 @@ fun ReportsScreen(
                         TableActionIconButton(LocalizationManager.t("open_source_file"), Icons.Default.FileDownload) {
                             uriHandler.openUri(oms.data.omsApiUrl("/inspection-reports/${row.report.uuid}/source-file"))
                         }
-                        TableActionIconButton(LocalizationManager.t("upload_photo"), Icons.Default.PhotoCamera) { openInspectionPhotoUpload(row.report.uuid) }
-                        TableActionIconButton(LocalizationManager.t("findings"), Icons.AutoMirrored.Filled.FactCheck) { findingsReport = row }
+                        if (canCreateReports) {
+                            TableActionIconButton(LocalizationManager.t("upload_photo"), Icons.Default.PhotoCamera) { openInspectionPhotoUpload(row.report.uuid) }
+                            TableActionIconButton(LocalizationManager.t("findings"), Icons.AutoMirrored.Filled.FactCheck) { findingsReport = row }
+                        } else Spacer(Modifier.width(96.dp))
                         if (canMoveReports) TableActionIconButton(LocalizationManager.t("move_report"), Icons.Default.SwapHoriz) { reportToMove = row }
                         else Spacer(Modifier.width(48.dp))
-                        TableActionIconButton(LocalizationManager.t("delete_report"), Icons.Default.Delete) {
+                        if (canCreateReports) TableActionIconButton(LocalizationManager.t("delete_report"), Icons.Default.Delete) {
                             scope.launch {
                                 if (OmsApiClient.deleteInspectionReport(row.report.uuid)) reports = reports.filterNot { it.report.uuid == row.report.uuid }
                                 else errorMessage = LocalizationManager.t("error_delete_report")
                             }
-                        }
+                        } else Spacer(Modifier.width(48.dp))
                     }
                     HorizontalDivider()
                 }
             }
         }
         errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-        reportToMove?.let { report ->
-            MoveReportDialog(
-                report = report,
-                onDismiss = { reportToMove = null },
-                isMoving = isMovingReport,
-                onMove = { target ->
-                    isMovingReport = true
-                    scope.launch {
-                        runCatching { OmsApiClient.moveInspectionReport(report.report.uuid, target.id) }
-                            .onSuccess { moved ->
-                                if (!moved) {
-                                    errorMessage = LocalizationManager.t("error_move_report")
-                                    return@onSuccess
-                                }
-                                reports = reports.map {
-                                    if (it.report.uuid == report.report.uuid) {
-                                        val parent = target.parentProjectUuid?.let { parentId -> ProjectRepository.projects.firstOrNull { project -> project.id == parentId } }
-                                        val ancestry = generateSequence(target) { current -> current.parentProjectUuid?.let { ProjectRepository.projects.firstOrNull { project -> project.id == it } } }.toList().asReversed()
-                                        it.copy(
-                                            projectUuid = target.id,
-                                            projectName = ancestry.firstOrNull()?.name ?: target.name,
-                                            subprojectName = ancestry.getOrNull(1)?.name,
-                                            subprojectPartCode = ancestry.getOrNull(2)?.siteNumber
-                                        )
-                                    } else it
-                                }
-                                reportToMove = null
-                            }
-                            .onFailure { errorMessage = LocalizationManager.t("error_move_report_detail").replace("{message}", it.message ?: LocalizationManager.t("unknown_error")) }
-                        isMovingReport = false
-                    }
-                }
-            )
-        }
-        findingsReport?.let { report ->
-            FindingsDialog(report = report, onDismiss = { findingsReport = null })
-        }
-        reportToReview?.let { report ->
-            ReviewReportDialog(
-                report = report,
-                onDismiss = { reportToReview = null },
-                onReview = { action, reason ->
-                    scope.launch {
-                        runCatching { OmsApiClient.reviewInspectionReport(report.report.uuid, action, reason) }
-                            .onSuccess { reviewed ->
-                                reports = reports.map { if (it.report.uuid == reviewed.uuid) it.copy(report = reviewed) else it }
-                                reportToReview = null
-                            }
-                            .onFailure { errorMessage = LocalizationManager.t("error_review_report").replace("{message}", it.message ?: LocalizationManager.t("unknown_error")) }
-                    }
-                }
-            )
-        }
     }
     reportToEdit?.let { report -> WasmSafeOverlay {
         ReportEditorDialog(
@@ -281,6 +232,58 @@ fun ReportsScreen(
                             errorMessage = LocalizationManager.t("error_update_report")
                                 .replace("{message}", it.message ?: LocalizationManager.t("unknown_error"))
                         }
+                }
+            }
+        )
+    } }
+    reportToMove?.let { report -> WasmSafeOverlay {
+        MoveReportDialog(
+            report = report,
+            onDismiss = { reportToMove = null },
+            isMoving = isMovingReport,
+            onMove = { target ->
+                isMovingReport = true
+                scope.launch {
+                    runCatching { OmsApiClient.moveInspectionReport(report.report.uuid, target.id) }
+                        .onSuccess { moved ->
+                            if (!moved) {
+                                errorMessage = LocalizationManager.t("error_move_report")
+                                return@onSuccess
+                            }
+                            reports = reports.map {
+                                if (it.report.uuid == report.report.uuid) {
+                                    val ancestry = generateSequence(target) { current -> current.parentProjectUuid?.let { ProjectRepository.projects.firstOrNull { project -> project.id == it } } }.toList().asReversed()
+                                    it.copy(
+                                        projectUuid = target.id,
+                                        projectName = ancestry.firstOrNull()?.name ?: target.name,
+                                        subprojectName = ancestry.getOrNull(1)?.name,
+                                        subprojectPartCode = ancestry.getOrNull(2)?.siteNumber
+                                    )
+                                } else it
+                            }
+                            reportToMove = null
+                        }
+                        .onFailure { errorMessage = LocalizationManager.t("error_move_report_detail").replace("{message}", it.message ?: LocalizationManager.t("unknown_error")) }
+                    isMovingReport = false
+                }
+            }
+        )
+    } }
+    findingsReport?.let { report -> WasmSafeOverlay {
+        FindingsDialog(report = report, onDismiss = { findingsReport = null })
+    } }
+    reportToReview?.let { report -> WasmSafeOverlay {
+        ReviewReportDialog(
+            report = report,
+            onDismiss = { reportToReview = null },
+            onReview = { action, reason ->
+                scope.launch {
+                    runCatching { OmsApiClient.reviewInspectionReport(report.report.uuid, action, reason) }
+                        .onSuccess { reviewed ->
+                            reports = reports.map { if (it.report.uuid == reviewed.uuid) it.copy(report = reviewed) else it }
+                            reportToReview = null
+                        }
+                        .onFailure { errorMessage = LocalizationManager.t("error_review_report").replace("{message}", it.message ?: LocalizationManager.t("unknown_error")) }
                 }
             }
         )
@@ -309,8 +312,8 @@ private fun ReportEditorDialog(
     var date by remember(report.report.uuid) { mutableStateOf(report.report.inspectionDate) }
     var summary by remember(report.report.uuid) { mutableStateOf(report.report.summary.orEmpty()) }
     val valid = date.matches(Regex("\\d{4}-\\d{2}-\\d{2}"))
-    Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Card(Modifier.fillMaxWidth().widthIn(max = 720.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+        Column(Modifier.padding(20.dp).heightIn(max = 560.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(LocalizationManager.t("edit_inspection"), style = MaterialTheme.typography.titleLarge)
             OmsDateField(date, { date = it }, LocalizationManager.t("date"), Modifier.fillMaxWidth(), true)
             OutlinedTextField(
@@ -335,8 +338,8 @@ private fun ReviewReportDialog(
     onReview: (action: String, rejectionReason: String?) -> Unit
 ) {
     var rejectionReason by remember(report.report.uuid) { mutableStateOf("") }
-    Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Card(Modifier.fillMaxWidth().widthIn(max = 720.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+        Column(Modifier.padding(20.dp).heightIn(max = 560.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(LocalizationManager.t("review_inspection_report"), style = MaterialTheme.typography.titleLarge)
             Text(report.report.summary ?: LocalizationManager.t("inspection_report"))
             OutlinedTextField(
@@ -382,8 +385,8 @@ private fun FindingsDialog(report: ReportRow, onDismiss: () -> Unit) {
                 }
             }
         )
-    } else Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    } else Card(Modifier.fillMaxWidth().widthIn(max = 820.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+        Column(Modifier.padding(20.dp).heightIn(max = 560.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text(LocalizationManager.t("inspection_findings"), style = MaterialTheme.typography.titleLarge)
                 Text("${report.report.summary ?: LocalizationManager.t("inspection_report")} — ${report.projectName}", style = MaterialTheme.typography.bodySmall)
                 if (findings.isEmpty()) Text(LocalizationManager.t("no_findings"))
@@ -431,8 +434,8 @@ private fun FindingEditorDialog(
     var description by remember(finding?.uuid) { mutableStateOf(finding?.description ?: "") }
     var recommendation by remember(finding?.uuid) { mutableStateOf(finding?.recommendation ?: "") }
     var isResolved by remember(finding?.uuid) { mutableStateOf(finding?.isResolved ?: false) }
-    Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    Card(Modifier.fillMaxWidth().widthIn(max = 720.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+        Column(Modifier.padding(20.dp).heightIn(max = 560.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text(if (finding == null) LocalizationManager.t("add_finding") else LocalizationManager.t("edit_finding"), style = MaterialTheme.typography.titleLarge)
                 OutlinedTextField(category, { category = it }, label = { Text(LocalizationManager.t("category")) }, modifier = Modifier.fillMaxWidth())
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -461,8 +464,8 @@ private fun MoveReportDialog(
     val selected = projects.firstOrNull { it.id == selectedUuid }
     // Compose/Wasm AlertDialog can leave a popup focus layer active when an inline
     // selector changes its state.  Keep this editor in the page layout instead.
-    Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Card(Modifier.fillMaxWidth().widthIn(max = 720.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+        Column(Modifier.padding(20.dp).heightIn(max = 520.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(LocalizationManager.t("move_report"), style = MaterialTheme.typography.titleLarge)
             Text(report.report.summary ?: LocalizationManager.t("inspection_report"), style = MaterialTheme.typography.bodyMedium)
             InlineOptionPicker(

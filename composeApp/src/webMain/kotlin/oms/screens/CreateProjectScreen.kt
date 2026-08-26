@@ -276,7 +276,7 @@ fun CreateProjectScreen(
                                     )
                                 )
                             }.onSuccess {
-                                ProjectRepository.refresh()
+                                ProjectRepository.refresh(force = true)
                                 onCreated()
                             }.onFailure {
                                 errorMessage = LocalizationManager.t("error_create_project").replace("{message}", it.message ?: LocalizationManager.t("unknown_error"))

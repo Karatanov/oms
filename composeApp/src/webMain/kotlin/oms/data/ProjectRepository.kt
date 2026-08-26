@@ -12,7 +12,13 @@ object ProjectRepository {
     var errorMessage by mutableStateOf<String?>(null)
         private set
 
-    suspend fun refresh() {
+    /**
+     * Keeps navigation between screens responsive.  Mutating flows pass
+     * [force] so that their change is visible immediately; read-only screens
+     * reuse the same in-memory snapshot instead of requesting projects again.
+     */
+    suspend fun refresh(force: Boolean = false) {
+        if (!force && projects.isNotEmpty()) return
         try {
             projects = OmsApiClient.projects().map { api ->
                 Project(
@@ -38,6 +44,11 @@ object ProjectRepository {
         } catch (_: Exception) {
             errorMessage = "Unable to load projects from OMS API."
         }
+    }
+
+    fun clear() {
+        projects = emptyList()
+        errorMessage = null
     }
 }
 

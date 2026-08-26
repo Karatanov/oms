@@ -22,6 +22,7 @@ import oms.model.Project
 import oms.model.ProjectStatus
 
 private enum class MapProjectScope(val projectType: String, val labelKey: String) {
+    All("", "all"),
     Subprojects("subproject", "map_subprojects"),
     SubprojectParts("subproject_part", "map_subproject_parts")
 }
@@ -35,10 +36,10 @@ fun MapScreen(
     var search by remember { mutableStateOf("") }
     var region by remember { mutableStateOf<String?>(null) }
     var status by remember { mutableStateOf<ProjectStatus?>(null) }
-    var scope by remember { mutableStateOf(MapProjectScope.Subprojects) }
+    var scope by remember { mutableStateOf(MapProjectScope.All) }
     val mapProjects = remember(projects, scope) {
         projects.filter { project ->
-            project.projectType.equals(scope.projectType, ignoreCase = true) &&
+            (scope == MapProjectScope.All || project.projectType.equals(scope.projectType, ignoreCase = true)) &&
                 (project.latitude != 0.0 || project.longitude != 0.0)
         }
     }

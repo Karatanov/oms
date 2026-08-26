@@ -209,7 +209,7 @@ fun CreateInspectionScreen(
             activities = activities, onActivitiesChange = { activities = it }, ongoingObservations = ongoingObservations, onOngoingObservationsChange = { ongoingObservations = it },
             hseObservations = hseObservations, onHseObservationsChange = { hseObservations = it }, quality = qualityText, onQualityChange = { qualityText = it },
             progress = progressComment, onProgressChange = { progressComment = it }, schedule = scheduleRemark, onScheduleChange = { scheduleRemark = it },
-            inspectorName = inspectorName, onInspectorNameChange = { inspectorName = it }, inspectorTitle = inspectorTitle, onInspectorTitleChange = { inspectorTitle = it }
+            inspectorName = inspectorName, inspectorTitle = inspectorTitle, onInspectorTitleChange = { inspectorTitle = it }
         )
 
         Row(
@@ -372,7 +372,7 @@ private fun ManualSirForm(
     quality: String, onQualityChange: (String) -> Unit,
     progress: String, onProgressChange: (String) -> Unit,
     schedule: String, onScheduleChange: (String) -> Unit,
-    inspectorName: String, onInspectorNameChange: (String) -> Unit,
+    inspectorName: String,
     inspectorTitle: String, onInspectorTitleChange: (String) -> Unit
 ) {
     Card(
@@ -431,7 +431,13 @@ private fun ManualSirForm(
 
             SirSectionTitle(LocalizationManager.t("sir_inspector_section"))
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedTextField(inspectorName, onInspectorNameChange, label = { Text("${LocalizationManager.t("sir_name")} *") }, modifier = Modifier.weight(1f))
+                OutlinedTextField(
+                    value = inspectorName,
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text(LocalizationManager.t("sir_name")) },
+                    modifier = Modifier.weight(1f)
+                )
                 OutlinedTextField(inspectorTitle, onInspectorTitleChange, label = { Text(LocalizationManager.t("sir_title_field")) }, modifier = Modifier.weight(1f))
             }
         }

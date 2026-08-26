@@ -3,8 +3,13 @@ package oms.components
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.ArrowDropUp
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.OutlinedButton
@@ -43,7 +48,11 @@ fun <T> InlineOptionPicker(
             onClick = { expanded = !expanded },
             modifier = contentWidth
         ) {
-            Text(selected?.let(itemLabel) ?: prompt, maxLines = 1)
+            Text(selected?.let(itemLabel) ?: prompt, maxLines = 1, modifier = Modifier.weight(1f, fill = false))
+            Icon(
+                imageVector = if (expanded) Icons.Default.ArrowDropUp else Icons.Default.ArrowDropDown,
+                contentDescription = null
+            )
         }
         if (expanded) {
             Card(
@@ -59,7 +68,10 @@ fun <T> InlineOptionPicker(
                             ) { Text(clearLabel) }
                         }
                     }
-                    items(options, key = { "option-${itemLabel(it)}" }) { option ->
+                    // Labels are not unique in the project hierarchy (for example a
+                    // subproject code can equal its display name).  A label-based key
+                    // made LazyColumn unstable and could freeze Compose/Wasm menus.
+                    itemsIndexed(options, key = { index, _ -> "option-$index" }) { _, option ->
                         TextButton(
                             onClick = { expanded = false; onSelect(option) },
                             modifier = Modifier.fillMaxWidth()

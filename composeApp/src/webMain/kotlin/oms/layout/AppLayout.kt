@@ -68,6 +68,7 @@ fun AppLayout(appState: AppState) {
                                 appState.navigate(Screen.Projects)
                             },
                             onEdit = { appState.openEditProject(it) },
+                            canEditProject = appState.roleCode in setOf("ADMIN", "PROJECT_MANAGER"),
                             canDeleteProject = appState.roleCode in setOf("ADMIN", "PROJECT_MANAGER"),
                             isGuest = appState.roleCode == "GUEST"
                         )
@@ -77,7 +78,9 @@ fun AppLayout(appState: AppState) {
                 is Screen.CreateInspection -> if (appState.roleCode != "GUEST") CreateInspectionScreen(
                     onSaveDraft = { appState.navigate(Screen.Inspections) },
                     onSubmit = { appState.navigate(Screen.Inspections) },
-                    onImportXls = { appState.navigate(Screen.Inspections) }
+                    onImportXls = { appState.navigate(Screen.Inspections) },
+                    currentUserName = appState.username,
+                    isAdmin = appState.roleCode == "ADMIN"
                 )
 
                 is Screen.Map -> MapScreen(
@@ -88,6 +91,7 @@ fun AppLayout(appState: AppState) {
 
                 is Screen.Inspections -> if (appState.roleCode != "GUEST") ReportsScreen(
                     onNewInspection = { appState.openCreateInspection() },
+                    canCreateReports = appState.roleCode in setOf("ADMIN", "PROJECT_MANAGER", "INSPECTOR"),
                     canReviewReports = appState.roleCode in setOf("ADMIN", "PROJECT_MANAGER"),
                     canMoveReports = appState.roleCode in setOf("ADMIN", "PROJECT_MANAGER")
                 )

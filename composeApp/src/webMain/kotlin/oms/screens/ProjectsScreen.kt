@@ -73,6 +73,10 @@ fun ProjectsScreen(
     var showReassign by remember { mutableStateOf(false) }
     val pageScrollState = rememberScrollState()
 
+    LaunchedEffect(showReassign) {
+        if (showReassign) pageScrollState.animateScrollTo(pageScrollState.maxValue)
+    }
+
     LaunchedEffect(Unit) {
         coroutineScope {
             val refreshProjects = async { ProjectRepository.refresh() }
@@ -158,14 +162,14 @@ fun ProjectsScreen(
                     Button(onClick = {
                         scope.launch {
                             runCatching { oms.data.OmsApiClient.bulkUpdateProjectStatus(selectedProjectIds.toList(), "suspended") }
-                                .onSuccess { ProjectRepository.refresh(); selectedProjectIds = emptySet() }
+                                .onSuccess { ProjectRepository.refresh(force = true); selectedProjectIds = emptySet() }
                                 .onFailure { errorMessage = it.message ?: LocalizationManager.t("error_suspend_projects") }
                         }
                     }) { Text(LocalizationManager.t("project_status_suspended")) }
                     Button(onClick = {
                         scope.launch {
                             runCatching { oms.data.OmsApiClient.bulkUpdateProjectStatus(selectedProjectIds.toList(), "archived") }
-                                .onSuccess { ProjectRepository.refresh(); selectedProjectIds = emptySet() }
+                                .onSuccess { ProjectRepository.refresh(force = true); selectedProjectIds = emptySet() }
                                 .onFailure { errorMessage = it.message ?: LocalizationManager.t("error_archive_projects") }
                         }
                     }) { Text(LocalizationManager.t("project_status_archived")) }
@@ -182,7 +186,7 @@ fun ProjectsScreen(
             onEditProject = onEditProject,
             onDeleteProject = { project ->
                 scope.launch {
-                    if (oms.data.OmsApiClient.deleteProject(project.id)) ProjectRepository.refresh()
+                    if (oms.data.OmsApiClient.deleteProject(project.id)) ProjectRepository.refresh(force = true)
                     else errorMessage = LocalizationManager.t("error_delete_project")
                 }
             },
@@ -196,27 +200,28 @@ fun ProjectsScreen(
 
         if (showReassign) {
             var selectedManager by remember { mutableStateOf(managers.firstOrNull()) }
-            AlertDialog(
-                onDismissRequest = { showReassign = false },
-                title = { Text("Reassign projects") },
-                text = { InlineOptionPicker(managers, selectedManager, "Project manager", { selectedManager = it }, { "${it.firstName} ${it.lastName} (${it.username})" }) },
-                confirmButton = {
-                    Button(onClick = {
-                        val manager = selectedManager ?: return@Button
-                        scope.launch {
-                            runCatching { oms.data.OmsApiClient.bulkReassignProjects(selectedProjectIds.toList(), manager.id) }
-                                .onSuccess { ProjectRepository.refresh(); selectedProjectIds = emptySet(); showReassign = false }
-                                .onFailure { errorMessage = it.message ?: "Project reassignment failed." }
-                        }
-                    }, enabled = selectedManager != null) { Text("Reassign") }
-                },
-                dismissButton = { OutlinedButton(onClick = { showReassign = false }) { Text(LocalizationManager.t("cancel")) } }
-            )
+            Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text("Reassign projects", style = MaterialTheme.typography.titleMedium)
+                    InlineOptionPicker(managers, selectedManager, "Project manager", { selectedManager = it }, { "${it.firstName} ${it.lastName} (${it.username})" })
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
+                        OutlinedButton(onClick = { showReassign = false }) { Text(LocalizationManager.t("cancel")) }
+                        Button(onClick = {
+                            selectedManager?.let { manager ->
+                                scope.launch {
+                                    runCatching { oms.data.OmsApiClient.bulkReassignProjects(selectedProjectIds.toList(), manager.id) }
+                                        .onSuccess { ProjectRepository.refresh(force = true); selectedProjectIds = emptySet(); showReassign = false }
+                                        .onFailure { errorMessage = it.message ?: "Project reassignment failed." }
+                                }
+                            }
+                        }, enabled = selectedManager != null) { Text("Reassign") }
+                    }
+                }
+            }
         }
 
         Spacer(Modifier.height(16.dp))
 
-        //Pagination()
     }
 }
 
@@ -341,115 +346,68 @@ fun ProjectsFilters(
     sectorFilter: String?,
     onSectorChange: (String?) -> Unit
 ) {
-    var openFilter by remember { mutableStateOf<ProjectFilterMenu?>(null) }
-    Row(
+    Column(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalAlignment = Alignment.Top
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         OutlinedTextField(
             value = searchText,
             onValueChange = onSearchChange,
             label = { Text(LocalizationManager.t("search_project")) },
             leadingIcon = { Icon(Icons.Default.Search, contentDescription = LocalizationManager.t("search_project")) },
-            modifier = Modifier.weight(1f)
+            modifier = Modifier.fillMaxWidth()
         )
-
-        Text(
-            LocalizationManager.t("filters"),
-            style = MaterialTheme.typography.labelLarge,
-            modifier = Modifier.padding(top = 16.dp)
-        )
-
-        ProjectFilterDropdown(
-            label = LocalizationManager.t("region"),
-            options = ProjectRepository.projects.map { it.region }.filter { it.isNotBlank() }.distinct().sorted(),
-            selected = regionFilter,
-            onSelect = onRegionChange,
-            expanded = openFilter == ProjectFilterMenu.Region,
-            onExpandedChange = { openFilter = if (it) ProjectFilterMenu.Region else null },
-            itemLabel = { region ->
-                when (region) {
-                    "Kyiv" -> "Kyiv"
-                    "Lviv" -> "Lviv"
-                    "Odesa" -> "Odesa"
-                    else -> region
-                }
-            }
-        )
-
-        ProjectFilterDropdown(
-            label = LocalizationManager.t("status"),
-            options = ProjectStatus.entries,
-            selected = statusFilter,
-            onSelect = onStatusChange,
-            expanded = openFilter == ProjectFilterMenu.Status,
-            onExpandedChange = { openFilter = if (it) ProjectFilterMenu.Status else null },
-            itemLabel = { status ->
-                LocalizationManager.t("project_status_${status.name.lowercase()}")
-            }
-        )
-
-        ProjectFilterDropdown(
-            label = LocalizationManager.t("construction_type"),
-            options = constructionTypes,
-            selected = constructionTypeFilter,
-            onSelect = onConstructionTypeChange,
-            expanded = openFilter == ProjectFilterMenu.ConstructionType,
-            onExpandedChange = { openFilter = if (it) ProjectFilterMenu.ConstructionType else null },
-            itemLabel = String::constructionTypeLabel
-        )
-
-        ProjectFilterDropdown(
-            label = LocalizationManager.t("sector"),
-            options = sectors,
-            selected = sectorFilter,
-            onSelect = onSectorChange,
-            expanded = openFilter == ProjectFilterMenu.Sector,
-            onExpandedChange = { openFilter = if (it) ProjectFilterMenu.Sector else null },
-            itemLabel = String::sectorLabel
-        )
+        Row(
+            Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.Top
+        ) {
+            Text(
+                LocalizationManager.t("filters"),
+                style = MaterialTheme.typography.labelLarge,
+                modifier = Modifier.padding(top = 16.dp)
+            )
+            ProjectFilterDropdown(
+                label = LocalizationManager.t("region"),
+                options = ProjectRepository.projects.map { it.region }.filter { it.isNotBlank() }.distinct().sorted(),
+                selected = regionFilter,
+                onSelect = onRegionChange
+            )
+            ProjectFilterDropdown(
+                label = LocalizationManager.t("status"), options = ProjectStatus.entries, selected = statusFilter,
+                onSelect = onStatusChange, itemLabel = { LocalizationManager.t("project_status_${it.name.lowercase()}") }
+            )
+            ProjectFilterDropdown(
+                label = LocalizationManager.t("construction_type"), options = constructionTypes, selected = constructionTypeFilter,
+                onSelect = onConstructionTypeChange, itemLabel = String::constructionTypeLabel
+            )
+            ProjectFilterDropdown(
+                label = LocalizationManager.t("sector"), options = sectors, selected = sectorFilter,
+                onSelect = onSectorChange, itemLabel = String::sectorLabel
+            )
+        }
     }
 }
 
-private enum class ProjectFilterMenu { Region, Status, ConstructionType, Sector }
-
-@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 private fun <T> ProjectFilterDropdown(
     label: String,
     options: List<T>,
     selected: T?,
     onSelect: (T?) -> Unit,
-    expanded: Boolean,
-    onExpandedChange: (Boolean) -> Unit,
-    itemLabel: (T) -> String
+    itemLabel: (T) -> String = { it.toString() }
 ) {
-    Box(
-        modifier = Modifier
-            .widthIn(min = 140.dp, max = 220.dp)
-            .onPointerEvent(PointerEventType.Enter) { onExpandedChange(true) }
-    ) {
-        OutlinedButton(onClick = { onExpandedChange(!expanded) }) {
-            Text(selected?.let(itemLabel) ?: label, maxLines = 1)
-        }
-        DropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { onExpandedChange(false) },
-            modifier = Modifier.heightIn(max = 240.dp)
-        ) {
-            DropdownMenuItem(
-                text = { Text(LocalizationManager.t("all")) },
-                onClick = { onExpandedChange(false); onSelect(null) }
-            )
-            options.forEach { option ->
-                DropdownMenuItem(
-                    text = { Text(itemLabel(option)) },
-                    onClick = { onExpandedChange(false); onSelect(option) }
-                )
-            }
-        }
-    }
+    InlineOptionPicker(
+        options = options,
+        selected = selected,
+        prompt = label,
+        onSelect = onSelect,
+        itemLabel = itemLabel,
+        modifier = Modifier.widthIn(min = 140.dp, max = 220.dp),
+        fillWidth = false,
+        clearLabel = LocalizationManager.t("all"),
+        onClear = { onSelect(null) }
+    )
 }
 
 

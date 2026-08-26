@@ -235,7 +235,7 @@ fun EditProjectScreen(
                                 contractorName = contractorName.trim()
                             ))
                         }.onSuccess {
-                            ProjectRepository.refresh()
+                            ProjectRepository.refresh(force = true)
                             onSaved(ProjectRepository.projects.firstOrNull { it.id == project.id } ?: project)
                         }.onFailure { errorMessage = LocalizationManager.t("error_save_project").replace("{message}", it.message ?: LocalizationManager.t("unknown_error")) }
                         isSaving = false

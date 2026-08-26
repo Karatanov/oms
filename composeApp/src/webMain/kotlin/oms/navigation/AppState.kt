@@ -4,6 +4,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import oms.model.Project
+import oms.data.ProjectRepository
 
 // 🔹 Центральний стан усього додатку
 // 🔹 Зберігає:
@@ -75,6 +76,7 @@ class AppState {
 
     // 🔹 Logout
     fun logout() {
+        ProjectRepository.clear()
         token = null
         username = ""
         roleCode = ""

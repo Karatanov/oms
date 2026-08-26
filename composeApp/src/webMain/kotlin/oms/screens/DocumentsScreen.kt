@@ -5,6 +5,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.Delete
@@ -22,6 +23,7 @@ import oms.components.SortableTableHeader
 import oms.components.DocumentTypeChip
 import oms.components.TableActionIconButton
 import oms.components.InlineOptionPicker
+import oms.components.WasmSafeOverlay
 import oms.localization.LocalizationManager
 import kotlin.js.JsName
 
@@ -127,7 +129,11 @@ fun DocumentsScreen(canManageDocuments: Boolean = true) {
             .toList()
     }
     fun selectSort(column: DocumentSort) { if (sort == column) ascending = !ascending else { sort = column; ascending = true } }
-    Column(Modifier.fillMaxSize().padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    Box(Modifier.fillMaxSize()) {
+    Column(
+        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Text(LocalizationManager.t("documents_title"), style = MaterialTheme.typography.headlineMedium)
             if (canManageDocuments) Button(onClick = { showUploadDialog = true }) { Text(LocalizationManager.t("upload_document")) }
@@ -175,7 +181,9 @@ fun DocumentsScreen(canManageDocuments: Boolean = true) {
             }
         }
         errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-        if (showUploadDialog) ProjectDocumentUploadDialog(
+    }
+        if (showUploadDialog) WasmSafeOverlay {
+            ProjectDocumentUploadDialog(
             projects = ProjectRepository.projects,
             onDismiss = { showUploadDialog = false },
             onUpload = { projectUuid, type ->
@@ -185,7 +193,8 @@ fun DocumentsScreen(canManageDocuments: Boolean = true) {
                 }
                 showUploadDialog = false
             }
-        )
+            )
+        }
     }
 }
 
@@ -194,8 +203,11 @@ private fun ProjectDocumentUploadDialog(projects: List<oms.model.Project>, onDis
     var projectUuid by remember { mutableStateOf(projects.firstOrNull()?.id) }
     var docType by remember { mutableStateOf("other") }
     val selected = projects.firstOrNull { it.id == projectUuid }
-    Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    Card(Modifier.fillMaxWidth().widthIn(max = 720.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+        Column(
+            Modifier.padding(20.dp).heightIn(max = 520.dp).verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
             Text(LocalizationManager.t("upload_document"), style = MaterialTheme.typography.titleLarge)
             InlineOptionPicker(
                 options = projects,

@@ -183,7 +183,8 @@ fun FinancialScreen(
         }
 
         errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-        if (addAct || editAct != null) {
+    }
+        if (addAct || editAct != null) { WasmSafeOverlay {
             ActEditorDialog(editAct, ProjectRepository.projects, { addAct = false; editAct = null }) { projectUuid, request ->
                 scope.launch {
                     errorMessage = null
@@ -197,8 +198,7 @@ fun FinancialScreen(
                         }
                 }
             }
-        }
-    }
+        } }
         if (showTransferDialog) { WasmSafeOverlay {
             FinancialTransferDialog(
                 projects = ProjectRepository.projects,
@@ -252,8 +252,11 @@ private fun ActEditorDialog(existing: ProjectActRow?, projects: List<oms.model.P
     var paymentPurpose by remember { mutableStateOf(existing?.act?.paymentPurpose ?: "works") }
     val selected = projects.firstOrNull { it.id == projectUuid }
     val valid = projectUuid != null && reference.isNotBlank() && amount.toLongOrNull()?.let { it > 0 } == true && date.matches(Regex("\\d{4}-\\d{2}-\\d{2}"))
-    Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Card(Modifier.fillMaxWidth().widthIn(max = 720.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+        Column(
+            Modifier.padding(20.dp).heightIn(max = 560.dp).verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
             Text(if (existing == null) LocalizationManager.t("add_financial_record") else LocalizationManager.t("edit_financial_record"), style = MaterialTheme.typography.titleLarge)
             InlineOptionPicker(options = projects, selected = selected, prompt = LocalizationManager.t("select_project"), onSelect = { projectUuid = it.id }, itemLabel = { it.name })
             OutlinedTextField(reference, { reference = it }, label = { Text(LocalizationManager.t("reference_number")) }, modifier = Modifier.fillMaxWidth())

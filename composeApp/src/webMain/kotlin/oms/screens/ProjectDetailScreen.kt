@@ -43,6 +43,7 @@ fun ProjectDetailScreen(
     project: Project,
     onBackToProjects: () -> Unit = {},
     onEdit: (Project) -> Unit = {},
+    canEditProject: Boolean = false,
     canDeleteProject: Boolean = false,
     isGuest: Boolean = false
 ) {
@@ -169,7 +170,8 @@ fun ProjectDetailScreen(
                         )
                     }
 
-                    if (!isGuest) Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (canEditProject || canDeleteProject) Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        if (canEditProject) {
                         Button(onClick = { onEdit(project) }) {
                             Icon(
                                 imageVector = Icons.Default.Edit,
@@ -177,6 +179,7 @@ fun ProjectDetailScreen(
                             )
                             Spacer(Modifier.width(8.dp))
                             Text(LocalizationManager.t("edit"))
+                        }
                         }
                         if (canDeleteProject) {
                             OutlinedButton(
@@ -208,7 +211,7 @@ fun ProjectDetailScreen(
                             onClick = {
                                 scope.launch {
                                     if (OmsApiClient.deleteProject(project.id)) {
-                                        ProjectRepository.refresh()
+                                        ProjectRepository.refresh(force = true)
                                         onBackToProjects()
                                     } else deleteError = LocalizationManager.t("error_delete_project")
                                 }
