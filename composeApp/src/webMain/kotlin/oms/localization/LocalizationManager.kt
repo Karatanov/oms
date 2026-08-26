@@ -50,4 +50,20 @@ object LocalizationManager {
             Language.EN -> match?.english ?: normalized.substringAfter(" / ", normalized).trim()
         }
     }
+
+    /** Localizes the fixed HSE checklist used by standard SIR workbooks. */
+    fun hseObservation(value: String): String {
+        if (currentLanguage == Language.EN) return value
+        val key = value.trim().trimEnd('.').lowercase()
+        return when (key) {
+            "all workers wear ppe equipment as relevant" -> "Усі працівники використовують відповідні засоби індивідуального захисту."
+            "the fire shield / firefighting equipment is present at site" -> "На майданчику наявні пожежний щит / засоби пожежогасіння."
+            "the site is appropriately fenced" -> "Майданчик належним чином огороджений."
+            "there is lavatories on the site" -> "На майданчику є санітарно-побутові приміщення."
+            "there are safety briefing logs" -> "Наявні журнали інструктажів з охорони праці."
+            "safety information plate is in tact" -> "Інформаційний стенд з охорони праці у належному стані."
+            "comment" -> t("comment")
+            else -> value
+        }
+    }
 }

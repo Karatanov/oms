@@ -429,7 +429,7 @@ private fun ManualSirForm(
             hseObservations.forEachIndexed { index, item ->
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Checkbox(checked = item.isYes, onCheckedChange = { checked -> onHseObservationsChange(hseObservations.mapIndexed { current, value -> if (current == index) value.copy(isYes = checked) else value }) })
-                    Text(item.observation, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
+                    Text(LocalizationManager.hseObservation(item.observation), modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
                     OutlinedTextField(item.comment, { comment -> onHseObservationsChange(hseObservations.mapIndexed { current, value -> if (current == index) value.copy(comment = comment) else value }) }, label = { Text(LocalizationManager.t("comment")) }, modifier = Modifier.widthIn(min = 220.dp).weight(1f))
                 }
             }

@@ -376,7 +376,7 @@ private fun ProjectHealthSafetyTab(data: ApiHealthSafetyObservations?) {
                                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text(item.observation, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
+                                Text(LocalizationManager.hseObservation(item.observation), modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
                                 HseAnswerIndicator(item.answer)
                             }
                             item.comment?.let { comment ->
@@ -397,7 +397,7 @@ private fun ProjectHealthSafetyTab(data: ApiHealthSafetyObservations?) {
                                     )
                                 ) {
                                     Text(
-                                        comment,
+                                        LocalizationManager.hseObservation(comment),
                                         modifier = Modifier.padding(10.dp),
                                         color = textColor,
                                         style = MaterialTheme.typography.bodyMedium
