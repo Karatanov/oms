@@ -3,7 +3,6 @@ package oms.components
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
@@ -22,8 +21,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.zIndex
-import androidx.compose.ui.offset
+import androidx.compose.ui.zIndex
+import androidx.compose.foundation.layout.offset
 import androidx.compose.ui.unit.dp
 
 /**
@@ -52,7 +51,7 @@ fun <T> InlineOptionPicker(
             onClick = { expanded = !expanded },
             modifier = contentWidth
         ) {
-            Text(selected?.let(itemLabel) ?: prompt, maxLines = 1, modifier = Modifier.weight(1f, fill = false))
+            Text(selected?.let(itemLabel) ?: prompt, maxLines = 1, modifier = Modifier)
             Icon(
                 imageVector = if (expanded) Icons.Default.ArrowDropUp else Icons.Default.ArrowDropDown,
                 contentDescription = null
