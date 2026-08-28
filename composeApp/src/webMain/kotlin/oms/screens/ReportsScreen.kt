@@ -25,6 +25,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
@@ -147,6 +148,7 @@ fun ReportsScreen(
     fun selectSort(column: ReportSort) { if (sort == column) ascending = !ascending else { sort = column; ascending = true } }
     fun scrollBy(delta: Float) = scope.launch { contentScrollState.animateScrollBy(delta) }
 
+    MaterialTheme(colorScheme = MaterialTheme.colorScheme.copy(onPrimary = Color.White)) {
     Box(Modifier.fillMaxSize()) {
     Column(
         Modifier
@@ -174,9 +176,10 @@ fun ReportsScreen(
         OutlinedTextField(search, { search = it }, singleLine = true, label = { Text(LocalizationManager.t("reports_search")) }, leadingIcon = { Icon(Icons.Default.Search, null) }, modifier = Modifier.fillMaxWidth())
         if (loading) oms.components.ContentState(LocalizationManager.t("loading_records"), loading = true)
         if (loadFailed) oms.components.ContentState(LocalizationManager.t("load_records_error"), error = true, onRetry = { reloadKey++ })
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         oms.components.AdaptiveChartRow(
-            first = { MetricsChart("inspections_by_month", "inspections_by_month_hint", dashboard?.monthlyInspectionCounts.orEmpty()) },
-            second = { MetricsChart("eshs_violations_by_month", "eshs_violations_by_month_hint", dashboard?.monthlyEshsViolations.orEmpty()) }
+            first = { MetricsChart("inspections_by_month", "inspections_by_month_hint", dashboard?.monthlyInspectionCounts.orEmpty(), compact = true) },
+            second = { MetricsChart("eshs_violations_by_month", "eshs_violations_by_month_hint", dashboard?.monthlyEshsViolations.orEmpty(), compact = true) }
         )
         Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
             oms.components.ScrollableTable(Modifier.padding(16.dp)) {
@@ -234,6 +237,7 @@ fun ReportsScreen(
                     HorizontalDivider()
                 }
             }
+        }
         }
         errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error) }
     }
@@ -323,6 +327,7 @@ fun ReportsScreen(
         oms.components.OmsTooltipBox(tooltip = { Text(LocalizationManager.t("dashboard_scroll_down")) }) {
             FilledIconButton(onClick = { scrollBy(420f) }) { Icon(Icons.Default.KeyboardArrowDown, LocalizationManager.t("dashboard_scroll_down")) }
         }
+    }
     }
     }
 }

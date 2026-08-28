@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
@@ -51,7 +52,8 @@ fun MetricsChart(
     titleKey: String,
     hintKey: String? = null,
     metrics: List<ApiDashboardMetric>,
-    centerYearLabels: Boolean = false
+    centerYearLabels: Boolean = false,
+    compact: Boolean = false
 ) {
     val sortedMetrics = metrics.sortedBy { it.label }
     val data = sortedMetrics.mapIndexed { index, metric ->
@@ -65,7 +67,7 @@ fun MetricsChart(
             groupLabel = if (centerYearLabels && isMonth) metric.label.take(4) else null
         )
     }
-    AnalyticsCard(titleKey, hintKey, data)
+    AnalyticsCard(titleKey, hintKey, data, compact = compact)
 }
 
 @Composable
@@ -87,9 +89,13 @@ private fun AnalyticsCard(
     hintKey: String?,
     data: List<BarData>,
     valueLabel: (Float) -> String = { it.toInt().toString() },
-    onItemClick: ((BarData) -> Unit)? = null
+    onItemClick: ((BarData) -> Unit)? = null,
+    compact: Boolean = false
 ) {
-    Card(Modifier.fillMaxWidth().height(420.dp), shape = RoundedCornerShape(12.dp),
+    val cardModifier = Modifier.fillMaxWidth().then(
+        if (compact) Modifier.heightIn(min = 144.dp) else Modifier.height(420.dp)
+    )
+    Card(cardModifier, shape = RoundedCornerShape(12.dp),
         colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
         Column(Modifier.padding(16.dp)) {
             Box(Modifier.fillMaxWidth().height(44.dp), contentAlignment = Alignment.Center) {
@@ -109,7 +115,7 @@ private fun AnalyticsCard(
                     )
                 }
             }
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(if (compact) 8.dp else 16.dp))
             if (data.isEmpty()) Text(LocalizationManager.t("no_chart_data"), color = MaterialTheme.colorScheme.onSurfaceVariant)
             else VerticalBarChart(data, MaterialTheme.colorScheme.primary, labelWidth = 116.dp, labelMaxLines = 2, maxVisibleItems = 6, valueLabel = valueLabel, onItemClick = onItemClick)
         }

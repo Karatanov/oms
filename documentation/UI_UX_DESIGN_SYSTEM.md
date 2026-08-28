@@ -40,6 +40,8 @@ Map scope: a two-way segmented switch shows either Subprojects (default) or Subp
 
 Reports/documents: searchable registries, consistent table headers/actions, retry/empty states and local edit/move errors. Report author is the actual username returned by the server, not a fabricated administrator label. Manual SIR retains its XLS-aligned sections and localized health/safety prompts.
 
+Inspection registry refinement: filled action buttons, including those in its editors, use white labels via a page-local theme override. The two inspection charts use content-sized cards instead of reserving 420 px, retaining the existing plot/label sizes and horizontal controls. The table follows the chart section with an 8 px gap. Other analytics screens retain their existing chart sizing.
+
 Finance: purpose-filtered construction payments, exact cents in chart labels, localized types, compact purpose badges, full-width registry scroll range, anchored purpose selection, local errors and deletion confirmation. Existing EUR equivalents and conversion rules are preserved. The approved-funding chart's legacy source still supplies UAH; it is explicitly labeled UAH rather than incorrectly relabeled EUR. Financial/document author cells show an em dash when their current API does not supply uploader metadata; no username is invented.
 
 Procurement: responsive analytical pair, project/contractor search and status filter, single-language status badges, consistent action alignment, scroll controls and local dialog errors.
