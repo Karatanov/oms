@@ -14,10 +14,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
 import oms.components.FeatureItem
 import oms.components.WasmSafeOverlay
@@ -83,6 +85,8 @@ fun LoginScreen(
 
     // ---------------- LAYOUT ----------------
 
+    // Login uses light labels on filled buttons without changing the workspace theme.
+    MaterialTheme(colorScheme = MaterialTheme.colorScheme.copy(onPrimary = Color.White)) {
     Box(modifier = Modifier.fillMaxSize()) {
     BoxWithConstraints(Modifier.fillMaxSize()) {
     val showBrandPanel = maxWidth >= 1000.dp
@@ -103,13 +107,13 @@ fun LoginScreen(
                         )
                     )
                 )
-                .padding(64.dp),
+                .padding(start = 40.dp, end = 40.dp, top = 40.dp, bottom = 88.dp),
             contentAlignment = Alignment.CenterStart
         ) {
 
             Column(
                 verticalArrangement = Arrangement.spacedBy(24.dp),
-                modifier = Modifier.widthIn(max = 480.dp)
+                modifier = Modifier.widthIn(max = 480.dp).verticalScroll(rememberScrollState())
             ) {
 
                 // 🔹 Маленький badge (додає "продуктовість")
@@ -128,14 +132,14 @@ fun LoginScreen(
                 // 🔥 ГОЛОВНИЙ АКЦЕНТ (hero text)
                 Text(
                     text = LocalizationManager.t("login_hero_title"),
-                    style = MaterialTheme.typography.displayMedium,
+                    style = MaterialTheme.typography.displayMedium.copy(fontSize = 44.sp, lineHeight = 52.sp),
                     color = androidx.compose.ui.graphics.Color.White
                 )
 
                 // 🔹 Підзаголовок
                 Text(
                     text = LocalizationManager.t("login_hero_subtitle"),
-                    style = MaterialTheme.typography.titleMedium,
+                    style = MaterialTheme.typography.titleMedium.copy(fontSize = 20.sp, lineHeight = 30.sp),
                     color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.9f)
                 )
 
@@ -156,7 +160,8 @@ fun LoginScreen(
         Box(
             modifier = Modifier
                 .weight(1f)
-                .fillMaxHeight().padding(24.dp).verticalScroll(rememberScrollState()),
+                .fillMaxHeight().padding(start = 24.dp, end = 24.dp, top = 24.dp, bottom = 88.dp)
+                .verticalScroll(rememberScrollState()),
             contentAlignment = Alignment.Center
         ) {
 
@@ -171,7 +176,6 @@ fun LoginScreen(
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
 
-                    oms.components.LanguageSwitcher()
                     // Form identity
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
 
@@ -277,13 +281,14 @@ fun LoginScreen(
                         if (isLoading) {
                             CircularProgressIndicator(
                                 modifier = Modifier.size(20.dp),
-                                strokeWidth = 2.dp
+                                strokeWidth = 2.dp,
+                                color = LocalContentColor.current
                             )
                         } else {
                             Text(LocalizationManager.t("sign_in"))
                         }
                     }
-                    TextButton(
+                    Button(
                         onClick = {
                             isStartingGuestSession = true
                             scope.launch {
@@ -293,13 +298,20 @@ fun LoginScreen(
                                 isStartingGuestSession = false
                             }
                         },
-                        enabled = !isStartingGuestSession,
+                        enabled = !isLoading && !isStartingGuestSession,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.secondary,
+                            contentColor = Color.White
+                        ),
                         modifier = Modifier.fillMaxWidth()
                     ) { Text(LocalizationManager.t("continue_as_guest")) }
                 }
             }
         }
     }
+        }
+        Box(Modifier.align(Alignment.BottomStart).padding(24.dp)) {
+            oms.components.LanguageSwitcher()
         }
         if (showPasswordReset) {
             WasmSafeOverlay(onDismiss = { showPasswordReset = false }) {
@@ -309,6 +321,7 @@ fun LoginScreen(
                 )
             }
         }
+    }
     }
 }
 

@@ -8,6 +8,8 @@ Use a compact enterprise workspace: light surfaces, restrained hierarchy, groupe
 
 Shared tokens live in `theme/Color.kt` and `theme/Theme.kt`. Common components provide page headings, section headings, badges, loading/error/empty states, sortable headers, icon actions, horizontal scroll controls and deletion confirmation. Body typography is 14/13/12 px; standard controls are at least 44 px high, icons 20 px, table headers 52 px. Material focus/hover/disabled feedback is retained.
 
+Login-specific refinement: filled sign-in/language buttons use white labels on the corporate primary; guest entry uses white on a secondary filled button. This is a local theme override, not a workspace-wide color change. Text links on white surfaces remain colored. The language switch stays in the bottom-left corner, with reserved footer space on narrow screens. The brand heading is 44/52 px, supporting text 20/30 px and feature text 18/28 px; the brand panel scrolls on short viewports rather than overlapping the footer.
+
 ## Navigation and responsiveness
 
 The sidebar is 232 px wide or a 72 px icon rail. It starts compact below 1100 px and can be toggled. Current domains remain selected while creating/editing their entities. Finance is visible only to Admin/Project Manager; Administration only to Admin. Anonymous visitors see the public project registry and map. Server authorization remains authoritative.
