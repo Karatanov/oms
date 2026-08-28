@@ -34,6 +34,7 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import oms.components.StatusChip
 import oms.components.TableHeader
+import oms.components.ProjectTableColumns
 import oms.components.TableActionIconButton
 import oms.data.ProjectRepository
 import oms.localization.LocalizationManager
@@ -115,6 +116,7 @@ fun ProjectsScreen(
         projects.filter { it.id in visibleIds }
     }
 
+    MaterialTheme(colorScheme = MaterialTheme.colorScheme.copy(onPrimary = Color.White)) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -130,22 +132,18 @@ fun ProjectsScreen(
         if (ProjectRepository.loading) oms.components.ContentState(LocalizationManager.t("loading_records"), loading = true)
         ProjectRepository.errorMessage?.let { oms.components.ContentState(it, error = true, onRetry = { scope.launch { ProjectRepository.refresh(force = true) } }) }
 
-        ProjectsFilters(
-            searchText = searchText,
-            onSearchChange = { searchText = it },
-            regionFilter = regionFilter,
-            onRegionChange = { regionFilter = it },
-            statusFilter = statusFilter,
-            onStatusChange = { statusFilter = it },
-            constructionTypeFilter = constructionTypeFilter,
-            onConstructionTypeChange = { constructionTypeFilter = it },
-            sectorFilter = sectorFilter,
-            onSectorChange = { sectorFilter = it }
+        OutlinedTextField(
+            value = searchText,
+            onValueChange = { searchText = it },
+            label = { Text(LocalizationManager.t("search_project")) },
+            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth()
         )
-
-        if (searchText.isNotBlank() || regionFilter != null || statusFilter != null || constructionTypeFilter != null || sectorFilter != null) {
-            TextButton(onClick = { searchText = ""; regionFilter = null; statusFilter = null; constructionTypeFilter = null; sectorFilter = null }) { Text(LocalizationManager.t("reset_filters")) }
-        }
+        TextButton(
+            enabled = searchText.isNotBlank() || regionFilter != null || statusFilter != null || constructionTypeFilter != null || sectorFilter != null,
+            onClick = { searchText = ""; regionFilter = null; statusFilter = null; constructionTypeFilter = null; sectorFilter = null }
+        ) { Text(LocalizationManager.t("reset_filters")) }
         if (canManageProjects && selectedProjectIds.isNotEmpty()) {
             Spacer(Modifier.height(12.dp))
             Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)) {
@@ -181,6 +179,10 @@ fun ProjectsScreen(
         ProjectsTable(
             projects = filteredProjects,
             searchText = searchText,
+            filters = {
+                ProjectsFilters(regionFilter, { regionFilter = it }, statusFilter, { statusFilter = it },
+                    constructionTypeFilter, { constructionTypeFilter = it }, sectorFilter, { sectorFilter = it })
+            },
             onOpenProject = onOpenProject,
             onEditProject = onEditProject,
             onDeleteProject = { project ->
@@ -222,6 +224,7 @@ fun ProjectsScreen(
         Spacer(Modifier.height(16.dp))
 
     }
+    }
 }
 
 // ... existing code ...
@@ -230,6 +233,7 @@ fun ProjectsScreen(
 fun ProjectsTable(
     projects: List<Project>,
     searchText: String,
+    filters: @Composable () -> Unit,
     onOpenProject: (Project) -> Unit,
     onEditProject: (Project) -> Unit,
     onDeleteProject: (Project) -> Unit,
@@ -272,7 +276,7 @@ fun ProjectsTable(
     }
 
     oms.components.ScrollableTable {
-
+        filters()
         TableHeader(
             sortColumn,
             ascending
@@ -333,9 +337,7 @@ private data class ProjectTreeRow(
 */
 
 @Composable
-fun ProjectsFilters(
-    searchText: String,
-    onSearchChange: (String) -> Unit,
+private fun ProjectsFilters(
     regionFilter: String?,
     onRegionChange: (String?) -> Unit,
     statusFilter: ProjectStatus?,
@@ -345,46 +347,30 @@ fun ProjectsFilters(
     sectorFilter: String?,
     onSectorChange: (String?) -> Unit
 ) {
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        OutlinedTextField(
-            value = searchText,
-            onValueChange = onSearchChange,
-            label = { Text(LocalizationManager.t("search_project")) },
-            leadingIcon = { Icon(Icons.Default.Search, contentDescription = LocalizationManager.t("search_project")) },
-            modifier = Modifier.fillMaxWidth()
-        )
-        Row(
-            Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.Top
-        ) {
-            Text(
-                LocalizationManager.t("filters"),
-                style = MaterialTheme.typography.labelLarge,
-                modifier = Modifier.padding(top = 16.dp)
-            )
-            ProjectFilterDropdown(
-                label = LocalizationManager.t("region"),
-                options = ProjectRepository.projects.map { it.region }.filter { it.isNotBlank() }.distinct().sorted(),
-                selected = regionFilter,
-                onSelect = onRegionChange
-            )
-            ProjectFilterDropdown(
-                label = LocalizationManager.t("status"), options = ProjectStatus.entries, selected = statusFilter,
-                onSelect = onStatusChange, itemLabel = { LocalizationManager.t("project_status_${it.name.lowercase()}") }
-            )
-            ProjectFilterDropdown(
-                label = LocalizationManager.t("construction_type"), options = constructionTypes, selected = constructionTypeFilter,
-                onSelect = onConstructionTypeChange, itemLabel = String::constructionTypeLabel
-            )
-            ProjectFilterDropdown(
-                label = LocalizationManager.t("sector"), options = sectors, selected = sectorFilter,
-                onSelect = onSectorChange, itemLabel = String::sectorLabel
-            )
+    Row(Modifier.width(ProjectTableColumns.totalWidth).padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically) {
+        Spacer(Modifier.width(ProjectTableColumns.selection + ProjectTableColumns.hierarchy))
+        ProjectTableColumns.columns.forEach { column ->
+            Box(Modifier.width(ProjectTableColumns.width(column)).padding(end = 6.dp)) {
+                when (column) {
+                    SortColumn.NAME -> Text(LocalizationManager.t("filters"), style = MaterialTheme.typography.labelLarge)
+                    SortColumn.REGION -> ProjectFilterDropdown(
+                        LocalizationManager.t("region"),
+                        ProjectRepository.projects.map { it.region }.filter { it.isNotBlank() }.distinct().sorted(),
+                        regionFilter, onRegionChange)
+                    SortColumn.SECTOR -> ProjectFilterDropdown(
+                        LocalizationManager.t("sector"), sectors, sectorFilter, onSectorChange, String::sectorLabel)
+                    SortColumn.CONSTRUCTION_TYPE -> ProjectFilterDropdown(
+                        LocalizationManager.t("construction_type"), constructionTypes, constructionTypeFilter,
+                        onConstructionTypeChange, String::constructionTypeLabel)
+                    SortColumn.STATUS -> ProjectFilterDropdown(
+                        LocalizationManager.t("status"), ProjectStatus.entries, statusFilter, onStatusChange,
+                        { LocalizationManager.t("project_status_${it.name.lowercase()}") })
+                    else -> Unit
+                }
+            }
         }
+        Spacer(Modifier.width(ProjectTableColumns.actions))
     }
 }
 
@@ -397,15 +383,9 @@ private fun <T> ProjectFilterDropdown(
     itemLabel: (T) -> String = { it.toString() }
 ) {
     InlineOptionPicker(
-        options = options,
-        selected = selected,
-        prompt = label,
-        onSelect = onSelect,
+        options = options, selected = selected, prompt = label, onSelect = onSelect,
         itemLabel = itemLabel,
-        modifier = Modifier.widthIn(min = 140.dp, max = 220.dp),
-        fillWidth = false,
-        clearLabel = LocalizationManager.t("all"),
-        onClear = { onSelect(null) }
+        clearLabel = LocalizationManager.t("all"), onClear = { onSelect(null) }
     )
 }
 
@@ -475,7 +455,7 @@ fun ProjectRow(
 
     Row(
         modifier = Modifier
-            .width(1_800.dp)
+            .width(ProjectTableColumns.totalWidth)
             .onGloballyPositioned { rowTopInRoot = it.positionInRoot().y }
 
             // hover detection
@@ -515,11 +495,11 @@ fun ProjectRow(
         if (canManageProjects) Checkbox(
             checked = isSelected,
             onCheckedChange = onSelectedChange,
-            modifier = Modifier.width(32.dp)
-        ) else Spacer(Modifier.width(32.dp))
+            modifier = Modifier.width(ProjectTableColumns.selection)
+        ) else Spacer(Modifier.width(ProjectTableColumns.selection))
 
         Box(
-            modifier = Modifier.width(30.dp).height(32.dp),
+            modifier = Modifier.width(ProjectTableColumns.hierarchy).height(32.dp),
             contentAlignment = Alignment.Center
         ) {
             if (childCount > 0) {
@@ -566,36 +546,38 @@ fun ProjectRow(
             }
         }
 
-        Text(project.siteNumber, modifier = Modifier.width(130.dp), fontWeight = rowFontWeight)
-        Text(project.trancheNumber.toString(), modifier = Modifier.width(90.dp), fontWeight = rowFontWeight)
+        Text(project.siteNumber, modifier = Modifier.width(ProjectTableColumns.width(SortColumn.ID)), fontWeight = rowFontWeight)
+        Text(project.trancheNumber.toString(), modifier = Modifier.width(ProjectTableColumns.width(SortColumn.TRANCHE)), fontWeight = rowFontWeight)
 
         Text(
             project.name,
-            modifier = Modifier.weight(1f),
+            modifier = Modifier.width(ProjectTableColumns.width(SortColumn.NAME)),
             fontWeight = rowFontWeight,
             color = if (isSubproject) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface
         )
 
-        Text(project.region, modifier = Modifier.width(160.dp), fontWeight = rowFontWeight)
+        Text(project.region, modifier = Modifier.width(ProjectTableColumns.width(SortColumn.REGION)), fontWeight = rowFontWeight)
 
-        Text(project.city, modifier = Modifier.width(130.dp), fontWeight = rowFontWeight)
-        Box(modifier = Modifier.width(130.dp)) { SectorChip(project.sector, rowFontWeight) }
-        Box(modifier = Modifier.width(180.dp)) { ConstructionTypeChip(project.constructionType, rowFontWeight) }
+        Text(project.city, modifier = Modifier.width(ProjectTableColumns.width(SortColumn.CITY)), fontWeight = rowFontWeight)
+        Box(modifier = Modifier.width(ProjectTableColumns.width(SortColumn.SECTOR))) { SectorChip(project.sector, rowFontWeight) }
+        Box(modifier = Modifier.width(ProjectTableColumns.width(SortColumn.CONSTRUCTION_TYPE))) { ConstructionTypeChip(project.constructionType, rowFontWeight) }
 
         Box(
-            modifier = Modifier.width(140.dp)
+            modifier = Modifier.width(ProjectTableColumns.width(SortColumn.STATUS))
         ) {
             StatusChip(project.status, rowFontWeight)
         }
 
-        Text(project.budgetPlanned.toString(), modifier = Modifier.width(120.dp), fontWeight = rowFontWeight)
-        Text(project.startDate.toOmsDate(), modifier = Modifier.width(120.dp), fontWeight = rowFontWeight)
-        Text(project.contractorName.orEmpty(), modifier = Modifier.width(150.dp), fontWeight = rowFontWeight)
+        Text(project.budgetPlanned.toString(), modifier = Modifier.width(ProjectTableColumns.width(SortColumn.BUDGET)), fontWeight = rowFontWeight)
+        Text(project.startDate.toOmsDate(), modifier = Modifier.width(ProjectTableColumns.width(SortColumn.START_DATE)), fontWeight = rowFontWeight)
+        Text(project.contractorName.orEmpty(), modifier = Modifier.width(ProjectTableColumns.width(SortColumn.CONTRACTOR)), fontWeight = rowFontWeight)
 
+        Row(Modifier.width(ProjectTableColumns.actions), verticalAlignment = Alignment.CenterVertically) {
         TableActionIconButton(LocalizationManager.t("view"), Icons.Default.Visibility) { onOpen(project) }
         if (canManageProjects) {
             TableActionIconButton(LocalizationManager.t("edit"), Icons.Default.Edit) { onEdit(project) }
             TableActionIconButton(LocalizationManager.t("delete_project"), Icons.Default.Delete) { onDelete(project) }
+        }
         }
     }
 

@@ -11,71 +11,29 @@ import oms.localization.LocalizationManager
 import oms.screens.SortColumn
 
 @Composable
-fun TableHeader(
-    currentSort: SortColumn,
-    ascending: Boolean,
-    onSort: (SortColumn) -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .width(1_800.dp)
-            .padding(vertical = 8.dp)
-    ) {
-        Box(modifier = Modifier.width(32.dp))
-        Box(modifier = Modifier.width(30.dp))
-        SortableHeader(
-            LocalizationManager.t("project_code"),
-            SortColumn.ID,
-            currentSort,
-            ascending,
-            onSort,
-            Modifier.width(130.dp)
-        )
-
-        SortableHeader(LocalizationManager.t("tranche"), SortColumn.TRANCHE, currentSort, ascending, onSort, Modifier.width(90.dp))
-
-        SortableHeader(
-            LocalizationManager.t("project"),
-            SortColumn.NAME,
-            currentSort,
-            ascending,
-            onSort,
-            Modifier.weight(1f)
-        )
-
-        SortableHeader(
-            LocalizationManager.t("region"),
-            SortColumn.REGION,
-            currentSort,
-            ascending,
-            onSort,
-            Modifier.width(160.dp)
-        )
-
-        SortableHeader(LocalizationManager.t("city"), SortColumn.CITY, currentSort, ascending, onSort, Modifier.width(130.dp))
-        SortableHeader(LocalizationManager.t("sector"), SortColumn.SECTOR, currentSort, ascending, onSort, Modifier.width(130.dp))
-        SortableHeader(LocalizationManager.t("construction_type"), SortColumn.CONSTRUCTION_TYPE, currentSort, ascending, onSort, Modifier.width(180.dp))
-
-        SortableHeader(
-            LocalizationManager.t("status"),
-            SortColumn.STATUS,
-            currentSort,
-            ascending,
-            onSort,
-            Modifier.width(140.dp)
-        )
-
-        SortableHeader(LocalizationManager.t("budget"), SortColumn.BUDGET, currentSort, ascending, onSort, Modifier.width(120.dp))
-        SortableHeader(LocalizationManager.t("start_date"), SortColumn.START_DATE, currentSort, ascending, onSort, Modifier.width(120.dp))
-        SortableHeader(LocalizationManager.t("contractor"), SortColumn.CONTRACTOR, currentSort, ascending, onSort, Modifier.width(150.dp))
-
-        Box(
-            modifier = Modifier
-                .width(144.dp)
-                .height(oms.theme.OmsDimensions.TableHeaderHeight),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(text = LocalizationManager.t("actions"), style = MaterialTheme.typography.labelLarge)
+fun TableHeader(currentSort: SortColumn, ascending: Boolean, onSort: (SortColumn) -> Unit) {
+    Row(Modifier.width(ProjectTableColumns.totalWidth).padding(vertical = 8.dp)) {
+        Spacer(Modifier.width(ProjectTableColumns.selection + ProjectTableColumns.hierarchy))
+        ProjectTableColumns.columns.forEach { column ->
+            val labelKey = when (column) {
+                SortColumn.ID -> "project_code"
+                SortColumn.TRANCHE -> "tranche"
+                SortColumn.NAME -> "project"
+                SortColumn.REGION -> "region"
+                SortColumn.CITY -> "city"
+                SortColumn.SECTOR -> "sector"
+                SortColumn.CONSTRUCTION_TYPE -> "construction_type"
+                SortColumn.STATUS -> "status"
+                SortColumn.BUDGET -> "budget"
+                SortColumn.START_DATE -> "start_date"
+                SortColumn.CONTRACTOR -> "contractor"
+            }
+            SortableHeader(LocalizationManager.t(labelKey), column, currentSort, ascending, onSort,
+                Modifier.width(ProjectTableColumns.width(column)))
+        }
+        Box(Modifier.width(ProjectTableColumns.actions).height(oms.theme.OmsDimensions.TableHeaderHeight),
+            contentAlignment = Alignment.Center) {
+            Text(LocalizationManager.t("actions"), style = MaterialTheme.typography.labelLarge)
         }
     }
 }

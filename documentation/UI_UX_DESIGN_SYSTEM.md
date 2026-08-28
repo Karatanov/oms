@@ -32,6 +32,8 @@ Dashboard: coherent four-chart layout, readable fixed-baseline plots, exact euro
 
 Projects: registry heading/actions, hierarchy/readability, reusable filters, search results, selection, destructive confirmation and horizontal scrolling. Create/edit use shared section headings, Material icons, two-column date groups and currency selection. Project details retain their information tabs with a scrollable tab strip and clearer breadcrumb.
 
+Project registry refinement: filled action buttons use white labels via a page-local theme override. Oblast, sector, construction-type and status filters sit immediately above their own columns in the same horizontal scroll viewport. `ProjectTableColumns` supplies shared widths for filters, sortable headings and rows; the actions cell reserves the same width for guests and managers. Search stays above the table, and the reset control keeps its space when disabled to avoid vertical jumps when filtering.
+
 Map: separate search/filter/control area, visible result count, reset, Ukraine overview and fit-to-results. Markers retain clustering. The native map is anchored to the actual Compose content bounds. Popup project names are inserted as text, not executable HTML. Native map/photo panes temporarily yield to the canvas option layer so they cannot cover dropdowns.
 
 Reports/documents: searchable registries, consistent table headers/actions, retry/empty states and local edit/move errors. Report author is the actual username returned by the server, not a fabricated administrator label. Manual SIR retains its XLS-aligned sections and localized health/safety prompts.
