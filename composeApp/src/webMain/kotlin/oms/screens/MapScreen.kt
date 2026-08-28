@@ -7,6 +7,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import oms.data.ProjectRepository
 import oms.components.*
@@ -20,7 +21,12 @@ import kotlinx.coroutines.launch
 @JsName("fitUkraineOverview") private external fun fitUkraineOverview()
 @JsName("fitLeafletResults") private external fun fitLeafletResults()
 
-@OptIn(ExperimentalLayoutApi::class)
+private enum class MapScope(val projectType: String, val labelKey: String) {
+    SUBPROJECTS("subproject", "map_subprojects"),
+    PARTS("subproject_part", "map_subproject_parts")
+}
+
+@OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun MapScreen(onOpenProject: (Project) -> Unit = {}) {
     LaunchedEffect(Unit) { ProjectRepository.refresh() }
@@ -29,14 +35,37 @@ fun MapScreen(onOpenProject: (Project) -> Unit = {}) {
     var search by remember { mutableStateOf("") }
     var region by remember { mutableStateOf<String?>(null) }
     var status by remember { mutableStateOf<ProjectStatus?>(null) }
-    var type by remember { mutableStateOf<String?>(null) }
-    val located = projects.filter { it.latitude in -90.0..90.0 && it.longitude in -180.0..180.0 && (it.latitude != 0.0 || it.longitude != 0.0) }
+    var mapScope by remember { mutableStateOf(MapScope.SUBPROJECTS) }
+    // Show exactly one child level, never portfolio-level projects.
+    val located = projects.filter {
+        it.projectType == mapScope.projectType &&
+            it.latitude in -90.0..90.0 && it.longitude in -180.0..180.0 &&
+            (it.latitude != 0.0 || it.longitude != 0.0)
+    }
     val visible = located.filter {
         (search.isBlank() || it.name.contains(search, true) || it.siteNumber.contains(search, true) || it.city.contains(search, true)) &&
-        (region == null || it.region == region) && (status == null || it.status == status) && (type == null || it.projectType == type)
+        (region == null || it.region == region) && (status == null || it.status == status)
     }
     Column(Modifier.fillMaxSize().padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         PageHeading(LocalizationManager.t("projects_map"), Icons.Default.Map)
+        Text(LocalizationManager.t("map_scope"), style = MaterialTheme.typography.labelLarge)
+        SingleChoiceSegmentedButtonRow(Modifier.widthIn(max = 520.dp).fillMaxWidth()) {
+            MapScope.entries.forEachIndexed { index, option ->
+                SegmentedButton(
+                    selected = mapScope == option,
+                    onClick = { mapScope = option },
+                    shape = SegmentedButtonDefaults.itemShape(index, MapScope.entries.size),
+                    colors = SegmentedButtonDefaults.colors(
+                        activeContainerColor = MaterialTheme.colorScheme.primary,
+                        activeContentColor = Color.White,
+                        inactiveContainerColor = MaterialTheme.colorScheme.surface,
+                        inactiveContentColor = MaterialTheme.colorScheme.onSurface
+                    ),
+                    icon = {},
+                    label = { Text(LocalizationManager.t(option.labelKey)) }
+                )
+            }
+        }
         OutlinedTextField(search, { search = it }, singleLine = true,
             label = { Text(LocalizationManager.t("search_project")) }, leadingIcon = { Icon(Icons.Default.Search, null) }, modifier = Modifier.fillMaxWidth())
         FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -46,10 +75,7 @@ fun MapScreen(onOpenProject: (Project) -> Unit = {}) {
             InlineOptionPicker(ProjectStatus.entries, status, LocalizationManager.t("status"), { status = it },
                 { LocalizationManager.t("project_status_${it.name.lowercase()}") }, modifier = Modifier.width(190.dp),
                 clearLabel = LocalizationManager.t("all"), onClear = { status = null })
-            InlineOptionPicker(listOf("project", "subproject", "subproject_part"), type, LocalizationManager.t("project_type"),
-                { type = it }, LocalizationManager::t, modifier = Modifier.width(220.dp),
-                clearLabel = LocalizationManager.t("all"), onClear = { type = null })
-            TextButton(onClick = { search = ""; region = null; status = null; type = null }) { Text(LocalizationManager.t("reset_filters")) }
+            TextButton(onClick = { search = ""; region = null; status = null }) { Text(LocalizationManager.t("reset_filters")) }
         }
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Text("${LocalizationManager.t("markers_count")} ${visible.size}", Modifier.weight(1f), style = MaterialTheme.typography.labelLarge)
