@@ -28,22 +28,22 @@ private data class MonthlyFinancialAggregation(
 
 @Composable
 fun MonthlyPaymentsChart(records: List<FinancialChartRecord>) {
-    val aggregation = aggregateMonthlyPayments(records)
+    val aggregation = aggregateMonthlyPayments(records, "works")
 
-    Card(Modifier.fillMaxWidth()) {
+    Card(Modifier.fillMaxWidth(), colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
         Column(Modifier.padding(16.dp)) {
             Text(LocalizationManager.t("monthly_project_payments"), style = MaterialTheme.typography.titleMedium)
             Spacer(Modifier.height(16.dp))
             if (aggregation.payments.isEmpty()) Text(LocalizationManager.t("no_payments_yet"), color = MaterialTheme.colorScheme.onSurfaceVariant)
             else VerticalBarChart(
                 data = aggregation.payments.map { payment ->
-                    oms.charts.BarData(payment.month, payment.amountEurCents.toFloat(), tooltip = aggregation.tooltipByMonth[payment.month])
+                    oms.charts.BarData(payment.month, payment.amountEurCents.toFloat(), tooltip = aggregation.tooltipByMonth[payment.month], formattedValue = oms.components.formatEuroCents(payment.amountEurCents))
                 },
                 color = MaterialTheme.colorScheme.primary,
                 labelMaxLines = 2,
                 maxVisibleItems = 12,
                 initialScrollToEnd = true,
-                valueLabel = { value -> formatPaymentAmount(value.toInt().toLong()) }
+                valueLabel = { value -> formatPaymentAmount(value.toLong()) }
             )
         }
     }

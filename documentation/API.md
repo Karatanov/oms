@@ -10,6 +10,8 @@ The API base is `/api/v1`; JSON is the default representation. `server/requests.
 
 ## Endpoint groups
 
+Inspection report responses include optional `authorUsername`, resolved from the report creator. Clients may display an em dash if it is absent. This is an additive field; UUIDs and existing workflow/authorization contracts are unchanged.
+
 - Health: **GET** `/health`, **GET** `/api/v1/health`.
 - Dashboard/map: **GET** `/dashboard`, **GET** `/projects/map`.
 - Projects: list/detail/create/update/delete, bulk status/reassignment, XLSX export and health/safety observations under `/projects`.

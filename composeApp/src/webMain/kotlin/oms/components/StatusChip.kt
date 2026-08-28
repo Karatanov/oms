@@ -21,20 +21,13 @@ import oms.model.ProjectStatus
 fun StatusChip(status: ProjectStatus, fontWeight: FontWeight = FontWeight.Medium) {
 
     val (text, color) = when (status) {
-        ProjectStatus.PLANNED -> LocalizationManager.t("project_status_planned") to Color(0xFFF9A825)
-        ProjectStatus.ACTIVE -> LocalizationManager.t("project_status_active") to Color(0xFF2E7D32)
-        ProjectStatus.SUSPENDED -> LocalizationManager.t("project_status_suspended") to Color(0xFFEF6C00)
+        ProjectStatus.PLANNED -> LocalizationManager.t("project_status_planned") to oms.theme.OmsColors.Warning
+        ProjectStatus.ACTIVE -> LocalizationManager.t("project_status_active") to oms.theme.OmsColors.Success
+        ProjectStatus.SUSPENDED -> LocalizationManager.t("project_status_suspended") to oms.theme.OmsColors.Warning
         ProjectStatus.COMPLETED -> LocalizationManager.t("project_status_completed") to Color(0xFF1565C0)
         ProjectStatus.ARCHIVED -> LocalizationManager.t("project_status_archived") to Color(0xFF607D8B)
         ProjectStatus.DLP -> LocalizationManager.t("project_status_dlp") to Color(0xFF6A1B9A)
     }
 
-    Text(
-        text = text,
-        color = color,
-        fontWeight = fontWeight,
-        modifier = Modifier
-            .background(color.copy(alpha = 0.13f), RoundedCornerShape(6.dp))
-            .padding(horizontal = 8.dp, vertical = 4.dp)
-    )
+    OmsBadge(text, color, fontWeight)
 }

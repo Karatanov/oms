@@ -8,6 +8,7 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Folder
@@ -61,6 +62,7 @@ fun ProjectsScreen(
     canBulkReassign: Boolean = false
 ) {
 
+    val deletion = oms.components.LocalDeleteConfirmation.current
     var searchText by remember { mutableStateOf("") }
     var regionFilter by remember { mutableStateOf<String?>(null) }
     var statusFilter by remember { mutableStateOf<ProjectStatus?>(null) }
@@ -120,19 +122,13 @@ fun ProjectsScreen(
             .padding(16.dp)
     ) {
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                LocalizationManager.t("projects_title"),
-                style = MaterialTheme.typography.headlineMedium
-            )
+        oms.components.PageHeading(LocalizationManager.t("projects_title"), Icons.Default.FolderOpen) {
             if (canManageProjects) Button(onClick = onCreateProject) { Text(LocalizationManager.t("create_project")) }
         }
 
         Spacer(Modifier.height(16.dp))
+        if (ProjectRepository.loading) oms.components.ContentState(LocalizationManager.t("loading_records"), loading = true)
+        ProjectRepository.errorMessage?.let { oms.components.ContentState(it, error = true, onRetry = { scope.launch { ProjectRepository.refresh(force = true) } }) }
 
         ProjectsFilters(
             searchText = searchText,
@@ -147,6 +143,9 @@ fun ProjectsScreen(
             onSectorChange = { sectorFilter = it }
         )
 
+        if (searchText.isNotBlank() || regionFilter != null || statusFilter != null || constructionTypeFilter != null || sectorFilter != null) {
+            TextButton(onClick = { searchText = ""; regionFilter = null; statusFilter = null; constructionTypeFilter = null; sectorFilter = null }) { Text(LocalizationManager.t("reset_filters")) }
+        }
         if (canManageProjects && selectedProjectIds.isNotEmpty()) {
             Spacer(Modifier.height(12.dp))
             Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)) {
@@ -158,7 +157,7 @@ fun ProjectsScreen(
                     Text(LocalizationManager.t("selected_projects").replace("{count}", selectedProjectIds.size.toString()), modifier = Modifier.weight(1f))
                     OutlinedButton(onClick = { selectedProjectIds = emptySet() }) { Text(LocalizationManager.t("clear_selection")) }
                     OutlinedButton(onClick = { window.open(oms.data.OmsApiClient.projectExportUrl(selectedProjectIds), "_blank") }) { Text("XLSX") }
-                    if (canBulkReassign) Button(onClick = { showReassign = true }, enabled = managers.isNotEmpty()) { Text("Reassign") }
+                    if (canBulkReassign) Button(onClick = { showReassign = true }, enabled = managers.isNotEmpty()) { Text(LocalizationManager.t("reassign")) }
                     Button(onClick = {
                         scope.launch {
                             runCatching { oms.data.OmsApiClient.bulkUpdateProjectStatus(selectedProjectIds.toList(), "suspended") }
@@ -185,10 +184,10 @@ fun ProjectsScreen(
             onOpenProject = onOpenProject,
             onEditProject = onEditProject,
             onDeleteProject = { project ->
-                scope.launch {
+                deletion.show(project.name) { scope.launch {
                     if (oms.data.OmsApiClient.deleteProject(project.id)) ProjectRepository.refresh(force = true)
                     else errorMessage = LocalizationManager.t("error_delete_project")
-                }
+                } }
             },
             canManageProjects = canManageProjects,
             onExpandRow = { rowTop -> scope.launch { pageScrollState.animateScrollTo((pageScrollState.value + rowTop - 16f).toInt().coerceAtLeast(0)) } },
@@ -202,8 +201,8 @@ fun ProjectsScreen(
             var selectedManager by remember { mutableStateOf(managers.firstOrNull()) }
             Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text("Reassign projects", style = MaterialTheme.typography.titleMedium)
-                    InlineOptionPicker(managers, selectedManager, "Project manager", { selectedManager = it }, { "${it.firstName} ${it.lastName} (${it.username})" })
+                    Text(LocalizationManager.t("reassign_projects"), style = MaterialTheme.typography.titleMedium)
+                    InlineOptionPicker(managers, selectedManager, LocalizationManager.t("role_project_manager"), { selectedManager = it }, { "${it.firstName} ${it.lastName} (${it.username})" })
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
                         OutlinedButton(onClick = { showReassign = false }) { Text(LocalizationManager.t("cancel")) }
                         Button(onClick = {
@@ -211,10 +210,10 @@ fun ProjectsScreen(
                                 scope.launch {
                                     runCatching { oms.data.OmsApiClient.bulkReassignProjects(selectedProjectIds.toList(), manager.id) }
                                         .onSuccess { ProjectRepository.refresh(force = true); selectedProjectIds = emptySet(); showReassign = false }
-                                        .onFailure { errorMessage = it.message ?: "Project reassignment failed." }
+                                        .onFailure { errorMessage = it.message ?: LocalizationManager.t("reassign_error") }
                                 }
                             }
-                        }, enabled = selectedManager != null) { Text("Reassign") }
+                        }, enabled = selectedManager != null) { Text(LocalizationManager.t("reassign")) }
                     }
                 }
             }
@@ -272,7 +271,7 @@ fun ProjectsTable(
         }
     }
 
-    Column(modifier = Modifier.horizontalScroll(rememberScrollState())) {
+    oms.components.ScrollableTable {
 
         TableHeader(
             sortColumn,
@@ -499,9 +498,11 @@ fun ProjectRow(
 
             .background(
                 when {
-                    hovered -> MaterialTheme.colorScheme.primary.copy(alpha = 0.10f)
+                    isSelected -> MaterialTheme.colorScheme.primaryContainer
+                    hovered -> MaterialTheme.colorScheme.primary.copy(alpha = 0.06f)
                     highlightSearchMatch -> MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.50f)
-                    else -> Color.Transparent
+                    !isSubproject -> MaterialTheme.colorScheme.surfaceContainerLow
+                    else -> MaterialTheme.colorScheme.surface
                 }
             )
 
@@ -542,7 +543,7 @@ fun ProjectRow(
             } else if (!isSubproject) {
                 Icon(
                     imageVector = Icons.Default.Folder,
-                    contentDescription = "Project without subprojects",
+                    contentDescription = LocalizationManager.t("project"),
                     tint = Primary,
                     modifier = Modifier.size(20.dp)
                 )
@@ -554,7 +555,7 @@ fun ProjectRow(
                     ) {
                         Icon(
                             imageVector = Icons.Default.Layers,
-                            contentDescription = "Subproject part",
+                            contentDescription = LocalizationManager.t("subproject_part"),
                             tint = Primary,
                             modifier = Modifier.size(18.dp)
                         )

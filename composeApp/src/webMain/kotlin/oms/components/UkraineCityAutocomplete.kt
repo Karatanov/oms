@@ -29,29 +29,6 @@ private val ukraineCities = listOf(
 
 @Composable
 fun UkraineCityAutocomplete(value: String, onValueChange: (String) -> Unit, label: String, modifier: Modifier = Modifier, required: Boolean = false) {
-    var query by remember(value) { mutableStateOf(value) }
-    var expanded by remember { mutableStateOf(false) }
-    val matches = remember(query) {
-        val needle = query.trim().lowercase()
-        if (needle.isBlank()) emptyList() else ukraineCities.filter { it.lowercase().contains(needle) }
-    }
-    Column(modifier) {
-        OutlinedTextField(
-            value = query,
-            onValueChange = { query = it; expanded = true; onValueChange(it) },
-            label = { Text(if (required) "$label *" else label) },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true
-        )
-        if (expanded && matches.isNotEmpty()) Card(
-            Modifier.fillMaxWidth().heightIn(max = 224.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)
-        ) {
-            LazyColumn {
-                items(matches, key = { it }) { city ->
-                    TextButton(onClick = { query = city; onValueChange(city); expanded = false }, modifier = Modifier.fillMaxWidth()) { Text(city) }
-                }
-            }
-        }
-    }
+    AutocompleteField(value, onValueChange, if (required) "$label *" else label,
+        ukraineCities.map { it to it }, modifier)
 }

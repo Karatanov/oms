@@ -1,73 +1,35 @@
 package oms.layout
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.*
 import androidx.compose.ui.unit.dp
 import oms.navigation.Screen
 
-// 🔹 Один пункт sidebar
-// 🔹 Підсвічується, якщо активний
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SidebarItem(
-    title: String,
-    icon: ImageVector,
-    screen: Screen,
-    current: Screen,
-    onNavigate: (Screen) -> Unit
+fun SidebarItem(title: String, icon: ImageVector, screen: Screen, current: Screen,
+    onNavigate: (Screen) -> Unit, compact: Boolean = false
 ) {
-
-    val isSelected = current::class == screen::class
-
-    Button(
-        onClick = { onNavigate(screen) },
-        modifier = Modifier.fillMaxWidth(),
-        contentPadding = PaddingValues(0.dp),
-        shape = RoundedCornerShape(12.dp),
-        colors = if (isSelected)
-            ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
-        else
-            ButtonDefaults.outlinedButtonColors()
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-
-            Box(
-                modifier = Modifier
-                    .width(4.dp)
-                    .background(
-                        color = if (isSelected)
-                            MaterialTheme.colorScheme.primary
-                        else
-                            androidx.compose.ui.graphics.Color.Transparent
-                    )
+    val isSelected = current == screen ||
+        (screen == Screen.Projects && current in listOf(Screen.CreateProject, Screen.EditProject, Screen.ProjectDetail)) ||
+        (screen == Screen.Inspections && current == Screen.CreateInspection)
+    oms.components.OmsTooltipBox(tooltip = { Text(title) }) {
+        TextButton(
+            onClick = { onNavigate(screen) }, modifier = Modifier.fillMaxWidth().heightIn(min = 44.dp).semantics { selected = isSelected },
+            shape = MaterialTheme.shapes.small, contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp),
+            colors = ButtonDefaults.textButtonColors(
+                containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface,
+                contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
             )
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Start
-            ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = title
-                )
-
+        ) {
+            Icon(icon, if (compact) title else null, Modifier.size(20.dp))
+            if (!compact) {
                 Spacer(Modifier.width(12.dp))
-
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleMedium
-                )
+                Text(title, modifier = Modifier.weight(1f), style = MaterialTheme.typography.labelLarge)
             }
         }
     }

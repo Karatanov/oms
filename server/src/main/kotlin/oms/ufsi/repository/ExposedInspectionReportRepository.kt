@@ -2,6 +2,7 @@ package oms.ufsi.repository
 
 import java.time.LocalDate
 import oms.ufsi.database.tables.InspectionReportTable
+import oms.ufsi.database.tables.UserTable
 import oms.ufsi.domain.InspectionReport
 import oms.ufsi.domain.InspectionReportStatus
 import org.jetbrains.exposed.v1.core.eq
@@ -20,23 +21,20 @@ import java.util.*
 class ExposedInspectionReportRepository :
     InspectionReportRepository {
 
+    private fun reportsWithAuthor() = InspectionReportTable.join(
+        UserTable, org.jetbrains.exposed.v1.core.JoinType.LEFT,
+        onColumn = InspectionReportTable.createdBy, otherColumn = UserTable.id
+    )
+
     override fun findAll(): List<InspectionReport> = transaction {
-        InspectionReportTable.selectAll().map(::toInspectionReport)
+        reportsWithAuthor().selectAll().map(::toInspectionReport)
     }
 
     override fun findByProjectId(
         projectId: Long
     ): List<InspectionReport> = transaction {
 
-        InspectionReportTable
-            .selectAll()
-            .filter {
-
-                it[
-                    InspectionReportTable.projectId
-                ].value == projectId
-            }
-            .map(::toInspectionReport)
+        reportsWithAuthor().selectAll().where { InspectionReportTable.projectId eq projectId }.map(::toInspectionReport)
     }
 
     private fun toInspectionReport(row: org.jetbrains.exposed.v1.core.ResultRow) = InspectionReport(
@@ -51,7 +49,8 @@ class ExposedInspectionReportRepository :
         rejectionReason = row[InspectionReportTable.rejectionReason],
         latitude = row[InspectionReportTable.latitude]?.toDouble(),
         longitude = row[InspectionReportTable.longitude]?.toDouble(),
-        createdBy = row[InspectionReportTable.createdBy].value
+        createdBy = row[InspectionReportTable.createdBy].value,
+        authorUsername = row.getOrNull(UserTable.username)
     )
 
 
@@ -63,65 +62,9 @@ class ExposedInspectionReportRepository :
         uuid: String
     ): InspectionReport? = transaction {
 
-        InspectionReportTable
-            .selectAll()
-            .firstOrNull { it[InspectionReportTable.uuid] == uuid }
-            ?.let { row ->
-
-                InspectionReport(
-
-                    id =
-                        row[
-                            InspectionReportTable.id
-                        ].value,
-
-                    uuid =
-                        UUID.fromString(
-                            row[
-                                InspectionReportTable.uuid
-                            ]
-                        ),
-
-                    projectId =
-                        row[
-                            InspectionReportTable.projectId
-                        ].value,
-
-                    reportCode = row[InspectionReportTable.reportCode],
-
-                    inspectionType = row[InspectionReportTable.inspectionType],
-
-                    inspectionDate =
-                        row[
-                            InspectionReportTable.inspectionDate
-                        ],
-
-                    summary =
-                        row[
-                            InspectionReportTable.summary
-                        ],
-
-                    status = InspectionReportStatus.valueOf(
-                        row[InspectionReportTable.status].uppercase()
-                    ),
-
-                    rejectionReason = row[InspectionReportTable.rejectionReason],
-
-                    latitude = row[InspectionReportTable.latitude]?.toDouble(),
-
-                    longitude = row[InspectionReportTable.longitude]?.toDouble(),
-
-                    createdBy =
-                        row[
-                            InspectionReportTable.createdBy
-                        ].value
-                )
-            }
+        reportsWithAuthor().selectAll().where { InspectionReportTable.uuid eq uuid }.firstOrNull()?.let(::toInspectionReport)
     }
 
-    /**
-     * Створює новий звіт інспекції.
-     */
     override fun create(
         projectId: Long,
         inspectionDate: String,

@@ -193,7 +193,8 @@ fun InspectionReport.toResponse():
 
         latitude = latitude,
 
-        longitude = longitude
+        longitude = longitude,
+        authorUsername = authorUsername
     )
 }
 

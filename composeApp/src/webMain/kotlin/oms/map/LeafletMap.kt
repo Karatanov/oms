@@ -6,6 +6,9 @@ import oms.localization.LocalizationManager
 import oms.model.Project
 import oms.model.ProjectStatus
 import kotlin.js.JsName
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.ui.Modifier
+import oms.components.NativePaneAnchor
 
 @JsName("showLeafletMapPane")
 external fun showLeafletMapPane()
@@ -24,7 +27,9 @@ fun LeafletMapView(
     projects: List<Project>,
     onProjectClick: (String) -> Unit = {}
 ) {
-    DisposableEffect(projects) {
+    NativePaneAnchor("map-pane", Modifier.fillMaxSize())
+    val language = LocalizationManager.currentLanguage
+    DisposableEffect(projects, language) {
         showLeafletMapPane()
         setLeafletProjectClickHandler(onProjectClick)
         setLeafletProjects(projects.toLeafletJson())

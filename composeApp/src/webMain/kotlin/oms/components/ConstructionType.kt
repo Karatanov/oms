@@ -32,18 +32,11 @@ fun ConstructionTypeSelector(value: String, onValueChange: (String) -> Unit, mod
 fun ConstructionTypeChip(value: String, fontWeight: FontWeight = FontWeight.Medium) {
     val color = when (value) {
         "reconstruction" -> Color(0xFF1565C0)
-        "capital_repair" -> Color(0xFFEF6C00)
-        "new_construction" -> Color(0xFF2E7D32)
+        "capital_repair" -> oms.theme.OmsColors.Warning
+        "new_construction" -> oms.theme.OmsColors.Success
         else -> Color(0xFF546E7A)
     }
-    Text(
-        text = value.constructionTypeLabel(),
-        color = color,
-        fontWeight = fontWeight,
-        modifier = Modifier
-            .background(color.copy(alpha = 0.13f), RoundedCornerShape(6.dp))
-            .padding(horizontal = 8.dp, vertical = 4.dp)
-    )
+    OmsBadge(value.constructionTypeLabel(), color, fontWeight)
 }
 
 fun String.constructionTypeLabel(): String = when (lowercase()) {

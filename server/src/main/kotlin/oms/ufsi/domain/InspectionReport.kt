@@ -54,5 +54,6 @@ data class InspectionReport(
     /**
      * Автор звіту.
      */
-    val createdBy: Long
+    val createdBy: Long,
+    val authorUsername: String? = null
 )

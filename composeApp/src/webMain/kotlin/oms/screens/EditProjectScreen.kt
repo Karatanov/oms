@@ -4,6 +4,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -88,13 +90,14 @@ fun EditProjectScreen(
 
     val allRequiredFilled = listOf(name, siteName).all { it.isNotBlank() }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        Text(LocalizationManager.t("edit_project"), style = MaterialTheme.typography.headlineMedium)
+        oms.components.PageHeading(LocalizationManager.t("edit_project"), Icons.Default.Edit)
         if (isLoading) {
             CircularProgressIndicator()
             return@Column
         }
         Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                oms.components.FormSectionTitle(LocalizationManager.t("basic_information"), Icons.Default.Folder)
                 OutlinedTextField(name, { name = it }, label = { Text(LocalizationManager.t("project_name_required")) }, modifier = Modifier.fillMaxWidth())
                 OutlinedTextField(description, { description = it }, label = { Text(LocalizationManager.t("description")) }, minLines = 3, modifier = Modifier.fillMaxWidth())
                 OutlinedTextField(
@@ -115,16 +118,20 @@ fun EditProjectScreen(
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         OmsDateField(startDate, { startDate = it }, LocalizationManager.t("start_date"), Modifier.weight(1f), true)
                         OmsDateField(endDate, { endDate = it }, LocalizationManager.t("end_date"), Modifier.weight(1f), true)
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         OmsDateField(contractSignedDate, { contractSignedDate = it }, LocalizationManager.t("contract_signed_date"), Modifier.weight(1f), true)
                         OmsDateField(plannedEndDate, { plannedEndDate = it }, LocalizationManager.t("planned_end_date"), Modifier.weight(1f), true)
                     }
                     Text(LocalizationManager.t("contract_duration_hint"), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-                Text(LocalizationManager.t("design_construction_dates"), style = MaterialTheme.typography.titleMedium)
+                oms.components.FormSectionTitle(LocalizationManager.t("section_schedule"), Icons.Default.CalendarMonth)
                 if (projectType == "project") {
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         OmsDateField(startDate, { startDate = it }, LocalizationManager.t("start_date"), Modifier.weight(1f), true)
                         OmsDateField(endDate, { endDate = it }, LocalizationManager.t("end_date"), Modifier.weight(1f), true)
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         OmsDateField(contractSignedDate, { contractSignedDate = it }, LocalizationManager.t("contract_signed_date"), Modifier.weight(1f), true)
                         OmsDateField(plannedEndDate, { plannedEndDate = it }, LocalizationManager.t("planned_end_date"), Modifier.weight(1f), true)
                     }
@@ -139,9 +146,10 @@ fun EditProjectScreen(
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     OutlinedTextField(contractorName, { contractorName = it }, label = { Text(LocalizationManager.t("contractor")) }, singleLine = true, modifier = Modifier.weight(1f))
-                    OutlinedTextField(currency, { value -> if (value.all { it.isLetter() } && value.length <= 3) currency = value.uppercase() }, label = { Text(LocalizationManager.t("currency_iso_required")) }, singleLine = true, modifier = Modifier.weight(1f))
+                    oms.components.InlineOptionPicker(options = (listOf("EUR", "UAH") + currency).filter { it.isNotBlank() }.distinct(), selected = currency, prompt = LocalizationManager.t("currency"), onSelect = { currency = it }, modifier = Modifier.weight(1f))
                 }
                 if (projectType != "project") {
+                    oms.components.FormSectionTitle(LocalizationManager.t("parameters_and_location"), Icons.Default.LocationOn)
                     OutlinedTextField(address, { address = it }, label = { Text(LocalizationManager.t("address")) }, modifier = Modifier.fillMaxWidth())
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         UkraineRegionAutocomplete(region, { region = it }, LocalizationManager.t("region"), Modifier.weight(1f), required = false)
@@ -152,10 +160,9 @@ fun EditProjectScreen(
                     SectorSelector(sector, { sector = it }, Modifier.weight(1f))
                     ConstructionTypeSelector(constructionType, { constructionType = it }, Modifier.weight(1f))
                 }
-                TooltipBox(
-                    positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
-                    tooltip = { PlainTooltip { Text(LocalizationManager.t("planned_budget_hint")) } },
-                    state = rememberTooltipState()
+                oms.components.FormSectionTitle(LocalizationManager.t("financial_parameters"), Icons.Default.AccountBalanceWallet)
+                oms.components.OmsTooltipBox(
+                    tooltip = { Text(LocalizationManager.t("planned_budget_hint")) }
                 ) {
                     OutlinedTextField(
                         budgetPlanned,
@@ -189,7 +196,7 @@ fun EditProjectScreen(
                 }
             }
         }
-        errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+        errorMessage?.let { oms.components.ContentState(it, error = true) }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.End)) {
             OutlinedButton(onClick = onCancel, enabled = !isSaving) { Text(LocalizationManager.t("cancel")) }
             Button(enabled = !isSaving, onClick = {

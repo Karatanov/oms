@@ -13,10 +13,11 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.Icon
-import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -92,7 +93,7 @@ fun CreateProjectScreen(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Text(LocalizationManager.t("create_project"), style = MaterialTheme.typography.headlineMedium)
+        oms.components.PageHeading(LocalizationManager.t("create_project"), Icons.Default.CreateNewFolder)
         Text(
             LocalizationManager.t("project_created_hint"),
             color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -108,9 +109,9 @@ fun CreateProjectScreen(
             ) {
                 SectionTitle(Icons.Default.Folder, LocalizationManager.t("basic_information"))
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    OutlinedButton(onClick = { projectType = "project" }, modifier = Modifier.weight(1f), colors = ButtonDefaults.outlinedButtonColors(containerColor = if (projectType == "project") Primary else MaterialTheme.colorScheme.surface, contentColor = if (projectType == "project") MaterialTheme.colorScheme.onPrimary else Primary)) { Text(LocalizationManager.t("project")) }
-                    OutlinedButton(onClick = { projectType = "subproject" }, modifier = Modifier.weight(1f), colors = ButtonDefaults.outlinedButtonColors(containerColor = if (projectType == "subproject") Primary else MaterialTheme.colorScheme.surface, contentColor = if (projectType == "subproject") MaterialTheme.colorScheme.onPrimary else Primary)) { Text(LocalizationManager.t("subproject")) }
-                    OutlinedButton(onClick = { projectType = "subproject_part"; siteName = "" }, modifier = Modifier.weight(1f), colors = ButtonDefaults.outlinedButtonColors(containerColor = if (projectType == "subproject_part") Primary else MaterialTheme.colorScheme.surface, contentColor = if (projectType == "subproject_part") MaterialTheme.colorScheme.onPrimary else Primary)) { Text(LocalizationManager.t("subproject_part")) }
+                    OutlinedButton(onClick = { projectType = "project"; parentProjectUuid = null }, modifier = Modifier.weight(1f), colors = ButtonDefaults.outlinedButtonColors(containerColor = if (projectType == "project") Primary else MaterialTheme.colorScheme.surface, contentColor = if (projectType == "project") MaterialTheme.colorScheme.onPrimary else Primary)) { Text(LocalizationManager.t("project")) }
+                    OutlinedButton(onClick = { projectType = "subproject"; parentProjectUuid = null }, modifier = Modifier.weight(1f), colors = ButtonDefaults.outlinedButtonColors(containerColor = if (projectType == "subproject") Primary else MaterialTheme.colorScheme.surface, contentColor = if (projectType == "subproject") MaterialTheme.colorScheme.onPrimary else Primary)) { Text(LocalizationManager.t("subproject")) }
+                    OutlinedButton(onClick = { projectType = "subproject_part"; parentProjectUuid = null; siteName = "" }, modifier = Modifier.weight(1f), colors = ButtonDefaults.outlinedButtonColors(containerColor = if (projectType == "subproject_part") Primary else MaterialTheme.colorScheme.surface, contentColor = if (projectType == "subproject_part") MaterialTheme.colorScheme.onPrimary else Primary)) { Text(LocalizationManager.t("subproject_part")) }
                 }
                 if (projectType != "project") {
                     val eligibleParents = parentProjects.filter { it.projectType == if (projectType == "subproject") "project" else "subproject" }
@@ -194,6 +195,8 @@ fun CreateProjectScreen(
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         OmsDateField(startDate, { startDate = it }, LocalizationManager.t("start_date"), Modifier.weight(1f), true)
                         OmsDateField(endDate, { endDate = it }, LocalizationManager.t("end_date"), Modifier.weight(1f), true)
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         OmsDateField(contractSignedDate, { contractSignedDate = it }, LocalizationManager.t("contract_signed_date"), Modifier.weight(1f), true)
                         OmsDateField(plannedEndDate, { plannedEndDate = it }, LocalizationManager.t("planned_end_date"), Modifier.weight(1f), true)
                     }
@@ -202,11 +205,13 @@ fun CreateProjectScreen(
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         OmsDateField(startDate, { startDate = it }, LocalizationManager.t("start_date"), Modifier.weight(1f), true)
                         OmsDateField(endDate, { endDate = it }, LocalizationManager.t("end_date"), Modifier.weight(1f), true)
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         OmsDateField(contractSignedDate, { contractSignedDate = it }, LocalizationManager.t("contract_signed_date"), Modifier.weight(1f), true)
                         OmsDateField(plannedEndDate, { plannedEndDate = it }, LocalizationManager.t("planned_end_date"), Modifier.weight(1f), true)
                     }
                 }
-                Text(LocalizationManager.t("design_construction_dates"), style = MaterialTheme.typography.titleMedium)
+                oms.components.FormSectionTitle(LocalizationManager.t("section_schedule"), Icons.Default.CalendarMonth)
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     OmsDateField(designContractSigningDate, { designContractSigningDate = it }, LocalizationManager.t("design_contract_date"), Modifier.weight(1f), true)
                     OmsDateField(constructionContractSigningDate, { constructionContractSigningDate = it }, LocalizationManager.t("construction_contract_date"), Modifier.weight(1f), true)
@@ -217,12 +222,12 @@ fun CreateProjectScreen(
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     OutlinedTextField(contractorName, { contractorName = it }, label = { Text(LocalizationManager.t("contractor")) }, singleLine = true, modifier = Modifier.weight(1f))
-                    OutlinedTextField(currency, { value -> if (value.all { it.isLetter() } && value.length <= 3) currency = value.uppercase() }, label = { Text(LocalizationManager.t("currency_iso_required")) }, singleLine = true, modifier = Modifier.weight(1f))
+                    oms.components.InlineOptionPicker(options = (listOf("EUR", "UAH") + currency).filter { it.isNotBlank() }.distinct(), selected = currency, prompt = LocalizationManager.t("currency"), onSelect = { currency = it }, modifier = Modifier.weight(1f))
                 }
             }
         }
 
-        errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+        errorMessage?.let { oms.components.ContentState(it, error = true) }
         Spacer(Modifier.height(4.dp))
         Row(
             modifier = Modifier.fillMaxWidth(),

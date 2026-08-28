@@ -40,16 +40,9 @@ fun SectorSelector(value: String, onValueChange: (String) -> Unit, modifier: Mod
 fun SectorChip(value: String, fontWeight: FontWeight = FontWeight.Medium) {
     val color = when (value.lowercase()) {
         "education" -> Color(0xFF1565C0)
-        "healthcare" -> Color(0xFF00897B)
+        "healthcare" -> oms.theme.OmsColors.Success
         "shelter" -> Color(0xFF6A1B9A)
         else -> Color(0xFF546E7A)
     }
-    Text(
-        text = value.sectorLabel(),
-        color = color,
-        fontWeight = fontWeight,
-        modifier = Modifier
-            .background(color.copy(alpha = 0.13f), RoundedCornerShape(6.dp))
-            .padding(horizontal = 8.dp, vertical = 4.dp)
-    )
+    OmsBadge(value.sectorLabel(), color, fontWeight)
 }

@@ -22,6 +22,9 @@ fun App() {
     val activationToken = remember { window.location.search.removePrefix("?").split("&").firstOrNull { it.startsWith("token=") }?.removePrefix("token=") }
 
     OMSTheme {
+        oms.components.TooltipOverlayHost {
+        oms.components.OptionOverlayHost {
+        oms.components.ConfirmationHost {
         SelectionContainer {
             if (!appState.isAuthenticated && !activationToken.isNullOrBlank()) {
                 ActivationScreen(activationToken) { window.location.href = window.location.pathname }
@@ -36,5 +39,8 @@ fun App() {
                 AppLayout(appState)
             }
         }
+        }
+        }
+    }
     }
 }

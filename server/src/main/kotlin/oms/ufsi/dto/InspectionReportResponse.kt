@@ -36,7 +36,8 @@ data class InspectionReportResponse(
 
     val latitude: Double? = null,
 
-    val longitude: Double? = null
+    val longitude: Double? = null,
+    val authorUsername: String? = null
 )
 
 /** A report together with the project it belongs to, for the reports list. */

@@ -1,6 +1,8 @@
 package oms.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.layout.*
@@ -82,9 +84,12 @@ fun LoginScreen(
     // ---------------- LAYOUT ----------------
 
     Box(modifier = Modifier.fillMaxSize()) {
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+    val showBrandPanel = maxWidth >= 1000.dp
     Row(modifier = Modifier.fillMaxSize()) {
 
-// ---------------- LEFT PANEL (enhanced branding) ----------------
+// A quiet brand panel only when there is enough space for both columns.
+        if (showBrandPanel) {
         Box(
             modifier = Modifier
                 .weight(1f)
@@ -94,7 +99,7 @@ fun LoginScreen(
                     Brush.linearGradient(
                         colors = listOf(
                             MaterialTheme.colorScheme.primary,
-                            MaterialTheme.colorScheme.primaryContainer
+                            androidx.compose.ui.graphics.Color(0xFF16566C)
                         )
                     )
                 )
@@ -109,13 +114,13 @@ fun LoginScreen(
 
                 // 🔹 Маленький badge (додає "продуктовість")
                 Surface(
-                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.1f),
+                    color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.1f),
                     shape = MaterialTheme.shapes.small
                 ) {
                     Text(
                         text = "OMS Platform",
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                        color = MaterialTheme.colorScheme.onPrimary,
+                        color = androidx.compose.ui.graphics.Color.White,
                         style = MaterialTheme.typography.labelMedium
                     )
                 }
@@ -124,14 +129,14 @@ fun LoginScreen(
                 Text(
                     text = LocalizationManager.t("login_hero_title"),
                     style = MaterialTheme.typography.displayMedium,
-                    color = MaterialTheme.colorScheme.onPrimary
+                    color = androidx.compose.ui.graphics.Color.White
                 )
 
                 // 🔹 Підзаголовок
                 Text(
                     text = LocalizationManager.t("login_hero_subtitle"),
                     style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.9f)
+                    color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.9f)
                 )
 
                 Spacer(Modifier.height(16.dp))
@@ -146,25 +151,28 @@ fun LoginScreen(
             }
         }
 
+        }
         // ---------------- RIGHT PANEL (form) ----------------
         Box(
             modifier = Modifier
                 .weight(1f)
-                .fillMaxHeight(),
+                .fillMaxHeight().padding(24.dp).verticalScroll(rememberScrollState()),
             contentAlignment = Alignment.Center
         ) {
 
             Card(
-                modifier = Modifier.width(460.dp),
-                elevation = CardDefaults.cardElevation(12.dp)
+                modifier = Modifier.widthIn(max = 440.dp).fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                elevation = CardDefaults.cardElevation(0.dp)
             ) {
 
                 Column(
                     modifier = Modifier.padding(36.dp),
-                    verticalArrangement = Arrangement.spacedBy(20.dp)
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
 
-                    // 🔹 Заголовок форми
+                    oms.components.LanguageSwitcher()
+                    // Form identity
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
 
                         Text(
@@ -260,6 +268,7 @@ fun LoginScreen(
                     // ---------------- LOGIN BUTTON ----------------
                     Button(
                         onClick = ::submitLogin,
+                        enabled = !isLoading && !isStartingGuestSession,
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(52.dp)
@@ -291,8 +300,9 @@ fun LoginScreen(
             }
         }
     }
+        }
         if (showPasswordReset) {
-            WasmSafeOverlay {
+            WasmSafeOverlay(onDismiss = { showPasswordReset = false }) {
                 PasswordResetDialog(
                     initialIdentifier = username,
                     onDismiss = { showPasswordReset = false }
@@ -310,7 +320,7 @@ private fun PasswordResetDialog(initialIdentifier: String, onDismiss: () -> Unit
     var error by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
     Card(
-        modifier = Modifier.fillMaxWidth().widthIn(max = 460.dp),
+        modifier = Modifier.widthIn(max = 460.dp).fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Column(Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {

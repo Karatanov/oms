@@ -35,7 +35,7 @@ fun FundingByOblastChart(items: List<ApiSubprojectFunding>) {
         .mapIndexed { index, entry ->
             BarData(entry.key, entry.value.sumOf { it.amount }.toFloat(), color = colors[index % colors.size])
         }
-    AnalyticsCard("approved_funding_by_oblast", "approved_funding_by_oblast_hint", data, { money(it.toInt().toLong()) })
+    AnalyticsCard("approved_funding_by_oblast", null, data, { money(it.toLong()) })
 }
 
 @Composable
@@ -54,13 +54,6 @@ fun MetricsChart(
     centerYearLabels: Boolean = false
 ) {
     val sortedMetrics = metrics.sortedBy { it.label }
-    val yearCenterIndexes = if (centerYearLabels) {
-        sortedMetrics.withIndex()
-            .filter { it.value.label.matches(Regex("\\d{4}-\\d{2}")) }
-            .groupBy { it.value.label.take(4) }
-            .values
-            .associate { group -> group[group.size / 2].index to group.first().value.label.take(4) }
-    } else emptyMap()
     val data = sortedMetrics.mapIndexed { index, metric ->
         val isMonth = metric.label.matches(Regex("\\d{4}-\\d{2}"))
         val displayLabel = if (titleKey.contains("procurement_status")) {
@@ -69,7 +62,7 @@ fun MetricsChart(
         BarData(
             label = if (centerYearLabels && isMonth) displayLabel.toMonthName() else displayLabel.toChartMonth(),
             value = metric.value.toFloat(),
-            groupLabel = yearCenterIndexes[index]
+            groupLabel = if (centerYearLabels && isMonth) metric.label.take(4) else null
         )
     }
     AnalyticsCard(titleKey, hintKey, data)
@@ -83,9 +76,9 @@ fun MonthlyAmountsChart(
     tooltipByMonth: Map<String, String> = emptyMap()
 ) {
     val data = payments.sortedBy { it.month }.map {
-        BarData(it.month.toChartMonth(), it.amountEurCents.toFloat(), tooltip = tooltipByMonth[it.month])
+        BarData(it.month.toChartMonth(), it.amountEurCents.toFloat(), tooltip = tooltipByMonth[it.month], formattedValue = oms.components.formatEuroCents(it.amountEurCents))
     }
-    AnalyticsCard(titleKey, hintKey, data, { euro(it.toInt().toLong()) })
+    AnalyticsCard(titleKey, hintKey, data, { euro(it.toLong()) })
 }
 
 @Composable
@@ -96,9 +89,10 @@ private fun AnalyticsCard(
     valueLabel: (Float) -> String = { it.toInt().toString() },
     onItemClick: ((BarData) -> Unit)? = null
 ) {
-    Card(Modifier.fillMaxWidth().height(320.dp), shape = RoundedCornerShape(12.dp)) {
+    Card(Modifier.fillMaxWidth().height(420.dp), shape = RoundedCornerShape(12.dp),
+        colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
         Column(Modifier.padding(16.dp)) {
-            Box(Modifier.fillMaxWidth().height(28.dp), contentAlignment = Alignment.Center) {
+            Box(Modifier.fillMaxWidth().height(44.dp), contentAlignment = Alignment.Center) {
                 Text(
                     LocalizationManager.t(titleKey),
                     style = MaterialTheme.typography.titleMedium,

@@ -1,0 +1,26 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>OMS UI unit tests</title>
+<h1>OMS UI unit tests</h1>
+<pre id="results" aria-live="polite">Starting…</pre>
+<script type="importmap">{"imports":{"@js-joda/core":"/js-joda.mjs"}}</script>
+<script type="module">
+// Execute the actual compiled Kotlin test exports in a Skiko-supported browser.
+const output = document.querySelector('#results');
+output.textContent = '';
+let passed = 0, failed = 0;
+globalThis.kotlinTest = {};
+globalThis.describe = (name, run) => { output.textContent += '\n' + name + '\n'; run(); };
+globalThis.it = (name, run) => {
+  try { run(); passed++; output.textContent += 'PASS ' + name + '\n'; }
+  catch (error) { failed++; output.textContent += 'FAIL ' + name + ': ' + error + '\n'; }
+};
+globalThis.xdescribe = globalThis.xit = () => {};
+try {
+  const tests = await import('./ufsi-composeApp-test.mjs');
+  tests.startUnitTests();
+  output.textContent += `\nRESULT: ${passed} passed, ${failed} failed`;
+} catch (error) {
+  output.textContent += '\nHARNESS ERROR: ' + error.stack;
+}
+</script>

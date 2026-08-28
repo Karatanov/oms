@@ -3,6 +3,11 @@ package oms.layout
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.background
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.*
+import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import oms.navigation.AppState
@@ -18,6 +23,8 @@ import oms.screens.dashboard.DashboardScreen
 @Composable
 fun AppLayout(appState: AppState) {
 
+    BoxWithConstraints(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+    var compact by remember(maxWidth < 1100.dp) { mutableStateOf(maxWidth < 1100.dp) }
     Row(modifier = Modifier.fillMaxSize()) {
 
         // ---------------- SIDEBAR ----------------
@@ -27,7 +34,10 @@ fun AppLayout(appState: AppState) {
             onLogout = { appState.logout() },
             username = appState.username,
             isAdmin = appState.roleCode == "ADMIN",
-            isGuest = appState.roleCode == "GUEST"
+            isGuest = appState.roleCode == "GUEST",
+            canAccessFinancials = appState.roleCode in setOf("ADMIN", "PROJECT_MANAGER"),
+            compact = compact,
+            onToggle = { compact = !compact }
         )
         // ---------------- CONTENT ----------------
         Box(modifier = Modifier.weight(1f)) {
@@ -36,7 +46,7 @@ fun AppLayout(appState: AppState) {
 
                 is Screen.Dashboard -> if (appState.roleCode != "GUEST") DashboardScreen(
                     onOpenProject = appState::openProjectDetail,
-                    onOpenFinancial = { appState.navigate(Screen.Financial) }
+                    onOpenFinancial = { if (appState.roleCode in setOf("ADMIN", "PROJECT_MANAGER")) appState.navigate(Screen.Financial) }
                 )
 
                 is Screen.Projects -> ProjectsScreen(
@@ -47,12 +57,12 @@ fun AppLayout(appState: AppState) {
                     canBulkReassign = appState.roleCode == "ADMIN"
                 )
 
-                is Screen.CreateProject -> if (appState.roleCode != "GUEST") CreateProjectScreen(
+                is Screen.CreateProject -> if (appState.roleCode in setOf("ADMIN", "PROJECT_MANAGER")) CreateProjectScreen(
                     onCancel = { appState.navigate(Screen.Projects) },
                     onCreated = { appState.navigate(Screen.Projects) }
                 )
 
-                is Screen.EditProject -> if (appState.roleCode != "GUEST") appState.selectedProject?.let { project ->
+                is Screen.EditProject -> if (appState.roleCode in setOf("ADMIN", "PROJECT_MANAGER")) appState.selectedProject?.let { project ->
                     EditProjectScreen(
                         project = project,
                         onCancel = { appState.openProjectDetail(project) },
@@ -70,12 +80,13 @@ fun AppLayout(appState: AppState) {
                             onEdit = { appState.openEditProject(it) },
                             canEditProject = appState.roleCode in setOf("ADMIN", "PROJECT_MANAGER"),
                             canDeleteProject = appState.roleCode in setOf("ADMIN", "PROJECT_MANAGER"),
-                            isGuest = appState.roleCode == "GUEST"
+                            isGuest = appState.roleCode == "GUEST",
+                            canAccessFinancials = appState.roleCode in setOf("ADMIN", "PROJECT_MANAGER")
                         )
                     }
                 }
 
-                is Screen.CreateInspection -> if (appState.roleCode != "GUEST") CreateInspectionScreen(
+                is Screen.CreateInspection -> if (appState.roleCode in setOf("ADMIN", "PROJECT_MANAGER", "INSPECTOR")) CreateInspectionScreen(
                     onSaveDraft = { appState.navigate(Screen.Inspections) },
                     onSubmit = { appState.navigate(Screen.Inspections) },
                     onImportXls = { appState.navigate(Screen.Inspections) },
@@ -96,7 +107,7 @@ fun AppLayout(appState: AppState) {
                     canMoveReports = appState.roleCode in setOf("ADMIN", "PROJECT_MANAGER")
                 )
 
-                is Screen.Financial -> if (appState.roleCode != "GUEST") FinancialScreen(
+                is Screen.Financial -> if (appState.roleCode in setOf("ADMIN", "PROJECT_MANAGER")) FinancialScreen(
                     canAccessFinancials = appState.roleCode in setOf("ADMIN", "PROJECT_MANAGER"),
                     canManageFinancials = appState.roleCode in setOf("ADMIN", "PROJECT_MANAGER")
                 )
@@ -114,5 +125,6 @@ fun AppLayout(appState: AppState) {
                 else -> {}
             }
         }
+    }
     }
 }

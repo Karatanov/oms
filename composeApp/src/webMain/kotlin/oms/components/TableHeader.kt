@@ -24,7 +24,7 @@ fun TableHeader(
         Box(modifier = Modifier.width(32.dp))
         Box(modifier = Modifier.width(30.dp))
         SortableHeader(
-            "ID",
+            LocalizationManager.t("project_code"),
             SortColumn.ID,
             currentSort,
             ascending,
@@ -72,10 +72,10 @@ fun TableHeader(
         Box(
             modifier = Modifier
                 .width(144.dp)
-                .height(48.dp),
+                .height(oms.theme.OmsDimensions.TableHeaderHeight),
             contentAlignment = Alignment.Center
         ) {
-            Text(text = LocalizationManager.t("action"), style = MaterialTheme.typography.labelLarge)
+            Text(text = LocalizationManager.t("actions"), style = MaterialTheme.typography.labelLarge)
         }
     }
 }

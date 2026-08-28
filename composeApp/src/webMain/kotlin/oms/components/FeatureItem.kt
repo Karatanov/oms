@@ -22,12 +22,12 @@ fun FeatureItem(text: String) {
         // 🔹 Маленький "індикатор"
         Text(
             text = "•",
-            color = MaterialTheme.colorScheme.onPrimary
+            color = androidx.compose.ui.graphics.Color.White
         )
 
         Text(
             text = text,
-            color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.9f),
+            color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.9f),
             style = MaterialTheme.typography.bodyMedium
         )
     }

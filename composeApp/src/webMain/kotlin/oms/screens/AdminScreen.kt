@@ -9,6 +9,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.AdminPanelSettings
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.runtime.*
@@ -35,7 +37,7 @@ import oms.screens.dashboard.ActivitySection
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 
-private enum class UserSort { Id, Username, FullName, Email, Role, Status, LastLogin, Region, Department, Language, Created }
+private enum class UserSort { Id, Username, FullName, Email, Role, Status, LastLogin, Region, Department, Language, Created, FailedAttempts, LockedUntil, Updated }
 
 @Composable
 private fun UserStatusChip(status: String) {
@@ -45,15 +47,7 @@ private fun UserStatusChip(status: String) {
         "disabled", "locked" -> Color(0xFFC62828)
         else -> Color(0xFF546E7A)
     }
-    Text(
-        text = LocalizationManager.t("user_status_${status.lowercase()}").takeIf { it != "user_status_${status.lowercase()}" } ?: status,
-        color = color,
-        style = MaterialTheme.typography.bodyMedium,
-        fontWeight = FontWeight.Medium,
-        modifier = Modifier
-            .background(color.copy(alpha = 0.10f), RoundedCornerShape(4.dp))
-            .padding(horizontal = 8.dp, vertical = 4.dp)
-    )
+    oms.components.OmsBadge(LocalizationManager.t("user_status_${status.lowercase()}").takeIf { it != "user_status_${status.lowercase()}" } ?: status, color)
 }
 
 /** Uses vector drawing rather than flag emoji: emoji fonts are not consistently available in Wasm. */
@@ -87,6 +81,8 @@ private fun LanguageFlag(language: String) {
 
 @Composable
 fun AdminScreen() {
+    var search by remember { mutableStateOf("") }
+    var loading by remember { mutableStateOf(true) }
     var users by remember { mutableStateOf<List<ApiUser>>(emptyList()) }
     var roles by remember { mutableStateOf<List<ApiRole>>(emptyList()) }
     var activities by remember { mutableStateOf<List<ApiActivity>>(emptyList()) }
@@ -113,8 +109,9 @@ fun AdminScreen() {
         loadedUsers.onSuccess { users = it }.onFailure { errorMessage = LocalizationManager.t("error_load_users") }
         roles = loadedRoles.getOrDefault(emptyList())
         activities = loadedActivities.getOrDefault(emptyList())
+        loading = false
     }
-    val sortedUsers = users.sortedWith(compareBy<ApiUser> {
+    val sortedUsers = users.filter { search.isBlank() || listOf(it.username, it.email, it.firstName, it.lastName).any { value -> value.contains(search, true) } }.sortedWith(compareBy<ApiUser> {
         when (sort) {
             UserSort.Id -> it.id.toString().padStart(12, '0')
             UserSort.Username -> it.username
@@ -127,6 +124,9 @@ fun AdminScreen() {
             UserSort.Department -> it.department.orEmpty()
             UserSort.Language -> it.preferredLang
             UserSort.Created -> it.createdAt.orEmpty()
+            UserSort.FailedAttempts -> it.failedLoginCount.toString().padStart(12, '0')
+            UserSort.LockedUntil -> it.lockedUntil.orEmpty()
+            UserSort.Updated -> it.updatedAt.orEmpty()
         }
     }.let { if (ascending) it else it.reversed() })
     fun changeSort(column: UserSort) { if (sort == column) ascending = !ascending else { sort = column; ascending = true } }
@@ -136,12 +136,14 @@ fun AdminScreen() {
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            Text(LocalizationManager.t("admin_title"), style = MaterialTheme.typography.headlineMedium)
-            Button(onClick = { createUser = true }) { Text(LocalizationManager.t("create_user")) }
+        oms.components.PageHeading(LocalizationManager.t("admin_title"), Icons.Default.AdminPanelSettings) {
+            Button(onClick = { errorMessage = null; createUser = true }) { Text(LocalizationManager.t("create_user")) }
         }
+        OutlinedTextField(search, { search = it }, singleLine = true, label = { Text(LocalizationManager.t("admin_search")) }, leadingIcon = { Icon(Icons.Default.Search, null) }, modifier = Modifier.fillMaxWidth())
+        if (loading) oms.components.ContentState(LocalizationManager.t("loading_records"), loading = true)
+        if (!loading && sortedUsers.isEmpty()) oms.components.ContentState(LocalizationManager.t("no_search_results"))
         Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-            Column(Modifier.padding(16.dp).horizontalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            oms.components.ScrollableTable(Modifier.padding(16.dp)) {
                 Row(Modifier.width(2046.dp).padding(vertical = 6.dp)) {
                     SortableTableHeader(LocalizationManager.t("username"), sort == UserSort.Username, ascending, { changeSort(UserSort.Username) }, Modifier.width(130.dp))
                     AdminStaticHeader(LocalizationManager.t("actions"), 96.dp)
@@ -153,10 +155,10 @@ fun AdminScreen() {
                     SortableTableHeader(LocalizationManager.t("department"), sort == UserSort.Department, ascending, { changeSort(UserSort.Department) }, Modifier.width(150.dp))
                     SortableTableHeader(LocalizationManager.t("language"), sort == UserSort.Language, ascending, { changeSort(UserSort.Language) }, Modifier.width(80.dp))
                     SortableTableHeader(LocalizationManager.t("last_login"), sort == UserSort.LastLogin, ascending, { changeSort(UserSort.LastLogin) }, Modifier.width(170.dp))
-                    SortableTableHeader(LocalizationManager.t("failed_login_attempts"), sort == UserSort.LastLogin, ascending, { changeSort(UserSort.LastLogin) }, Modifier.width(120.dp))
-                    AdminStaticHeader(LocalizationManager.t("locked_until"), 170.dp)
+                    SortableTableHeader(LocalizationManager.t("failed_login_attempts"), sort == UserSort.FailedAttempts, ascending, { changeSort(UserSort.FailedAttempts) }, Modifier.width(120.dp))
+                    SortableTableHeader(LocalizationManager.t("locked_until"), sort == UserSort.LockedUntil, ascending, { changeSort(UserSort.LockedUntil) }, Modifier.width(170.dp))
                     SortableTableHeader(LocalizationManager.t("created_at"), sort == UserSort.Created, ascending, { changeSort(UserSort.Created) }, Modifier.width(170.dp))
-                    AdminStaticHeader(LocalizationManager.t("updated_at"), 170.dp)
+                    SortableTableHeader(LocalizationManager.t("updated_at"), sort == UserSort.Updated, ascending, { changeSort(UserSort.Updated) }, Modifier.width(170.dp))
                 }
                 HorizontalDivider()
                 sortedUsers.forEach { user ->
@@ -189,7 +191,7 @@ fun AdminScreen() {
         ActivitySection(activities)
         errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error) }
     }
-        selectedUser?.let { user -> WasmSafeOverlay {
+    selectedUser?.let { user -> WasmSafeOverlay(onDismiss = { selectedUser = null; editUserError = null }, errorMessage = null) {
             EditUserDialog(user, roles, editUserError, onDismiss = {
                 editUserError = null
                 selectedUser = null
@@ -210,7 +212,7 @@ fun AdminScreen() {
             }
         }
         }
-        if (createUser) { WasmSafeOverlay {
+    if (createUser) { WasmSafeOverlay(onDismiss = { createUser = false }, errorMessage = errorMessage) {
             CreateUserDialog(roles, onDismiss = { createUser = false }) { request ->
                 scope.launch {
                     runCatching { OmsApiClient.createUser(request) }
@@ -220,8 +222,8 @@ fun AdminScreen() {
             }
         }
         }
-        userPendingDeletion?.let { user -> WasmSafeOverlay {
-            Card(Modifier.fillMaxWidth().widthIn(max = 520.dp)) {
+    userPendingDeletion?.let { user -> WasmSafeOverlay(onDismiss = { userPendingDeletion = null }, errorMessage = errorMessage) {
+            Card(Modifier.widthIn(max = 520.dp).fillMaxWidth()) {
                 Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                     Text(LocalizationManager.t("delete_user_title"), style = MaterialTheme.typography.titleLarge)
                     Text(LocalizationManager.t("delete_user_confirmation").replace("{username}", user.username))
@@ -252,7 +254,7 @@ fun AdminScreen() {
 @Composable
 private fun AdminStaticHeader(text: String, width: androidx.compose.ui.unit.Dp) {
     Box(
-        Modifier.width(width).height(48.dp).padding(start = 16.dp),
+        Modifier.width(width).height(oms.theme.OmsDimensions.TableHeaderHeight).padding(start = 8.dp),
         contentAlignment = Alignment.CenterStart
     ) { Text(text) }
 }
@@ -269,7 +271,7 @@ private fun CreateUserDialog(roles: List<ApiRole>, onDismiss: () -> Unit, onSave
     var preferredLang by remember { mutableStateOf("uk") }
     val role = roles.firstOrNull { it.code == roleCode }
     Card(
-        modifier = Modifier.fillMaxWidth().widthIn(max = 760.dp),
+        modifier = Modifier.widthIn(max = 760.dp).fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = Color.White)
     ) {
         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -292,7 +294,7 @@ private fun CreateUserDialog(roles: List<ApiRole>, onDismiss: () -> Unit, onSave
                 Text(LocalizationManager.t("language"), style = MaterialTheme.typography.bodyMedium)
                 listOf("uk", "en").forEach { value -> FilterChip(preferredLang == value, { preferredLang = value }, label = { Text(value.uppercase()) }) }
             }
-            InlineOptionPicker(options = roles, selected = role, prompt = LocalizationManager.t("select_role"), onSelect = { roleCode = it.code }, itemLabel = { it.name })
+            InlineOptionPicker(options = roles, selected = role, prompt = LocalizationManager.t("select_role"), onSelect = { roleCode = it.code }, itemLabel = { LocalizationManager.t("role_${it.code.lowercase()}") })
             }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
                 OutlinedButton(onClick = onDismiss) { Text(LocalizationManager.t("cancel")) }
@@ -333,7 +335,7 @@ private fun EditUserDialog(user: ApiUser, roles: List<ApiRole>, saveError: Strin
     var preferredLang by remember(user.id) { mutableStateOf(user.preferredLang) }
     val role = roles.firstOrNull { it.code == roleCode }
     Card(
-        modifier = Modifier.fillMaxWidth().widthIn(max = 760.dp),
+        modifier = Modifier.widthIn(max = 760.dp).fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = Color.White)
     ) {
         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -356,7 +358,7 @@ private fun EditUserDialog(user: ApiUser, roles: List<ApiRole>, saveError: Strin
                 listOf("active", "pending", "disabled").forEach { value -> FilterChip(status == value, { status = value }, label = { Text(LocalizationManager.t("user_status_$value")) }) }
                 listOf("uk", "en").forEach { value -> FilterChip(preferredLang == value, { preferredLang = value }, label = { Text(value.uppercase()) }) }
             }
-            InlineOptionPicker(options = roles, selected = role, prompt = roleCode, onSelect = { roleCode = it.code }, itemLabel = { it.name })
+            InlineOptionPicker(options = roles, selected = role, prompt = roleCode, onSelect = { roleCode = it.code }, itemLabel = { LocalizationManager.t("role_${it.code.lowercase()}") })
             OutlinedTextField(password, { password = it }, label = { Text(LocalizationManager.t("new_password_optional")) }, modifier = Modifier.fillMaxWidth())
             Text(LocalizationManager.t("password_requirements"), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             saveError?.let { Text(it, color = MaterialTheme.colorScheme.error) }

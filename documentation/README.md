@@ -6,6 +6,8 @@ Use this page as the documentation entry point for Phase 1.
 - `ARCHITECTURE.md` — maintainable runtime/module/security architecture.
 - `DATABASE.md` — schema relationships, migration and recovery guidance.
 - `API.md` — API conventions, endpoint groups, authentication and errors.
+- `UI_UX_DESIGN_SYSTEM.md` — implemented UI tokens, shared interaction patterns and redesigned workspaces.
+- `UI_UX_VALIDATION.md` — build, browser and integration evidence, with environment limitations.
 - `OMS_User_Manual.docx` — end-user workflows and current UI guidance.
 - `OMS_Administrator_Guide.docx` — environment, deployment, users/RBAC, operations and troubleshooting.
 - `D9_System_Integration_Testing_and_UAT_Report.md` — integration/UAT evidence and accepted limitations.
@@ -14,4 +16,3 @@ Use this page as the documentation entry point for Phase 1.
 - `D12_Technical_Handover.md` — source-controlled technical companion to the D12 DOCX.
 
 The root `README.md` is the onboarding quick start. Source code, migrations and route/DTO definitions remain authoritative when implementation-level detail is required. Phase 2 roadmap items are not implemented Phase 1 functionality.
-

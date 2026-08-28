@@ -16,7 +16,9 @@
     <script>
         function omsApiUrl(path) {
             const local = ["localhost", "127.0.0.1"].includes(window.location.hostname);
-            return `${local ? "http://localhost:8080/api/v1" : "/api/v1"}${path}`;
+            const base = local && window.location.port === "8081"
+                ? `${window.location.protocol}//${window.location.hostname}:8080/api/v1` : "/api/v1";
+            return `${base}${path}`;
         }
 
         let ufsiLeafletMap = null;
@@ -86,7 +88,9 @@
 
         // Browser-native date input is dependable in Wasm and provides a calendar on desktop/mobile.
         function openNativeDatePicker(value, anchorLeft, anchorTop, onSelected) {
+            document.querySelectorAll(".oms-native-date-input").forEach(input => input.remove());
             const input = document.createElement("input");
+            input.className = "oms-native-date-input";
             input.type = "date";
             input.value = /^\d{4}-\d{2}-\d{2}$/.test(value || "") ? value : currentIsoDate();
             input.style.position = "fixed";
@@ -104,6 +108,7 @@
             const remove = () => input.remove();
             input.addEventListener("change", () => { if (input.value) onSelected(input.value); remove(); }, { once: true });
             input.addEventListener("blur", () => setTimeout(remove, 100), { once: true });
+            input.focus({ preventScroll: true });
             input.showPicker?.();
             input.click();
         }
@@ -161,6 +166,18 @@
                 })
             }).addTo(ufsiLeafletMap);
             fitUkraineOverview();
+        }
+
+        function setOmsPaneBounds(id, x, y, width, height) {
+            const pane = document.getElementById(id);
+            if (!pane) return;
+            pane.classList.toggle("oms-pane-clipped", height <= 0 || width <= 0);
+            Object.assign(pane.style, { left: x + "px", top: y + "px", width: width + "px", height: height + "px", right: "auto", bottom: "auto" });
+            if (id === "map-pane" && ufsiLeafletMap) ufsiLeafletMap.invalidateSize({pan: false});
+        }
+
+        function setOmsCanvasOverlay(active) {
+            document.body.classList.toggle("canvas-overlay-open", active);
         }
 
         function showLeafletMapPane() {
@@ -448,6 +465,12 @@
             render();
         }
 
+        function fitLeafletResults() {
+            if (ufsiLeafletMap && ufsiMarkersLayer && ufsiMarkersLayer.getLayers().length) {
+                ufsiLeafletMap.fitBounds(ufsiMarkersLayer.getBounds(), { padding: [40, 40], maxZoom: 13 });
+            }
+        }
+
         function setLeafletProjects(projectsJson) {
             initLeafletMap();
 
@@ -472,29 +495,20 @@
                 const duplicateIndex = coordinateUsage.get(coordinateKey) || 0;
                 coordinateUsage.set(coordinateKey, duplicateIndex + 1);
 
-                const popupHtml = `
-                <div style="min-width: 180px;">
-                    <strong>${project.name}</strong><br/>
-                    ${project.regionLabel}: ${project.region}<br/>
-                    ${project.statusLabel}: ${project.statusText}<br/><br/>
-                    <button
-                        type="button"
-                        onclick="ufsiOnProjectClick && ufsiOnProjectClick('${project.id}')"
-                        style="
-                            width: 100%;
-                            padding: 8px 12px;
-                            border: none;
-                            border-radius: 8px;
-                            cursor: pointer;
-                            background: #278DAD;
-                            color: white;
-                            font-weight: 600;
-                        "
-                    >
-                        ${omsText("details")}
-                    </button>
-                </div>
-            `;
+                // User-provided names must be text, never interpreted as HTML.
+                const popupHtml = document.createElement("div");
+                popupHtml.className = "oms-map-preview";
+                const name = document.createElement("strong");
+                name.textContent = project.name;
+                const region = document.createElement("p");
+                region.textContent = project.regionLabel + ": " + project.region;
+                const status = document.createElement("p");
+                status.textContent = project.statusLabel + ": " + project.statusText;
+                const open = document.createElement("button");
+                open.type = "button";
+                open.textContent = omsText("details");
+                open.onclick = () => ufsiOnProjectClick && ufsiOnProjectClick(project.id);
+                popupHtml.append(name, region, status, open);
 
                 // Several facilities may share one postal address. Spread only
                 // overlapping markers visually; their persisted GPS data remains exact.

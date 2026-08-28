@@ -60,58 +60,7 @@ private fun UkraineRegion.displayName() =
  * It stores the Ukrainian canonical name so filters and existing project data stay consistent.
  */
 @Composable
-fun UkraineRegionAutocomplete(
-    value: String,
-    onValueChange: (String) -> Unit,
-    label: String,
-    modifier: Modifier = Modifier,
-    required: Boolean = false
-) {
-    val language = LocalizationManager.currentLanguage
-    var query by remember { mutableStateOf(value) }
-    var expanded by remember { mutableStateOf(false) }
-
-    LaunchedEffect(value, language) {
-        query = ukraineRegions.firstOrNull { it.ukrainianName == value }?.displayName() ?: value
-    }
-
-    val matches = remember(query, language) {
-        val needle = query.trim().lowercase()
-        if (needle.isBlank()) emptyList() else ukraineRegions.filter { region ->
-            region.ukrainianName.lowercase().contains(needle) || region.englishName.lowercase().contains(needle)
-        }
-    }
-
-    Column(modifier) {
-        OutlinedTextField(
-            value = query,
-            onValueChange = { entered ->
-                query = entered
-                expanded = true
-                onValueChange(entered)
-            },
-            label = { Text(if (required) "$label *" else label) },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true
-        )
-        if (expanded && matches.isNotEmpty()) {
-            Card(
-                Modifier.fillMaxWidth().heightIn(max = 224.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)
-            ) {
-                LazyColumn {
-                    items(matches, key = { it.ukrainianName }) { region ->
-                        TextButton(
-                            onClick = {
-                                onValueChange(region.ukrainianName)
-                                query = region.displayName()
-                                expanded = false
-                            },
-                            modifier = Modifier.fillMaxWidth()
-                        ) { Text(region.displayName()) }
-                    }
-                }
-            }
-        }
-    }
+fun UkraineRegionAutocomplete(value: String, onValueChange: (String) -> Unit, label: String, modifier: Modifier = Modifier, required: Boolean = false) {
+    AutocompleteField(value, onValueChange, if (required) "$label *" else label,
+        ukraineRegions.map { it.ukrainianName to it.displayName() }, modifier)
 }

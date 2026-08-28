@@ -1,112 +1,74 @@
 package oms.charts
 
-import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.PlainTooltip
-import androidx.compose.material3.Text
-import androidx.compose.material3.TooltipBox
-import androidx.compose.material3.TooltipDefaults
-import androidx.compose.material3.rememberTooltipState
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.foundation.*
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.semantics.*
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import oms.components.TableScrollControls
 
-/** Compact vertical bar chart for time-series counts and monetary totals. */
+/** Zero-based plot with a fixed baseline, equal label lanes and accessible tooltips. */
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
 fun VerticalBarChart(
-    data: List<BarData>,
-    color: Color,
-    labelWidth: Dp = 76.dp,
-    labelMaxLines: Int = 2,
-    maxVisibleItems: Int? = null,
-    initialScrollToEnd: Boolean = false,
-    valueLabel: (Float) -> String = { it.toInt().toString() },
-    onItemClick: ((BarData) -> Unit)? = null
+    data: List<BarData>, color: Color, labelWidth: Dp = 116.dp, labelMaxLines: Int = 2,
+    maxVisibleItems: Int? = null, initialScrollToEnd: Boolean = false,
+    valueLabel: (Float) -> String = { it.toLong().toString() }, onItemClick: ((BarData) -> Unit)? = null
 ) {
     if (data.isEmpty()) return
     val maxValue = data.maxOf { it.value }.coerceAtLeast(1f)
-    val scrollState = rememberScrollState()
-    LaunchedEffect(data, initialScrollToEnd) {
-        if (initialScrollToEnd) scrollState.scrollTo(scrollState.maxValue)
-    }
-    val viewportWidth = maxVisibleItems?.let { minOf(data.size, it) * (labelWidth.value + 12f) }
-    Row(
-        modifier = (if (viewportWidth == null) Modifier else Modifier.width(viewportWidth.dp))
-            .horizontalScroll(scrollState)
-            .height(230.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalAlignment = Alignment.Bottom
-    ) {
-        data.forEach { item ->
-            val barHeight = (156f * (item.value / maxValue)).coerceAtLeast(6f).dp
-            Column(
-                modifier = Modifier.width(labelWidth).fillMaxHeight().then(
-                    if (onItemClick == null) Modifier else Modifier.clickable { onItemClick(item) }
-                ),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Bottom
-            ) {
-                Text(valueLabel(item.value), style = MaterialTheme.typography.labelMedium)
-                Spacer(Modifier.height(6.dp))
-                if (item.tooltip == null) {
-                    ChartBar(barHeight, item.color ?: color)
-                } else {
-                    TooltipBox(
-                        positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
-                        tooltip = { PlainTooltip { Text(item.tooltip) } },
-                        state = rememberTooltipState()
-                    ) {
-                        ChartBar(barHeight, item.color ?: color)
+    val scroll = rememberScrollState()
+    LaunchedEffect(data, initialScrollToEnd, scroll.maxValue) { if (initialScrollToEnd) scroll.scrollTo(scroll.maxValue) }
+    val laneHeight = if (labelMaxLines == 1) 24.dp else 52.dp
+    Column(Modifier.fillMaxWidth()) {
+        Column(Modifier.fillMaxWidth().horizontalScroll(scroll)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            data.forEach { item ->
+                val displayValue = item.formattedValue ?: valueLabel(item.value)
+                val tooltip = listOf(item.label + ": " + displayValue, item.tooltip).filterNotNull().joinToString("\n")
+                oms.components.OmsTooltipBox(tooltip = { Text(tooltip) }) {
+                    Column(Modifier.width(labelWidth).semantics { contentDescription = tooltip }
+                        .then(if (onItemClick == null) Modifier.focusable() else Modifier.clickable { onItemClick(item) }),
+                        horizontalAlignment = Alignment.CenterHorizontally) {
+                        Box(Modifier.fillMaxWidth().height(154.dp), contentAlignment = Alignment.BottomCenter) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(displayValue, style = MaterialTheme.typography.labelMedium, maxLines = 1)
+                                Spacer(Modifier.height(6.dp))
+                                Box(Modifier.width(36.dp).height((118f * (item.value.coerceAtLeast(0f) / maxValue)).dp)
+                                    .clip(MaterialTheme.shapes.extraSmall).background(item.color ?: color))
+                            }
+                        }
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                        Box(Modifier.fillMaxWidth().height(laneHeight).padding(top = 6.dp), contentAlignment = Alignment.TopCenter) {
+                            Text(item.label, style = MaterialTheme.typography.labelSmall, textAlign = TextAlign.Center, maxLines = labelMaxLines)
+                        }
                     }
-                }
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    item.label,
-                    style = MaterialTheme.typography.labelSmall,
-                    maxLines = labelMaxLines,
-                    softWrap = labelMaxLines > 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                if (data.any { it.groupLabel != null }) {
-                    Text(
-                        item.groupLabel.orEmpty(),
-                        style = MaterialTheme.typography.labelSmall,
-                        maxLines = 1,
-                        softWrap = false
-                    )
                 }
             }
         }
+        if (data.any { it.groupLabel != null }) {
+            val groups = mutableListOf<Pair<String?, Int>>()
+            data.forEach { item ->
+                if (groups.lastOrNull()?.first == item.groupLabel && groups.isNotEmpty()) {
+                    val previous = groups.removeAt(groups.lastIndex)
+                    groups.add(previous.first to previous.second + 1)
+                } else groups.add(item.groupLabel to 1)
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                groups.forEach { (year, count) ->
+                    Text(year.orEmpty(), Modifier.width(labelWidth * count + 12.dp * (count - 1)),
+                        textAlign = TextAlign.Center, style = MaterialTheme.typography.labelMedium)
+                }
+            }
+        }
+        }
+        TableScrollControls(scroll)
     }
-}
-
-@Composable
-private fun ChartBar(height: Dp, color: Color) {
-    Box(
-        modifier = Modifier
-            .width(40.dp)
-            .height(height)
-            .clip(MaterialTheme.shapes.small)
-            .background(color.copy(alpha = 0.86f))
-    )
 }

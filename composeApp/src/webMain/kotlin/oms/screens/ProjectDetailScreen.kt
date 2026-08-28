@@ -4,6 +4,11 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Payments
+import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Cancel
@@ -46,7 +51,8 @@ fun ProjectDetailScreen(
     onEdit: (Project) -> Unit = {},
     canEditProject: Boolean = false,
     canDeleteProject: Boolean = false,
-    isGuest: Boolean = false
+    isGuest: Boolean = false,
+    canAccessFinancials: Boolean = false
 ) {
     val parentProjectName = project.parentProjectUuid?.let { parentId ->
         ProjectRepository.projects.firstOrNull { it.id == parentId }?.name
@@ -58,41 +64,51 @@ fun ProjectDetailScreen(
     val documents = remember(project.id) { mutableStateOf<List<ApiProjectDocument>>(emptyList()) }
     val healthSafetyObservations = remember(project.id) { mutableStateOf<ApiHealthSafetyObservations?>(null) }
     var loadedResources by remember(project.id) { mutableStateOf<Set<ProjectDetailResource>>(emptySet()) }
+    var loadError by remember { mutableStateOf(false) }
+    var loading by remember { mutableStateOf(true) }
+    var retryKey by remember { mutableStateOf(0) }
     var confirmDeletion by remember { mutableStateOf(false) }
     var deleteError by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
     val availableTabs = if (isGuest) {
         listOf(ProjectDetailTab.GeneralInfo)
     } else {
-        ProjectDetailTab.entries
+        ProjectDetailTab.entries.filter { it != ProjectDetailTab.Financials || canAccessFinancials }
     }
-    LaunchedEffect(project.id, selectedTab) {
+    LaunchedEffect(project.id, selectedTab, retryKey) {
+        loadError = false
+        loading = false
         suspend fun load(resource: ProjectDetailResource, block: suspend () -> Unit) {
             if (resource !in loadedResources) {
-                block()
-                loadedResources = loadedResources + resource
+                loading = true
+                try {
+                    block()
+                    loadedResources = loadedResources + resource
+                } catch (cancelled: kotlinx.coroutines.CancellationException) { throw cancelled }
+                catch (_: Exception) { loadError = true }
+                finally { loading = false }
             }
         }
         when (selectedTab) {
             ProjectDetailTab.GeneralInfo -> load(ProjectDetailResource.Details) {
-                details.value = runCatching { OmsApiClient.projectDetails(project.id) }.getOrNull()
+                details.value = OmsApiClient.projectDetails(project.id)
             }
             ProjectDetailTab.InspectionReports -> load(ProjectDetailResource.Reports) {
-                reports.value = runCatching { OmsApiClient.projectReports(project.id) }.getOrDefault(emptyList())
+                reports.value = OmsApiClient.projectReports(project.id)
             }
             ProjectDetailTab.Financials -> {
                 load(ProjectDetailResource.Financials) {
-                    financials.value = runCatching { OmsApiClient.financials(project.id) }.getOrNull()
+                    financials.value = OmsApiClient.financials(project.id)
                 }
                 load(ProjectDetailResource.Documents) {
-                    documents.value = runCatching { OmsApiClient.projectDocuments(project.id) }.getOrDefault(emptyList())
+                    documents.value = OmsApiClient.projectDocuments(project.id)
                 }
             }
             ProjectDetailTab.Documents -> load(ProjectDetailResource.Documents) {
-                documents.value = runCatching { OmsApiClient.projectDocuments(project.id) }.getOrDefault(emptyList())
+                documents.value = OmsApiClient.projectDocuments(project.id)
             }
             ProjectDetailTab.Incidents -> load(ProjectDetailResource.Incidents) {
-                healthSafetyObservations.value = runCatching { OmsApiClient.healthSafetyObservations(project.id) }.getOrNull()
+                healthSafetyObservations.value = OmsApiClient.healthSafetyObservations(project.id)
             }
         }
     }
@@ -112,7 +128,7 @@ fun ProjectDetailScreen(
                 Text(LocalizationManager.t("projects"))
             }
 
-            Text(">", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Icon(Icons.Default.ChevronRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
 
             Text(
                 text = project.name,
@@ -224,6 +240,26 @@ fun ProjectDetailScreen(
             }
         }
 
+        Column(
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            PrimaryScrollableTabRow(selectedTabIndex = availableTabs.indexOf(selectedTab).coerceAtLeast(0)) {
+                availableTabs.forEach { tab ->
+                    Tab(
+                        selected = selectedTab == tab,
+                        onClick = { selectedTab = tab },
+                        text = { Text(LocalizationManager.t(tab.titleKey)) }
+                    )
+                }
+            }
+
+            Box(modifier = Modifier.fillMaxWidth().padding(top = 16.dp)) {
+                if (loading) oms.components.ContentState(LocalizationManager.t("loading_records"), loading = true)
+                else if (loadError) oms.components.ContentState(LocalizationManager.t("load_records_error"), error = true, onRetry = { retryKey++ })
+                else when (selectedTab) {
+                    ProjectDetailTab.GeneralInfo -> ProjectGeneralInfoTab(details.value?.data)
+                    ProjectDetailTab.InspectionReports -> ProjectReportsTab(reports.value)
+                    ProjectDetailTab.Financials -> Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
         if (!isGuest) Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(16.dp)
@@ -284,24 +320,9 @@ fun ProjectDetailScreen(
             )
         }
 
-        Column(
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            PrimaryTabRow(selectedTabIndex = availableTabs.indexOf(selectedTab).coerceAtLeast(0)) {
-                availableTabs.forEach { tab ->
-                    Tab(
-                        selected = selectedTab == tab,
-                        onClick = { selectedTab = tab },
-                        text = { Text(LocalizationManager.t(tab.titleKey)) }
-                    )
-                }
-            }
 
-            Box(modifier = Modifier.fillMaxWidth().padding(top = 16.dp)) {
-                when (selectedTab) {
-                    ProjectDetailTab.GeneralInfo -> ProjectGeneralInfoTab(details.value?.data)
-                    ProjectDetailTab.InspectionReports -> ProjectReportsTab(reports.value)
-                    ProjectDetailTab.Financials -> ProjectFinancialsTab(project.id, financials.value, documents.value)
+                        ProjectFinancialsTab(project.id, financials.value, documents.value)
+                    }
                     ProjectDetailTab.Documents -> ProjectDocumentsTab(project.id, documents.value)
                     ProjectDetailTab.Incidents -> ProjectHealthSafetyTab(healthSafetyObservations.value)
                 }
@@ -496,10 +517,10 @@ private fun ProjectGeneralInfoTab(data: oms.data.ApiProjectDetailsData?) {
                 LocalizationManager.t("end_date") to data.endDate.toOmsDate(),
                 LocalizationManager.t("contract_signed_date") to data.contractSignedDate.toOmsDate(),
                 LocalizationManager.t("planned_end_date") to data.plannedEndDate.toOmsDate(),
-                LocalizationManager.t("design_contract_date") to (data.designContractSigningDate ?: "—"),
-                LocalizationManager.t("construction_contract_date") to (data.constructionContractSigningDate ?: "—"),
-                LocalizationManager.t("construction_start_date") to (data.constructionStartDate ?: "—"),
-                LocalizationManager.t("projected_completion_date") to (data.projectedCompletionTime ?: "—"),
+                LocalizationManager.t("design_contract_date") to data.designContractSigningDate.toOmsDate(),
+                LocalizationManager.t("construction_contract_date") to data.constructionContractSigningDate.toOmsDate(),
+                LocalizationManager.t("construction_start_date") to data.constructionStartDate.toOmsDate(),
+                LocalizationManager.t("projected_completion_date") to data.projectedCompletionTime.toOmsDate(),
                 LocalizationManager.t("contract_duration") to (data.contractDurationDays?.let { LocalizationManager.t("days_value").replace("{count}", it.toString()) } ?: "—")
                 ))
                 if (!data.projectType.equals("project", ignoreCase = true)) {
@@ -510,9 +531,15 @@ private fun ProjectGeneralInfoTab(data: oms.data.ApiProjectDetailsData?) {
                 }
             }
             Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                fields.forEach { (label, value) ->
+                fields.forEachIndexed { index, (label, value) ->
+                    when (index) {
+                        0 -> oms.components.FormSectionTitle(LocalizationManager.t("basic_information"), Icons.Default.Info)
+                        7 -> oms.components.FormSectionTitle(LocalizationManager.t("section_finance"), Icons.Default.Payments)
+                        12 -> oms.components.FormSectionTitle(LocalizationManager.t("section_schedule"), Icons.Default.CalendarMonth)
+                        21 -> oms.components.FormSectionTitle(LocalizationManager.t("parameters_and_location"), Icons.Default.LocationOn)
+                    }
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                        Text(label, modifier = Modifier.width(260.dp), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(label, modifier = Modifier.width(210.dp), color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Text(value, modifier = Modifier.weight(1f))
                     }
                     HorizontalDivider()

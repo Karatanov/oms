@@ -7,6 +7,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.FactCheck
 import androidx.compose.material.icons.automirrored.filled.FactCheck
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
@@ -27,7 +29,7 @@ import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
-import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.async
@@ -71,11 +73,15 @@ fun ReportsScreen(
     canReviewReports: Boolean = true,
     canMoveReports: Boolean = true
 ) {
+    val deletion = oms.components.LocalDeleteConfirmation.current
     var reports by remember { mutableStateOf<List<ReportRow>>(emptyList()) }
+    var search by remember { mutableStateOf("") }
     var status by remember { mutableStateOf<String?>(null) }
     var projectFilter by remember { mutableStateOf<String?>(null) }
     var subprojectFilter by remember { mutableStateOf<String?>(null) }
     var subprojectPartCodeFilter by remember { mutableStateOf<String?>(null) }
+    var loading by remember { mutableStateOf(true) }
+    var loadFailed by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var reportToMove by remember { mutableStateOf<ReportRow?>(null) }
     var reportToEdit by remember { mutableStateOf<ReportRow?>(null) }
@@ -88,7 +94,10 @@ fun ReportsScreen(
     var ascending by remember { mutableStateOf(false) }
     val uriHandler = LocalUriHandler.current
     val contentScrollState = rememberScrollState()
-    LaunchedEffect(Unit) {
+    var reloadKey by remember { mutableStateOf(0) }
+    LaunchedEffect(reloadKey) {
+        loading = true; loadFailed = false
+        try {
         val reportItems = coroutineScope {
             val refreshProjects = async { ProjectRepository.refresh() }
             val loadReports = async { OmsApiClient.inspectionReports() }
@@ -109,17 +118,14 @@ fun ReportsScreen(
             val subprojectPartCode = ancestry.getOrNull(2)?.siteNumber
             ReportRow(attachedProject.id, projectName, subprojectName, subprojectPartCode, item.report)
         }.sortedByDescending { it.report.inspectionDate }
+        } catch (failure: Exception) {
+            if (failure is kotlinx.coroutines.CancellationException) throw failure
+            loadFailed = true
+        } finally { loading = false }
     }
-    // The move editor is rendered after the report registry. Bring it into view
-    // immediately so that the action has an obvious visual response on long lists.
-    LaunchedEffect(reportToMove?.report?.uuid) {
-        if (reportToMove != null) {
-            delay(50)
-            contentScrollState.animateScrollTo(contentScrollState.maxValue)
-        }
-    }
-    val visible = remember(reports, status, projectFilter, subprojectFilter, subprojectPartCodeFilter, sort, ascending) {
+    val visible = remember(reports, search, status, projectFilter, subprojectFilter, subprojectPartCodeFilter, sort, ascending) {
         reports.asSequence().filter {
+                (search.isBlank() || it.report.inspectionCode.contains(search, true) || it.report.summary.orEmpty().contains(search, true)) &&
                 (status == null || it.report.status == status) &&
                 (projectFilter == null || it.projectName == projectFilter) &&
                 (subprojectFilter == null || it.subprojectName == subprojectFilter) &&
@@ -133,7 +139,7 @@ fun ReportsScreen(
                     ReportSort.Subproject -> it.subprojectName.orEmpty()
                     ReportSort.SubprojectPartCode -> it.subprojectPartCode.orEmpty()
                     ReportSort.Status -> it.report.status
-                    ReportSort.Author -> "admin"
+                    ReportSort.Author -> it.report.authorUsername.orEmpty()
                 }
             }.let { if (ascending) it else it.reversed() }
         ).toList()
@@ -146,8 +152,8 @@ fun ReportsScreen(
         Modifier
             .fillMaxSize()
             .focusable()
-            .onPreviewKeyEvent { event ->
-                if (event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
+            .onKeyEvent { event ->
+                if (event.type != KeyEventType.KeyDown) return@onKeyEvent false
                 when (event.key) {
                     Key.DirectionUp -> { scrollBy(-420f); true }
                     Key.DirectionDown -> { scrollBy(420f); true }
@@ -162,16 +168,18 @@ fun ReportsScreen(
             .padding(start = 24.dp, top = 24.dp, end = 76.dp, bottom = 24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(LocalizationManager.t("reports_title"), style = MaterialTheme.typography.headlineMedium)
+        oms.components.PageHeading(LocalizationManager.t("reports_title"), Icons.Default.FactCheck) {
             if (canCreateReports) Button(onClick = onNewInspection) { Icon(Icons.Default.Add, null); Spacer(Modifier.width(8.dp)); Text(LocalizationManager.t("new_inspection")) }
         }
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            Box(Modifier.weight(1f)) { MetricsChart("inspections_by_month", "inspections_by_month_hint", dashboard?.monthlyInspectionCounts.orEmpty()) }
-            Box(Modifier.weight(1f)) { MetricsChart("eshs_violations_by_month", "eshs_violations_by_month_hint", dashboard?.monthlyEshsViolations.orEmpty()) }
-        }
+        OutlinedTextField(search, { search = it }, singleLine = true, label = { Text(LocalizationManager.t("reports_search")) }, leadingIcon = { Icon(Icons.Default.Search, null) }, modifier = Modifier.fillMaxWidth())
+        if (loading) oms.components.ContentState(LocalizationManager.t("loading_records"), loading = true)
+        if (loadFailed) oms.components.ContentState(LocalizationManager.t("load_records_error"), error = true, onRetry = { reloadKey++ })
+        oms.components.AdaptiveChartRow(
+            first = { MetricsChart("inspections_by_month", "inspections_by_month_hint", dashboard?.monthlyInspectionCounts.orEmpty()) },
+            second = { MetricsChart("eshs_violations_by_month", "eshs_violations_by_month_hint", dashboard?.monthlyEshsViolations.orEmpty()) }
+        )
         Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-            Column(Modifier.padding(16.dp).horizontalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            oms.components.ScrollableTable(Modifier.padding(16.dp)) {
                 ReportTableHeader(
                     sort = sort,
                     ascending = ascending,
@@ -187,16 +195,19 @@ fun ReportsScreen(
                     onStatusFilterChange = { status = it }
                 )
                 HorizontalDivider()
-                if (visible.isEmpty()) Text(LocalizationManager.t("no_reports"))
+                if (!loading && !loadFailed && visible.isEmpty()) Text(LocalizationManager.t("no_reports"))
                 visible.forEach { row ->
                     Row(Modifier.width(1_575.dp).padding(vertical = 8.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                         Text(row.report.inspectionDate.toOmsDate(), Modifier.width(105.dp))
-                        Text(row.report.summary ?: LocalizationManager.t("inspection_report"), Modifier.width(400.dp), style = MaterialTheme.typography.bodyMedium)
+                        Column(Modifier.width(400.dp).padding(end = 12.dp)) {
+                            Text(row.report.inspectionCode, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onPrimaryContainer)
+                            Text(row.report.summary ?: LocalizationManager.t("inspection_report"), style = MaterialTheme.typography.bodyMedium)
+                        }
                         Text(row.projectName, Modifier.width(180.dp), style = MaterialTheme.typography.bodySmall)
                         Text(row.subprojectName ?: "—", Modifier.width(180.dp), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Text(row.subprojectPartCode ?: "—", Modifier.width(160.dp), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Box(Modifier.width(130.dp)) { ReportStatusChip(row.report.status) }
-                        Text("admin", Modifier.width(80.dp))
+                        Text(row.report.authorUsername ?: "—", Modifier.width(80.dp))
                         if (canCreateReports) TableActionIconButton(LocalizationManager.t("edit_inspection"), Icons.Default.Edit) { reportToEdit = row }
                         else Spacer(Modifier.width(48.dp))
                         if (canReviewReports && row.report.status == "pending_review") {
@@ -214,10 +225,10 @@ fun ReportsScreen(
                         if (canMoveReports) TableActionIconButton(LocalizationManager.t("move_report"), Icons.Default.SwapHoriz) { reportToMove = row }
                         else Spacer(Modifier.width(48.dp))
                         if (canCreateReports) TableActionIconButton(LocalizationManager.t("delete_report"), Icons.Default.Delete) {
-                            scope.launch {
+                            deletion.show(row.report.inspectionCode) { scope.launch {
                                 if (OmsApiClient.deleteInspectionReport(row.report.uuid)) reports = reports.filterNot { it.report.uuid == row.report.uuid }
                                 else errorMessage = LocalizationManager.t("error_delete_report")
-                            }
+                            } }
                         } else Spacer(Modifier.width(48.dp))
                     }
                     HorizontalDivider()
@@ -226,7 +237,7 @@ fun ReportsScreen(
         }
         errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error) }
     }
-    reportToEdit?.let { report -> WasmSafeOverlay {
+    reportToEdit?.let { report -> WasmSafeOverlay(onDismiss = { reportToEdit = null }, errorMessage = errorMessage) {
         ReportEditorDialog(
             report = report,
             onDismiss = { reportToEdit = null },
@@ -249,7 +260,7 @@ fun ReportsScreen(
             }
         )
     } }
-    reportToMove?.let { report -> WasmSafeOverlay {
+    reportToMove?.let { report -> WasmSafeOverlay(onDismiss = { if (!isMovingReport) reportToMove = null }, errorMessage = errorMessage) {
         MoveReportDialog(
             report = report,
             onDismiss = { reportToMove = null },
@@ -282,10 +293,10 @@ fun ReportsScreen(
             }
         )
     } }
-    findingsReport?.let { report -> WasmSafeOverlay {
+    findingsReport?.let { report -> WasmSafeOverlay(onDismiss = { findingsReport = null }, errorMessage = errorMessage) {
         FindingsDialog(report = report, onDismiss = { findingsReport = null })
     } }
-    reportToReview?.let { report -> WasmSafeOverlay {
+    reportToReview?.let { report -> WasmSafeOverlay(onDismiss = { reportToReview = null }, errorMessage = errorMessage) {
         ReviewReportDialog(
             report = report,
             onDismiss = { reportToReview = null },
@@ -306,10 +317,10 @@ fun ReportsScreen(
         verticalArrangement = Arrangement.spacedBy(8.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        TooltipBox(positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(), tooltip = { PlainTooltip { Text(LocalizationManager.t("dashboard_scroll_up")) } }, state = rememberTooltipState()) {
+        oms.components.OmsTooltipBox(tooltip = { Text(LocalizationManager.t("dashboard_scroll_up")) }) {
             FilledIconButton(onClick = { scrollBy(-420f) }) { Icon(Icons.Default.KeyboardArrowUp, LocalizationManager.t("dashboard_scroll_up")) }
         }
-        TooltipBox(positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(), tooltip = { PlainTooltip { Text(LocalizationManager.t("dashboard_scroll_down")) } }, state = rememberTooltipState()) {
+        oms.components.OmsTooltipBox(tooltip = { Text(LocalizationManager.t("dashboard_scroll_down")) }) {
             FilledIconButton(onClick = { scrollBy(420f) }) { Icon(Icons.Default.KeyboardArrowDown, LocalizationManager.t("dashboard_scroll_down")) }
         }
     }
@@ -333,7 +344,7 @@ private fun ReportEditorDialog(
     val latitudeInvalid = latitude.isNotBlank() && (latitudeValue == null || latitudeValue !in -90.0..90.0)
     val longitudeInvalid = longitude.isNotBlank() && (longitudeValue == null || longitudeValue !in -180.0..180.0)
     val valid = date.matches(Regex("\\d{4}-\\d{2}-\\d{2}")) && !latitudeInvalid && !longitudeInvalid
-    Card(Modifier.fillMaxWidth().widthIn(max = 720.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+    Card(Modifier.widthIn(max = 720.dp).fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
         Column(Modifier.padding(20.dp).heightIn(max = 560.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(LocalizationManager.t("edit_inspection"), style = MaterialTheme.typography.titleLarge)
             OmsDateField(date, { date = it }, LocalizationManager.t("date"), Modifier.fillMaxWidth(), true)
@@ -400,7 +411,7 @@ private fun ReviewReportDialog(
     onReview: (action: String, rejectionReason: String?) -> Unit
 ) {
     var rejectionReason by remember(report.report.uuid) { mutableStateOf("") }
-    Card(Modifier.fillMaxWidth().widthIn(max = 720.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+    Card(Modifier.widthIn(max = 720.dp).fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
         Column(Modifier.padding(20.dp).heightIn(max = 560.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(LocalizationManager.t("review_inspection_report"), style = MaterialTheme.typography.titleLarge)
             Text(report.report.summary ?: LocalizationManager.t("inspection_report"))
@@ -447,7 +458,7 @@ private fun FindingsDialog(report: ReportRow, onDismiss: () -> Unit) {
                 }
             }
         )
-    } else Card(Modifier.fillMaxWidth().widthIn(max = 820.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+    } else Card(Modifier.widthIn(max = 820.dp).fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
         Column(Modifier.padding(20.dp).heightIn(max = 560.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text(LocalizationManager.t("inspection_findings"), style = MaterialTheme.typography.titleLarge)
                 Text("${report.report.summary ?: LocalizationManager.t("inspection_report")} — ${report.projectName}", style = MaterialTheme.typography.bodySmall)
@@ -455,7 +466,7 @@ private fun FindingsDialog(report: ReportRow, onDismiss: () -> Unit) {
                 findings.forEach { finding ->
                     Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
                         Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text("${finding.category} • ${finding.severity.uppercase()}${if (finding.isResolved) " • RESOLVED" else ""}", style = MaterialTheme.typography.titleSmall)
+                            Text("${finding.category} • ${LocalizationManager.t("severity_${finding.severity.lowercase()}")}${if (finding.isResolved) " • ${LocalizationManager.t("resolved")}" else ""}", style = MaterialTheme.typography.titleSmall)
                             Text(finding.description)
                             finding.recommendation?.let { Text("${LocalizationManager.t("recommendation")}: $it", style = MaterialTheme.typography.bodySmall) }
                             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -496,7 +507,7 @@ private fun FindingEditorDialog(
     var description by remember(finding?.uuid) { mutableStateOf(finding?.description ?: "") }
     var recommendation by remember(finding?.uuid) { mutableStateOf(finding?.recommendation ?: "") }
     var isResolved by remember(finding?.uuid) { mutableStateOf(finding?.isResolved ?: false) }
-    Card(Modifier.fillMaxWidth().widthIn(max = 720.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+    Card(Modifier.widthIn(max = 720.dp).fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
         Column(Modifier.padding(20.dp).heightIn(max = 560.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text(if (finding == null) LocalizationManager.t("add_finding") else LocalizationManager.t("edit_finding"), style = MaterialTheme.typography.titleLarge)
                 OutlinedTextField(category, { category = it }, label = { Text(LocalizationManager.t("category")) }, modifier = Modifier.fillMaxWidth())
@@ -526,7 +537,7 @@ private fun MoveReportDialog(
     val selected = projects.firstOrNull { it.id == selectedUuid }
     // Compose/Wasm AlertDialog can leave a popup focus layer active when an inline
     // selector changes its state.  Keep this editor in the page layout instead.
-    Card(Modifier.fillMaxWidth().widthIn(max = 720.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+    Card(Modifier.widthIn(max = 720.dp).fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
         Column(Modifier.padding(20.dp).heightIn(max = 520.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(LocalizationManager.t("move_report"), style = MaterialTheme.typography.titleLarge)
             Text(report.report.summary ?: LocalizationManager.t("inspection_report"), style = MaterialTheme.typography.bodyMedium)
@@ -616,7 +627,7 @@ private fun ReportTableHeader(
             SortableTableHeader(LocalizationManager.t("subproject_part_code_label"), sort == ReportSort.SubprojectPartCode, ascending, { onSort(ReportSort.SubprojectPartCode) }, Modifier.width(160.dp))
             SortableTableHeader(LocalizationManager.t("status"), sort == ReportSort.Status, ascending, { onSort(ReportSort.Status) }, Modifier.width(130.dp))
             SortableTableHeader(LocalizationManager.t("uploaded_by_short"), sort == ReportSort.Author, ascending, { onSort(ReportSort.Author) }, Modifier.width(80.dp))
-            Box(Modifier.width(336.dp).height(48.dp), contentAlignment = Alignment.Center) {
+            Box(Modifier.width(336.dp).height(52.dp), contentAlignment = Alignment.Center) {
                 Text(LocalizationManager.t("actions"))
             }
         }

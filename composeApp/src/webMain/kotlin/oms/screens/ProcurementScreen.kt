@@ -8,6 +8,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
@@ -21,7 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
-import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -35,24 +37,30 @@ import oms.components.InlineOptionPicker
 import oms.components.UkraineRegionAutocomplete
 import oms.components.currentIsoDate
 import oms.components.WasmSafeOverlay
+import oms.components.toOmsDate
 import oms.localization.LocalizationManager
 import kotlinx.coroutines.launch
 
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
 fun ProcurementScreen(canManageProcurements: Boolean) {
+    var search by remember { mutableStateOf("") }
+    var statusFilter by remember { mutableStateOf<String?>(null) }
     var records by remember { mutableStateOf<List<ApiProcurementRecord>?>(null) }
     var error by remember { mutableStateOf<String?>(null) }
+    var loadError by remember { mutableStateOf<String?>(null) }
+    var reloadKey by remember { mutableStateOf(0) }
     var editorRecord by remember { mutableStateOf<ApiProcurementRecord?>(null) }
     var creating by remember { mutableStateOf(false) }
     var recordPendingDeletion by remember { mutableStateOf<ApiProcurementRecord?>(null) }
     var dashboard by remember { mutableStateOf<ApiDashboard?>(null) }
     val scope = rememberCoroutineScope()
     val contentScrollState = rememberScrollState()
-    LaunchedEffect(Unit) {
+    LaunchedEffect(reloadKey) {
+        loadError = null
         runCatching { OmsApiClient.procurements() }
             .onSuccess { records = it.sortedWith(compareBy({ record -> record.batchId }, { record -> record.recordNumber })) }
-            .onFailure { error = LocalizationManager.t("procurement_load_error") }
+            .onFailure { loadError = LocalizationManager.t("procurement_load_error") }
         dashboard = runCatching { OmsApiClient.dashboard() }.getOrNull()
     }
     fun scrollBy(delta: Float) = scope.launch { contentScrollState.animateScrollBy(delta) }
@@ -61,8 +69,8 @@ fun ProcurementScreen(canManageProcurements: Boolean) {
         Modifier
             .fillMaxSize()
             .focusable()
-            .onPreviewKeyEvent { event ->
-                if (event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
+            .onKeyEvent { event ->
+                if (event.type != KeyEventType.KeyDown) return@onKeyEvent false
                 when (event.key) {
                     Key.DirectionUp -> { scrollBy(-420f); true }
                     Key.DirectionDown -> { scrollBy(420f); true }
@@ -76,16 +84,15 @@ fun ProcurementScreen(canManageProcurements: Boolean) {
             .verticalScroll(contentScrollState)
             .padding(start = 24.dp, top = 24.dp, end = 76.dp, bottom = 24.dp)
     ) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            Text(LocalizationManager.t("procurement_title"), style = MaterialTheme.typography.headlineMedium)
-            if (canManageProcurements) Button(onClick = { creating = true }) { Icon(Icons.Default.Add, null); Spacer(Modifier.width(6.dp)); Text(LocalizationManager.t("add_procurement_record")) }
+        oms.components.PageHeading(LocalizationManager.t("procurement_title"), Icons.Default.ShoppingCart) {
+            if (canManageProcurements) Button(onClick = { error = null; creating = true }) { Icon(Icons.Default.Add, null); Spacer(Modifier.width(6.dp)); Text(LocalizationManager.t("add_procurement_record")) }
         }
         Spacer(Modifier.height(8.dp))
         Text(LocalizationManager.t("procurement_subtitle"), style = MaterialTheme.typography.bodyMedium)
         Spacer(Modifier.height(16.dp))
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            Box(Modifier.weight(1f)) { MetricsChart("procurement_status_chart", "procurement_status_chart_hint", dashboard?.procurementStatusCounts.orEmpty()) }
-            Box(Modifier.weight(1f)) {
+        oms.components.AdaptiveChartRow(
+            first = { MetricsChart("procurement_status_chart", "procurement_status_chart_hint", dashboard?.procurementStatusCounts.orEmpty()) },
+            second = {
                 MetricsChart(
                     "signed_construction_contracts",
                     "signed_construction_contracts_hint",
@@ -93,12 +100,22 @@ fun ProcurementScreen(canManageProcurements: Boolean) {
                     centerYearLabels = true
                 )
             }
-        }
+        )
         Spacer(Modifier.height(16.dp))
+        OutlinedTextField(search, { search = it }, singleLine = true, label = { Text(LocalizationManager.t("procurement_search")) }, leadingIcon = { Icon(Icons.Default.Search, null) }, modifier = Modifier.fillMaxWidth())
+        Spacer(Modifier.height(8.dp))
+        InlineOptionPicker(procurementStatuses, statusFilter, LocalizationManager.t("procurement_status"), { statusFilter = it }, LocalizationManager::procurementStatus,
+            modifier = Modifier.widthIn(max = 380.dp), clearLabel = LocalizationManager.t("all"), onClear = { statusFilter = null })
+        Spacer(Modifier.height(12.dp))
+        val visibleRecords = records.orEmpty().filter { record ->
+            (statusFilter == null || record.purchaseStatus == statusFilter) &&
+            (search.isBlank() || listOf(record.subProjectId, record.subProjectLotId, record.oblastName, record.contractorNameUkr.orEmpty(), record.contractorNameEng.orEmpty()).any { it.contains(search, true) })
+        }
+        if (records != null && visibleRecords.isEmpty()) oms.components.ContentState(LocalizationManager.t("no_search_results"))
         when {
-            error != null -> Text(error!!, color = MaterialTheme.colorScheme.error)
+            loadError != null -> oms.components.ContentState(loadError!!, error = true, onRetry = { reloadKey++ })
             records == null -> CircularProgressIndicator()
-            else -> ProcurementTable(records!!, canManageProcurements, { editorRecord = it }, { recordPendingDeletion = it })
+            else -> ProcurementTable(visibleRecords, canManageProcurements, { error = null; editorRecord = it }, { error = null; recordPendingDeletion = it })
         }
     }
     Column(
@@ -106,21 +123,21 @@ fun ProcurementScreen(canManageProcurements: Boolean) {
         verticalArrangement = Arrangement.spacedBy(8.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        TooltipBox(positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(), tooltip = { PlainTooltip { Text(LocalizationManager.t("dashboard_scroll_up")) } }, state = rememberTooltipState()) {
+        oms.components.OmsTooltipBox(tooltip = { Text(LocalizationManager.t("dashboard_scroll_up")) }) {
             FilledIconButton(onClick = { scrollBy(-420f) }) { Icon(Icons.Default.KeyboardArrowUp, LocalizationManager.t("dashboard_scroll_up")) }
         }
-        TooltipBox(positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(), tooltip = { PlainTooltip { Text(LocalizationManager.t("dashboard_scroll_down")) } }, state = rememberTooltipState()) {
+        oms.components.OmsTooltipBox(tooltip = { Text(LocalizationManager.t("dashboard_scroll_down")) }) {
             FilledIconButton(onClick = { scrollBy(420f) }) { Icon(Icons.Default.KeyboardArrowDown, LocalizationManager.t("dashboard_scroll_down")) }
         }
     }
-        if (creating) WasmSafeOverlay {
+    if (creating) WasmSafeOverlay(onDismiss = { creating = false }, errorMessage = error) {
             ProcurementEditorDialog(null, onDismiss = { creating = false }) { request ->
             scope.launch { runCatching { OmsApiClient.createProcurement(request) }
                 .onSuccess { records = (records.orEmpty() + it).sortedBy { record -> record.recordNumber }; creating = false }
                 .onFailure { error = LocalizationManager.t("error_create_procurement").replace("{message}", it.message.orEmpty()) } }
             }
         }
-        editorRecord?.let { existing -> WasmSafeOverlay {
+    editorRecord?.let { existing -> WasmSafeOverlay(onDismiss = { editorRecord = null }, errorMessage = error) {
             ProcurementEditorDialog(existing, onDismiss = { editorRecord = null }) { request ->
             scope.launch { runCatching { OmsApiClient.updateProcurement(existing.id, request) }
                 .onSuccess { saved -> records = records.orEmpty().map { if (it.id == saved.id) saved else it }; editorRecord = null }
@@ -128,8 +145,8 @@ fun ProcurementScreen(canManageProcurements: Boolean) {
             }
         }
         }
-        recordPendingDeletion?.let { record -> WasmSafeOverlay {
-            Card(Modifier.fillMaxWidth().widthIn(max = 520.dp)) {
+    recordPendingDeletion?.let { record -> WasmSafeOverlay(onDismiss = { recordPendingDeletion = null }, errorMessage = error) {
+            Card(Modifier.widthIn(max = 520.dp).fillMaxWidth()) {
                 Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                     Text(LocalizationManager.t("delete_procurement_title"), style = MaterialTheme.typography.titleLarge)
                     Text(LocalizationManager.t("delete_procurement_confirmation").replace("{number}", record.recordNumber.toString()))
@@ -152,11 +169,8 @@ private fun ProcurementTable(
     onEdit: (ApiProcurementRecord) -> Unit,
     onDelete: (ApiProcurementRecord) -> Unit
 ) {
-    val horizontalScrollState = rememberScrollState()
-    val scope = rememberCoroutineScope()
-    fun scrollHorizontally(delta: Float) = scope.launch { horizontalScrollState.animateScrollBy(delta) }
     Column(Modifier.fillMaxWidth()) {
-        Column(Modifier.fillMaxWidth().horizontalScroll(horizontalScrollState)) {
+        oms.components.ScrollableTable {
             ProcurementRow(procurementHeaderLabels(), showActions = canManage, isHeader = true)
             HorizontalDivider()
             records.forEach { record ->
@@ -164,35 +178,11 @@ private fun ProcurementTable(
                     record.recordNumber.toString(), record.batchId.toString(), record.oblastName, record.oblastId,
                     record.subProjectId, record.subProjectLotId, LocalizationManager.procurementStatus(record.purchaseStatus), record.tenderId.orEmpty(),
                     record.prozorroTenderId.orEmpty(), record.contractorNameUkr.orEmpty(), record.contractorNameEng.orEmpty(),
-                    record.contractorId.orEmpty(), record.contractDate.orEmpty(), record.contractEndDate.orEmpty(),
+                    record.contractorId.orEmpty(), record.contractDate.toOmsDate(), record.contractEndDate.toOmsDate(),
                     record.contractDurationMonths?.toString().orEmpty(), record.contractAmountUah.format(0),
                     record.contractAmountEur.format(2), record.financingContractDifferencePct?.let { "${(it * 100).format(2)}%" }.orEmpty()
                 ), record.takeIf { canManage }, onEdit, onDelete, showActions = canManage)
                 HorizontalDivider()
-            }
-        }
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            TooltipBox(
-                positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
-                tooltip = { PlainTooltip { Text(LocalizationManager.t("scroll_table_left")) } },
-                state = rememberTooltipState()
-            ) {
-                FilledIconButton(onClick = { scrollHorizontally(-620f) }) {
-                    Icon(Icons.Default.KeyboardArrowLeft, LocalizationManager.t("scroll_table_left"))
-                }
-            }
-            TooltipBox(
-                positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
-                tooltip = { PlainTooltip { Text(LocalizationManager.t("scroll_table_right")) } },
-                state = rememberTooltipState()
-            ) {
-                FilledIconButton(onClick = { scrollHorizontally(620f) }) {
-                    Icon(Icons.Default.KeyboardArrowRight, LocalizationManager.t("scroll_table_right"))
-                }
             }
         }
     }
@@ -215,16 +205,18 @@ private fun ProcurementRow(
             if (isHeader) {
                 Text(LocalizationManager.t("actions"), Modifier.width(96.dp).padding(horizontal = 6.dp), style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
             } else if (record != null) {
-                Box(Modifier.offset(y = (-4).dp)) {
+                Box(Modifier) {
                 TableActionIconButton(LocalizationManager.t("edit_procurement_record"), Icons.Default.Edit) { onEdit(record) }
                 }
-                Box(Modifier.offset(y = (-4).dp)) {
+                Box(Modifier) {
                 TableActionIconButton(LocalizationManager.t("delete_procurement_record"), Icons.Default.Delete) { onDelete(record) }
                 }
             }
         }
-        values.take(columnWidths.size).zip(columnWidths).forEach { (value, width) ->
-            Text(value, Modifier.width(width.dp).padding(horizontal = 6.dp), style = MaterialTheme.typography.bodySmall,
+        values.take(columnWidths.size).zip(columnWidths).forEachIndexed { index, (value, width) ->
+            if (!isHeader && index == 6) Box(Modifier.width(width.dp).padding(horizontal = 6.dp)) {
+                oms.components.OmsBadge(value, oms.theme.OmsColors.Information)
+            } else Text(value, Modifier.width(width.dp).padding(horizontal = 6.dp), style = MaterialTheme.typography.bodySmall,
                 fontWeight = if (isHeader) FontWeight.SemiBold else FontWeight.Normal)
         }
     }
@@ -282,7 +274,7 @@ private fun ProcurementEditorDialog(
         update(value.filter { it.isDigit() || (decimals && (it == '.' || it == ',')) }.replace(',', '.').let { text -> if (decimals && text.count { it == '.' } > 1) text.dropLast(1) else text })
     }
     Card(
-        Modifier.fillMaxWidth().widthIn(max = 760.dp),
+        Modifier.widthIn(max = 760.dp).fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {

@@ -7,6 +7,8 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
@@ -50,7 +52,7 @@ private enum class DocumentTypeFilter(val labelKey: String) {
         ALL -> true
         SIR -> isSirSource
         CONTRACT -> type == "contract"
-        PROJECT -> type == "project" || type == "subproject"
+        PROJECT -> type in setOf("project", "subproject", "subproject_part")
         DESIGN -> type == "design"
         ESTIMATE -> type == "estimate"
         FINANCIAL -> type == "invoice" || type == "act"
@@ -61,16 +63,22 @@ private enum class DocumentTypeFilter(val labelKey: String) {
 
 @Composable
 fun DocumentsScreen(canManageDocuments: Boolean = true) {
+    val deletion = oms.components.LocalDeleteConfirmation.current
     val uriHandler = LocalUriHandler.current
     val scope = rememberCoroutineScope()
     var documents by remember { mutableStateOf<List<DocumentRow>>(emptyList()) }
+    var search by remember { mutableStateOf("") }
     var sort by remember { mutableStateOf(DocumentSort.Name) }
     var ascending by remember { mutableStateOf(true) }
     var typeFilter by remember { mutableStateOf(DocumentTypeFilter.ALL) }
+    var loading by remember { mutableStateOf(true) }
+    var loadFailed by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var showUploadDialog by remember { mutableStateOf(false) }
     var reloadKey by remember { mutableStateOf(0) }
     LaunchedEffect(reloadKey) {
+        loading = true; loadFailed = false
+        try {
         val (reports, loadedDocuments) = coroutineScope {
             val refreshProjects = async { ProjectRepository.refresh() }
             val loadReports = async { OmsApiClient.inspectionReports() }
@@ -110,11 +118,15 @@ fun DocumentsScreen(canManageDocuments: Boolean = true) {
                 }
         }
         documents = projectDocumentRows + sirDocumentRows
+        } catch (failure: Exception) {
+            if (failure is kotlinx.coroutines.CancellationException) throw failure
+            loadFailed = true
+        } finally { loading = false }
     }
-    val visibleDocuments = remember(documents, typeFilter, sort, ascending) {
+    val visibleDocuments = remember(documents, search, typeFilter, sort, ascending) {
         documents
             .asSequence()
-            .filter { typeFilter.matches(it.documentType.lowercase(), it.isSirSource) }
+            .filter { typeFilter.matches(it.documentType.lowercase(), it.isSirSource) && (search.isBlank() || it.fileName.contains(search, true) || it.projectName.contains(search, true)) }
             .sortedWith(compareBy<DocumentRow> {
                 when (sort) {
                     DocumentSort.Name -> it.fileName
@@ -123,7 +135,7 @@ fun DocumentsScreen(canManageDocuments: Boolean = true) {
                     DocumentSort.Type -> it.documentType
                     DocumentSort.Date -> it.date.orEmpty()
                     DocumentSort.Size -> it.fileSizeBytes?.toString()?.padStart(20, '0').orEmpty()
-                    DocumentSort.Author -> "admin"
+                    DocumentSort.Author -> ""
                 }
             }.let { if (ascending) it else it.reversed() })
             .toList()
@@ -134,10 +146,12 @@ fun DocumentsScreen(canManageDocuments: Boolean = true) {
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(LocalizationManager.t("documents_title"), style = MaterialTheme.typography.headlineMedium)
+        oms.components.PageHeading(LocalizationManager.t("documents_title"), Icons.Default.FolderOpen) {
             if (canManageDocuments) Button(onClick = { showUploadDialog = true }) { Text(LocalizationManager.t("upload_document")) }
         }
+        OutlinedTextField(search, { search = it }, singleLine = true, label = { Text(LocalizationManager.t("documents_search")) }, leadingIcon = { Icon(Icons.Default.Search, null) }, modifier = Modifier.fillMaxWidth())
+        if (loading) oms.components.ContentState(LocalizationManager.t("loading_records"), loading = true)
+        if (loadFailed) oms.components.ContentState(LocalizationManager.t("load_records_error"), error = true, onRetry = { reloadKey++ })
         LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             items(DocumentTypeFilter.entries, key = { it.name }) { filter ->
                 FilterChip(
@@ -148,10 +162,10 @@ fun DocumentsScreen(canManageDocuments: Boolean = true) {
             }
         }
         Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-            Column(Modifier.padding(16.dp).horizontalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            oms.components.ScrollableTable(Modifier.padding(16.dp)) {
                 DocumentTableHeader(sort, ascending, ::selectSort)
                 HorizontalDivider()
-                if (visibleDocuments.isEmpty()) Text(LocalizationManager.t("no_documents"))
+                if (!loading && !loadFailed && visibleDocuments.isEmpty()) Text(LocalizationManager.t("no_documents"))
                 visibleDocuments.forEach { row ->
                     Row(Modifier.width(1_370.dp).padding(vertical = 8.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                         Text(row.fileName, Modifier.width(260.dp))
@@ -160,19 +174,19 @@ fun DocumentsScreen(canManageDocuments: Boolean = true) {
                         Box(Modifier.width(140.dp)) { DocumentTypeChip(row.documentType) }
                         Text(row.date ?: "—", Modifier.width(105.dp))
                         Text(row.fileSizeBytes?.let(::formatFileSize) ?: "—", Modifier.width(90.dp))
-                        Text("admin", Modifier.width(85.dp))
+                        Text("—", Modifier.width(85.dp))
                         TableActionIconButton(if (row.isSirSource) LocalizationManager.t("open_source_file") else LocalizationManager.t("open_document"), Icons.AutoMirrored.Filled.OpenInNew) {
                             val path = if (row.isSirSource) "/inspection-reports/${row.uuid}/source-file" else "/projects/${row.projectUuid}/documents/${row.uuid}/download"
                             uriHandler.openUri(oms.data.omsApiUrl(path))
                         }
                         if (canManageDocuments) TableActionIconButton(LocalizationManager.t("delete"), Icons.Default.Delete) {
-                            scope.launch {
+                            deletion.show(row.fileName + if (row.isSirSource) "\n" + LocalizationManager.t("sir_delete_warning") else "") { scope.launch {
                                 val deleted = if (row.isSirSource) OmsApiClient.deleteInspectionReport(row.uuid)
                                 else OmsApiClient.deleteProjectDocument(row.projectUuid, row.uuid)
                                 if (deleted) {
                                     documents = documents.filterNot { it.uuid == row.uuid && it.isSirSource == row.isSirSource }
                                 } else errorMessage = LocalizationManager.t("delete_document_error")
-                            }
+                            } }
                         }
                         else Spacer(Modifier.width(48.dp))
                     }
@@ -182,7 +196,7 @@ fun DocumentsScreen(canManageDocuments: Boolean = true) {
         }
         errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error) }
     }
-        if (showUploadDialog) WasmSafeOverlay {
+    if (showUploadDialog) WasmSafeOverlay(onDismiss = { showUploadDialog = false }) {
             ProjectDocumentUploadDialog(
             projects = ProjectRepository.projects,
             onDismiss = { showUploadDialog = false },
@@ -203,7 +217,7 @@ private fun ProjectDocumentUploadDialog(projects: List<oms.model.Project>, onDis
     var projectUuid by remember { mutableStateOf(projects.firstOrNull()?.id) }
     var docType by remember { mutableStateOf("other") }
     val selected = projects.firstOrNull { it.id == projectUuid }
-    Card(Modifier.fillMaxWidth().widthIn(max = 720.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+    Card(Modifier.widthIn(max = 720.dp).fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
         Column(
             Modifier.padding(20.dp).heightIn(max = 520.dp).verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(10.dp)
@@ -216,14 +230,14 @@ private fun ProjectDocumentUploadDialog(projects: List<oms.model.Project>, onDis
                 onSelect = { projectUuid = it.id },
                 itemLabel = { it.name }
             )
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    listOf("contract", "project", "subproject", "subproject_part", "design").forEach { type -> FilterChip(selected = docType == type, onClick = { docType = type }, label = { Text(type.replaceFirstChar(Char::uppercase)) }) }
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    listOf("estimate", "invoice", "act", "photo", "other").forEach { type -> FilterChip(selected = docType == type, onClick = { docType = type }, label = { Text(type.replaceFirstChar(Char::uppercase)) }) }
-                }
-            }
+            Text(LocalizationManager.t("type"), style = MaterialTheme.typography.labelLarge)
+            InlineOptionPicker(
+                options = listOf("contract", "project", "subproject", "subproject_part", "design", "estimate", "invoice", "act", "photo", "other"),
+                selected = docType,
+                prompt = LocalizationManager.t("type"),
+                onSelect = { docType = it },
+                itemLabel = { type -> LocalizationManager.t(if (type == "invoice" || type == "act") "record_type_$type" else type) }
+            )
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, androidx.compose.ui.Alignment.End)) {
                 OutlinedButton(onClick = onDismiss) { Text(LocalizationManager.t("cancel")) }
                 Button(onClick = { onUpload(projectUuid!!, docType) }, enabled = projectUuid != null) { Text(LocalizationManager.t("choose_file")) }

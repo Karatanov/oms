@@ -21,6 +21,12 @@ import oms.components.InlineOptionPicker
 import oms.components.currentIsoDate
 import oms.model.Project
 import kotlin.js.JsName
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.FactCheck
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Remove
+import oms.components.PageHeading
+import oms.components.TableActionIconButton
 
 @JsName("openSirImportDialog")
 external fun openSirImportDialog(projectUuid: String, onComplete: (String) -> Unit)
@@ -100,10 +106,7 @@ fun CreateInspectionScreen(
             .padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Text(
-            text = if (isEditMode) LocalizationManager.t("edit_inspection") else LocalizationManager.t("create_inspection"),
-            style = MaterialTheme.typography.headlineMedium
-        )
+        PageHeading(if (isEditMode) LocalizationManager.t("edit_inspection") else LocalizationManager.t("create_inspection"), Icons.Default.FactCheck)
 
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             FilterChip(entryMode == "manual", { entryMode = "manual"; errorMessage = null }, label = { Text(LocalizationManager.t("manual_sir_entry")) })
@@ -461,10 +464,10 @@ private fun RepeatableSirRows(values: List<String>, onChange: (List<String>) -> 
     values.forEachIndexed { index, value ->
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
             OutlinedTextField(value, { text -> onChange(values.mapIndexed { current, item -> if (current == index) text else item }) }, label = { Text(label) }, modifier = Modifier.weight(1f))
-            if (values.size > 1) TextButton(onClick = { onChange(values.filterIndexed { current, _ -> current != index }) }) { Text("−") }
+            if (values.size > 1) TableActionIconButton(LocalizationManager.t("delete"), Icons.Default.Remove) { onChange(values.filterIndexed { current, _ -> current != index }) }
         }
     }
-    TextButton(onClick = { onChange(values + "") }) { Text("+") }
+    TableActionIconButton(LocalizationManager.t("add"), Icons.Default.Add) { onChange(values + "") }
 }
 
 private data class HseObservationInput(val observation: String, val isYes: Boolean = false, val comment: String = "")

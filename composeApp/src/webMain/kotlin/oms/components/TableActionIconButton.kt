@@ -10,6 +10,12 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.Modifier
+import androidx.compose.foundation.layout.size
+import androidx.compose.ui.unit.dp
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
 import oms.theme.Primary
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -19,13 +25,12 @@ fun TableActionIconButton(
     icon: ImageVector,
     onClick: () -> Unit
 ) {
-    TooltipBox(
-        positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
-        tooltip = { PlainTooltip { Text(tooltip) } },
-        state = rememberTooltipState()
+    oms.components.OmsTooltipBox(
+        tooltip = { Text(tooltip) }
     ) {
         IconButton(onClick = onClick) {
-            Icon(icon, contentDescription = tooltip, tint = Primary)
+            Icon(icon, contentDescription = tooltip, modifier = Modifier.size(20.dp),
+                tint = if (icon == Icons.Default.Delete) MaterialTheme.colorScheme.error else Primary)
         }
     }
 }

@@ -18,33 +18,19 @@ import oms.localization.LocalizationManager
 fun ReportStatusChip(status: String) {
     val (label, color) = when (status.lowercase()) {
         "draft" -> LocalizationManager.t("draft_status") to Color(0xFF757575)
-        "pending_review" -> LocalizationManager.t("pending_review_status") to Color(0xFFF9A825)
-        "completed" -> LocalizationManager.t("completed_status") to Color(0xFF2E7D32)
+        "pending_review" -> LocalizationManager.t("pending_review_status") to oms.theme.OmsColors.Warning
+        "rejected" -> LocalizationManager.t("rejected_status") to oms.theme.OmsColors.Danger
+        "completed" -> LocalizationManager.t("completed_status") to oms.theme.OmsColors.Success
         else -> status.replace('_', ' ') to Color(0xFF546E7A)
     }
-    Box(
-        modifier = Modifier
-            .width(120.dp)
-            .background(color.copy(alpha = 0.13f), RoundedCornerShape(6.dp))
-            .padding(horizontal = 8.dp, vertical = 4.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(label, color = color, fontWeight = FontWeight.Medium, maxLines = 1)
-    }
+    OmsBadge(label, color)
 }
 
 @Composable
 fun RoleChip(role: String) {
     val color = when (role.uppercase()) { "ADMIN" -> Color(0xFF6A1B9A); "PROJECT_MANAGER" -> Color(0xFF1565C0); "INSPECTOR" -> Color(0xFF00838F); else -> Color(0xFF546E7A) }
-    val label = when (role.uppercase()) { "ADMIN" -> LocalizationManager.t("role_admin"); "PROJECT_MANAGER" -> LocalizationManager.t("role_project_manager"); "INSPECTOR" -> LocalizationManager.t("role_inspector"); else -> role.replace('_', ' ') }
-    Text(
-        text = label,
-        color = color,
-        fontWeight = FontWeight.Medium,
-        modifier = Modifier
-            .background(color.copy(alpha = 0.10f), RoundedCornerShape(4.dp))
-            .padding(horizontal = 8.dp, vertical = 4.dp)
-    )
+    val label = LocalizationManager.t("role_${role.lowercase()}")
+    OmsBadge(label, color, FontWeight.Medium)
 }
 
 @Composable
@@ -55,18 +41,11 @@ fun DocumentTypeChip(type: String) {
         "subproject" -> LocalizationManager.t("subproject") to Color(0xFF7B1FA2)
         "subproject_part" -> LocalizationManager.t("subproject_part") to Color(0xFFAD1457)
         "design" -> LocalizationManager.t("design") to Color(0xFF00838F)
-        "estimate" -> LocalizationManager.t("estimate") to Color(0xFFF9A825)
-        "invoice", "act" -> LocalizationManager.t("financial_doc") to Color(0xFF2E7D32)
+        "estimate" -> LocalizationManager.t("estimate") to oms.theme.OmsColors.Warning
+        "invoice", "act" -> LocalizationManager.t("financial_doc") to oms.theme.OmsColors.Success
         "photo" -> LocalizationManager.t("photo") to Color(0xFFE65100)
         "sir_source" -> LocalizationManager.t("source_file") to Color(0xFF5C6BC0)
         else -> LocalizationManager.t("other") to Color(0xFF546E7A)
     }
-    Text(
-        text = label,
-        color = color,
-        fontWeight = FontWeight.Medium,
-        modifier = Modifier
-            .background(color.copy(alpha = 0.13f), RoundedCornerShape(6.dp))
-            .padding(horizontal = 8.dp, vertical = 4.dp)
-    )
+    OmsBadge(label, color, FontWeight.Medium)
 }

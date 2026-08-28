@@ -24,22 +24,19 @@ import oms.localization.LocalizationManager
 @Composable
 fun MonthlyActPaymentsChart(primary: Color, payments: List<ApiMonthlyActPayment>, onOpenFinancial: () -> Unit = {}) {
     val sortedPayments = payments.sortedBy { it.month }
-    val yearCenterIndexes = sortedPayments
-        .withIndex()
-        .groupBy { it.value.month.take(4) }
-        .values
-        .associate { group -> group[group.size / 2].index to group.first().value.month.take(4) }
     val data = sortedPayments
         .mapIndexed { index, payment ->
             BarData(
                 label = payment.month.toMonthName(),
                 value = payment.amountEurCents.toFloat(),
-                groupLabel = yearCenterIndexes[index]
+                groupLabel = payment.month.take(4),
+                formattedValue = oms.components.formatEuroCents(payment.amountEurCents)
             )
         }
-    Card(modifier = Modifier.fillMaxWidth().height(320.dp), shape = RoundedCornerShape(12.dp)) {
+    Card(modifier = Modifier.fillMaxWidth().height(420.dp), shape = RoundedCornerShape(12.dp),
+        colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Box(Modifier.fillMaxWidth().height(28.dp), contentAlignment = Alignment.Center) {
+            Box(Modifier.fillMaxWidth().height(44.dp), contentAlignment = Alignment.Center) {
                 Text(
                     LocalizationManager.t("monthly_act_payments"),
                     style = MaterialTheme.typography.titleMedium,
@@ -53,8 +50,8 @@ fun MonthlyActPaymentsChart(primary: Color, payments: List<ApiMonthlyActPayment>
             else VerticalBarChart(
                 data = data,
                 color = primary,
-                valueLabel = { formatActAmount(it.toInt().toLong()) },
-                labelWidth = 76.dp,
+                valueLabel = { formatActAmount(it.toLong()) },
+                labelWidth = 116.dp,
                 labelMaxLines = 1,
                 onItemClick = { onOpenFinancial() }
             )

@@ -5,8 +5,16 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import oms.model.Project
 import oms.model.ProjectStatus
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import oms.localization.LocalizationManager
 
 object ProjectRepository {
+    private val refreshMutex = Mutex()
+    private var loaded = false
+    var loading by mutableStateOf(false)
+        private set
     var projects by mutableStateOf<List<Project>>(emptyList())
         private set
     var errorMessage by mutableStateOf<String?>(null)
@@ -17,8 +25,9 @@ object ProjectRepository {
      * [force] so that their change is visible immediately; read-only screens
      * reuse the same in-memory snapshot instead of requesting projects again.
      */
-    suspend fun refresh(force: Boolean = false) {
-        if (!force && projects.isNotEmpty()) return
+    suspend fun refresh(force: Boolean = false) = refreshMutex.withLock {
+        if (!force && loaded) return@withLock
+        loading = true
         try {
             projects = OmsApiClient.projects().map { api ->
                 Project(
@@ -40,13 +49,19 @@ object ProjectRepository {
                     longitude = api.longitude
                 )
             }
+            loaded = true
             errorMessage = null
+        } catch (cancelled: CancellationException) {
+            throw cancelled
         } catch (_: Exception) {
-            errorMessage = "Unable to load projects from OMS API."
+            errorMessage = LocalizationManager.t("load_records_error")
+        } finally {
+            loading = false
         }
     }
 
     fun clear() {
+        loaded = false
         projects = emptyList()
         errorMessage = null
     }
