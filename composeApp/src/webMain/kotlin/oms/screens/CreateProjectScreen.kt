@@ -36,7 +36,7 @@ fun CreateProjectScreen(onCancel: () -> Unit = {}, onCreated: () -> Unit = {}) {
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             oms.components.PageHeading(L.t("create_project"), Icons.Default.CreateNewFolder)
             Text(L.t("project_created_hint"), color = MaterialTheme.colorScheme.onSurfaceVariant)
-            ProjectForm(state, parents, editing = false, onError = { error = it })
+            ProjectForm(state, parents, editing = false)
             if (state.currentRate == null) oms.components.ContentState(L.t("project_money_rate_unavailable"))
             error?.let { oms.components.ContentState(it, error = true) }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.End)) {

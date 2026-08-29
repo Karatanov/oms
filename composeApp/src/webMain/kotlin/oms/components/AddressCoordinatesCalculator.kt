@@ -29,18 +29,19 @@ fun AddressCoordinatesCalculator(
     region: String,
     calculationRequested: Boolean,
     onCalculationRequestedChange: (Boolean) -> Unit,
-    onCoordinatesResolved: (latitude: String, longitude: String) -> Unit,
-    onError: (String) -> Unit
+    onCoordinatesResolved: (latitude: String, longitude: String) -> Unit
 ) {
     val scope = rememberCoroutineScope()
     var successMessage by remember { mutableStateOf<String?>(null) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
     var isCalculating by remember { mutableStateOf(false) }
     fun calculate() {
         if (isCalculating) return
         successMessage = null
+        errorMessage = null
         if (listOf(address, city, region).all { it.isBlank() }) {
             onCalculationRequestedChange(false)
-            onError(LocalizationManager.t("geocode_address_required"))
+            errorMessage = LocalizationManager.t("geocode_address_required")
             return
         }
         isCalculating = true
@@ -53,7 +54,7 @@ fun AddressCoordinatesCalculator(
                 }
                 .onFailure {
                     isCalculating = false
-                    onError(LocalizationManager.t("geocode_address_not_found"))
+                    errorMessage = LocalizationManager.t("geocode_address_not_found")
                 }
         }
     }
@@ -87,5 +88,6 @@ fun AddressCoordinatesCalculator(
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant
     )
+    errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error) }
     successMessage?.let { Text(it, color = MaterialTheme.colorScheme.primary) }
 }

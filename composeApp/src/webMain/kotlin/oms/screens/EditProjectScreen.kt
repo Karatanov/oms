@@ -35,7 +35,7 @@ fun EditProjectScreen(project: Project, onCancel: () -> Unit = {}, onSaved: (Pro
             oms.components.PageHeading(L.t("edit_project"), Icons.Default.Edit)
             val form = state
             if (form == null) CircularProgressIndicator() else {
-                ProjectForm(form, emptyList(), editing = true, onError = { error = it })
+                ProjectForm(form, emptyList(), editing = true)
                 if (form.currentRate == null) oms.components.ContentState(L.t("project_money_rate_unavailable"))
                 error?.let { oms.components.ContentState(it, error = true) }
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.End)) {

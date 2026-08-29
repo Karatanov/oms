@@ -14,7 +14,7 @@ import oms.localization.LocalizationManager as L
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-internal fun ProjectForm(state: ProjectFormState, parents: List<ApiProject>, editing: Boolean, onError: (String) -> Unit) {
+internal fun ProjectForm(state: ProjectFormState, parents: List<ApiProject>, editing: Boolean) {
     var geocoding by remember { mutableStateOf(false) }
     fun field(key: String, label: String, modifier: Modifier = Modifier, lines: Int = 1) = @Composable {
         OutlinedTextField(state[key], { state[key] = it }, label = { Text(L.t(label)) }, modifier = modifier,
@@ -67,7 +67,7 @@ internal fun ProjectForm(state: ProjectFormState, parents: List<ApiProject>, edi
                 { modifier -> OutlinedTextField(state["longitude"], { if (it.matches(Regex("-?[0-9.,]*"))) state["longitude"] = it }, label = { Text(L.t("longitude")) }, enabled = !geocoding, modifier = modifier) }
             )
             AddressCoordinatesCalculator(state["address"], state["city"], state["region"], geocoding, { geocoding = it },
-                { lat, lon -> state["latitude"] = lat; state["longitude"] = lon }, onError)
+                { lat, lon -> state["latitude"] = lat; state["longitude"] = lon })
         }
     }
     Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
