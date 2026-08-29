@@ -28,7 +28,7 @@ Analytical pairs use two columns when content width is at least 900 px and stack
 
 ## Screen changes
 
-Dashboard: coherent four-chart layout, readable fixed-baseline plots, exact euro-cent labels, localized month names and centered year groups; photos are positioned below analytics and fetched only for the latest report.
+Dashboard: coherent four-chart layout, readable fixed-baseline plots, exact euro-cent labels, localized month names and centered year groups; the approved-funding-by-oblast tooltip lists contributing subproject names. Photos are positioned below analytics and fetched only for the latest report.
 
 Projects: registry heading/actions, hierarchy/readability, reusable filters, search results, selection, destructive confirmation and horizontal scrolling. Create/edit use shared section headings, Material icons, two-column date groups and currency selection. Project details retain their information tabs with a scrollable tab strip and clearer breadcrumb.
 

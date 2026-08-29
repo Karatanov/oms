@@ -34,7 +34,13 @@ fun FundingByOblastChart(items: List<ApiSubprojectFunding>) {
         .entries
         .sortedBy { it.key }
         .mapIndexed { index, entry ->
-            BarData(entry.key, entry.value.sumOf { it.amount }.toFloat(), color = colors[index % colors.size])
+            BarData(
+                label = entry.key,
+                value = entry.value.sumOf { it.amount }.toFloat(),
+                color = colors[index % colors.size],
+                tooltip = LocalizationManager.t("subprojects") + ":\n" +
+                    entry.value.map { it.name }.filter(String::isNotBlank).distinct().sorted().joinToString("\n")
+            )
         }
     AnalyticsCard("approved_funding_by_oblast", null, data, { money(it.toLong()) })
 }
