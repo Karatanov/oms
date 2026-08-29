@@ -54,8 +54,8 @@ internal fun ProjectForm(state: ProjectFormState, parents: List<ApiProject>, edi
             )
             FormSectionTitle(L.t("financial_parameters"), Icons.Default.AccountBalanceWallet)
             ProjectMoneyField(L.t("planned_budget"), state.money.getValue("budget"), state.currentRate) { state.money = state.money + ("budget" to it) }
-            ProjectMoneyField(L.t("engineer_consultant_contract_amount"), state.money.getValue("engineer"), state.currentRate) { state.money = state.money + ("engineer" to it) }
             ProjectMoneyField(L.t("technical_supervision_contract_amount"), state.money.getValue("supervision"), state.currentRate) { state.money = state.money + ("supervision" to it) }
+            ProjectMoneyField(L.t("engineer_consultant_contract_amount"), state.money.getValue("engineer"), state.currentRate) { state.money = state.money + ("engineer" to it) }
             FormSectionTitle(L.t("parameters_and_location"), Icons.Default.LocationOn)
             field("address", "address", Modifier.fillMaxWidth())()
             FormPair(
