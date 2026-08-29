@@ -238,12 +238,11 @@ private fun FinancialTransferDialog(
     onImport: (String) -> Unit,
     onExport: (String) -> Unit
 ) {
-    var projectUuid by remember { mutableStateOf(projects.firstOrNull()?.id) }
-    val selected = projects.firstOrNull { it.id == projectUuid }
+    var projectUuid by remember { mutableStateOf(projects.firstOrNull { it.projectType.equals("project", true) }?.id) }
     Card(Modifier.widthIn(max = 620.dp).fillMaxWidth()) {
         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(LocalizationManager.t("financial_transfer_title"), style = MaterialTheme.typography.titleLarge)
-            InlineOptionPicker(options = projects, selected = selected, prompt = LocalizationManager.t("select_project"), onSelect = { projectUuid = it.id }, itemLabel = { it.name })
+            FinancialProjectTargetSelector(projects, projectUuid) { projectUuid = it }
             Text(LocalizationManager.t("financial_import_hint"), color = MaterialTheme.colorScheme.onSurfaceVariant)
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, androidx.compose.ui.Alignment.End)) {
                 OutlinedButton(onClick = onDismiss) { Text(LocalizationManager.t("cancel")) }
@@ -256,7 +255,7 @@ private fun FinancialTransferDialog(
 
 @Composable
 private fun ActEditorDialog(existing: ProjectActRow?, projects: List<oms.model.Project>, onDismiss: () -> Unit, onSave: (String, oms.data.FinancialRecordRequest) -> Unit) {
-    var projectUuid by remember { mutableStateOf(existing?.projectUuid ?: projects.firstOrNull()?.id) }
+    var projectUuid by remember { mutableStateOf(existing?.projectUuid ?: projects.firstOrNull { it.projectType.equals("project", true) }?.id) }
     var reference by remember { mutableStateOf(existing?.act?.referenceNumber ?: "") }
     var recordType by remember { mutableStateOf(existing?.act?.recordType ?: "act") }
     var amount by remember { mutableStateOf(existing?.act?.amount?.toString() ?: "") }
@@ -264,7 +263,6 @@ private fun ActEditorDialog(existing: ProjectActRow?, projects: List<oms.model.P
     var date by remember { mutableStateOf(existing?.act?.recordDate ?: currentIsoDate()) }
     var description by remember { mutableStateOf(existing?.act?.description ?: existing?.act?.milestone ?: "") }
     var paymentPurpose by remember { mutableStateOf(existing?.act?.paymentPurpose ?: "works") }
-    val selected = projects.firstOrNull { it.id == projectUuid }
     val valid = projectUuid != null && reference.isNotBlank() && amount.toLongOrNull()?.let { it > 0 } == true && date.matches(Regex("\\d{4}-\\d{2}-\\d{2}"))
     Card(Modifier.widthIn(max = 720.dp).fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
         Column(
@@ -272,7 +270,7 @@ private fun ActEditorDialog(existing: ProjectActRow?, projects: List<oms.model.P
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text(if (existing == null) LocalizationManager.t("add_financial_record") else LocalizationManager.t("edit_financial_record"), style = MaterialTheme.typography.titleLarge)
-            InlineOptionPicker(options = projects, selected = selected, prompt = LocalizationManager.t("select_project"), onSelect = { projectUuid = it.id }, itemLabel = { it.name })
+            FinancialProjectTargetSelector(projects, projectUuid) { projectUuid = it }
             OutlinedTextField(reference, { reference = it }, label = { Text(LocalizationManager.t("reference_number")) }, modifier = Modifier.fillMaxWidth())
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 listOf("invoice", "act", "payment", "advance").forEach { type -> FilterChip(selected = recordType == type, onClick = { recordType = type }, label = { Text(LocalizationManager.t("record_type_$type")) }) }
@@ -319,6 +317,60 @@ private fun ActEditorDialog(existing: ProjectActRow?, projects: List<oms.model.P
                 Button(onClick = { onSave(projectUuid!!, oms.data.FinancialRecordRequest(recordType, reference, amount.toLong(), currency, date, description = description.ifBlank { null }, milestone = null, paymentPurpose = paymentPurpose)) }, enabled = valid) { Text(LocalizationManager.t("save")) }
             }
         }
+    }
+}
+
+/** A financial record may be attached to any hierarchy level; the deepest selected level is saved. */
+@Composable
+private fun FinancialProjectTargetSelector(
+    projects: List<oms.model.Project>,
+    selectedTargetUuid: String?,
+    onTargetSelect: (String?) -> Unit
+) {
+    val byId = projects.associateBy { it.id }
+    val selected = byId[selectedTargetUuid]
+    val ancestry = generateSequence(selected) { current -> current.parentProjectUuid?.let(byId::get) }.toList().asReversed()
+    val root = ancestry.firstOrNull { it.projectType.equals("project", true) }
+    val subproject = ancestry.firstOrNull { it.projectType.equals("subproject", true) }
+    val part = ancestry.firstOrNull { it.projectType.equals("subproject_part", true) }
+    val rootProjects = projects.filter { it.projectType.equals("project", true) }
+    val subprojects = projects.filter { it.projectType.equals("subproject", true) && it.parentProjectUuid == root?.id }
+    val parts = projects.filter { it.projectType.equals("subproject_part", true) && it.parentProjectUuid == subproject?.id }
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        FinancialProjectLevelDropdown(LocalizationManager.t("select_project"), rootProjects, root?.id, onTargetSelect)
+        FinancialProjectLevelDropdown(
+            LocalizationManager.t("select_subproject"), subprojects, subproject?.id, onTargetSelect,
+            enabled = root != null && subprojects.isNotEmpty()
+        )
+        FinancialProjectLevelDropdown(
+            LocalizationManager.t("select_subproject_part"), parts, part?.id, onTargetSelect,
+            enabled = subproject != null && parts.isNotEmpty()
+        )
+    }
+}
+
+@Composable
+private fun FinancialProjectLevelDropdown(
+    label: String,
+    options: List<oms.model.Project>,
+    selectedUuid: String?,
+    onSelect: (String?) -> Unit,
+    enabled: Boolean = true
+) {
+    val selected = options.firstOrNull { it.id == selectedUuid }
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(label, style = MaterialTheme.typography.labelLarge)
+        InlineOptionPicker(
+            options = options,
+            selected = selected,
+            prompt = label,
+            onSelect = { onSelect(it.id) },
+            itemLabel = { project ->
+                if (project.siteNumber.equals(project.name, ignoreCase = true)) project.name
+                else "${project.siteNumber} — ${project.name}"
+            },
+            enabled = enabled
+        )
     }
 }
 
