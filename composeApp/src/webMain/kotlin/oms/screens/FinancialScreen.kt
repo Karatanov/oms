@@ -138,10 +138,14 @@ fun FinancialScreen(
         }
 
         val financialChartRecords = acts.map { FinancialChartRecord(it.act, it.subprojectName) }
-        MonthlyPaymentsChart(financialChartRecords)
-        MonthlyEquipmentPaymentsChart(financialChartRecords)
-        MonthlyTechnicalSupervisionPaymentsChart(financialChartRecords)
-        MonthlyEngineerConsultantPaymentsChart(financialChartRecords)
+        oms.components.AdaptiveChartRow(
+            first = { MonthlyPaymentsChart(financialChartRecords) },
+            second = { MonthlyEquipmentPaymentsChart(financialChartRecords) }
+        )
+        oms.components.AdaptiveChartRow(
+            first = { MonthlyTechnicalSupervisionPaymentsChart(financialChartRecords) },
+            second = { MonthlyEngineerConsultantPaymentsChart(financialChartRecords) }
+        )
 
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
             Text(LocalizationManager.t("financial_records"), style = MaterialTheme.typography.titleLarge)

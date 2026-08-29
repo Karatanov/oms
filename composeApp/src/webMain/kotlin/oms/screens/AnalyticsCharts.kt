@@ -73,14 +73,20 @@ fun MetricsChart(
 @Composable
 fun MonthlyAmountsChart(
     titleKey: String,
-    hintKey: String,
+    hintKey: String? = null,
     payments: List<ApiMonthlyActPayment>,
     tooltipByMonth: Map<String, String> = emptyMap()
 ) {
     val data = payments.sortedBy { it.month }.map {
-        BarData(it.month.toChartMonth(), it.amountEurCents.toFloat(), tooltip = tooltipByMonth[it.month], formattedValue = oms.components.formatEuroCents(it.amountEurCents))
+        BarData(
+            label = it.month.toMonthName(),
+            value = it.amountEurCents.toFloat(),
+            groupLabel = it.month.take(4),
+            tooltip = tooltipByMonth[it.month],
+            formattedValue = oms.components.formatEuroCents(it.amountEurCents)
+        )
     }
-    AnalyticsCard(titleKey, hintKey, data, { euro(it.toLong()) })
+    AnalyticsCard(titleKey, hintKey, data, { euro(it.toLong()) }, labelMaxLines = 1)
 }
 
 @Composable
@@ -90,7 +96,8 @@ private fun AnalyticsCard(
     data: List<BarData>,
     valueLabel: (Float) -> String = { it.toInt().toString() },
     onItemClick: ((BarData) -> Unit)? = null,
-    compact: Boolean = false
+    compact: Boolean = false,
+    labelMaxLines: Int = 2
 ) {
     val cardModifier = Modifier.fillMaxWidth().then(
         if (compact) Modifier.heightIn(min = 144.dp) else Modifier.height(420.dp)
@@ -117,7 +124,7 @@ private fun AnalyticsCard(
             }
             Spacer(Modifier.height(if (compact) 8.dp else 16.dp))
             if (data.isEmpty()) Text(LocalizationManager.t("no_chart_data"), color = MaterialTheme.colorScheme.onSurfaceVariant)
-            else VerticalBarChart(data, MaterialTheme.colorScheme.primary, labelWidth = 116.dp, labelMaxLines = 2, maxVisibleItems = 6, valueLabel = valueLabel, onItemClick = onItemClick)
+            else VerticalBarChart(data, MaterialTheme.colorScheme.primary, labelWidth = 116.dp, labelMaxLines = labelMaxLines, maxVisibleItems = 6, valueLabel = valueLabel, onItemClick = onItemClick)
         }
     }
 }

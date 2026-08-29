@@ -1,17 +1,6 @@
 package oms.screens
 
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Card
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
-import oms.charts.VerticalBarChart
 import oms.data.ApiFinancialRecord
 import oms.data.ApiMonthlyActPayment
 import oms.localization.LocalizationManager
@@ -29,24 +18,12 @@ private data class MonthlyFinancialAggregation(
 @Composable
 fun MonthlyPaymentsChart(records: List<FinancialChartRecord>) {
     val aggregation = aggregateMonthlyPayments(records, "works")
-
-    Card(Modifier.fillMaxWidth(), colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-        Column(Modifier.padding(16.dp)) {
-            Text(LocalizationManager.t("monthly_project_payments"), style = MaterialTheme.typography.titleMedium)
-            Spacer(Modifier.height(16.dp))
-            if (aggregation.payments.isEmpty()) Text(LocalizationManager.t("no_payments_yet"), color = MaterialTheme.colorScheme.onSurfaceVariant)
-            else VerticalBarChart(
-                data = aggregation.payments.map { payment ->
-                    oms.charts.BarData(payment.month, payment.amountEurCents.toFloat(), tooltip = aggregation.tooltipByMonth[payment.month], formattedValue = oms.components.formatEuroCents(payment.amountEurCents))
-                },
-                color = MaterialTheme.colorScheme.primary,
-                labelMaxLines = 2,
-                maxVisibleItems = 12,
-                initialScrollToEnd = true,
-                valueLabel = { value -> formatPaymentAmount(value.toLong()) }
-            )
-        }
-    }
+    MonthlyAmountsChart(
+        titleKey = "monthly_project_payments",
+        hintKey = null,
+        payments = aggregation.payments,
+        tooltipByMonth = aggregation.tooltipByMonth
+    )
 }
 
 @Composable
@@ -115,6 +92,3 @@ private fun aggregateMonthlyPayments(
     }
     return MonthlyFinancialAggregation(payments, tooltipByMonth)
 }
-
-private fun formatPaymentAmount(cents: Long): String =
-    "€ " + (cents / 100).toString() + "." + (cents % 100).toString().padStart(2, '0')
