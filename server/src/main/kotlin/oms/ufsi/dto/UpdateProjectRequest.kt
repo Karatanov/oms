@@ -30,5 +30,10 @@ data class UpdateProjectRequest(
     val constructionStartDate: String? = null,
     val projectedCompletionTime: String? = null,
     val currency: String? = null,
-    val contractorName: String? = null
+    val contractorName: String? = null,
+    val designerName: String? = null,
+    val designContractNumber: String? = null,
+    val designContractTerm: String? = null,
+    val constructionContractNumber: String? = null,
+    val amounts: Map<String, ProjectAmountDto>? = null
 )

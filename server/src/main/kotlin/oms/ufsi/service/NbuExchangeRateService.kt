@@ -24,6 +24,8 @@ data class EurConversion(val rate: Double, val effectiveDate: LocalDate, val amo
 class NbuExchangeRateService {
     private val rateCache = ConcurrentHashMap<LocalDate, Pair<LocalDate, Double>>()
 
+    fun eurRate(date: LocalDate): Pair<LocalDate, Double> = rateCache.computeIfAbsent(date, ::loadRate)
+
     fun convertToEur(amount: Long, currency: String, actDate: LocalDate): EurConversion {
         if (currency == "EUR") return EurConversion(1.0, actDate, amount * 100)
         require(currency == "UAH") { "Only UAH and EUR financial records are currently supported." }

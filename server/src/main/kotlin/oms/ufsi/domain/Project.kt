@@ -121,7 +121,12 @@ data class Project(
     /**
      * Назва основного підрядника.
      */
-    val contractorName: String?
+    val contractorName: String?,
+    val designerName: String? = null,
+    val designContractNumber: String? = null,
+    val designContractTerm: String? = null,
+    val constructionContractNumber: String? = null,
+    val amounts: Map<String, ProjectAmount> = emptyMap()
 ) {
     /** Duration from contract signing to the planned end date, in days. */
     val contractDurationDays: Long?

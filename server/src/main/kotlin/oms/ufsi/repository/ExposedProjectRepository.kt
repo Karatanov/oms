@@ -1,6 +1,10 @@
 package oms.ufsi.repository
 
 import oms.ufsi.database.tables.ProjectTable
+import oms.ufsi.database.tables.ProjectAmountTable
+import oms.ufsi.domain.ProjectAmount
+import org.jetbrains.exposed.v1.core.ResultRow
+import org.jetbrains.exposed.v1.jdbc.insert
 import oms.ufsi.database.tables.ProjectDocumentTable
 import oms.ufsi.database.tables.FinancialRecordTable
 import oms.ufsi.database.tables.IncidentTable
@@ -27,6 +31,7 @@ class ExposedProjectRepository : ProjectRepository {
     }
 
     override fun findAll(): List<Project> = transaction {
+        val amountsByProject = ProjectAmountTable.selectAll().groupBy { it[ProjectAmountTable.projectId].value }
         ProjectTable
             .selectAll()
             .map { row ->
@@ -61,7 +66,12 @@ class ExposedProjectRepository : ProjectRepository {
                     constructionStartDate = row[ProjectTable.constructionStartDate],
                     projectedCompletionTime = row[ProjectTable.projectedCompletionTime],
                     currency = row[ProjectTable.currency],
-                    contractorName = row[ProjectTable.contractorName]
+                    contractorName = row[ProjectTable.contractorName],
+                    designerName = row[ProjectTable.designerName],
+                    designContractNumber = row[ProjectTable.designContractNumber],
+                    designContractTerm = row[ProjectTable.designContractTerm],
+                    constructionContractNumber = row[ProjectTable.constructionContractNumber],
+                    amounts = amountsByProject[row[ProjectTable.id].value].orEmpty().toAmounts()
                 )
             }
     }
@@ -76,7 +86,7 @@ class ExposedProjectRepository : ProjectRepository {
 
         ProjectTable
             .selectAll()
-            .firstOrNull { it[ProjectTable.uuid] == uuid }
+            .where { ProjectTable.uuid eq uuid }.firstOrNull()
             ?.let { row ->
 
                 Project(
@@ -175,8 +185,12 @@ class ExposedProjectRepository : ProjectRepository {
                     currency =
                         row[ProjectTable.currency],
 
-                    contractorName =
-                        row[ProjectTable.contractorName]
+                    contractorName = row[ProjectTable.contractorName],
+                    designerName = row[ProjectTable.designerName],
+                    designContractNumber = row[ProjectTable.designContractNumber],
+                    designContractTerm = row[ProjectTable.designContractTerm],
+                    constructionContractNumber = row[ProjectTable.constructionContractNumber],
+                    amounts = ProjectAmountTable.selectAll().where { ProjectAmountTable.projectId eq row[ProjectTable.id] }.toList().toAmounts()
                 )
             }
     }
@@ -298,7 +312,9 @@ class ExposedProjectRepository : ProjectRepository {
 
     override fun updateByUuid(uuid: String, patch: ProjectPatch): Project? {
         val updated = transaction {
-            ProjectTable.update({ ProjectTable.uuid eq uuid }) {
+            val projectId = ProjectTable.selectAll().where { ProjectTable.uuid eq uuid }.firstOrNull()?.get(ProjectTable.id)
+                ?: return@transaction 0
+            val count = ProjectTable.update({ ProjectTable.uuid eq uuid }) {
                 it[name] = patch.name
                 it[siteName] = patch.siteName
                 it[siteNumber] = patch.siteNumber
@@ -325,7 +341,25 @@ class ExposedProjectRepository : ProjectRepository {
                 it[projectedCompletionTime] = patch.projectedCompletionTime
                 it[currency] = patch.currency
                 it[contractorName] = patch.contractorName
+                it[designerName] = patch.designerName
+                it[designContractNumber] = patch.designContractNumber
+                it[designContractTerm] = patch.designContractTerm
+                it[constructionContractNumber] = patch.constructionContractNumber
             }
+            ProjectAmountTable.deleteWhere { ProjectAmountTable.projectId eq projectId }
+            patch.amounts.forEach { (key, value) ->
+                ProjectAmountTable.insert {
+                    it[ProjectAmountTable.projectId] = projectId
+                    it[kind] = key
+                    it[amount] = value.amount
+                    it[currency] = value.currency
+                    it[convertedAmount] = value.convertedAmount
+                    it[uahPerEur] = value.uahPerEur
+                    it[rateDate] = value.rateDate
+                    it[conversionEdited] = value.conversionEdited
+                }
+            }
+            count
         }
         return if (updated == 0) null else findByUuid(uuid)
     }
@@ -348,4 +382,11 @@ private fun String.toProjectType(): ProjectType = when (this) {
     "subproject" -> ProjectType.SUBPROJECT
     "subproject_part" -> ProjectType.SUBPROJECT_PART
     else -> error("Unknown project type: $this")
+}
+
+private fun List<ResultRow>.toAmounts(): Map<String, ProjectAmount> = associate { row ->
+    row[ProjectAmountTable.kind] to ProjectAmount(
+        row[ProjectAmountTable.amount], row[ProjectAmountTable.currency], row[ProjectAmountTable.convertedAmount],
+        row[ProjectAmountTable.uahPerEur], row[ProjectAmountTable.rateDate], row[ProjectAmountTable.conversionEdited]
+    )
 }

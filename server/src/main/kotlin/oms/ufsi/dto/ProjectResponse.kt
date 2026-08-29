@@ -116,5 +116,10 @@ data class ProjectResponse(
     /**
      * Назва підрядника.
      */
-    val contractorName: String?
+    val contractorName: String?,
+    val designerName: String? = null,
+    val designContractNumber: String? = null,
+    val designContractTerm: String? = null,
+    val constructionContractNumber: String? = null,
+    val amounts: Map<String, ProjectAmountDto> = emptyMap()
 )

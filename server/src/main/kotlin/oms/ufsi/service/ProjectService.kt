@@ -345,11 +345,25 @@ class ProjectService(
 
     fun updateProject(uuid: String, request: oms.ufsi.dto.UpdateProjectRequest): Project? {
         val current = getProjectByUuid(uuid) ?: return null
+        val legacyChanges = listOfNotNull(
+            "budget".takeIf { request.budgetPlanned != null },
+            "engineer".takeIf { request.engineerConsultantContractAmount != null },
+            "supervision".takeIf { request.technicalSupervisionAmount != null },
+            "construction".takeIf { request.subprojectContractAmount != null }
+        )
+        val amounts = request.amounts?.let(::validateProjectAmounts) ?: (current.amounts - legacyChanges.toSet())
+        if (request.amounts != null) require("budget" in amounts) { "Budget amount is required." }
+        fun amount(kind: String, legacy: Long?): Long? =
+            if (request.amounts != null) amounts[kind]?.legacyUah() else legacy
+        fun text(value: String?, existing: String?, max: Int): String? =
+            if (value == null) existing else value.trim().also { require(it.length <= max) { "Contract field is too long (maximum $max)." } }.ifBlank { null }
+        fun date(value: String?, existing: LocalDate?, label: String): LocalDate? =
+            if (value == null) existing else parseOptionalDate(value, label)
         val patch = ProjectPatch(
             name = request.name?.trim() ?: current.name,
             siteName = request.siteName?.trim() ?: current.siteName,
             siteNumber = request.siteNumber?.trim() ?: current.siteNumber,
-            description = request.description?.trim()?.takeIf { it.isNotEmpty() } ?: current.description,
+            description = if (request.description == null) current.description else request.description.trim().ifBlank { null },
             address = request.address?.trim() ?: current.address,
             region = request.region?.trim() ?: current.region,
             city = request.city?.trim() ?: current.city,
@@ -360,24 +374,32 @@ class ProjectService(
             longitude = request.longitude ?: current.longitude,
             sector = request.sector?.trim() ?: current.sector,
             constructionType = request.constructionType?.let(::normalizeConstructionTypeOrDefault) ?: current.constructionType,
-            budgetPlanned = request.budgetPlanned ?: current.budgetPlanned,
-            engineerConsultantContractAmount = request.engineerConsultantContractAmount ?: current.engineerConsultantContractAmount,
-            technicalSupervisionAmount = request.technicalSupervisionAmount ?: current.technicalSupervisionAmount,
-            subprojectContractAmount = request.subprojectContractAmount ?: current.subprojectContractAmount,
-            startDate = request.startDate?.let { parseOptionalDate(it, "Start date") } ?: current.startDate,
-            endDate = request.endDate?.let { parseOptionalDate(it, "End date") } ?: current.endDate,
-            contractSignedDate = request.contractSignedDate?.let { parseOptionalDate(it, "Contract signing date") } ?: current.contractSignedDate,
-            plannedEndDate = request.plannedEndDate?.let { parseOptionalDate(it, "Planned end date") } ?: current.plannedEndDate,
-            designContractSigningDate = request.designContractSigningDate?.let { parseOptionalDate(it, "Design contract signing date") } ?: current.designContractSigningDate,
-            constructionContractSigningDate = request.constructionContractSigningDate?.let { parseOptionalDate(it, "Construction contract signing date") } ?: current.constructionContractSigningDate,
-            constructionStartDate = request.constructionStartDate?.let { parseOptionalDate(it, "Construction start date") } ?: current.constructionStartDate,
-            projectedCompletionTime = request.projectedCompletionTime?.let { parseOptionalDate(it, "Projected completion date") } ?: current.projectedCompletionTime,
+            budgetPlanned = amount("budget", request.budgetPlanned ?: current.budgetPlanned)!!,
+            engineerConsultantContractAmount = amount("engineer", request.engineerConsultantContractAmount ?: current.engineerConsultantContractAmount),
+            technicalSupervisionAmount = amount("supervision", request.technicalSupervisionAmount ?: current.technicalSupervisionAmount),
+            subprojectContractAmount = amount("construction", request.subprojectContractAmount ?: current.subprojectContractAmount),
+            startDate = date(request.startDate, current.startDate, "Start date"),
+            endDate = date(request.endDate, current.endDate, "End date"),
+            contractSignedDate = date(request.contractSignedDate, current.contractSignedDate, "Contract signing date"),
+            plannedEndDate = date(request.plannedEndDate, current.plannedEndDate, "Planned end date"),
+            designContractSigningDate = date(request.designContractSigningDate, current.designContractSigningDate, "Design contract signing date"),
+            constructionContractSigningDate = date(request.constructionContractSigningDate, current.constructionContractSigningDate, "Construction contract signing date"),
+            constructionStartDate = date(request.constructionStartDate, current.constructionStartDate, "Construction start date"),
+            projectedCompletionTime = date(request.projectedCompletionTime, current.projectedCompletionTime, "Projected completion date"),
             currency = request.currency?.trim()?.uppercase()?.also { require(it.matches(Regex("[A-Z]{3}"))) { "Currency must be a three-letter code." } } ?: current.currency,
-            contractorName = request.contractorName?.trim()?.takeIf { it.isNotEmpty() } ?: current.contractorName
+            contractorName = text(request.contractorName, current.contractorName, 255),
+            designerName = text(request.designerName, current.designerName, 255),
+            designContractNumber = text(request.designContractNumber, current.designContractNumber, 100),
+            designContractTerm = text(request.designContractTerm, current.designContractTerm, 500),
+            constructionContractNumber = text(request.constructionContractNumber, current.constructionContractNumber, 100),
+            amounts = amounts
         )
         validateProjectData(patch.name, patch.siteName, patch.siteNumber, patch.budgetPlanned, patch.engineerConsultantContractAmount, patch.technicalSupervisionAmount, current.projectType, patch.subprojectContractAmount, patch.startDate, patch.contractSignedDate, patch.plannedEndDate)
         if (patch.latitude !in -90.0..90.0) throw IllegalArgumentException("Latitude must be between -90 and 90.")
         if (patch.longitude !in -180.0..180.0) throw IllegalArgumentException("Longitude must be between -180 and 180.")
+        if (patch.constructionStartDate != null && patch.projectedCompletionTime != null) {
+            require(!patch.projectedCompletionTime.isBefore(patch.constructionStartDate)) { "Planned completion cannot precede construction start." }
+        }
         return projectRepository.updateByUuid(uuid.trim(), patch)
     }
 

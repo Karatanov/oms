@@ -7,6 +7,9 @@ import io.ktor.server.routing.*
 import org.apache.poi.xssf.usermodel.XSSFWorkbook
 import oms.ufsi.config.AppContainer
 import oms.ufsi.dto.*
+import org.jetbrains.exposed.v1.jdbc.transactions.transaction
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 /**
  * Маршрути роботи з проєктами.
@@ -15,6 +18,18 @@ fun Route.projectRoutes() {
 
     val projectService =
         AppContainer.projectService
+
+    get("/api/v1/exchange-rates/eur") {
+        call.requireRole("ADMIN", "PROJECT_MANAGER") ?: return@get
+        try {
+            val (date, rate) = withContext(Dispatchers.IO) {
+                AppContainer.nbuExchangeRateService.eurRate(java.time.LocalDate.now(java.time.ZoneId.of("Europe/Kyiv")))
+            }
+            call.respond(ProjectExchangeRateResponse(java.math.BigDecimal.valueOf(rate).stripTrailingZeros().toPlainString(), date.toString()))
+        } catch (_: Exception) {
+            call.respond(HttpStatusCode.BadGateway, ErrorResponse("EXCHANGE_RATE_UNAVAILABLE", "NBU rate is unavailable. Retry or enter a rate manually."))
+        }
+    }
 
     post("/api/v1/geocode/address") {
         call.requireRole("ADMIN", "PROJECT_MANAGER") ?: return@post
@@ -99,6 +114,7 @@ fun Route.projectRoutes() {
 
         try {
 
+            val result = transaction {
             val project =
                 projectService.createProject(
 
@@ -145,7 +161,7 @@ fun Route.projectRoutes() {
                     managerId = session.userId,
                 )
 
-            val result = projectService.updateProject(
+            projectService.updateProject(
                 project.uuid.toString(),
                 UpdateProjectRequest(
                     description = request.description,
@@ -155,9 +171,16 @@ fun Route.projectRoutes() {
                     constructionStartDate = request.constructionStartDate,
                     projectedCompletionTime = request.projectedCompletionTime,
                     currency = request.currency,
-                    contractorName = request.contractorName
+                    contractorName = request.contractorName,
+                    designerName = request.designerName,
+                    designContractNumber = request.designContractNumber,
+                    designContractTerm = request.designContractTerm,
+                    constructionContractNumber = request.constructionContractNumber,
+                    amounts = request.amounts,
+                    status = request.status
                 )
             ) ?: project
+            }
 
             AppContainer.auditLogService.record(session.userId, "project_created", result.projectType.name.lowercase(), result.id)
             call.respond(

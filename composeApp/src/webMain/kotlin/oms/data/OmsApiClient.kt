@@ -115,6 +115,8 @@ object OmsApiClient {
             setBody(request)
         }.body()
 
+    suspend fun projectExchangeRate(): ProjectExchangeRate = client.get("$baseUrl/exchange-rates/eur").body()
+
     suspend fun geocodeAddress(address: String, city: String, region: String): GeocodeAddressResponse {
         val response = client.post("$baseUrl/geocode/address") {
             contentType(ContentType.Application.Json)
@@ -399,6 +401,7 @@ data class FinancialRecordUpdateRequest(
 @Serializable
 data class CreateProjectRequest(
     val name: String,
+    val status: String? = null,
     val siteName: String,
     val siteNumber: String,
     val description: String? = null,
@@ -425,7 +428,12 @@ data class CreateProjectRequest(
     val constructionStartDate: String? = null,
     val projectedCompletionTime: String? = null,
     val currency: String? = null,
-    val contractorName: String? = null
+    val contractorName: String? = null,
+    val designerName: String? = null,
+    val designContractNumber: String? = null,
+    val designContractTerm: String? = null,
+    val constructionContractNumber: String? = null,
+    val amounts: Map<String, ProjectAmountDto>? = null
 )
 
 @Serializable
@@ -461,7 +469,12 @@ data class UpdateProjectRequest(
     val constructionStartDate: String? = null,
     val projectedCompletionTime: String? = null,
     val currency: String? = null,
-    val contractorName: String? = null
+    val contractorName: String? = null,
+    val designerName: String? = null,
+    val designContractNumber: String? = null,
+    val designContractTerm: String? = null,
+    val constructionContractNumber: String? = null,
+    val amounts: Map<String, ProjectAmountDto>? = null
 )
 
 @Serializable
@@ -692,7 +705,12 @@ data class ApiProjectDetailsData(
     val constructionContractSigningDate: String? = null,
     val constructionStartDate: String? = null,
     val projectedCompletionTime: String? = null,
-    val contractDurationDays: Long? = null
+    val contractDurationDays: Long? = null,
+    val designerName: String? = null,
+    val designContractNumber: String? = null,
+    val designContractTerm: String? = null,
+    val constructionContractNumber: String? = null,
+    val amounts: Map<String, ProjectAmountDto> = emptyMap()
 )
 
 @Serializable

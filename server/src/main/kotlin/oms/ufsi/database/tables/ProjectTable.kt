@@ -63,6 +63,10 @@ object ProjectTable : LongIdTable("projects") {
         varchar("site_number", 50)
 
     val description = text("description").nullable()
+    val designerName = varchar("designer_name", 255).nullable()
+    val designContractNumber = varchar("design_contract_number", 100).nullable()
+    val designContractTerm = varchar("design_contract_term", 500).nullable()
+    val constructionContractNumber = varchar("construction_contract_number", 100).nullable()
 
     /**
      * Повна адреса.

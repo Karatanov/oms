@@ -155,8 +155,15 @@ fun Project.toResponse(parentProjectUuid: String? = null): ProjectResponse {
         currency =
             currency,
 
-        contractorName =
-            contractorName
+        contractorName = contractorName,
+        designerName = designerName,
+        designContractNumber = designContractNumber,
+        designContractTerm = designContractTerm,
+        constructionContractNumber = constructionContractNumber,
+        amounts = amounts.mapValues { (_, value) -> ProjectAmountDto(
+            value.amount.toPlainString(), value.currency, value.convertedAmount.toPlainString(),
+            value.uahPerEur.stripTrailingZeros().toPlainString(), value.rateDate.toString(), value.conversionEdited
+        ) }
     )
 }
 

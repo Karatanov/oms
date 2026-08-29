@@ -15,6 +15,7 @@ data class CreateProjectRequest(
      * Повна назва проєкту.
      */
     val name: String,
+    val status: String? = null,
 
     /**
      * Короткий код майданчика.
@@ -98,5 +99,10 @@ data class CreateProjectRequest(
     val constructionStartDate: String? = null,
     val projectedCompletionTime: String? = null,
     val currency: String? = null,
-    val contractorName: String? = null
+    val contractorName: String? = null,
+    val designerName: String? = null,
+    val designContractNumber: String? = null,
+    val designContractTerm: String? = null,
+    val constructionContractNumber: String? = null,
+    val amounts: Map<String, ProjectAmountDto>? = null
 )

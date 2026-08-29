@@ -1,0 +1,111 @@
+package oms.screens
+
+import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import oms.components.*
+import oms.data.ApiProject
+import oms.localization.LocalizationManager as L
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+internal fun ProjectForm(state: ProjectFormState, parents: List<ApiProject>, editing: Boolean, onError: (String) -> Unit) {
+    var geocoding by remember { mutableStateOf(false) }
+    fun field(key: String, label: String, modifier: Modifier = Modifier, lines: Int = 1) = @Composable {
+        OutlinedTextField(state[key], { state[key] = it }, label = { Text(L.t(label)) }, modifier = modifier,
+            singleLine = lines == 1, minLines = lines)
+    }
+    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            FormSectionTitle(L.t("basic_information"), Icons.Default.Folder)
+            if (!editing) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf("project", "subproject", "subproject_part").forEach { type ->
+                        FilterChip(selected = state.projectType == type, onClick = { state.projectType = type; state.parentUuid = null }, label = { Text(L.t(type)) })
+                    }
+                }
+                if (state.projectType != "project") {
+                    val parentType = if (state.projectType == "subproject") "project" else "subproject"
+                    val choices = parents.filter { it.projectType == parentType }
+                    InlineOptionPicker(choices, choices.firstOrNull { it.uuid == state.parentUuid },
+                        L.t(if (parentType == "project") "select_parent_project" else "select_parent_subproject"),
+                        { state.parentUuid = it.uuid }, { "${it.siteNumber} — ${it.name}" })
+                }
+            }
+            FormPair(
+                { field("name", "project_name_required", it)() },
+                { field("code", if (state.projectType == "subproject_part") "subproject_part_code" else "project_code_required", it)() }
+            )
+            field("description", "description", Modifier.fillMaxWidth(), 3)()
+            Text(L.t("status"), style = MaterialTheme.typography.labelLarge)
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                listOf("planned", "active", "suspended", "completed", "archived", "dlp").forEach { status ->
+                    FilterChip(state["status"] == status, { state["status"] = status }, { Text(L.t("project_status_$status")) })
+                }
+            }
+            FormPair(
+                { SectorSelector(state["sector"], { value -> state["sector"] = value }, it) },
+                { ConstructionTypeSelector(state["constructionType"], { value -> state["constructionType"] = value }, it) }
+            )
+            FormSectionTitle(L.t("financial_parameters"), Icons.Default.AccountBalanceWallet)
+            ProjectMoneyField(L.t("planned_budget"), state.money.getValue("budget"), state.currentRate) { state.money = state.money + ("budget" to it) }
+            ProjectMoneyField(L.t("engineer_consultant_contract_amount"), state.money.getValue("engineer"), state.currentRate) { state.money = state.money + ("engineer" to it) }
+            ProjectMoneyField(L.t("technical_supervision_contract_amount"), state.money.getValue("supervision"), state.currentRate) { state.money = state.money + ("supervision" to it) }
+            FormSectionTitle(L.t("parameters_and_location"), Icons.Default.LocationOn)
+            field("address", "address", Modifier.fillMaxWidth())()
+            FormPair(
+                { UkraineRegionAutocomplete(state["region"], { value -> state["region"] = value }, L.t("region"), it, false) },
+                { UkraineCityAutocomplete(state["city"], { value -> state["city"] = value }, L.t("city"), it, false) }
+            )
+            FormPair(
+                { modifier -> OutlinedTextField(state["latitude"], { if (it.matches(Regex("-?[0-9.,]*"))) state["latitude"] = it }, label = { Text(L.t("latitude")) }, enabled = !geocoding, modifier = modifier) },
+                { modifier -> OutlinedTextField(state["longitude"], { if (it.matches(Regex("-?[0-9.,]*"))) state["longitude"] = it }, label = { Text(L.t("longitude")) }, enabled = !geocoding, modifier = modifier) }
+            )
+            AddressCoordinatesCalculator(state["address"], state["city"], state["region"], geocoding, { geocoding = it },
+                { lat, lon -> state["latitude"] = lat; state["longitude"] = lon }, onError)
+        }
+    }
+    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            FormSectionTitle(L.t("designer_information"), Icons.Default.DesignServices)
+            field("designerName", "designer_name", Modifier.fillMaxWidth())()
+            FormPair(
+                { field("designContractNumber", "contract_number", it)() },
+                { OmsDateField(state["designContractSigningDate"], { value -> state["designContractSigningDate"] = value }, L.t("contract_date"), it) }
+            )
+            field("designContractTerm", "design_contract_term", Modifier.fillMaxWidth())()
+        }
+    }
+    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            FormSectionTitle(L.t("construction_contractor_information"), Icons.Default.Engineering)
+            field("contractorName", "contractor_name", Modifier.fillMaxWidth())()
+            FormPair(
+                { field("constructionContractNumber", "contract_number", it)() },
+                { OmsDateField(state["constructionContractSigningDate"], { value -> state["constructionContractSigningDate"] = value }, L.t("contract_date"), it) }
+            )
+            FormPair(
+                { OmsDateField(state["constructionStartDate"], { value -> state["constructionStartDate"] = value }, L.t("construction_start_date"), it) },
+                { OmsDateField(state["projectedCompletionTime"], { value -> state["projectedCompletionTime"] = value }, L.t("planned_end_date"), it) }
+            )
+            ProjectMoneyField(L.t("construction_contract_amount"), state.money.getValue("construction"), state.currentRate) { state.money = state.money + ("construction" to it) }
+            OmsDateField(state["endDate"], { state["endDate"] = it }, L.t("actual_end_date"), Modifier.fillMaxWidth())
+        }
+    }
+}
+
+@Composable
+private fun FormPair(first: @Composable (Modifier) -> Unit, second: @Composable (Modifier) -> Unit) {
+    BoxWithConstraints(Modifier.fillMaxWidth()) {
+        if (maxWidth < 700.dp) Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            first(Modifier.fillMaxWidth()); second(Modifier.fillMaxWidth())
+        } else Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            first(Modifier.weight(1f)); second(Modifier.weight(1f))
+        }
+    }
+}
