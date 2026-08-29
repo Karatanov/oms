@@ -15,8 +15,8 @@ val Background = Color(0xFFF4F7F9)
 val Surface = Color(0xFFFFFFFF)
 
 // 🔹 Текст
-// 4.89:1 contrast on the unchanged primary; white small text reaches only 3.82:1.
-val OnPrimary = Color(0xFF00151C)
+// Filled primary actions use a consistent light foreground throughout OMS.
+val OnPrimary = Color.White
 val OnSurface = Color(0xFF20313C)
 
 /** Semantic foregrounds for subtle informational badges. */
