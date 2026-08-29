@@ -56,6 +56,7 @@ internal fun ProjectForm(state: ProjectFormState, parents: List<ApiProject>, edi
             ProjectMoneyField(L.t("planned_budget"), state.money.getValue("budget"), state.currentRate) { state.money = state.money + ("budget" to it) }
             ProjectMoneyField(L.t("technical_supervision_contract_amount"), state.money.getValue("supervision"), state.currentRate) { state.money = state.money + ("supervision" to it) }
             ProjectMoneyField(L.t("engineer_consultant_contract_amount"), state.money.getValue("engineer"), state.currentRate) { state.money = state.money + ("engineer" to it) }
+            ProjectMoneyField(L.t("construction_contract_amount"), state.money.getValue("construction"), state.currentRate) { state.money = state.money + ("construction" to it) }
             FormSectionTitle(L.t("parameters_and_location"), Icons.Default.LocationOn)
             field("address", "address", Modifier.fillMaxWidth())()
             FormPair(
@@ -97,7 +98,6 @@ internal fun ProjectForm(state: ProjectFormState, parents: List<ApiProject>, edi
                 { OmsDateField(state["constructionStartDate"], { value -> state["constructionStartDate"] = value }, L.t("construction_start_date"), it) },
                 { OmsDateField(state["projectedCompletionTime"], { value -> state["projectedCompletionTime"] = value }, L.t("planned_end_date"), it) }
             )
-            ProjectMoneyField(L.t("construction_contract_amount"), state.money.getValue("construction"), state.currentRate) { state.money = state.money + ("construction" to it) }
             OmsDateField(state["endDate"], { state["endDate"] = it }, L.t("actual_end_date"), Modifier.fillMaxWidth())
         }
     }
