@@ -73,6 +73,16 @@ class ExposedProjectRepository : ProjectRepository {
                     designContractNumber = row[ProjectTable.designContractNumber],
                     designContractTerm = row[ProjectTable.designContractTerm],
                     constructionContractNumber = row[ProjectTable.constructionContractNumber],
+                    technicalSupervisionName = row[ProjectTable.technicalSupervisionName],
+                    technicalSupervisionContractNumber = row[ProjectTable.technicalSupervisionContractNumber],
+                    technicalSupervisionContractDate = row[ProjectTable.technicalSupervisionContractDate],
+                    technicalSupervisionStartDate = row[ProjectTable.technicalSupervisionStartDate],
+                    technicalSupervisionPlannedEndDate = row[ProjectTable.technicalSupervisionPlannedEndDate],
+                    engineerConsultantName = row[ProjectTable.engineerConsultantName],
+                    engineerConsultantContractNumber = row[ProjectTable.engineerConsultantContractNumber],
+                    engineerConsultantContractDate = row[ProjectTable.engineerConsultantContractDate],
+                    engineerConsultantStartDate = row[ProjectTable.engineerConsultantStartDate],
+                    engineerConsultantPlannedEndDate = row[ProjectTable.engineerConsultantPlannedEndDate],
                     amounts = amountsByProject[row[ProjectTable.id].value].orEmpty().toAmounts()
                 )
             }
@@ -196,6 +206,16 @@ class ExposedProjectRepository : ProjectRepository {
                     designContractNumber = row[ProjectTable.designContractNumber],
                     designContractTerm = row[ProjectTable.designContractTerm],
                     constructionContractNumber = row[ProjectTable.constructionContractNumber],
+                    technicalSupervisionName = row[ProjectTable.technicalSupervisionName],
+                    technicalSupervisionContractNumber = row[ProjectTable.technicalSupervisionContractNumber],
+                    technicalSupervisionContractDate = row[ProjectTable.technicalSupervisionContractDate],
+                    technicalSupervisionStartDate = row[ProjectTable.technicalSupervisionStartDate],
+                    technicalSupervisionPlannedEndDate = row[ProjectTable.technicalSupervisionPlannedEndDate],
+                    engineerConsultantName = row[ProjectTable.engineerConsultantName],
+                    engineerConsultantContractNumber = row[ProjectTable.engineerConsultantContractNumber],
+                    engineerConsultantContractDate = row[ProjectTable.engineerConsultantContractDate],
+                    engineerConsultantStartDate = row[ProjectTable.engineerConsultantStartDate],
+                    engineerConsultantPlannedEndDate = row[ProjectTable.engineerConsultantPlannedEndDate],
                     amounts = ProjectAmountTable.selectAll().where { ProjectAmountTable.projectId eq row[ProjectTable.id] }.toList().toAmounts()
                 )
             }
@@ -355,6 +375,16 @@ class ExposedProjectRepository : ProjectRepository {
                 it[designContractNumber] = patch.designContractNumber
                 it[designContractTerm] = patch.designContractTerm
                 it[constructionContractNumber] = patch.constructionContractNumber
+                it[technicalSupervisionName] = patch.technicalSupervisionName
+                it[technicalSupervisionContractNumber] = patch.technicalSupervisionContractNumber
+                it[technicalSupervisionContractDate] = patch.technicalSupervisionContractDate
+                it[technicalSupervisionStartDate] = patch.technicalSupervisionStartDate
+                it[technicalSupervisionPlannedEndDate] = patch.technicalSupervisionPlannedEndDate
+                it[engineerConsultantName] = patch.engineerConsultantName
+                it[engineerConsultantContractNumber] = patch.engineerConsultantContractNumber
+                it[engineerConsultantContractDate] = patch.engineerConsultantContractDate
+                it[engineerConsultantStartDate] = patch.engineerConsultantStartDate
+                it[engineerConsultantPlannedEndDate] = patch.engineerConsultantPlannedEndDate
             }
             ProjectAmountTable.deleteWhere { ProjectAmountTable.projectId eq projectId }
             patch.amounts.forEach { (key, value) ->

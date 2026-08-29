@@ -178,6 +178,16 @@ fun Route.projectRoutes() {
                     designContractNumber = request.designContractNumber,
                     designContractTerm = request.designContractTerm,
                     constructionContractNumber = request.constructionContractNumber,
+                    technicalSupervisionName = request.technicalSupervisionName,
+                    technicalSupervisionContractNumber = request.technicalSupervisionContractNumber,
+                    technicalSupervisionContractDate = request.technicalSupervisionContractDate,
+                    technicalSupervisionStartDate = request.technicalSupervisionStartDate,
+                    technicalSupervisionPlannedEndDate = request.technicalSupervisionPlannedEndDate,
+                    engineerConsultantName = request.engineerConsultantName,
+                    engineerConsultantContractNumber = request.engineerConsultantContractNumber,
+                    engineerConsultantContractDate = request.engineerConsultantContractDate,
+                    engineerConsultantStartDate = request.engineerConsultantStartDate,
+                    engineerConsultantPlannedEndDate = request.engineerConsultantPlannedEndDate,
                     amounts = request.amounts,
                     status = request.status
                 )

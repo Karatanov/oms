@@ -435,6 +435,16 @@ data class CreateProjectRequest(
     val designContractNumber: String? = null,
     val designContractTerm: String? = null,
     val constructionContractNumber: String? = null,
+    val technicalSupervisionName: String? = null,
+    val technicalSupervisionContractNumber: String? = null,
+    val technicalSupervisionContractDate: String? = null,
+    val technicalSupervisionStartDate: String? = null,
+    val technicalSupervisionPlannedEndDate: String? = null,
+    val engineerConsultantName: String? = null,
+    val engineerConsultantContractNumber: String? = null,
+    val engineerConsultantContractDate: String? = null,
+    val engineerConsultantStartDate: String? = null,
+    val engineerConsultantPlannedEndDate: String? = null,
     val amounts: Map<String, ProjectAmountDto>? = null
 )
 
@@ -478,6 +488,16 @@ data class UpdateProjectRequest(
     val designContractNumber: String? = null,
     val designContractTerm: String? = null,
     val constructionContractNumber: String? = null,
+    val technicalSupervisionName: String? = null,
+    val technicalSupervisionContractNumber: String? = null,
+    val technicalSupervisionContractDate: String? = null,
+    val technicalSupervisionStartDate: String? = null,
+    val technicalSupervisionPlannedEndDate: String? = null,
+    val engineerConsultantName: String? = null,
+    val engineerConsultantContractNumber: String? = null,
+    val engineerConsultantContractDate: String? = null,
+    val engineerConsultantStartDate: String? = null,
+    val engineerConsultantPlannedEndDate: String? = null,
     val amounts: Map<String, ProjectAmountDto>? = null
 )
 
@@ -717,6 +737,18 @@ data class ApiProjectDetailsData(
     val designContractNumber: String? = null,
     val designContractTerm: String? = null,
     val constructionContractNumber: String? = null,
+    val technicalSupervisionName: String? = null,
+    val technicalSupervisionContractNumber: String? = null,
+    val technicalSupervisionContractDate: String? = null,
+    val technicalSupervisionStartDate: String? = null,
+    val technicalSupervisionPlannedEndDate: String? = null,
+    val technicalSupervisionDurationDays: Long? = null,
+    val engineerConsultantName: String? = null,
+    val engineerConsultantContractNumber: String? = null,
+    val engineerConsultantContractDate: String? = null,
+    val engineerConsultantStartDate: String? = null,
+    val engineerConsultantPlannedEndDate: String? = null,
+    val engineerConsultantDurationDays: Long? = null,
     val amounts: Map<String, ProjectAmountDto> = emptyMap()
 )
 

@@ -166,6 +166,18 @@ fun Project.toResponse(parentProjectUuid: String? = null): ProjectResponse {
         designContractNumber = designContractNumber,
         designContractTerm = designContractTerm,
         constructionContractNumber = constructionContractNumber,
+        technicalSupervisionName = technicalSupervisionName,
+        technicalSupervisionContractNumber = technicalSupervisionContractNumber,
+        technicalSupervisionContractDate = technicalSupervisionContractDate?.toString(),
+        technicalSupervisionStartDate = technicalSupervisionStartDate?.toString(),
+        technicalSupervisionPlannedEndDate = technicalSupervisionPlannedEndDate?.toString(),
+        technicalSupervisionDurationDays = technicalSupervisionDurationDays,
+        engineerConsultantName = engineerConsultantName,
+        engineerConsultantContractNumber = engineerConsultantContractNumber,
+        engineerConsultantContractDate = engineerConsultantContractDate?.toString(),
+        engineerConsultantStartDate = engineerConsultantStartDate?.toString(),
+        engineerConsultantPlannedEndDate = engineerConsultantPlannedEndDate?.toString(),
+        engineerConsultantDurationDays = engineerConsultantDurationDays,
         amounts = amounts.mapValues { (_, value) -> ProjectAmountDto(
             value.amount.toPlainString(), value.currency, value.convertedAmount.toPlainString(),
             value.uahPerEur.stripTrailingZeros().toPlainString(), value.rateDate.toString(), value.conversionEdited

@@ -36,5 +36,15 @@ data class ProjectPatch(
     val designContractNumber: String? = null,
     val designContractTerm: String? = null,
     val constructionContractNumber: String? = null,
-    val amounts: Map<String, ProjectAmount> = emptyMap()
+    val amounts: Map<String, ProjectAmount> = emptyMap(),
+    val technicalSupervisionName: String? = null,
+    val technicalSupervisionContractNumber: String? = null,
+    val technicalSupervisionContractDate: LocalDate? = null,
+    val technicalSupervisionStartDate: LocalDate? = null,
+    val technicalSupervisionPlannedEndDate: LocalDate? = null,
+    val engineerConsultantName: String? = null,
+    val engineerConsultantContractNumber: String? = null,
+    val engineerConsultantContractDate: LocalDate? = null,
+    val engineerConsultantStartDate: LocalDate? = null,
+    val engineerConsultantPlannedEndDate: LocalDate? = null
 )

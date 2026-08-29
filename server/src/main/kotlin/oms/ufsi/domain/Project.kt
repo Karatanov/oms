@@ -128,7 +128,17 @@ data class Project(
     val designContractNumber: String? = null,
     val designContractTerm: String? = null,
     val constructionContractNumber: String? = null,
-    val amounts: Map<String, ProjectAmount> = emptyMap()
+    val amounts: Map<String, ProjectAmount> = emptyMap(),
+    val technicalSupervisionName: String? = null,
+    val technicalSupervisionContractNumber: String? = null,
+    val technicalSupervisionContractDate: LocalDate? = null,
+    val technicalSupervisionStartDate: LocalDate? = null,
+    val technicalSupervisionPlannedEndDate: LocalDate? = null,
+    val engineerConsultantName: String? = null,
+    val engineerConsultantContractNumber: String? = null,
+    val engineerConsultantContractDate: LocalDate? = null,
+    val engineerConsultantStartDate: LocalDate? = null,
+    val engineerConsultantPlannedEndDate: LocalDate? = null
 ) {
     /** Duration from contract signing to the planned end date, in days. */
     val contractDurationDays: Long?
@@ -141,4 +151,13 @@ data class Project(
         get() = if (designStartDate != null && designPlannedEndDate != null)
             java.time.temporal.ChronoUnit.DAYS.between(designStartDate, designPlannedEndDate)
         else null
+
+    val technicalSupervisionDurationDays: Long?
+        get() = durationDays(technicalSupervisionStartDate, technicalSupervisionPlannedEndDate)
+
+    val engineerConsultantDurationDays: Long?
+        get() = durationDays(engineerConsultantStartDate, engineerConsultantPlannedEndDate)
+
+    private fun durationDays(start: LocalDate?, end: LocalDate?): Long? =
+        if (start != null && end != null) java.time.temporal.ChronoUnit.DAYS.between(start, end) else null
 }

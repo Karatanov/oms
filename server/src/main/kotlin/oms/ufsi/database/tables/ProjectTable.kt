@@ -67,6 +67,10 @@ object ProjectTable : LongIdTable("projects") {
     val designContractNumber = varchar("design_contract_number", 100).nullable()
     val designContractTerm = varchar("design_contract_term", 500).nullable()
     val constructionContractNumber = varchar("construction_contract_number", 100).nullable()
+    val technicalSupervisionName = varchar("technical_supervision_name", 255).nullable()
+    val technicalSupervisionContractNumber = varchar("technical_supervision_contract_number", 100).nullable()
+    val engineerConsultantName = varchar("engineer_consultant_name", 255).nullable()
+    val engineerConsultantContractNumber = varchar("engineer_consultant_contract_number", 100).nullable()
 
     /**
      * Повна адреса.
@@ -151,6 +155,12 @@ object ProjectTable : LongIdTable("projects") {
     val designContractSigningDate = date("design_contract_signing_date").nullable()
     val designStartDate = date("design_start_date").nullable()
     val designPlannedEndDate = date("design_planned_end_date").nullable()
+    val technicalSupervisionContractDate = date("technical_supervision_contract_date").nullable()
+    val technicalSupervisionStartDate = date("technical_supervision_start_date").nullable()
+    val technicalSupervisionPlannedEndDate = date("technical_supervision_planned_end_date").nullable()
+    val engineerConsultantContractDate = date("engineer_consultant_contract_date").nullable()
+    val engineerConsultantStartDate = date("engineer_consultant_start_date").nullable()
+    val engineerConsultantPlannedEndDate = date("engineer_consultant_planned_end_date").nullable()
     val constructionContractSigningDate = date("construction_contract_signing_date").nullable()
     val constructionStartDate = date("construction_start_date").nullable()
     val projectedCompletionTime = date("projected_completion_time").nullable()

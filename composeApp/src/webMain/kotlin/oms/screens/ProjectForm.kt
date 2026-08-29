@@ -101,6 +101,51 @@ internal fun ProjectForm(state: ProjectFormState, parents: List<ApiProject>, edi
             OmsDateField(state["endDate"], { state["endDate"] = it }, L.t("actual_end_date"), Modifier.fillMaxWidth())
         }
     }
+    ContractInformationCard(
+        title = L.t("technical_supervision_information"), icon = Icons.Default.Visibility,
+        name = state["technicalSupervisionName"], onNameChange = { state["technicalSupervisionName"] = it },
+        contractNumber = state["technicalSupervisionContractNumber"], onContractNumberChange = { state["technicalSupervisionContractNumber"] = it },
+        contractDate = state["technicalSupervisionContractDate"], onContractDateChange = { state["technicalSupervisionContractDate"] = it },
+        startDate = state["technicalSupervisionStartDate"], onStartDateChange = { state["technicalSupervisionStartDate"] = it },
+        plannedEndDate = state["technicalSupervisionPlannedEndDate"], onPlannedEndDateChange = { state["technicalSupervisionPlannedEndDate"] = it },
+        duration = state.durationLabel("technicalSupervisionStartDate", "technicalSupervisionPlannedEndDate")
+    )
+    ContractInformationCard(
+        title = L.t("engineer_consultant_information"), icon = Icons.Default.SupportAgent,
+        name = state["engineerConsultantName"], onNameChange = { state["engineerConsultantName"] = it },
+        contractNumber = state["engineerConsultantContractNumber"], onContractNumberChange = { state["engineerConsultantContractNumber"] = it },
+        contractDate = state["engineerConsultantContractDate"], onContractDateChange = { state["engineerConsultantContractDate"] = it },
+        startDate = state["engineerConsultantStartDate"], onStartDateChange = { state["engineerConsultantStartDate"] = it },
+        plannedEndDate = state["engineerConsultantPlannedEndDate"], onPlannedEndDateChange = { state["engineerConsultantPlannedEndDate"] = it },
+        duration = state.durationLabel("engineerConsultantStartDate", "engineerConsultantPlannedEndDate")
+    )
+}
+
+@Composable
+private fun ContractInformationCard(
+    title: String, icon: androidx.compose.ui.graphics.vector.ImageVector,
+    name: String, onNameChange: (String) -> Unit,
+    contractNumber: String, onContractNumberChange: (String) -> Unit,
+    contractDate: String, onContractDateChange: (String) -> Unit,
+    startDate: String, onStartDateChange: (String) -> Unit,
+    plannedEndDate: String, onPlannedEndDateChange: (String) -> Unit,
+    duration: String
+) {
+    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            FormSectionTitle(title, icon)
+            OutlinedTextField(name, onNameChange, label = { Text(L.t("organization_name")) }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+            FormPair(
+                { modifier -> OutlinedTextField(contractNumber, onContractNumberChange, label = { Text(L.t("contract_number")) }, modifier = modifier, singleLine = true) },
+                { modifier -> OmsDateField(contractDate, onContractDateChange, L.t("contract_date"), modifier) }
+            )
+            FormTriplet(
+                { modifier -> OmsDateField(startDate, onStartDateChange, L.t("design_start_date"), modifier) },
+                { modifier -> OmsDateField(plannedEndDate, onPlannedEndDateChange, L.t("design_planned_end_date"), modifier) },
+                { modifier -> OutlinedTextField(duration, {}, label = { Text(L.t("contract_duration")) }, readOnly = true, singleLine = true, modifier = modifier) }
+            )
+        }
+    }
 }
 
 @Composable

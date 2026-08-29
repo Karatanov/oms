@@ -22,11 +22,21 @@ internal class ProjectFormState(details: ApiProjectDetailsData? = null) {
         "designerName" to details?.designerName.orEmpty(), "designContractNumber" to details?.designContractNumber.orEmpty(),
         "designContractTerm" to details?.designContractTerm.orEmpty(), "contractorName" to details?.contractorName.orEmpty(),
         "constructionContractNumber" to details?.constructionContractNumber.orEmpty(),
+        "technicalSupervisionName" to details?.technicalSupervisionName.orEmpty(),
+        "technicalSupervisionContractNumber" to details?.technicalSupervisionContractNumber.orEmpty(),
+        "engineerConsultantName" to details?.engineerConsultantName.orEmpty(),
+        "engineerConsultantContractNumber" to details?.engineerConsultantContractNumber.orEmpty(),
         "startDate" to initialDate(details, details?.startDate), "endDate" to initialDate(details, details?.endDate),
         "contractSignedDate" to initialDate(details, details?.contractSignedDate), "plannedEndDate" to initialDate(details, details?.plannedEndDate),
         "designContractSigningDate" to initialDate(details, details?.designContractSigningDate),
         "designStartDate" to initialDate(details, details?.designStartDate),
         "designPlannedEndDate" to initialDate(details, details?.designPlannedEndDate),
+        "technicalSupervisionContractDate" to initialDate(details, details?.technicalSupervisionContractDate),
+        "technicalSupervisionStartDate" to initialDate(details, details?.technicalSupervisionStartDate),
+        "technicalSupervisionPlannedEndDate" to initialDate(details, details?.technicalSupervisionPlannedEndDate),
+        "engineerConsultantContractDate" to initialDate(details, details?.engineerConsultantContractDate),
+        "engineerConsultantStartDate" to initialDate(details, details?.engineerConsultantStartDate),
+        "engineerConsultantPlannedEndDate" to initialDate(details, details?.engineerConsultantPlannedEndDate),
         "constructionContractSigningDate" to initialDate(details, details?.constructionContractSigningDate ?: details?.contractSignedDate),
         "constructionStartDate" to initialDate(details, details?.constructionStartDate ?: details?.startDate),
         "projectedCompletionTime" to initialDate(details, details?.projectedCompletionTime ?: details?.plannedEndDate)
@@ -54,9 +64,14 @@ internal class ProjectFormState(details: ApiProjectDetailsData? = null) {
         this["plannedEndDate"].isNotBlank() && this["contractSignedDate"].isNotBlank() && this["plannedEndDate"] < this["contractSignedDate"] -> L.t("project_dates_invalid")
         this["projectedCompletionTime"].isNotBlank() && this["constructionStartDate"].isNotBlank() && this["projectedCompletionTime"] < this["constructionStartDate"] -> L.t("project_dates_invalid")
         this["designPlannedEndDate"].isNotBlank() && this["designStartDate"].isNotBlank() && this["designPlannedEndDate"] < this["designStartDate"] -> L.t("project_dates_invalid")
+        this["technicalSupervisionPlannedEndDate"].isNotBlank() && this["technicalSupervisionStartDate"].isNotBlank() && this["technicalSupervisionPlannedEndDate"] < this["technicalSupervisionStartDate"] -> L.t("project_dates_invalid")
+        this["engineerConsultantPlannedEndDate"].isNotBlank() && this["engineerConsultantStartDate"].isNotBlank() && this["engineerConsultantPlannedEndDate"] < this["engineerConsultantStartDate"] -> L.t("project_dates_invalid")
         else -> null
     }
     fun designDurationLabel(): String = browserDaysBetweenIsoDates(this["designStartDate"], this["designPlannedEndDate"])
+        ?.let { L.t("design_duration_days").replace("{days}", it.toString()) }
+        .orEmpty()
+    fun durationLabel(startKey: String, endKey: String): String = browserDaysBetweenIsoDates(this[startKey], this[endKey])
         ?.let { L.t("design_duration_days").replace("{days}", it.toString()) }
         .orEmpty()
     private fun coordinate(key: String) = this[key].replace(',', '.').toDoubleOrNull()
@@ -72,7 +87,12 @@ internal class ProjectFormState(details: ApiProjectDetailsData? = null) {
         constructionStartDate = this["constructionStartDate"], projectedCompletionTime = this["projectedCompletionTime"],
         contractorName = this["contractorName"].trim(), designerName = this["designerName"].trim(),
         designContractNumber = this["designContractNumber"].trim(), designContractTerm = null,
-        constructionContractNumber = this["constructionContractNumber"].trim(), amounts = amounts()
+        constructionContractNumber = this["constructionContractNumber"].trim(),
+        technicalSupervisionName = this["technicalSupervisionName"].trim(), technicalSupervisionContractNumber = this["technicalSupervisionContractNumber"].trim(),
+        technicalSupervisionContractDate = this["technicalSupervisionContractDate"], technicalSupervisionStartDate = this["technicalSupervisionStartDate"], technicalSupervisionPlannedEndDate = this["technicalSupervisionPlannedEndDate"],
+        engineerConsultantName = this["engineerConsultantName"].trim(), engineerConsultantContractNumber = this["engineerConsultantContractNumber"].trim(),
+        engineerConsultantContractDate = this["engineerConsultantContractDate"], engineerConsultantStartDate = this["engineerConsultantStartDate"], engineerConsultantPlannedEndDate = this["engineerConsultantPlannedEndDate"],
+        amounts = amounts()
     )
     fun createRequest(): CreateProjectRequest {
         val p = updateRequest()
@@ -85,7 +105,12 @@ internal class ProjectFormState(details: ApiProjectDetailsData? = null) {
             designStartDate = p.designStartDate, designPlannedEndDate = p.designPlannedEndDate,
             constructionStartDate = p.constructionStartDate, projectedCompletionTime = p.projectedCompletionTime,
             contractorName = p.contractorName, designerName = p.designerName, designContractNumber = p.designContractNumber,
-            designContractTerm = p.designContractTerm, constructionContractNumber = p.constructionContractNumber, amounts = p.amounts)
+            designContractTerm = p.designContractTerm, constructionContractNumber = p.constructionContractNumber,
+            technicalSupervisionName = p.technicalSupervisionName, technicalSupervisionContractNumber = p.technicalSupervisionContractNumber,
+            technicalSupervisionContractDate = p.technicalSupervisionContractDate, technicalSupervisionStartDate = p.technicalSupervisionStartDate, technicalSupervisionPlannedEndDate = p.technicalSupervisionPlannedEndDate,
+            engineerConsultantName = p.engineerConsultantName, engineerConsultantContractNumber = p.engineerConsultantContractNumber,
+            engineerConsultantContractDate = p.engineerConsultantContractDate, engineerConsultantStartDate = p.engineerConsultantStartDate, engineerConsultantPlannedEndDate = p.engineerConsultantPlannedEndDate,
+            amounts = p.amounts)
     }
 }
 

@@ -366,6 +366,20 @@ class ProjectService(
                 "Design planned completion cannot precede design start."
             }
         }
+        val technicalSupervisionStartDate = date(request.technicalSupervisionStartDate, current.technicalSupervisionStartDate, "Technical supervision start date")
+        val technicalSupervisionPlannedEndDate = date(request.technicalSupervisionPlannedEndDate, current.technicalSupervisionPlannedEndDate, "Technical supervision planned completion date")
+        if (technicalSupervisionStartDate != null && technicalSupervisionPlannedEndDate != null) {
+            require(!technicalSupervisionPlannedEndDate.isBefore(technicalSupervisionStartDate)) {
+                "Technical supervision planned completion cannot precede its start."
+            }
+        }
+        val engineerConsultantStartDate = date(request.engineerConsultantStartDate, current.engineerConsultantStartDate, "Engineer-consultant start date")
+        val engineerConsultantPlannedEndDate = date(request.engineerConsultantPlannedEndDate, current.engineerConsultantPlannedEndDate, "Engineer-consultant planned completion date")
+        if (engineerConsultantStartDate != null && engineerConsultantPlannedEndDate != null) {
+            require(!engineerConsultantPlannedEndDate.isBefore(engineerConsultantStartDate)) {
+                "Engineer-consultant planned completion cannot precede its start."
+            }
+        }
         val designTerm = if (designStartDate != null && designPlannedEndDate != null)
             java.time.temporal.ChronoUnit.DAYS.between(designStartDate, designPlannedEndDate).toString()
         else null
@@ -404,6 +418,16 @@ class ProjectService(
             designContractNumber = text(request.designContractNumber, current.designContractNumber, 100),
             designContractTerm = designTerm,
             constructionContractNumber = text(request.constructionContractNumber, current.constructionContractNumber, 100),
+            technicalSupervisionName = text(request.technicalSupervisionName, current.technicalSupervisionName, 255),
+            technicalSupervisionContractNumber = text(request.technicalSupervisionContractNumber, current.technicalSupervisionContractNumber, 100),
+            technicalSupervisionContractDate = date(request.technicalSupervisionContractDate, current.technicalSupervisionContractDate, "Technical supervision contract date"),
+            technicalSupervisionStartDate = technicalSupervisionStartDate,
+            technicalSupervisionPlannedEndDate = technicalSupervisionPlannedEndDate,
+            engineerConsultantName = text(request.engineerConsultantName, current.engineerConsultantName, 255),
+            engineerConsultantContractNumber = text(request.engineerConsultantContractNumber, current.engineerConsultantContractNumber, 100),
+            engineerConsultantContractDate = date(request.engineerConsultantContractDate, current.engineerConsultantContractDate, "Engineer-consultant contract date"),
+            engineerConsultantStartDate = engineerConsultantStartDate,
+            engineerConsultantPlannedEndDate = engineerConsultantPlannedEndDate,
             amounts = amounts
         )
         validateProjectData(patch.name, patch.siteName, patch.siteNumber, patch.budgetPlanned, patch.engineerConsultantContractAmount, patch.technicalSupervisionAmount, current.projectType, patch.subprojectContractAmount, patch.startDate, patch.contractSignedDate, patch.plannedEndDate)
