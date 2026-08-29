@@ -45,6 +45,7 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalMaterial3Api::class)
 fun ProcurementScreen(canManageProcurements: Boolean) {
     var search by remember { mutableStateOf("") }
+    var oblastFilter by remember { mutableStateOf<String?>(null) }
     var statusFilter by remember { mutableStateOf<String?>(null) }
     var records by remember { mutableStateOf<List<ApiProcurementRecord>?>(null) }
     var error by remember { mutableStateOf<String?>(null) }
@@ -103,11 +104,9 @@ fun ProcurementScreen(canManageProcurements: Boolean) {
         )
         Spacer(Modifier.height(16.dp))
         OutlinedTextField(search, { search = it }, singleLine = true, label = { Text(LocalizationManager.t("procurement_search")) }, leadingIcon = { Icon(Icons.Default.Search, null) }, modifier = Modifier.fillMaxWidth())
-        Spacer(Modifier.height(8.dp))
-        InlineOptionPicker(procurementStatuses, statusFilter, LocalizationManager.t("procurement_status"), { statusFilter = it }, LocalizationManager::procurementStatus,
-            modifier = Modifier.widthIn(max = 380.dp), clearLabel = LocalizationManager.t("all"), onClear = { statusFilter = null })
         Spacer(Modifier.height(12.dp))
         val visibleRecords = records.orEmpty().filter { record ->
+            (oblastFilter == null || record.oblastName == oblastFilter) &&
             (statusFilter == null || record.purchaseStatus == statusFilter) &&
             (search.isBlank() || listOf(record.subProjectId, record.subProjectLotId, record.oblastName, record.contractorNameUkr.orEmpty(), record.contractorNameEng.orEmpty()).any { it.contains(search, true) })
         }
@@ -115,7 +114,10 @@ fun ProcurementScreen(canManageProcurements: Boolean) {
         when {
             loadError != null -> oms.components.ContentState(loadError!!, error = true, onRetry = { reloadKey++ })
             records == null -> CircularProgressIndicator()
-            else -> ProcurementTable(visibleRecords, canManageProcurements, { error = null; editorRecord = it }, { error = null; recordPendingDeletion = it })
+            else -> ProcurementTable(
+                visibleRecords, records.orEmpty(), oblastFilter, { oblastFilter = it }, statusFilter, { statusFilter = it },
+                canManageProcurements, { error = null; editorRecord = it }, { error = null; recordPendingDeletion = it }
+            )
         }
     }
     Column(
@@ -165,12 +167,18 @@ fun ProcurementScreen(canManageProcurements: Boolean) {
 @OptIn(ExperimentalMaterial3Api::class)
 private fun ProcurementTable(
     records: List<ApiProcurementRecord>,
+    allRecords: List<ApiProcurementRecord>,
+    oblastFilter: String?,
+    onOblastChange: (String?) -> Unit,
+    statusFilter: String?,
+    onStatusChange: (String?) -> Unit,
     canManage: Boolean,
     onEdit: (ApiProcurementRecord) -> Unit,
     onDelete: (ApiProcurementRecord) -> Unit
 ) {
     Column(Modifier.fillMaxWidth()) {
         oms.components.ScrollableTable {
+            ProcurementFilters(allRecords, oblastFilter, onOblastChange, statusFilter, onStatusChange, canManage)
             ProcurementRow(procurementHeaderLabels(), showActions = canManage, isHeader = true)
             HorizontalDivider()
             records.forEach { record ->
@@ -183,6 +191,39 @@ private fun ProcurementTable(
                     record.contractAmountEur.format(2), record.financingContractDifferencePct?.let { "${(it * 100).format(2)}%" }.orEmpty()
                 ), record.takeIf { canManage }, onEdit, onDelete, showActions = canManage)
                 HorizontalDivider()
+            }
+        }
+    }
+}
+
+@Composable
+private fun ProcurementFilters(
+    records: List<ApiProcurementRecord>,
+    oblastFilter: String?,
+    onOblastChange: (String?) -> Unit,
+    statusFilter: String?,
+    onStatusChange: (String?) -> Unit,
+    showActions: Boolean
+) {
+    Row(
+        Modifier.widthIn(min = 3_300.dp).padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        if (showActions) Spacer(Modifier.width(96.dp))
+        columnWidths.forEachIndexed { index, width ->
+            Box(Modifier.width(width.dp).padding(horizontal = 6.dp)) {
+                when (index) {
+                    2 -> InlineOptionPicker(
+                        records.map { it.oblastName }.filter(String::isNotBlank).distinct().sorted(), oblastFilter,
+                        LocalizationManager.t("proc_oblast_name"), onOblastChange,
+                        clearLabel = LocalizationManager.t("all"), onClear = { onOblastChange(null) }
+                    )
+                    6 -> InlineOptionPicker(
+                        procurementStatuses, statusFilter, LocalizationManager.t("procurement_status"), onStatusChange,
+                        LocalizationManager::procurementStatus,
+                        clearLabel = LocalizationManager.t("all"), onClear = { onStatusChange(null) }
+                    )
+                }
             }
         }
     }
