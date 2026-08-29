@@ -46,7 +46,7 @@ fun MapScreen(onOpenProject: (Project) -> Unit = {}) {
         (search.isBlank() || it.name.contains(search, true) || it.siteNumber.contains(search, true) || it.city.contains(search, true)) &&
         (region == null || it.region == region) && (status == null || it.status == status)
     }
-    Column(Modifier.fillMaxSize().padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Column(Modifier.fillMaxSize().padding(24.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         PageHeading(LocalizationManager.t("projects_map"), Icons.Default.Map)
         Text(LocalizationManager.t("map_scope"), style = MaterialTheme.typography.labelLarge)
         SingleChoiceSegmentedButtonRow(Modifier.widthIn(max = 520.dp).fillMaxWidth()) {
@@ -66,16 +66,39 @@ fun MapScreen(onOpenProject: (Project) -> Unit = {}) {
                 )
             }
         }
-        OutlinedTextField(search, { search = it }, singleLine = true,
-            label = { Text(LocalizationManager.t("search_project")) }, leadingIcon = { Icon(Icons.Default.Search, null) }, modifier = Modifier.fillMaxWidth())
-        FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            InlineOptionPicker(located.map { it.region }.filter(String::isNotBlank).distinct().sorted(), region,
-                LocalizationManager.t("region"), { region = it }, modifier = Modifier.width(200.dp),
-                clearLabel = LocalizationManager.t("all"), onClear = { region = null })
-            InlineOptionPicker(ProjectStatus.entries, status, LocalizationManager.t("status"), { status = it },
-                { LocalizationManager.t("project_status_${it.name.lowercase()}") }, modifier = Modifier.width(190.dp),
-                clearLabel = LocalizationManager.t("all"), onClear = { status = null })
-            TextButton(onClick = { search = ""; region = null; status = null }) { Text(LocalizationManager.t("reset_filters")) }
+        BoxWithConstraints(Modifier.fillMaxWidth()) {
+            val controls: @Composable (Modifier) -> Unit = { modifier ->
+                OutlinedTextField(search, { search = it }, singleLine = true,
+                    label = { Text(LocalizationManager.t("search_project")) }, leadingIcon = { Icon(Icons.Default.Search, null) }, modifier = modifier)
+            }
+            val regionFilter: @Composable (Modifier) -> Unit = { modifier ->
+                InlineOptionPicker(located.map { it.region }.filter(String::isNotBlank).distinct().sorted(), region,
+                    LocalizationManager.t("region"), { region = it }, modifier = modifier,
+                    clearLabel = LocalizationManager.t("all"), onClear = { region = null })
+            }
+            val statusFilter: @Composable (Modifier) -> Unit = { modifier ->
+                InlineOptionPicker(ProjectStatus.entries, status, LocalizationManager.t("status"), { status = it },
+                    { LocalizationManager.t("project_status_${it.name.lowercase()}") }, modifier = modifier,
+                    clearLabel = LocalizationManager.t("all"), onClear = { status = null })
+            }
+            val reset: @Composable () -> Unit = {
+                TextButton(onClick = { search = ""; region = null; status = null }) { Text(LocalizationManager.t("reset_filters")) }
+            }
+            if (maxWidth >= 900.dp) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    controls(Modifier.weight(1f))
+                    regionFilter(Modifier.width(180.dp))
+                    statusFilter(Modifier.width(174.dp))
+                    reset()
+                }
+            } else {
+                FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    controls(Modifier.fillMaxWidth())
+                    regionFilter(Modifier.width(200.dp))
+                    statusFilter(Modifier.width(190.dp))
+                    reset()
+                }
+            }
         }
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Text("${LocalizationManager.t("markers_count")} ${visible.size}", Modifier.weight(1f), style = MaterialTheme.typography.labelLarge)
