@@ -5,6 +5,10 @@ import oms.components.ProjectMoneyDraft
 import oms.components.currentIsoDate
 import oms.data.*
 import oms.localization.LocalizationManager as L
+import kotlin.js.JsName
+
+@JsName("daysBetweenIsoDates")
+private external fun browserDaysBetweenIsoDates(start: String, end: String): Int?
 
 internal class ProjectFormState(details: ApiProjectDetailsData? = null) {
     var projectType by mutableStateOf(details?.projectType ?: "project")
@@ -21,6 +25,8 @@ internal class ProjectFormState(details: ApiProjectDetailsData? = null) {
         "startDate" to initialDate(details, details?.startDate), "endDate" to initialDate(details, details?.endDate),
         "contractSignedDate" to initialDate(details, details?.contractSignedDate), "plannedEndDate" to initialDate(details, details?.plannedEndDate),
         "designContractSigningDate" to initialDate(details, details?.designContractSigningDate),
+        "designStartDate" to initialDate(details, details?.designStartDate),
+        "designPlannedEndDate" to initialDate(details, details?.designPlannedEndDate),
         "constructionContractSigningDate" to initialDate(details, details?.constructionContractSigningDate ?: details?.contractSignedDate),
         "constructionStartDate" to initialDate(details, details?.constructionStartDate ?: details?.startDate),
         "projectedCompletionTime" to initialDate(details, details?.projectedCompletionTime ?: details?.plannedEndDate)
@@ -47,8 +53,12 @@ internal class ProjectFormState(details: ApiProjectDetailsData? = null) {
         this["longitude"].isNotBlank() && coordinate("longitude")?.let { it in -180.0..180.0 } != true -> L.t("error_longitude_range")
         this["plannedEndDate"].isNotBlank() && this["contractSignedDate"].isNotBlank() && this["plannedEndDate"] < this["contractSignedDate"] -> L.t("project_dates_invalid")
         this["projectedCompletionTime"].isNotBlank() && this["constructionStartDate"].isNotBlank() && this["projectedCompletionTime"] < this["constructionStartDate"] -> L.t("project_dates_invalid")
+        this["designPlannedEndDate"].isNotBlank() && this["designStartDate"].isNotBlank() && this["designPlannedEndDate"] < this["designStartDate"] -> L.t("project_dates_invalid")
         else -> null
     }
+    fun designDurationLabel(): String = browserDaysBetweenIsoDates(this["designStartDate"], this["designPlannedEndDate"])
+        ?.let { L.t("design_duration_days").replace("{days}", it.toString()) }
+        .orEmpty()
     private fun coordinate(key: String) = this[key].replace(',', '.').toDoubleOrNull()
     private fun amounts() = money.filterValues { it.amount.isNotBlank() }.mapValues { it.value.toDto() }
     fun updateRequest() = UpdateProjectRequest(
@@ -58,9 +68,10 @@ internal class ProjectFormState(details: ApiProjectDetailsData? = null) {
         sector = this["sector"], constructionType = this["constructionType"],
         startDate = this["constructionStartDate"], endDate = this["endDate"], contractSignedDate = this["constructionContractSigningDate"], plannedEndDate = this["projectedCompletionTime"],
         designContractSigningDate = this["designContractSigningDate"], constructionContractSigningDate = this["constructionContractSigningDate"],
+        designStartDate = this["designStartDate"], designPlannedEndDate = this["designPlannedEndDate"],
         constructionStartDate = this["constructionStartDate"], projectedCompletionTime = this["projectedCompletionTime"],
         contractorName = this["contractorName"].trim(), designerName = this["designerName"].trim(),
-        designContractNumber = this["designContractNumber"].trim(), designContractTerm = this["designContractTerm"].trim(),
+        designContractNumber = this["designContractNumber"].trim(), designContractTerm = null,
         constructionContractNumber = this["constructionContractNumber"].trim(), amounts = amounts()
     )
     fun createRequest(): CreateProjectRequest {
@@ -71,6 +82,7 @@ internal class ProjectFormState(details: ApiProjectDetailsData? = null) {
             budgetPlanned = money.getValue("budget").legacyUah(), projectType = projectType, parentProjectUuid = parentUuid,
             startDate = p.startDate, endDate = p.endDate, contractSignedDate = p.contractSignedDate, plannedEndDate = p.plannedEndDate,
             designContractSigningDate = p.designContractSigningDate, constructionContractSigningDate = p.constructionContractSigningDate,
+            designStartDate = p.designStartDate, designPlannedEndDate = p.designPlannedEndDate,
             constructionStartDate = p.constructionStartDate, projectedCompletionTime = p.projectedCompletionTime,
             contractorName = p.contractorName, designerName = p.designerName, designContractNumber = p.designContractNumber,
             designContractTerm = p.designContractTerm, constructionContractNumber = p.constructionContractNumber, amounts = p.amounts)

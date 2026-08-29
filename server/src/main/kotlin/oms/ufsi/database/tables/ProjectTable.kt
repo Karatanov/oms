@@ -149,6 +149,8 @@ object ProjectTable : LongIdTable("projects") {
     val contractSignedDate = date("contract_signed_date").nullable()
     val plannedEndDate = date("planned_end_date").nullable()
     val designContractSigningDate = date("design_contract_signing_date").nullable()
+    val designStartDate = date("design_start_date").nullable()
+    val designPlannedEndDate = date("design_planned_end_date").nullable()
     val constructionContractSigningDate = date("construction_contract_signing_date").nullable()
     val constructionStartDate = date("construction_start_date").nullable()
     val projectedCompletionTime = date("projected_completion_time").nullable()

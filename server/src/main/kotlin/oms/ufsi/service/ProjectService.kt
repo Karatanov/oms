@@ -359,6 +359,16 @@ class ProjectService(
             if (value == null) existing else value.trim().also { require(it.length <= max) { "Contract field is too long (maximum $max)." } }.ifBlank { null }
         fun date(value: String?, existing: LocalDate?, label: String): LocalDate? =
             if (value == null) existing else parseOptionalDate(value, label)
+        val designStartDate = date(request.designStartDate, current.designStartDate, "Design start date")
+        val designPlannedEndDate = date(request.designPlannedEndDate, current.designPlannedEndDate, "Design planned completion date")
+        if (designStartDate != null && designPlannedEndDate != null) {
+            require(!designPlannedEndDate.isBefore(designStartDate)) {
+                "Design planned completion cannot precede design start."
+            }
+        }
+        val designTerm = if (designStartDate != null && designPlannedEndDate != null)
+            java.time.temporal.ChronoUnit.DAYS.between(designStartDate, designPlannedEndDate).toString()
+        else null
         val patch = ProjectPatch(
             name = request.name?.trim() ?: current.name,
             siteName = request.siteName?.trim() ?: current.siteName,
@@ -383,6 +393,8 @@ class ProjectService(
             contractSignedDate = date(request.contractSignedDate, current.contractSignedDate, "Contract signing date"),
             plannedEndDate = date(request.plannedEndDate, current.plannedEndDate, "Planned end date"),
             designContractSigningDate = date(request.designContractSigningDate, current.designContractSigningDate, "Design contract signing date"),
+            designStartDate = designStartDate,
+            designPlannedEndDate = designPlannedEndDate,
             constructionContractSigningDate = date(request.constructionContractSigningDate, current.constructionContractSigningDate, "Construction contract signing date"),
             constructionStartDate = date(request.constructionStartDate, current.constructionStartDate, "Construction start date"),
             projectedCompletionTime = date(request.projectedCompletionTime, current.projectedCompletionTime, "Projected completion date"),
@@ -390,7 +402,7 @@ class ProjectService(
             contractorName = text(request.contractorName, current.contractorName, 255),
             designerName = text(request.designerName, current.designerName, 255),
             designContractNumber = text(request.designContractNumber, current.designContractNumber, 100),
-            designContractTerm = text(request.designContractTerm, current.designContractTerm, 500),
+            designContractTerm = designTerm,
             constructionContractNumber = text(request.constructionContractNumber, current.constructionContractNumber, 100),
             amounts = amounts
         )

@@ -78,7 +78,11 @@ internal fun ProjectForm(state: ProjectFormState, parents: List<ApiProject>, edi
                 { field("designContractNumber", "contract_number", it)() },
                 { OmsDateField(state["designContractSigningDate"], { value -> state["designContractSigningDate"] = value }, L.t("contract_date"), it) }
             )
-            field("designContractTerm", "design_contract_term", Modifier.fillMaxWidth())()
+            FormTriplet(
+                { OmsDateField(state["designStartDate"], { value -> state["designStartDate"] = value }, L.t("design_start_date"), it) },
+                { OmsDateField(state["designPlannedEndDate"], { value -> state["designPlannedEndDate"] = value }, L.t("design_planned_end_date"), it) },
+                { modifier -> OutlinedTextField(state.designDurationLabel(), {}, label = { Text(L.t("design_contract_term")) }, readOnly = true, singleLine = true, modifier = modifier) }
+            )
         }
     }
     Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
@@ -106,6 +110,25 @@ private fun FormPair(first: @Composable (Modifier) -> Unit, second: @Composable 
             first(Modifier.fillMaxWidth()); second(Modifier.fillMaxWidth())
         } else Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             first(Modifier.weight(1f)); second(Modifier.weight(1f))
+        }
+    }
+}
+
+@Composable
+private fun FormTriplet(
+    first: @Composable (Modifier) -> Unit,
+    second: @Composable (Modifier) -> Unit,
+    third: @Composable (Modifier) -> Unit
+) {
+    BoxWithConstraints(Modifier.fillMaxWidth()) {
+        if (maxWidth < 900.dp) Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            first(Modifier.fillMaxWidth())
+            second(Modifier.fillMaxWidth())
+            third(Modifier.fillMaxWidth())
+        } else Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+            first(Modifier.weight(1f))
+            second(Modifier.weight(1f))
+            third(Modifier.width(170.dp))
         }
     }
 }

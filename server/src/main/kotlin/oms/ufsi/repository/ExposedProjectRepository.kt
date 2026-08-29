@@ -62,6 +62,8 @@ class ExposedProjectRepository : ProjectRepository {
                     contractSignedDate = row[ProjectTable.contractSignedDate],
                     plannedEndDate = row[ProjectTable.plannedEndDate],
                     designContractSigningDate = row[ProjectTable.designContractSigningDate],
+                    designStartDate = row[ProjectTable.designStartDate],
+                    designPlannedEndDate = row[ProjectTable.designPlannedEndDate],
                     constructionContractSigningDate = row[ProjectTable.constructionContractSigningDate],
                     constructionStartDate = row[ProjectTable.constructionStartDate],
                     projectedCompletionTime = row[ProjectTable.projectedCompletionTime],
@@ -173,6 +175,10 @@ class ExposedProjectRepository : ProjectRepository {
                     designContractSigningDate =
                         row[ProjectTable.designContractSigningDate],
 
+                    designStartDate = row[ProjectTable.designStartDate],
+
+                    designPlannedEndDate = row[ProjectTable.designPlannedEndDate],
+
                     constructionContractSigningDate =
                         row[ProjectTable.constructionContractSigningDate],
 
@@ -277,6 +283,8 @@ class ExposedProjectRepository : ProjectRepository {
             contractSignedDate = contractSignedDate,
             plannedEndDate = plannedEndDate,
             designContractSigningDate = null,
+            designStartDate = null,
+            designPlannedEndDate = null,
             constructionContractSigningDate = null,
             constructionStartDate = null,
             projectedCompletionTime = null,
@@ -336,6 +344,8 @@ class ExposedProjectRepository : ProjectRepository {
                 it[contractSignedDate] = patch.contractSignedDate
                 it[plannedEndDate] = patch.plannedEndDate
                 it[designContractSigningDate] = patch.designContractSigningDate
+                it[designStartDate] = patch.designStartDate
+                it[designPlannedEndDate] = patch.designPlannedEndDate
                 it[constructionContractSigningDate] = patch.constructionContractSigningDate
                 it[constructionStartDate] = patch.constructionStartDate
                 it[projectedCompletionTime] = patch.projectedCompletionTime

@@ -86,6 +86,14 @@
             return local.toISOString().slice(0, 10);
         }
 
+        function daysBetweenIsoDates(start, end) {
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(start || "") || !/^\d{4}-\d{2}-\d{2}$/.test(end || "")) return null;
+            const startMs = Date.parse(start + "T00:00:00Z");
+            const endMs = Date.parse(end + "T00:00:00Z");
+            const days = Math.round((endMs - startMs) / 86400000);
+            return days >= 0 ? days : null;
+        }
+
         // Browser-native date input is dependable in Wasm and provides a calendar on desktop/mobile.
         function openNativeDatePicker(value, anchorLeft, anchorTop, onSelected) {
             document.querySelectorAll(".oms-native-date-input").forEach(input => input.remove());

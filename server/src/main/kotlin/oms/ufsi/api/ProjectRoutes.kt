@@ -167,6 +167,8 @@ fun Route.projectRoutes() {
                     description = request.description,
                     endDate = request.endDate,
                     designContractSigningDate = request.designContractSigningDate,
+                    designStartDate = request.designStartDate,
+                    designPlannedEndDate = request.designPlannedEndDate,
                     constructionContractSigningDate = request.constructionContractSigningDate,
                     constructionStartDate = request.constructionStartDate,
                     projectedCompletionTime = request.projectedCompletionTime,

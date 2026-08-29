@@ -95,6 +95,8 @@ data class CreateProjectRequest(
     val plannedEndDate: String? = null,
     val endDate: String? = null,
     val designContractSigningDate: String? = null,
+    val designStartDate: String? = null,
+    val designPlannedEndDate: String? = null,
     val constructionContractSigningDate: String? = null,
     val constructionStartDate: String? = null,
     val projectedCompletionTime: String? = null,

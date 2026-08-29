@@ -25,6 +25,8 @@ data class ProjectPatch(
     val contractSignedDate: LocalDate?,
     val plannedEndDate: LocalDate?,
     val designContractSigningDate: LocalDate?,
+    val designStartDate: LocalDate? = null,
+    val designPlannedEndDate: LocalDate? = null,
     val constructionContractSigningDate: LocalDate?,
     val constructionStartDate: LocalDate?,
     val projectedCompletionTime: LocalDate?,

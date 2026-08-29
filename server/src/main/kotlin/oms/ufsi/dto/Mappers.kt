@@ -140,6 +140,10 @@ fun Project.toResponse(parentProjectUuid: String? = null): ProjectResponse {
         designContractSigningDate =
             designContractSigningDate?.toString(),
 
+        designStartDate = designStartDate?.toString(),
+
+        designPlannedEndDate = designPlannedEndDate?.toString(),
+
         constructionContractSigningDate =
             constructionContractSigningDate?.toString(),
 
@@ -151,6 +155,8 @@ fun Project.toResponse(parentProjectUuid: String? = null): ProjectResponse {
 
         contractDurationDays =
             contractDurationDays,
+
+        designDurationDays = designDurationDays,
 
         currency =
             currency,

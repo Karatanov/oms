@@ -109,6 +109,8 @@ data class Project(
     val contractSignedDate: LocalDate?,
     val plannedEndDate: LocalDate?,
     val designContractSigningDate: LocalDate?,
+    val designStartDate: LocalDate? = null,
+    val designPlannedEndDate: LocalDate? = null,
     val constructionContractSigningDate: LocalDate?,
     val constructionStartDate: LocalDate?,
     val projectedCompletionTime: LocalDate?,
@@ -132,5 +134,11 @@ data class Project(
     val contractDurationDays: Long?
         get() = if (contractSignedDate != null && plannedEndDate != null)
             java.time.temporal.ChronoUnit.DAYS.between(contractSignedDate, plannedEndDate)
+        else null
+
+    /** Duration of design work from its start to the planned completion date, in days. */
+    val designDurationDays: Long?
+        get() = if (designStartDate != null && designPlannedEndDate != null)
+            java.time.temporal.ChronoUnit.DAYS.between(designStartDate, designPlannedEndDate)
         else null
 }
