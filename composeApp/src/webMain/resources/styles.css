@@ -106,6 +106,7 @@ button:focus-visible, a:focus-visible { outline: 2px solid #16566c; outline-offs
 #map-host {
     width: 100%;
     height: 100%;
+    overflow: hidden;
 }
 
 canvas {
@@ -118,7 +119,9 @@ canvas {
     font-family: inherit;
 }
 
-.oms-map-preview { min-width: 220px; max-width: 340px; color: #20313c; line-height: 1.5; }
+.leaflet-popup { max-width: calc(100% - 48px); }
+.leaflet-popup-content-wrapper { max-width: min(340px, calc(100vw - 72px)); overflow-wrap: anywhere; }
+.oms-map-preview { min-width: 0; max-width: 340px; color: #20313c; line-height: 1.5; }
 .oms-map-preview p { margin: 8px 0; color: #536571; }
 .oms-map-preview button { width: 100%; padding: 10px 12px; border: 0; border-radius: 6px; background: #278DAD; color: white; font: inherit; cursor: pointer; }
 

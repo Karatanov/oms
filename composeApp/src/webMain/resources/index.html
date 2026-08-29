@@ -527,7 +527,14 @@
                         iconAnchor: L.point(9, 9)
                     })
                 })
-                    .bindPopup(popupHtml)
+                    .bindPopup(popupHtml, {
+                        autoPan: true,
+                        keepInView: true,
+                        autoPanPaddingTopLeft: [24, 24],
+                        autoPanPaddingBottomRight: [24, 24],
+                        maxWidth: 340,
+                        minWidth: 220
+                    })
                     .addTo(ufsiMarkersLayer);
             });
 
