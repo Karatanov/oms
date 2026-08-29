@@ -722,7 +722,7 @@ object Strings {
         "projects_by_start_month" to "Projects by work start month",
         "subprojects_count" to "Subprojects: {count}",
         "start_month_axis_label" to "Work start month",
-        "monthly_act_payments" to "Total monthly payment fund",
+        "monthly_act_payments" to "Total disbursement monthly payment fund",
         "no_projects_with_start_date" to "No projects have a start date yet.",
         "monthly_project_payments" to "Monthly construction contract payments",
         "no_payments_yet" to "No payments yet.",
