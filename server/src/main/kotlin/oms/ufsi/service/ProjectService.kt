@@ -33,7 +33,7 @@ class ProjectService(
     ): List<Project> = getAllProjects().filter { project ->
         (status.isNullOrBlank() || project.status.name.equals(status.trim(), true)) &&
             (region.isNullOrBlank() || project.region.equals(region.trim(), true)) &&
-            (search.isNullOrBlank() || listOf(project.name, project.address, project.city, project.contractorName.orEmpty()).any { it.contains(search.trim(), true) })
+            (search.isNullOrBlank() || listOf(project.name, project.address.orEmpty(), project.city.orEmpty(), project.contractorName.orEmpty()).any { it.contains(search.trim(), true) })
     }
 
     /**
@@ -431,8 +431,8 @@ class ProjectService(
             amounts = amounts
         )
         validateProjectData(patch.name, patch.siteName, patch.siteNumber, patch.budgetPlanned, patch.engineerConsultantContractAmount, patch.technicalSupervisionAmount, current.projectType, patch.subprojectContractAmount, patch.startDate, patch.contractSignedDate, patch.plannedEndDate)
-        if (patch.latitude !in -90.0..90.0) throw IllegalArgumentException("Latitude must be between -90 and 90.")
-        if (patch.longitude !in -180.0..180.0) throw IllegalArgumentException("Longitude must be between -180 and 180.")
+        if (patch.latitude != null && patch.latitude !in -90.0..90.0) throw IllegalArgumentException("Latitude must be between -90 and 90.")
+        if (patch.longitude != null && patch.longitude !in -180.0..180.0) throw IllegalArgumentException("Longitude must be between -180 and 180.")
         if (patch.constructionStartDate != null && patch.projectedCompletionTime != null) {
             require(!patch.projectedCompletionTime.isBefore(patch.constructionStartDate)) { "Planned completion cannot precede construction start." }
         }

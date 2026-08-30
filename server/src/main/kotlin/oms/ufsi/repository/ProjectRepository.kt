@@ -9,6 +9,8 @@ import oms.ufsi.domain.Project
  * за отримання та збереження даних.
  */
 interface ProjectRepository {
+    fun programmeDetails(projectId: Long): oms.ufsi.domain.ProgrammeDetails?
+    fun monitoringDetails(projectId: Long): oms.ufsi.domain.ProjectMonitoringDetails?
     fun managerIdForUuid(uuid: String): Long?
 
     /**

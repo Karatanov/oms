@@ -12,12 +12,16 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import oms.localization.LocalizationManager
 
-/** The limited Phase 1 sector classification used for project filtering. */
-val sectors = listOf("Education", "Healthcare", "Shelter")
+/** Canonical Phase 1 sectors aligned with the URP III monitoring source. */
+val sectors = listOf("education", "health", "housing", "water_supply", "sewerage", "heat_supply", "shelter")
 
 fun String.sectorLabel(): String = when (lowercase()) {
     "education" -> LocalizationManager.t("sector_education")
-    "healthcare" -> LocalizationManager.t("sector_healthcare")
+    "health", "healthcare" -> LocalizationManager.t("sector_healthcare")
+    "housing" -> LocalizationManager.t("sector_housing")
+    "water_supply" -> LocalizationManager.t("sector_water_supply")
+    "sewerage" -> LocalizationManager.t("sector_sewerage")
+    "heat_supply" -> LocalizationManager.t("sector_heat_supply")
     "shelter" -> LocalizationManager.t("sector_shelter")
     else -> this
 }
@@ -40,7 +44,11 @@ fun SectorSelector(value: String, onValueChange: (String) -> Unit, modifier: Mod
 fun SectorChip(value: String, fontWeight: FontWeight = FontWeight.Medium) {
     val color = when (value.lowercase()) {
         "education" -> Color(0xFF1565C0)
-        "healthcare" -> oms.theme.OmsColors.Success
+        "health", "healthcare" -> oms.theme.OmsColors.Success
+        "housing" -> Color(0xFF795548)
+        "water_supply" -> Color(0xFF0277BD)
+        "sewerage" -> Color(0xFF455A64)
+        "heat_supply" -> Color(0xFFEF6C00)
         "shelter" -> Color(0xFF6A1B9A)
         else -> Color(0xFF546E7A)
     }

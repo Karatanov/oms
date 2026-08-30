@@ -1,0 +1,1347 @@
+{
+  "provider": "OpenStreetMap Nominatim",
+  "attribution": "Geodata © OpenStreetMap contributors",
+  "policy": "One-time, single-threaded, <=1 request/second; results cached.",
+  "results": {
+    "VN08_01": {
+      "status": "resolved",
+      "latitude": 49.2320162,
+      "longitude": 28.467975,
+      "matchLevel": "oblast_center",
+      "query": "Вінниця, Вінницька область, Україна",
+      "displayName": "Вінниця, Вінницька міська громада, Вінницький район, Вінницька область, Україна",
+      "osmType": "relation",
+      "osmId": 361818
+    },
+    "VN08_02": {
+      "status": "resolved",
+      "latitude": 49.2320162,
+      "longitude": 28.467975,
+      "matchLevel": "oblast_center",
+      "query": "Вінниця, Вінницька область, Україна",
+      "displayName": "Вінниця, Вінницька міська громада, Вінницький район, Вінницька область, Україна",
+      "osmType": "relation",
+      "osmId": 361818
+    },
+    "VN08_03": {
+      "status": "resolved",
+      "latitude": 49.2320162,
+      "longitude": 28.467975,
+      "matchLevel": "oblast_center",
+      "query": "Вінниця, Вінницька область, Україна",
+      "displayName": "Вінниця, Вінницька міська громада, Вінницький район, Вінницька область, Україна",
+      "osmType": "relation",
+      "osmId": 361818
+    },
+    "VN08_04": {
+      "status": "resolved",
+      "latitude": 49.2320162,
+      "longitude": 28.467975,
+      "matchLevel": "oblast_center",
+      "query": "Вінниця, Вінницька область, Україна",
+      "displayName": "Вінниця, Вінницька міська громада, Вінницький район, Вінницька область, Україна",
+      "osmType": "relation",
+      "osmId": 361818
+    },
+    "VN08_05": {
+      "status": "resolved",
+      "latitude": 49.2320162,
+      "longitude": 28.467975,
+      "matchLevel": "oblast_center",
+      "query": "Вінниця, Вінницька область, Україна",
+      "displayName": "Вінниця, Вінницька міська громада, Вінницький район, Вінницька область, Україна",
+      "osmType": "relation",
+      "osmId": 361818
+    },
+    "DP08_01": {
+      "status": "resolved",
+      "latitude": 48.4680221,
+      "longitude": 35.0417711,
+      "matchLevel": "oblast_center",
+      "query": "Дніпро, Дніпропетровська область, Україна",
+      "displayName": "Дніпро, Дніпровська міська громада, Дніпровський район, Дніпропетровська область, 49000, Україна",
+      "osmType": "relation",
+      "osmId": 1017311
+    },
+    "DP08_02": {
+      "status": "resolved",
+      "latitude": 48.4680221,
+      "longitude": 35.0417711,
+      "matchLevel": "oblast_center",
+      "query": "Дніпро, Дніпропетровська область, Україна",
+      "displayName": "Дніпро, Дніпровська міська громада, Дніпровський район, Дніпропетровська область, 49000, Україна",
+      "osmType": "relation",
+      "osmId": 1017311
+    },
+    "DP08_03": {
+      "status": "resolved",
+      "latitude": 48.4680221,
+      "longitude": 35.0417711,
+      "matchLevel": "oblast_center",
+      "query": "Дніпро, Дніпропетровська область, Україна",
+      "displayName": "Дніпро, Дніпровська міська громада, Дніпровський район, Дніпропетровська область, 49000, Україна",
+      "osmType": "relation",
+      "osmId": 1017311
+    },
+    "DP08_04": {
+      "status": "resolved",
+      "latitude": 48.4680221,
+      "longitude": 35.0417711,
+      "matchLevel": "oblast_center",
+      "query": "Дніпро, Дніпропетровська область, Україна",
+      "displayName": "Дніпро, Дніпровська міська громада, Дніпровський район, Дніпропетровська область, 49000, Україна",
+      "osmType": "relation",
+      "osmId": 1017311
+    },
+    "DP08_05": {
+      "status": "resolved",
+      "latitude": 48.4680221,
+      "longitude": 35.0417711,
+      "matchLevel": "oblast_center",
+      "query": "Дніпро, Дніпропетровська область, Україна",
+      "displayName": "Дніпро, Дніпровська міська громада, Дніпровський район, Дніпропетровська область, 49000, Україна",
+      "osmType": "relation",
+      "osmId": 1017311
+    },
+    "DP08_06": {
+      "status": "resolved",
+      "latitude": 48.4680221,
+      "longitude": 35.0417711,
+      "matchLevel": "oblast_center",
+      "query": "Дніпро, Дніпропетровська область, Україна",
+      "displayName": "Дніпро, Дніпровська міська громада, Дніпровський район, Дніпропетровська область, 49000, Україна",
+      "osmType": "relation",
+      "osmId": 1017311
+    },
+    "ZH08_01": {
+      "status": "resolved",
+      "latitude": 50.2601065,
+      "longitude": 28.6696281,
+      "matchLevel": "oblast_center",
+      "query": "Житомир, Житомирська область, Україна",
+      "displayName": "Житомир, Житомирська міська громада, Житомирський район, Житомирська область, Україна",
+      "osmType": "relation",
+      "osmId": 2692156
+    },
+    "ZH08_02": {
+      "status": "resolved",
+      "latitude": 50.2601065,
+      "longitude": 28.6696281,
+      "matchLevel": "oblast_center",
+      "query": "Житомир, Житомирська область, Україна",
+      "displayName": "Житомир, Житомирська міська громада, Житомирський район, Житомирська область, Україна",
+      "osmType": "relation",
+      "osmId": 2692156
+    },
+    "ZH08_03": {
+      "status": "resolved",
+      "latitude": 50.2601065,
+      "longitude": 28.6696281,
+      "matchLevel": "oblast_center",
+      "query": "Житомир, Житомирська область, Україна",
+      "displayName": "Житомир, Житомирська міська громада, Житомирський район, Житомирська область, Україна",
+      "osmType": "relation",
+      "osmId": 2692156
+    },
+    "ZH08_04#Lot1": {
+      "status": "resolved",
+      "latitude": 50.2601065,
+      "longitude": 28.6696281,
+      "matchLevel": "oblast_center",
+      "query": "Житомир, Житомирська область, Україна",
+      "displayName": "Житомир, Житомирська міська громада, Житомирський район, Житомирська область, Україна",
+      "osmType": "relation",
+      "osmId": 2692156
+    },
+    "ZH08_04#Lot2": {
+      "status": "resolved",
+      "latitude": 50.2601065,
+      "longitude": 28.6696281,
+      "matchLevel": "oblast_center",
+      "query": "Житомир, Житомирська область, Україна",
+      "displayName": "Житомир, Житомирська міська громада, Житомирський район, Житомирська область, Україна",
+      "osmType": "relation",
+      "osmId": 2692156
+    },
+    "ZH08_04#Lot3": {
+      "status": "resolved",
+      "latitude": 50.2601065,
+      "longitude": 28.6696281,
+      "matchLevel": "oblast_center",
+      "query": "Житомир, Житомирська область, Україна",
+      "displayName": "Житомир, Житомирська міська громада, Житомирський район, Житомирська область, Україна",
+      "osmType": "relation",
+      "osmId": 2692156
+    },
+    "ZH08_04#Lot4": {
+      "status": "resolved",
+      "latitude": 50.2601065,
+      "longitude": 28.6696281,
+      "matchLevel": "oblast_center",
+      "query": "Житомир, Житомирська область, Україна",
+      "displayName": "Житомир, Житомирська міська громада, Житомирський район, Житомирська область, Україна",
+      "osmType": "relation",
+      "osmId": 2692156
+    },
+    "ZK08_01": {
+      "status": "resolved",
+      "latitude": 48.6223731,
+      "longitude": 22.3022572,
+      "matchLevel": "oblast_center",
+      "query": "Ужгород, Закарпатська область, Україна",
+      "displayName": "Ужгород, Ужгородська міська громада, Ужгородський район, Закарпатська область, Україна",
+      "osmType": "relation",
+      "osmId": 2692232
+    },
+    "ZK08_02": {
+      "status": "resolved",
+      "latitude": 48.6223731,
+      "longitude": 22.3022572,
+      "matchLevel": "oblast_center",
+      "query": "Ужгород, Закарпатська область, Україна",
+      "displayName": "Ужгород, Ужгородська міська громада, Ужгородський район, Закарпатська область, Україна",
+      "osmType": "relation",
+      "osmId": 2692232
+    },
+    "ZK08_03": {
+      "status": "resolved",
+      "latitude": 48.6223731,
+      "longitude": 22.3022572,
+      "matchLevel": "oblast_center",
+      "query": "Ужгород, Закарпатська область, Україна",
+      "displayName": "Ужгород, Ужгородська міська громада, Ужгородський район, Закарпатська область, Україна",
+      "osmType": "relation",
+      "osmId": 2692232
+    },
+    "ZK08_04": {
+      "status": "resolved",
+      "latitude": 48.6223731,
+      "longitude": 22.3022572,
+      "matchLevel": "oblast_center",
+      "query": "Ужгород, Закарпатська область, Україна",
+      "displayName": "Ужгород, Ужгородська міська громада, Ужгородський район, Закарпатська область, Україна",
+      "osmType": "relation",
+      "osmId": 2692232
+    },
+    "ZK08_05": {
+      "status": "resolved",
+      "latitude": 48.6223731,
+      "longitude": 22.3022572,
+      "matchLevel": "oblast_center",
+      "query": "Ужгород, Закарпатська область, Україна",
+      "displayName": "Ужгород, Ужгородська міська громада, Ужгородський район, Закарпатська область, Україна",
+      "osmType": "relation",
+      "osmId": 2692232
+    },
+    "ZK08_07": {
+      "status": "resolved",
+      "latitude": 48.6223731,
+      "longitude": 22.3022572,
+      "matchLevel": "oblast_center",
+      "query": "Ужгород, Закарпатська область, Україна",
+      "displayName": "Ужгород, Ужгородська міська громада, Ужгородський район, Закарпатська область, Україна",
+      "osmType": "relation",
+      "osmId": 2692232
+    },
+    "ZK08_08": {
+      "status": "resolved",
+      "latitude": 48.6223731,
+      "longitude": 22.3022572,
+      "matchLevel": "oblast_center",
+      "query": "Ужгород, Закарпатська область, Україна",
+      "displayName": "Ужгород, Ужгородська міська громада, Ужгородський район, Закарпатська область, Україна",
+      "osmType": "relation",
+      "osmId": 2692232
+    },
+    "ZK08_09": {
+      "status": "resolved",
+      "latitude": 48.6223731,
+      "longitude": 22.3022572,
+      "matchLevel": "oblast_center",
+      "query": "Ужгород, Закарпатська область, Україна",
+      "displayName": "Ужгород, Ужгородська міська громада, Ужгородський район, Закарпатська область, Україна",
+      "osmType": "relation",
+      "osmId": 2692232
+    },
+    "ZP08_01": {
+      "status": "resolved",
+      "latitude": 47.8507859,
+      "longitude": 35.1182867,
+      "matchLevel": "oblast_center",
+      "query": "Запоріжжя, Запорізька область, Україна",
+      "displayName": "Запоріжжя, Запорізька міська громада, Запорізький район, Запорізька область, 69000-69499, Україна",
+      "osmType": "relation",
+      "osmId": 1418311
+    },
+    "ZP08_02": {
+      "status": "resolved",
+      "latitude": 47.8507859,
+      "longitude": 35.1182867,
+      "matchLevel": "oblast_center",
+      "query": "Запоріжжя, Запорізька область, Україна",
+      "displayName": "Запоріжжя, Запорізька міська громада, Запорізький район, Запорізька область, 69000-69499, Україна",
+      "osmType": "relation",
+      "osmId": 1418311
+    },
+    "ZP08_03": {
+      "status": "resolved",
+      "latitude": 47.8507859,
+      "longitude": 35.1182867,
+      "matchLevel": "oblast_center",
+      "query": "Запоріжжя, Запорізька область, Україна",
+      "displayName": "Запоріжжя, Запорізька міська громада, Запорізький район, Запорізька область, 69000-69499, Україна",
+      "osmType": "relation",
+      "osmId": 1418311
+    },
+    "ZP08_04": {
+      "status": "resolved",
+      "latitude": 47.8507859,
+      "longitude": 35.1182867,
+      "matchLevel": "oblast_center",
+      "query": "Запоріжжя, Запорізька область, Україна",
+      "displayName": "Запоріжжя, Запорізька міська громада, Запорізький район, Запорізька область, 69000-69499, Україна",
+      "osmType": "relation",
+      "osmId": 1418311
+    },
+    "ZP08_05": {
+      "status": "resolved",
+      "latitude": 47.8507859,
+      "longitude": 35.1182867,
+      "matchLevel": "oblast_center",
+      "query": "Запоріжжя, Запорізька область, Україна",
+      "displayName": "Запоріжжя, Запорізька міська громада, Запорізький район, Запорізька область, 69000-69499, Україна",
+      "osmType": "relation",
+      "osmId": 1418311
+    },
+    "IF08_02": {
+      "status": "resolved",
+      "latitude": 48.9224763,
+      "longitude": 24.710334,
+      "matchLevel": "oblast_center",
+      "query": "Івано-Франківськ, Івано-Франківська область, Україна",
+      "displayName": "Івано-Франківськ, Івано-Франківська міська громада, Івано-Франківський район, Івано-Франківська область, Україна",
+      "osmType": "relation",
+      "osmId": 2362670
+    },
+    "IF08_03": {
+      "status": "resolved",
+      "latitude": 48.9224763,
+      "longitude": 24.710334,
+      "matchLevel": "oblast_center",
+      "query": "Івано-Франківськ, Івано-Франківська область, Україна",
+      "displayName": "Івано-Франківськ, Івано-Франківська міська громада, Івано-Франківський район, Івано-Франківська область, Україна",
+      "osmType": "relation",
+      "osmId": 2362670
+    },
+    "KV08_01": {
+      "status": "resolved",
+      "latitude": 50.5065429,
+      "longitude": 31.9098904,
+      "matchLevel": "oblast_center",
+      "query": "Київ, Київська область, Україна",
+      "displayName": "вулиця Михайла Савчука, Чорнобильський куток, Пасківщина, Згурівська селищна громада, Броварський район, Київська область, 07630, Україна",
+      "osmType": "way",
+      "osmId": 547411241
+    },
+    "KV08_02": {
+      "status": "resolved",
+      "latitude": 50.5065429,
+      "longitude": 31.9098904,
+      "matchLevel": "oblast_center",
+      "query": "Київ, Київська область, Україна",
+      "displayName": "вулиця Михайла Савчука, Чорнобильський куток, Пасківщина, Згурівська селищна громада, Броварський район, Київська область, 07630, Україна",
+      "osmType": "way",
+      "osmId": 547411241
+    },
+    "KV08_03": {
+      "status": "resolved",
+      "latitude": 50.5065429,
+      "longitude": 31.9098904,
+      "matchLevel": "oblast_center",
+      "query": "Київ, Київська область, Україна",
+      "displayName": "вулиця Михайла Савчука, Чорнобильський куток, Пасківщина, Згурівська селищна громада, Броварський район, Київська область, 07630, Україна",
+      "osmType": "way",
+      "osmId": 547411241
+    },
+    "KV08_04": {
+      "status": "resolved",
+      "latitude": 50.5065429,
+      "longitude": 31.9098904,
+      "matchLevel": "oblast_center",
+      "query": "Київ, Київська область, Україна",
+      "displayName": "вулиця Михайла Савчука, Чорнобильський куток, Пасківщина, Згурівська селищна громада, Броварський район, Київська область, 07630, Україна",
+      "osmType": "way",
+      "osmId": 547411241
+    },
+    "KV08_05": {
+      "status": "resolved",
+      "latitude": 50.5065429,
+      "longitude": 31.9098904,
+      "matchLevel": "oblast_center",
+      "query": "Київ, Київська область, Україна",
+      "displayName": "вулиця Михайла Савчука, Чорнобильський куток, Пасківщина, Згурівська селищна громада, Броварський район, Київська область, 07630, Україна",
+      "osmType": "way",
+      "osmId": 547411241
+    },
+    "KV08_06": {
+      "status": "resolved",
+      "latitude": 50.5065429,
+      "longitude": 31.9098904,
+      "matchLevel": "oblast_center",
+      "query": "Київ, Київська область, Україна",
+      "displayName": "вулиця Михайла Савчука, Чорнобильський куток, Пасківщина, Згурівська селищна громада, Броварський район, Київська область, 07630, Україна",
+      "osmType": "way",
+      "osmId": 547411241
+    },
+    "KV08_07": {
+      "status": "resolved",
+      "latitude": 50.5065429,
+      "longitude": 31.9098904,
+      "matchLevel": "oblast_center",
+      "query": "Київ, Київська область, Україна",
+      "displayName": "вулиця Михайла Савчука, Чорнобильський куток, Пасківщина, Згурівська селищна громада, Броварський район, Київська область, 07630, Україна",
+      "osmType": "way",
+      "osmId": 547411241
+    },
+    "KV08_08": {
+      "status": "resolved",
+      "latitude": 50.5065429,
+      "longitude": 31.9098904,
+      "matchLevel": "oblast_center",
+      "query": "Київ, Київська область, Україна",
+      "displayName": "вулиця Михайла Савчука, Чорнобильський куток, Пасківщина, Згурівська селищна громада, Броварський район, Київська область, 07630, Україна",
+      "osmType": "way",
+      "osmId": 547411241
+    },
+    "KR08_01": {
+      "status": "resolved",
+      "latitude": 48.5105805,
+      "longitude": 32.2656283,
+      "matchLevel": "oblast_center",
+      "query": "Кропивницький, Кіровоградська область, Україна",
+      "displayName": "Кропивницький, Кропивницька міська громада, Кропивницький район, Кіровоградська область, 25000-25490, Україна",
+      "osmType": "relation",
+      "osmId": 2825228
+    },
+    "KR08_02": {
+      "status": "resolved",
+      "latitude": 48.5105805,
+      "longitude": 32.2656283,
+      "matchLevel": "oblast_center",
+      "query": "Кропивницький, Кіровоградська область, Україна",
+      "displayName": "Кропивницький, Кропивницька міська громада, Кропивницький район, Кіровоградська область, 25000-25490, Україна",
+      "osmType": "relation",
+      "osmId": 2825228
+    },
+    "KR08_03": {
+      "status": "resolved",
+      "latitude": 48.5105805,
+      "longitude": 32.2656283,
+      "matchLevel": "oblast_center",
+      "query": "Кропивницький, Кіровоградська область, Україна",
+      "displayName": "Кропивницький, Кропивницька міська громада, Кропивницький район, Кіровоградська область, 25000-25490, Україна",
+      "osmType": "relation",
+      "osmId": 2825228
+    },
+    "KR08_04": {
+      "status": "resolved",
+      "latitude": 48.5105805,
+      "longitude": 32.2656283,
+      "matchLevel": "oblast_center",
+      "query": "Кропивницький, Кіровоградська область, Україна",
+      "displayName": "Кропивницький, Кропивницька міська громада, Кропивницький район, Кіровоградська область, 25000-25490, Україна",
+      "osmType": "relation",
+      "osmId": 2825228
+    },
+    "KR08_05": {
+      "status": "resolved",
+      "latitude": 48.5105805,
+      "longitude": 32.2656283,
+      "matchLevel": "oblast_center",
+      "query": "Кропивницький, Кіровоградська область, Україна",
+      "displayName": "Кропивницький, Кропивницька міська громада, Кропивницький район, Кіровоградська область, 25000-25490, Україна",
+      "osmType": "relation",
+      "osmId": 2825228
+    },
+    "KR08_06": {
+      "status": "resolved",
+      "latitude": 48.5105805,
+      "longitude": 32.2656283,
+      "matchLevel": "oblast_center",
+      "query": "Кропивницький, Кіровоградська область, Україна",
+      "displayName": "Кропивницький, Кропивницька міська громада, Кропивницький район, Кіровоградська область, 25000-25490, Україна",
+      "osmType": "relation",
+      "osmId": 2825228
+    },
+    "KR08_07": {
+      "status": "resolved",
+      "latitude": 48.5105805,
+      "longitude": 32.2656283,
+      "matchLevel": "oblast_center",
+      "query": "Кропивницький, Кіровоградська область, Україна",
+      "displayName": "Кропивницький, Кропивницька міська громада, Кропивницький район, Кіровоградська область, 25000-25490, Україна",
+      "osmType": "relation",
+      "osmId": 2825228
+    },
+    "KR08_08": {
+      "status": "resolved",
+      "latitude": 48.5105805,
+      "longitude": 32.2656283,
+      "matchLevel": "oblast_center",
+      "query": "Кропивницький, Кіровоградська область, Україна",
+      "displayName": "Кропивницький, Кропивницька міська громада, Кропивницький район, Кіровоградська область, 25000-25490, Україна",
+      "osmType": "relation",
+      "osmId": 2825228
+    },
+    "LV08_01": {
+      "status": "resolved",
+      "latitude": 49.841952,
+      "longitude": 24.0315921,
+      "matchLevel": "oblast_center",
+      "query": "Львів, Львівська область, Україна",
+      "displayName": "Львів, Львівська міська громада, Львівський район, Львівська область, Україна",
+      "osmType": "relation",
+      "osmId": 2032280
+    },
+    "LV08_02": {
+      "status": "resolved",
+      "latitude": 49.841952,
+      "longitude": 24.0315921,
+      "matchLevel": "oblast_center",
+      "query": "Львів, Львівська область, Україна",
+      "displayName": "Львів, Львівська міська громада, Львівський район, Львівська область, Україна",
+      "osmType": "relation",
+      "osmId": 2032280
+    },
+    "LV08_03": {
+      "status": "resolved",
+      "latitude": 49.841952,
+      "longitude": 24.0315921,
+      "matchLevel": "oblast_center",
+      "query": "Львів, Львівська область, Україна",
+      "displayName": "Львів, Львівська міська громада, Львівський район, Львівська область, Україна",
+      "osmType": "relation",
+      "osmId": 2032280
+    },
+    "LV08_04": {
+      "status": "resolved",
+      "latitude": 49.841952,
+      "longitude": 24.0315921,
+      "matchLevel": "oblast_center",
+      "query": "Львів, Львівська область, Україна",
+      "displayName": "Львів, Львівська міська громада, Львівський район, Львівська область, Україна",
+      "osmType": "relation",
+      "osmId": 2032280
+    },
+    "LV08_05": {
+      "status": "resolved",
+      "latitude": 49.841952,
+      "longitude": 24.0315921,
+      "matchLevel": "oblast_center",
+      "query": "Львів, Львівська область, Україна",
+      "displayName": "Львів, Львівська міська громада, Львівський район, Львівська область, Україна",
+      "osmType": "relation",
+      "osmId": 2032280
+    },
+    "LV08_06": {
+      "status": "resolved",
+      "latitude": 49.841952,
+      "longitude": 24.0315921,
+      "matchLevel": "oblast_center",
+      "query": "Львів, Львівська область, Україна",
+      "displayName": "Львів, Львівська міська громада, Львівський район, Львівська область, Україна",
+      "osmType": "relation",
+      "osmId": 2032280
+    },
+    "LV08_07": {
+      "status": "resolved",
+      "latitude": 49.841952,
+      "longitude": 24.0315921,
+      "matchLevel": "oblast_center",
+      "query": "Львів, Львівська область, Україна",
+      "displayName": "Львів, Львівська міська громада, Львівський район, Львівська область, Україна",
+      "osmType": "relation",
+      "osmId": 2032280
+    },
+    "MY08_01": {
+      "status": "resolved",
+      "latitude": 46.9758615,
+      "longitude": 31.9939666,
+      "matchLevel": "oblast_center",
+      "query": "Миколаїв, Миколаївська область, Україна",
+      "displayName": "Миколаїв, Миколаївська міська громада, Миколаївський район, Миколаївська область, 54000, Україна",
+      "osmType": "relation",
+      "osmId": 11622860
+    },
+    "MY08_02": {
+      "status": "resolved",
+      "latitude": 46.9758615,
+      "longitude": 31.9939666,
+      "matchLevel": "oblast_center",
+      "query": "Миколаїв, Миколаївська область, Україна",
+      "displayName": "Миколаїв, Миколаївська міська громада, Миколаївський район, Миколаївська область, 54000, Україна",
+      "osmType": "relation",
+      "osmId": 11622860
+    },
+    "MY08_03": {
+      "status": "resolved",
+      "latitude": 46.9758615,
+      "longitude": 31.9939666,
+      "matchLevel": "oblast_center",
+      "query": "Миколаїв, Миколаївська область, Україна",
+      "displayName": "Миколаїв, Миколаївська міська громада, Миколаївський район, Миколаївська область, 54000, Україна",
+      "osmType": "relation",
+      "osmId": 11622860
+    },
+    "MY08_05": {
+      "status": "resolved",
+      "latitude": 46.9758615,
+      "longitude": 31.9939666,
+      "matchLevel": "oblast_center",
+      "query": "Миколаїв, Миколаївська область, Україна",
+      "displayName": "Миколаїв, Миколаївська міська громада, Миколаївський район, Миколаївська область, 54000, Україна",
+      "osmType": "relation",
+      "osmId": 11622860
+    },
+    "OD08_01": {
+      "status": "resolved",
+      "latitude": 46.4843023,
+      "longitude": 30.7322878,
+      "matchLevel": "oblast_center",
+      "query": "Одеса, Одеська область, Україна",
+      "displayName": "Одеса, Одеська міська громада, Одеський район, Одеська область, Україна",
+      "osmType": "relation",
+      "osmId": 1413934
+    },
+    "OD08_02": {
+      "status": "resolved",
+      "latitude": 46.4843023,
+      "longitude": 30.7322878,
+      "matchLevel": "oblast_center",
+      "query": "Одеса, Одеська область, Україна",
+      "displayName": "Одеса, Одеська міська громада, Одеський район, Одеська область, Україна",
+      "osmType": "relation",
+      "osmId": 1413934
+    },
+    "OD08_03": {
+      "status": "resolved",
+      "latitude": 46.4843023,
+      "longitude": 30.7322878,
+      "matchLevel": "oblast_center",
+      "query": "Одеса, Одеська область, Україна",
+      "displayName": "Одеса, Одеська міська громада, Одеський район, Одеська область, Україна",
+      "osmType": "relation",
+      "osmId": 1413934
+    },
+    "OD08_05": {
+      "status": "resolved",
+      "latitude": 46.4843023,
+      "longitude": 30.7322878,
+      "matchLevel": "oblast_center",
+      "query": "Одеса, Одеська область, Україна",
+      "displayName": "Одеса, Одеська міська громада, Одеський район, Одеська область, Україна",
+      "osmType": "relation",
+      "osmId": 1413934
+    },
+    "OD08_06": {
+      "status": "resolved",
+      "latitude": 46.4843023,
+      "longitude": 30.7322878,
+      "matchLevel": "oblast_center",
+      "query": "Одеса, Одеська область, Україна",
+      "displayName": "Одеса, Одеська міська громада, Одеський район, Одеська область, Україна",
+      "osmType": "relation",
+      "osmId": 1413934
+    },
+    "PL08_01": {
+      "status": "resolved",
+      "latitude": 49.5897423,
+      "longitude": 34.5507948,
+      "matchLevel": "oblast_center",
+      "query": "Полтава, Полтавська область, Україна",
+      "displayName": "Полтава, Полтавська міська громада, Полтавський район, Полтавська область, 36000-36499, Україна",
+      "osmType": "relation",
+      "osmId": 1641691
+    },
+    "PL08_02": {
+      "status": "resolved",
+      "latitude": 49.5897423,
+      "longitude": 34.5507948,
+      "matchLevel": "oblast_center",
+      "query": "Полтава, Полтавська область, Україна",
+      "displayName": "Полтава, Полтавська міська громада, Полтавський район, Полтавська область, 36000-36499, Україна",
+      "osmType": "relation",
+      "osmId": 1641691
+    },
+    "PL08_03": {
+      "status": "resolved",
+      "latitude": 49.5897423,
+      "longitude": 34.5507948,
+      "matchLevel": "oblast_center",
+      "query": "Полтава, Полтавська область, Україна",
+      "displayName": "Полтава, Полтавська міська громада, Полтавський район, Полтавська область, 36000-36499, Україна",
+      "osmType": "relation",
+      "osmId": 1641691
+    },
+    "PL08_04": {
+      "status": "resolved",
+      "latitude": 49.5897423,
+      "longitude": 34.5507948,
+      "matchLevel": "oblast_center",
+      "query": "Полтава, Полтавська область, Україна",
+      "displayName": "Полтава, Полтавська міська громада, Полтавський район, Полтавська область, 36000-36499, Україна",
+      "osmType": "relation",
+      "osmId": 1641691
+    },
+    "PL08_05": {
+      "status": "resolved",
+      "latitude": 49.5897423,
+      "longitude": 34.5507948,
+      "matchLevel": "oblast_center",
+      "query": "Полтава, Полтавська область, Україна",
+      "displayName": "Полтава, Полтавська міська громада, Полтавський район, Полтавська область, 36000-36499, Україна",
+      "osmType": "relation",
+      "osmId": 1641691
+    },
+    "RV08_01": {
+      "status": "resolved",
+      "latitude": 50.6196175,
+      "longitude": 26.2513165,
+      "matchLevel": "oblast_center",
+      "query": "Рівне, Рівненська область, Україна",
+      "displayName": "Рівне, Рівненська міська громада, Рівненський район, Рівненська область, Україна",
+      "osmType": "relation",
+      "osmId": 448930
+    },
+    "RV08_02": {
+      "status": "resolved",
+      "latitude": 50.6196175,
+      "longitude": 26.2513165,
+      "matchLevel": "oblast_center",
+      "query": "Рівне, Рівненська область, Україна",
+      "displayName": "Рівне, Рівненська міська громада, Рівненський район, Рівненська область, Україна",
+      "osmType": "relation",
+      "osmId": 448930
+    },
+    "RV08_03": {
+      "status": "resolved",
+      "latitude": 50.6196175,
+      "longitude": 26.2513165,
+      "matchLevel": "oblast_center",
+      "query": "Рівне, Рівненська область, Україна",
+      "displayName": "Рівне, Рівненська міська громада, Рівненський район, Рівненська область, Україна",
+      "osmType": "relation",
+      "osmId": 448930
+    },
+    "RV08_04#Lot1": {
+      "status": "resolved",
+      "latitude": 50.6196175,
+      "longitude": 26.2513165,
+      "matchLevel": "oblast_center",
+      "query": "Рівне, Рівненська область, Україна",
+      "displayName": "Рівне, Рівненська міська громада, Рівненський район, Рівненська область, Україна",
+      "osmType": "relation",
+      "osmId": 448930
+    },
+    "RV08_04#Lot2": {
+      "status": "resolved",
+      "latitude": 50.6196175,
+      "longitude": 26.2513165,
+      "matchLevel": "oblast_center",
+      "query": "Рівне, Рівненська область, Україна",
+      "displayName": "Рівне, Рівненська міська громада, Рівненський район, Рівненська область, Україна",
+      "osmType": "relation",
+      "osmId": 448930
+    },
+    "SM08_01": {
+      "status": "resolved",
+      "latitude": 50.9119775,
+      "longitude": 34.8027723,
+      "matchLevel": "oblast_center",
+      "query": "Суми, Сумська область, Україна",
+      "displayName": "Суми, Сумська міська громада, Сумський район, Сумська область, Україна",
+      "osmType": "relation",
+      "osmId": 3678531
+    },
+    "SM08_02": {
+      "status": "resolved",
+      "latitude": 50.9119775,
+      "longitude": 34.8027723,
+      "matchLevel": "oblast_center",
+      "query": "Суми, Сумська область, Україна",
+      "displayName": "Суми, Сумська міська громада, Сумський район, Сумська область, Україна",
+      "osmType": "relation",
+      "osmId": 3678531
+    },
+    "SM08_03": {
+      "status": "resolved",
+      "latitude": 50.9119775,
+      "longitude": 34.8027723,
+      "matchLevel": "oblast_center",
+      "query": "Суми, Сумська область, Україна",
+      "displayName": "Суми, Сумська міська громада, Сумський район, Сумська область, Україна",
+      "osmType": "relation",
+      "osmId": 3678531
+    },
+    "SM08_04": {
+      "status": "resolved",
+      "latitude": 50.9119775,
+      "longitude": 34.8027723,
+      "matchLevel": "oblast_center",
+      "query": "Суми, Сумська область, Україна",
+      "displayName": "Суми, Сумська міська громада, Сумський район, Сумська область, Україна",
+      "osmType": "relation",
+      "osmId": 3678531
+    },
+    "SM08_05": {
+      "status": "resolved",
+      "latitude": 50.9119775,
+      "longitude": 34.8027723,
+      "matchLevel": "oblast_center",
+      "query": "Суми, Сумська область, Україна",
+      "displayName": "Суми, Сумська міська громада, Сумський район, Сумська область, Україна",
+      "osmType": "relation",
+      "osmId": 3678531
+    },
+    "SM08_06": {
+      "status": "resolved",
+      "latitude": 50.9119775,
+      "longitude": 34.8027723,
+      "matchLevel": "oblast_center",
+      "query": "Суми, Сумська область, Україна",
+      "displayName": "Суми, Сумська міська громада, Сумський район, Сумська область, Україна",
+      "osmType": "relation",
+      "osmId": 3678531
+    },
+    "SM08_07": {
+      "status": "resolved",
+      "latitude": 50.9119775,
+      "longitude": 34.8027723,
+      "matchLevel": "oblast_center",
+      "query": "Суми, Сумська область, Україна",
+      "displayName": "Суми, Сумська міська громада, Сумський район, Сумська область, Україна",
+      "osmType": "relation",
+      "osmId": 3678531
+    },
+    "SM08_08": {
+      "status": "resolved",
+      "latitude": 50.9119775,
+      "longitude": 34.8027723,
+      "matchLevel": "oblast_center",
+      "query": "Суми, Сумська область, Україна",
+      "displayName": "Суми, Сумська міська громада, Сумський район, Сумська область, Україна",
+      "osmType": "relation",
+      "osmId": 3678531
+    },
+    "SM08_09": {
+      "status": "resolved",
+      "latitude": 50.9119775,
+      "longitude": 34.8027723,
+      "matchLevel": "oblast_center",
+      "query": "Суми, Сумська область, Україна",
+      "displayName": "Суми, Сумська міська громада, Сумський район, Сумська область, Україна",
+      "osmType": "relation",
+      "osmId": 3678531
+    },
+    "TR08_01": {
+      "status": "resolved",
+      "latitude": 49.5557908,
+      "longitude": 25.5923753,
+      "matchLevel": "oblast_center",
+      "query": "Тернопіль, Тернопільська область, Україна",
+      "displayName": "Тернопіль, Тернопільська міська громада, Тернопільський район, Тернопільська область, Україна",
+      "osmType": "relation",
+      "osmId": 3058686
+    },
+    "TR08_02": {
+      "status": "resolved",
+      "latitude": 49.5557908,
+      "longitude": 25.5923753,
+      "matchLevel": "oblast_center",
+      "query": "Тернопіль, Тернопільська область, Україна",
+      "displayName": "Тернопіль, Тернопільська міська громада, Тернопільський район, Тернопільська область, Україна",
+      "osmType": "relation",
+      "osmId": 3058686
+    },
+    "TR08_03": {
+      "status": "resolved",
+      "latitude": 49.5557908,
+      "longitude": 25.5923753,
+      "matchLevel": "oblast_center",
+      "query": "Тернопіль, Тернопільська область, Україна",
+      "displayName": "Тернопіль, Тернопільська міська громада, Тернопільський район, Тернопільська область, Україна",
+      "osmType": "relation",
+      "osmId": 3058686
+    },
+    "KH08_02": {
+      "status": "resolved",
+      "latitude": 49.9923181,
+      "longitude": 36.2310146,
+      "matchLevel": "oblast_center",
+      "query": "Харків, Харківська область, Україна",
+      "displayName": "Харків, Харківська міська громада, Харківський район, Харківська область, Україна",
+      "osmType": "relation",
+      "osmId": 3154746
+    },
+    "KH08_03": {
+      "status": "resolved",
+      "latitude": 49.9923181,
+      "longitude": 36.2310146,
+      "matchLevel": "oblast_center",
+      "query": "Харків, Харківська область, Україна",
+      "displayName": "Харків, Харківська міська громада, Харківський район, Харківська область, Україна",
+      "osmType": "relation",
+      "osmId": 3154746
+    },
+    "KH08_04": {
+      "status": "resolved",
+      "latitude": 49.9923181,
+      "longitude": 36.2310146,
+      "matchLevel": "oblast_center",
+      "query": "Харків, Харківська область, Україна",
+      "displayName": "Харків, Харківська міська громада, Харківський район, Харківська область, Україна",
+      "osmType": "relation",
+      "osmId": 3154746
+    },
+    "KH08_05": {
+      "status": "resolved",
+      "latitude": 49.9923181,
+      "longitude": 36.2310146,
+      "matchLevel": "oblast_center",
+      "query": "Харків, Харківська область, Україна",
+      "displayName": "Харків, Харківська міська громада, Харківський район, Харківська область, Україна",
+      "osmType": "relation",
+      "osmId": 3154746
+    },
+    "KH08_06#Lot3": {
+      "status": "resolved",
+      "latitude": 49.9923181,
+      "longitude": 36.2310146,
+      "matchLevel": "oblast_center",
+      "query": "Харків, Харківська область, Україна",
+      "displayName": "Харків, Харківська міська громада, Харківський район, Харківська область, Україна",
+      "osmType": "relation",
+      "osmId": 3154746
+    },
+    "KH08_07#Lot1": {
+      "status": "resolved",
+      "latitude": 49.9923181,
+      "longitude": 36.2310146,
+      "matchLevel": "oblast_center",
+      "query": "Харків, Харківська область, Україна",
+      "displayName": "Харків, Харківська міська громада, Харківський район, Харківська область, Україна",
+      "osmType": "relation",
+      "osmId": 3154746
+    },
+    "KH08_07#Lot2": {
+      "status": "resolved",
+      "latitude": 49.9923181,
+      "longitude": 36.2310146,
+      "matchLevel": "oblast_center",
+      "query": "Харків, Харківська область, Україна",
+      "displayName": "Харків, Харківська міська громада, Харківський район, Харківська область, Україна",
+      "osmType": "relation",
+      "osmId": 3154746
+    },
+    "KH08_07#Lot3": {
+      "status": "resolved",
+      "latitude": 49.9923181,
+      "longitude": 36.2310146,
+      "matchLevel": "oblast_center",
+      "query": "Харків, Харківська область, Україна",
+      "displayName": "Харків, Харківська міська громада, Харківський район, Харківська область, Україна",
+      "osmType": "relation",
+      "osmId": 3154746
+    },
+    "KH08_07#Lot6": {
+      "status": "resolved",
+      "latitude": 49.9923181,
+      "longitude": 36.2310146,
+      "matchLevel": "oblast_center",
+      "query": "Харків, Харківська область, Україна",
+      "displayName": "Харків, Харківська міська громада, Харківський район, Харківська область, Україна",
+      "osmType": "relation",
+      "osmId": 3154746
+    },
+    "KH08_08#Lot3": {
+      "status": "resolved",
+      "latitude": 49.9923181,
+      "longitude": 36.2310146,
+      "matchLevel": "oblast_center",
+      "query": "Харків, Харківська область, Україна",
+      "displayName": "Харків, Харківська міська громада, Харківський район, Харківська область, Україна",
+      "osmType": "relation",
+      "osmId": 3154746
+    },
+    "KH08_09#Lot1": {
+      "status": "resolved",
+      "latitude": 49.9923181,
+      "longitude": 36.2310146,
+      "matchLevel": "oblast_center",
+      "query": "Харків, Харківська область, Україна",
+      "displayName": "Харків, Харківська міська громада, Харківський район, Харківська область, Україна",
+      "osmType": "relation",
+      "osmId": 3154746
+    },
+    "KH08_09#Lot2": {
+      "status": "resolved",
+      "latitude": 49.9923181,
+      "longitude": 36.2310146,
+      "matchLevel": "oblast_center",
+      "query": "Харків, Харківська область, Україна",
+      "displayName": "Харків, Харківська міська громада, Харківський район, Харківська область, Україна",
+      "osmType": "relation",
+      "osmId": 3154746
+    },
+    "KH08_10": {
+      "status": "resolved",
+      "latitude": 49.9923181,
+      "longitude": 36.2310146,
+      "matchLevel": "oblast_center",
+      "query": "Харків, Харківська область, Україна",
+      "displayName": "Харків, Харківська міська громада, Харківський район, Харківська область, Україна",
+      "osmType": "relation",
+      "osmId": 3154746
+    },
+    "KH08_11#Lot1": {
+      "status": "resolved",
+      "latitude": 49.9923181,
+      "longitude": 36.2310146,
+      "matchLevel": "oblast_center",
+      "query": "Харків, Харківська область, Україна",
+      "displayName": "Харків, Харківська міська громада, Харківський район, Харківська область, Україна",
+      "osmType": "relation",
+      "osmId": 3154746
+    },
+    "KS08_01": {
+      "status": "resolved",
+      "latitude": 46.6401295,
+      "longitude": 32.6143922,
+      "matchLevel": "oblast_center",
+      "query": "Херсон, Херсонська область, Україна",
+      "displayName": "Херсон, Херсонська міська громада, Херсонський район, Херсонська область, 73000-73480, Україна",
+      "osmType": "relation",
+      "osmId": 2175078
+    },
+    "KS08_02": {
+      "status": "resolved",
+      "latitude": 46.6401295,
+      "longitude": 32.6143922,
+      "matchLevel": "oblast_center",
+      "query": "Херсон, Херсонська область, Україна",
+      "displayName": "Херсон, Херсонська міська громада, Херсонський район, Херсонська область, 73000-73480, Україна",
+      "osmType": "relation",
+      "osmId": 2175078
+    },
+    "KS08_03": {
+      "status": "resolved",
+      "latitude": 46.6401295,
+      "longitude": 32.6143922,
+      "matchLevel": "oblast_center",
+      "query": "Херсон, Херсонська область, Україна",
+      "displayName": "Херсон, Херсонська міська громада, Херсонський район, Херсонська область, 73000-73480, Україна",
+      "osmType": "relation",
+      "osmId": 2175078
+    },
+    "KH08_11#Lot2": {
+      "status": "resolved",
+      "latitude": 49.9923181,
+      "longitude": 36.2310146,
+      "matchLevel": "oblast_center",
+      "query": "Харків, Харківська область, Україна",
+      "displayName": "Харків, Харківська міська громада, Харківський район, Харківська область, Україна",
+      "osmType": "relation",
+      "osmId": 3154746
+    },
+    "KM08_01": {
+      "status": "resolved",
+      "latitude": 49.4196404,
+      "longitude": 26.9793793,
+      "matchLevel": "oblast_center",
+      "query": "Хмельницький, Хмельницька область, Україна",
+      "displayName": "Хмельницький, Хмельницька міська громада, Хмельницький район, Хмельницька область, Україна",
+      "osmType": "relation",
+      "osmId": 1792913
+    },
+    "KM08_02": {
+      "status": "resolved",
+      "latitude": 49.4196404,
+      "longitude": 26.9793793,
+      "matchLevel": "oblast_center",
+      "query": "Хмельницький, Хмельницька область, Україна",
+      "displayName": "Хмельницький, Хмельницька міська громада, Хмельницький район, Хмельницька область, Україна",
+      "osmType": "relation",
+      "osmId": 1792913
+    },
+    "KM08_03": {
+      "status": "resolved",
+      "latitude": 49.4196404,
+      "longitude": 26.9793793,
+      "matchLevel": "oblast_center",
+      "query": "Хмельницький, Хмельницька область, Україна",
+      "displayName": "Хмельницький, Хмельницька міська громада, Хмельницький район, Хмельницька область, Україна",
+      "osmType": "relation",
+      "osmId": 1792913
+    },
+    "KM08_04": {
+      "status": "resolved",
+      "latitude": 49.4196404,
+      "longitude": 26.9793793,
+      "matchLevel": "oblast_center",
+      "query": "Хмельницький, Хмельницька область, Україна",
+      "displayName": "Хмельницький, Хмельницька міська громада, Хмельницький район, Хмельницька область, Україна",
+      "osmType": "relation",
+      "osmId": 1792913
+    },
+    "KM08_05": {
+      "status": "resolved",
+      "latitude": 49.4196404,
+      "longitude": 26.9793793,
+      "matchLevel": "oblast_center",
+      "query": "Хмельницький, Хмельницька область, Україна",
+      "displayName": "Хмельницький, Хмельницька міська громада, Хмельницький район, Хмельницька область, Україна",
+      "osmType": "relation",
+      "osmId": 1792913
+    },
+    "KM08_06": {
+      "status": "resolved",
+      "latitude": 49.4196404,
+      "longitude": 26.9793793,
+      "matchLevel": "oblast_center",
+      "query": "Хмельницький, Хмельницька область, Україна",
+      "displayName": "Хмельницький, Хмельницька міська громада, Хмельницький район, Хмельницька область, Україна",
+      "osmType": "relation",
+      "osmId": 1792913
+    },
+    "KM08_07": {
+      "status": "resolved",
+      "latitude": 49.4196404,
+      "longitude": 26.9793793,
+      "matchLevel": "oblast_center",
+      "query": "Хмельницький, Хмельницька область, Україна",
+      "displayName": "Хмельницький, Хмельницька міська громада, Хмельницький район, Хмельницька область, Україна",
+      "osmType": "relation",
+      "osmId": 1792913
+    },
+    "CK08_01": {
+      "status": "resolved",
+      "latitude": 49.4447056,
+      "longitude": 32.0588085,
+      "matchLevel": "oblast_center",
+      "query": "Черкаси, Черкаська область, Україна",
+      "displayName": "Черкаси, Соснівський район, Черкаська міська громада, Черкаський район, Черкаська область, 18000-18499, Україна",
+      "osmType": "relation",
+      "osmId": 2825507
+    },
+    "CK08_02": {
+      "status": "resolved",
+      "latitude": 49.4447056,
+      "longitude": 32.0588085,
+      "matchLevel": "oblast_center",
+      "query": "Черкаси, Черкаська область, Україна",
+      "displayName": "Черкаси, Соснівський район, Черкаська міська громада, Черкаський район, Черкаська область, 18000-18499, Україна",
+      "osmType": "relation",
+      "osmId": 2825507
+    },
+    "CK08_03": {
+      "status": "resolved",
+      "latitude": 49.4447056,
+      "longitude": 32.0588085,
+      "matchLevel": "oblast_center",
+      "query": "Черкаси, Черкаська область, Україна",
+      "displayName": "Черкаси, Соснівський район, Черкаська міська громада, Черкаський район, Черкаська область, 18000-18499, Україна",
+      "osmType": "relation",
+      "osmId": 2825507
+    },
+    "CK08_04": {
+      "status": "resolved",
+      "latitude": 49.4447056,
+      "longitude": 32.0588085,
+      "matchLevel": "oblast_center",
+      "query": "Черкаси, Черкаська область, Україна",
+      "displayName": "Черкаси, Соснівський район, Черкаська міська громада, Черкаський район, Черкаська область, 18000-18499, Україна",
+      "osmType": "relation",
+      "osmId": 2825507
+    },
+    "CK08_05": {
+      "status": "resolved",
+      "latitude": 49.4447056,
+      "longitude": 32.0588085,
+      "matchLevel": "oblast_center",
+      "query": "Черкаси, Черкаська область, Україна",
+      "displayName": "Черкаси, Соснівський район, Черкаська міська громада, Черкаський район, Черкаська область, 18000-18499, Україна",
+      "osmType": "relation",
+      "osmId": 2825507
+    },
+    "CK08_06": {
+      "status": "resolved",
+      "latitude": 49.4447056,
+      "longitude": 32.0588085,
+      "matchLevel": "oblast_center",
+      "query": "Черкаси, Черкаська область, Україна",
+      "displayName": "Черкаси, Соснівський район, Черкаська міська громада, Черкаський район, Черкаська область, 18000-18499, Україна",
+      "osmType": "relation",
+      "osmId": 2825507
+    },
+    "CK08_07": {
+      "status": "resolved",
+      "latitude": 48.7634818,
+      "longitude": 30.238945,
+      "matchLevel": "address",
+      "query": "м. Умань, Умань, Черкаська область, Україна",
+      "displayName": "Малий каскад, Умань, Уманська міська громада, Уманський район, Черкаська область, 20306, Україна",
+      "osmType": "node",
+      "osmId": 6149322969
+    },
+    "CK08_08": {
+      "status": "resolved",
+      "latitude": 49.4447056,
+      "longitude": 32.0588085,
+      "matchLevel": "oblast_center",
+      "query": "Черкаси, Черкаська область, Україна",
+      "displayName": "Черкаси, Соснівський район, Черкаська міська громада, Черкаський район, Черкаська область, 18000-18499, Україна",
+      "osmType": "relation",
+      "osmId": 2825507
+    },
+    "CK08_09": {
+      "status": "resolved",
+      "latitude": 49.4447056,
+      "longitude": 32.0588085,
+      "matchLevel": "oblast_center",
+      "query": "Черкаси, Черкаська область, Україна",
+      "displayName": "Черкаси, Соснівський район, Черкаська міська громада, Черкаський район, Черкаська область, 18000-18499, Україна",
+      "osmType": "relation",
+      "osmId": 2825507
+    },
+    "CV08_01": {
+      "status": "resolved",
+      "latitude": 48.2864702,
+      "longitude": 25.9376532,
+      "matchLevel": "oblast_center",
+      "query": "Чернівці, Чернівецька область, Україна",
+      "displayName": "Чернівці, Чернівецька міська громада, Чернівецький район, Чернівецька область, Україна",
+      "osmType": "relation",
+      "osmId": 1742393
+    },
+    "CV08_02": {
+      "status": "resolved",
+      "latitude": 48.2864702,
+      "longitude": 25.9376532,
+      "matchLevel": "oblast_center",
+      "query": "Чернівці, Чернівецька область, Україна",
+      "displayName": "Чернівці, Чернівецька міська громада, Чернівецький район, Чернівецька область, Україна",
+      "osmType": "relation",
+      "osmId": 1742393
+    },
+    "CV08_03": {
+      "status": "resolved",
+      "latitude": 48.2864702,
+      "longitude": 25.9376532,
+      "matchLevel": "oblast_center",
+      "query": "Чернівці, Чернівецька область, Україна",
+      "displayName": "Чернівці, Чернівецька міська громада, Чернівецький район, Чернівецька область, Україна",
+      "osmType": "relation",
+      "osmId": 1742393
+    },
+    "CV08_04": {
+      "status": "resolved",
+      "latitude": 48.2864702,
+      "longitude": 25.9376532,
+      "matchLevel": "oblast_center",
+      "query": "Чернівці, Чернівецька область, Україна",
+      "displayName": "Чернівці, Чернівецька міська громада, Чернівецький район, Чернівецька область, Україна",
+      "osmType": "relation",
+      "osmId": 1742393
+    },
+    "CH08_01": {
+      "status": "resolved",
+      "latitude": 51.494099,
+      "longitude": 31.294332,
+      "matchLevel": "oblast_center",
+      "query": "Чернігів, Чернігівська область, Україна",
+      "displayName": "Чернігів, Чернігівська міська громада, Чернігівський район, Чернігівська область, 14000-14499, Україна",
+      "osmType": "relation",
+      "osmId": 1952636
+    },
+    "CH08_02": {
+      "status": "resolved",
+      "latitude": 51.494099,
+      "longitude": 31.294332,
+      "matchLevel": "oblast_center",
+      "query": "Чернігів, Чернігівська область, Україна",
+      "displayName": "Чернігів, Чернігівська міська громада, Чернігівський район, Чернігівська область, 14000-14499, Україна",
+      "osmType": "relation",
+      "osmId": 1952636
+    },
+    "CH08_03": {
+      "status": "resolved",
+      "latitude": 51.494099,
+      "longitude": 31.294332,
+      "matchLevel": "oblast_center",
+      "query": "Чернігів, Чернігівська область, Україна",
+      "displayName": "Чернігів, Чернігівська міська громада, Чернігівський район, Чернігівська область, 14000-14499, Україна",
+      "osmType": "relation",
+      "osmId": 1952636
+    },
+    "CH08_04": {
+      "status": "resolved",
+      "latitude": 51.494099,
+      "longitude": 31.294332,
+      "matchLevel": "oblast_center",
+      "query": "Чернігів, Чернігівська область, Україна",
+      "displayName": "Чернігів, Чернігівська міська громада, Чернігівський район, Чернігівська область, 14000-14499, Україна",
+      "osmType": "relation",
+      "osmId": 1952636
+    },
+    "CH08_05": {
+      "status": "resolved",
+      "latitude": 51.494099,
+      "longitude": 31.294332,
+      "matchLevel": "oblast_center",
+      "query": "Чернігів, Чернігівська область, Україна",
+      "displayName": "Чернігів, Чернігівська міська громада, Чернігівський район, Чернігівська область, 14000-14499, Україна",
+      "osmType": "relation",
+      "osmId": 1952636
+    },
+    "CH08_06": {
+      "status": "resolved",
+      "latitude": 51.494099,
+      "longitude": 31.294332,
+      "matchLevel": "oblast_center",
+      "query": "Чернігів, Чернігівська область, Україна",
+      "displayName": "Чернігів, Чернігівська міська громада, Чернігівський район, Чернігівська область, 14000-14499, Україна",
+      "osmType": "relation",
+      "osmId": 1952636
+    },
+    "CH08_07": {
+      "status": "resolved",
+      "latitude": 51.494099,
+      "longitude": 31.294332,
+      "matchLevel": "oblast_center",
+      "query": "Чернігів, Чернігівська область, Україна",
+      "displayName": "Чернігів, Чернігівська міська громада, Чернігівський район, Чернігівська область, 14000-14499, Україна",
+      "osmType": "relation",
+      "osmId": 1952636
+    },
+    "CH08_08": {
+      "status": "resolved",
+      "latitude": 51.494099,
+      "longitude": 31.294332,
+      "matchLevel": "oblast_center",
+      "query": "Чернігів, Чернігівська область, Україна",
+      "displayName": "Чернігів, Чернігівська міська громада, Чернігівський район, Чернігівська область, 14000-14499, Україна",
+      "osmType": "relation",
+      "osmId": 1952636
+    },
+    "CH08_09": {
+      "status": "resolved",
+      "latitude": 51.494099,
+      "longitude": 31.294332,
+      "matchLevel": "oblast_center",
+      "query": "Чернігів, Чернігівська область, Україна",
+      "displayName": "Чернігів, Чернігівська міська громада, Чернігівський район, Чернігівська область, 14000-14499, Україна",
+      "osmType": "relation",
+      "osmId": 1952636
+    }
+  }
+}

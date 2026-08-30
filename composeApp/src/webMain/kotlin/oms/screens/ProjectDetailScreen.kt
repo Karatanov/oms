@@ -257,7 +257,7 @@ fun ProjectDetailScreen(
                 if (loading) oms.components.ContentState(LocalizationManager.t("loading_records"), loading = true)
                 else if (loadError) oms.components.ContentState(LocalizationManager.t("load_records_error"), error = true, onRetry = { retryKey++ })
                 else when (selectedTab) {
-                    ProjectDetailTab.GeneralInfo -> ProjectGeneralInfoTab(details.value?.data)
+                    ProjectDetailTab.GeneralInfo -> ProjectGeneralInfoTab(details.value)
                     ProjectDetailTab.InspectionReports -> ProjectReportsTab(reports.value)
                     ProjectDetailTab.Financials -> Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
         if (!isGuest) Row(
@@ -488,13 +488,14 @@ private fun EmptyProjectTab(title: String, description: String) {
 }
 
 @Composable
-private fun ProjectGeneralInfoTab(data: oms.data.ApiProjectDetailsData?) {
+private fun ProjectGeneralInfoTab(details: oms.data.ApiProjectDetails?) {
     Card(Modifier.fillMaxWidth()) {
-        if (data == null) {
+        if (details == null) {
             Box(Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator()
             }
         } else {
+            val data = details.data
             val fields = buildList {
                 addAll(listOf(
                 LocalizationManager.t("record_type") to when (data.projectType) {
@@ -539,10 +540,30 @@ private fun ProjectGeneralInfoTab(data: oms.data.ApiProjectDetailsData?) {
                 LocalizationManager.t("contract_duration") to (data.contractDurationDays?.let { LocalizationManager.t("days_value").replace("{count}", it.toString()) } ?: "—")
                 ))
                 if (!data.projectType.equals("project", ignoreCase = true)) {
-                    add(LocalizationManager.t("address") to data.address)
-                    add(LocalizationManager.t("region") to data.region)
-                    add(LocalizationManager.t("city") to data.city)
+                    add(LocalizationManager.t("address") to data.address.ifBlank { "—" })
+                    add(LocalizationManager.t("region") to data.region.ifBlank { "—" })
+                    add(LocalizationManager.t("city") to data.city.ifBlank { "—" })
                     add(LocalizationManager.t("coordinates") to "${data.latitude}, ${data.longitude}")
+                }
+                details.programmeDetails?.let { source ->
+                    add(LocalizationManager.t("implementor") to source.implementor)
+                    add(LocalizationManager.t("financing_institution") to source.financingInstitution)
+                    add(LocalizationManager.t("finance_contract_number") to source.financeContractNumber)
+                    add("Serapis" to source.serapisNumber)
+                    add(LocalizationManager.t("agreement_date") to source.agreementDate.toOmsDate())
+                    add(LocalizationManager.t("loan_amount") to "${source.loanAmount} ${source.loanCurrency}")
+                }
+                details.monitoringDetails?.let { source ->
+                    add(LocalizationManager.t("source_subproject_id") to source.sourceSubprojectId)
+                    add(LocalizationManager.t("source_lot_id") to source.sourceLotId)
+                    add(LocalizationManager.t("english_name") to (source.nameEn ?: "—"))
+                    add(LocalizationManager.t("municipality") to (source.municipalityNameUk ?: "—"))
+                    add(LocalizationManager.t("beneficiary") to (source.beneficiaryNameUk ?: "—"))
+                    add(LocalizationManager.t("project_manager") to (source.projectManagerNameUk ?: "—"))
+                    add(LocalizationManager.t("procurement_status") to (source.constructionProcurementStatus ?: "—"))
+                    add(LocalizationManager.t("work_status") to (source.constructionWorkStatus ?: "—"))
+                    add(LocalizationManager.t("coordinate_accuracy") to LocalizationManager.t("geocode_accuracy_${source.geocodeAccuracy ?: "unknown"}"))
+                    add(LocalizationManager.t("source_workbook") to source.sourceWorkbook)
                 }
             }
             Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {

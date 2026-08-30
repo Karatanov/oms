@@ -54,7 +54,7 @@ class DashboardService(
         val subprojects = projects.filter { it[ProjectTable.projectType] == "subproject" }
         val subprojectFunding = subprojects.map { row ->
             DashboardSubprojectFunding(
-                projectUuid = row[ProjectTable.uuid], name = row[ProjectTable.name], region = row[ProjectTable.region],
+                projectUuid = row[ProjectTable.uuid], name = row[ProjectTable.name], region = row[ProjectTable.region].orEmpty(),
                 amount = row[ProjectTable.subprojectContractAmount] ?: row[ProjectTable.budgetPlanned]
             )
         }

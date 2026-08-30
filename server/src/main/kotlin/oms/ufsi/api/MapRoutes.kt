@@ -11,6 +11,7 @@ fun Route.mapRoutes() {
         val session = call.requireRole("ADMIN", "PROJECT_MANAGER", "INSPECTOR", "VIEWER", "GUEST") ?: return@get
         call.respond(AppContainer.projectService.getAllProjects().filter {
             it.projectType != ProjectType.PROJECT &&
+                it.latitude != null && it.longitude != null &&
                 (it.latitude != 0.0 || it.longitude != 0.0) &&
                 (!session.roleCode.equals("PROJECT_MANAGER", ignoreCase = true) ||
                     AppContainer.projectService.isManagedBy(it.uuid.toString(), session.userId))
@@ -18,8 +19,8 @@ fun Route.mapRoutes() {
             ProjectMapPointResponse(
                 uuid = it.uuid.toString(),
                 name = it.name,
-                latitude = it.latitude,
-                longitude = it.longitude,
+                latitude = requireNotNull(it.latitude),
+                longitude = requireNotNull(it.longitude),
                 status = it.status.name.lowercase()
             )
         })

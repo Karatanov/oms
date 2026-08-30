@@ -31,6 +31,10 @@ Project managers are limited to projects assigned through `projects.manager_id`.
 
 Inspection/SIR state is `DRAFT -> PENDING_REVIEW -> COMPLETED`; a review rejection returns the report to `DRAFT` with a reason. Financial entries and XLS/XLSX import/export are limited to Admin and Project Manager. Documents and photos store metadata in MySQL and bytes under `OMS_UPLOAD_DIR`.
 
+The current operational hierarchy is `Ukraine Recovery Programme III -> 134 subprojects -> 0 subproject parts`. Programme agreement facts are separated into `programme_details`; source monitoring and bilingual identifiers are separated into `project_monitoring_details`; exact money continues to use `project_amounts`; procurement records reference the owning OMS subproject. This keeps project CRUD and third-level hierarchy support intact while avoiding fabricated business values. Geocoding is auditable: confirmed addresses use address coordinates, otherwise the agreed map fallback is the corresponding oblast centre; accuracy/query/provider data is retained separately from the project name.
+
+The import is deterministic rather than an administrator click-flow. `tools/generate_urp3_seed.py` reads the authoritative monitoring workbook plus the supplementary Tranche A+B workbook, merges only confirmed duplicate lot identifiers, and generates reviewed JSON/SQL artifacts consumed by Flyway V38. Future source refreshes should reuse the generator and review its provenance/merge report before producing a new forward-only migration.
+
 ## Deployment
 
 Docker Compose runs MySQL and the integrated OMS image, with health-gated startup and separate persistent volumes for database and uploads. Flyway runs before repositories are used. Runtime secrets are environment values. Production TLS/reverse proxy and external backup scheduling are infrastructure responsibilities documented in the D11 report.

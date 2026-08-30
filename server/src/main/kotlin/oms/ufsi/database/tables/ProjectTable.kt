@@ -76,19 +76,19 @@ object ProjectTable : LongIdTable("projects") {
      * Повна адреса.
      */
     val address =
-        varchar("address", 500)
+        varchar("address", 500).nullable()
 
     /**
      * Область.
      */
     val region =
-        varchar("region", 100)
+        varchar("region", 100).nullable()
 
     /**
      * Населений пункт.
      */
     val city =
-        varchar("city", 100)
+        varchar("city", 100).nullable()
 
     /**
      * Географічна широта.
@@ -98,7 +98,7 @@ object ProjectTable : LongIdTable("projects") {
             name = "latitude",
             precision = 10,
             scale = 7
-        )
+        ).nullable()
 
     /**
      * Географічна довгота.
@@ -108,7 +108,7 @@ object ProjectTable : LongIdTable("projects") {
             name = "longitude",
             precision = 10,
             scale = 7
-        )
+        ).nullable()
 
     /**
      * Поточний статус проєкту.
@@ -120,13 +120,13 @@ object ProjectTable : LongIdTable("projects") {
      * Галузь.
      */
     val sector =
-        varchar("sector", 100)
+        varchar("sector", 100).nullable()
 
     /**
      * Тип будівництва.
      */
     val constructionType =
-        varchar("construction_type", 100)
+        varchar("construction_type", 100).nullable()
 
     /**
      * Плановий бюджет у гривнях.

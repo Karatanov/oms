@@ -15,7 +15,7 @@ internal class ProjectFormState(details: ApiProjectDetailsData? = null) {
     var parentUuid by mutableStateOf(details?.parentProjectUuid)
     var fields by mutableStateOf(mapOf(
         "name" to details?.name.orEmpty(), "code" to details?.siteName.orEmpty(), "description" to details?.description.orEmpty(),
-        "status" to (details?.status ?: "planned"), "sector" to (details?.sector ?: "Education").replaceFirstChar(Char::uppercase),
+        "status" to (details?.status ?: "planned"), "sector" to (details?.sector ?: "education").lowercase(),
         "constructionType" to (details?.constructionType ?: "reconstruction"),
         "address" to details?.address.orEmpty(), "region" to details?.region.orEmpty(), "city" to details?.city.orEmpty(),
         "latitude" to details?.latitude?.toString().orEmpty(), "longitude" to details?.longitude?.toString().orEmpty(),

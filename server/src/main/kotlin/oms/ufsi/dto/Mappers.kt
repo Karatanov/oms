@@ -94,28 +94,28 @@ fun Project.toResponse(parentProjectUuid: String? = null): ProjectResponse {
             description,
 
         address =
-            address,
+            address.orEmpty(),
 
         region =
-            region,
+            region.orEmpty(),
 
         city =
-            city,
+            city.orEmpty(),
 
         latitude =
-            latitude,
+            latitude ?: 0.0,
 
         longitude =
-            longitude,
+            longitude ?: 0.0,
 
         status =
             status.name.lowercase(),
 
         sector =
-            sector,
+            sector.orEmpty(),
 
         constructionType =
-            constructionType,
+            constructionType.orEmpty(),
 
         budgetPlanned =
             budgetPlanned,

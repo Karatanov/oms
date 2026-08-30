@@ -56,23 +56,23 @@ data class Project(
     /**
      * Повна адреса.
      */
-    val address: String,
+    val address: String?,
 
     /**
      * Область.
      */
-    val region: String,
+    val region: String?,
 
     /**
      * Населений пункт.
      */
-    val city: String,
+    val city: String?,
 
     /**
      * Географічні координати.
      */
-    val latitude: Double,
-    val longitude: Double,
+    val latitude: Double?,
+    val longitude: Double?,
 
     /**
      * Поточний статус.
@@ -82,12 +82,12 @@ data class Project(
     /**
      * Галузь.
      */
-    val sector: String,
+    val sector: String?,
 
     /**
      * Тип будівництва.
      */
-    val constructionType: String,
+    val constructionType: String?,
 
     /**
      * Плановий бюджет у гривнях.

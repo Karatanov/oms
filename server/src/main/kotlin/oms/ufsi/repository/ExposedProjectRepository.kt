@@ -1,6 +1,8 @@
 package oms.ufsi.repository
 
 import oms.ufsi.database.tables.ProjectTable
+import oms.ufsi.database.tables.ProgrammeDetailTable
+import oms.ufsi.database.tables.ProjectMonitoringDetailTable
 import oms.ufsi.database.tables.ProjectAmountTable
 import oms.ufsi.domain.ProjectAmount
 import org.jetbrains.exposed.v1.core.ResultRow
@@ -24,6 +26,38 @@ import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import java.util.*
 
 class ExposedProjectRepository : ProjectRepository {
+    override fun programmeDetails(projectId: Long) = transaction {
+        ProgrammeDetailTable.selectAll().firstOrNull { it[ProgrammeDetailTable.projectId].value == projectId }?.let { row ->
+            oms.ufsi.domain.ProgrammeDetails(
+                row[ProgrammeDetailTable.implementor], row[ProgrammeDetailTable.financingInstitution],
+                row[ProgrammeDetailTable.financeContractNumber], row[ProgrammeDetailTable.serapisNumber],
+                row[ProgrammeDetailTable.agreementDate], row[ProgrammeDetailTable.loanAmount],
+                row[ProgrammeDetailTable.loanCurrency], row[ProgrammeDetailTable.sourceWorkbook],
+                row[ProgrammeDetailTable.sourceSnapshotDate]
+            )
+        }
+    }
+
+    override fun monitoringDetails(projectId: Long) = transaction {
+        ProjectMonitoringDetailTable.selectAll().firstOrNull { it[ProjectMonitoringDetailTable.projectId].value == projectId }?.let { row ->
+            oms.ufsi.domain.ProjectMonitoringDetails(
+                row[ProjectMonitoringDetailTable.sourceBatchId], row[ProjectMonitoringDetailTable.sourceSubprojectId],
+                row[ProjectMonitoringDetailTable.sourceLotId], row[ProjectMonitoringDetailTable.nameEn],
+                row[ProjectMonitoringDetailTable.oblastCode], row[ProjectMonitoringDetailTable.municipalityNameUk],
+                row[ProjectMonitoringDetailTable.municipalityNameEn], row[ProjectMonitoringDetailTable.settlementNameEn],
+                row[ProjectMonitoringDetailTable.priorityAreaSource], row[ProjectMonitoringDetailTable.projectManagerNameUk],
+                row[ProjectMonitoringDetailTable.projectManagerNameEn], row[ProjectMonitoringDetailTable.projectManagerOrgId],
+                row[ProjectMonitoringDetailTable.beneficiaryNameUk], row[ProjectMonitoringDetailTable.beneficiaryNameEn],
+                row[ProjectMonitoringDetailTable.beneficiaryOrgId], row[ProjectMonitoringDetailTable.dreamProjectId],
+                row[ProjectMonitoringDetailTable.dreamProjectUrl], row[ProjectMonitoringDetailTable.applicationId],
+                row[ProjectMonitoringDetailTable.dreamApplicationId], row[ProjectMonitoringDetailTable.constructionProcurementStatus],
+                row[ProjectMonitoringDetailTable.constructionWorkStatus], row[ProjectMonitoringDetailTable.geocodeAccuracy],
+                row[ProjectMonitoringDetailTable.geocodeQuery], row[ProjectMonitoringDetailTable.geocodeDisplayName],
+                row[ProjectMonitoringDetailTable.sourceRows],
+                row[ProjectMonitoringDetailTable.sourceWorkbook]
+            )
+        }
+    }
     override fun managerIdForUuid(uuid: String): Long? = transaction {
         ProjectTable.selectAll().firstOrNull { it[ProjectTable.uuid] == uuid }
             ?.get(ProjectTable.managerId)
@@ -48,8 +82,8 @@ class ExposedProjectRepository : ProjectRepository {
                     address = row[ProjectTable.address],
                     region = row[ProjectTable.region],
                     city = row[ProjectTable.city],
-                    latitude = row[ProjectTable.latitude].toDouble(),
-                    longitude = row[ProjectTable.longitude].toDouble(),
+                    latitude = row[ProjectTable.latitude]?.toDouble(),
+                    longitude = row[ProjectTable.longitude]?.toDouble(),
                     status = ProjectStatus.valueOf(row[ProjectTable.status].uppercase()),
                     sector = row[ProjectTable.sector],
                     constructionType = row[ProjectTable.constructionType],
@@ -140,11 +174,11 @@ class ExposedProjectRepository : ProjectRepository {
 
                     latitude =
                         row[ProjectTable.latitude]
-                            .toDouble(),
+                            ?.toDouble(),
 
                     longitude =
                         row[ProjectTable.longitude]
-                            .toDouble(),
+                            ?.toDouble(),
 
                     status =
                         ProjectStatus.valueOf(
@@ -351,8 +385,8 @@ class ExposedProjectRepository : ProjectRepository {
                 it[region] = patch.region
                 it[city] = patch.city
                 it[status] = patch.status.name.lowercase()
-                it[latitude] = patch.latitude.toBigDecimal()
-                it[longitude] = patch.longitude.toBigDecimal()
+                it[latitude] = patch.latitude?.toBigDecimal()
+                it[longitude] = patch.longitude?.toBigDecimal()
                 it[sector] = patch.sector
                 it[constructionType] = patch.constructionType
                 it[budgetPlanned] = patch.budgetPlanned

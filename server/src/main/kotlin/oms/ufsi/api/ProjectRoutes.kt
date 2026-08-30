@@ -269,6 +269,24 @@ fun Route.projectRoutes() {
                         it.completionPct,
                         it.financialCompletionPct
                     )
+                },
+                programmeDetails = AppContainer.projectRepository.programmeDetails(project.id)?.let {
+                    ProgrammeDetailsResponse(
+                        it.implementor, it.financingInstitution, it.financeContractNumber, it.serapisNumber,
+                        it.agreementDate.toString(), it.loanAmount.toPlainString(), it.loanCurrency,
+                        it.sourceWorkbook, it.sourceSnapshotDate?.toString()
+                    )
+                },
+                monitoringDetails = AppContainer.projectRepository.monitoringDetails(project.id)?.let {
+                    ProjectMonitoringDetailsResponse(
+                        it.sourceBatchId, it.sourceSubprojectId, it.sourceLotId, it.nameEn, it.oblastCode,
+                        it.municipalityNameUk, it.municipalityNameEn, it.settlementNameEn, it.priorityAreaSource,
+                        it.projectManagerNameUk, it.projectManagerNameEn, it.projectManagerOrgId,
+                        it.beneficiaryNameUk, it.beneficiaryNameEn, it.beneficiaryOrgId, it.dreamProjectId,
+                        it.dreamProjectUrl, it.applicationId, it.dreamApplicationId,
+                        it.constructionProcurementStatus, it.constructionWorkStatus, it.geocodeAccuracy,
+                        it.geocodeQuery, it.geocodeDisplayName, it.sourceRows, it.sourceWorkbook
+                    )
                 }
             )
         )
@@ -326,8 +344,8 @@ fun Route.projectRoutes() {
                         createCell(2).setCellValue(project.projectType.name.lowercase())
                         createCell(3).setCellValue(project.parentProjectId?.toString().orEmpty())
                         createCell(4).setCellValue(project.status.name.lowercase())
-                        createCell(5).setCellValue(project.region)
-                        createCell(6).setCellValue(project.city)
+                        createCell(5).setCellValue(project.region.orEmpty())
+                        createCell(6).setCellValue(project.city.orEmpty())
                         createCell(7).setCellValue(project.budgetPlanned.toDouble())
                         createCell(8).setCellValue(project.currency)
                     }
