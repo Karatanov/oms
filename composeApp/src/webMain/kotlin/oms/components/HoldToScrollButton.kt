@@ -43,7 +43,7 @@ fun HoldToScrollButton(
                 awaitEachGesture {
                     awaitFirstDown(requireUnconsumed = false)
                     suppressClick = false
-                    val continuousJob = launch {
+                    val continuousJob = scope.launch {
                         delay(viewConfiguration.longPressTimeoutMillis)
                         suppressClick = true
                         while (isActive) {
@@ -56,7 +56,7 @@ fun HoldToScrollButton(
                     if (suppressClick) {
                         // FilledIconButton normally emits its click immediately
                         // after release. Reset as a fallback if it was cancelled.
-                        launch { delay(120); suppressClick = false }
+                        scope.launch { delay(120); suppressClick = false }
                     }
                 }
             },

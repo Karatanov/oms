@@ -1,6 +1,6 @@
 package oms.screens
 
-import androidx.compose.foundation.gestures.animateScrollTo
+import androidx.compose.foundation.animateScrollTo
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.horizontalScroll
