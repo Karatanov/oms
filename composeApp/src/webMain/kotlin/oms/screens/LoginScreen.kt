@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
 import oms.components.FeatureItem
+import oms.components.AutocompleteField
 import oms.components.WasmSafeOverlay
 import oms.data.BrowserCredentialStorage
 import oms.data.OmsApiClient
@@ -39,6 +40,7 @@ fun LoginScreen(
     val savedCredentials = remember { BrowserCredentialStorage.load() }
     var username by remember { mutableStateOf(savedCredentials?.username.orEmpty()) }
     var password by remember { mutableStateOf(savedCredentials?.password.orEmpty()) }
+    val recentUsernames = remember { BrowserCredentialStorage.recentUsernames() }
 
     var passwordVisible by remember { mutableStateOf(false) }
     var rememberMe by remember { mutableStateOf(savedCredentials != null) }
@@ -70,6 +72,7 @@ fun LoginScreen(
             isLoading = false
             loginResult
                 .onSuccess { authenticated ->
+                    BrowserCredentialStorage.rememberUsername(username)
                     if (rememberMe) {
                         BrowserCredentialStorage.save(username.trim(), password)
                     } else {
@@ -191,15 +194,15 @@ fun LoginScreen(
                     }
 
                     // ---------------- LOGIN ----------------
-                    OutlinedTextField(
+                    AutocompleteField(
                         value = username,
                         onValueChange = {
                             username = it
                             errorMessage = null
                         },
-                        label = { Text(LocalizationManager.t("login_or_email")) },
-                        placeholder = { Text(LocalizationManager.t("login_or_email_example")) },
-                        singleLine = true,
+                        label = LocalizationManager.t("login_or_email"),
+                        placeholder = LocalizationManager.t("login_or_email_example"),
+                        options = recentUsernames.map { it to it },
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                         keyboardActions = KeyboardActions(onDone = { submitLogin() }),
                         modifier = Modifier.fillMaxWidth()

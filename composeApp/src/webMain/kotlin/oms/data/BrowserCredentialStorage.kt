@@ -11,6 +11,8 @@ data class SavedCredentials(
 object BrowserCredentialStorage {
     private const val UsernameKey = "oms.saved.username"
     private const val PasswordKey = "oms.saved.password"
+    private const val RecentUsernamesKey = "oms.recent.usernames"
+    private const val MaxRecentUsernames = 8
 
     fun load(): SavedCredentials? = runCatching {
         val username = localStorage.getItem(UsernameKey)?.takeIf { it.isNotBlank() }
@@ -22,8 +24,24 @@ object BrowserCredentialStorage {
         runCatching {
             localStorage.setItem(UsernameKey, username)
             localStorage.setItem(PasswordKey, password)
+            rememberUsername(username)
         }
     }
+
+    /** Stores only successful login identifiers for local autocomplete, never their passwords. */
+    fun rememberUsername(username: String) {
+        val normalized = username.trim()
+        if (normalized.isBlank()) return
+        runCatching {
+            val values = recentUsernames().filterNot { it.equals(normalized, ignoreCase = true) }
+            localStorage.setItem(RecentUsernamesKey, (listOf(normalized) + values).take(MaxRecentUsernames).joinToString("\n"))
+        }
+    }
+
+    fun recentUsernames(): List<String> = runCatching {
+        localStorage.getItem(RecentUsernamesKey).orEmpty().lineSequence()
+            .map(String::trim).filter(String::isNotBlank).distinct().take(MaxRecentUsernames).toList()
+    }.getOrDefault(emptyList())
 
     fun clear() {
         runCatching {
