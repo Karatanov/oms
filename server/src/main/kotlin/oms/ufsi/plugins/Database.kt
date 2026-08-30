@@ -43,7 +43,11 @@ fun Application.configureDatabase() {
 
     // Opt-in recovery for a locally interrupted development migration.
     // Production starts never repair history implicitly.
-    if (System.getProperty("oms.flywayRepair") == "true") {
+    if (
+        System.getProperty("oms.flywayRepair") == "true" ||
+        System.getenv("OMS_FLYWAY_REPAIR").equals("true", ignoreCase = true)
+    ) {
+        log.warn("Flyway repair was explicitly requested for this startup.")
         flyway.repair()
     }
 

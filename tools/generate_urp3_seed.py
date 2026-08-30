@@ -403,7 +403,7 @@ ALTER TABLE projects
     MODIFY COLUMN sector VARCHAR(100) NULL,
     MODIFY COLUMN construction_type VARCHAR(100) NULL;
 
-CREATE TABLE programme_details (
+CREATE TABLE IF NOT EXISTS programme_details (
     project_id BIGINT NOT NULL PRIMARY KEY,
     implementor VARCHAR(500) NOT NULL,
     financing_institution VARCHAR(255) NOT NULL,
@@ -417,7 +417,7 @@ CREATE TABLE programme_details (
     CONSTRAINT fk_programme_details_project FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
 );
 
-CREATE TABLE project_monitoring_details (
+CREATE TABLE IF NOT EXISTS project_monitoring_details (
     project_id BIGINT NOT NULL PRIMARY KEY,
     source_batch_id INT NULL,
     source_subproject_id VARCHAR(100) NOT NULL,
@@ -458,7 +458,9 @@ ALTER TABLE procurement_records
     ADD COLUMN estimated_contract_end_date DATE NULL,
     ADD COLUMN comments TEXT NULL,
     ADD COLUMN contract_type VARCHAR(32) NOT NULL DEFAULT 'works',
-    ADD COLUMN project_id BIGINT NULL,
+    ADD COLUMN project_id BIGINT NULL;
+
+ALTER TABLE procurement_records
     ADD CONSTRAINT fk_procurement_project FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
     ADD INDEX idx_procurement_project (project_id),
     ADD INDEX idx_procurement_contract_type (contract_type);
