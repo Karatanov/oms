@@ -192,10 +192,12 @@ private fun ProcurementTable(
     onDelete: (ApiProcurementRecord) -> Unit
 ) {
     Column(Modifier.fillMaxWidth()) {
-        oms.components.ScrollableTable {
-            ProcurementFilters(allRecords, oblastFilter, onOblastChange, statusFilter, onStatusChange, canManage)
-            ProcurementRow(procurementHeaderLabels(), showActions = canManage, isHeader = true)
-            HorizontalDivider()
+        oms.components.ScrollableTable(header = {
+                ProcurementFilters(allRecords, oblastFilter, onOblastChange, statusFilter, onStatusChange, canManage)
+                ProcurementRow(procurementHeaderLabels(), showActions = canManage, isHeader = true)
+                HorizontalDivider()
+            }
+        ) {
             records.forEach { record ->
                 ProcurementRow(listOf(
                     record.recordNumber.toString(), record.batchId.toString(), record.oblastName, record.oblastId,

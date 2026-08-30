@@ -144,24 +144,28 @@ fun AdminScreen() {
         if (loading) oms.components.ContentState(LocalizationManager.t("loading_records"), loading = true)
         if (!loading && sortedUsers.isEmpty()) oms.components.ContentState(LocalizationManager.t("no_search_results"))
         Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-            oms.components.ScrollableTable(Modifier.padding(16.dp)) {
-                Row(Modifier.width(2046.dp).padding(vertical = 6.dp)) {
-                    SortableTableHeader(LocalizationManager.t("username"), sort == UserSort.Username, ascending, { changeSort(UserSort.Username) }, Modifier.width(130.dp))
-                    AdminStaticHeader(LocalizationManager.t("actions"), 96.dp)
-                    SortableTableHeader(LocalizationManager.t("full_name"), sort == UserSort.FullName, ascending, { changeSort(UserSort.FullName) }, Modifier.width(180.dp))
-                    SortableTableHeader(LocalizationManager.t("email"), sort == UserSort.Email, ascending, { changeSort(UserSort.Email) }, Modifier.width(220.dp))
-                    SortableTableHeader(LocalizationManager.t("role"), sort == UserSort.Role, ascending, { changeSort(UserSort.Role) }, Modifier.width(150.dp))
-                    SortableTableHeader(LocalizationManager.t("status"), sort == UserSort.Status, ascending, { changeSort(UserSort.Status) }, Modifier.width(110.dp))
-                    SortableTableHeader(LocalizationManager.t("region"), sort == UserSort.Region, ascending, { changeSort(UserSort.Region) }, Modifier.width(130.dp))
-                    SortableTableHeader(LocalizationManager.t("department"), sort == UserSort.Department, ascending, { changeSort(UserSort.Department) }, Modifier.width(150.dp))
-                    SortableTableHeader(LocalizationManager.t("language"), sort == UserSort.Language, ascending, { changeSort(UserSort.Language) }, Modifier.width(80.dp))
-                    SortableTableHeader(LocalizationManager.t("last_login"), sort == UserSort.LastLogin, ascending, { changeSort(UserSort.LastLogin) }, Modifier.width(170.dp))
-                    SortableTableHeader(LocalizationManager.t("failed_login_attempts"), sort == UserSort.FailedAttempts, ascending, { changeSort(UserSort.FailedAttempts) }, Modifier.width(120.dp))
-                    SortableTableHeader(LocalizationManager.t("locked_until"), sort == UserSort.LockedUntil, ascending, { changeSort(UserSort.LockedUntil) }, Modifier.width(170.dp))
-                    SortableTableHeader(LocalizationManager.t("created_at"), sort == UserSort.Created, ascending, { changeSort(UserSort.Created) }, Modifier.width(170.dp))
-                    SortableTableHeader(LocalizationManager.t("updated_at"), sort == UserSort.Updated, ascending, { changeSort(UserSort.Updated) }, Modifier.width(170.dp))
+            oms.components.ScrollableTable(
+                Modifier.padding(16.dp),
+                header = {
+                    Row(Modifier.width(2046.dp).padding(vertical = 6.dp)) {
+                        SortableTableHeader(LocalizationManager.t("username"), sort == UserSort.Username, ascending, { changeSort(UserSort.Username) }, Modifier.width(130.dp))
+                        AdminStaticHeader(LocalizationManager.t("actions"), 96.dp)
+                        SortableTableHeader(LocalizationManager.t("full_name"), sort == UserSort.FullName, ascending, { changeSort(UserSort.FullName) }, Modifier.width(180.dp))
+                        SortableTableHeader(LocalizationManager.t("email"), sort == UserSort.Email, ascending, { changeSort(UserSort.Email) }, Modifier.width(220.dp))
+                        SortableTableHeader(LocalizationManager.t("role"), sort == UserSort.Role, ascending, { changeSort(UserSort.Role) }, Modifier.width(150.dp))
+                        SortableTableHeader(LocalizationManager.t("status"), sort == UserSort.Status, ascending, { changeSort(UserSort.Status) }, Modifier.width(110.dp))
+                        SortableTableHeader(LocalizationManager.t("region"), sort == UserSort.Region, ascending, { changeSort(UserSort.Region) }, Modifier.width(130.dp))
+                        SortableTableHeader(LocalizationManager.t("department"), sort == UserSort.Department, ascending, { changeSort(UserSort.Department) }, Modifier.width(150.dp))
+                        SortableTableHeader(LocalizationManager.t("language"), sort == UserSort.Language, ascending, { changeSort(UserSort.Language) }, Modifier.width(80.dp))
+                        SortableTableHeader(LocalizationManager.t("last_login"), sort == UserSort.LastLogin, ascending, { changeSort(UserSort.LastLogin) }, Modifier.width(170.dp))
+                        SortableTableHeader(LocalizationManager.t("failed_login_attempts"), sort == UserSort.FailedAttempts, ascending, { changeSort(UserSort.FailedAttempts) }, Modifier.width(120.dp))
+                        SortableTableHeader(LocalizationManager.t("locked_until"), sort == UserSort.LockedUntil, ascending, { changeSort(UserSort.LockedUntil) }, Modifier.width(170.dp))
+                        SortableTableHeader(LocalizationManager.t("created_at"), sort == UserSort.Created, ascending, { changeSort(UserSort.Created) }, Modifier.width(170.dp))
+                        SortableTableHeader(LocalizationManager.t("updated_at"), sort == UserSort.Updated, ascending, { changeSort(UserSort.Updated) }, Modifier.width(170.dp))
+                    }
+                    HorizontalDivider()
                 }
-                HorizontalDivider()
+            ) {
                 sortedUsers.forEach { user ->
                     Row(Modifier.width(2046.dp).padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                         Text(user.username, Modifier.width(130.dp))

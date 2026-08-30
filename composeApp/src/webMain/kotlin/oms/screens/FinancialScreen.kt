@@ -188,9 +188,10 @@ fun FinancialScreen(
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
         ) {
             Box(Modifier.fillMaxWidth()) {
-                oms.components.ScrollableTable(Modifier.padding(16.dp)) {
-                    FinancialTableHeader(sort, ascending, ::selectSort)
-                    HorizontalDivider()
+                oms.components.ScrollableTable(
+                    Modifier.padding(16.dp),
+                    header = { FinancialTableHeader(sort, ascending, ::selectSort); HorizontalDivider() }
+                ) {
                     if (!loading && !loadFailed && visibleActs.isEmpty()) Text(LocalizationManager.t(emptyRecordsMessage))
                     visibleActs.forEach { row ->
                         Row(Modifier.width(1_621.dp).padding(vertical = 8.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {

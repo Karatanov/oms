@@ -162,9 +162,10 @@ fun DocumentsScreen(canManageDocuments: Boolean = true) {
             }
         }
         Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-            oms.components.ScrollableTable(Modifier.padding(16.dp)) {
-                DocumentTableHeader(sort, ascending, ::selectSort)
-                HorizontalDivider()
+            oms.components.ScrollableTable(
+                Modifier.padding(16.dp),
+                header = { DocumentTableHeader(sort, ascending, ::selectSort); HorizontalDivider() }
+            ) {
                 if (!loading && !loadFailed && visibleDocuments.isEmpty()) Text(LocalizationManager.t("no_documents"))
                 visibleDocuments.forEach { row ->
                     Row(Modifier.width(1_370.dp).padding(vertical = 8.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {

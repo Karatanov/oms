@@ -275,23 +275,23 @@ fun ProjectsTable(
         }
     }
 
-    oms.components.ScrollableTable {
-        filters()
-        TableHeader(
-            sortColumn,
-            ascending
-        ) { column ->
-
-            if (sortColumn == column)
-                ascending = !ascending
-            else {
-                sortColumn = column
-                ascending = true
+    oms.components.ScrollableTable(
+        header = {
+            filters()
+            TableHeader(
+                sortColumn,
+                ascending
+            ) { column ->
+                if (sortColumn == column)
+                    ascending = !ascending
+                else {
+                    sortColumn = column
+                    ascending = true
+                }
             }
+            HorizontalDivider()
         }
-
-        HorizontalDivider()
-
+    ) {
         Column(modifier = Modifier.fillMaxWidth()) {
 
             sortedProjects.forEach { row ->

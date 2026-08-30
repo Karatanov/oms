@@ -182,22 +182,26 @@ fun ReportsScreen(
             second = { MetricsChart("eshs_violations_by_month", "eshs_violations_by_month_hint", dashboard?.monthlyEshsViolations.orEmpty(), compact = true) }
         )
         Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-            oms.components.ScrollableTable(Modifier.padding(16.dp)) {
-                ReportTableHeader(
-                    sort = sort,
-                    ascending = ascending,
-                    onSort = ::selectSort,
-                    reports = reports,
-                    projectFilter = projectFilter,
-                    onProjectFilterChange = { projectFilter = it; subprojectFilter = null; subprojectPartCodeFilter = null },
-                    subprojectFilter = subprojectFilter,
-                    onSubprojectFilterChange = { subprojectFilter = it; subprojectPartCodeFilter = null },
-                    subprojectPartCodeFilter = subprojectPartCodeFilter,
-                    onSubprojectPartCodeFilterChange = { subprojectPartCodeFilter = it },
-                    statusFilter = status,
-                    onStatusFilterChange = { status = it }
-                )
-                HorizontalDivider()
+            oms.components.ScrollableTable(
+                Modifier.padding(16.dp),
+                header = {
+                    ReportTableHeader(
+                        sort = sort,
+                        ascending = ascending,
+                        onSort = ::selectSort,
+                        reports = reports,
+                        projectFilter = projectFilter,
+                        onProjectFilterChange = { projectFilter = it; subprojectFilter = null; subprojectPartCodeFilter = null },
+                        subprojectFilter = subprojectFilter,
+                        onSubprojectFilterChange = { subprojectFilter = it; subprojectPartCodeFilter = null },
+                        subprojectPartCodeFilter = subprojectPartCodeFilter,
+                        onSubprojectPartCodeFilterChange = { subprojectPartCodeFilter = it },
+                        statusFilter = status,
+                        onStatusFilterChange = { status = it }
+                    )
+                    HorizontalDivider()
+                }
+            ) {
                 if (!loading && !loadFailed && visible.isEmpty()) Text(LocalizationManager.t("no_reports"))
                 visible.forEach { row ->
                     Row(Modifier.width(1_575.dp).padding(vertical = 8.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
