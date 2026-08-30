@@ -58,6 +58,8 @@ Finance: purpose-filtered construction payments, exact cents in chart labels, lo
 
 Financial registry empty states follow the active type filter: All, Invoice, Act, Payment and Advance each use their own localized message instead of describing every empty result as an act.
 
+Selecting a financial record type smoothly brings the registry table to the top of the visible content area, so the filtered result or its contextual empty state is immediately visible without manual scrolling past the analytics section.
+
 Procurement: responsive analytical pair, project/contractor search and status filter, single-language status badges, consistent action alignment, scroll controls and local dialog errors.
 
 Project detail resource failures are scoped to the selected tab; reopening a loaded tab clears stale errors. The financial tab follows the same Admin/Project Manager restriction as financial navigation. Procurement form errors do not replace the registry; load failures expose a separate retry action.

@@ -1,6 +1,6 @@
 package oms.screens
 
-import androidx.compose.foundation.gestures.animateScrollBy
+import androidx.compose.foundation.gestures.animateScrollTo
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.horizontalScroll
@@ -16,6 +16,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -33,6 +36,7 @@ import oms.components.InlineOptionPicker
 import oms.components.currentIsoDate
 import oms.components.WasmSafeOverlay
 import kotlin.js.JsName
+import kotlin.math.roundToInt
 
 @JsName("openFinancialImport")
 external fun openFinancialImport(projectUuid: String, onComplete: (String) -> Unit)
@@ -71,10 +75,11 @@ fun FinancialScreen(
     var loading by remember { mutableStateOf(true) }
     var loadFailed by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    var tableTopInRootPx by remember { mutableStateOf(0f) }
     val deletion = oms.components.LocalDeleteConfirmation.current
     val scope = rememberCoroutineScope()
     val pageScrollState = rememberScrollState()
-    val tableScrollState = rememberScrollState()
+    val tableTopPaddingPx = with(LocalDensity.current) { 24.dp.toPx() }
 
     LaunchedEffect(reloadKey) {
         loading = true; loadFailed = false
@@ -127,6 +132,16 @@ fun FinancialScreen(
         else -> "no_financial_records"
     }
     fun selectSort(column: FinancialSort) { if (sort == column) ascending = !ascending else { sort = column; ascending = true } }
+    fun selectRecordType(type: String?) {
+        recordTypeFilter = type
+        scope.launch {
+            delay(16)
+            val target = (pageScrollState.value + tableTopInRootPx - tableTopPaddingPx)
+                .roundToInt()
+                .coerceIn(0, pageScrollState.maxValue)
+            pageScrollState.animateScrollTo(target)
+        }
+    }
     Box(Modifier.fillMaxSize()) {
     Column(
         modifier = Modifier.fillMaxSize().verticalScroll(pageScrollState).padding(24.dp),
@@ -165,10 +180,13 @@ fun FinancialScreen(
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             listOf(null, "invoice", "act", "payment", "advance").forEach { type ->
-                FilterChip(selected = recordTypeFilter == type, onClick = { recordTypeFilter = type }, label = { Text(type?.let { LocalizationManager.t("record_type_$it") } ?: LocalizationManager.t("all")) })
+                FilterChip(selected = recordTypeFilter == type, onClick = { selectRecordType(type) }, label = { Text(type?.let { LocalizationManager.t("record_type_$it") } ?: LocalizationManager.t("all")) })
             }
         }
-        Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+        Card(
+            Modifier.fillMaxWidth().onGloballyPositioned { tableTopInRootPx = it.positionInRoot().y },
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        ) {
             Box(Modifier.fillMaxWidth()) {
                 oms.components.ScrollableTable(Modifier.padding(16.dp)) {
                     FinancialTableHeader(sort, ascending, ::selectSort)
