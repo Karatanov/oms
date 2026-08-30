@@ -28,7 +28,7 @@ import androidx.compose.ui.input.key.type
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import oms.data.ApiProcurementRecord
-import oms.data.ApiDashboard
+import oms.data.ApiDashboardMetric
 import oms.data.OmsApiClient
 import oms.data.ProcurementRecordRequest
 import oms.components.OmsDateField
@@ -54,7 +54,6 @@ fun ProcurementScreen(canManageProcurements: Boolean) {
     var editorRecord by remember { mutableStateOf<ApiProcurementRecord?>(null) }
     var creating by remember { mutableStateOf(false) }
     var recordPendingDeletion by remember { mutableStateOf<ApiProcurementRecord?>(null) }
-    var dashboard by remember { mutableStateOf<ApiDashboard?>(null) }
     val scope = rememberCoroutineScope()
     val contentScrollState = rememberScrollState()
     LaunchedEffect(reloadKey) {
@@ -62,8 +61,28 @@ fun ProcurementScreen(canManageProcurements: Boolean) {
         runCatching { OmsApiClient.procurements() }
             .onSuccess { records = it.sortedWith(compareBy({ record -> record.batchId }, { record -> record.recordNumber })) }
             .onFailure { loadError = LocalizationManager.t("procurement_load_error") }
-        dashboard = runCatching { OmsApiClient.dashboard() }.getOrNull()
     }
+    val procurementStatusMetrics = records?.let { loaded ->
+        procurementStatuses.map { status ->
+            ApiDashboardMetric(
+                status,
+                loaded.asSequence()
+                    .filter { sameProcurementStatus(it.purchaseStatus, status) }
+                    .map { it.subProjectId }
+                    .distinct()
+                    .count()
+                    .toLong()
+            )
+        }
+    }.orEmpty()
+    val signedContractMetrics = records.orEmpty()
+        .asSequence()
+        .filter { sameProcurementStatus(it.purchaseStatus, procurementStatuses[3]) }
+        .mapNotNull { it.contractDate?.takeIf { date -> date.length >= 7 }?.take(7) }
+        .groupingBy { it }
+        .eachCount()
+        .map { ApiDashboardMetric(it.key, it.value.toLong()) }
+        .sortedBy { it.label }
     fun scrollBy(delta: Float) = scope.launch { contentScrollState.animateScrollBy(delta) }
     Box(Modifier.fillMaxSize()) {
     Column(
@@ -92,12 +111,12 @@ fun ProcurementScreen(canManageProcurements: Boolean) {
         Text(LocalizationManager.t("procurement_subtitle"), style = MaterialTheme.typography.bodyMedium)
         Spacer(Modifier.height(16.dp))
         oms.components.AdaptiveChartRow(
-            first = { MetricsChart("procurement_status_chart", "procurement_status_chart_hint", dashboard?.procurementStatusCounts.orEmpty()) },
+            first = { MetricsChart("procurement_status_chart", "procurement_status_chart_hint", procurementStatusMetrics) },
             second = {
                 MetricsChart(
                     "signed_construction_contracts",
                     "signed_construction_contracts_hint",
-                    dashboard?.monthlySignedConstructionContracts.orEmpty(),
+                    signedContractMetrics,
                     centerYearLabels = true
                 )
             }
@@ -279,6 +298,9 @@ private val procurementStatuses = listOf(
     "Відмінено / Cancelled",
     "Договір розірвано / Contract terminated"
 )
+
+private fun sameProcurementStatus(first: String, second: String): Boolean =
+    LocalizationManager.procurementStatus(first).equals(LocalizationManager.procurementStatus(second), ignoreCase = true)
 private fun Double?.format(decimals: Int): String = this?.let { value ->
     val multiplier = if (decimals == 0) 1.0 else 100.0
     val rounded = kotlin.math.round(value * multiplier) / multiplier
