@@ -423,25 +423,25 @@ private fun ManualSirForm(
 
             SirSectionTitle(LocalizationManager.t("sir_contractor_section"))
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedTextField(contractor, onContractorChange, label = { Text("${LocalizationManager.t("contractor")} *") }, modifier = Modifier.weight(1f))
+                OutlinedTextField(contractor, { onContractorChange(it.inspectionText(300)) }, label = { Text("${LocalizationManager.t("contractor")} *") }, modifier = Modifier.weight(1f), singleLine = true)
                 OmsDateField(date, onDateChange, LocalizationManager.t("date_label"), Modifier.weight(1f), required = true)
             }
 
             SirSectionTitle(LocalizationManager.t("sir_representatives"))
-            OutlinedTextField(contractorRepresentative, onContractorRepresentativeChange, label = { Text(LocalizationManager.t("sir_contractor_representative")) }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(contractorRepresentative, { onContractorRepresentativeChange(it.inspectionText(300)) }, label = { Text(LocalizationManager.t("sir_contractor_representative")) }, modifier = Modifier.fillMaxWidth(), singleLine = true)
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedTextField(qaStaff, onQaStaffChange, label = { Text(LocalizationManager.t("sir_qa_staff")) }, modifier = Modifier.weight(1f))
-                OutlinedTextField(usifRepresentative, onUsifRepresentativeChange, label = { Text(LocalizationManager.t("sir_usif_representative")) }, modifier = Modifier.weight(1f))
+                OutlinedTextField(qaStaff, { onQaStaffChange(it.inspectionText(300)) }, label = { Text(LocalizationManager.t("sir_qa_staff")) }, modifier = Modifier.weight(1f), singleLine = true)
+                OutlinedTextField(usifRepresentative, { onUsifRepresentativeChange(it.inspectionText(300)) }, label = { Text(LocalizationManager.t("sir_usif_representative")) }, modifier = Modifier.weight(1f), singleLine = true)
             }
 
             SirSectionTitle(LocalizationManager.t("sir_personnel_weather"))
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedTextField(skilledLabor, { onSkilledLaborChange(it.filter(Char::isDigit)) }, label = { Text(LocalizationManager.t("sir_skilled_labor")) }, modifier = Modifier.weight(1f))
-                OutlinedTextField(unskilledLabor, { value -> onUnskilledLaborChange(value.filter { it.isDigit() || it == '-' }.takeIf { it == "-" || it.all(Char::isDigit) } ?: unskilledLabor) }, label = { Text(LocalizationManager.t("sir_unskilled_labor")) }, modifier = Modifier.weight(1f))
+                OutlinedTextField(skilledLabor, { onSkilledLaborChange(it.filter(Char::isDigit).take(6)) }, label = { Text(LocalizationManager.t("sir_skilled_labor")) }, modifier = Modifier.weight(1f), singleLine = true)
+                OutlinedTextField(unskilledLabor, { value -> onUnskilledLaborChange(value.filter { it.isDigit() || it == '-' }.take(7).takeIf { it == "-" || it.all(Char::isDigit) } ?: unskilledLabor) }, label = { Text(LocalizationManager.t("sir_unskilled_labor")) }, modifier = Modifier.weight(1f), singleLine = true)
             }
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedTextField(siteManagement, onSiteManagementChange, label = { Text(LocalizationManager.t("sir_site_management")) }, modifier = Modifier.weight(1f))
-                OutlinedTextField(weather, onWeatherChange, label = { Text(LocalizationManager.t("sir_weather_conditions")) }, modifier = Modifier.weight(1f))
+                OutlinedTextField(siteManagement, { onSiteManagementChange(it.inspectionText(300)) }, label = { Text(LocalizationManager.t("sir_site_management")) }, modifier = Modifier.weight(1f), singleLine = true)
+                OutlinedTextField(weather, { onWeatherChange(it.inspectionText(300)) }, label = { Text(LocalizationManager.t("sir_weather_conditions")) }, modifier = Modifier.weight(1f), singleLine = true)
             }
 
             SirSectionTitle(LocalizationManager.t("sir_ongoing_activities"))
@@ -454,15 +454,15 @@ private fun ManualSirForm(
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Checkbox(checked = item.isYes, onCheckedChange = { checked -> onHseObservationsChange(hseObservations.mapIndexed { current, value -> if (current == index) value.copy(isYes = checked) else value }) })
                     Text(LocalizationManager.hseObservation(item.observation), modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
-                    OutlinedTextField(item.comment, { comment -> onHseObservationsChange(hseObservations.mapIndexed { current, value -> if (current == index) value.copy(comment = comment) else value }) }, label = { Text(LocalizationManager.t("comment")) }, modifier = Modifier.widthIn(min = 220.dp).weight(1f))
+                    OutlinedTextField(item.comment, { comment -> onHseObservationsChange(hseObservations.mapIndexed { current, value -> if (current == index) value.copy(comment = comment.inspectionText(2_000)) else value }) }, label = { Text(LocalizationManager.t("comment")) }, maxLines = 3, modifier = Modifier.widthIn(min = 220.dp).weight(1f))
                 }
             }
 
             SirSectionTitle(LocalizationManager.t("sir_quality_assessment"))
-            OutlinedTextField(quality, onQualityChange, label = { Text(LocalizationManager.t("sir_quality_hint")) }, minLines = 3, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(quality, { onQualityChange(it.inspectionText(8_000)) }, label = { Text(LocalizationManager.t("sir_quality_hint")) }, minLines = 3, maxLines = 8, modifier = Modifier.fillMaxWidth())
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedTextField(progress, onProgressChange, label = { Text(LocalizationManager.t("sir_progress_comments")) }, minLines = 2, modifier = Modifier.weight(1f))
-                OutlinedTextField(schedule, onScheduleChange, label = { Text(LocalizationManager.t("sir_schedule_remarks")) }, minLines = 2, modifier = Modifier.weight(1f))
+                OutlinedTextField(progress, { onProgressChange(it.inspectionText(4_000)) }, label = { Text(LocalizationManager.t("sir_progress_comments")) }, minLines = 2, maxLines = 6, modifier = Modifier.weight(1f))
+                OutlinedTextField(schedule, { onScheduleChange(it.inspectionText(4_000)) }, label = { Text(LocalizationManager.t("sir_schedule_remarks")) }, minLines = 2, maxLines = 6, modifier = Modifier.weight(1f))
             }
 
             SirSectionTitle(LocalizationManager.t("sir_inspector_section"))
@@ -474,7 +474,7 @@ private fun ManualSirForm(
                     label = { Text(LocalizationManager.t("sir_name")) },
                     modifier = Modifier.weight(1f)
                 )
-                OutlinedTextField(inspectorTitle, onInspectorTitleChange, label = { Text(LocalizationManager.t("sir_title_field")) }, modifier = Modifier.weight(1f))
+                OutlinedTextField(inspectorTitle, { onInspectorTitleChange(it.inspectionText(300)) }, label = { Text(LocalizationManager.t("sir_title_field")) }, modifier = Modifier.weight(1f), singleLine = true)
             }
         }
     }
@@ -484,7 +484,7 @@ private fun ManualSirForm(
 private fun RepeatableSirRows(values: List<String>, onChange: (List<String>) -> Unit, label: String) {
     values.forEachIndexed { index, value ->
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-            OutlinedTextField(value, { text -> onChange(values.mapIndexed { current, item -> if (current == index) text else item }) }, label = { Text(label) }, modifier = Modifier.weight(1f))
+            OutlinedTextField(value, { text -> onChange(values.mapIndexed { current, item -> if (current == index) text.inspectionText(8_000) else item }) }, label = { Text(label) }, minLines = 2, maxLines = 6, modifier = Modifier.weight(1f))
             if (values.size > 1) TableActionIconButton(LocalizationManager.t("delete"), Icons.Default.Remove) { onChange(values.filterIndexed { current, _ -> current != index }) }
         }
     }
@@ -581,6 +581,9 @@ private fun String.toManualQualityRemarks() = lines().map(String::trim).filter(S
 }
 
 private fun String.isIsoDate(): Boolean = matches(Regex("\\d{4}-\\d{2}-\\d{2}"))
+
+/** Bounds pasted text before Compose measures it, keeping the inspection form responsive. */
+private fun String.inspectionText(maxLength: Int): String = replace("\u0000", "").take(maxLength)
 
 private fun buildInspectionSummary(type: InspectionType, comments: String, latitude: String, longitude: String): String = buildString {
     append("[${type.name.lowercase()}]")
