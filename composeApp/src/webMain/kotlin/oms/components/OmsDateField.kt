@@ -23,6 +23,9 @@ private external fun browserCurrentIsoDate(): String
 @JsName("openNativeDatePicker")
 private external fun openNativeDatePicker(value: String, anchorLeft: Float, anchorTop: Float, onSelected: (String) -> Unit)
 
+@JsName("formatOmsDateTime")
+private external fun browserFormatOmsDateTime(value: String): String
+
 /** The user's local calendar date in the API's YYYY-MM-DD format. */
 fun currentIsoDate(): String = browserCurrentIsoDate()
 
@@ -64,3 +67,7 @@ fun String?.toOmsDate(): String {
     val parts = value.split('-')
     return if (parts.size == 3 && parts.all { it.all(Char::isDigit) }) "${parts[2]}.${parts[1]}.${parts[0]}" else value
 }
+
+/** Displays a UTC API timestamp in the browser's local timezone and active UI locale. */
+fun String?.toOmsDateTime(): String =
+    this?.takeIf { it.isNotBlank() }?.let { browserFormatOmsDateTime(it) }.orEmpty()

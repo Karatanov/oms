@@ -9,6 +9,10 @@ package oms.ufsi.dto
  * Саме DTO визначають зовнішній контракт API.
  */
 import oms.ufsi.domain.*
+import java.time.LocalDateTime
+import java.time.ZoneOffset
+
+private fun LocalDateTime.toUtcIsoString(): String = atOffset(ZoneOffset.UTC).toString()
 
 /**
  * Перетворення доменних моделей у DTO.
@@ -45,11 +49,11 @@ fun User.toResponse(): UserResponse {
         region = region,
         department = department,
         preferredLang = preferredLang,
-        lastLoginAt = lastLoginAt?.toString(),
+        lastLoginAt = lastLoginAt?.toUtcIsoString(),
         failedLoginCount = failedLoginCount,
-        lockedUntil = lockedUntil?.toString(),
-        createdAt = createdAt?.toString(),
-        updatedAt = updatedAt?.toString(),
+        lockedUntil = lockedUntil?.toUtcIsoString(),
+        createdAt = createdAt?.toUtcIsoString(),
+        updatedAt = updatedAt?.toUtcIsoString(),
         role = role.toResponse()
     )
 }

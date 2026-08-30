@@ -3,6 +3,7 @@ package oms.ufsi.service
 import oms.ufsi.domain.User
 import oms.ufsi.repository.UserRepository
 import oms.ufsi.security.PasswordHasher
+import java.time.Clock
 import java.time.LocalDateTime
 
 class AccountLockedException(val lockedUntil: LocalDateTime) : IllegalArgumentException("Account is temporarily locked.")
@@ -41,7 +42,10 @@ class AuthService(
 
         val state = userRepository.authenticationState(user.id)
             ?: throw IllegalArgumentException("Invalid username or password.")
-        val now = LocalDateTime.now()
+        // Authentication timestamps are persisted as UTC.  Render runs in UTC while
+        // local development may not, so relying on the host default timezone makes
+        // the same account appear to move backwards or forwards between deployments.
+        val now = LocalDateTime.now(Clock.systemUTC())
         if (!state.status.equals("active", ignoreCase = true)) {
             throw IllegalArgumentException("This account is not active.")
         }
@@ -68,6 +72,10 @@ class AuthService(
 
         userRepository.recordSuccessfulLogin(user.id, now)
 
-        return user
+        // Return the freshly persisted authentication state.  The previous response
+        // contained the User instance read before recordSuccessfulLogin(), leaving
+        // lastLoginAt stale until a later users-list refresh.
+        return userService.findByLoginOrEmail(username)
+            ?: user.copy(lastLoginAt = now, failedLoginCount = 0, lockedUntil = null)
     }
 }

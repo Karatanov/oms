@@ -30,6 +30,7 @@ import oms.data.UpdateUserRequest
 import oms.data.CreateUserRequest
 import oms.components.RoleChip
 import oms.components.TableActionIconButton
+import oms.components.toOmsDateTime
 import oms.components.InlineOptionPicker
 import oms.components.WasmSafeOverlay
 import oms.localization.LocalizationManager
@@ -184,11 +185,11 @@ fun AdminScreen() {
                         Box(Modifier.width(80.dp), contentAlignment = Alignment.CenterStart) {
                             LanguageFlag(user.preferredLang)
                         }
-                        Text(user.lastLoginAt ?: "—", Modifier.width(170.dp))
+                        Text(user.lastLoginAt.toOmsDateTime().ifBlank { "—" }, Modifier.width(170.dp))
                         Text(user.failedLoginCount.toString(), Modifier.width(120.dp))
-                        Text(user.lockedUntil ?: "—", Modifier.width(170.dp))
-                        Text(user.createdAt ?: "—", Modifier.width(170.dp))
-                        Text(user.updatedAt ?: "—", Modifier.width(170.dp))
+                        Text(user.lockedUntil.toOmsDateTime().ifBlank { "—" }, Modifier.width(170.dp))
+                        Text(user.createdAt.toOmsDateTime().ifBlank { "—" }, Modifier.width(170.dp))
+                        Text(user.updatedAt.toOmsDateTime().ifBlank { "—" }, Modifier.width(170.dp))
                     }
                     HorizontalDivider()
                 }
