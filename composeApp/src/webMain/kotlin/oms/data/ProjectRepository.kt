@@ -42,6 +42,8 @@ object ProjectRepository {
                     sector = api.sector,
                     constructionType = api.constructionType,
                     budgetPlanned = api.budgetPlanned,
+                    budgetDisplayAmount = api.amounts["budget"]?.amount,
+                    budgetCurrency = api.amounts["budget"]?.currency ?: api.currency,
                     contractorName = api.contractorName,
                     startDate = api.startDate,
                     status = api.status.toProjectStatus(),

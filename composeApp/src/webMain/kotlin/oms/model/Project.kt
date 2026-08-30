@@ -32,6 +32,10 @@ data class Project(
 
     val budgetPlanned: Long,
 
+    /** Exact budget amount and currency selected in the project financial form. */
+    val budgetDisplayAmount: String? = null,
+    val budgetCurrency: String = "UAH",
+
     val contractorName: String? = null,
 
     val startDate: String? = null,

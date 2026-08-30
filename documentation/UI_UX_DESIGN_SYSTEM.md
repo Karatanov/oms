@@ -36,6 +36,8 @@ Project create/edit forms share one field component and five primary light cards
 
 Project registry refinement: filled action buttons follow the global white-on-primary rule. Oblast, sector, construction-type and status filters sit immediately above their own columns in the same horizontal scroll viewport. `ProjectTableColumns` supplies shared widths for filters, sortable headings and rows; the actions cell reserves the same width for guests and managers. Search stays above the table, and the reset control keeps its space when disabled to avoid vertical jumps when filtering.
 
+The project registry budget cell displays the amount together with its source currency. It uses the precise saved budget snapshot when available and the project currency as a legacy fallback.
+
 Login identifier autocomplete is local to the browser: after each successful sign-in OMS retains up to eight recent usernames or email addresses and suggests matches while typing. This list stores identifiers only; it is independent from the explicit password “Remember me” preference.
 
 Map: compact search/filter/control area, visible result count, reset, Ukraine overview and fit-to-results. At desktop widths the search, oblast filter, status filter and reset action share one row to maximise map height; narrow layouts wrap safely. Markers retain clustering. The native map is anchored to the actual Compose content bounds. Project popups use Leaflet auto-pan/keep-in-view padding and bounded content, so they remain within the map viewport while panning. Popup project names are inserted as text, not executable HTML. Native map/photo panes temporarily yield to the canvas option layer so they cannot cover dropdowns.

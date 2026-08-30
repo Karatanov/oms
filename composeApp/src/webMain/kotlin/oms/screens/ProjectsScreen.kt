@@ -568,7 +568,7 @@ fun ProjectRow(
             StatusChip(project.status, rowFontWeight)
         }
 
-        Text(project.budgetPlanned.toString(), modifier = Modifier.width(ProjectTableColumns.width(SortColumn.BUDGET)), fontWeight = rowFontWeight)
+        Text(project.budgetLabel(), modifier = Modifier.width(ProjectTableColumns.width(SortColumn.BUDGET)), fontWeight = rowFontWeight)
         Text(project.startDate.toOmsDate(), modifier = Modifier.width(ProjectTableColumns.width(SortColumn.START_DATE)), fontWeight = rowFontWeight)
         Text(project.contractorName.orEmpty(), modifier = Modifier.width(ProjectTableColumns.width(SortColumn.CONTRACTOR)), fontWeight = rowFontWeight)
 
@@ -582,6 +582,10 @@ fun ProjectRow(
     }
 
     HorizontalDivider()
+}
+
+private fun Project.budgetLabel(): String {
+    return "${budgetDisplayAmount ?: budgetPlanned} $budgetCurrency"
 }
 
 private fun Project.matchesProjectSearch(query: String): Boolean =

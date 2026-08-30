@@ -545,6 +545,8 @@ data class ApiProject(
     val sector: String,
     val constructionType: String = "reconstruction",
     val budgetPlanned: Long,
+    val currency: String = "UAH",
+    val amounts: Map<String, ProjectAmountDto> = emptyMap(),
     val contractorName: String? = null,
     val startDate: String? = null,
     val status: String,
