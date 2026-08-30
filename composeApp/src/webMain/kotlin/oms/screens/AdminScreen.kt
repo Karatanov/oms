@@ -273,7 +273,14 @@ private fun AdminStaticHeader(text: String, width: androidx.compose.ui.unit.Dp) 
     Box(
         Modifier.width(width).height(oms.theme.OmsDimensions.TableHeaderHeight).padding(start = 8.dp),
         contentAlignment = Alignment.CenterStart
-    ) { Text(text) }
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 2
+        )
+    }
 }
 
 @Composable
