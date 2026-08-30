@@ -14,7 +14,6 @@ import oms.ufsi.domain.InspectionReportStatus
 import oms.ufsi.dto.ErrorResponse
 import oms.ufsi.dto.toResponse
 import java.nio.file.Files
-import java.nio.file.Path
 
 fun Route.photoRoutes() = route("/api/v1/inspection-reports/{reportUuid}/photos") {
     get {
@@ -65,15 +64,15 @@ fun Route.photoRoutes() = route("/api/v1/inspection-reports/{reportUuid}/photos"
         val photo = call.parameters["photoUuid"]?.let { AppContainer.inspectionPhotoService.get(report.id, it) }
             ?: return@get call.respond(HttpStatusCode.NotFound, ErrorResponse("NOT_FOUND", "Photo not found."))
         val kind = call.parameters["kind"]
-        val requestedPath = Path.of(if (kind == "thumbnail") photo.thumbnailPath else photo.storagePath)
+        val requestedPath = AppContainer.inspectionPhotoService.resolveFile(photo, thumbnail = kind == "thumbnail")
         // A thumbnail can be absent after an interrupted upload while the
         // original is available. Serving it here keeps the dashboard usable.
-        val path = if (kind == "thumbnail" && !Files.isRegularFile(requestedPath)) {
-            Path.of(photo.storagePath)
+        val path = if (kind == "thumbnail" && requestedPath == null) {
+            AppContainer.inspectionPhotoService.resolveFile(photo, thumbnail = false)
         } else {
             requestedPath
         }
-        if (!Files.isRegularFile(path)) return@get call.respond(HttpStatusCode.NotFound)
+        if (path == null || !Files.isRegularFile(path)) return@get call.respond(HttpStatusCode.NotFound)
         call.respondFile(path.toFile())
     }
 }

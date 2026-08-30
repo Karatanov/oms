@@ -14,6 +14,7 @@ import org.apache.poi.ss.usermodel.Workbook
 import org.apache.poi.ss.usermodel.WorkbookFactory
 import org.apache.poi.xssf.usermodel.XSSFWorkbook
 import oms.ufsi.dto.CreateManualInspectionReportRequest
+import oms.ufsi.storage.DurableFileStorage
 import oms.ufsi.storage.uploadDirectory
 
 data class HealthSafetyObservation(
@@ -55,8 +56,14 @@ class InspectionReportFileService(
             sheet.setColumnWidth(0, 9000); sheet.setColumnWidth(1, 18000); sheet.setColumnWidth(2, 5000); sheet.setColumnWidth(3, 14000)
             Files.newOutputStream(target).use(workbook::write)
         }
-        fileRepository.create(InspectionReportFile(report.id, fileName, target.toString(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", Files.size(target)))
-        return report
+        try {
+            DurableFileStorage.persist(target)
+            fileRepository.create(InspectionReportFile(report.id, fileName, target.toString(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", Files.size(target)))
+            return report
+        } catch (exception: Exception) {
+            runCatching { DurableFileStorage.delete(target.toString()) }
+            throw exception
+        }
     }
     fun import(projectId: Long, originalName: String, contentType: String?, input: java.io.InputStream, createdBy: Long): InspectionReport {
         val extension = originalName.substringAfterLast('.', "").lowercase()
@@ -77,15 +84,18 @@ class InspectionReportFileService(
                 "xls" -> "application/vnd.ms-excel"
                 else -> "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             }
+            DurableFileStorage.persist(target)
             fileRepository.create(InspectionReportFile(completed.id, originalName, target.toString(), detectedContentType, size))
             return completed
         } catch (exception: Exception) {
-            Files.deleteIfExists(target)
+            runCatching { DurableFileStorage.delete(target.toString()) }
             throw exception
         }
     }
 
     fun getFile(reportId: Long): InspectionReportFile? = fileRepository.findByReportId(reportId)
+
+    fun resolveFile(file: InspectionReportFile): Path? = DurableFileStorage.resolve(file.storagePath)
 
     /**
      * Reads the structured HSE checklist directly from the original SIR workbook.
@@ -94,8 +104,7 @@ class InspectionReportFileService(
      */
     fun healthSafetyObservations(reportId: Long): List<HealthSafetyObservation> {
         val file = getFile(reportId) ?: return emptyList()
-        val path = Path.of(file.storagePath)
-        if (!Files.isRegularFile(path)) return emptyList()
+        val path = resolveFile(file) ?: return emptyList()
         return try {
             Files.newInputStream(path).use { input ->
                 WorkbookFactory.create(input).use(::extractHealthSafetyObservations)

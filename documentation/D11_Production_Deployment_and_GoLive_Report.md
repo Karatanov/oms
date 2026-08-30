@@ -31,7 +31,7 @@ All secrets are external environment values. The repository contains only placeh
 
 ## Storage, backup and recovery
 
-Uploads are stored in the `oms-uploads` volume. Back up both `mysql-data` and `oms-uploads` before production migration or release. Filesystem storage is the approved MVP choice; no MinIO/S3 service is deployed. A missing stored file returns a controlled not-found response.
+Uploads are served from the `oms-uploads` filesystem volume. Every accepted document, SIR workbook, inspection photo and thumbnail is also mirrored to MySQL so an ephemeral Render deployment can restore a missing local file on first access. Back up both `mysql-data` and `oms-uploads` before production migration or release; the mirror is a resilience fallback, not a replacement for normal backups. No MinIO/S3 service is deployed.
 
 ## Rollback
 

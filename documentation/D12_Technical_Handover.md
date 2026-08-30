@@ -10,7 +10,7 @@ This handover transfers the Phase 1 source code, MySQL migrations, Compose/Rende
 
 ## 2. Source code and technology
 
-`composeApp` is the Compose Multiplatform Web/Wasm UI. `server` is the Java 21 Ktor application containing routes, DTOs, domain services, Exposed repositories, Flyway and the packaged Web distribution. `shared` is the KMP JVM/JS/Wasm extension module. MySQL 8 is the primary database. Runtime uploads use approved filesystem-backed MVP storage.
+`composeApp` is the Compose Multiplatform Web/Wasm UI. `server` is the Java 21 Ktor application containing routes, DTOs, domain services, Exposed repositories, Flyway and the packaged Web distribution. `shared` is the KMP JVM/JS/Wasm extension module. MySQL 8 is the primary database. Runtime uploads use filesystem-backed MVP storage with a durable database mirror for ephemeral hosting environments.
 
 The repository has no Android/iOS application target. Mobile distribution is a Phase 2 extension, not a missing Phase 1 build artifact.
 
@@ -24,7 +24,7 @@ Required tools are Git, JDK 21 and the checked-in Gradle Wrapper; Docker Engine/
 
 ## 5. Database and storage
 
-Flyway applies V1-V29 automatically. Empty MySQL initialization and production-packaged startup were verified with a fresh Java 21 distribution. Applied migrations are immutable; V27's intentional operational-data replacement must be understood before upgrading a pre-V27 installation. Filesystem upload metadata is stored in MySQL and bytes in `OMS_UPLOAD_DIR`; database and upload backups form one recovery set. MinIO/S3 is a Phase 2 scalability option.
+Flyway applies V1-V37 automatically. Empty MySQL initialization and production-packaged startup were verified with a fresh Java 21 distribution. Applied migrations are immutable; V27's intentional operational-data replacement must be understood before upgrading a pre-V27 installation. Filesystem upload metadata and the durable byte mirror are stored in MySQL, while active files are served from `OMS_UPLOAD_DIR`. Missing local files are restored from the mirror on first access. A persistent volume or MinIO/S3 remains the preferred scale-up option.
 
 ## 6. Build and test commands
 

@@ -2,7 +2,8 @@
 # Add DATABASE_URL, DATABASE_USER, DATABASE_PASSWORD and OMS_JWT_SECRET as
 # secret environment variables in Render after choosing a MySQL/TiDB provider.
 # Set DATABASE_DIALECT=tidb only for TiDB. The free filesystem is ephemeral;
-# mount a persistent disk and set OMS_UPLOAD_DIR, or use this service as a demo.
+# uploads are therefore mirrored to the database and restored to the filesystem
+# on demand. A persistent disk/Object Storage remains preferable at larger scale.
 services:
   - type: web
     name: oms-demo

@@ -2,6 +2,7 @@ package oms.ufsi.service
 
 import oms.ufsi.domain.ProjectDocument
 import oms.ufsi.repository.ProjectDocumentRepository
+import oms.ufsi.storage.DurableFileStorage
 import oms.ufsi.storage.uploadDirectory
 import java.io.InputStream
 import java.nio.file.Files
@@ -16,7 +17,7 @@ class ProjectDocumentService(private val repository: ProjectDocumentRepository) 
     fun delete(projectId: Long, uuid: String): Boolean {
         val document = get(projectId, uuid) ?: return false
         val deleted = repository.delete(projectId, uuid)
-        if (deleted) Files.deleteIfExists(Path.of(document.storagePath))
+        if (deleted) DurableFileStorage.delete(document.storagePath)
         return deleted
     }
     fun upload(projectId: Long, type: String, name: String, contentType: String?, input: InputStream, relatedEntity: String? = null, relatedId: Long? = null, description: String? = null): ProjectDocument {
@@ -34,9 +35,15 @@ class ProjectDocumentService(private val repository: ProjectDocumentRepository) 
             val limit = when(extension) { "pdf" -> 50_000_000; "xls", "xlsx" -> 20_000_000; else -> 10_000_000 }
             require(size in 1..limit) { "File size exceeds the limit for this format." }
             require(matchesDeclaredFormat(target, extension)) { "File content does not match its declared format." }
+            DurableFileStorage.persist(target)
             return ProjectDocument(0, uuid, projectId, entity, relatedId, documentType, description?.trim()?.takeIf { it.isNotEmpty() }, originalName, target.toString(), contentType ?: "application/octet-stream", size).also(repository::create)
-        } catch (e: Exception) { Files.deleteIfExists(target); throw e }
+        } catch (e: Exception) {
+            runCatching { DurableFileStorage.delete(target.toString()) }
+            throw e
+        }
     }
+
+    fun resolveFile(document: ProjectDocument): Path? = DurableFileStorage.resolve(document.storagePath)
 
     private fun matchesDeclaredFormat(path: Path, extension: String): Boolean {
         val header = Files.newInputStream(path).use { it.readNBytes(8) }

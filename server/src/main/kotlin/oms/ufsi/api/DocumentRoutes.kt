@@ -14,8 +14,6 @@ import oms.ufsi.dto.ErrorResponse
 import oms.ufsi.dto.toResponse
 import java.io.ByteArrayInputStream
 import java.net.URLEncoder
-import java.nio.file.Files
-import java.nio.file.Path
 
 fun Route.documentRoutes() {
     get("/api/v1/documents") {
@@ -99,8 +97,8 @@ fun Route.documentRoutes() {
         if (!call.requireProjectAccess(session, project.uuid.toString())) return@get
         val document = call.parameters["documentUuid"]?.let { AppContainer.projectDocumentService.get(project.id, it) }
             ?: return@get call.respond(HttpStatusCode.NotFound, ErrorResponse("NOT_FOUND", "Document not found."))
-        val path = Path.of(document.storagePath)
-        if (!Files.isRegularFile(path)) return@get call.respond(HttpStatusCode.NotFound, ErrorResponse("NOT_FOUND", "Document file is unavailable."))
+        val path = AppContainer.projectDocumentService.resolveFile(document)
+            ?: return@get call.respond(HttpStatusCode.NotFound, ErrorResponse("NOT_FOUND", "Document file is unavailable."))
         val encodedName = URLEncoder.encode(document.originalName, Charsets.UTF_8).replace("+", "%20")
         call.response.header(HttpHeaders.ContentDisposition, "attachment; filename*=UTF-8''$encodedName")
         call.respondFile(path.toFile())

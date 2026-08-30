@@ -70,10 +70,8 @@ fun Route.inspectionRoutes() {
         val report = call.findReport() ?: return@get
         val file = AppContainer.inspectionReportFileService.getFile(report.id)
             ?: return@get call.notFound("Original SIR file not found.")
-        val path = java.nio.file.Path.of(file.storagePath)
-        if (!java.nio.file.Files.isRegularFile(path)) {
-            return@get call.notFound("Original SIR file is unavailable.")
-        }
+        val path = AppContainer.inspectionReportFileService.resolveFile(file)
+            ?: return@get call.notFound("Original SIR file is unavailable.")
         call.response.header(HttpHeaders.ContentDisposition, ContentDisposition.Attachment.withParameter(ContentDisposition.Parameters.FileName, file.originalName).toString())
         call.respondFile(path.toFile())
     }
