@@ -18,6 +18,7 @@ import io.ktor.http.contentType
 import io.ktor.http.isSuccess
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 import kotlin.js.ExperimentalWasmJsInterop
 import kotlin.js.JsName
@@ -58,11 +59,20 @@ object OmsApiClient {
         }
     }
 
-    suspend fun login(username: String, password: String): ApiUser =
-        client.post("$baseUrl/auth/login") {
+    suspend fun login(username: String, password: String): ApiUser {
+        val response = client.post("$baseUrl/auth/login") {
             contentType(ContentType.Application.Json)
             setBody(LoginRequest(username, password))
-        }.body<LoginPayload>().user
+        }
+        if (!response.status.isSuccess()) {
+            val body = response.bodyAsText()
+            val message = runCatching {
+                Json { ignoreUnknownKeys = true }.decodeFromString<ApiErrorPayload>(body).message
+            }.getOrNull()
+            throw IllegalStateException(message?.takeIf { it.isNotBlank() } ?: body.ifBlank { "Authentication failed." })
+        }
+        return response.body<LoginPayload>().user
+    }
 
     suspend fun startGuestSession() {
         val response = client.post("$baseUrl/auth/guest")
@@ -321,6 +331,9 @@ data class LoginRequest(val username: String, val password: String)
 
 @Serializable
 data class LoginPayload(val user: ApiUser)
+
+@Serializable
+private data class ApiErrorPayload(val error: String? = null, val message: String? = null)
 
 @Serializable
 data class ManualActivityRequest(val location: String, val description: String, val onSchedule: String = "no", val remarks: String? = null)
