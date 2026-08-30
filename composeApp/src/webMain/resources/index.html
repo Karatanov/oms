@@ -29,7 +29,7 @@
             uk: {
                 importReportError: "Не вдалося імпортувати інспекційний звіт",
                 uploadFileError: "Не вдалося завантажити файл",
-                documentUploaded: "Документ успішно завантажено.", photoUploaded: "Фото успішно завантажено.",
+                documentUploaded: "Документ успішно завантажено.", photoUploaded: "Фото успішно завантажено.", sirSourceReplaced: "Вихідний файл SIR успішно замінено.",
                 financialImported: "Фінансові записи успішно імпортовано.", photoTitle: "Фотографії інспекції",
                 photoRules: "Перетягніть фотографії сюди або виберіть файли. Лише JPEG/PNG, до 10 МБ кожен, максимум 30 фотографій.",
                 photoDrop: "Перетягніть фотографії сюди або натисніть для вибору", done: "Готово", remove: "Видалити",
@@ -41,7 +41,7 @@
             },
             en: {
                 importReportError: "Could not import inspection report", uploadFileError: "Could not upload file",
-                documentUploaded: "Document uploaded successfully.", photoUploaded: "Photo uploaded successfully.",
+                documentUploaded: "Document uploaded successfully.", photoUploaded: "Photo uploaded successfully.", sirSourceReplaced: "The SIR source file was replaced successfully.",
                 financialImported: "Financial records imported successfully.", photoTitle: "Inspection photos",
                 photoRules: "Drag photos here or choose files. JPEG/PNG only, up to 10 MB each, maximum 30 photos.",
                 photoDrop: "Drag photos here or click to select", done: "Done", remove: "Remove",
@@ -316,7 +316,7 @@
             input.click();
         }
 
-        function uploadWithDialog(accept, url, extraFields, successMessage, onComplete = null, loadingMessage = omsText("uploadingFile")) {
+        function uploadWithDialog(accept, url, extraFields, successMessage, onComplete = null, loadingMessage = omsText("uploadingFile"), method = "POST") {
             const input = document.createElement("input");
             input.type = "file";
             input.accept = accept;
@@ -333,7 +333,7 @@
                 formData.append("file", file, file.name);
                 showOmsLoading(loadingMessage);
                 try {
-                    const response = await fetch(url, { method: "POST", body: formData, credentials: "include" });
+                    const response = await fetch(url, { method, body: formData, credentials: "include" });
                     if (!response.ok) throw new Error(await response.text());
                     window.alert(successMessage);
                     if (onComplete) onComplete("");
@@ -355,6 +355,18 @@
 
         function openInspectionPhotoUpload(reportUuid) {
             uploadWithDialog("image/jpeg,image/png,image/webp", omsApiUrl(`/inspection-reports/${reportUuid}/photos`), {}, omsText("photoUploaded"));
+        }
+
+        function openInspectionSourceReplacement(reportUuid, onComplete) {
+            uploadWithDialog(
+                ".xls,.xlsx,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                omsApiUrl(`/inspection-reports/${reportUuid}/source-file`),
+                {},
+                omsText("sirSourceReplaced"),
+                onComplete,
+                omsText("uploadingFile"),
+                "PUT"
+            );
         }
 
         function openFinancialImport(projectUuid, onComplete) {

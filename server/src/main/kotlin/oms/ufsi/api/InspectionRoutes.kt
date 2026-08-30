@@ -76,6 +76,34 @@ fun Route.inspectionRoutes() {
         call.respondFile(path.toFile())
     }
 
+    put("/api/v1/inspection-reports/{reportUuid}/source-file") {
+        val session = call.requireRole("ADMIN", "PROJECT_MANAGER", "INSPECTOR") ?: return@put
+        val report = call.findReport() ?: return@put
+        val multipart = call.receiveMultipart()
+        var replacement: oms.ufsi.domain.InspectionReportFile? = null
+        try {
+            multipart.forEachPart { part ->
+                if (part is PartData.FileItem && part.name == "file") {
+                    val name = part.originalFileName ?: throw IllegalArgumentException("File name is required.")
+                    val bytes = part.provider().readRemaining(20_000_001).readByteArray()
+                    require(bytes.size <= 20_000_000) { "File size must not exceed 20 MB." }
+                    replacement = AppContainer.inspectionReportFileService.replace(
+                        report,
+                        name,
+                        part.contentType?.toString(),
+                        java.io.ByteArrayInputStream(bytes)
+                    )
+                }
+                part.dispose()
+            }
+            replacement ?: throw IllegalArgumentException("Multipart field 'file' is required.")
+            AppContainer.auditLogService.record(session.userId, "inspection_source_file_replaced", "inspection_report", report.id)
+            call.respond(HttpStatusCode.NoContent)
+        } catch (exception: IllegalArgumentException) {
+            call.validationError(exception)
+        }
+    }
+
     route("/api/v1/inspection-reports/{reportUuid}/findings") {
         get {
             val report = call.findReport() ?: return@get

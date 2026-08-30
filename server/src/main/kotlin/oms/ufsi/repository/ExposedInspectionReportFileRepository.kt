@@ -7,6 +7,7 @@ import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.select
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
+import org.jetbrains.exposed.v1.jdbc.update
 
 class ExposedInspectionReportFileRepository : InspectionReportFileRepository {
     override fun findByReportId(reportId: Long) = transaction {
@@ -19,6 +20,26 @@ class ExposedInspectionReportFileRepository : InspectionReportFileRepository {
         InspectionReportFileTable.insert {
             it[inspectionReportId] = file.inspectionReportId; it[originalName] = file.originalName; it[storagePath] = file.storagePath; it[contentType] = file.contentType; it[fileSizeBytes] = file.fileSizeBytes
         }
+        }
+    }
+
+    override fun replace(file: InspectionReportFile) {
+        transaction {
+            val updated = InspectionReportFileTable.update({ InspectionReportFileTable.inspectionReportId eq file.inspectionReportId }) {
+                it[originalName] = file.originalName
+                it[storagePath] = file.storagePath
+                it[contentType] = file.contentType
+                it[fileSizeBytes] = file.fileSizeBytes
+            }
+            if (updated == 0) {
+                InspectionReportFileTable.insert {
+                    it[inspectionReportId] = file.inspectionReportId
+                    it[originalName] = file.originalName
+                    it[storagePath] = file.storagePath
+                    it[contentType] = file.contentType
+                    it[fileSizeBytes] = file.fileSizeBytes
+                }
+            }
         }
     }
 }

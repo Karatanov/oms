@@ -14,6 +14,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.FileDownload
+import androidx.compose.material.icons.filled.UploadFile
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Close
@@ -56,6 +57,9 @@ import kotlin.js.JsName
 
 @JsName("openInspectionPhotoUpload")
 external fun openInspectionPhotoUpload(reportUuid: String)
+
+@JsName("openInspectionSourceReplacement")
+external fun openInspectionSourceReplacement(reportUuid: String, onComplete: (String) -> Unit)
 
 private data class ReportRow(
     val projectUuid: String,
@@ -204,7 +208,7 @@ fun ReportsScreen(
             ) {
                 if (!loading && !loadFailed && visible.isEmpty()) Text(LocalizationManager.t("no_reports"))
                 visible.forEach { row ->
-                    Row(Modifier.width(1_575.dp).padding(vertical = 8.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                    Row(Modifier.width(1_623.dp).padding(vertical = 8.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                         Text(row.report.inspectionDate.toOmsDate(), Modifier.width(105.dp))
                         Column(Modifier.width(400.dp).padding(end = 12.dp)) {
                             Text(row.report.inspectionCode, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onPrimaryContainer)
@@ -225,6 +229,13 @@ fun ReportsScreen(
                         TableActionIconButton(LocalizationManager.t("open_source_file"), Icons.Default.FileDownload) {
                             uriHandler.openUri(oms.data.omsApiUrl("/inspection-reports/${row.report.uuid}/source-file"))
                         }
+                        if (canCreateReports) {
+                            TableActionIconButton(LocalizationManager.t("replace_source_file"), Icons.Default.UploadFile) {
+                                openInspectionSourceReplacement(row.report.uuid) { uploadError ->
+                                    if (uploadError.isNotBlank()) errorMessage = uploadError
+                                }
+                            }
+                        } else Spacer(Modifier.width(48.dp))
                         if (canCreateReports) {
                             TableActionIconButton(LocalizationManager.t("upload_photo"), Icons.Default.PhotoCamera) { openInspectionPhotoUpload(row.report.uuid) }
                             TableActionIconButton(LocalizationManager.t("findings"), Icons.AutoMirrored.Filled.FactCheck) { findingsReport = row }
@@ -598,7 +609,7 @@ private fun ReportTableHeader(
         .toList()
     val statuses = listOf("draft", "pending_review", "completed")
 
-    Column(Modifier.width(1_575.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    Column(Modifier.width(1_623.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Row(verticalAlignment = Alignment.Top) {
             Box(Modifier.width(105.dp).padding(top = 14.dp)) {
                 Text(LocalizationManager.t("filters"), style = MaterialTheme.typography.labelLarge)
@@ -622,7 +633,7 @@ private fun ReportTableHeader(
                     Modifier.fillMaxWidth()
                 ) { LocalizationManager.t("${it}_status") }
             }
-            Spacer(Modifier.width(80.dp + 336.dp))
+            Spacer(Modifier.width(80.dp + 384.dp))
         }
         Row(Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
             SortableTableHeader(LocalizationManager.t("date"), sort == ReportSort.Date, ascending, { onSort(ReportSort.Date) }, Modifier.width(105.dp))
@@ -632,7 +643,7 @@ private fun ReportTableHeader(
             SortableTableHeader(LocalizationManager.t("subproject_part_code_label"), sort == ReportSort.SubprojectPartCode, ascending, { onSort(ReportSort.SubprojectPartCode) }, Modifier.width(160.dp))
             SortableTableHeader(LocalizationManager.t("status"), sort == ReportSort.Status, ascending, { onSort(ReportSort.Status) }, Modifier.width(130.dp))
             SortableTableHeader(LocalizationManager.t("uploaded_by_short"), sort == ReportSort.Author, ascending, { onSort(ReportSort.Author) }, Modifier.width(80.dp))
-            Box(Modifier.width(336.dp).height(52.dp), contentAlignment = Alignment.Center) {
+            Box(Modifier.width(384.dp).height(52.dp), contentAlignment = Alignment.Center) {
                 Text(LocalizationManager.t("actions"))
             }
         }

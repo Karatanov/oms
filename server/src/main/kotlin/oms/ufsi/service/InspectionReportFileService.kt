@@ -97,6 +97,38 @@ class InspectionReportFileService(
 
     fun resolveFile(file: InspectionReportFile): Path? = DurableFileStorage.resolve(file.storagePath)
 
+    fun replace(report: InspectionReport, originalName: String, contentType: String?, input: java.io.InputStream): InspectionReportFile {
+        val safeName = originalName.replace(Regex("[\\r\\n\\u0000]"), "").trim()
+        require(safeName.isNotBlank() && safeName.length <= 255) { "File name is invalid." }
+        val extension = safeName.substringAfterLast('.', "").lowercase()
+        require(extension in setOf("xls", "xlsx")) { "Only XLS or XLSX inspection reports are supported." }
+        val previous = getFile(report.id)
+        val directory = uploadDirectory("inspection-reports")
+        Files.createDirectories(directory)
+        val target = directory.resolve("${report.uuid}-${UUID.randomUUID()}.$extension")
+        try {
+            Files.copy(input, target, StandardCopyOption.REPLACE_EXISTING)
+            val size = Files.size(target)
+            require(size in 1..20_000_000) { "File size must not exceed 20 MB." }
+            DurableFileStorage.persist(target)
+            val replacement = InspectionReportFile(
+                report.id,
+                safeName,
+                target.toString(),
+                contentType ?: if (extension == "xls") "application/vnd.ms-excel" else "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                size
+            )
+            fileRepository.replace(replacement)
+            if (previous != null && previous.storagePath != replacement.storagePath) {
+                DurableFileStorage.delete(previous.storagePath)
+            }
+            return replacement
+        } catch (exception: Exception) {
+            runCatching { DurableFileStorage.delete(target.toString()) }
+            throw exception
+        }
+    }
+
     /**
      * Reads the structured HSE checklist directly from the original SIR workbook.
      * It is deliberately not copied to the incident register: checklist observations
