@@ -195,7 +195,7 @@ fun AdminScreen() {
                 }
             }
         }
-        ActivitySection(activities)
+        ActivitySection(activities, users)
         errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error) }
     }
     selectedUser?.let { user -> WasmSafeOverlay(onDismiss = {

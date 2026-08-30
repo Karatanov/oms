@@ -6,6 +6,7 @@ import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
+import java.time.Clock
 import java.time.LocalDateTime
 
 data class ActivityEntry(val action: String, val entityType: String, val entityId: Long, val userLogin: String?, val createdAt: LocalDateTime)
@@ -26,7 +27,7 @@ class AuditLogService {
             it[AuditLogTable.entityId] = entityId
             it[AuditLogTable.oldValues] = oldValues
             it[AuditLogTable.newValues] = newValues
-            it[AuditLogTable.createdAt] = LocalDateTime.now()
+            it[AuditLogTable.createdAt] = LocalDateTime.now(Clock.systemUTC())
         }
     }
 

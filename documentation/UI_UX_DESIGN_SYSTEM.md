@@ -70,7 +70,7 @@ Registry column headers are sticky within their table boundaries. During vertica
 
 Project detail resource failures are scoped to the selected tab; reopening a loaded tab clears stale errors. The financial tab follows the same Admin/Project Manager restriction as financial navigation. Procurement form errors do not replace the registry; load failures expose a separate retry action.
 
-Administration: searchable user registry, informational roles/statuses, corrected failure-count/locked-until/update sorting, consistent header alignment and light forms. Activation/login use bounded, scrollable forms and UK/EN labels.
+Administration: searchable user registry, informational roles/statuses, corrected failure-count/locked-until/update sorting, consistent header alignment and light forms. The Recent Activity panel exposes the latest 100 audit events, resolves the actor's full name and login from the existing user registry, and supports actor search plus ascending/descending user sorting without per-row API requests. Activation/login use bounded, scrollable forms and UK/EN labels.
 
 ## API compatibility
 
