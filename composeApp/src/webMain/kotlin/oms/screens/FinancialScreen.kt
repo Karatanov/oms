@@ -119,6 +119,13 @@ fun FinancialScreen(
             FinancialSort.Author -> ""
         }
     }.let { if (ascending) it else it.reversed() })
+    val emptyRecordsMessage = when (recordTypeFilter) {
+        "invoice" -> "no_invoices"
+        "act" -> "no_acts"
+        "payment" -> "no_payments"
+        "advance" -> "no_advances"
+        else -> "no_financial_records"
+    }
     fun selectSort(column: FinancialSort) { if (sort == column) ascending = !ascending else { sort = column; ascending = true } }
     Box(Modifier.fillMaxSize()) {
     Column(
@@ -166,7 +173,7 @@ fun FinancialScreen(
                 oms.components.ScrollableTable(Modifier.padding(16.dp)) {
                     FinancialTableHeader(sort, ascending, ::selectSort)
                     HorizontalDivider()
-                    if (!loading && !loadFailed && visibleActs.isEmpty()) Text(LocalizationManager.t("no_acts"))
+                    if (!loading && !loadFailed && visibleActs.isEmpty()) Text(LocalizationManager.t(emptyRecordsMessage))
                     visibleActs.forEach { row ->
                         Row(Modifier.width(1_621.dp).padding(vertical = 8.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                             Text(row.act.referenceNumber, Modifier.width(130.dp))
