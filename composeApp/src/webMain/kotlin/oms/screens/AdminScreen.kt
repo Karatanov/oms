@@ -91,6 +91,7 @@ fun AdminScreen() {
     var createUser by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var editUserError by remember { mutableStateOf<String?>(null) }
+    var savingUser by remember { mutableStateOf(false) }
     var sort by remember { mutableStateOf(UserSort.Username) }
     var ascending by remember { mutableStateOf(true) }
     val scope = rememberCoroutineScope()
@@ -166,6 +167,7 @@ fun AdminScreen() {
                         Text(user.username, Modifier.width(130.dp))
                         TableActionIconButton(LocalizationManager.t("edit_user"), Icons.Default.Edit) {
                             editUserError = null
+                            savingUser = false
                             selectedUser = user
                         }
                         TableActionIconButton(LocalizationManager.t("delete_user"), Icons.Default.Delete) { userPendingDeletion = user }
@@ -191,11 +193,20 @@ fun AdminScreen() {
         ActivitySection(activities)
         errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error) }
     }
-    selectedUser?.let { user -> WasmSafeOverlay(onDismiss = { selectedUser = null; editUserError = null }, errorMessage = null) {
-            EditUserDialog(user, roles, editUserError, onDismiss = {
-                editUserError = null
+    selectedUser?.let { user -> WasmSafeOverlay(onDismiss = {
+            if (!savingUser) {
                 selectedUser = null
+                editUserError = null
+            }
+        }, errorMessage = null) {
+            EditUserDialog(user, roles, editUserError, savingUser, onDismiss = {
+                if (!savingUser) {
+                    editUserError = null
+                    selectedUser = null
+                }
             }) { updated ->
+                savingUser = true
+                editUserError = null
                 scope.launch {
                     runCatching { OmsApiClient.updateUser(user.id, updated) }
                         .onSuccess { saved ->
@@ -208,6 +219,7 @@ fun AdminScreen() {
                             editUserError = LocalizationManager.t("error_save_user")
                                 .replace("{message}", it.message ?: LocalizationManager.t("unknown_error"))
                         }
+                    savingUser = false
                 }
             }
         }
@@ -322,7 +334,14 @@ private fun CreateUserDialog(roles: List<ApiRole>, onDismiss: () -> Unit, onSave
 }
 
 @Composable
-private fun EditUserDialog(user: ApiUser, roles: List<ApiRole>, saveError: String?, onDismiss: () -> Unit, onSave: (UpdateUserRequest) -> Unit) {
+private fun EditUserDialog(
+    user: ApiUser,
+    roles: List<ApiRole>,
+    saveError: String?,
+    saving: Boolean,
+    onDismiss: () -> Unit,
+    onSave: (UpdateUserRequest) -> Unit
+) {
     var username by remember(user.id) { mutableStateOf(user.username) }
     var email by remember(user.id) { mutableStateOf(user.email) }
     var roleCode by remember(user.id) { mutableStateOf(user.role.code) }
@@ -364,11 +383,17 @@ private fun EditUserDialog(user: ApiUser, roles: List<ApiRole>, saveError: Strin
             saveError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
             }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
-                OutlinedButton(onClick = onDismiss) { Text(LocalizationManager.t("cancel")) }
+                OutlinedButton(onClick = onDismiss, enabled = !saving) { Text(LocalizationManager.t("cancel")) }
             Button(
                 onClick = { onSave(UpdateUserRequest(username, email, roleCode, password.ifBlank { null }, firstName, lastName, status, region, department, preferredLang)) },
-                enabled = username.isNotBlank() && email.contains('@') && role != null
-            ) { Text(LocalizationManager.t("save")) }
+                enabled = !saving && username.isNotBlank() && email.contains('@')
+            ) {
+                if (saving) {
+                    CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
+                } else {
+                    Text(LocalizationManager.t("save"))
+                }
+            }
             }
         }
     }

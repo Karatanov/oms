@@ -108,7 +108,11 @@ object OmsApiClient {
             setBody(request)
         }
         if (!response.status.isSuccess()) {
-            throw IllegalStateException(response.bodyAsText())
+            val body = response.bodyAsText()
+            val message = runCatching {
+                Json { ignoreUnknownKeys = true }.decodeFromString<ApiErrorPayload>(body).message
+            }.getOrNull()
+            throw IllegalStateException(message?.takeIf { it.isNotBlank() } ?: body.ifBlank { "Could not save user." })
         }
         return response.body()
     }
