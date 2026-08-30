@@ -41,6 +41,19 @@ body {
 
 #dashboard-photo-slider.visible { display: block; }
 
+#inspection-photo-preview-pane {
+    position: fixed;
+    z-index: 3;
+    display: none;
+    box-sizing: border-box;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 12px;
+    overflow: auto;
+    padding: 4px;
+}
+#inspection-photo-preview-pane.visible { display: grid; }
+#inspection-photo-preview-pane .inspection-photo-preview { min-width: 0; }
+
 .photo-slider-title { margin-bottom: 12px; color: #1e293b; font-size: 16px; font-weight: 700; }
 .photo-slider-empty { display: grid; min-height: 150px; place-items: center; color: #64748b; }
 .photo-slider-track { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 4px; scrollbar-color: #94a3b8 transparent; }
@@ -95,7 +108,7 @@ body.map-visible #map-pane {
 }
 
 /* The in-canvas option layer must remain above native map/image surfaces. */
-body.canvas-overlay-open #map-pane, body.canvas-overlay-open #dashboard-photo-slider { visibility: hidden; }
+body.canvas-overlay-open #map-pane, body.canvas-overlay-open #dashboard-photo-slider, body.canvas-overlay-open #inspection-photo-preview-pane { visibility: hidden; }
 body .oms-pane-clipped { visibility: hidden; }
 
 button:focus-visible, a:focus-visible { outline: 2px solid #16566c; outline-offset: 3px; }

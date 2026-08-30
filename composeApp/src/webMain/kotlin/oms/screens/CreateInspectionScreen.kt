@@ -27,6 +27,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Remove
 import oms.components.PageHeading
 import oms.components.TableActionIconButton
+import oms.components.NativePaneAnchor
 
 @JsName("openSirImportDialog")
 external fun openSirImportDialog(projectUuid: String, onComplete: (String) -> Unit)
@@ -36,6 +37,12 @@ external fun openInspectionPhotoPicker(onSelectionChanged: (Int) -> Unit)
 
 @JsName("uploadSelectedInspectionPhotos")
 external fun uploadSelectedInspectionPhotos(reportUuid: String, onComplete: (String) -> Unit)
+
+@JsName("showPendingInspectionPhotoPreviews")
+external fun showPendingInspectionPhotoPreviews(onSelectionChanged: (Int) -> Unit)
+
+@JsName("hidePendingInspectionPhotoPreviews")
+external fun hidePendingInspectionPhotoPreviews()
 
 @Composable
 fun CreateInspectionScreen(
@@ -53,6 +60,7 @@ fun CreateInspectionScreen(
     var longitude by remember { mutableStateOf("") }
     var comments by remember { mutableStateOf(TextFieldValue("")) }
     var photoCount by remember { mutableStateOf(0) }
+    var photoSelectionRevision by remember { mutableStateOf(0) }
     var selectedProjectUuid by remember { mutableStateOf<String?>(null) }
     var selectedSubprojectUuid by remember { mutableStateOf<String?>(null) }
     var selectedSubprojectPartUuid by remember { mutableStateOf<String?>(null) }
@@ -186,7 +194,7 @@ fun CreateInspectionScreen(
                 )
 
                 OutlinedButton(
-                    onClick = { openInspectionPhotoPicker { photoCount = it } },
+                    onClick = { openInspectionPhotoPicker { count -> photoCount = count; photoSelectionRevision++ } },
                     modifier = Modifier.fillMaxWidth().height(56.dp)
                 ) {
                     Text(LocalizationManager.t("add_inspection_photos"))
@@ -195,6 +203,10 @@ fun CreateInspectionScreen(
                     text = if (photoCount == 0) LocalizationManager.t("no_photos_selected") else LocalizationManager.t("photos_selected").replace("{count}", photoCount.toString()),
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+                if (photoCount > 0) PendingInspectionPhotoPreviews(photoSelectionRevision) { count ->
+                    photoCount = count
+                    photoSelectionRevision++
+                }
                 Text(
                     text = LocalizationManager.t("photo_upload_requirements"),
                     style = MaterialTheme.typography.bodySmall,
@@ -367,6 +379,15 @@ fun CreateInspectionScreen(
             }
         }
         errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+    }
+}
+
+@Composable
+private fun PendingInspectionPhotoPreviews(revision: Int, onSelectionChanged: (Int) -> Unit) {
+    NativePaneAnchor("inspection-photo-preview-pane", Modifier.fillMaxWidth().height(210.dp))
+    DisposableEffect(revision, LocalizationManager.currentLanguage) {
+        showPendingInspectionPhotoPreviews(onSelectionChanged)
+        onDispose(::hidePendingInspectionPhotoPreviews)
     }
 }
 
