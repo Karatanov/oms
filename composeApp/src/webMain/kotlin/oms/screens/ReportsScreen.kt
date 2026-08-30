@@ -321,12 +321,8 @@ fun ReportsScreen(
         verticalArrangement = Arrangement.spacedBy(8.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        oms.components.OmsTooltipBox(tooltip = { Text(LocalizationManager.t("dashboard_scroll_up")) }) {
-            FilledIconButton(onClick = { scrollBy(-420f) }) { Icon(Icons.Default.KeyboardArrowUp, LocalizationManager.t("dashboard_scroll_up")) }
-        }
-        oms.components.OmsTooltipBox(tooltip = { Text(LocalizationManager.t("dashboard_scroll_down")) }) {
-            FilledIconButton(onClick = { scrollBy(420f) }) { Icon(Icons.Default.KeyboardArrowDown, LocalizationManager.t("dashboard_scroll_down")) }
-        }
+        oms.components.HoldToScrollButton(LocalizationManager.t("dashboard_scroll_up"), Icons.Default.KeyboardArrowUp, contentScrollState, -1)
+        oms.components.HoldToScrollButton(LocalizationManager.t("dashboard_scroll_down"), Icons.Default.KeyboardArrowDown, contentScrollState, 1)
     }
     }
     }

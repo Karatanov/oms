@@ -85,8 +85,8 @@ fun DashboardScreen(onOpenProject: (oms.model.Project) -> Unit = {}, onOpenFinan
             }
         }
         Column(Modifier.align(Alignment.CenterEnd).padding(end = 8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            TableActionIconButton(LocalizationManager.t("dashboard_scroll_up"), Icons.Default.KeyboardArrowUp) { scope.launch { scrollState.animateScrollBy(-500f) } }
-            TableActionIconButton(LocalizationManager.t("dashboard_scroll_down"), Icons.Default.KeyboardArrowDown) { scope.launch { scrollState.animateScrollBy(500f) } }
+            oms.components.HoldToScrollButton(LocalizationManager.t("dashboard_scroll_up"), Icons.Default.KeyboardArrowUp, scrollState, -1, clickDistance = 500f)
+            oms.components.HoldToScrollButton(LocalizationManager.t("dashboard_scroll_down"), Icons.Default.KeyboardArrowDown, scrollState, 1, clickDistance = 500f)
         }
     }
 }

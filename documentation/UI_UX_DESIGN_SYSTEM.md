@@ -64,6 +64,8 @@ Procurement: responsive analytical pair, project/contractor search and status fi
 
 Procurement charts are derived from the same procurement records loaded for the registry rather than from the separately scoped Dashboard API. Status bars therefore match the visible dataset for Admin and Project Manager roles, retain all six statuses including zero values, and refresh immediately after procurement CRUD operations. The signed-contract monthly chart uses the same local source.
 
+Vertical scroll controls share one mouse/touch interaction: a short press performs the existing animated step, while holding either arrow starts continuous smooth scrolling in its direction after the platform long-press threshold. Scrolling stops immediately on release or pointer cancellation. The behavior is used by Inspection Reports, Procurement and the Dashboard.
+
 Project detail resource failures are scoped to the selected tab; reopening a loaded tab clears stale errors. The financial tab follows the same Admin/Project Manager restriction as financial navigation. Procurement form errors do not replace the registry; load failures expose a separate retry action.
 
 Administration: searchable user registry, informational roles/statuses, corrected failure-count/locked-until/update sorting, consistent header alignment and light forms. Activation/login use bounded, scrollable forms and UK/EN labels.
