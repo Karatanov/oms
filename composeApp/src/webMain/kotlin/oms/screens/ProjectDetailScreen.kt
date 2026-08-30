@@ -321,7 +321,7 @@ fun ProjectDetailScreen(
         }
 
 
-                        ProjectFinancialsTab(project.id, financials.value, documents.value)
+                        ProjectFinancialsTab(financials.value)
                     }
                     ProjectDetailTab.Documents -> ProjectDocumentsTab(project.id, documents.value)
                     ProjectDetailTab.Incidents -> ProjectHealthSafetyTab(healthSafetyObservations.value)
@@ -585,32 +585,16 @@ private fun ProjectReportsTab(reports: List<ApiInspectionReport>) {
 }
 
 @Composable
-private fun ProjectFinancialsTab(
-    projectUuid: String,
-    financials: ApiFinancialRecords?,
-    documents: List<ApiProjectDocument>
-) {
-    val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
+private fun ProjectFinancialsTab(financials: ApiFinancialRecords?) {
     val acts = financials?.data.orEmpty().filter { it.recordType == "act" }
-    val actDocuments = documents.filter { it.docType == "act" }
     Card(Modifier.fillMaxSize()) {
         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text("${LocalizationManager.t("construction_contract")}: ${financials?.summary?.constructionContractAmount?.toMoney() ?: "—"}", style = MaterialTheme.typography.titleLarge)
-            Text("${LocalizationManager.t("completed_works_by_acts")}: ${financials?.summary?.amountSpent?.toMoney() ?: "—"}")
-            Text("${LocalizationManager.t("completed_works_percentage")}: ${financials?.summary?.completionPct?.let { "${it.toInt()}%" } ?: "—"}")
-            Text("${LocalizationManager.t("financial_completion")}: ${financials?.summary?.financialCompletionPct?.let { "${it.toInt()}%" } ?: "—"}")
             if (acts.isEmpty()) Text(LocalizationManager.t("no_acts"))
-            acts.forEach { act ->
-                Text("${act.referenceNumber} • ${act.recordDate.toOmsDate()} • ${act.amount.toMoney()}")
-                HorizontalDivider()
-            }
-            if (actDocuments.isNotEmpty()) {
-                Text(LocalizationManager.t("act_documents"), style = MaterialTheme.typography.titleMedium)
-                actDocuments.forEach { document ->
-                    Text(document.fileName)
-                    Button(onClick = { uriHandler.openUri(oms.data.omsApiUrl("/projects/$projectUuid/documents/${document.uuid}/download")) }) {
-                        Text(LocalizationManager.t("open_document"))
-                    }
+            else {
+                Text(LocalizationManager.t("acts_of_completed_works"), style = MaterialTheme.typography.titleMedium)
+                acts.forEach { act ->
+                    Text("${act.referenceNumber} • ${act.recordDate.toOmsDate()} • ${act.amount.toMoney()}")
+                    HorizontalDivider()
                 }
             }
         }
