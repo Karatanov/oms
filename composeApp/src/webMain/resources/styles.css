@@ -156,7 +156,19 @@ canvas {
 }
 
 .leaflet-popup { max-width: calc(100% - 48px); }
-.leaflet-popup-content-wrapper { max-width: min(340px, calc(100vw - 72px)); overflow-wrap: anywhere; }
+#map-host .leaflet-popup-content-wrapper {
+    max-width: min(340px, calc(100vw - 72px));
+    overflow-wrap: anywhere;
+    border: 1px solid rgba(39, 141, 173, 0.22);
+    background: #ffffff;
+    color: #20313c;
+    opacity: 1;
+    box-shadow: 0 8px 24px rgba(32, 49, 60, 0.28);
+}
+#map-host .leaflet-popup-tip {
+    background: #ffffff;
+    opacity: 1;
+}
 .oms-map-preview { min-width: 0; max-width: 340px; color: #20313c; line-height: 1.5; }
 .oms-map-preview p { margin: 8px 0; color: #536571; }
 .oms-map-preview button { width: 100%; padding: 10px 12px; border: 0; border-radius: 6px; background: #278DAD; color: white; font: inherit; cursor: pointer; }
