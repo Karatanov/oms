@@ -36,7 +36,8 @@
                 invalidPhoto: "дозволені лише JPEG/PNG-файли розміром до 10 МБ.", maxPhotos: "Можна прикріпити максимум 30 фотографій.",
                 lastInspection: "Остання інспекція", inspectionCode: "Код інспекції", noReports: "Інспекційних звітів ще немає", noPhotos: "В останній інспекції немає фотографій.",
                 open: "Відкрити", closeFullscreenPhoto: "Закрити повноекранне фото", details: "Деталі",
-                loading: "Завантаження даних…", uploadingFile: "Завантаження файлу…", importingInspection: "Імпорт інспекційного звіту…", importingFinancial: "Імпорт фінансових записів…"
+                loading: "Завантаження даних…", uploadingFile: "Завантаження файлу…", importingInspection: "Імпорт інспекційного звіту…", importingFinancial: "Імпорт фінансових записів…",
+                pasteTruncated: "Вставлено перші {limit} символів. Надлишковий текст відкинуто, щоб форма не зависла."
             },
             en: {
                 importReportError: "Could not import inspection report", uploadFileError: "Could not upload file",
@@ -47,7 +48,8 @@
                 invalidPhoto: "only JPEG/PNG files up to 10 MB are allowed.", maxPhotos: "You can attach up to 30 photos.",
                 lastInspection: "Latest inspection", inspectionCode: "Inspection code", noReports: "No Inspection Reports yet", noPhotos: "No photos in the latest inspection.",
                 open: "Open", closeFullscreenPhoto: "Close full-screen photo", details: "Details",
-                loading: "Loading data…", uploadingFile: "Uploading file…", importingInspection: "Importing inspection report…", importingFinancial: "Importing financial records…"
+                loading: "Loading data…", uploadingFile: "Uploading file…", importingInspection: "Importing inspection report…", importingFinancial: "Importing financial records…",
+                pasteTruncated: "The first {limit} characters were pasted. Extra text was discarded to keep the form responsive."
             }
         };
         function setOmsLanguage(language) { omsLanguage = language === "en" ? "en" : "uk"; }
@@ -71,6 +73,67 @@
             omsLoadingRequests = Math.max(0, omsLoadingRequests - 1);
             if (omsLoadingRequests === 0) document.getElementById("oms-loading-overlay")?.classList.remove("visible");
         }
+
+        // Compose/Wasm receives the complete ClipboardEvent before individual
+        // Kotlin field limits run. Rich clipboard payloads (HTML/images) and very
+        // large text can therefore lock the UI even when onValueChange truncates
+        // the resulting String. Normalise the event to bounded plain text first.
+        const omsMaximumPasteLength = 12_000;
+        const omsSanitisedPasteEvents = new WeakSet();
+        let omsPasteNoticeTimer = null;
+
+        function showOmsPasteNotice() {
+            let notice = document.getElementById("oms-paste-notice");
+            if (!notice) {
+                notice = document.createElement("div");
+                notice.id = "oms-paste-notice";
+                notice.setAttribute("role", "status");
+                notice.setAttribute("aria-live", "polite");
+                document.body.appendChild(notice);
+            }
+            notice.textContent = omsText("pasteTruncated").replace("{limit}", omsMaximumPasteLength.toLocaleString());
+            notice.classList.add("visible");
+            clearTimeout(omsPasteNoticeTimer);
+            omsPasteNoticeTimer = setTimeout(() => notice.classList.remove("visible"), 4500);
+        }
+
+        window.addEventListener("paste", event => {
+            if (omsSanitisedPasteEvents.has(event) || !event.clipboardData) return;
+
+            const original = event.clipboardData.getData("text/plain") || "";
+            const normalised = original.replace(/\u0000/g, "").replace(/\r\n?/g, "\n");
+            const types = Array.from(event.clipboardData.types || []);
+            const containsRichPayload = types.some(type => type !== "text/plain" && type !== "text");
+            const truncated = normalised.length > omsMaximumPasteLength;
+
+            // Small, already plain-text pastes remain native. This preserves the
+            // browser/Compose caret and selection behaviour for ordinary input.
+            if (!containsRichPayload && !truncated && normalised === original) return;
+
+            try {
+                const transfer = new DataTransfer();
+                transfer.setData("text/plain", normalised.slice(0, omsMaximumPasteLength));
+                const safeEvent = new ClipboardEvent("paste", {
+                    clipboardData: transfer,
+                    bubbles: true,
+                    cancelable: true,
+                    composed: true
+                });
+                omsSanitisedPasteEvents.add(safeEvent);
+                event.preventDefault();
+                event.stopImmediatePropagation();
+                event.target.dispatchEvent(safeEvent);
+                if (truncated) showOmsPasteNotice();
+            } catch (error) {
+                // Blocking an unsafe oversized paste is preferable to freezing
+                // the entire application if a legacy browser cannot rebuild it.
+                if (truncated) {
+                    event.preventDefault();
+                    event.stopImmediatePropagation();
+                    showOmsPasteNotice();
+                }
+            }
+        }, true);
 
         function formatDateForInput(epochMillis) {
             const date = new Date(epochMillis);
