@@ -157,6 +157,7 @@ canvas {
 
 .leaflet-popup {
     width: min(340px, calc(100vw - 72px));
+    margin-bottom: 2px;
 }
 #map-host .leaflet-popup-content-wrapper {
     box-sizing: border-box;
