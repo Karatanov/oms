@@ -95,8 +95,19 @@ object OmsApiClient {
         if (!response.status.isSuccess()) throw IllegalStateException(response.bodyAsText())
     }
 
-    suspend fun projects(): List<ApiProject> =
-        client.get("$baseUrl/projects?page=1&pageSize=100").body<ProjectListPayload>().data
+    suspend fun projects(): List<ApiProject> {
+        val pageSize = 100
+        val projects = mutableListOf<ApiProject>()
+        var page = 1
+        do {
+            val batch = client.get("$baseUrl/projects?page=$page&pageSize=$pageSize")
+                .body<ProjectListPayload>()
+                .data
+            projects += batch
+            page += 1
+        } while (batch.size == pageSize)
+        return projects
+    }
 
     suspend fun users(): List<ApiUser> = client.get("$baseUrl/users").body()
 
