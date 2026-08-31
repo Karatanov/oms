@@ -156,13 +156,12 @@ canvas {
 }
 
 .leaflet-popup {
-    width: max-content;
-    max-width: calc(100% - 48px);
+    width: min(340px, calc(100vw - 72px));
 }
 #map-host .leaflet-popup-content-wrapper {
-    width: max-content;
-    min-width: 260px;
-    max-width: min(340px, calc(100vw - 72px));
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
     overflow-wrap: anywhere;
     border: 1px solid rgba(39, 141, 173, 0.22);
     background: #ffffff;
@@ -170,6 +169,7 @@ canvas {
     opacity: 1;
     box-shadow: 0 8px 24px rgba(32, 49, 60, 0.28);
 }
+#map-host .leaflet-popup-content { width: auto !important; }
 #map-host .leaflet-popup-tip {
     background: #ffffff;
     opacity: 1;
