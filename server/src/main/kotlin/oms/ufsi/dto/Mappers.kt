@@ -62,7 +62,7 @@ fun User.toResponse(): UserResponse {
  * Перетворює доменну модель проєкту
  * у DTO-відповідь REST API.
  */
-fun Project.toResponse(parentProjectUuid: String? = null): ProjectResponse {
+fun Project.toResponse(parentProjectUuid: String? = null, monitoring: oms.ufsi.domain.ProjectMonitoringDetails? = null): ProjectResponse {
 
     return ProjectResponse(
 
@@ -84,6 +84,8 @@ fun Project.toResponse(parentProjectUuid: String? = null): ProjectResponse {
         name =
             name,
 
+        nameEn = monitoring?.nameEn,
+
         siteName =
             siteName,
 
@@ -101,6 +103,8 @@ fun Project.toResponse(parentProjectUuid: String? = null): ProjectResponse {
 
         city =
             city.orEmpty(),
+
+        cityEn = monitoring?.settlementNameEn,
 
         latitude =
             latitude ?: 0.0,

@@ -5,6 +5,8 @@ import androidx.compose.runtime.DisposableEffect
 import oms.localization.LocalizationManager
 import oms.model.Project
 import oms.model.ProjectStatus
+import oms.model.localizedName
+import oms.components.localizedUkraineRegion
 import kotlin.js.JsName
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.Modifier
@@ -57,8 +59,8 @@ private fun List<Project>.toLeafletJson(): String {
                 """
                 {
                   "id": "${project.id.escapeJson()}",
-                  "name": "${project.name.escapeJson()}",
-                  "region": "${project.region.escapeJson()}",
+                  "name": "${project.localizedName().escapeJson()}",
+                  "region": "${localizedUkraineRegion(project.region).escapeJson()}",
                   "regionLabel": "${LocalizationManager.t("region").escapeJson()}",
                   "status": "${project.status.name}",
                   "statusText": "${statusText.escapeJson()}",

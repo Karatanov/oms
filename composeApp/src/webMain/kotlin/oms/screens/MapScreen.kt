@@ -15,6 +15,8 @@ import oms.localization.LocalizationManager
 import oms.map.LeafletMapView
 import oms.model.Project
 import oms.model.ProjectStatus
+import oms.model.localizedName
+import oms.model.localizedCity
 import kotlin.js.JsName
 import kotlinx.coroutines.launch
 
@@ -43,7 +45,7 @@ fun MapScreen(onOpenProject: (Project) -> Unit = {}) {
             (it.latitude != 0.0 || it.longitude != 0.0)
     }
     val visible = located.filter {
-        (search.isBlank() || it.name.contains(search, true) || it.siteNumber.contains(search, true) || it.city.contains(search, true)) &&
+        (search.isBlank() || it.localizedName().contains(search, true) || it.siteNumber.contains(search, true) || it.localizedCity().contains(search, true)) &&
         (region == null || it.region == region) && (status == null || it.status == status)
     }
     Column(Modifier.fillMaxSize().padding(24.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {

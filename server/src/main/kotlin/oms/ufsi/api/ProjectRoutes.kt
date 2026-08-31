@@ -71,13 +71,14 @@ fun Route.projectRoutes() {
         val pagedProjects = projects.drop((page - 1) * pageSize).take(pageSize)
 
         val projectUuidById = projects.associate { project -> project.id to project.uuid.toString() }
+        val monitoringByProjectId = projectService.monitoringDetailsByProjectIds(pagedProjects.map { it.id })
         val response =
                     ProjectListResponse(
 
                 data =
                     pagedProjects.map { project ->
 
-                        project.toResponse(projectUuidById[project.parentProjectId])
+                        project.toResponse(projectUuidById[project.parentProjectId], monitoringByProjectId[project.id])
                     },
 
                 meta = PageMetadata(

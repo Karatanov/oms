@@ -38,6 +38,8 @@ import oms.components.UkraineRegionAutocomplete
 import oms.components.currentIsoDate
 import oms.components.WasmSafeOverlay
 import oms.components.toOmsDate
+import oms.components.localizedUkraineRegion
+import oms.localization.Language
 import oms.localization.LocalizationManager
 import kotlinx.coroutines.launch
 
@@ -54,6 +56,8 @@ fun ProcurementScreen(canManageProcurements: Boolean) {
     var editorRecord by remember { mutableStateOf<ApiProcurementRecord?>(null) }
     var creating by remember { mutableStateOf(false) }
     var recordPendingDeletion by remember { mutableStateOf<ApiProcurementRecord?>(null) }
+    var pageSize by remember { mutableStateOf(20) }
+    var currentPage by remember { mutableStateOf(0) }
     val scope = rememberCoroutineScope()
     val contentScrollState = rememberScrollState()
     LaunchedEffect(reloadKey) {
@@ -111,7 +115,7 @@ fun ProcurementScreen(canManageProcurements: Boolean) {
         Text(LocalizationManager.t("procurement_subtitle"), style = MaterialTheme.typography.bodyMedium)
         Spacer(Modifier.height(16.dp))
         oms.components.AdaptiveChartRow(
-            first = { MetricsChart("procurement_status_chart", "procurement_status_chart_hint", procurementStatusMetrics) },
+            first = { MetricsListChart("procurement_status_chart", procurementStatusMetrics) },
             second = {
                 MetricsChart(
                     "signed_construction_contracts",
@@ -129,14 +133,29 @@ fun ProcurementScreen(canManageProcurements: Boolean) {
             (statusFilter == null || record.purchaseStatus == statusFilter) &&
             (search.isBlank() || listOf(record.subProjectId, record.subProjectLotId, record.oblastName, record.contractorNameUkr.orEmpty(), record.contractorNameEng.orEmpty()).any { it.contains(search, true) })
         }
+        LaunchedEffect(search, oblastFilter, statusFilter, pageSize) { currentPage = 0 }
+        val pageCount = if (visibleRecords.isEmpty() || pageSize == Int.MAX_VALUE) 1 else (visibleRecords.size + pageSize - 1) / pageSize
+        if (currentPage >= pageCount) currentPage = (pageCount - 1).coerceAtLeast(0)
+        val pageRecords = if (pageSize == Int.MAX_VALUE) visibleRecords else visibleRecords.drop(currentPage * pageSize).take(pageSize)
         if (records != null && visibleRecords.isEmpty()) oms.components.ContentState(LocalizationManager.t("no_search_results"))
         when {
             loadError != null -> oms.components.ContentState(loadError!!, error = true, onRetry = { reloadKey++ })
             records == null -> CircularProgressIndicator()
-            else -> ProcurementTable(
-                visibleRecords, records.orEmpty(), oblastFilter, { oblastFilter = it }, statusFilter, { statusFilter = it },
-                canManageProcurements, { error = null; editorRecord = it }, { error = null; recordPendingDeletion = it }
-            )
+            else -> {
+                ProcurementPagination(
+                    pageSize = pageSize,
+                    currentPage = currentPage,
+                    pageCount = pageCount,
+                    total = visibleRecords.size,
+                    onPageSize = { pageSize = it },
+                    onPage = { currentPage = it.coerceIn(0, pageCount - 1) }
+                )
+                ProcurementTable(
+                    pageRecords, records.orEmpty(), oblastFilter, { oblastFilter = it }, statusFilter, { statusFilter = it },
+                    canManageProcurements, { error = null; editorRecord = it }, { error = null; recordPendingDeletion = it }
+                )
+                ProcurementPagination(pageSize, currentPage, pageCount, visibleRecords.size, { pageSize = it }, { currentPage = it.coerceIn(0, pageCount - 1) })
+            }
         }
     }
     Column(
@@ -179,6 +198,43 @@ fun ProcurementScreen(canManageProcurements: Boolean) {
 }
 
 @Composable
+private fun ProcurementPagination(
+    pageSize: Int,
+    currentPage: Int,
+    pageCount: Int,
+    total: Int,
+    onPageSize: (Int) -> Unit,
+    onPage: (Int) -> Unit
+) {
+    Row(
+        Modifier.fillMaxWidth().padding(vertical = 8.dp),
+        horizontalArrangement = Arrangement.End,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(LocalizationManager.t("rows_per_page"), style = MaterialTheme.typography.bodySmall)
+        Spacer(Modifier.width(8.dp))
+        InlineOptionPicker(
+            options = listOf(20, 50, 100, Int.MAX_VALUE),
+            selected = pageSize,
+            prompt = LocalizationManager.t("rows_per_page"),
+            onSelect = onPageSize,
+            itemLabel = { if (it == Int.MAX_VALUE) LocalizationManager.t("all") else it.toString() },
+            fillWidth = false
+        )
+        Spacer(Modifier.width(12.dp))
+        Text(
+            LocalizationManager.t("page_of")
+                .replace("{page}", (currentPage + 1).toString())
+                .replace("{pages}", pageCount.toString())
+                .replace("{total}", total.toString()),
+            style = MaterialTheme.typography.bodySmall
+        )
+        TableActionIconButton(LocalizationManager.t("previous_page"), Icons.Default.KeyboardArrowLeft) { onPage(currentPage - 1) }
+        TableActionIconButton(LocalizationManager.t("next_page"), Icons.Default.KeyboardArrowRight) { onPage(currentPage + 1) }
+    }
+}
+
+@Composable
 @OptIn(ExperimentalMaterial3Api::class)
 private fun ProcurementTable(
     records: List<ApiProcurementRecord>,
@@ -200,9 +256,9 @@ private fun ProcurementTable(
         ) {
             records.forEach { record ->
                 ProcurementRow(listOf(
-                    record.recordNumber.toString(), record.batchId.toString(), record.oblastName, record.oblastId,
+                    record.recordNumber.toString(), record.batchId.toString(), localizedUkraineRegion(record.oblastName), record.oblastId,
                     record.subProjectId, record.subProjectLotId, LocalizationManager.procurementStatus(record.purchaseStatus), record.tenderId.orEmpty(),
-                    record.prozorroTenderId.orEmpty(), record.contractorNameUkr.orEmpty(), record.contractorNameEng.orEmpty(),
+                    record.prozorroTenderId.orEmpty(), if (LocalizationManager.currentLanguage == Language.EN) record.contractorNameEng ?: record.contractorNameUkr.orEmpty() else record.contractorNameUkr ?: record.contractorNameEng.orEmpty(),
                     record.contractorId.orEmpty(), record.contractDate.toOmsDate(), record.contractEndDate.toOmsDate(),
                     record.contractDurationMonths?.toString().orEmpty(), record.contractAmountUah.format(0),
                     record.contractAmountEur.format(2), record.financingContractDifferencePct?.let { "${(it * 100).format(2)}%" }.orEmpty()
@@ -223,7 +279,7 @@ private fun ProcurementFilters(
     showActions: Boolean
 ) {
     Row(
-        Modifier.widthIn(min = 3_300.dp).padding(vertical = 8.dp),
+        Modifier.width((columnWidths.sum() + if (showActions) 96 else 0).dp).padding(vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         if (showActions) Spacer(Modifier.width(96.dp))
@@ -256,7 +312,7 @@ private fun ProcurementRow(
     isHeader: Boolean = false
 ) {
     Row(
-        Modifier.widthIn(min = 3_300.dp).padding(vertical = 6.dp),
+        Modifier.width((columnWidths.sum() + if (showActions) 96 else 0).dp).padding(vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         if (showActions) {
@@ -283,11 +339,11 @@ private fun ProcurementRow(
 private fun procurementHeaderLabels() = listOf(
     "proc_number", "proc_batch_number", "proc_oblast_name", "proc_oblast_id", "proc_subproject_id",
     "proc_subproject_lot_id", "procurement_status", "proc_tender_id", "proc_prozorro_tender_id",
-    "proc_contractor_name_uk", "proc_contractor_name_en", "proc_contractor_edrpou", "proc_contract_date",
+    "proc_contractor_name", "proc_contractor_edrpou", "proc_contract_date",
     "proc_contract_end_date", "proc_contract_duration", "proc_contract_amount_uah", "proc_contract_amount_eur",
     "proc_financing_difference"
 ).map(LocalizationManager::t)
-private val columnWidths = listOf(55, 85, 180, 100, 145, 160, 220, 185, 250, 260, 260, 160, 120, 160, 160, 190, 180, 180)
+private val columnWidths = listOf(55, 85, 180, 100, 145, 160, 220, 185, 250, 260, 160, 120, 160, 160, 190, 180, 180)
 private val procurementStatuses = listOf(
     "Не розпочато / Not Started",
     "Закупівля триває / Tender Ongoing",

@@ -14,6 +14,9 @@ import oms.navigation.AppState
 import oms.navigation.Screen
 import oms.screens.*
 import oms.screens.dashboard.DashboardScreen
+import kotlin.js.JsName
+
+@JsName("fitUkraineOverview") private external fun resetMapToUkraine()
 
 //import oms.screens.documents.*
 //import oms.screens.admin.*
@@ -30,7 +33,10 @@ fun AppLayout(appState: AppState) {
         // ---------------- SIDEBAR ----------------
         Sidebar(
             currentScreen = appState.currentScreen,
-            onNavigate = { appState.navigate(it) },
+            onNavigate = {
+                if (it == Screen.Map && appState.currentScreen == Screen.Map) resetMapToUkraine()
+                else appState.navigate(it)
+            },
             onLogout = { appState.logout() },
             username = appState.username,
             isAdmin = appState.roleCode == "ADMIN",

@@ -11,6 +11,7 @@ import oms.ufsi.domain.Project
 interface ProjectRepository {
     fun programmeDetails(projectId: Long): oms.ufsi.domain.ProgrammeDetails?
     fun monitoringDetails(projectId: Long): oms.ufsi.domain.ProjectMonitoringDetails?
+    fun monitoringDetailsByProjectIds(projectIds: Collection<Long>): Map<Long, oms.ufsi.domain.ProjectMonitoringDetails>
     fun managerIdForUuid(uuid: String): Long?
 
     /**

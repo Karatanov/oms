@@ -11,6 +11,8 @@ import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.PointerIcon
+import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.foundation.layout.size
 import androidx.compose.ui.unit.dp
 import androidx.compose.material3.MaterialTheme
@@ -28,7 +30,7 @@ fun TableActionIconButton(
     oms.components.OmsTooltipBox(
         tooltip = { Text(tooltip) }
     ) {
-        IconButton(onClick = onClick) {
+        IconButton(onClick = onClick, modifier = Modifier.pointerHoverIcon(PointerIcon.Hand)) {
             Icon(icon, contentDescription = tooltip, modifier = Modifier.size(20.dp),
                 tint = if (icon == Icons.Default.Delete) MaterialTheme.colorScheme.error else Primary)
         }

@@ -59,6 +59,8 @@ def candidate_queries(row: dict) -> list[tuple[str, str]]:
         address_match = re.search(r"(?:за адресою|по адресу)\s*[:\-]?\s*(.+)$", name, re.IGNORECASE)
         if address_match:
             queries.append((f"{address_match.group(1)}, {settlement}, {oblast}, Україна", "address"))
+    if settlement:
+        queries.append((f"{settlement}, {oblast}, Україна", "settlement"))
     centre = OBLAST_CENTRES.get(oblast)
     if centre:
         queries.append((f"{centre}, {oblast}, Україна", "oblast_center"))
@@ -100,13 +102,10 @@ def main() -> None:
     for index, row in enumerate(dataset["subprojects"], start=1):
         lot_id = str(row["F"])
         existing = results.get(lot_id, {})
-        if (
-            lot_id in results
-            and existing.get("status") != "error"
-            and existing.get("matchLevel") != "settlement"
-            and not (
+        if lot_id in results and existing.get("status") == "resolved" and (
+            existing.get("matchLevel") == "settlement" or (
                 existing.get("matchLevel") == "address"
-                and not address_matches_settlement(existing, str(row.get("M") or ""))
+                and address_matches_settlement(existing, str(row.get("M") or ""))
             )
         ):
             continue

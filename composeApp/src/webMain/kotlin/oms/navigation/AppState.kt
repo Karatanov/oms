@@ -5,6 +5,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import oms.model.Project
 import oms.data.ProjectRepository
+import kotlin.js.JsName
+
+@JsName("pushOmsRoute") private external fun pushOmsRoute(route: String)
+@JsName("replaceOmsRoute") private external fun replaceOmsRoute(route: String)
 
 // 🔹 Центральний стан усього додатку
 // 🔹 Зберігає:
@@ -32,27 +36,48 @@ class AppState {
 
     // 🔹 Перехід між екранами
     fun navigate(screen: Screen) {
+        if (currentScreen != screen) pushOmsRoute(screen.route())
         currentScreen = screen
+    }
+
+    fun restoreRoute(route: String) {
+        val screen = when (route.substringBefore('/')) {
+            "dashboard" -> Screen.Dashboard
+            "projects" -> Screen.Projects
+            "project-new" -> Screen.CreateProject
+            "project-edit" -> Screen.EditProject
+            "project" -> Screen.ProjectDetail
+            "inspection-new" -> Screen.CreateInspection
+            "map" -> Screen.Map
+            "inspections" -> Screen.Inspections
+            "financial" -> Screen.Financial
+            "procurement" -> Screen.Procurement
+            "documents" -> Screen.Documents
+            "admin" -> Screen.Admin
+            else -> if (roleCode == "GUEST") Screen.Map else Screen.Dashboard
+        }
+        if ((screen == Screen.ProjectDetail || screen == Screen.EditProject) && selectedProject == null) currentScreen = Screen.Projects
+        else currentScreen = screen
     }
 
     // 🔹 Відкрити detail-екран конкретного проєкту
     fun openProjectDetail(project: Project) {
         selectedProject = project
-        currentScreen = Screen.ProjectDetail
+        navigate(Screen.ProjectDetail)
     }
 
     // 🔹 Відкрити створення інспекції
     fun openCreateInspection() {
-        currentScreen = Screen.CreateInspection
+        navigate(Screen.CreateInspection)
     }
 
     fun openCreateProject() {
-        currentScreen = Screen.CreateProject
+        navigate(Screen.CreateProject)
     }
 
     fun openEditProject(project: Project) {
         selectedProject = project
-        currentScreen = Screen.EditProject
+        navigate(Screen.EditProject)
     }
 
     // 🔹 Успішний логін
@@ -64,6 +89,7 @@ class AppState {
 
         // 🔹 Після логіну завжди відкриваємо Dashboard
         currentScreen = Screen.Dashboard
+        replaceOmsRoute(Screen.Dashboard.route())
     }
 
     fun onGuestAccess() {
@@ -72,6 +98,7 @@ class AppState {
         roleCode = "GUEST"
         isAuthenticated = true
         currentScreen = Screen.Map
+        replaceOmsRoute(Screen.Map.route())
     }
 
     // 🔹 Logout
@@ -83,5 +110,22 @@ class AppState {
         isAuthenticated = false
         selectedProject = null
         currentScreen = Screen.Login
+        replaceOmsRoute("login")
     }
+}
+
+private fun Screen.route(): String = when (this) {
+    Screen.Login -> "login"
+    Screen.Dashboard -> "dashboard"
+    Screen.Projects -> "projects"
+    Screen.CreateProject -> "project-new"
+    Screen.EditProject -> "project-edit"
+    Screen.ProjectDetail -> "project"
+    Screen.CreateInspection -> "inspection-new"
+    Screen.Map -> "map"
+    Screen.Inspections -> "inspections"
+    Screen.Financial -> "financial"
+    Screen.Procurement -> "procurement"
+    Screen.Documents -> "documents"
+    Screen.Admin -> "admin"
 }

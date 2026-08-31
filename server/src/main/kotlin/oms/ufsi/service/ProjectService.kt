@@ -14,6 +14,7 @@ class ProjectService(
     private val projectRepository: ProjectRepository
 ) {
     fun isManagedBy(uuid: String, userId: Long): Boolean = projectRepository.managerIdForUuid(uuid) == userId
+    fun monitoringDetailsByProjectIds(projectIds: Collection<Long>) = projectRepository.monitoringDetailsByProjectIds(projectIds)
 
     /**
      * Повертає перелік проєктів.

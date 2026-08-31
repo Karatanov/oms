@@ -55,6 +55,10 @@ private val ukraineRegions = listOf(
 private fun UkraineRegion.displayName() =
     if (LocalizationManager.currentLanguage == Language.EN) englishName else ukrainianName
 
+fun localizedUkraineRegion(value: String): String = ukraineRegions.firstOrNull {
+    it.ukrainianName.equals(value, true) || it.englishName.equals(value, true)
+}?.displayName() ?: value
+
 /**
  * An inline, Wasm-safe autocomplete for Ukraine's fixed administrative regions.
  * It stores the Ukrainian canonical name so filters and existing project data stay consistent.

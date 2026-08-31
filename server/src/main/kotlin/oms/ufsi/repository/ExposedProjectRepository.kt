@@ -39,8 +39,18 @@ class ExposedProjectRepository : ProjectRepository {
     }
 
     override fun monitoringDetails(projectId: Long) = transaction {
-        ProjectMonitoringDetailTable.selectAll().firstOrNull { it[ProjectMonitoringDetailTable.projectId].value == projectId }?.let { row ->
-            oms.ufsi.domain.ProjectMonitoringDetails(
+        ProjectMonitoringDetailTable.selectAll().firstOrNull { it[ProjectMonitoringDetailTable.projectId].value == projectId }?.toMonitoringDetails()
+    }
+
+    override fun monitoringDetailsByProjectIds(projectIds: Collection<Long>) = transaction {
+        if (projectIds.isEmpty()) emptyMap() else ProjectMonitoringDetailTable.selectAll()
+            .filter { it[ProjectMonitoringDetailTable.projectId].value in projectIds }
+            .associate { it[ProjectMonitoringDetailTable.projectId].value to it.toMonitoringDetails() }
+    }
+
+    private fun ResultRow.toMonitoringDetails(): oms.ufsi.domain.ProjectMonitoringDetails {
+        val row = this
+        return oms.ufsi.domain.ProjectMonitoringDetails(
                 row[ProjectMonitoringDetailTable.sourceBatchId], row[ProjectMonitoringDetailTable.sourceSubprojectId],
                 row[ProjectMonitoringDetailTable.sourceLotId], row[ProjectMonitoringDetailTable.nameEn],
                 row[ProjectMonitoringDetailTable.oblastCode], row[ProjectMonitoringDetailTable.municipalityNameUk],
@@ -56,7 +66,6 @@ class ExposedProjectRepository : ProjectRepository {
                 row[ProjectMonitoringDetailTable.sourceRows],
                 row[ProjectMonitoringDetailTable.sourceWorkbook]
             )
-        }
     }
     override fun managerIdForUuid(uuid: String): Long? = transaction {
         ProjectTable.selectAll().firstOrNull { it[ProjectTable.uuid] == uuid }

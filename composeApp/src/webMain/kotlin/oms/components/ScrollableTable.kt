@@ -26,6 +26,7 @@ import oms.localization.LocalizationManager
 @Composable
 fun ScrollableTable(
     modifier: Modifier = Modifier,
+    showScrollControls: Boolean = true,
     header: @Composable ColumnScope.() -> Unit,
     content: @Composable ColumnScope.() -> Unit
 ) {
@@ -59,7 +60,7 @@ fun ScrollableTable(
             )
             Column(content = content)
         }
-        TableScrollControls(scroll)
+        if (showScrollControls) TableScrollControls(scroll)
     }
 }
 
@@ -67,13 +68,20 @@ fun ScrollableTable(
 fun TableScrollControls(scroll: ScrollState) {
     if (scroll.maxValue <= 0) return
     val scope = rememberCoroutineScope()
-    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+    Row(
+        Modifier.fillMaxWidth().padding(top = 8.dp),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
         TableActionIconButton(LocalizationManager.t("scroll_table_left"), Icons.Default.KeyboardArrowLeft) {
             scope.launch { scroll.animateScrollTo((scroll.value - 500).coerceAtLeast(0)) }
         }
-        Slider(value = scroll.value.toFloat(), onValueChange = { value -> scope.launch { scroll.scrollTo(value.toInt()) } },
-            valueRange = 0f..scroll.maxValue.toFloat(),
-            modifier = Modifier.weight(1f).semantics { contentDescription = LocalizationManager.t("table_scroll") })
+        Text(
+            "${((scroll.value.toFloat() / scroll.maxValue.toFloat()) * 100).toInt()}%",
+            modifier = Modifier.width(64.dp).semantics { contentDescription = LocalizationManager.t("table_scroll") },
+            style = MaterialTheme.typography.labelMedium,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+        )
         TableActionIconButton(LocalizationManager.t("scroll_table_right"), Icons.Default.KeyboardArrowRight) {
             scope.launch { scroll.animateScrollTo((scroll.value + 500).coerceAtMost(scroll.maxValue)) }
         }

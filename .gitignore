@@ -22,3 +22,5 @@ server/uploads/
 render-build.log
 docker-build.log
 docker-build.err
+__pycache__/
+*.py[cod]

@@ -18,6 +18,7 @@ data class Project(
     val parentProjectUuid: String? = null,
 
     val name: String,
+    val nameEn: String? = null,
 
     /** Customer-facing project/subproject code (for example, KH08_09). */
     val siteNumber: String,
@@ -25,6 +26,7 @@ data class Project(
     val region: String,
 
     val city: String,
+    val cityEn: String? = null,
 
     val sector: String,
 
@@ -47,3 +49,9 @@ data class Project(
 
     val longitude: Double
 )
+
+fun Project.localizedName(): String =
+    if (oms.localization.LocalizationManager.currentLanguage == oms.localization.Language.EN) nameEn?.takeIf(String::isNotBlank) ?: name else name
+
+fun Project.localizedCity(): String =
+    if (oms.localization.LocalizationManager.currentLanguage == oms.localization.Language.EN) cityEn?.takeIf(String::isNotBlank) ?: city else city

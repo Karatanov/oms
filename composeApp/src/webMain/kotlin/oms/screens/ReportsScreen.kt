@@ -188,6 +188,7 @@ fun ReportsScreen(
         Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
             oms.components.ScrollableTable(
                 Modifier.padding(16.dp),
+                showScrollControls = visible.isNotEmpty(),
                 header = {
                     ReportTableHeader(
                         sort = sort,

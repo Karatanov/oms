@@ -36,6 +36,7 @@ data class ProjectResponse(
      * Назва проєкту.
      */
     val name: String,
+    val nameEn: String? = null,
 
     /**
      * Код майданчика.
@@ -63,6 +64,7 @@ data class ProjectResponse(
      * Населений пункт.
      */
     val city: String,
+    val cityEn: String? = null,
 
     /**
      * Географічні координати.

@@ -4,6 +4,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.PointerIcon
+import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.*
 import androidx.compose.ui.unit.dp
@@ -19,7 +21,7 @@ fun SidebarItem(title: String, icon: ImageVector, screen: Screen, current: Scree
         (screen == Screen.Inspections && current == Screen.CreateInspection)
     oms.components.OmsTooltipBox(tooltip = { Text(title) }) {
         TextButton(
-            onClick = { onNavigate(screen) }, modifier = Modifier.fillMaxWidth().heightIn(min = 44.dp).semantics { selected = isSelected },
+            onClick = { onNavigate(screen) }, modifier = Modifier.fillMaxWidth().heightIn(min = 44.dp).pointerHoverIcon(PointerIcon.Hand).semantics { selected = isSelected },
             shape = MaterialTheme.shapes.small, contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp),
             colors = ButtonDefaults.textButtonColors(
                 containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface,

@@ -700,6 +700,16 @@
         window.addEventListener("load", () => {
             initLeafletMap();
         });
+
+        let omsRouteHandler = null;
+        function setOmsRouteHandler(handler) { omsRouteHandler = handler; }
+        function pushOmsRoute(route) {
+            if (window.location.hash !== "#" + route) history.pushState({ omsRoute: route }, "", "#" + route);
+        }
+        function replaceOmsRoute(route) { history.replaceState({ omsRoute: route }, "", "#" + route); }
+        window.addEventListener("popstate", () => {
+            if (omsRouteHandler) omsRouteHandler(window.location.hash.replace(/^#/, ""));
+        });
     </script>
 </head>
 <body>

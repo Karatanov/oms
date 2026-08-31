@@ -62,6 +62,10 @@ Selecting a financial record type smoothly brings the registry table to the top 
 
 Procurement: responsive analytical pair, project/contractor search and status filter, single-language status badges, consistent action alignment, scroll controls and local dialog errors.
 
+UMITAF review baseline: project-detail sections are independently collapsible and start with the customer-facing name and location; the location provides an openable/copyable OpenStreetMap URL. Re-selecting the active Map item restores the Ukraine overview, map popups remain opaque and inside the viewport, and browser history supports Back navigation. Approved funding, subproject completion and procurement status use vertically paged lists instead of horizontally scrolling analytics. Procurement data is paginated at 20, 50, 100 or all records; empty inspection and financial tables do not render redundant horizontal controls. Imported bilingual names are selected according to the current UI language.
+
+Map coordinate precedence is audited and persistent: verified street address, then settlement, then an explicitly labelled oblast-centre fallback. Financial terminology keeps allocated programme disbursement separate from actual payments against certified acts.
+
 Procurement charts are derived from the same procurement records loaded for the registry rather than from the separately scoped Dashboard API. Status bars therefore match the visible dataset for Admin and Project Manager roles, retain all six statuses including zero values, and refresh immediately after procurement CRUD operations. The signed-contract monthly chart uses the same local source.
 
 Vertical scroll controls share one mouse/touch interaction: a short press performs the existing animated step, while holding either arrow starts continuous smooth scrolling in its direction after the platform long-press threshold. Scrolling stops immediately on release or pointer cancellation. The behavior is used by Inspection Reports, Procurement and the Dashboard.

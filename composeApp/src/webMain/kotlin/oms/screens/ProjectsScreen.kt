@@ -40,6 +40,9 @@ import oms.data.ProjectRepository
 import oms.localization.LocalizationManager
 import oms.model.Project
 import oms.model.ProjectStatus
+import oms.model.localizedName
+import oms.model.localizedCity
+import oms.components.localizedUkraineRegion
 import oms.theme.Primary
 import oms.components.toOmsDate
 import oms.components.ConstructionTypeChip
@@ -98,10 +101,10 @@ fun ProjectsScreen(
     val filteredProjects = remember(projects, searchText, regionFilter, statusFilter, constructionTypeFilter, sectorFilter) {
         fun matches(project: Project) =
             (searchText.isBlank() ||
-                project.name.contains(searchText, true) ||
+                project.localizedName().contains(searchText, true) ||
                 project.siteNumber.contains(searchText, true) ||
-                project.region.contains(searchText, true) ||
-                project.city.contains(searchText, true)) &&
+                localizedUkraineRegion(project.region).contains(searchText, true) ||
+                project.localizedCity().contains(searchText, true)) &&
                 (regionFilter == null || project.region == regionFilter) &&
                 (statusFilter == null || project.status == statusFilter) &&
                 (constructionTypeFilter == null || project.constructionType.equals(constructionTypeFilter, ignoreCase = true)) &&
@@ -186,7 +189,7 @@ fun ProjectsScreen(
             onOpenProject = onOpenProject,
             onEditProject = onEditProject,
             onDeleteProject = { project ->
-                deletion.show(project.name) { scope.launch {
+                deletion.show(project.localizedName()) { scope.launch {
                     if (oms.data.OmsApiClient.deleteProject(project.id)) ProjectRepository.refresh(force = true)
                     else errorMessage = LocalizationManager.t("error_delete_project")
                 } }
@@ -357,7 +360,7 @@ private fun ProjectsFilters(
                     SortColumn.REGION -> ProjectFilterDropdown(
                         LocalizationManager.t("region"),
                         ProjectRepository.projects.map { it.region }.filter { it.isNotBlank() }.distinct().sorted(),
-                        regionFilter, onRegionChange)
+                        regionFilter, onRegionChange, ::localizedUkraineRegion)
                     SortColumn.SECTOR -> ProjectFilterDropdown(
                         LocalizationManager.t("sector"), sectors, sectorFilter, onSectorChange, String::sectorLabel)
                     SortColumn.CONSTRUCTION_TYPE -> ProjectFilterDropdown(
@@ -397,9 +400,9 @@ enum class SortColumn {
 private fun sortKey(project: Project, column: SortColumn): String = when (column) {
     SortColumn.ID -> project.siteNumber
     SortColumn.TRANCHE -> project.trancheNumber.toString().padStart(10, '0')
-    SortColumn.NAME -> project.name
-    SortColumn.REGION -> project.region
-    SortColumn.CITY -> project.city
+    SortColumn.NAME -> project.localizedName()
+    SortColumn.REGION -> localizedUkraineRegion(project.region)
+    SortColumn.CITY -> project.localizedCity()
     SortColumn.SECTOR -> project.sector
     SortColumn.CONSTRUCTION_TYPE -> project.constructionType
     SortColumn.STATUS -> project.status.name
@@ -550,15 +553,15 @@ fun ProjectRow(
         Text(project.trancheNumber.toString(), modifier = Modifier.width(ProjectTableColumns.width(SortColumn.TRANCHE)), fontWeight = rowFontWeight)
 
         Text(
-            project.name,
+            project.localizedName(),
             modifier = Modifier.width(ProjectTableColumns.width(SortColumn.NAME)),
             fontWeight = rowFontWeight,
             color = if (isSubproject) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface
         )
 
-        Text(project.region, modifier = Modifier.width(ProjectTableColumns.width(SortColumn.REGION)), fontWeight = rowFontWeight)
+        Text(localizedUkraineRegion(project.region), modifier = Modifier.width(ProjectTableColumns.width(SortColumn.REGION)), fontWeight = rowFontWeight)
 
-        Text(project.city, modifier = Modifier.width(ProjectTableColumns.width(SortColumn.CITY)), fontWeight = rowFontWeight)
+        Text(project.localizedCity(), modifier = Modifier.width(ProjectTableColumns.width(SortColumn.CITY)), fontWeight = rowFontWeight)
         Box(modifier = Modifier.width(ProjectTableColumns.width(SortColumn.SECTOR))) { SectorChip(project.sector, rowFontWeight) }
         Box(modifier = Modifier.width(ProjectTableColumns.width(SortColumn.CONSTRUCTION_TYPE))) { ConstructionTypeChip(project.constructionType, rowFontWeight) }
 

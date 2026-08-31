@@ -14,6 +14,10 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.OpenInNew
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -28,6 +32,11 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.input.pointer.PointerIcon
+import androidx.compose.ui.input.pointer.pointerHoverIcon
 import oms.components.StatusChip
 import oms.components.constructionTypeLabel
 import oms.components.sectorLabel
@@ -40,6 +49,8 @@ import oms.data.OmsApiClient
 import oms.data.ProjectRepository
 import oms.components.toOmsDate
 import oms.localization.LocalizationManager
+import oms.localization.Language
+import oms.components.localizedUkraineRegion
 import oms.model.Project
 import oms.navigation.Screen
 import kotlinx.coroutines.launch
@@ -248,6 +259,7 @@ fun ProjectDetailScreen(
                     Tab(
                         selected = selectedTab == tab,
                         onClick = { selectedTab = tab },
+                        modifier = Modifier.pointerHoverIcon(PointerIcon.Hand),
                         text = { Text(LocalizationManager.t(tab.titleKey)) }
                     )
                 }
@@ -496,8 +508,8 @@ private fun ProjectGeneralInfoTab(details: oms.data.ApiProjectDetails?) {
             }
         } else {
             val data = details.data
-            val fields = buildList {
-                addAll(listOf(
+            val general = listOf(
+                LocalizationManager.t("name") to (if (LocalizationManager.currentLanguage == Language.EN) details.monitoringDetails?.nameEn ?: data.name else data.name),
                 LocalizationManager.t("record_type") to when (data.projectType) {
                     "subproject" -> LocalizationManager.t("subproject")
                     "subproject_part" -> LocalizationManager.t("subproject_part")
@@ -507,79 +519,113 @@ private fun ProjectGeneralInfoTab(details: oms.data.ApiProjectDetails?) {
                 LocalizationManager.t("description") to (data.description ?: "—"),
                 LocalizationManager.t("status") to LocalizationManager.t("project_status_${data.status}"),
                 LocalizationManager.t("sector") to data.sector.sectorLabel(),
-                LocalizationManager.t("construction_type") to data.constructionType.constructionTypeLabel(),
-                LocalizationManager.t("contractor") to (data.contractorName ?: "—"),
+                LocalizationManager.t("construction_type") to data.constructionType.constructionTypeLabel()
+            )
+            val location = listOf(
+                LocalizationManager.t("address") to data.address.ifBlank { "—" },
+                LocalizationManager.t("region") to localizedUkraineRegion(data.region.ifBlank { "—" }),
+                LocalizationManager.t("city") to (if (LocalizationManager.currentLanguage == Language.EN) details.monitoringDetails?.settlementNameEn ?: data.city else data.city).ifBlank { "—" },
+                LocalizationManager.t("coordinates") to "${data.latitude}, ${data.longitude}"
+            )
+            val finance = listOf(
                 LocalizationManager.t("currency") to data.currency,
                 LocalizationManager.t("budget") to data.budgetPlanned.toMoney(),
                 LocalizationManager.t("engineer_consultant_contract") to (data.engineerConsultantContractAmount?.toMoney() ?: "—"),
                 LocalizationManager.t("technical_supervision") to (data.technicalSupervisionAmount?.toMoney() ?: "—"),
-                LocalizationManager.t("subproject_contract_amount") to (data.subprojectContractAmount?.toMoney() ?: "—"),
+                LocalizationManager.t("subproject_contract_amount") to (data.subprojectContractAmount?.toMoney() ?: "—")
+            )
+            val schedule = listOf(
                 LocalizationManager.t("start_date") to data.startDate.toOmsDate(),
                 LocalizationManager.t("end_date") to data.endDate.toOmsDate(),
                 LocalizationManager.t("contract_signed_date") to data.contractSignedDate.toOmsDate(),
-                LocalizationManager.t("planned_end_date") to data.plannedEndDate.toOmsDate(),
+                LocalizationManager.t("planned_end_date") to data.plannedEndDate.toOmsDate()
+            )
+            val designer = listOf(
+                LocalizationManager.t("designer_name") to (data.designerName ?: "—"),
+                LocalizationManager.t("contract_number") to (data.designContractNumber ?: "—"),
                 LocalizationManager.t("design_contract_date") to data.designContractSigningDate.toOmsDate(),
                 LocalizationManager.t("design_start_date") to data.designStartDate.toOmsDate(),
                 LocalizationManager.t("design_planned_end_date") to data.designPlannedEndDate.toOmsDate(),
-                LocalizationManager.t("design_contract_term") to (data.designDurationDays?.let { LocalizationManager.t("design_duration_days").replace("{days}", it.toString()) } ?: "—"),
-                LocalizationManager.t("technical_supervision_information") to (data.technicalSupervisionName ?: "—"),
-                LocalizationManager.t("contract_number") to (data.technicalSupervisionContractNumber ?: "—"),
-                LocalizationManager.t("contract_date") to data.technicalSupervisionContractDate.toOmsDate(),
-                LocalizationManager.t("design_start_date") to data.technicalSupervisionStartDate.toOmsDate(),
-                LocalizationManager.t("design_planned_end_date") to data.technicalSupervisionPlannedEndDate.toOmsDate(),
-                LocalizationManager.t("contract_duration") to (data.technicalSupervisionDurationDays?.let { LocalizationManager.t("design_duration_days").replace("{days}", it.toString()) } ?: "—"),
-                LocalizationManager.t("engineer_consultant_information") to (data.engineerConsultantName ?: "—"),
-                LocalizationManager.t("contract_number") to (data.engineerConsultantContractNumber ?: "—"),
-                LocalizationManager.t("contract_date") to data.engineerConsultantContractDate.toOmsDate(),
-                LocalizationManager.t("design_start_date") to data.engineerConsultantStartDate.toOmsDate(),
-                LocalizationManager.t("design_planned_end_date") to data.engineerConsultantPlannedEndDate.toOmsDate(),
-                LocalizationManager.t("contract_duration") to (data.engineerConsultantDurationDays?.let { LocalizationManager.t("design_duration_days").replace("{days}", it.toString()) } ?: "—"),
+                LocalizationManager.t("design_contract_term") to (data.designDurationDays?.let { LocalizationManager.t("design_duration_days").replace("{days}", it.toString()) } ?: "—")
+            )
+            val contractor = listOf(
+                LocalizationManager.t("contractor") to (data.contractorName ?: "—"),
+                LocalizationManager.t("contract_number") to (data.constructionContractNumber ?: "—"),
                 LocalizationManager.t("construction_contract_date") to data.constructionContractSigningDate.toOmsDate(),
                 LocalizationManager.t("construction_start_date") to data.constructionStartDate.toOmsDate(),
                 LocalizationManager.t("projected_completion_date") to data.projectedCompletionTime.toOmsDate(),
                 LocalizationManager.t("contract_duration") to (data.contractDurationDays?.let { LocalizationManager.t("days_value").replace("{count}", it.toString()) } ?: "—")
-                ))
-                if (!data.projectType.equals("project", ignoreCase = true)) {
-                    add(LocalizationManager.t("address") to data.address.ifBlank { "—" })
-                    add(LocalizationManager.t("region") to data.region.ifBlank { "—" })
-                    add(LocalizationManager.t("city") to data.city.ifBlank { "—" })
-                    add(LocalizationManager.t("coordinates") to "${data.latitude}, ${data.longitude}")
-                }
-                details.programmeDetails?.let { source ->
-                    add(LocalizationManager.t("implementor") to source.implementor)
-                    add(LocalizationManager.t("financing_institution") to source.financingInstitution)
-                    add(LocalizationManager.t("finance_contract_number") to source.financeContractNumber)
-                    add("Serapis" to source.serapisNumber)
-                    add(LocalizationManager.t("agreement_date") to source.agreementDate.toOmsDate())
-                    add(LocalizationManager.t("loan_amount") to "${source.loanAmount} ${source.loanCurrency}")
-                }
-                details.monitoringDetails?.let { source ->
-                    add(LocalizationManager.t("source_subproject_id") to source.sourceSubprojectId)
-                    add(LocalizationManager.t("source_lot_id") to source.sourceLotId)
-                    add(LocalizationManager.t("english_name") to (source.nameEn ?: "—"))
-                    add(LocalizationManager.t("municipality") to (source.municipalityNameUk ?: "—"))
-                    add(LocalizationManager.t("beneficiary") to (source.beneficiaryNameUk ?: "—"))
-                    add(LocalizationManager.t("project_manager") to (source.projectManagerNameUk ?: "—"))
-                    add(LocalizationManager.t("procurement_status") to (source.constructionProcurementStatus ?: "—"))
-                    add(LocalizationManager.t("work_status") to (source.constructionWorkStatus ?: "—"))
-                    add(LocalizationManager.t("coordinate_accuracy") to LocalizationManager.t("geocode_accuracy_${source.geocodeAccuracy ?: "unknown"}"))
-                    add(LocalizationManager.t("source_workbook") to source.sourceWorkbook)
-                }
+            )
+            val technical = listOf(
+                LocalizationManager.t("name") to (data.technicalSupervisionName ?: "—"),
+                LocalizationManager.t("contract_number") to (data.technicalSupervisionContractNumber ?: "—"),
+                LocalizationManager.t("contract_date") to data.technicalSupervisionContractDate.toOmsDate(),
+                LocalizationManager.t("design_start_date") to data.technicalSupervisionStartDate.toOmsDate(),
+                LocalizationManager.t("design_planned_end_date") to data.technicalSupervisionPlannedEndDate.toOmsDate(),
+                LocalizationManager.t("contract_duration") to (data.technicalSupervisionDurationDays?.let { LocalizationManager.t("design_duration_days").replace("{days}", it.toString()) } ?: "—")
+            )
+            val engineer = listOf(
+                LocalizationManager.t("name") to (data.engineerConsultantName ?: "—"),
+                LocalizationManager.t("contract_number") to (data.engineerConsultantContractNumber ?: "—"),
+                LocalizationManager.t("contract_date") to data.engineerConsultantContractDate.toOmsDate(),
+                LocalizationManager.t("design_start_date") to data.engineerConsultantStartDate.toOmsDate(),
+                LocalizationManager.t("design_planned_end_date") to data.engineerConsultantPlannedEndDate.toOmsDate(),
+                LocalizationManager.t("contract_duration") to (data.engineerConsultantDurationDays?.let { LocalizationManager.t("design_duration_days").replace("{days}", it.toString()) } ?: "—")
+            )
+            val source = buildList {
+                details.programmeDetails?.let { add(LocalizationManager.t("implementor") to it.implementor); add(LocalizationManager.t("financing_institution") to it.financingInstitution); add(LocalizationManager.t("finance_contract_number") to it.financeContractNumber); add("Serapis" to it.serapisNumber) }
+                details.monitoringDetails?.let { add(LocalizationManager.t("source_subproject_id") to it.sourceSubprojectId); add(LocalizationManager.t("source_lot_id") to it.sourceLotId); add(LocalizationManager.t("english_name") to (it.nameEn ?: "—")); add(LocalizationManager.t("municipality") to (if (LocalizationManager.currentLanguage == Language.EN) it.municipalityNameEn ?: it.municipalityNameUk else it.municipalityNameUk) .orEmpty().ifBlank { "—" }); add(LocalizationManager.t("beneficiary") to (if (LocalizationManager.currentLanguage == Language.EN) it.beneficiaryNameEn ?: it.beneficiaryNameUk else it.beneficiaryNameUk).orEmpty().ifBlank { "—" }); add(LocalizationManager.t("project_manager") to (if (LocalizationManager.currentLanguage == Language.EN) it.projectManagerNameEn ?: it.projectManagerNameUk else it.projectManagerNameUk).orEmpty().ifBlank { "—" }); add(LocalizationManager.t("procurement_status") to (it.constructionProcurementStatus?.let(LocalizationManager::procurementStatus) ?: "—")); add(LocalizationManager.t("work_status") to (it.constructionWorkStatus ?: "—")); add(LocalizationManager.t("coordinate_accuracy") to LocalizationManager.t("geocode_accuracy_${it.geocodeAccuracy ?: "unknown"}")); add(LocalizationManager.t("source_workbook") to it.sourceWorkbook) }
             }
-            Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                fields.forEachIndexed { index, (label, value) ->
-                    when (index) {
-                        0 -> oms.components.FormSectionTitle(LocalizationManager.t("basic_information"), Icons.Default.Info)
-                        7 -> oms.components.FormSectionTitle(LocalizationManager.t("section_finance"), Icons.Default.Payments)
-                        12 -> oms.components.FormSectionTitle(LocalizationManager.t("section_schedule"), Icons.Default.CalendarMonth)
-                        21 -> oms.components.FormSectionTitle(LocalizationManager.t("parameters_and_location"), Icons.Default.LocationOn)
-                    }
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                        Text(label, modifier = Modifier.width(210.dp), color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text(value, modifier = Modifier.weight(1f))
-                    }
-                    HorizontalDivider()
+            Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                CollapsibleProjectSection(LocalizationManager.t("basic_information"), Icons.Default.Info, general)
+                if (!data.projectType.equals("project", true)) CollapsibleProjectSection(LocalizationManager.t("parameters_and_location"), Icons.Default.LocationOn, location, showMapLink = true, latitude = data.latitude, longitude = data.longitude)
+                CollapsibleProjectSection(LocalizationManager.t("section_finance"), Icons.Default.Payments, finance)
+                CollapsibleProjectSection(LocalizationManager.t("section_schedule"), Icons.Default.CalendarMonth, schedule)
+                CollapsibleProjectSection(LocalizationManager.t("designer_information"), Icons.Default.Info, designer)
+                CollapsibleProjectSection(LocalizationManager.t("construction_contractor_information"), Icons.Default.Info, contractor)
+                CollapsibleProjectSection(LocalizationManager.t("technical_supervision_information"), Icons.Default.Info, technical)
+                CollapsibleProjectSection(LocalizationManager.t("engineer_consultant_information"), Icons.Default.Info, engineer)
+                if (source.isNotEmpty()) CollapsibleProjectSection(LocalizationManager.t("source_information"), Icons.Default.Info, source)
+            }
+        }
+    }
+}
+
+@Composable
+private fun CollapsibleProjectSection(
+    title: String,
+    icon: ImageVector,
+    fields: List<Pair<String, String>>,
+    showMapLink: Boolean = false,
+    latitude: Double = 0.0,
+    longitude: Double = 0.0
+) {
+    var expanded by remember { mutableStateOf(true) }
+    val uriHandler = LocalUriHandler.current
+    val clipboard = LocalClipboardManager.current
+    val mapUrl = "https://www.openstreetmap.org/?mlat=$latitude&mlon=$longitude#map=16/$latitude/$longitude"
+    Column {
+        TextButton(
+            onClick = { expanded = !expanded },
+            modifier = Modifier.fillMaxWidth().pointerHoverIcon(PointerIcon.Hand),
+            contentPadding = PaddingValues(vertical = 10.dp)
+        ) {
+            Icon(icon, null, tint = MaterialTheme.colorScheme.primary)
+            Spacer(Modifier.width(10.dp))
+            Text(title, Modifier.weight(1f), style = MaterialTheme.typography.titleMedium, textAlign = androidx.compose.ui.text.style.TextAlign.Start)
+            Icon(if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore, LocalizationManager.t(if (expanded) "collapse" else "expand"))
+        }
+        if (expanded) {
+            fields.forEach { (label, value) ->
+                Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Text(label, modifier = Modifier.width(210.dp), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(value, modifier = Modifier.weight(1f))
                 }
+                HorizontalDivider()
+            }
+            if (showMapLink) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                TextButton(onClick = { clipboard.setText(AnnotatedString(mapUrl)) }, modifier = Modifier.pointerHoverIcon(PointerIcon.Hand)) { Icon(Icons.Default.ContentCopy, null); Spacer(Modifier.width(6.dp)); Text(LocalizationManager.t("copy_map_link")) }
+                TextButton(onClick = { uriHandler.openUri(mapUrl) }, modifier = Modifier.pointerHoverIcon(PointerIcon.Hand)) { Icon(Icons.Default.OpenInNew, null); Spacer(Modifier.width(6.dp)); Text(LocalizationManager.t("open_in_openstreetmap")) }
             }
         }
     }

@@ -7,16 +7,24 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.input.pointer.PointerIcon
+import androidx.compose.ui.input.pointer.pointerHoverIcon
 import oms.charts.BarData
 import oms.charts.VerticalBarChart
 import oms.data.ApiDashboardMetric
@@ -28,29 +36,74 @@ import oms.screens.dashboard.toMonthName
 
 @Composable
 fun FundingByOblastChart(items: List<ApiSubprojectFunding>) {
-    val colors = listOf(Color(0xFF278DAD), Color(0xFF4D9F76), Color(0xFFC68642), Color(0xFF7666A5), Color(0xFFB85E75))
-    val data = items
+    val rows = items
         .groupBy { it.region.toOblastChartLabel() }
         .entries
         .sortedBy { it.key }
-        .mapIndexed { index, entry ->
-            BarData(
-                label = entry.key,
-                value = entry.value.sumOf { it.amount }.toFloat(),
-                color = colors[index % colors.size],
-                tooltip = LocalizationManager.t("subprojects") + ":\n" +
-                    entry.value.map { it.name }.filter(String::isNotBlank).distinct().sorted().joinToString("\n")
+        .map { entry ->
+            AnalyticsListRow(
+                entry.key,
+                money(entry.value.sumOf { it.amount }),
+                entry.value.map { it.name }.filter(String::isNotBlank).distinct().sorted().joinToString(" · ")
             )
         }
-    AnalyticsCard("approved_funding_by_oblast", null, data, { money(it.toLong()) })
+    AnalyticsListCard("approved_funding_by_oblast", rows)
 }
 
 @Composable
 fun SubprojectProgressChart(items: List<ApiSubprojectProgress>, onOpenProject: (String) -> Unit) {
-    val data = items.map { BarData(it.name, it.completionPct.toFloat().coerceIn(0f, 100f)) }
-    AnalyticsCard("subproject_completion", "subproject_completion_hint", data, { "${it.toInt()}%" }, onItemClick = { bar ->
-        items.firstOrNull { it.name == bar.label }?.let { onOpenProject(it.projectUuid) }
-    })
+    AnalyticsListCard(
+        "subproject_completion",
+        items.map { AnalyticsListRow(it.name, "${it.completionPct}%", progress = it.completionPct / 100f, onClick = { onOpenProject(it.projectUuid) }) },
+        "subproject_completion_hint"
+    )
+}
+
+private data class AnalyticsListRow(
+    val label: String,
+    val value: String,
+    val supporting: String? = null,
+    val progress: Float? = null,
+    val onClick: (() -> Unit)? = null
+)
+
+@Composable
+private fun AnalyticsListCard(titleKey: String, rows: List<AnalyticsListRow>, hintKey: String? = null) {
+    var page by remember(rows) { mutableStateOf(0) }
+    val pageSize = 6
+    val pageCount = ((rows.size + pageSize - 1) / pageSize).coerceAtLeast(1)
+    if (page >= pageCount) page = pageCount - 1
+    Card(
+        Modifier.fillMaxWidth().height(420.dp),
+        shape = RoundedCornerShape(12.dp),
+        colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+    ) {
+        Column(Modifier.padding(16.dp)) {
+            Box(Modifier.fillMaxWidth().height(44.dp), contentAlignment = Alignment.Center) {
+                Text(LocalizationManager.t(titleKey), style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center)
+            }
+            hintKey?.let { Text(LocalizationManager.t(it), Modifier.fillMaxWidth(), textAlign = TextAlign.Center, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+            Spacer(Modifier.height(8.dp))
+            if (rows.isEmpty()) Text(LocalizationManager.t("no_chart_data"), color = MaterialTheme.colorScheme.onSurfaceVariant)
+            rows.drop(page * pageSize).take(pageSize).forEach { row ->
+                val clickModifier = row.onClick?.let { Modifier.clickable(onClick = it).pointerHoverIcon(PointerIcon.Hand) } ?: Modifier
+                Column(clickModifier.fillMaxWidth().padding(vertical = 7.dp)) {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Text(row.label, Modifier.weight(1f), maxLines = 2, style = MaterialTheme.typography.bodyMedium)
+                        Text(row.value, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary)
+                    }
+                    row.supporting?.takeIf(String::isNotBlank)?.let { Text(it, maxLines = 1, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                    row.progress?.let { LinearProgressIndicator(progress = { it.coerceIn(0f, 1f) }, Modifier.fillMaxWidth().padding(top = 4.dp)) }
+                }
+                HorizontalDivider()
+            }
+            if (pageCount > 1) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
+                TextButton(onClick = { page = (page - 1).coerceAtLeast(0) }, enabled = page > 0) { Text("‹") }
+                Text("${page + 1} / $pageCount", style = MaterialTheme.typography.labelMedium)
+                TextButton(onClick = { page = (page + 1).coerceAtMost(pageCount - 1) }, enabled = page < pageCount - 1) { Text("›") }
+            }
+        }
+    }
 }
 
 @Composable
@@ -74,6 +127,14 @@ fun MetricsChart(
         )
     }
     AnalyticsCard(titleKey, hintKey, data, compact = compact)
+}
+
+@Composable
+fun MetricsListChart(titleKey: String, metrics: List<ApiDashboardMetric>) {
+    AnalyticsListCard(
+        titleKey,
+        metrics.map { AnalyticsListRow(LocalizationManager.procurementStatus(it.label), it.value.toString()) }
+    )
 }
 
 @Composable

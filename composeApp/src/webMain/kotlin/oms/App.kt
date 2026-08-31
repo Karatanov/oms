@@ -15,11 +15,18 @@ import oms.screens.ActivationScreen
 import oms.data.OmsApiClient
 import oms.theme.OMSTheme
 import kotlinx.browser.window
+import kotlin.js.JsName
+
+@JsName("setOmsRouteHandler") private external fun setOmsRouteHandler(handler: (String) -> Unit)
 
 @Composable
 fun App() {
     val appState = remember { AppState() }
     val activationToken = remember { window.location.search.removePrefix("?").split("&").firstOrNull { it.startsWith("token=") }?.removePrefix("token=") }
+    DisposableEffect(appState) {
+        setOmsRouteHandler { route -> if (appState.isAuthenticated) appState.restoreRoute(route) }
+        onDispose { setOmsRouteHandler { } }
+    }
 
     OMSTheme {
         oms.components.TooltipOverlayHost {
