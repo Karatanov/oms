@@ -682,7 +682,9 @@
                     .bindPopup(popupHtml, {
                         autoPan: true,
                         keepInView: true,
-                        autoPanPaddingTopLeft: [24, 24],
+                        // Include the popup tip/anchor offset so the whole opaque card
+                        // remains inside the visible map instead of covering controls.
+                        autoPanPaddingTopLeft: [24, 72],
                         autoPanPaddingBottomRight: [24, 24],
                         maxWidth: 340,
                         minWidth: 220
