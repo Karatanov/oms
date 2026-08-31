@@ -54,7 +54,7 @@ fun FundingByOblastChart(items: List<ApiSubprojectFunding>) {
 fun SubprojectProgressChart(items: List<ApiSubprojectProgress>, onOpenProject: (String) -> Unit) {
     AnalyticsListCard(
         "subproject_completion",
-        items.map { AnalyticsListRow(it.name, "${it.completionPct}%", progress = it.completionPct / 100f, onClick = { onOpenProject(it.projectUuid) }) },
+        items.map { AnalyticsListRow(it.name, "${it.completionPct}%", progress = it.completionPct.toFloat() / 100f, onClick = { onOpenProject(it.projectUuid) }) },
         "subproject_completion_hint"
     )
 }
