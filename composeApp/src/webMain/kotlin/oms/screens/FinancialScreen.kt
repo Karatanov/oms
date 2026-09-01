@@ -19,8 +19,6 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.async
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import oms.data.ApiFinancialRecord
@@ -83,12 +81,10 @@ fun FinancialScreen(
     LaunchedEffect(reloadKey) {
         loading = true; loadFailed = false
         try {
-        val records = coroutineScope {
-            val refreshProjects = async { ProjectRepository.refresh() }
-            val loadRecords = async { OmsApiClient.allFinancialRecords() }
-            refreshProjects.await()
-            loadRecords.await()
-        }
+        val records = OmsApiClient.allFinancialRecords()
+        // A project snapshot is necessary only to decorate actual rows.  On an
+        // empty register do not wait for the much larger project hierarchy.
+        if (records.isNotEmpty()) ProjectRepository.refresh()
         val projectsById = ProjectRepository.projects.associateBy { it.id }
         acts = records.mapNotNull { item ->
             projectsById[item.projectUuid]?.let { project ->
@@ -172,8 +168,19 @@ fun FinancialScreen(
             Text(LocalizationManager.t("financial_records"), style = MaterialTheme.typography.titleLarge)
             if (canManageFinancials) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(onClick = { showTransferDialog = true }) { Text(LocalizationManager.t("import_export_xlsx")) }
-                    Button(onClick = { errorMessage = null; addAct = true }) { Text(LocalizationManager.t("add_record")) }
+                    OutlinedButton(onClick = {
+                        scope.launch {
+                            ProjectRepository.refresh()
+                            showTransferDialog = true
+                        }
+                    }) { Text(LocalizationManager.t("import_export_xlsx")) }
+                    Button(onClick = {
+                        errorMessage = null
+                        scope.launch {
+                            ProjectRepository.refresh()
+                            addAct = true
+                        }
+                    }) { Text(LocalizationManager.t("add_record")) }
                 }
             }
         }
