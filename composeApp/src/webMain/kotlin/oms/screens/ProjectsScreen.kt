@@ -143,10 +143,6 @@ fun ProjectsScreen(
             singleLine = true,
             modifier = Modifier.fillMaxWidth()
         )
-        TextButton(
-            enabled = searchText.isNotBlank() || regionFilter != null || statusFilter != null || constructionTypeFilter != null || sectorFilter != null,
-            onClick = { searchText = ""; regionFilter = null; statusFilter = null; constructionTypeFilter = null; sectorFilter = null }
-        ) { Text(LocalizationManager.t("reset_filters")) }
         if (canManageProjects && selectedProjectIds.isNotEmpty()) {
             Spacer(Modifier.height(12.dp))
             Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)) {
@@ -184,7 +180,9 @@ fun ProjectsScreen(
             searchText = searchText,
             filters = {
                 ProjectsFilters(regionFilter, { regionFilter = it }, statusFilter, { statusFilter = it },
-                    constructionTypeFilter, { constructionTypeFilter = it }, sectorFilter, { sectorFilter = it })
+                    constructionTypeFilter, { constructionTypeFilter = it }, sectorFilter, { sectorFilter = it },
+                    canReset = searchText.isNotBlank() || regionFilter != null || statusFilter != null || constructionTypeFilter != null || sectorFilter != null,
+                    onReset = { searchText = ""; regionFilter = null; statusFilter = null; constructionTypeFilter = null; sectorFilter = null })
             },
             onOpenProject = onOpenProject,
             onEditProject = onEditProject,
@@ -348,7 +346,9 @@ private fun ProjectsFilters(
     constructionTypeFilter: String?,
     onConstructionTypeChange: (String?) -> Unit,
     sectorFilter: String?,
-    onSectorChange: (String?) -> Unit
+    onSectorChange: (String?) -> Unit,
+    canReset: Boolean,
+    onReset: () -> Unit
 ) {
     Row(Modifier.width(ProjectTableColumns.totalWidth).padding(vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically) {
@@ -356,7 +356,19 @@ private fun ProjectsFilters(
         ProjectTableColumns.columns.forEach { column ->
             Box(Modifier.width(ProjectTableColumns.width(column)).padding(end = 6.dp)) {
                 when (column) {
-                    SortColumn.NAME -> Text(LocalizationManager.t("filters"), style = MaterialTheme.typography.labelLarge)
+                    SortColumn.NAME -> Row(
+                        Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(LocalizationManager.t("filters"), Modifier.weight(1f), style = MaterialTheme.typography.labelLarge)
+                        TextButton(
+                            onClick = onReset,
+                            enabled = canReset,
+                            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp)
+                        ) {
+                            Text(LocalizationManager.t("reset_filters"), maxLines = 1, style = MaterialTheme.typography.labelSmall)
+                        }
+                    }
                     SortColumn.REGION -> ProjectFilterDropdown(
                         LocalizationManager.t("region"),
                         ProjectRepository.projects.map { it.region }.filter { it.isNotBlank() }.distinct().sorted(),
