@@ -135,7 +135,7 @@ fun ProjectDetailScreen(
         Row(
             verticalAlignment = Alignment.CenterVertically
         ) {
-            TextButton(onClick = onBackToProjects) {
+            TextButton(onClick = onBackToProjects, modifier = Modifier.pointerHoverIcon(PointerIcon.Hand)) {
                 Text(LocalizationManager.t("projects"))
             }
 
@@ -200,7 +200,7 @@ fun ProjectDetailScreen(
 
                     if (canEditProject || canDeleteProject) Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         if (canEditProject) {
-                        Button(onClick = { onEdit(project) }) {
+                        Button(onClick = { onEdit(project) }, modifier = Modifier.pointerHoverIcon(PointerIcon.Hand)) {
                             Icon(
                                 imageVector = Icons.Default.Edit,
                                 contentDescription = LocalizationManager.t("edit")
@@ -212,6 +212,7 @@ fun ProjectDetailScreen(
                         if (canDeleteProject) {
                             OutlinedButton(
                                 onClick = { confirmDeletion = true },
+                                modifier = Modifier.pointerHoverIcon(PointerIcon.Hand),
                                 colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)
                             ) {
                                 Icon(Icons.Default.Delete, contentDescription = LocalizationManager.t("delete_project"))
@@ -234,7 +235,10 @@ fun ProjectDetailScreen(
                     Text(LocalizationManager.t("delete_project_confirmation").replace("{name}", project.name))
                     deleteError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
-                        OutlinedButton(onClick = { confirmDeletion = false }) { Text(LocalizationManager.t("cancel")) }
+                        OutlinedButton(
+                            onClick = { confirmDeletion = false },
+                            modifier = Modifier.pointerHoverIcon(PointerIcon.Hand)
+                        ) { Text(LocalizationManager.t("cancel")) }
                         Button(
                             onClick = {
                                 scope.launch {
@@ -244,6 +248,7 @@ fun ProjectDetailScreen(
                                     } else deleteError = LocalizationManager.t("error_delete_project")
                                 }
                             },
+                            modifier = Modifier.pointerHoverIcon(PointerIcon.Hand),
                             colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
                         ) { Text(LocalizationManager.t("delete")) }
                     }
@@ -639,7 +644,10 @@ private fun ProjectReportsTab(reports: List<ApiInspectionReport>) {
             if (reports.isEmpty()) Text(LocalizationManager.t("no_reports"))
             reports.forEach { report ->
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
-                    Button(onClick = { uriHandler.openUri(oms.data.omsApiUrl("/inspection-reports/${report.uuid}/source-file")) }) {
+                    Button(
+                        onClick = { uriHandler.openUri(oms.data.omsApiUrl("/inspection-reports/${report.uuid}/source-file")) },
+                        modifier = Modifier.pointerHoverIcon(PointerIcon.Hand)
+                    ) {
                         Text(LocalizationManager.t("upload_xls"))
                     }
                 }
@@ -677,7 +685,10 @@ private fun ProjectDocumentsTab(projectUuid: String, documents: List<ApiProjectD
             documents.forEach { document ->
                 Text(document.fileName, style = MaterialTheme.typography.titleMedium)
                 Text("${document.docType} • ${document.fileSizeBytes} ${LocalizationManager.t("bytes")}")
-                Button(onClick = { uriHandler.openUri(oms.data.omsApiUrl("/projects/$projectUuid/documents/${document.uuid}/download")) }) { Text(LocalizationManager.t("open_document")) }
+                Button(
+                    onClick = { uriHandler.openUri(oms.data.omsApiUrl("/projects/$projectUuid/documents/${document.uuid}/download")) },
+                    modifier = Modifier.pointerHoverIcon(PointerIcon.Hand)
+                ) { Text(LocalizationManager.t("open_document")) }
                 HorizontalDivider()
             }
         }
