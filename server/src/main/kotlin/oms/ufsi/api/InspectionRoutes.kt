@@ -29,6 +29,23 @@ fun Route.inspectionRoutes() {
         )
     }
 
+    get("/api/v1/inspection-reports/analytics") {
+        val session = call.requireRole("ADMIN", "PROJECT_MANAGER", "INSPECTOR", "VIEWER") ?: return@get
+        val allowedProjectIds = if (session.roleCode.equals("PROJECT_MANAGER", ignoreCase = true)) {
+            AppContainer.projectService.getAllProjects()
+                .filter { AppContainer.projectService.isManagedBy(it.uuid.toString(), session.userId) }
+                .map { it.id }
+                .toSet()
+        } else null
+        val analytics = AppContainer.inspectionAnalyticsService.get(allowedProjectIds)
+        call.respond(
+            InspectionAnalyticsResponse(
+                monthlyInspectionCounts = analytics.monthlyInspectionCounts.map { DashboardMetricResponse(it.label, it.value) },
+                monthlyEshsViolations = analytics.monthlyEshsViolations.map { DashboardMetricResponse(it.label, it.value) }
+            )
+        )
+    }
+
     post("/api/v1/projects/{projectUuid}/inspection-reports/manual") {
         val session = call.requireRole("ADMIN", "PROJECT_MANAGER", "INSPECTOR") ?: return@post
         val projectUuid = call.parameters["projectUuid"] ?: return@post call.notFound("Project not found.")

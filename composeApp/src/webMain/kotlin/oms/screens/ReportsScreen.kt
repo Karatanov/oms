@@ -43,7 +43,7 @@ import oms.data.CreateInspectionFindingRequest
 import oms.data.OmsApiClient
 import oms.data.ProjectRepository
 import oms.data.UpdateInspectionFindingRequest
-import oms.data.ApiDashboard
+import oms.data.ApiInspectionAnalytics
 import oms.components.SortableTableHeader
 import oms.components.ReportStatusChip
 import oms.components.TableActionIconButton
@@ -93,7 +93,7 @@ fun ReportsScreen(
     var findingsReport by remember { mutableStateOf<ReportRow?>(null) }
     var reportToReview by remember { mutableStateOf<ReportRow?>(null) }
     var isMovingReport by remember { mutableStateOf(false) }
-    var dashboard by remember { mutableStateOf<ApiDashboard?>(null) }
+    var analytics by remember { mutableStateOf<ApiInspectionAnalytics?>(null) }
     val scope = rememberCoroutineScope()
     var sort by remember { mutableStateOf(ReportSort.Date) }
     var ascending by remember { mutableStateOf(false) }
@@ -106,9 +106,9 @@ fun ReportsScreen(
         val reportItems = coroutineScope {
             val refreshProjects = async { ProjectRepository.refresh() }
             val loadReports = async { OmsApiClient.inspectionReports() }
-            val loadDashboard = async { runCatching { OmsApiClient.dashboard() }.getOrNull() }
+            val loadAnalytics = async { runCatching { OmsApiClient.inspectionAnalytics() }.getOrNull() }
             refreshProjects.await()
-            dashboard = loadDashboard.await()
+            analytics = loadAnalytics.await()
             loadReports.await()
         }
         val projectsById = ProjectRepository.projects.associateBy { it.id }
@@ -182,8 +182,8 @@ fun ReportsScreen(
         if (loadFailed) oms.components.ContentState(LocalizationManager.t("load_records_error"), error = true, onRetry = { reloadKey++ })
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         oms.components.AdaptiveChartRow(
-            first = { MetricsChart("inspections_by_month", "inspections_by_month_hint", dashboard?.monthlyInspectionCounts.orEmpty(), compact = true) },
-            second = { MetricsChart("eshs_violations_by_month", "eshs_violations_by_month_hint", dashboard?.monthlyEshsViolations.orEmpty(), compact = true) }
+            first = { MetricsChart("inspections_by_month", "inspections_by_month_hint", analytics?.monthlyInspectionCounts.orEmpty(), compact = true) },
+            second = { MetricsChart("eshs_violations_by_month", "eshs_violations_by_month_hint", analytics?.monthlyEshsViolations.orEmpty(), compact = true) }
         )
         Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
             oms.components.ScrollableTable(

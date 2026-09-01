@@ -174,6 +174,9 @@ object OmsApiClient {
 
     suspend fun dashboard(): ApiDashboard = client.get("$baseUrl/dashboard").body()
 
+    suspend fun inspectionAnalytics(): ApiInspectionAnalytics =
+        client.get("$baseUrl/inspection-reports/analytics").body()
+
     suspend fun procurements(): List<ApiProcurementRecord> = client.get("$baseUrl/procurements").body()
 
     suspend fun createProcurement(request: ProcurementRecordRequest): ApiProcurementRecord =
@@ -633,6 +636,10 @@ data class ApiMonthlyActPayment(val month: String, val amountEurCents: Long)
 @Serializable data class ApiSubprojectFunding(val projectUuid: String, val name: String, val region: String, val amount: Long)
 @Serializable data class ApiSubprojectProgress(val projectUuid: String, val name: String, val completionPct: Double)
 @Serializable data class ApiDashboardMetric(val label: String, val value: Long)
+@Serializable data class ApiInspectionAnalytics(
+    val monthlyInspectionCounts: List<ApiDashboardMetric> = emptyList(),
+    val monthlyEshsViolations: List<ApiDashboardMetric> = emptyList()
+)
 
 @Serializable
 data class ApiActivity(

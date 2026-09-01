@@ -24,10 +24,32 @@ def main() -> None:
                 "verified address coordinates, settlement coordinates or an explicitly labelled oblast-centre fallback",
             )
             changed = True
+    existing_headings = {paragraph.text for paragraph in document.paragraphs}
+    for paragraph in document.paragraphs:
+        if "Approved funding by oblast and subproject completion use vertically paged lists" in paragraph.text:
+            paragraph.text = paragraph.text.replace(
+                "Approved funding by oblast and subproject completion use vertically paged lists instead of horizontally scrolling bar collections.",
+                "Approved funding by oblast and subproject completion use horizontally scrollable vertical bar charts with separate controls.",
+            )
+            changed = True
+
+    if "B.7 Inspection registry performance" not in existing_headings:
+        document.add_heading("B.7 Inspection registry performance", level=2)
+        document.add_paragraph(
+            "GET /inspection-reports/analytics is the dedicated authenticated endpoint for the inspection registry charts. "
+            "It returns only monthly inspection counts and monthly ES/HS finding counts, scoped to the caller's permitted projects."
+        )
+        document.add_paragraph(
+            "The inspection registry loads this lightweight endpoint instead of GET /dashboard. "
+            "Dashboard reads are side-effect free: they must not backfill financial EUR equivalents, recalculate exchange rates or call an external rate provider. "
+            "EUR conversion is stored when a financial record is created or updated."
+        )
+        changed = True
+
     if any(paragraph.text == TITLE for paragraph in document.paragraphs):
         if changed:
             document.save(PATH)
-        print(f"Already present: {TITLE}")
+        print(f"Updated: {TITLE}")
         return
 
     document.add_paragraph().add_run().add_break(WD_BREAK.PAGE)

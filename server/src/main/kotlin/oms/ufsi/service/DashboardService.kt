@@ -32,11 +32,9 @@ data class DashboardData(
 )
 
 class DashboardService(
-    private val auditLogService: AuditLogService,
-    private val financialRecordService: FinancialRecordService
+    private val auditLogService: AuditLogService
 ) {
     fun get(allowedProjectIds: Set<Long>? = null): DashboardData {
-        financialRecordService.backfillMissingEurEquivalents()
         return transaction {
         val projects = ProjectTable.selectAll().toList().filter { allowedProjectIds == null || it[ProjectTable.id].value in allowedProjectIds }
         val projectIds = projects.map { it[ProjectTable.id].value }.toSet()
