@@ -36,18 +36,30 @@ import oms.screens.dashboard.toMonthName
 
 @Composable
 fun FundingByOblastChart(items: List<ApiSubprojectFunding>) {
-    val rows = items
+    val data = items
         .groupBy { it.region.toOblastChartLabel() }
         .entries
         .sortedBy { it.key }
         .map { entry ->
-            AnalyticsListRow(
-                entry.key,
-                money(entry.value.sumOf { it.amount }),
-                entry.value.map { it.name }.filter(String::isNotBlank).distinct().sorted().joinToString(" · ")
+            BarData(
+                label = entry.key,
+                value = entry.value.sumOf { it.amount }.toFloat(),
+                formattedValue = money(entry.value.sumOf { it.amount }),
+                tooltip = entry.value
+                    .map { it.name }
+                    .filter(String::isNotBlank)
+                    .distinct()
+                    .sorted()
+                    .joinToString("\n")
             )
         }
-    AnalyticsListCard("approved_funding_by_oblast", rows)
+    AnalyticsCard(
+        titleKey = "approved_funding_by_oblast",
+        hintKey = "approved_funding_by_oblast_hint",
+        data = data,
+        valueLabel = { money(it.toLong()) },
+        labelMaxLines = 2
+    )
 }
 
 @Composable
