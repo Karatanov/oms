@@ -28,7 +28,7 @@ Analytical pairs use two columns when content width is at least 900 px and stack
 
 ## Screen changes
 
-Dashboard: coherent four-chart layout, readable fixed-baseline plots, exact euro-cent labels, localized month names and centered year groups; the approved-funding-by-oblast tooltip lists contributing subproject names. Photos are positioned below analytics and fetched only for the latest report.
+Dashboard: coherent four-chart layout, readable fixed-baseline plots, exact euro-cent labels, localized month names and centered year groups. Approved funding by oblast and subproject completion use horizontally scrollable vertical bars with separate controls; the approved-funding tooltip lists contributing subproject names. Photos are positioned below analytics and fetched only for the latest report.
 
 Projects: registry heading/actions, hierarchy/readability, reusable filters, search results, selection, destructive confirmation and horizontal scrolling. Create/edit use shared section headings, Material icons, two-column date groups and currency selection. Project details retain their information tabs with a scrollable tab strip and clearer breadcrumb.
 
@@ -62,7 +62,7 @@ Selecting a financial record type smoothly brings the registry table to the top 
 
 Procurement: responsive analytical pair, project/contractor search and status filter, single-language status badges, consistent action alignment, scroll controls and local dialog errors.
 
-UMITAF review baseline: project-detail sections are independently collapsible and start with the customer-facing name and location; the location provides an openable/copyable OpenStreetMap URL. Re-selecting the active Map item restores the Ukraine overview, map popups remain opaque and inside the viewport, and browser history supports Back navigation. Approved funding, subproject completion and procurement status use vertically paged lists instead of horizontally scrolling analytics. Procurement data is paginated at 20, 50, 100 or all records; empty inspection and financial tables do not render redundant horizontal controls. Imported bilingual names are selected according to the current UI language.
+UMITAF review baseline: project-detail sections are independently collapsible and start with the customer-facing name and location; the location provides an openable/copyable OpenStreetMap URL. Re-selecting the active Map item restores the Ukraine overview, map popups remain opaque and inside the viewport, and browser history supports Back navigation. Approved funding and subproject completion use horizontally scrollable vertical bars; procurement status uses a vertically paged list. Procurement data is paginated at 20, 50, 100 or all records; empty inspection and financial tables do not render redundant horizontal controls. Imported bilingual names are selected according to the current UI language.
 
 Map coordinate precedence is audited and persistent: verified street address, then settlement, then an explicitly labelled oblast-centre fallback. Financial terminology keeps allocated programme disbursement separate from actual payments against certified acts.
 

@@ -64,10 +64,23 @@ fun FundingByOblastChart(items: List<ApiSubprojectFunding>) {
 
 @Composable
 fun SubprojectProgressChart(items: List<ApiSubprojectProgress>, onOpenProject: (String) -> Unit) {
-    AnalyticsListCard(
-        "subproject_completion",
-        items.map { AnalyticsListRow(it.name, "${it.completionPct}%", progress = it.completionPct.toFloat() / 100f, onClick = { onOpenProject(it.projectUuid) }) },
-        "subproject_completion_hint"
+    val data = items
+        .sortedBy { it.name }
+        .map {
+            BarData(
+                label = it.name,
+                value = it.completionPct.toFloat(),
+                id = it.projectUuid,
+                formattedValue = "${it.completionPct.toInt()}%"
+            )
+        }
+    AnalyticsCard(
+        titleKey = "subproject_completion",
+        hintKey = "subproject_completion_hint",
+        data = data,
+        valueLabel = { "${it.toInt()}%" },
+        onItemClick = { bar -> bar.id?.let(onOpenProject) },
+        labelMaxLines = 2
     )
 }
 
