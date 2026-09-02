@@ -149,10 +149,7 @@ fun DocumentsScreen(canManageDocuments: Boolean = true) {
     ) {
         oms.components.PageHeading(LocalizationManager.t("documents_title"), Icons.Default.FolderOpen) {
             if (canManageDocuments) Button(onClick = {
-                scope.launch {
-                    ProjectRepository.refresh()
-                    showUploadDialog = true
-                }
+                showUploadDialog = true
             }) { Text(LocalizationManager.t("upload_document")) }
         }
         OutlinedTextField(search, { search = it }, singleLine = true, label = { Text(LocalizationManager.t("documents_search")) }, leadingIcon = { Icon(Icons.Default.Search, null) }, modifier = Modifier.fillMaxWidth())
@@ -206,6 +203,10 @@ fun DocumentsScreen(canManageDocuments: Boolean = true) {
     if (showUploadDialog) WasmSafeOverlay(onDismiss = { showUploadDialog = false }) {
             ProjectDocumentUploadDialog(
             projects = ProjectRepository.projects,
+            loadProjectsOnOpen = {
+                ProjectRepository.refresh()
+                ProjectRepository.projects
+            },
             onDismiss = { showUploadDialog = false },
             onUpload = { projectUuid, type ->
                 openProjectDocumentUpload(projectUuid, type) { uploadError ->
@@ -220,7 +221,12 @@ fun DocumentsScreen(canManageDocuments: Boolean = true) {
 }
 
 @Composable
-private fun ProjectDocumentUploadDialog(projects: List<oms.model.Project>, onDismiss: () -> Unit, onUpload: (String, String) -> Unit) {
+private fun ProjectDocumentUploadDialog(
+    projects: List<oms.model.Project>,
+    loadProjectsOnOpen: suspend () -> List<oms.model.Project>,
+    onDismiss: () -> Unit,
+    onUpload: (String, String) -> Unit
+) {
     var projectUuid by remember { mutableStateOf(projects.firstOrNull()?.id) }
     var docType by remember { mutableStateOf("other") }
     val selected = projects.firstOrNull { it.id == projectUuid }
@@ -235,7 +241,8 @@ private fun ProjectDocumentUploadDialog(projects: List<oms.model.Project>, onDis
                 selected = selected,
                 prompt = LocalizationManager.t("select_project"),
                 onSelect = { projectUuid = it.id },
-                itemLabel = { it.name }
+                itemLabel = { it.name },
+                loadOptionsOnOpen = loadProjectsOnOpen
             )
             Text(LocalizationManager.t("type"), style = MaterialTheme.typography.labelLarge)
             InlineOptionPicker(

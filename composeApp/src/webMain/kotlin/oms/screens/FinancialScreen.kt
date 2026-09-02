@@ -169,17 +169,11 @@ fun FinancialScreen(
             if (canManageFinancials) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedButton(onClick = {
-                        scope.launch {
-                            ProjectRepository.refresh()
-                            showTransferDialog = true
-                        }
+                        showTransferDialog = true
                     }) { Text(LocalizationManager.t("import_export_xlsx")) }
                     Button(onClick = {
                         errorMessage = null
-                        scope.launch {
-                            ProjectRepository.refresh()
-                            addAct = true
-                        }
+                        addAct = true
                     }) { Text(LocalizationManager.t("add_record")) }
                 }
             }
@@ -232,7 +226,10 @@ fun FinancialScreen(
         errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error) }
     }
     if (addAct || editAct != null) { WasmSafeOverlay(onDismiss = { addAct = false; editAct = null }, errorMessage = errorMessage) {
-            ActEditorDialog(editAct, ProjectRepository.projects, { addAct = false; editAct = null }) { projectUuid, request ->
+            ActEditorDialog(editAct, ProjectRepository.projects, {
+                ProjectRepository.refresh()
+                ProjectRepository.projects
+            }, { addAct = false; editAct = null }) { projectUuid, request ->
                 scope.launch {
                     errorMessage = null
                     runCatching {
@@ -249,6 +246,10 @@ fun FinancialScreen(
     if (showTransferDialog) { WasmSafeOverlay(onDismiss = { showTransferDialog = false }, errorMessage = errorMessage) {
             FinancialTransferDialog(
                 projects = ProjectRepository.projects,
+                loadProjectsOnOpen = {
+                    ProjectRepository.refresh()
+                    ProjectRepository.projects
+                },
                 onDismiss = { showTransferDialog = false },
                 onImport = { projectUuid ->
                     openFinancialImport(projectUuid) { importError ->
@@ -267,6 +268,7 @@ fun FinancialScreen(
 @Composable
 private fun FinancialTransferDialog(
     projects: List<oms.model.Project>,
+    loadProjectsOnOpen: suspend () -> List<oms.model.Project>,
     onDismiss: () -> Unit,
     onImport: (String) -> Unit,
     onExport: (String) -> Unit
@@ -275,7 +277,7 @@ private fun FinancialTransferDialog(
     Card(Modifier.widthIn(max = 620.dp).fillMaxWidth()) {
         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(LocalizationManager.t("financial_transfer_title"), style = MaterialTheme.typography.titleLarge)
-            FinancialProjectTargetSelector(projects, projectUuid) { projectUuid = it }
+            FinancialProjectTargetSelector(projects, projectUuid, loadProjectsOnOpen) { projectUuid = it }
             Text(LocalizationManager.t("financial_import_hint"), color = MaterialTheme.colorScheme.onSurfaceVariant)
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, androidx.compose.ui.Alignment.End)) {
                 OutlinedButton(onClick = onDismiss) { Text(LocalizationManager.t("cancel")) }
@@ -287,7 +289,13 @@ private fun FinancialTransferDialog(
 }
 
 @Composable
-private fun ActEditorDialog(existing: ProjectActRow?, projects: List<oms.model.Project>, onDismiss: () -> Unit, onSave: (String, oms.data.FinancialRecordRequest) -> Unit) {
+private fun ActEditorDialog(
+    existing: ProjectActRow?,
+    projects: List<oms.model.Project>,
+    loadProjectsOnOpen: suspend () -> List<oms.model.Project>,
+    onDismiss: () -> Unit,
+    onSave: (String, oms.data.FinancialRecordRequest) -> Unit
+) {
     var projectUuid by remember { mutableStateOf(existing?.projectUuid ?: projects.firstOrNull { it.projectType.equals("project", true) }?.id) }
     var reference by remember { mutableStateOf(existing?.act?.referenceNumber ?: "") }
     var recordType by remember { mutableStateOf(existing?.act?.recordType ?: "act") }
@@ -303,7 +311,7 @@ private fun ActEditorDialog(existing: ProjectActRow?, projects: List<oms.model.P
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text(if (existing == null) LocalizationManager.t("add_financial_record") else LocalizationManager.t("edit_financial_record"), style = MaterialTheme.typography.titleLarge)
-            FinancialProjectTargetSelector(projects, projectUuid) { projectUuid = it }
+            FinancialProjectTargetSelector(projects, projectUuid, loadProjectsOnOpen) { projectUuid = it }
             OutlinedTextField(reference, { reference = it }, label = { Text(LocalizationManager.t("reference_number")) }, modifier = Modifier.fillMaxWidth())
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 listOf("invoice", "act", "payment", "advance").forEach { type -> FilterChip(selected = recordType == type, onClick = { recordType = type }, label = { Text(LocalizationManager.t("record_type_$type")) }) }
@@ -358,6 +366,7 @@ private fun ActEditorDialog(existing: ProjectActRow?, projects: List<oms.model.P
 private fun FinancialProjectTargetSelector(
     projects: List<oms.model.Project>,
     selectedTargetUuid: String?,
+    loadProjectsOnOpen: suspend () -> List<oms.model.Project>,
     onTargetSelect: (String?) -> Unit
 ) {
     val byId = projects.associateBy { it.id }
@@ -370,7 +379,10 @@ private fun FinancialProjectTargetSelector(
     val subprojects = projects.filter { it.projectType.equals("subproject", true) && it.parentProjectUuid == root?.id }
     val parts = projects.filter { it.projectType.equals("subproject_part", true) && it.parentProjectUuid == subproject?.id }
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        FinancialProjectLevelDropdown(LocalizationManager.t("select_project"), rootProjects, root?.id, onTargetSelect)
+        FinancialProjectLevelDropdown(
+            LocalizationManager.t("select_project"), rootProjects, root?.id, onTargetSelect,
+            loadOptionsOnOpen = { loadProjectsOnOpen().filter { it.projectType.equals("project", true) } }
+        )
         FinancialProjectLevelDropdown(
             LocalizationManager.t("select_subproject"), subprojects, subproject?.id, onTargetSelect,
             enabled = root != null && subprojects.isNotEmpty()
@@ -388,7 +400,8 @@ private fun FinancialProjectLevelDropdown(
     options: List<oms.model.Project>,
     selectedUuid: String?,
     onSelect: (String?) -> Unit,
-    enabled: Boolean = true
+    enabled: Boolean = true,
+    loadOptionsOnOpen: (suspend () -> List<oms.model.Project>)? = null
 ) {
     val selected = options.firstOrNull { it.id == selectedUuid }
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -402,7 +415,8 @@ private fun FinancialProjectLevelDropdown(
                 if (project.siteNumber.equals(project.name, ignoreCase = true)) project.name
                 else "${project.siteNumber} — ${project.name}"
             },
-            enabled = enabled
+            enabled = enabled,
+            loadOptionsOnOpen = loadOptionsOnOpen
         )
     }
 }

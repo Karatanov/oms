@@ -86,10 +86,6 @@ fun CreateInspectionScreen(
     var inspectorTitle by remember { mutableStateOf("") }
     val scope = rememberCoroutineScope()
 
-    LaunchedEffect(Unit) {
-        ProjectRepository.refresh()
-    }
-
     val projects = ProjectRepository.projects
     val subprojects = projects.filter {
         it.projectType.equals("subproject", true) && it.parentProjectUuid == selectedProjectUuid
@@ -151,6 +147,10 @@ fun CreateInspectionScreen(
             ) {
                 InspectionProjectSelector(
                     projects = projects,
+                    loadProjectsOnOpen = {
+                        ProjectRepository.refresh()
+                        ProjectRepository.projects
+                    },
                     selectedProjectUuid = selectedProjectUuid,
                     selectedSubprojectUuid = selectedSubprojectUuid,
                     selectedSubprojectPartUuid = selectedSubprojectPartUuid,
@@ -514,6 +514,7 @@ private fun SirSectionTitle(text: String) {
 @Composable
 private fun InspectionProjectSelector(
     projects: List<Project>,
+    loadProjectsOnOpen: suspend () -> List<Project>,
     selectedProjectUuid: String?,
     selectedSubprojectUuid: String?,
     selectedSubprojectPartUuid: String?,
@@ -529,7 +530,10 @@ private fun InspectionProjectSelector(
         it.projectType.equals("subproject_part", true) && it.parentProjectUuid == selectedSubprojectUuid
     }
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        ProjectLevelDropdown(LocalizationManager.t("select_project"), rootProjects, selectedProjectUuid, onProjectSelect)
+        ProjectLevelDropdown(
+            LocalizationManager.t("select_project"), rootProjects, selectedProjectUuid, onProjectSelect,
+            loadOptionsOnOpen = { loadProjectsOnOpen().filter { it.projectType.equals("project", true) } }
+        )
         ProjectLevelDropdown(LocalizationManager.t("select_subproject"), subprojects, selectedSubprojectUuid, onSubprojectSelect, enabled = subprojects.isNotEmpty())
         ProjectLevelDropdown(LocalizationManager.t("select_subproject_part"), parts, selectedSubprojectPartUuid, onSubprojectPartSelect, enabled = parts.isNotEmpty())
     }
@@ -541,7 +545,8 @@ private fun ProjectLevelDropdown(
     options: List<Project>,
     selectedUuid: String?,
     onSelect: (String?) -> Unit,
-    enabled: Boolean = true
+    enabled: Boolean = true,
+    loadOptionsOnOpen: (suspend () -> List<Project>)? = null
 ) {
     val selected = options.firstOrNull { it.id == selectedUuid }
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -555,7 +560,8 @@ private fun ProjectLevelDropdown(
                 if (it.siteNumber.equals(it.name, ignoreCase = true)) it.name
                 else "${it.siteNumber} — ${it.name}"
             },
-            enabled = enabled
+            enabled = enabled,
+            loadOptionsOnOpen = loadOptionsOnOpen
         )
     }
 }

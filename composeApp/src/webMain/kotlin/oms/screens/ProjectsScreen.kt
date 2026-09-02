@@ -31,8 +31,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.text.font.FontWeight
-import kotlinx.coroutines.async
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import oms.components.StatusChip
 import oms.components.TableHeader
@@ -78,25 +76,26 @@ fun ProjectsScreen(
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var selectedProjectIds by remember { mutableStateOf<Set<String>>(emptySet()) }
     var managers by remember { mutableStateOf<List<ApiUser>>(emptyList()) }
+    var managersLoaded by remember { mutableStateOf(false) }
     var showReassign by remember { mutableStateOf(false) }
     val pageScrollState = rememberScrollState()
 
     LaunchedEffect(showReassign) {
-        if (showReassign) pageScrollState.animateScrollTo(pageScrollState.maxValue)
+        if (showReassign) {
+            pageScrollState.animateScrollTo(pageScrollState.maxValue)
+            // Users are only needed for the bulk-reassign tool, not for the
+            // normal project registry and its filters.
+            if (!managersLoaded && canBulkReassign) {
+                managers = runCatching { oms.data.OmsApiClient.users() }
+                    .getOrDefault(emptyList())
+                    .filter { it.role.code == "PROJECT_MANAGER" && it.status == "active" }
+                managersLoaded = true
+            }
+        }
     }
 
     LaunchedEffect(Unit) {
-        coroutineScope {
-            val refreshProjects = async { ProjectRepository.refresh() }
-            val loadManagers = async {
-                if (canBulkReassign) runCatching { oms.data.OmsApiClient.users() }
-                    .getOrDefault(emptyList())
-                    .filter { it.role.code == "PROJECT_MANAGER" && it.status == "active" }
-                else emptyList()
-            }
-            refreshProjects.await()
-            managers = loadManagers.await()
-        }
+        ProjectRepository.refresh()
     }
     val projects = ProjectRepository.projects
 
@@ -156,7 +155,7 @@ fun ProjectsScreen(
                     Text(LocalizationManager.t("selected_projects").replace("{count}", selectedProjectIds.size.toString()), modifier = Modifier.weight(1f))
                     OutlinedButton(onClick = { selectedProjectIds = emptySet() }) { Text(LocalizationManager.t("clear_selection")) }
                     OutlinedButton(onClick = { window.open(oms.data.OmsApiClient.projectExportUrl(selectedProjectIds), "_blank") }) { Text("XLSX") }
-                    if (canBulkReassign) Button(onClick = { showReassign = true }, enabled = managers.isNotEmpty()) { Text(LocalizationManager.t("reassign")) }
+                    if (canBulkReassign) Button(onClick = { showReassign = true }) { Text(LocalizationManager.t("reassign")) }
                     Button(onClick = {
                         scope.launch {
                             runCatching { oms.data.OmsApiClient.bulkUpdateProjectStatus(selectedProjectIds.toList(), "suspended") }
