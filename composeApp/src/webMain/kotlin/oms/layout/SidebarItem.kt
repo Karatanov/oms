@@ -19,7 +19,9 @@ fun SidebarItem(title: String, icon: ImageVector, screen: Screen, current: Scree
     val isSelected = current == screen ||
         (screen == Screen.Projects && current in listOf(Screen.CreateProject, Screen.EditProject, Screen.ProjectDetail)) ||
         (screen == Screen.Inspections && current == Screen.CreateInspection)
-    oms.components.OmsTooltipBox(tooltip = { Text(title) }) {
+    // The tooltip wrapper occupies the hit area in Wasm; it needs the same
+    // cursor as the inner button so the whole navigation item feels clickable.
+    oms.components.OmsTooltipBox(modifier = Modifier.pointerHoverIcon(PointerIcon.Hand), tooltip = { Text(title) }) {
         TextButton(
             onClick = { onNavigate(screen) }, modifier = Modifier.fillMaxWidth().heightIn(min = 44.dp).pointerHoverIcon(PointerIcon.Hand).semantics { selected = isSelected },
             shape = MaterialTheme.shapes.small, contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp),
