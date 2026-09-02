@@ -14,6 +14,7 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.semantics.*
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.launch
 import oms.theme.OmsDimensions
 
 /** Anchored in the application overlay host: never measured as page content. */
@@ -22,13 +23,28 @@ fun <T> InlineOptionPicker(
     options: List<T>, selected: T?, prompt: String, onSelect: (T) -> Unit,
     itemLabel: (T) -> String = { it.toString() },
     modifier: Modifier = Modifier, fillWidth: Boolean = true, enabled: Boolean = true,
-    clearLabel: String? = null, onClear: (() -> Unit)? = null
+    clearLabel: String? = null, onClear: (() -> Unit)? = null,
+    loadOptionsOnOpen: (suspend () -> List<T>)? = null
 ) {
     val host = LocalOptionOverlay.current
     val id = remember { Any() }
     var anchor by remember { mutableStateOf(Rect.Zero) }
     val expanded = host.menu?.id === id
     val restoreFocus = remember { androidx.compose.ui.focus.FocusRequester() }
+    val scope = rememberCoroutineScope()
+    fun showMenu(openOptions: List<T>) {
+        val canClear = clearLabel != null && onClear != null
+        host.menu = OptionMenu(
+            id, anchor, (if (canClear) listOf(clearLabel!!) else emptyList()) + openOptions.map(itemLabel),
+            openOptions.indexOf(selected).let { if (it < 0) 0 else it + if (canClear) 1 else 0 },
+            onChoose = { index ->
+                host.dismiss(id)
+                if (canClear && index == 0) onClear?.invoke() else onSelect(openOptions[index - if (canClear) 1 else 0])
+                restoreFocus.requestFocus()
+            },
+            onDismiss = { host.dismiss(id); restoreFocus.requestFocus() }
+        )
+    }
     DisposableEffect(id, enabled) { onDispose { host.dismiss(id) } }
     OutlinedButton(
         enabled = enabled,
@@ -43,17 +59,13 @@ fun <T> InlineOptionPicker(
         colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onSurface),
         onClick = {
             if (expanded) host.dismiss(id) else {
-                val canClear = clearLabel != null && onClear != null
-                host.menu = OptionMenu(
-                    id, anchor, (if (canClear) listOf(clearLabel!!) else emptyList()) + options.map(itemLabel),
-                    options.indexOf(selected).let { if (it < 0) 0 else it + if (canClear) 1 else 0 },
-                    onChoose = { index ->
-                        host.dismiss(id)
-                        if (canClear && index == 0) onClear?.invoke() else onSelect(options[index - if (canClear) 1 else 0])
-                        restoreFocus.requestFocus()
-                    },
-                    onDismiss = { host.dismiss(id); restoreFocus.requestFocus() }
-                )
+                if (loadOptionsOnOpen == null) {
+                    showMenu(options)
+                } else scope.launch {
+                    // Some selectors (notably project parents) are expensive to
+                    // populate.  Resolve them only after the user opens the picker.
+                    showMenu(loadOptionsOnOpen.invoke())
+                }
             }
         }
     ) {

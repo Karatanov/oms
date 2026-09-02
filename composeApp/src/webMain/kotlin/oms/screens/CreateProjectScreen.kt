@@ -11,8 +11,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.async
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import oms.data.*
 import oms.localization.LocalizationManager as L
@@ -24,19 +22,22 @@ fun CreateProjectScreen(onCancel: () -> Unit = {}, onCreated: () -> Unit = {}) {
     var error by remember { mutableStateOf<String?>(null) }
     var saving by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
+
     LaunchedEffect(Unit) {
-        coroutineScope {
-            val projects = async { runCatching { OmsApiClient.projects() }.getOrDefault(emptyList()) }
-            val rate = async { runCatching { OmsApiClient.projectExchangeRate() }.getOrNull() }
-            parents = projects.await()
-            rate.await()?.let(state::applyRate)
-        }
+        // The NBU rate enriches monetary fields but must never block access to
+        // a create form.  The client marks this lightweight request as silent.
+        runCatching { OmsApiClient.projectExchangeRate() }.getOrNull()?.let(state::applyRate)
     }
     MaterialTheme(colorScheme = MaterialTheme.colorScheme.copy(onPrimary = Color.White)) {
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             oms.components.PageHeading(L.t("create_project"), Icons.Default.CreateNewFolder)
             Text(L.t("project_created_hint"), color = MaterialTheme.colorScheme.onSurfaceVariant)
-            ProjectForm(state, parents, editing = false)
+            ProjectForm(state, parents, editing = false, loadParentsOnOpen = {
+                // Parent projects are only relevant for a nested item and are
+                // therefore loaded on the first click of that exact picker.
+                if (parents.isEmpty()) parents = runCatching { OmsApiClient.projects() }.getOrDefault(emptyList())
+                parents
+            })
             if (state.currentRate == null) oms.components.ContentState(L.t("project_money_rate_unavailable"))
             error?.let { oms.components.ContentState(it, error = true) }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.End)) {

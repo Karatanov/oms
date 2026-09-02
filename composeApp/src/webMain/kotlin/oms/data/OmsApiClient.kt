@@ -50,11 +50,12 @@ object OmsApiClient {
 
     init {
         client.plugin(HttpSend).intercept { request ->
-            showOmsLoading(request.url.build().encodedPath.toOmsLoadingMessage())
+            val isBackgroundRequest = request.url.parameters["background"] == "true"
+            if (!isBackgroundRequest) showOmsLoading(request.url.build().encodedPath.toOmsLoadingMessage())
             try {
                 execute(request)
             } finally {
-                hideOmsLoading()
+                if (!isBackgroundRequest) hideOmsLoading()
             }
         }
     }
@@ -140,7 +141,8 @@ object OmsApiClient {
             setBody(request)
         }.body()
 
-    suspend fun projectExchangeRate(): ProjectExchangeRate = client.get("$baseUrl/exchange-rates/eur").body()
+    /** A currency rate enriches a form; it must not block navigation to that form. */
+    suspend fun projectExchangeRate(): ProjectExchangeRate = client.get("$baseUrl/exchange-rates/eur?background=true").body()
 
     suspend fun geocodeAddress(address: String, city: String, region: String): GeocodeAddressResponse {
         val response = client.post("$baseUrl/geocode/address") {

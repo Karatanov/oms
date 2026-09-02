@@ -14,7 +14,12 @@ import oms.localization.LocalizationManager as L
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-internal fun ProjectForm(state: ProjectFormState, parents: List<ApiProject>, editing: Boolean) {
+internal fun ProjectForm(
+    state: ProjectFormState,
+    parents: List<ApiProject>,
+    editing: Boolean,
+    loadParentsOnOpen: (suspend () -> List<ApiProject>)? = null
+) {
     var geocoding by remember { mutableStateOf(false) }
     fun field(key: String, label: String, modifier: Modifier = Modifier, lines: Int = 1) = @Composable {
         OutlinedTextField(state[key], { state[key] = it }, label = { Text(L.t(label)) }, modifier = modifier,
@@ -34,7 +39,10 @@ internal fun ProjectForm(state: ProjectFormState, parents: List<ApiProject>, edi
                     val choices = parents.filter { it.projectType == parentType }
                     InlineOptionPicker(choices, choices.firstOrNull { it.uuid == state.parentUuid },
                         L.t(if (parentType == "project") "select_parent_project" else "select_parent_subproject"),
-                        { state.parentUuid = it.uuid }, { "${it.siteNumber} — ${it.name}" })
+                        { state.parentUuid = it.uuid }, { "${it.siteNumber} — ${it.name}" },
+                        loadOptionsOnOpen = {
+                            (loadParentsOnOpen?.invoke() ?: choices).filter { it.projectType == parentType }
+                        })
                 }
             }
             FormPair(
