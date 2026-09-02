@@ -13,6 +13,8 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Layers
 import androidx.compose.material.icons.filled.Search
@@ -247,6 +249,8 @@ fun ProjectsTable(
     var sortColumn by remember { mutableStateOf(SortColumn.NAME) }
     var ascending by remember { mutableStateOf(true) }
     var expandedParentIds by remember { mutableStateOf<Set<String>?>(null) }
+    var pageSize by remember { mutableStateOf(20) }
+    var currentPage by remember { mutableStateOf(0) }
 
     val sortedProjects = remember(projects, sortColumn, ascending, expandedParentIds) {
         fun sort(items: List<Project>): List<Project> = items.sortedWith { left, right ->
@@ -276,28 +280,31 @@ fun ProjectsTable(
         }
     }
 
-    oms.components.ScrollableTable(
-        header = {
-            filters()
-            TableHeader(
-                sortColumn,
-                ascending
-            ) { column ->
-                if (sortColumn == column)
-                    ascending = !ascending
-                else {
-                    sortColumn = column
-                    ascending = true
-                }
-            }
-            HorizontalDivider()
+    LaunchedEffect(projects, sortColumn, ascending, expandedParentIds, pageSize) {
+        currentPage = 0
+    }
+    val pageCount = if (sortedProjects.isEmpty() || pageSize == Int.MAX_VALUE) 1
+    else (sortedProjects.size + pageSize - 1) / pageSize
+    if (currentPage >= pageCount) currentPage = (pageCount - 1).coerceAtLeast(0)
+    val pageRows = if (pageSize == Int.MAX_VALUE) sortedProjects
+    else sortedProjects.drop(currentPage * pageSize).take(pageSize)
+
+    Column(Modifier.fillMaxWidth()) {
+        ProjectPagination(pageSize, currentPage, pageCount, sortedProjects.size, { pageSize = it }) {
+            currentPage = it.coerceIn(0, pageCount - 1)
         }
-    ) {
-        Column(modifier = Modifier.fillMaxWidth()) {
-
-            sortedProjects.forEach { row ->
-
-                ProjectRow(
+        oms.components.ScrollableTable(
+            header = {
+                filters()
+                TableHeader(sortColumn, ascending) { column ->
+                    if (sortColumn == column) ascending = !ascending
+                    else { sortColumn = column; ascending = true }
+                }
+                HorizontalDivider()
+            }
+        ) {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                pageRows.forEach { row -> ProjectRow(
                     project = row.project,
                     highlightSearchMatch = searchText.isNotBlank() && row.project.matchesProjectSearch(searchText),
                     isSubproject = row.depth > 0,
@@ -318,10 +325,30 @@ fun ProjectsTable(
                     canManageProjects = canManageProjects,
                     isSelected = row.project.id in selectedProjectIds,
                     onSelectedChange = { onSelectionChange(row.project.id, it) }
-                )
-
+                ) }
             }
         }
+        ProjectPagination(pageSize, currentPage, pageCount, sortedProjects.size, { pageSize = it }) {
+            currentPage = it.coerceIn(0, pageCount - 1)
+        }
+    }
+}
+
+@Composable
+private fun ProjectPagination(
+    pageSize: Int, currentPage: Int, pageCount: Int, total: Int,
+    onPageSize: (Int) -> Unit, onPage: (Int) -> Unit
+) {
+    Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
+        Text(LocalizationManager.t("rows_per_page"), style = MaterialTheme.typography.bodySmall)
+        Spacer(Modifier.width(8.dp))
+        InlineOptionPicker(listOf(20, 50, 100, Int.MAX_VALUE), pageSize, LocalizationManager.t("rows_per_page"), onPageSize,
+            itemLabel = { if (it == Int.MAX_VALUE) LocalizationManager.t("all") else it.toString() }, fillWidth = false)
+        Spacer(Modifier.width(12.dp))
+        Text(LocalizationManager.t("page_of").replace("{page}", (currentPage + 1).toString())
+            .replace("{pages}", pageCount.toString()).replace("{total}", total.toString()), style = MaterialTheme.typography.bodySmall)
+        TableActionIconButton(LocalizationManager.t("previous_page"), Icons.Default.KeyboardArrowLeft) { onPage(currentPage - 1) }
+        TableActionIconButton(LocalizationManager.t("next_page"), Icons.Default.KeyboardArrowRight) { onPage(currentPage + 1) }
     }
 }
 
