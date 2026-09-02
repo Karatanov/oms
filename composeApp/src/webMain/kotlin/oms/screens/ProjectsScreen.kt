@@ -9,6 +9,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.FolderOpen
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Folder
@@ -129,7 +130,11 @@ fun ProjectsScreen(
     ) {
 
         oms.components.PageHeading(LocalizationManager.t("projects_title"), Icons.Default.FolderOpen) {
-            if (canManageProjects) Button(onClick = onCreateProject) { Text(LocalizationManager.t("create_project")) }
+            if (canManageProjects) Button(onClick = onCreateProject) {
+                Icon(Icons.Default.Add, null)
+                Spacer(Modifier.width(8.dp))
+                Text(LocalizationManager.t("create_project"))
+            }
         }
 
         Spacer(Modifier.height(16.dp))

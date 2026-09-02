@@ -7,6 +7,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalance
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.KeyboardArrowLeft
@@ -174,7 +175,11 @@ fun FinancialScreen(
                     Button(onClick = {
                         errorMessage = null
                         addAct = true
-                    }) { Text(LocalizationManager.t("add_record")) }
+                    }) {
+                        Icon(Icons.Default.Add, null)
+                        Spacer(Modifier.width(8.dp))
+                        Text(LocalizationManager.t("add_record"))
+                    }
                 }
             }
         }

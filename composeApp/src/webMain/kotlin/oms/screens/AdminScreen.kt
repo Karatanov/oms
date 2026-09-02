@@ -10,6 +10,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AdminPanelSettings
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Delete
@@ -139,7 +140,11 @@ fun AdminScreen() {
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         oms.components.PageHeading(LocalizationManager.t("admin_title"), Icons.Default.AdminPanelSettings) {
-            Button(onClick = { errorMessage = null; createUser = true }) { Text(LocalizationManager.t("create_user")) }
+            Button(onClick = { errorMessage = null; createUser = true }) {
+                Icon(Icons.Default.Add, null)
+                Spacer(Modifier.width(8.dp))
+                Text(LocalizationManager.t("create_user"))
+            }
         }
         OutlinedTextField(search, { search = it }, singleLine = true, label = { Text(LocalizationManager.t("admin_search")) }, leadingIcon = { Icon(Icons.Default.Search, null) }, modifier = Modifier.fillMaxWidth())
         if (loading) oms.components.ContentState(LocalizationManager.t("loading_records"), loading = true)

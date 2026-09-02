@@ -8,6 +8,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.Delete
@@ -150,7 +151,11 @@ fun DocumentsScreen(canManageDocuments: Boolean = true) {
         oms.components.PageHeading(LocalizationManager.t("documents_title"), Icons.Default.FolderOpen) {
             if (canManageDocuments) Button(onClick = {
                 showUploadDialog = true
-            }) { Text(LocalizationManager.t("upload_document")) }
+            }) {
+                Icon(Icons.Default.Add, null)
+                Spacer(Modifier.width(8.dp))
+                Text(LocalizationManager.t("upload_document"))
+            }
         }
         OutlinedTextField(search, { search = it }, singleLine = true, label = { Text(LocalizationManager.t("documents_search")) }, leadingIcon = { Icon(Icons.Default.Search, null) }, modifier = Modifier.fillMaxWidth())
         if (loading) oms.components.ContentState(LocalizationManager.t("loading_records"), loading = true)
