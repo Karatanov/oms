@@ -15,9 +15,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.input.key.*
-import kotlinx.coroutines.async
-import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.yield
 import oms.components.*
 import oms.data.*
 import oms.localization.LocalizationManager
@@ -25,25 +25,28 @@ import oms.screens.*
 
 @Composable
 fun DashboardScreen(onOpenProject: (oms.model.Project) -> Unit = {}, onOpenFinancial: () -> Unit = {}) {
-    var dashboard by remember { mutableStateOf<ApiDashboard?>(null) }
+    var dashboard by remember { mutableStateOf<ApiDashboardOverview?>(null) }
     var loading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf(false) }
     var reload by remember { mutableStateOf(0) }
     var latestPhotos by remember { mutableStateOf<List<ApiInspectionPhoto>?>(null) }
-    val projects = ProjectRepository.projects
     val scrollState = rememberLazyListState()
     val scope = rememberCoroutineScope()
     LaunchedEffect(reload) {
         loading = true; error = false
-        runCatching {
-            coroutineScope {
-                val refresh = async { ProjectRepository.refresh() }
-                val result = async { OmsApiClient.dashboard() }
-                refresh.await()
-                result.await()
-            }
-        }.onSuccess { dashboard = it }.onFailure { error = true }
-        loading = false
+        // Yield a frame first: the authenticated workspace and its navigation
+        // become interactive before the remote overview begins loading.
+        yield()
+        try {
+            dashboard = OmsApiClient.dashboardOverview()
+        } catch (cancelled: CancellationException) {
+            // Leaving Dashboard cancels this effect and aborts the pending fetch.
+            throw cancelled
+        } catch (_: Exception) {
+            error = true
+        } finally {
+            loading = false
+        }
     }
     val latest = dashboard?.recentInspections?.maxByOrNull { it.inspectionDate }
     LaunchedEffect(latest?.uuid) {
@@ -66,13 +69,32 @@ fun DashboardScreen(onOpenProject: (oms.model.Project) -> Unit = {}, onOpenFinan
                 PageHeading(LocalizationManager.t("dashboard"), Icons.Default.Dashboard,
                     LocalizationManager.t("portfolio_overview"))
             }
-            if (loading) item { ContentState(LocalizationManager.t("loading_dashboard"), loading = true) }
+            if (loading) {
+                item { ContentState(LocalizationManager.t("loading_dashboard"), loading = true) }
+                item {
+                    AdaptiveChartRow(
+                        first = { DashboardUpdatingChart() },
+                        second = { DashboardUpdatingChart() }
+                    )
+                }
+                item {
+                    AdaptiveChartRow(
+                        first = { DashboardUpdatingChart() },
+                        second = { DashboardUpdatingChart() }
+                    )
+                }
+            }
             else if (error) item { ContentState(LocalizationManager.t("error_load_dashboard"), error = true, onRetry = { reload++ }) }
             else {
                 item {
                     AdaptiveChartRow(
                         first = { FundingByOblastChart(dashboard?.subprojectFunding.orEmpty()) },
-                        second = { SubprojectProgressChart(dashboard?.subprojectProgress.orEmpty()) { uuid -> projects.firstOrNull { it.id == uuid }?.let(onOpenProject) } }
+                        second = { SubprojectProgressChart(dashboard?.subprojectProgress.orEmpty()) { uuid ->
+                            scope.launch {
+                                ProjectRepository.refresh()
+                                ProjectRepository.projects.firstOrNull { it.id == uuid }?.let(onOpenProject)
+                            }
+                        } }
                     )
                 }
                 item {
@@ -87,6 +109,21 @@ fun DashboardScreen(onOpenProject: (oms.model.Project) -> Unit = {}, onOpenFinan
         Column(Modifier.align(Alignment.CenterEnd).padding(end = 8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             oms.components.HoldToScrollButton(LocalizationManager.t("dashboard_scroll_up"), Icons.Default.KeyboardArrowUp, scrollState, -1, clickDistance = 500f)
             oms.components.HoldToScrollButton(LocalizationManager.t("dashboard_scroll_down"), Icons.Default.KeyboardArrowDown, scrollState, 1, clickDistance = 500f)
+        }
+    }
+}
+
+@Composable
+private fun DashboardUpdatingChart() {
+    Card(Modifier.fillMaxWidth().heightIn(min = 220.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+        Column(
+            Modifier.fillMaxSize().padding(20.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            CircularProgressIndicator(Modifier.size(28.dp), strokeWidth = 2.dp)
+            Spacer(Modifier.height(12.dp))
+            Text(LocalizationManager.t("loading_dashboard"), color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }

@@ -25,6 +25,15 @@ data class DashboardResponse(
 )
 
 @Serializable
+data class DashboardOverviewResponse(
+    val recentInspections: List<InspectionReportResponse> = emptyList(),
+    val monthlyActPayments: List<MonthlyActPaymentResponse> = emptyList(),
+    val subprojectFunding: List<SubprojectFundingResponse> = emptyList(),
+    val subprojectProgress: List<SubprojectProgressResponse> = emptyList(),
+    val procurementStatusCounts: List<DashboardMetricResponse> = emptyList()
+)
+
+@Serializable
 data class ActivityResponse(val action: String, val entityType: String, val entityId: Long, val userLogin: String? = null, val createdAt: String)
 
 @Serializable

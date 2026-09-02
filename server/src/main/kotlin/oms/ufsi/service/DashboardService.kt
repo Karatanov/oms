@@ -12,6 +12,13 @@ data class MonthlyActPayment(val month: String, val amountEurCents: Long)
 data class DashboardSubprojectFunding(val projectUuid: String, val name: String, val region: String, val amount: Long)
 data class DashboardSubprojectProgress(val projectUuid: String, val name: String, val completionPct: Double)
 data class DashboardMetric(val label: String, val value: Long)
+data class DashboardOverviewData(
+    val recentInspections: List<InspectionReport>,
+    val monthlyActPayments: List<MonthlyActPayment>,
+    val subprojectFunding: List<DashboardSubprojectFunding>,
+    val subprojectProgress: List<DashboardSubprojectProgress>,
+    val procurementStatusCounts: List<DashboardMetric>
+)
 
 private val procurementStatusOrder = listOf(
     "Не розпочато / Not Started",
@@ -34,6 +41,70 @@ data class DashboardData(
 class DashboardService(
     private val auditLogService: AuditLogService
 ) {
+    /**
+     * Data used only by the visual Dashboard.  Keep it independent from the
+     * broader administrative Dashboard payload so opening the workspace does
+     * not wait for audit history, inspection findings or unused financial cuts.
+     */
+    fun getOverview(allowedProjectIds: Set<Long>? = null): DashboardOverviewData = transaction {
+        val projects = ProjectTable.selectAll().toList()
+            .filter { allowedProjectIds == null || it[ProjectTable.id].value in allowedProjectIds }
+        val projectIds = projects.map { it[ProjectTable.id].value }.toSet()
+        val reports = InspectionReportTable.selectAll().toList()
+            .filter { it[InspectionReportTable.projectId].value in projectIds }
+        val actRecords = FinancialRecordTable.selectAll().toList().filter {
+            it[FinancialRecordTable.projectId].value in projectIds && it[FinancialRecordTable.recordType] == "act"
+        }
+        fun month(date: java.time.LocalDate) = date.toString().take(7)
+        val monthlyActPayments = actRecords.filter { it[FinancialRecordTable.amountEurCents] != null }
+            .groupBy { month(it[FinancialRecordTable.paymentDate] ?: it[FinancialRecordTable.recordDate]) }
+            .map { (label, rows) -> MonthlyActPayment(label, rows.sumOf { it[FinancialRecordTable.amountEurCents] ?: 0L }) }
+            .sortedBy { it.month }
+        val projectsById = projects.associateBy { it[ProjectTable.id].value }
+        val subprojects = projects.filter { it[ProjectTable.projectType] == "subproject" }
+        val subprojectFunding = subprojects.map { row ->
+            DashboardSubprojectFunding(
+                row[ProjectTable.uuid], row[ProjectTable.name], row[ProjectTable.region].orEmpty(),
+                row[ProjectTable.subprojectContractAmount] ?: row[ProjectTable.budgetPlanned]
+            )
+        }
+        fun subprojectFor(projectId: Long): Long? {
+            var current = projectId
+            while (true) {
+                val project = projectsById[current] ?: return null
+                if (project[ProjectTable.projectType] == "subproject") return current
+                current = project[ProjectTable.parentProjectId]?.value ?: return null
+            }
+        }
+        val actualBySubproject = actRecords.groupBy { subprojectFor(it[FinancialRecordTable.projectId].value) }
+            .filterKeys { it != null }
+            .mapValues { (_, rows) -> rows.sumOf { it[FinancialRecordTable.amount] } }
+        val subprojectProgress = subprojects.map { row ->
+            val id = row[ProjectTable.id].value
+            val contract = row[ProjectTable.subprojectContractAmount] ?: row[ProjectTable.budgetPlanned]
+            DashboardSubprojectProgress(
+                row[ProjectTable.uuid], row[ProjectTable.name],
+                if (contract > 0) (actualBySubproject[id] ?: 0L) * 100.0 / contract else 0.0
+            )
+        }.sortedBy { it.name }
+        val procurementRecords = if (allowedProjectIds == null) ProcurementRecordTable.selectAll().toList() else emptyList()
+        val procurementCountByStatus = procurementRecords.groupBy { it[ProcurementRecordTable.purchaseStatus] }
+            .mapValues { (_, rows) -> rows.map { it[ProcurementRecordTable.subProjectId] }.distinct().size.toLong() }
+        val procurementStatusCounts = procurementStatusOrder.map { status -> DashboardMetric(status, procurementCountByStatus[status] ?: 0L) } +
+            procurementCountByStatus.filterKeys { it !in procurementStatusOrder }.toSortedMap()
+                .map { (status, count) -> DashboardMetric(status, count) }
+        fun report(row: org.jetbrains.exposed.v1.core.ResultRow) = InspectionReport(
+            row[InspectionReportTable.id].value, UUID.fromString(row[InspectionReportTable.uuid]), row[InspectionReportTable.projectId].value,
+            row[InspectionReportTable.reportCode], row[InspectionReportTable.inspectionType], row[InspectionReportTable.inspectionDate],
+            row[InspectionReportTable.summary], InspectionReportStatus.valueOf(row[InspectionReportTable.status].uppercase()),
+            row[InspectionReportTable.rejectionReason], row[InspectionReportTable.latitude]?.toDouble(), row[InspectionReportTable.longitude]?.toDouble(), row[InspectionReportTable.createdBy].value
+        )
+        DashboardOverviewData(
+            reports.sortedByDescending { it[InspectionReportTable.inspectionDate] }.take(5).map(::report),
+            monthlyActPayments, subprojectFunding, subprojectProgress, procurementStatusCounts
+        )
+    }
+
     fun get(allowedProjectIds: Set<Long>? = null): DashboardData {
         return transaction {
         val projects = ProjectTable.selectAll().toList().filter { allowedProjectIds == null || it[ProjectTable.id].value in allowedProjectIds }

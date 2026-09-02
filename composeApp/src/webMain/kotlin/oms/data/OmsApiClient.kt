@@ -174,6 +174,8 @@ object OmsApiClient {
 
     suspend fun dashboard(): ApiDashboard = client.get("$baseUrl/dashboard").body()
 
+    suspend fun dashboardOverview(): ApiDashboardOverview = client.get("$baseUrl/dashboard/overview").body()
+
     suspend fun inspectionAnalytics(): ApiInspectionAnalytics =
         client.get("$baseUrl/inspection-reports/analytics").body()
 
@@ -629,6 +631,15 @@ data class ApiDashboard(
     val monthlyEshsViolations: List<ApiDashboardMetric> = emptyList(),
     val monthlyEquipmentPayments: List<ApiMonthlyActPayment> = emptyList(),
     val monthlySignedConstructionContracts: List<ApiDashboardMetric> = emptyList()
+)
+
+@Serializable
+data class ApiDashboardOverview(
+    val recentInspections: List<ApiInspectionReport> = emptyList(),
+    val monthlyActPayments: List<ApiMonthlyActPayment> = emptyList(),
+    val subprojectFunding: List<ApiSubprojectFunding> = emptyList(),
+    val subprojectProgress: List<ApiSubprojectProgress> = emptyList(),
+    val procurementStatusCounts: List<ApiDashboardMetric> = emptyList()
 )
 
 @Serializable

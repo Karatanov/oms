@@ -13,6 +13,24 @@ import oms.ufsi.dto.DashboardMetricResponse
 import java.time.ZoneOffset
 
 fun Route.dashboardRoutes() {
+    get("/api/v1/dashboard/overview") {
+        val session = call.requireRole("ADMIN", "PROJECT_MANAGER", "INSPECTOR", "VIEWER") ?: return@get
+        val allowedProjectIds = if (session.roleCode.equals("PROJECT_MANAGER", ignoreCase = true)) {
+            AppContainer.projectService.getAllProjects().filter { AppContainer.projectService.isManagedBy(it.uuid.toString(), session.userId) }
+                .map { it.id }.toSet()
+        } else null
+        val overview = AppContainer.dashboardService.getOverview(allowedProjectIds)
+        call.respond(
+            DashboardOverviewResponse(
+                recentInspections = overview.recentInspections.map { it.toResponse() },
+                monthlyActPayments = overview.monthlyActPayments.map { MonthlyActPaymentResponse(it.month, it.amountEurCents) },
+                subprojectFunding = overview.subprojectFunding.map { SubprojectFundingResponse(it.projectUuid, it.name, it.region, it.amount) },
+                subprojectProgress = overview.subprojectProgress.map { SubprojectProgressResponse(it.projectUuid, it.name, it.completionPct) },
+                procurementStatusCounts = overview.procurementStatusCounts.map { DashboardMetricResponse(it.label, it.value) }
+            )
+        )
+    }
+
     get("/api/v1/dashboard") {
         val session = call.requireRole("ADMIN", "PROJECT_MANAGER", "INSPECTOR", "VIEWER") ?: return@get
         val allowedProjectIds = if (session.roleCode.equals("PROJECT_MANAGER", ignoreCase = true)) {
