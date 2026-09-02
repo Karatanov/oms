@@ -4,6 +4,7 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import oms.ufsi.config.AppContainer
 import oms.ufsi.dto.DashboardResponse
+import oms.ufsi.dto.DashboardOverviewResponse
 import oms.ufsi.dto.ActivityResponse
 import oms.ufsi.dto.toResponse
 import oms.ufsi.dto.MonthlyActPaymentResponse
