@@ -104,13 +104,14 @@ fun ReportsScreen(
         loading = true; loadFailed = false
         try {
         val reportItems = coroutineScope {
-            val refreshProjects = async { ProjectRepository.refresh() }
             val loadReports = async { OmsApiClient.inspectionReports() }
             val loadAnalytics = async { runCatching { OmsApiClient.inspectionAnalytics() }.getOrNull() }
-            refreshProjects.await()
             analytics = loadAnalytics.await()
             loadReports.await()
         }
+        // No project context is required for an empty registry.  This keeps the
+        // first Reports visit lightweight on a fresh deployment.
+        if (reportItems.isNotEmpty()) ProjectRepository.refresh()
         val projectsById = ProjectRepository.projects.associateBy { it.id }
         reports = reportItems.mapNotNull { item ->
             val attachedProject = projectsById[item.projectUuid] ?: return@mapNotNull null

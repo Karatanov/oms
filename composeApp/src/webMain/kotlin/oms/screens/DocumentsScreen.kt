@@ -80,12 +80,13 @@ fun DocumentsScreen(canManageDocuments: Boolean = true) {
         loading = true; loadFailed = false
         try {
         val (reports, loadedDocuments) = coroutineScope {
-            val refreshProjects = async { ProjectRepository.refresh() }
             val loadReports = async { OmsApiClient.inspectionReports() }
             val loadDocuments = async { OmsApiClient.allProjectDocuments() }
-            refreshProjects.await()
             loadReports.await() to loadDocuments.await()
         }
+        // Project data is used only to decorate actual document/report rows.
+        // An empty Documents register must not wait for the project hierarchy.
+        if (reports.isNotEmpty() || loadedDocuments.isNotEmpty()) ProjectRepository.refresh()
         val projectsById = ProjectRepository.projects.associateBy { it.id }
         fun projectContext(project: oms.model.Project): Pair<String, String?> {
             val ancestry = generateSequence(project) { current -> current.parentProjectUuid?.let(projectsById::get) }.toList().asReversed()
@@ -147,7 +148,12 @@ fun DocumentsScreen(canManageDocuments: Boolean = true) {
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         oms.components.PageHeading(LocalizationManager.t("documents_title"), Icons.Default.FolderOpen) {
-            if (canManageDocuments) Button(onClick = { showUploadDialog = true }) { Text(LocalizationManager.t("upload_document")) }
+            if (canManageDocuments) Button(onClick = {
+                scope.launch {
+                    ProjectRepository.refresh()
+                    showUploadDialog = true
+                }
+            }) { Text(LocalizationManager.t("upload_document")) }
         }
         OutlinedTextField(search, { search = it }, singleLine = true, label = { Text(LocalizationManager.t("documents_search")) }, leadingIcon = { Icon(Icons.Default.Search, null) }, modifier = Modifier.fillMaxWidth())
         if (loading) oms.components.ContentState(LocalizationManager.t("loading_records"), loading = true)

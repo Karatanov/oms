@@ -15,13 +15,20 @@ import oms.ufsi.dto.*
 fun Route.inspectionRoutes() {
     get("/api/v1/inspection-reports") {
         val session = call.requireRole("ADMIN", "PROJECT_MANAGER", "INSPECTOR", "VIEWER") ?: return@get
+        val reports = AppContainer.inspectionReportService.getAllReports()
+        // The registry is often empty on a new deployment.  Avoid a full
+        // project lookup when there are no rows that need access filtering.
+        if (reports.isEmpty()) {
+            call.respond(emptyList<InspectionReportListItemResponse>())
+            return@get
+        }
         val projects = AppContainer.projectService.getAllProjects().filter { project ->
             !session.roleCode.equals("PROJECT_MANAGER", ignoreCase = true) ||
                 AppContainer.projectService.isManagedBy(project.uuid.toString(), session.userId)
         }
         val projectUuidsById = projects.associate { it.id to it.uuid.toString() }
         call.respond(
-            AppContainer.inspectionReportService.getAllReports().mapNotNull { report ->
+            reports.mapNotNull { report ->
                 projectUuidsById[report.projectId]?.let { projectUuid ->
                     InspectionReportListItemResponse(projectUuid, report.toResponse())
                 }

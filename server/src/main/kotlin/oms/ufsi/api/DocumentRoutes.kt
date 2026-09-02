@@ -18,12 +18,18 @@ import java.net.URLEncoder
 fun Route.documentRoutes() {
     get("/api/v1/documents") {
         val session = call.requireRole("ADMIN", "PROJECT_MANAGER", "INSPECTOR", "VIEWER") ?: return@get
+        val documents = AppContainer.projectDocumentService.listAll()
+        // Do not build the full project tree merely to serialize an empty list.
+        if (documents.isEmpty()) {
+            call.respond(emptyList<oms.ufsi.dto.ProjectDocumentListItemResponse>())
+            return@get
+        }
         val accessibleProjects = AppContainer.projectService.getAllProjects().filter { project ->
             !session.roleCode.equals("PROJECT_MANAGER", ignoreCase = true) ||
                 AppContainer.projectService.isManagedBy(project.uuid.toString(), session.userId)
         }
         val projectUuidsById = accessibleProjects.associate { it.id to it.uuid.toString() }
-        call.respond(AppContainer.projectDocumentService.listAll().mapNotNull { document ->
+        call.respond(documents.mapNotNull { document ->
             projectUuidsById[document.projectId]?.let { projectUuid ->
                 oms.ufsi.dto.ProjectDocumentListItemResponse(projectUuid, document.toResponse())
             }
