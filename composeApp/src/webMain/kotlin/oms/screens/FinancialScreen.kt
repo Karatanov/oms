@@ -246,7 +246,7 @@ fun FinancialScreen(
     }
     if (addAct || editAct != null) { WasmSafeOverlay(onDismiss = { addAct = false; editAct = null }, errorMessage = errorMessage) {
             ActEditorDialog(editAct, ProjectRepository.projects, {
-                ProjectRepository.refresh()
+                ProjectRepository.refresh(force = ProjectRepository.projects.isEmpty())
                 ProjectRepository.projects
             }, { addAct = false; editAct = null }) { projectUuid, request ->
                 scope.launch {
@@ -266,7 +266,7 @@ fun FinancialScreen(
             FinancialTransferDialog(
                 projects = ProjectRepository.projects,
                 loadProjectsOnOpen = {
-                    ProjectRepository.refresh()
+                    ProjectRepository.refresh(force = ProjectRepository.projects.isEmpty())
                     ProjectRepository.projects
                 },
                 onDismiss = { showTransferDialog = false },
@@ -411,7 +411,12 @@ private fun FinancialProjectTargetSelector(
     LaunchedEffect(projects) {
         if (projects.isNotEmpty()) {
             availableProjects = projects
-            if (rootUuid == null) restoreHierarchy(selectedTargetUuid, projects)
+            if (rootUuid == null) {
+                restoreHierarchy(selectedTargetUuid, projects)
+                if (rootUuid == null) {
+                    rootUuid = projects.filter { it.projectType.equals("project", true) }.singleOrNull()?.id
+                }
+            }
         }
     }
 
@@ -430,11 +435,25 @@ private fun FinancialProjectTargetSelector(
         )
         FinancialProjectLevelDropdown(
             LocalizationManager.t("select_subproject"), subprojects, subprojectUuid,
-            onSelect = { selected -> subprojectUuid = selected; partUuid = null; onTargetSelect(selected) },
-            enabled = rootUuid != null,
+            onSelect = { selected ->
+                subprojectUuid = selected
+                partUuid = null
+                availableProjects.firstOrNull { it.id == selected }?.parentProjectUuid?.let { rootUuid = it }
+                onTargetSelect(selected)
+            },
+            // Keep this field interactive even while the hierarchy is not in
+            // memory yet. Opening it loads the projects and can infer the root
+            // from the selected subproject.
+            enabled = true,
             loadOptionsOnOpen = {
-                loadAndRemember().filter {
-                    it.projectType.equals("subproject", true) && it.parentProjectUuid == rootUuid
+                val loaded = loadAndRemember()
+                val selectedRoot = rootUuid ?: loaded
+                    .filter { it.projectType.equals("project", true) }
+                    .singleOrNull()?.id
+                if (rootUuid == null && selectedRoot != null) rootUuid = selectedRoot
+                loaded.filter {
+                    it.projectType.equals("subproject", true) &&
+                        (selectedRoot == null || it.parentProjectUuid == selectedRoot)
                 }
             }
         )
