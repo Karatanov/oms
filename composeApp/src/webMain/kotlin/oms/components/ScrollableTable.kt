@@ -16,6 +16,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.semantics.*
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
@@ -33,6 +34,8 @@ fun ScrollableTable(
     var tableTopInRoot by remember { mutableStateOf(0f) }
     var tableHeight by remember { mutableStateOf(0) }
     var headerHeight by remember { mutableStateOf(0) }
+    var controlsHeight by remember { mutableStateOf(0) }
+    val viewportHeight = LocalWindowInfo.current.containerSize.height.toFloat()
     val stickyOffset = (-tableTopInRoot)
         .coerceAtLeast(0f)
         .coerceAtMost((tableHeight - headerHeight).coerceAtLeast(0).toFloat())
@@ -59,7 +62,20 @@ fun ScrollableTable(
             )
             Column(content = content)
         }
-        if (showScrollControls) TableScrollControls(scroll)
+        if (showScrollControls) {
+            val naturalBottom = tableTopInRoot + tableHeight + controlsHeight
+            val footerOffset = (viewportHeight - naturalBottom - 8f)
+                .coerceAtMost(0f)
+                .coerceAtLeast(-(tableHeight - headerHeight).coerceAtLeast(0).toFloat())
+            Box(
+                Modifier.fillMaxWidth()
+                    .zIndex(3f)
+                    .graphicsLayer { translationY = footerOffset }
+                    .background(surface)
+                    .then(if (footerOffset < 0f) Modifier.shadow(3.dp) else Modifier)
+                    .onGloballyPositioned { controlsHeight = it.size.height }
+            ) { TableScrollControls(scroll) }
+        }
     }
 }
 

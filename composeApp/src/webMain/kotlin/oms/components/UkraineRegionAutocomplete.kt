@@ -55,9 +55,19 @@ private val ukraineRegions = listOf(
 private fun UkraineRegion.displayName() =
     if (LocalizationManager.currentLanguage == Language.EN) englishName else ukrainianName
 
-fun localizedUkraineRegion(value: String): String = ukraineRegions.firstOrNull {
-    it.ukrainianName.equals(value, true) || it.englishName.equals(value, true)
-}?.displayName() ?: value
+private fun normalizedRegionName(value: String): String = value
+    .lowercase()
+    .replace(Regex("[.,]"), "")
+    .replace(Regex("\\s+(область|обл|oblast|region)$"), "")
+    .replace(Regex("\\s+"), " ")
+    .trim()
+
+fun localizedUkraineRegion(value: String): String {
+    val normalized = normalizedRegionName(value)
+    return ukraineRegions.firstOrNull {
+        normalizedRegionName(it.ukrainianName) == normalized || normalizedRegionName(it.englishName) == normalized
+    }?.displayName() ?: value
+}
 
 /**
  * An inline, Wasm-safe autocomplete for Ukraine's fixed administrative regions.

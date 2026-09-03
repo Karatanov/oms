@@ -30,7 +30,7 @@ fun TableActionIconButton(
     oms.components.OmsTooltipBox(
         tooltip = { Text(tooltip) }
     ) {
-        IconButton(onClick = onClick, modifier = Modifier.pointerHoverIcon(PointerIcon.Hand)) {
+        IconButton(onClick = onClick, modifier = Modifier.pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true)) {
             Icon(icon, contentDescription = tooltip, modifier = Modifier.size(20.dp),
                 tint = if (icon == Icons.Default.Delete) MaterialTheme.colorScheme.error else Primary)
         }

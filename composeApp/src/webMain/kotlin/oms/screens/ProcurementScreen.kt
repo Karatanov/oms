@@ -333,6 +333,7 @@ private fun ProcurementFilters(
                     2 -> InlineOptionPicker(
                         records.map { it.oblastName }.filter(String::isNotBlank).distinct().sorted(), oblastFilter,
                         LocalizationManager.t("proc_oblast_name"), onOblastChange,
+                        ::localizedUkraineRegion,
                         clearLabel = LocalizationManager.t("all"), onClear = { onOblastChange(null) }
                     )
                     6 -> InlineOptionPicker(
@@ -380,7 +381,7 @@ private fun ProcurementRow(
                     value,
                     Modifier.width(width.dp).padding(horizontal = 6.dp)
                         .clickable { uriHandler.openUri(value.toProzorroTenderUrl()) }
-                        .pointerHoverIcon(PointerIcon.Hand),
+                        .pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.primary,
                     textDecoration = TextDecoration.Underline

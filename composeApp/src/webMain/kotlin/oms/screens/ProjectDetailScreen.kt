@@ -6,7 +6,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Payments
-import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Edit
@@ -52,6 +51,7 @@ import oms.localization.LocalizationManager
 import oms.localization.Language
 import oms.components.localizedUkraineRegion
 import oms.model.Project
+import oms.model.localizedName
 import oms.navigation.Screen
 import kotlinx.coroutines.launch
 
@@ -66,7 +66,7 @@ fun ProjectDetailScreen(
     canAccessFinancials: Boolean = false
 ) {
     val parentProjectName = project.parentProjectUuid?.let { parentId ->
-        ProjectRepository.projects.firstOrNull { it.id == parentId }?.name
+        ProjectRepository.projects.firstOrNull { it.id == parentId }?.localizedName()
     }
     var selectedTab by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(ProjectDetailTab.GeneralInfo) }
     val details = remember(project.id) { mutableStateOf<ApiProjectDetails?>(null) }
@@ -135,14 +135,14 @@ fun ProjectDetailScreen(
         Row(
             verticalAlignment = Alignment.CenterVertically
         ) {
-            TextButton(onClick = onBackToProjects, modifier = Modifier.pointerHoverIcon(PointerIcon.Hand)) {
+            TextButton(onClick = onBackToProjects, modifier = Modifier.pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true)) {
                 Text(LocalizationManager.t("projects"))
             }
 
             Icon(Icons.Default.ChevronRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
 
             Text(
-                text = project.name,
+                text = project.localizedName(),
                 color = MaterialTheme.colorScheme.onSurface,
                 fontWeight = FontWeight.Medium
             )
@@ -173,7 +173,7 @@ fun ProjectDetailScreen(
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Text(
-                            text = project.name,
+                            text = project.localizedName(),
                             style = MaterialTheme.typography.headlineMedium
                         )
 
@@ -185,7 +185,7 @@ fun ProjectDetailScreen(
 
                             if (!project.projectType.equals("project", ignoreCase = true)) {
                                 Text(
-                                    text = "${LocalizationManager.t("address")}: ${details.value?.data?.address ?: project.region}",
+                                    text = "${LocalizationManager.t("address")}: ${details.value?.let(::localizedProjectAddress) ?: localizedUkraineRegion(project.region)}",
                                     style = MaterialTheme.typography.bodyMedium
                                 )
                             }
@@ -200,7 +200,7 @@ fun ProjectDetailScreen(
 
                     if (canEditProject || canDeleteProject) Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         if (canEditProject) {
-                        Button(onClick = { onEdit(project) }, modifier = Modifier.pointerHoverIcon(PointerIcon.Hand)) {
+                        Button(onClick = { onEdit(project) }, modifier = Modifier.pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true)) {
                             Icon(
                                 imageVector = Icons.Default.Edit,
                                 contentDescription = LocalizationManager.t("edit")
@@ -212,7 +212,7 @@ fun ProjectDetailScreen(
                         if (canDeleteProject) {
                             OutlinedButton(
                                 onClick = { confirmDeletion = true },
-                                modifier = Modifier.pointerHoverIcon(PointerIcon.Hand),
+                                modifier = Modifier.pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true),
                                 colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)
                             ) {
                                 Icon(Icons.Default.Delete, contentDescription = LocalizationManager.t("delete_project"))
@@ -237,7 +237,7 @@ fun ProjectDetailScreen(
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
                         OutlinedButton(
                             onClick = { confirmDeletion = false },
-                            modifier = Modifier.pointerHoverIcon(PointerIcon.Hand)
+                            modifier = Modifier.pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true)
                         ) { Text(LocalizationManager.t("cancel")) }
                         Button(
                             onClick = {
@@ -248,7 +248,7 @@ fun ProjectDetailScreen(
                                     } else deleteError = LocalizationManager.t("error_delete_project")
                                 }
                             },
-                            modifier = Modifier.pointerHoverIcon(PointerIcon.Hand),
+                            modifier = Modifier.pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true),
                             colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
                         ) { Text(LocalizationManager.t("delete")) }
                     }
@@ -264,7 +264,7 @@ fun ProjectDetailScreen(
                     Tab(
                         selected = selectedTab == tab,
                         onClick = { selectedTab = tab },
-                        modifier = Modifier.pointerHoverIcon(PointerIcon.Hand),
+                        modifier = Modifier.pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true),
                         text = { Text(LocalizationManager.t(tab.titleKey)) }
                     )
                 }
@@ -418,6 +418,21 @@ private fun EmptyProjectTab(title: String, description: String) {
 }
 
 @Composable
+private fun localizedProjectAddress(details: oms.data.ApiProjectDetails): String {
+    val data = details.data
+    if (LocalizationManager.currentLanguage != Language.EN) return data.address.ifBlank { "—" }
+    val englishSourceName = data.nameEn?.takeIf(String::isNotBlank) ?: details.monitoringDetails?.nameEn
+    val extracted = englishSourceName?.let {
+        Regex("(?i)(?:at the address|address)\\s*[:,-]\\s*(.+)$").find(it)?.groupValues?.getOrNull(1)?.trim(' ', '"')
+    }
+    if (!extracted.isNullOrBlank()) return extracted
+    return listOfNotNull(
+        details.monitoringDetails?.settlementNameEn?.takeIf(String::isNotBlank),
+        localizedUkraineRegion(data.region).takeIf(String::isNotBlank),
+        "Ukraine"
+    ).distinct().joinToString(", ").ifBlank { data.address.ifBlank { "—" } }
+}
+
 private fun ProjectGeneralInfoTab(details: oms.data.ApiProjectDetails?) {
     Card(Modifier.fillMaxWidth()) {
         if (details == null) {
@@ -427,7 +442,7 @@ private fun ProjectGeneralInfoTab(details: oms.data.ApiProjectDetails?) {
         } else {
             val data = details.data
             val general = listOf(
-                LocalizationManager.t("name") to (if (LocalizationManager.currentLanguage == Language.EN) details.monitoringDetails?.nameEn ?: data.name else data.name),
+                LocalizationManager.t("name") to (if (LocalizationManager.currentLanguage == Language.EN) data.nameEn?.takeIf(String::isNotBlank) ?: details.monitoringDetails?.nameEn ?: data.name else data.name),
                 LocalizationManager.t("record_type") to when (data.projectType) {
                     "subproject" -> LocalizationManager.t("subproject")
                     "subproject_part" -> LocalizationManager.t("subproject_part")
@@ -440,7 +455,7 @@ private fun ProjectGeneralInfoTab(details: oms.data.ApiProjectDetails?) {
                 LocalizationManager.t("construction_type") to data.constructionType.constructionTypeLabel()
             )
             val location = listOf(
-                LocalizationManager.t("address") to data.address.ifBlank { "—" },
+                LocalizationManager.t("address") to localizedProjectAddress(details),
                 LocalizationManager.t("region") to localizedUkraineRegion(data.region.ifBlank { "—" }),
                 LocalizationManager.t("city") to (if (LocalizationManager.currentLanguage == Language.EN) details.monitoringDetails?.settlementNameEn ?: data.city else data.city).ifBlank { "—" },
                 LocalizationManager.t("coordinates") to "${data.latitude}, ${data.longitude}"
@@ -449,12 +464,6 @@ private fun ProjectGeneralInfoTab(details: oms.data.ApiProjectDetails?) {
                 LocalizationManager.t("currency") to data.currency,
                 LocalizationManager.t("budget") to data.budgetPlanned.toMoney(),
                 LocalizationManager.t("subproject_contract_amount") to (data.subprojectContractAmount?.toMoney() ?: "—")
-            )
-            val schedule = listOf(
-                LocalizationManager.t("start_date") to data.startDate.toOmsDate(),
-                LocalizationManager.t("end_date") to data.endDate.toOmsDate(),
-                LocalizationManager.t("contract_signed_date") to data.contractSignedDate.toOmsDate(),
-                LocalizationManager.t("planned_end_date") to data.plannedEndDate.toOmsDate()
             )
             val designer = listOf(
                 LocalizationManager.t("designer_name") to (data.designerName ?: "—"),
@@ -504,7 +513,6 @@ private fun ProjectGeneralInfoTab(details: oms.data.ApiProjectDetails?) {
                 CollapsibleProjectSection(LocalizationManager.t("basic_information"), Icons.Default.Info, general, initiallyExpanded = true)
                 if (!data.projectType.equals("project", true)) CollapsibleProjectSection(LocalizationManager.t("parameters_and_location"), Icons.Default.LocationOn, location, showMapLink = true, latitude = data.latitude, longitude = data.longitude)
                 CollapsibleProjectSection(LocalizationManager.t("section_finance"), Icons.Default.Payments, finance)
-                CollapsibleProjectSection(LocalizationManager.t("section_schedule"), Icons.Default.CalendarMonth, schedule)
                 CollapsibleProjectSection(LocalizationManager.t("designer_information"), Icons.Default.Info, designer)
                 CollapsibleProjectSection(LocalizationManager.t("construction_contractor_information"), Icons.Default.Info, contractor)
                 CollapsibleProjectSection(LocalizationManager.t("technical_supervision_information"), Icons.Default.Info, technical)
@@ -533,7 +541,7 @@ private fun CollapsibleProjectSection(
     Column {
         TextButton(
             onClick = { expanded = !expanded },
-            modifier = Modifier.fillMaxWidth().pointerHoverIcon(PointerIcon.Hand),
+            modifier = Modifier.fillMaxWidth().pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true),
             contentPadding = PaddingValues(vertical = 10.dp)
         ) {
             Icon(icon, null, tint = MaterialTheme.colorScheme.primary)
@@ -550,8 +558,8 @@ private fun CollapsibleProjectSection(
                 HorizontalDivider()
             }
             if (showMapLink) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                TextButton(onClick = { clipboard.setText(AnnotatedString(mapUrl)) }, modifier = Modifier.pointerHoverIcon(PointerIcon.Hand)) { Icon(Icons.Default.ContentCopy, null); Spacer(Modifier.width(6.dp)); Text(LocalizationManager.t("copy_map_link")) }
-                TextButton(onClick = { uriHandler.openUri(mapUrl) }, modifier = Modifier.pointerHoverIcon(PointerIcon.Hand)) { Icon(Icons.Default.OpenInNew, null); Spacer(Modifier.width(6.dp)); Text(LocalizationManager.t("open_in_openstreetmap")) }
+                TextButton(onClick = { clipboard.setText(AnnotatedString(mapUrl)) }, modifier = Modifier.pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true)) { Icon(Icons.Default.ContentCopy, null); Spacer(Modifier.width(6.dp)); Text(LocalizationManager.t("copy_map_link")) }
+                TextButton(onClick = { uriHandler.openUri(mapUrl) }, modifier = Modifier.pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true)) { Icon(Icons.Default.OpenInNew, null); Spacer(Modifier.width(6.dp)); Text(LocalizationManager.t("open_in_openstreetmap")) }
             }
         }
     }
@@ -567,7 +575,7 @@ private fun ProjectReportsTab(reports: List<ApiInspectionReport>) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
                     Button(
                         onClick = { uriHandler.openUri(oms.data.omsApiUrl("/inspection-reports/${report.uuid}/source-file")) },
-                        modifier = Modifier.pointerHoverIcon(PointerIcon.Hand)
+                        modifier = Modifier.pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true)
                     ) {
                         Text(LocalizationManager.t("upload_xls"))
                     }
@@ -608,7 +616,7 @@ private fun ProjectDocumentsTab(projectUuid: String, documents: List<ApiProjectD
                 Text("${document.docType} • ${document.fileSizeBytes} ${LocalizationManager.t("bytes")}")
                 Button(
                     onClick = { uriHandler.openUri(oms.data.omsApiUrl("/projects/$projectUuid/documents/${document.uuid}/download")) },
-                    modifier = Modifier.pointerHoverIcon(PointerIcon.Hand)
+                    modifier = Modifier.pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true)
                 ) { Text(LocalizationManager.t("open_document")) }
                 HorizontalDivider()
             }

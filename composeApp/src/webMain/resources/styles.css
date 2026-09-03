@@ -163,6 +163,12 @@ canvas {
     display: block;
 }
 
+/* Compose puts selectable text inside controls on the same canvas. The
+   selection cursor must never win over an explicitly clickable surface. */
+a, button, [role="button"], [role="link"], [role="tab"], [role="menuitem"] {
+    cursor: pointer !important;
+}
+
 .leaflet-container {
     width: 100%;
     height: 100%;

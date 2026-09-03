@@ -22,7 +22,8 @@ import oms.components.TableScrollControls
 fun VerticalBarChart(
     data: List<BarData>, color: Color, labelWidth: Dp = 88.dp, labelMaxLines: Int = 2,
     maxVisibleItems: Int? = null, initialScrollToEnd: Boolean = false,
-    valueLabel: (Float) -> String = { it.toLong().toString() }, onItemClick: ((BarData) -> Unit)? = null
+    valueLabel: (Float) -> String = { it.toLong().toString() }, onItemClick: ((BarData) -> Unit)? = null,
+    showScrollControls: Boolean = true
 ) {
     if (data.isEmpty()) return
     val maxValue = data.maxOf { it.value }.coerceAtLeast(1f)
@@ -39,7 +40,8 @@ fun VerticalBarChart(
                     Column(Modifier.width(labelWidth).semantics { contentDescription = tooltip }
                         .then(
                             if (onItemClick == null) Modifier.focusable()
-                            else Modifier.clickable { onItemClick(item) }.pointerHoverIcon(PointerIcon.Hand)
+                            else Modifier.clickable { onItemClick(item) }
+                                .pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true)
                         ),
                         horizontalAlignment = Alignment.CenterHorizontally) {
                         Box(Modifier.fillMaxWidth().height(154.dp), contentAlignment = Alignment.BottomCenter) {
@@ -74,6 +76,6 @@ fun VerticalBarChart(
             }
         }
         }
-        TableScrollControls(scroll)
+        if (showScrollControls) TableScrollControls(scroll)
     }
 }

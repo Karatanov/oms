@@ -45,5 +45,5 @@ data class MonthlyActPaymentResponse(val month: String, val amountEurCents: Long
     val amountUah: Double,
     val amountEur: Double
 )
-@Serializable data class SubprojectProgressResponse(val projectUuid: String, val code: String, val name: String, val region: String, val completionPct: Double)
+@Serializable data class SubprojectProgressResponse(val projectUuid: String, val code: String, val name: String, val nameEn: String? = null, val region: String, val completionPct: Double)
 @Serializable data class DashboardMetricResponse(val label: String, val value: Long)

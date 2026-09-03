@@ -17,6 +17,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.PointerIcon
+import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import oms.data.OmsApiClient
@@ -64,7 +66,7 @@ fun AddressCoordinatesCalculator(
                 onCalculationRequestedChange(true)
                 calculate()
             }
-        },
+        }.pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(4.dp)
     ) {

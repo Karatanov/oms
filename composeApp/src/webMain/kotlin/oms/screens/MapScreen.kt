@@ -75,7 +75,7 @@ fun MapScreen(onOpenProject: (Project) -> Unit = {}) {
             }
             val regionFilter: @Composable (Modifier) -> Unit = { modifier ->
                 InlineOptionPicker(located.map { it.region }.filter(String::isNotBlank).distinct().sorted(), region,
-                    LocalizationManager.t("region"), { region = it }, modifier = modifier,
+                    LocalizationManager.t("region"), { region = it }, ::localizedUkraineRegion, modifier = modifier,
                     clearLabel = LocalizationManager.t("all"), onClear = { region = null })
             }
             val statusFilter: @Composable (Modifier) -> Unit = { modifier ->

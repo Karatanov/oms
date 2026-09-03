@@ -42,7 +42,7 @@ import kotlin.math.roundToLong
 fun FundingByOblastChart(items: List<ApiSubprojectFunding>, onOpenRegion: (String) -> Unit = {}) {
     var currency by remember { mutableStateOf("EUR") }
     val data = items
-        .groupBy { it.region.toOblastChartLabel() }
+        .groupBy { localizedUkraineRegion(it.region).toOblastChartLabel() }
         .entries
         .sortedBy { it.key }
         .map { entry ->
@@ -87,7 +87,7 @@ fun SubprojectProgressChart(items: List<ApiSubprojectProgress>, onOpenFinancial:
                 label = it.code.ifBlank { it.name },
                 value = it.completionPct.toFloat(),
                 id = it.projectUuid,
-                tooltip = it.name,
+                tooltip = if (LocalizationManager.currentLanguage == oms.localization.Language.EN) it.nameEn?.takeIf(String::isNotBlank) ?: it.name else it.name,
                 formattedValue = "${it.completionPct.toInt()}%"
             )
         }
@@ -137,7 +137,9 @@ private fun AnalyticsListCard(titleKey: String, rows: List<AnalyticsListRow>, hi
             Spacer(Modifier.height(8.dp))
             if (rows.isEmpty()) Text(LocalizationManager.t("no_chart_data"), color = MaterialTheme.colorScheme.onSurfaceVariant)
             rows.drop(page * pageSize).take(pageSize).forEach { row ->
-                val clickModifier = row.onClick?.let { Modifier.clickable(onClick = it).pointerHoverIcon(PointerIcon.Hand) } ?: Modifier
+                val clickModifier = row.onClick?.let {
+                    Modifier.clickable(onClick = it).pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true)
+                } ?: Modifier
                 Column(clickModifier.fillMaxWidth().padding(vertical = 7.dp)) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         Text(row.label, Modifier.weight(1f), maxLines = 2, style = MaterialTheme.typography.bodyMedium)
@@ -164,7 +166,8 @@ fun MetricsChart(
     metrics: List<ApiDashboardMetric>,
     centerYearLabels: Boolean = false,
     compact: Boolean = false,
-    onItemClick: ((String) -> Unit)? = null
+    onItemClick: ((String) -> Unit)? = null,
+    showScrollControls: Boolean = true
 ) {
     val sortedMetrics = metrics.sortedBy { it.label }
     val data = sortedMetrics.mapIndexed { index, metric ->
@@ -184,6 +187,7 @@ fun MetricsChart(
         hintKey,
         data,
         compact = compact,
+        showScrollControls = showScrollControls,
         onItemClick = onItemClick?.let { handler -> { bar -> bar.id?.let(handler) } }
     )
 }
@@ -224,7 +228,8 @@ private fun AnalyticsCard(
     onItemClick: ((BarData) -> Unit)? = null,
     compact: Boolean = false,
     labelMaxLines: Int = 2,
-    filterContent: (@Composable () -> Unit)? = null
+    filterContent: (@Composable () -> Unit)? = null,
+    showScrollControls: Boolean = true
 ) {
     val cardModifier = Modifier.fillMaxWidth().then(
         if (compact) Modifier.heightIn(min = 144.dp) else Modifier.height(if (filterContent == null) 420.dp else 476.dp)
@@ -254,7 +259,7 @@ private fun AnalyticsCard(
             }
             Spacer(Modifier.height(if (compact) 8.dp else 16.dp))
             if (data.isEmpty()) Text(LocalizationManager.t("no_chart_data"), color = MaterialTheme.colorScheme.onSurfaceVariant)
-            else VerticalBarChart(data, MaterialTheme.colorScheme.primary, labelMaxLines = labelMaxLines, maxVisibleItems = 6, valueLabel = valueLabel, onItemClick = onItemClick)
+            else VerticalBarChart(data, MaterialTheme.colorScheme.primary, labelMaxLines = labelMaxLines, maxVisibleItems = 6, valueLabel = valueLabel, onItemClick = onItemClick, showScrollControls = showScrollControls)
         }
     }
 }

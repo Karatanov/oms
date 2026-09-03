@@ -248,7 +248,7 @@ def project_tuple(row: dict, geocoding: dict[str, dict]) -> list:
         row["I"], row["E"], row["F"], None,
         project_address(row), row["C"], row["M"], location.get("latitude"), location.get("longitude"), row["status"], row["sector"], row["constructionType"],
         rounded_long(row["Y"]) or 0, rounded_long(row["CY"]), rounded_long(row["CA"]), rounded_long(row["AV"]),
-        row["BB"], None, row["AS"], row["BC"], None, None, None, row["AS"], row["BB"], row["BC"],
+        row["BB"], None, row["AS"], row["AT"], None, None, None, row["AS"], row["BB"], row["AT"],
         "UAH", row["AP"], None, None, None, row["AN"], row["BU"], row["BS"], row["BX"], row["CD"], row["CE"],
         row["CS"], row["CQ"], row["CV"], row["DB"], row["DC"], None,
         "(SELECT id FROM users WHERE username = 'admin' LIMIT 1)",

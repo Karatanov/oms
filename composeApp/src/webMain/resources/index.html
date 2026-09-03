@@ -662,7 +662,7 @@
                 open.type = "button";
                 open.textContent = omsText("details");
                 open.onclick = () => ufsiOnProjectClick && ufsiOnProjectClick(project.id);
-                popupHtml.append(name, region, subprojectCode, status, open);
+                popupHtml.append(name, subprojectCode, region, status, open);
 
                 // Several facilities may share one postal address. Spread only
                 // overlapping markers visually; their persisted GPS data remains exact.

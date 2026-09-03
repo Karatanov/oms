@@ -27,7 +27,9 @@ import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.input.pointer.onPointerEvent
+import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
@@ -552,6 +554,7 @@ fun ProjectRow(
             .clickable {
                 onOpen(project)
             }
+            .pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true)
 
             .background(
                 when {
@@ -581,7 +584,9 @@ fun ProjectRow(
         ) {
             if (childCount > 0) {
             Box(
-                modifier = Modifier.fillMaxSize().clickable { onToggleChildren(project.id); onExpandRow(rowTopInRoot) },
+                modifier = Modifier.fillMaxSize()
+                    .clickable { onToggleChildren(project.id); onExpandRow(rowTopInRoot) }
+                    .pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true),
                 contentAlignment = Alignment.Center
             ) {
                 Box(

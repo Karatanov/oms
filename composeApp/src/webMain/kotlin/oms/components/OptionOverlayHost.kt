@@ -15,6 +15,8 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.input.key.*
+import androidx.compose.ui.input.pointer.PointerIcon
+import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.*
 import androidx.compose.ui.unit.dp
@@ -85,6 +87,7 @@ fun OptionOverlayHost(content: @Composable () -> Unit) {
                             Row(Modifier.fillMaxWidth()
                                 .background(if (index == active) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface)
                                 .clickable(role = Role.RadioButton) { menu.onChoose(index) }
+                                .pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true)
                                 .semantics { selected = index == menu.selectedIndex }
                                 .heightIn(min = 44.dp).padding(horizontal = 12.dp, vertical = 8.dp),
                                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {

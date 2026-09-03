@@ -16,7 +16,7 @@ external fun setOmsLanguage(language: String)
 @Composable
 fun LanguageSwitcher() {
     Button(
-        modifier = Modifier.pointerHoverIcon(PointerIcon.Hand),
+        modifier = Modifier.pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true),
         onClick = {
             LocalizationManager.switchLanguage()
             setOmsLanguage(if (LocalizationManager.currentLanguage == Language.UK) "uk" else "en")

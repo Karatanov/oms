@@ -28,6 +28,7 @@ import oms.components.TableActionIconButton
 import oms.components.InlineOptionPicker
 import oms.components.WasmSafeOverlay
 import oms.localization.LocalizationManager
+import oms.model.localizedName
 import kotlin.js.JsName
 
 @JsName("openProjectDocumentUpload")
@@ -77,6 +78,8 @@ fun DocumentsScreen(canManageDocuments: Boolean = true) {
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var showUploadDialog by remember { mutableStateOf(false) }
     var reloadKey by remember { mutableStateOf(0) }
+    var pageSize by remember { mutableStateOf(20) }
+    var currentPage by remember { mutableStateOf(0) }
     LaunchedEffect(reloadKey) {
         loading = true; loadFailed = false
         try {
@@ -93,7 +96,7 @@ fun DocumentsScreen(canManageDocuments: Boolean = true) {
             val ancestry = generateSequence(project) { current -> current.parentProjectUuid?.let(projectsById::get) }.toList().asReversed()
             val subproject = ancestry.firstOrNull { it.projectType == "subproject" }
             val partCode = ancestry.firstOrNull { it.projectType == "subproject_part" }?.siteNumber
-            return (subproject?.name ?: project.name) to partCode
+            return (subproject?.localizedName() ?: project.localizedName()) to partCode
         }
         val projectDocumentRows = loadedDocuments.mapNotNull { item ->
             projectsById[item.projectUuid]?.let { project ->
@@ -142,6 +145,10 @@ fun DocumentsScreen(canManageDocuments: Boolean = true) {
             }.let { if (ascending) it else it.reversed() })
             .toList()
     }
+    LaunchedEffect(search, typeFilter, pageSize) { currentPage = 0 }
+    val pageCount = ((visibleDocuments.size + pageSize - 1) / pageSize).coerceAtLeast(1)
+    if (currentPage >= pageCount) currentPage = pageCount - 1
+    val pageDocuments = visibleDocuments.drop(currentPage * pageSize).take(pageSize)
     fun selectSort(column: DocumentSort) { if (sort == column) ascending = !ascending else { sort = column; ascending = true } }
     Box(Modifier.fillMaxSize()) {
     Column(
@@ -175,7 +182,7 @@ fun DocumentsScreen(canManageDocuments: Boolean = true) {
                 header = { DocumentTableHeader(sort, ascending, ::selectSort); HorizontalDivider() }
             ) {
                 if (!loading && !loadFailed && visibleDocuments.isEmpty()) Text(LocalizationManager.t("no_documents"))
-                visibleDocuments.forEach { row ->
+                pageDocuments.forEach { row ->
                     Row(Modifier.width(1_370.dp).padding(vertical = 8.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                         Text(row.fileName, Modifier.width(260.dp))
                         Text(row.projectName, Modifier.width(210.dp))
@@ -203,6 +210,7 @@ fun DocumentsScreen(canManageDocuments: Boolean = true) {
                 }
             }
         }
+        DocumentPagination(pageSize, currentPage, pageCount, visibleDocuments.size, { pageSize = it }, { currentPage = it })
         errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error) }
     }
     if (showUploadDialog) WasmSafeOverlay(onDismiss = { showUploadDialog = false }) {
@@ -232,9 +240,15 @@ private fun ProjectDocumentUploadDialog(
     onDismiss: () -> Unit,
     onUpload: (String, String) -> Unit
 ) {
-    var projectUuid by remember { mutableStateOf(projects.firstOrNull()?.id) }
+    var availableProjects by remember { mutableStateOf(projects) }
+    var rootUuid by remember { mutableStateOf<String?>(null) }
+    var subprojectUuid by remember { mutableStateOf<String?>(null) }
+    var partUuid by remember { mutableStateOf<String?>(null) }
     var docType by remember { mutableStateOf("other") }
-    val selected = projects.firstOrNull { it.id == projectUuid }
+    val roots = availableProjects.filter { it.projectType == "project" }
+    val subprojects = availableProjects.filter { it.projectType == "subproject" && it.parentProjectUuid == rootUuid }
+    val parts = availableProjects.filter { it.projectType == "subproject_part" && it.parentProjectUuid == subprojectUuid }
+    val targetUuid = partUuid ?: subprojectUuid
     Card(Modifier.widthIn(max = 720.dp).fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
         Column(
             Modifier.padding(20.dp).heightIn(max = 520.dp).verticalScroll(rememberScrollState()),
@@ -242,12 +256,34 @@ private fun ProjectDocumentUploadDialog(
         ) {
             Text(LocalizationManager.t("upload_document"), style = MaterialTheme.typography.titleLarge)
             InlineOptionPicker(
-                options = projects,
-                selected = selected,
+                options = roots,
+                selected = roots.firstOrNull { it.id == rootUuid },
                 prompt = LocalizationManager.t("select_project"),
-                onSelect = { projectUuid = it.id },
-                itemLabel = { it.name },
-                loadOptionsOnOpen = loadProjectsOnOpen
+                onSelect = { rootUuid = it.id; subprojectUuid = null; partUuid = null },
+                itemLabel = { it.localizedName() },
+                loadOptionsOnOpen = {
+                    val loaded = loadProjectsOnOpen()
+                    availableProjects = loaded
+                    loaded.filter { it.projectType == "project" }
+                }
+            )
+            InlineOptionPicker(
+                options = subprojects,
+                selected = subprojects.firstOrNull { it.id == subprojectUuid },
+                prompt = LocalizationManager.t("select_subproject"),
+                onSelect = { subprojectUuid = it.id; partUuid = null },
+                itemLabel = { listOf(it.siteNumber, it.localizedName()).filter(String::isNotBlank).distinct().joinToString(" — ") },
+                enabled = rootUuid != null && subprojects.isNotEmpty()
+            )
+            InlineOptionPicker(
+                options = parts,
+                selected = parts.firstOrNull { it.id == partUuid },
+                prompt = LocalizationManager.t("select_subproject_part"),
+                onSelect = { partUuid = it.id },
+                itemLabel = { listOf(it.siteNumber, it.localizedName()).filter(String::isNotBlank).distinct().joinToString(" — ") },
+                enabled = subprojectUuid != null && parts.isNotEmpty(),
+                clearLabel = LocalizationManager.t("all"),
+                onClear = { partUuid = null }
             )
             Text(LocalizationManager.t("type"), style = MaterialTheme.typography.labelLarge)
             InlineOptionPicker(
@@ -259,9 +295,29 @@ private fun ProjectDocumentUploadDialog(
             )
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, androidx.compose.ui.Alignment.End)) {
                 OutlinedButton(onClick = onDismiss) { Text(LocalizationManager.t("cancel")) }
-                Button(onClick = { onUpload(projectUuid!!, docType) }, enabled = projectUuid != null) { Text(LocalizationManager.t("choose_file")) }
+                Button(onClick = { onUpload(targetUuid!!, docType) }, enabled = targetUuid != null) { Text(LocalizationManager.t("choose_file")) }
             }
         }
+    }
+}
+
+@Composable
+private fun DocumentPagination(
+    pageSize: Int,
+    currentPage: Int,
+    pageCount: Int,
+    total: Int,
+    onPageSize: (Int) -> Unit,
+    onPage: (Int) -> Unit
+) {
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+        Text(LocalizationManager.t("rows_per_page"), style = MaterialTheme.typography.bodySmall)
+        Spacer(Modifier.width(8.dp))
+        InlineOptionPicker(listOf(20, 50, 100), pageSize, LocalizationManager.t("rows_per_page"), onPageSize, modifier = Modifier.width(100.dp), fillWidth = false)
+        Spacer(Modifier.width(16.dp))
+        TextButton(onClick = { onPage((currentPage - 1).coerceAtLeast(0)) }, enabled = currentPage > 0) { Text("‹") }
+        Text(if (total == 0) "0 / 0" else "${currentPage * pageSize + 1}–${minOf((currentPage + 1) * pageSize, total)} / $total")
+        TextButton(onClick = { onPage((currentPage + 1).coerceAtMost(pageCount - 1)) }, enabled = currentPage < pageCount - 1) { Text("›") }
     }
 }
 

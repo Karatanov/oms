@@ -104,7 +104,8 @@ fun DashboardScreen(
                             MetricsChart(
                                 "procurement_status_by_subprojects",
                                 metrics = dashboard?.procurementStatusCounts.orEmpty(),
-                                onItemClick = onOpenProcurementsByStatus
+                                onItemClick = onOpenProcurementsByStatus,
+                                showScrollControls = false
                             )
                         },
                         second = { MonthlyActPaymentsChart(MaterialTheme.colorScheme.primary, dashboard?.monthlyActPayments.orEmpty(), onOpenFinancial) }
