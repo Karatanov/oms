@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.background
+import androidx.compose.foundation.text.selection.DisableSelection
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
 import androidx.compose.ui.unit.dp
@@ -31,20 +32,22 @@ fun AppLayout(appState: AppState) {
     Row(modifier = Modifier.fillMaxSize()) {
 
         // ---------------- SIDEBAR ----------------
-        Sidebar(
-            currentScreen = appState.currentScreen,
-            onNavigate = {
-                if (it == Screen.Map && appState.currentScreen == Screen.Map) resetMapToUkraine()
-                else appState.navigate(it)
-            },
-            onLogout = { appState.logout() },
-            username = appState.username,
-            isAdmin = appState.roleCode == "ADMIN",
-            isGuest = appState.roleCode == "GUEST",
-            canAccessFinancials = appState.roleCode in setOf("ADMIN", "PROJECT_MANAGER"),
-            compact = compact,
-            onToggle = { compact = !compact }
-        )
+        DisableSelection {
+            Sidebar(
+                currentScreen = appState.currentScreen,
+                onNavigate = {
+                    if (it == Screen.Map && appState.currentScreen == Screen.Map) resetMapToUkraine()
+                    else appState.navigate(it)
+                },
+                onLogout = { appState.logout() },
+                username = appState.username,
+                isAdmin = appState.roleCode == "ADMIN",
+                isGuest = appState.roleCode == "GUEST",
+                canAccessFinancials = appState.roleCode in setOf("ADMIN", "PROJECT_MANAGER"),
+                compact = compact,
+                onToggle = { compact = !compact }
+            )
+        }
         // ---------------- CONTENT ----------------
         Box(modifier = Modifier.weight(1f)) {
 
