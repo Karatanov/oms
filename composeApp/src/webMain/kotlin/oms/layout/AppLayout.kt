@@ -54,7 +54,8 @@ fun AppLayout(appState: AppState) {
                     onOpenProject = appState::openProjectDetail,
                     onOpenFinancial = { if (appState.roleCode in setOf("ADMIN", "PROJECT_MANAGER")) appState.navigate(Screen.Financial) },
                     onOpenProjectsByRegion = appState::openProjectsByRegion,
-                    onOpenFinancialBySubproject = appState::openFinancialBySubproject
+                    onOpenFinancialBySubproject = appState::openFinancialBySubproject,
+                    onOpenProcurementsByStatus = appState::openProcurementsByStatus
                 )
 
                 is Screen.Projects -> ProjectsScreen(
@@ -125,7 +126,9 @@ fun AppLayout(appState: AppState) {
                 )
 
                 is Screen.Procurement -> if (appState.roleCode != "GUEST") ProcurementScreen(
-                    canManageProcurements = appState.roleCode in setOf("ADMIN", "PROJECT_MANAGER")
+                    canManageProcurements = appState.roleCode in setOf("ADMIN", "PROJECT_MANAGER"),
+                    requestedStatusFilter = appState.requestedProcurementStatus,
+                    onRequestedStatusFilterConsumed = { appState.requestedProcurementStatus = null }
                 )
 
                 is Screen.Documents -> if (appState.roleCode != "GUEST") DocumentsScreen(

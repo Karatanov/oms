@@ -148,7 +148,8 @@ fun MetricsChart(
     hintKey: String? = null,
     metrics: List<ApiDashboardMetric>,
     centerYearLabels: Boolean = false,
-    compact: Boolean = false
+    compact: Boolean = false,
+    onItemClick: ((String) -> Unit)? = null
 ) {
     val sortedMetrics = metrics.sortedBy { it.label }
     val data = sortedMetrics.mapIndexed { index, metric ->
@@ -159,10 +160,17 @@ fun MetricsChart(
         BarData(
             label = if (centerYearLabels && isMonth) displayLabel.toMonthName() else displayLabel.toChartMonth(),
             value = metric.value.toFloat(),
+            id = metric.label,
             groupLabel = if (centerYearLabels && isMonth) metric.label.take(4) else null
         )
     }
-    AnalyticsCard(titleKey, hintKey, data, compact = compact)
+    AnalyticsCard(
+        titleKey,
+        hintKey,
+        data,
+        compact = compact,
+        onItemClick = onItemClick?.let { handler -> { bar -> bar.id?.let(handler) } }
+    )
 }
 
 @Composable

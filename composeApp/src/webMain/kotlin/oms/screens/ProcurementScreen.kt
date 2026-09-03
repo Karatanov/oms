@@ -45,7 +45,11 @@ import kotlinx.coroutines.launch
 
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
-fun ProcurementScreen(canManageProcurements: Boolean) {
+fun ProcurementScreen(
+    canManageProcurements: Boolean,
+    requestedStatusFilter: String? = null,
+    onRequestedStatusFilterConsumed: () -> Unit = {}
+) {
     var search by remember { mutableStateOf("") }
     var oblastFilter by remember { mutableStateOf<String?>(null) }
     var statusFilter by remember { mutableStateOf<String?>(null) }
@@ -60,6 +64,12 @@ fun ProcurementScreen(canManageProcurements: Boolean) {
     var currentPage by remember { mutableStateOf(0) }
     val scope = rememberCoroutineScope()
     val contentScrollState = rememberScrollState()
+    LaunchedEffect(requestedStatusFilter) {
+        requestedStatusFilter?.let {
+            statusFilter = it
+            onRequestedStatusFilterConsumed()
+        }
+    }
     LaunchedEffect(reloadKey) {
         loadError = null
         runCatching { OmsApiClient.procurements() }
@@ -130,7 +140,7 @@ fun ProcurementScreen(canManageProcurements: Boolean) {
         Spacer(Modifier.height(12.dp))
         val visibleRecords = records.orEmpty().filter { record ->
             (oblastFilter == null || record.oblastName == oblastFilter) &&
-            (statusFilter == null || record.purchaseStatus == statusFilter) &&
+            (statusFilter == null || sameProcurementStatus(record.purchaseStatus, statusFilter)) &&
             (search.isBlank() || listOf(record.subProjectId, record.subProjectLotId, record.oblastName, record.contractorNameUkr.orEmpty(), record.contractorNameEng.orEmpty()).any { it.contains(search, true) })
         }
         LaunchedEffect(search, oblastFilter, statusFilter, pageSize) { currentPage = 0 }

@@ -28,7 +28,8 @@ fun DashboardScreen(
     onOpenProject: (oms.model.Project) -> Unit = {},
     onOpenFinancial: () -> Unit = {},
     onOpenProjectsByRegion: (String) -> Unit = {},
-    onOpenFinancialBySubproject: (String) -> Unit = {}
+    onOpenFinancialBySubproject: (String) -> Unit = {},
+    onOpenProcurementsByStatus: (String) -> Unit = {}
 ) {
     var dashboard by remember { mutableStateOf<ApiDashboardOverview?>(null) }
     var loading by remember { mutableStateOf(true) }
@@ -99,7 +100,13 @@ fun DashboardScreen(
                 }
                 item {
                     AdaptiveChartRow(
-                        first = { MetricsChart("procurement_status_by_subprojects", metrics = dashboard?.procurementStatusCounts.orEmpty()) },
+                        first = {
+                            MetricsChart(
+                                "procurement_status_by_subprojects",
+                                metrics = dashboard?.procurementStatusCounts.orEmpty(),
+                                onItemClick = onOpenProcurementsByStatus
+                            )
+                        },
                         second = { MonthlyActPaymentsChart(MaterialTheme.colorScheme.primary, dashboard?.monthlyActPayments.orEmpty(), onOpenFinancial) }
                     )
                 }
