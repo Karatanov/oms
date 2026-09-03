@@ -131,11 +131,14 @@ fun ProjectsScreen(
     }
 
     MaterialTheme(colorScheme = MaterialTheme.colorScheme.copy(onPrimary = Color.White)) {
+    Box(Modifier.fillMaxSize()) {
     Column(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(pageScrollState)
-            .padding(16.dp)
+            // Leave a fixed lane for the page-scroll controls, as on the
+            // procurement and inspection-report screens.
+            .padding(start = 16.dp, top = 16.dp, end = 76.dp, bottom = 16.dp)
     ) {
 
         oms.components.PageHeading(LocalizationManager.t("projects_title"), Icons.Default.FolderOpen) {
@@ -239,6 +242,25 @@ fun ProjectsScreen(
 
         Spacer(Modifier.height(16.dp))
 
+    }
+    Column(
+        modifier = Modifier.align(Alignment.CenterEnd).padding(end = 20.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        oms.components.HoldToScrollButton(
+            LocalizationManager.t("dashboard_scroll_up"),
+            Icons.Default.KeyboardArrowUp,
+            pageScrollState,
+            -1
+        )
+        oms.components.HoldToScrollButton(
+            LocalizationManager.t("dashboard_scroll_down"),
+            Icons.Default.KeyboardArrowDown,
+            pageScrollState,
+            1
+        )
+    }
     }
     }
 }
