@@ -582,7 +582,7 @@ private fun ProjectGeneralInfoTab(details: oms.data.ApiProjectDetails?) {
                 details.monitoringDetails?.let { add(LocalizationManager.t("source_subproject_id") to it.sourceSubprojectId); add(LocalizationManager.t("source_lot_id") to it.sourceLotId); add(LocalizationManager.t("english_name") to (it.nameEn ?: "—")); add(LocalizationManager.t("municipality") to (if (LocalizationManager.currentLanguage == Language.EN) it.municipalityNameEn ?: it.municipalityNameUk else it.municipalityNameUk) .orEmpty().ifBlank { "—" }); add(LocalizationManager.t("beneficiary") to (if (LocalizationManager.currentLanguage == Language.EN) it.beneficiaryNameEn ?: it.beneficiaryNameUk else it.beneficiaryNameUk).orEmpty().ifBlank { "—" }); add(LocalizationManager.t("project_manager") to (if (LocalizationManager.currentLanguage == Language.EN) it.projectManagerNameEn ?: it.projectManagerNameUk else it.projectManagerNameUk).orEmpty().ifBlank { "—" }); add(LocalizationManager.t("procurement_status") to (it.constructionProcurementStatus?.let(LocalizationManager::procurementStatus) ?: "—")); add(LocalizationManager.t("work_status") to (it.constructionWorkStatus ?: "—")); add(LocalizationManager.t("coordinate_accuracy") to LocalizationManager.t("geocode_accuracy_${it.geocodeAccuracy ?: "unknown"}")); add(LocalizationManager.t("source_workbook") to it.sourceWorkbook) }
             }
             Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                CollapsibleProjectSection(LocalizationManager.t("basic_information"), Icons.Default.Info, general)
+                CollapsibleProjectSection(LocalizationManager.t("basic_information"), Icons.Default.Info, general, initiallyExpanded = true)
                 if (!data.projectType.equals("project", true)) CollapsibleProjectSection(LocalizationManager.t("parameters_and_location"), Icons.Default.LocationOn, location, showMapLink = true, latitude = data.latitude, longitude = data.longitude)
                 CollapsibleProjectSection(LocalizationManager.t("section_finance"), Icons.Default.Payments, finance)
                 CollapsibleProjectSection(LocalizationManager.t("section_schedule"), Icons.Default.CalendarMonth, schedule)
@@ -603,9 +603,10 @@ private fun CollapsibleProjectSection(
     fields: List<Pair<String, String>>,
     showMapLink: Boolean = false,
     latitude: Double = 0.0,
-    longitude: Double = 0.0
+    longitude: Double = 0.0,
+    initiallyExpanded: Boolean = false
 ) {
-    var expanded by remember { mutableStateOf(true) }
+    var expanded by remember { mutableStateOf(initiallyExpanded) }
     val uriHandler = LocalUriHandler.current
     val clipboard = LocalClipboardManager.current
     val mapUrl = "https://www.openstreetmap.org/?mlat=$latitude&mlon=$longitude#map=16/$latitude/$longitude"
