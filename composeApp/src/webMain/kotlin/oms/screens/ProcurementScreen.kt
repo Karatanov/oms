@@ -26,6 +26,9 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import oms.data.ApiProcurementRecord
 import oms.data.ApiDashboardMetric
@@ -53,6 +56,7 @@ fun ProcurementScreen(
     var search by remember { mutableStateOf("") }
     var oblastFilter by remember { mutableStateOf<String?>(null) }
     var statusFilter by remember { mutableStateOf<String?>(null) }
+    var signedContractMonthFilter by remember { mutableStateOf<String?>(null) }
     var records by remember { mutableStateOf<List<ApiProcurementRecord>?>(null) }
     var error by remember { mutableStateOf<String?>(null) }
     var loadError by remember { mutableStateOf<String?>(null) }
@@ -64,6 +68,8 @@ fun ProcurementScreen(
     var currentPage by remember { mutableStateOf(0) }
     val scope = rememberCoroutineScope()
     val contentScrollState = rememberScrollState()
+    var tableTopInRootPx by remember { mutableStateOf(0f) }
+    val tableTopPaddingPx = with(LocalDensity.current) { 24.dp.toPx() }
     LaunchedEffect(requestedStatusFilter) {
         requestedStatusFilter?.let {
             statusFilter = it
@@ -75,6 +81,18 @@ fun ProcurementScreen(
         runCatching { OmsApiClient.procurements() }
             .onSuccess { records = it.sortedWith(compareBy({ record -> record.batchId }, { record -> record.recordNumber })) }
             .onFailure { loadError = LocalizationManager.t("procurement_load_error") }
+    }
+    fun applySignedContractMonthFilter(month: String) {
+        signedContractMonthFilter = month
+        statusFilter = procurementStatuses[3]
+        scope.launch {
+            kotlinx.coroutines.yield()
+            contentScrollState.animateScrollTo(
+                (contentScrollState.value + tableTopInRootPx - tableTopPaddingPx)
+                    .toInt()
+                    .coerceIn(0, contentScrollState.maxValue)
+            )
+        }
     }
     val procurementStatusMetrics = records?.let { loaded ->
         procurementStatuses.map { status ->
@@ -131,19 +149,28 @@ fun ProcurementScreen(
                     "signed_construction_contracts",
                     "signed_construction_contracts_hint",
                     signedContractMetrics,
-                    centerYearLabels = true
+                    centerYearLabels = true,
+                    onItemClick = ::applySignedContractMonthFilter
                 )
             }
         )
         Spacer(Modifier.height(16.dp))
         OutlinedTextField(search, { search = it }, singleLine = true, label = { Text(LocalizationManager.t("procurement_search")) }, leadingIcon = { Icon(Icons.Default.Search, null) }, modifier = Modifier.fillMaxWidth())
+        signedContractMonthFilter?.let { month ->
+            FilterChip(
+                selected = true,
+                onClick = { signedContractMonthFilter = null; statusFilter = null },
+                label = { Text("${LocalizationManager.t("signed_construction_contracts")}: $month") }
+            )
+        }
         Spacer(Modifier.height(12.dp))
         val visibleRecords = records.orEmpty().filter { record ->
             (oblastFilter == null || record.oblastName == oblastFilter) &&
             (statusFilter?.let { sameProcurementStatus(record.purchaseStatus, it) } ?: true) &&
+            (signedContractMonthFilter == null || record.contractDate?.take(7) == signedContractMonthFilter) &&
             (search.isBlank() || listOf(record.subProjectId, record.subProjectLotId, record.oblastName, record.contractorNameUkr.orEmpty(), record.contractorNameEng.orEmpty()).any { it.contains(search, true) })
         }
-        LaunchedEffect(search, oblastFilter, statusFilter, pageSize) { currentPage = 0 }
+        LaunchedEffect(search, oblastFilter, statusFilter, signedContractMonthFilter, pageSize) { currentPage = 0 }
         val pageCount = if (visibleRecords.isEmpty() || pageSize == Int.MAX_VALUE) 1 else (visibleRecords.size + pageSize - 1) / pageSize
         if (currentPage >= pageCount) currentPage = (pageCount - 1).coerceAtLeast(0)
         val pageRecords = if (pageSize == Int.MAX_VALUE) visibleRecords else visibleRecords.drop(currentPage * pageSize).take(pageSize)
@@ -160,10 +187,12 @@ fun ProcurementScreen(
                     onPageSize = { pageSize = it },
                     onPage = { currentPage = it.coerceIn(0, pageCount - 1) }
                 )
-                ProcurementTable(
-                    pageRecords, records.orEmpty(), oblastFilter, { oblastFilter = it }, statusFilter, { statusFilter = it },
-                    canManageProcurements, { error = null; editorRecord = it }, { error = null; recordPendingDeletion = it }
-                )
+                Box(Modifier.onGloballyPositioned { tableTopInRootPx = it.positionInRoot().y }) {
+                    ProcurementTable(
+                        pageRecords, records.orEmpty(), oblastFilter, { oblastFilter = it }, statusFilter, { statusFilter = it },
+                        canManageProcurements, { error = null; editorRecord = it }, { error = null; recordPendingDeletion = it }
+                    )
+                }
                 ProcurementPagination(pageSize, currentPage, pageCount, visibleRecords.size, { pageSize = it }, { currentPage = it.coerceIn(0, pageCount - 1) })
             }
         }
