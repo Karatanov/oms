@@ -278,11 +278,14 @@ private fun FinancialTransferDialog(
     onImport: (String) -> Unit,
     onExport: (String) -> Unit
 ) {
+    var availableProjects by remember { mutableStateOf(projects) }
     var projectUuid by remember { mutableStateOf(projects.firstOrNull { it.projectType.equals("project", true) }?.id) }
     Card(Modifier.widthIn(max = 620.dp).fillMaxWidth()) {
         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(LocalizationManager.t("financial_transfer_title"), style = MaterialTheme.typography.titleLarge)
-            FinancialProjectTargetSelector(projects, projectUuid, loadProjectsOnOpen) { projectUuid = it }
+            FinancialProjectTargetSelector(availableProjects, projectUuid, {
+                loadProjectsOnOpen().also { availableProjects = it }
+            }) { projectUuid = it }
             Text(LocalizationManager.t("financial_import_hint"), color = MaterialTheme.colorScheme.onSurfaceVariant)
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, androidx.compose.ui.Alignment.End)) {
                 OutlinedButton(onClick = onDismiss) { Text(LocalizationManager.t("cancel")) }
@@ -301,6 +304,7 @@ private fun ActEditorDialog(
     onDismiss: () -> Unit,
     onSave: (String, oms.data.FinancialRecordRequest) -> Unit
 ) {
+    var availableProjects by remember { mutableStateOf(projects) }
     var projectUuid by remember { mutableStateOf(existing?.projectUuid ?: projects.firstOrNull { it.projectType.equals("project", true) }?.id) }
     var reference by remember { mutableStateOf(existing?.act?.referenceNumber ?: "") }
     var recordType by remember { mutableStateOf(existing?.act?.recordType ?: "act") }
@@ -316,7 +320,9 @@ private fun ActEditorDialog(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text(if (existing == null) LocalizationManager.t("add_financial_record") else LocalizationManager.t("edit_financial_record"), style = MaterialTheme.typography.titleLarge)
-            FinancialProjectTargetSelector(projects, projectUuid, loadProjectsOnOpen) { projectUuid = it }
+            FinancialProjectTargetSelector(availableProjects, projectUuid, {
+                loadProjectsOnOpen().also { availableProjects = it }
+            }) { projectUuid = it }
             OutlinedTextField(reference, { reference = it }, label = { Text(LocalizationManager.t("reference_number")) }, modifier = Modifier.fillMaxWidth())
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 listOf("invoice", "act", "payment", "advance").forEach { type -> FilterChip(selected = recordType == type, onClick = { recordType = type }, label = { Text(LocalizationManager.t("record_type_$type")) }) }
