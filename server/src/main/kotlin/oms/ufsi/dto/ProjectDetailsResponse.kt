@@ -18,7 +18,8 @@ data class ProjectDetailsResponse(
      */
     val financialSummary: FinancialSummaryResponse,
     val programmeDetails: ProgrammeDetailsResponse? = null,
-    val monitoringDetails: ProjectMonitoringDetailsResponse? = null
+    val monitoringDetails: ProjectMonitoringDetailsResponse? = null,
+    val contractorNameEn: String? = null
 )
 
 @Serializable

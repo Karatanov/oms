@@ -759,7 +759,8 @@ data class ApiProjectDetails(
     val data: ApiProjectDetailsData,
     val financialSummary: ApiFinancialSummary,
     val programmeDetails: ApiProgrammeDetails? = null,
-    val monitoringDetails: ApiProjectMonitoringDetails? = null
+    val monitoringDetails: ApiProjectMonitoringDetails? = null,
+    val contractorNameEn: String? = null
 )
 
 @Serializable

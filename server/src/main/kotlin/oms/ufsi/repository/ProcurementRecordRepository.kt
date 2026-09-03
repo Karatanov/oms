@@ -13,6 +13,7 @@ import java.math.BigDecimal
 
 interface ProcurementRecordRepository {
     fun findAll(): List<ProcurementRecord>
+    fun findBySubProjectId(subProjectId: String): List<ProcurementRecord>
     fun create(record: ProcurementRecord): ProcurementRecord
     fun update(id: Long, record: ProcurementRecord): ProcurementRecord?
     fun delete(id: Long): Boolean
@@ -21,6 +22,12 @@ interface ProcurementRecordRepository {
 class ExposedProcurementRecordRepository : ProcurementRecordRepository {
     override fun findAll(): List<ProcurementRecord> = transaction {
         ProcurementRecordTable.selectAll().map(::map)
+    }
+
+    override fun findBySubProjectId(subProjectId: String): List<ProcurementRecord> = transaction {
+        ProcurementRecordTable.selectAll()
+            .where { ProcurementRecordTable.subProjectId eq subProjectId }
+            .map(::map)
     }
 
     override fun create(record: ProcurementRecord): ProcurementRecord = transaction {

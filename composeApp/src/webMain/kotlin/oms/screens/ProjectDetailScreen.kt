@@ -433,6 +433,25 @@ private fun localizedProjectAddress(details: oms.data.ApiProjectDetails): String
     ).distinct().joinToString(", ").ifBlank { data.address.ifBlank { "—" } }
 }
 
+private fun localizedOrganisationName(value: String?): String {
+    val source = value?.takeIf(String::isNotBlank) ?: return "—"
+    if (LocalizationManager.currentLanguage != Language.EN || source.none { it.lowercaseChar() in 'а'..'я' || it in "іїєґІЇЄҐ" }) return source
+    val replacements = mapOf(
+        'а' to "a", 'б' to "b", 'в' to "v", 'г' to "h", 'ґ' to "g", 'д' to "d", 'е' to "e", 'є' to "ie",
+        'ж' to "zh", 'з' to "z", 'и' to "y", 'і' to "i", 'ї' to "i", 'й' to "i", 'к' to "k", 'л' to "l",
+        'м' to "m", 'н' to "n", 'о' to "o", 'п' to "p", 'р' to "r", 'с' to "s", 'т' to "t", 'у' to "u",
+        'ф' to "f", 'х' to "kh", 'ц' to "ts", 'ч' to "ch", 'ш' to "sh", 'щ' to "shch", 'ь' to "",
+        'ю' to "iu", 'я' to "ia", 'ы' to "y", 'э' to "e", 'ъ' to ""
+    )
+    return buildString {
+        source.forEach { char ->
+            val mapped = replacements[char.lowercaseChar()]
+            if (mapped == null) append(char)
+            else append(if (char.isUpperCase()) mapped.replaceFirstChar(Char::uppercaseChar) else mapped)
+        }
+    }
+}
+
 private fun ProjectGeneralInfoTab(details: oms.data.ApiProjectDetails?) {
     Card(Modifier.fillMaxWidth()) {
         if (details == null) {
@@ -474,7 +493,9 @@ private fun ProjectGeneralInfoTab(details: oms.data.ApiProjectDetails?) {
                 LocalizationManager.t("design_contract_term") to (data.designDurationDays?.let { LocalizationManager.t("design_duration_days").replace("{days}", it.toString()) } ?: "—")
             )
             val contractor = listOf(
-                LocalizationManager.t("contractor") to (data.contractorName ?: "—"),
+                LocalizationManager.t("contractor") to if (LocalizationManager.currentLanguage == Language.EN) {
+                    details.contractorNameEn?.takeIf(String::isNotBlank) ?: localizedOrganisationName(data.contractorName)
+                } else localizedOrganisationName(data.contractorName),
                 LocalizationManager.t("contract_number") to (data.constructionContractNumber ?: "—"),
                 LocalizationManager.t("construction_contract_date") to data.constructionContractSigningDate.toOmsDate(),
                 LocalizationManager.t("construction_start_date") to data.constructionStartDate.toOmsDate(),
@@ -483,7 +504,7 @@ private fun ProjectGeneralInfoTab(details: oms.data.ApiProjectDetails?) {
             )
             val technical = listOf(
                 LocalizationManager.t("technical_supervision_contract_amount") to (data.technicalSupervisionAmount?.toMoney() ?: "—"),
-                LocalizationManager.t("name") to (data.technicalSupervisionName ?: "—"),
+                LocalizationManager.t("name") to localizedOrganisationName(data.technicalSupervisionName),
                 LocalizationManager.t("contract_number") to (data.technicalSupervisionContractNumber ?: "—"),
                 LocalizationManager.t("contract_date") to data.technicalSupervisionContractDate.toOmsDate(),
                 LocalizationManager.t("design_start_date") to data.technicalSupervisionStartDate.toOmsDate(),
@@ -492,7 +513,7 @@ private fun ProjectGeneralInfoTab(details: oms.data.ApiProjectDetails?) {
             )
             val engineer = listOf(
                 LocalizationManager.t("engineer_consultant_contract_amount") to (data.engineerConsultantContractAmount?.toMoney() ?: "—"),
-                LocalizationManager.t("name") to (data.engineerConsultantName ?: "—"),
+                LocalizationManager.t("name") to localizedOrganisationName(data.engineerConsultantName),
                 LocalizationManager.t("contract_number") to (data.engineerConsultantContractNumber ?: "—"),
                 LocalizationManager.t("contract_date") to data.engineerConsultantContractDate.toOmsDate(),
                 LocalizationManager.t("design_start_date") to data.engineerConsultantStartDate.toOmsDate(),

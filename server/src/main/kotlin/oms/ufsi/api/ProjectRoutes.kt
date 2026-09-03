@@ -253,12 +253,19 @@ fun Route.projectRoutes() {
         }
         if (!call.requireProjectAccess(session, uuid)) return@get
 
+        val monitoring = AppContainer.projectRepository.monitoringDetails(project.id)
+        val contractorNameEn = monitoring?.sourceSubprojectId?.let { sourceId ->
+            AppContainer.procurementService.getBySubProjectId(sourceId)
+                .firstOrNull { !it.contractorNameEng.isNullOrBlank() }
+                ?.contractorNameEng
+        }
+
         call.respond(
 
             ProjectDetailsResponse(
 
                 data =
-                    project.toResponse(),
+                    project.toResponse(monitoring = monitoring),
 
                 financialSummary = AppContainer.financialRecordService.summary(project).let {
                     FinancialSummaryResponse(
@@ -278,7 +285,7 @@ fun Route.projectRoutes() {
                         it.sourceWorkbook, it.sourceSnapshotDate?.toString()
                     )
                 },
-                monitoringDetails = AppContainer.projectRepository.monitoringDetails(project.id)?.let {
+                monitoringDetails = monitoring?.let {
                     ProjectMonitoringDetailsResponse(
                         it.sourceBatchId, it.sourceSubprojectId, it.sourceLotId, it.nameEn, it.oblastCode,
                         it.municipalityNameUk, it.municipalityNameEn, it.settlementNameEn, it.priorityAreaSource,
@@ -288,7 +295,8 @@ fun Route.projectRoutes() {
                         it.constructionProcurementStatus, it.constructionWorkStatus, it.geocodeAccuracy,
                         it.geocodeQuery, it.geocodeDisplayName, it.sourceRows, it.sourceWorkbook
                     )
-                }
+                },
+                contractorNameEn = contractorNameEn
             )
         )
     }
