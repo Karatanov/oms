@@ -410,11 +410,24 @@ private fun FinancialProjectTargetSelector(
         )
         FinancialProjectLevelDropdown(
             LocalizationManager.t("select_subproject"), subprojects, subproject?.id, onTargetSelect,
-            enabled = root != null && subprojects.isNotEmpty()
+            // The initial project snapshot may intentionally be empty.  Once a
+            // root is selected, let this picker load its children on demand
+            // rather than leaving a disabled field the user cannot open.
+            enabled = root != null,
+            loadOptionsOnOpen = {
+                loadProjectsOnOpen().filter {
+                    it.projectType.equals("subproject", true) && it.parentProjectUuid == root?.id
+                }
+            }
         )
         FinancialProjectLevelDropdown(
             LocalizationManager.t("select_subproject_part"), parts, part?.id, onTargetSelect,
-            enabled = subproject != null && parts.isNotEmpty()
+            enabled = subproject != null,
+            loadOptionsOnOpen = {
+                loadProjectsOnOpen().filter {
+                    it.projectType.equals("subproject_part", true) && it.parentProjectUuid == subproject?.id
+                }
+            }
         )
     }
 }
