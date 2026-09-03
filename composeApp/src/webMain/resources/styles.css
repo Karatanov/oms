@@ -22,6 +22,20 @@ body {
     z-index: 2;
 }
 
+/* Compose/Wasm renders controls into a single canvas-like interaction layer.
+   Its text-selection container otherwise leaves the I-beam cursor over every
+   navigation item and action.  Make the application surface consistently
+   indicate clickability; native text-entry controls retain the text cursor. */
+#compose-host, #compose-host * {
+    cursor: pointer !important;
+}
+#compose-host input, #compose-host textarea, #compose-host [contenteditable="true"] {
+    cursor: text !important;
+}
+#compose-host :disabled, #compose-host [aria-disabled="true"] {
+    cursor: default !important;
+}
+
 #dashboard-photo-slider {
     position: fixed;
     bottom: 24px;
