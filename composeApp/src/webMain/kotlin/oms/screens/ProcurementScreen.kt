@@ -140,7 +140,7 @@ fun ProcurementScreen(
         Spacer(Modifier.height(12.dp))
         val visibleRecords = records.orEmpty().filter { record ->
             (oblastFilter == null || record.oblastName == oblastFilter) &&
-            (statusFilter == null || sameProcurementStatus(record.purchaseStatus, statusFilter)) &&
+            (statusFilter?.let { sameProcurementStatus(record.purchaseStatus, it) } ?: true) &&
             (search.isBlank() || listOf(record.subProjectId, record.subProjectLotId, record.oblastName, record.contractorNameUkr.orEmpty(), record.contractorNameEng.orEmpty()).any { it.contains(search, true) })
         }
         LaunchedEffect(search, oblastFilter, statusFilter, pageSize) { currentPage = 0 }
