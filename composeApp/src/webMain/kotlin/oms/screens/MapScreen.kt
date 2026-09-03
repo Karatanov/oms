@@ -111,7 +111,7 @@ fun MapScreen(onOpenProject: (Project) -> Unit = {}) {
         else if (ProjectRepository.errorMessage != null) ContentState(LocalizationManager.t("load_records_error"), error = true, onRetry = { scope.launch { ProjectRepository.refresh(force = true) } })
         else if (visible.isEmpty()) ContentState(LocalizationManager.t("no_map_results"))
         Box(Modifier.fillMaxWidth().weight(1f)) {
-            LeafletMapView(visible) { id -> visible.firstOrNull { it.id == id }?.let(onOpenProject) }
+            LeafletMapView(visible, allProjects = projects) { id -> visible.firstOrNull { it.id == id }?.let(onOpenProject) }
         }
     }
 }

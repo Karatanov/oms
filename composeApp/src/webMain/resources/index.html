@@ -654,13 +654,15 @@
                 name.textContent = project.name;
                 const region = document.createElement("p");
                 region.textContent = project.regionLabel + ": " + project.region;
+                const subprojectCode = document.createElement("p");
+                subprojectCode.textContent = project.subprojectCodeLabel + ": " + (project.subprojectCode || "—");
                 const status = document.createElement("p");
                 status.textContent = project.statusLabel + ": " + project.statusText;
                 const open = document.createElement("button");
                 open.type = "button";
                 open.textContent = omsText("details");
                 open.onclick = () => ufsiOnProjectClick && ufsiOnProjectClick(project.id);
-                popupHtml.append(name, region, status, open);
+                popupHtml.append(name, region, subprojectCode, status, open);
 
                 // Several facilities may share one postal address. Spread only
                 // overlapping markers visually; their persisted GPS data remains exact.

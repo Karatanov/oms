@@ -27,14 +27,15 @@ external fun setLeafletProjectClickHandler(handler: (String) -> Unit)
 @Composable
 fun LeafletMapView(
     projects: List<Project>,
+    allProjects: List<Project> = projects,
     onProjectClick: (String) -> Unit = {}
 ) {
     NativePaneAnchor("map-pane", Modifier.fillMaxSize())
     val language = LocalizationManager.currentLanguage
-    DisposableEffect(projects, language) {
+    DisposableEffect(projects, allProjects, language) {
         showLeafletMapPane()
         setLeafletProjectClickHandler(onProjectClick)
-        setLeafletProjects(projects.toLeafletJson())
+        setLeafletProjects(projects.toLeafletJson(allProjects))
 
         onDispose {
             hideLeafletMapPane()
@@ -46,7 +47,13 @@ fun LeafletMapView(
    Перетворює список проєктів у JSON-рядок,
    який далі обробляє JavaScript-код Leaflet.
 */
-private fun List<Project>.toLeafletJson(): String {
+private fun List<Project>.toLeafletJson(allProjects: List<Project>): String {
+    val projectsById = allProjects.associateBy { it.id }
+    fun Project.subprojectCode(): String? = generateSequence(this) { current ->
+        current.parentProjectUuid?.let(projectsById::get)
+    }.firstOrNull { it.projectType.equals("subproject", ignoreCase = true) }
+        ?.siteNumber?.takeIf(String::isNotBlank)
+
     return buildString {
         append("[")
 
@@ -62,6 +69,8 @@ private fun List<Project>.toLeafletJson(): String {
                   "name": "${project.localizedName().escapeJson()}",
                   "region": "${localizedUkraineRegion(project.region).escapeJson()}",
                   "regionLabel": "${LocalizationManager.t("region").escapeJson()}",
+                  "subprojectCode": "${project.subprojectCode().orEmpty().escapeJson()}",
+                  "subprojectCodeLabel": "${LocalizationManager.t("subproject_code").escapeJson()}",
                   "status": "${project.status.name}",
                   "statusText": "${statusText.escapeJson()}",
                   "statusLabel": "${LocalizationManager.t("status").escapeJson()}",
