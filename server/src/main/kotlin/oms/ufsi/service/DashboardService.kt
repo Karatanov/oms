@@ -3,13 +3,25 @@ package oms.ufsi.service
 import oms.ufsi.database.tables.*
 import oms.ufsi.domain.InspectionReport
 import oms.ufsi.domain.InspectionReportStatus
+import oms.ufsi.domain.ProjectAmount
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import java.util.UUID
 import java.time.LocalDate
 
 data class MonthlyActPayment(val month: String, val amountEurCents: Long)
-data class DashboardSubprojectFunding(val projectUuid: String, val name: String, val region: String, val amount: Long)
+/**
+ * The approved amount in both presentation currencies.  Values are taken from
+ * the frozen project conversion, never from a live NBU request made while the
+ * dashboard is loading.
+ */
+data class DashboardSubprojectFunding(
+    val projectUuid: String,
+    val name: String,
+    val region: String,
+    val amountUah: Double,
+    val amountEur: Double
+)
 data class DashboardSubprojectProgress(val projectUuid: String, val code: String, val name: String, val region: String, val completionPct: Double)
 data class DashboardMetric(val label: String, val value: Long)
 data class DashboardOverviewData(
@@ -65,12 +77,13 @@ class DashboardService(
             .sortedBy { it.month }
         val projectsById = projects.associateBy { it[ProjectTable.id].value }
         val subprojects = projects.filter { it[ProjectTable.projectType] == "subproject" }
-        val subprojectFunding = subprojects.map { row ->
-            DashboardSubprojectFunding(
-                row[ProjectTable.uuid], row[ProjectTable.name], row[ProjectTable.region].orEmpty(),
-                row[ProjectTable.subprojectContractAmount] ?: row[ProjectTable.budgetPlanned]
-            )
-        }
+        val amountsByProject = ProjectAmountTable.selectAll()
+            .groupBy { it[ProjectAmountTable.projectId].value }
+            .mapValues { (_, rows) -> rows.associate { it[ProjectAmountTable.kind] to ProjectAmount(
+                it[ProjectAmountTable.amount], it[ProjectAmountTable.currency], it[ProjectAmountTable.convertedAmount],
+                it[ProjectAmountTable.uahPerEur], it[ProjectAmountTable.rateDate], it[ProjectAmountTable.conversionEdited]
+            ) } }
+        val subprojectFunding = subprojects.map { row -> row.toFunding(amountsByProject[row[ProjectTable.id].value]) }
         fun subprojectFor(projectId: Long): Long? {
             var current = projectId
             while (true) {
@@ -132,12 +145,13 @@ class DashboardService(
             .sortedBy { it.month }
         val projectsById = projects.associateBy { it[ProjectTable.id].value }
         val subprojects = projects.filter { it[ProjectTable.projectType] == "subproject" }
-        val subprojectFunding = subprojects.map { row ->
-            DashboardSubprojectFunding(
-                projectUuid = row[ProjectTable.uuid], name = row[ProjectTable.name], region = row[ProjectTable.region].orEmpty(),
-                amount = row[ProjectTable.subprojectContractAmount] ?: row[ProjectTable.budgetPlanned]
-            )
-        }
+        val amountsByProject = ProjectAmountTable.selectAll()
+            .groupBy { it[ProjectAmountTable.projectId].value }
+            .mapValues { (_, rows) -> rows.associate { it[ProjectAmountTable.kind] to ProjectAmount(
+                it[ProjectAmountTable.amount], it[ProjectAmountTable.currency], it[ProjectAmountTable.convertedAmount],
+                it[ProjectAmountTable.uahPerEur], it[ProjectAmountTable.rateDate], it[ProjectAmountTable.conversionEdited]
+            ) } }
+        val subprojectFunding = subprojects.map { row -> row.toFunding(amountsByProject[row[ProjectTable.id].value]) }
         fun subprojectFor(projectId: Long): Long? {
             var current = projectId
             while (true) {
@@ -203,4 +217,20 @@ class DashboardService(
         DashboardData(projects.size.toLong(), projects.count { it[ProjectTable.status] == "active" }.toLong(), projects.count { it[ProjectTable.status] == "completed" && it[ProjectTable.endDate]?.let { date -> date.year == currentMonth.year && date.month == currentMonth.month } == true }.toLong(), projects.sumOf { it[ProjectTable.budgetPlanned] }, spent, reports.size.toLong(), reports.count { it[InspectionReportTable.status] == "pending_review" }.toLong(), findings.toLong(), reports.sortedByDescending { it[InspectionReportTable.inspectionDate] }.take(5).map { r -> InspectionReport(r[InspectionReportTable.id].value, UUID.fromString(r[InspectionReportTable.uuid]), r[InspectionReportTable.projectId].value, r[InspectionReportTable.reportCode], r[InspectionReportTable.inspectionType], r[InspectionReportTable.inspectionDate], r[InspectionReportTable.summary], InspectionReportStatus.valueOf(r[InspectionReportTable.status].uppercase()), r[InspectionReportTable.rejectionReason], r[InspectionReportTable.latitude]?.toDouble(), r[InspectionReportTable.longitude]?.toDouble(), r[InspectionReportTable.createdBy].value) }, activities, monthlyActPayments, subprojectFunding, subprojectProgress, procurementStatusCounts, monthlyInspectionCounts, monthlyEshsViolations, monthlyEquipmentPayments, monthlySignedConstructionContracts)
         }
     }
+}
+
+private fun org.jetbrains.exposed.v1.core.ResultRow.toFunding(
+    amounts: Map<String, ProjectAmount>?
+): DashboardSubprojectFunding {
+    // Preserve the existing chart semantics: a construction contract is used
+    // when it exists; otherwise the approved project budget is shown.
+    val amount = amounts?.get("construction") ?: amounts?.get("budget")
+    val legacyUah = this[ProjectTable.subprojectContractAmount] ?: this[ProjectTable.budgetPlanned]
+    val uah = amount?.uah?.toDouble() ?: legacyUah.toDouble()
+    // Old records without a frozen conversion remain usable in UAH.  The
+    // seeded and newly saved records always have this value.
+    val eur = amount?.let { if (it.currency == "EUR") it.amount else it.convertedAmount }?.toDouble() ?: 0.0
+    return DashboardSubprojectFunding(
+        this[ProjectTable.uuid], this[ProjectTable.name], this[ProjectTable.region].orEmpty(), uah, eur
+    )
 }

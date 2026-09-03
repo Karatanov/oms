@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.HorizontalDivider
@@ -35,28 +36,42 @@ import oms.localization.LocalizationManager
 import oms.screens.dashboard.toMonthName
 import oms.components.FilterDropdown
 import oms.components.localizedUkraineRegion
+import kotlin.math.roundToLong
 
 @Composable
 fun FundingByOblastChart(items: List<ApiSubprojectFunding>, onOpenRegion: (String) -> Unit = {}) {
+    var currency by remember { mutableStateOf("EUR") }
     val data = items
         .groupBy { it.region.toOblastChartLabel() }
         .entries
         .sortedBy { it.key }
         .map { entry ->
+            val amount = entry.value.sumOf { if (currency == "EUR") it.amountEur else it.amountUah }
             BarData(
                 label = entry.key,
-                value = entry.value.sumOf { it.amount }.toFloat(),
+                value = amount.toFloat(),
                 id = entry.value.firstOrNull()?.region,
-                formattedValue = money(entry.value.sumOf { it.amount }),
+                formattedValue = formatChartAmount(amount, currency),
             )
         }
     AnalyticsCard(
         titleKey = "approved_funding_by_oblast",
         hintKey = "approved_funding_by_oblast_hint",
         data = data,
-        valueLabel = { money(it.toLong()) },
+        valueLabel = { formatChartAmount(it.toDouble(), currency) },
         onItemClick = { bar -> bar.id?.let(onOpenRegion) },
-        labelMaxLines = 2
+        labelMaxLines = 2,
+        filterContent = {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // The currency is declared above the bars; values stay compact.
+                Text(LocalizationManager.t("currency"), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+                FilterChip(selected = currency == "EUR", onClick = { currency = "EUR" }, label = { Text("EUR") })
+                FilterChip(selected = currency == "UAH", onClick = { currency = "UAH" }, label = { Text("UAH") })
+            }
+        }
     )
 }
 
@@ -246,5 +261,13 @@ private fun AnalyticsCard(
 
 private fun String.toChartMonth(): String = if (matches(Regex("\\d{4}-\\d{2}"))) "${toMonthName()} ${take(4)}" else this
 private fun String.toOblastChartLabel(): String = replace(Regex("(?i)\\s+(область|oblast)$"), "").trim()
-private fun money(value: Long): String = "${value.toString().reversed().chunked(3).joinToString(" ").reversed()} грн"
+private fun formatChartAmount(value: Double, currency: String): String {
+    if (currency == "EUR") {
+        val cents = (value * 100).roundToLong()
+        return "${groupedNumber(cents / 100)}.${(cents % 100).toString().padStart(2, '0')}"
+    }
+    return groupedNumber(value.roundToLong())
+}
+
+private fun groupedNumber(value: Long): String = value.toString().reversed().chunked(3).joinToString(" ").reversed()
 private fun euro(cents: Long): String = "€ " + (cents / 100).toString() + "." + (cents % 100).toString().padStart(2, '0')
