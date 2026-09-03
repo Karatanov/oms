@@ -276,98 +276,11 @@ fun ProjectDetailScreen(
                 else when (selectedTab) {
                     ProjectDetailTab.GeneralInfo -> ProjectGeneralInfoTab(details.value)
                     ProjectDetailTab.InspectionReports -> ProjectReportsTab(reports.value)
-                    ProjectDetailTab.Financials -> Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        if (!isGuest) Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            DetailMetricCard(
-                title = LocalizationManager.t("construction_contract"),
-                value = details.value?.financialSummary?.constructionContractAmount?.toMoney() ?: "—",
-                modifier = Modifier.weight(1f)
-            )
-            DetailMetricCard(
-                title = LocalizationManager.t("acts_of_completed_works"),
-                value = details.value?.financialSummary?.amountSpent?.toMoney() ?: "—",
-                modifier = Modifier.weight(1f)
-            )
-            DetailMetricCard(
-                title = LocalizationManager.t("completed_works_percentage"),
-                value = details.value?.financialSummary?.completionPct?.let { "${it.toInt()}%" } ?: "—",
-                modifier = Modifier.weight(1f)
-            )
-            DetailMetricCard(
-                title = LocalizationManager.t("financial_completion"),
-                value = details.value?.financialSummary?.financialCompletionPct?.let { "${it.toInt()}%" } ?: "—",
-                modifier = Modifier.weight(1f)
-            )
-        }
-
-        if (!isGuest && details.value?.data?.projectType == "subproject") {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                DetailMetricCard(
-                    title = LocalizationManager.t("subproject_contract_amount"),
-                    value = details.value?.data?.subprojectContractAmount?.toMoney() ?: "—",
-                    modifier = Modifier.weight(1f)
-                )
-                DetailMetricCard(
-                    title = LocalizationManager.t("contract_duration"),
-                    value = details.value?.data?.contractDurationDays?.let { LocalizationManager.t("days_value").replace("{count}", it.toString()) } ?: "—",
-                    modifier = Modifier.weight(1f)
-                )
-            }
-        }
-
-        if (!isGuest) Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            DetailMetricCard(
-                title = LocalizationManager.t("engineer_consultant_contract"),
-                value = details.value?.data?.engineerConsultantContractAmount?.toMoney() ?: "—",
-                modifier = Modifier.weight(1f)
-            )
-            DetailMetricCard(
-                title = LocalizationManager.t("technical_supervision"),
-                value = details.value?.data?.technicalSupervisionAmount?.toMoney() ?: "—",
-                modifier = Modifier.weight(1f)
-            )
-        }
-
-
-                        ProjectFinancialsTab(financials.value)
-                    }
+                    ProjectDetailTab.Financials -> ProjectFinancialsTab(financials.value)
                     ProjectDetailTab.Documents -> ProjectDocumentsTab(project.id, documents.value)
                     ProjectDetailTab.Incidents -> ProjectHealthSafetyTab(healthSafetyObservations.value)
                 }
             }
-        }
-    }
-}
-
-@Composable
-private fun DetailMetricCard(
-    title: String,
-    value: String,
-    modifier: Modifier = Modifier
-) {
-    Card(modifier = modifier) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Text(
-                text = value,
-                style = MaterialTheme.typography.headlineSmall
-            )
         }
     }
 }
@@ -535,8 +448,6 @@ private fun ProjectGeneralInfoTab(details: oms.data.ApiProjectDetails?) {
             val finance = listOf(
                 LocalizationManager.t("currency") to data.currency,
                 LocalizationManager.t("budget") to data.budgetPlanned.toMoney(),
-                LocalizationManager.t("engineer_consultant_contract") to (data.engineerConsultantContractAmount?.toMoney() ?: "—"),
-                LocalizationManager.t("technical_supervision") to (data.technicalSupervisionAmount?.toMoney() ?: "—"),
                 LocalizationManager.t("subproject_contract_amount") to (data.subprojectContractAmount?.toMoney() ?: "—")
             )
             val schedule = listOf(
@@ -562,6 +473,7 @@ private fun ProjectGeneralInfoTab(details: oms.data.ApiProjectDetails?) {
                 LocalizationManager.t("contract_duration") to (data.contractDurationDays?.let { LocalizationManager.t("days_value").replace("{count}", it.toString()) } ?: "—")
             )
             val technical = listOf(
+                LocalizationManager.t("technical_supervision_contract_amount") to (data.technicalSupervisionAmount?.toMoney() ?: "—"),
                 LocalizationManager.t("name") to (data.technicalSupervisionName ?: "—"),
                 LocalizationManager.t("contract_number") to (data.technicalSupervisionContractNumber ?: "—"),
                 LocalizationManager.t("contract_date") to data.technicalSupervisionContractDate.toOmsDate(),
@@ -570,6 +482,7 @@ private fun ProjectGeneralInfoTab(details: oms.data.ApiProjectDetails?) {
                 LocalizationManager.t("contract_duration") to (data.technicalSupervisionDurationDays?.let { LocalizationManager.t("design_duration_days").replace("{days}", it.toString()) } ?: "—")
             )
             val engineer = listOf(
+                LocalizationManager.t("engineer_consultant_contract_amount") to (data.engineerConsultantContractAmount?.toMoney() ?: "—"),
                 LocalizationManager.t("name") to (data.engineerConsultantName ?: "—"),
                 LocalizationManager.t("contract_number") to (data.engineerConsultantContractNumber ?: "—"),
                 LocalizationManager.t("contract_date") to data.engineerConsultantContractDate.toOmsDate(),
@@ -577,9 +490,15 @@ private fun ProjectGeneralInfoTab(details: oms.data.ApiProjectDetails?) {
                 LocalizationManager.t("design_planned_end_date") to data.engineerConsultantPlannedEndDate.toOmsDate(),
                 LocalizationManager.t("contract_duration") to (data.engineerConsultantDurationDays?.let { LocalizationManager.t("design_duration_days").replace("{days}", it.toString()) } ?: "—")
             )
+            val procurement = details.monitoringDetails?.let {
+                listOf(
+                    LocalizationManager.t("procurement_status") to (it.constructionProcurementStatus?.let(LocalizationManager::procurementStatus) ?: "—"),
+                    LocalizationManager.t("work_status") to (it.constructionWorkStatus ?: "—")
+                )
+            }.orEmpty()
             val source = buildList {
                 details.programmeDetails?.let { add(LocalizationManager.t("implementor") to it.implementor); add(LocalizationManager.t("financing_institution") to it.financingInstitution); add(LocalizationManager.t("finance_contract_number") to it.financeContractNumber); add("Serapis" to it.serapisNumber) }
-                details.monitoringDetails?.let { add(LocalizationManager.t("source_subproject_id") to it.sourceSubprojectId); add(LocalizationManager.t("source_lot_id") to it.sourceLotId); add(LocalizationManager.t("english_name") to (it.nameEn ?: "—")); add(LocalizationManager.t("municipality") to (if (LocalizationManager.currentLanguage == Language.EN) it.municipalityNameEn ?: it.municipalityNameUk else it.municipalityNameUk) .orEmpty().ifBlank { "—" }); add(LocalizationManager.t("beneficiary") to (if (LocalizationManager.currentLanguage == Language.EN) it.beneficiaryNameEn ?: it.beneficiaryNameUk else it.beneficiaryNameUk).orEmpty().ifBlank { "—" }); add(LocalizationManager.t("project_manager") to (if (LocalizationManager.currentLanguage == Language.EN) it.projectManagerNameEn ?: it.projectManagerNameUk else it.projectManagerNameUk).orEmpty().ifBlank { "—" }); add(LocalizationManager.t("procurement_status") to (it.constructionProcurementStatus?.let(LocalizationManager::procurementStatus) ?: "—")); add(LocalizationManager.t("work_status") to (it.constructionWorkStatus ?: "—")); add(LocalizationManager.t("coordinate_accuracy") to LocalizationManager.t("geocode_accuracy_${it.geocodeAccuracy ?: "unknown"}")); add(LocalizationManager.t("source_workbook") to it.sourceWorkbook) }
+                details.monitoringDetails?.let { add(LocalizationManager.t("source_subproject_id") to it.sourceSubprojectId); add(LocalizationManager.t("source_lot_id") to it.sourceLotId); add(LocalizationManager.t("english_name") to (it.nameEn ?: "—")); add(LocalizationManager.t("municipality") to (if (LocalizationManager.currentLanguage == Language.EN) it.municipalityNameEn ?: it.municipalityNameUk else it.municipalityNameUk) .orEmpty().ifBlank { "—" }); add(LocalizationManager.t("beneficiary") to (if (LocalizationManager.currentLanguage == Language.EN) it.beneficiaryNameEn ?: it.beneficiaryNameUk else it.beneficiaryNameUk).orEmpty().ifBlank { "—" }); add(LocalizationManager.t("project_manager") to (if (LocalizationManager.currentLanguage == Language.EN) it.projectManagerNameEn ?: it.projectManagerNameUk else it.projectManagerNameUk).orEmpty().ifBlank { "—" }); add(LocalizationManager.t("coordinate_accuracy") to LocalizationManager.t("geocode_accuracy_${it.geocodeAccuracy ?: "unknown"}")); add(LocalizationManager.t("source_workbook") to it.sourceWorkbook) }
             }
             Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 CollapsibleProjectSection(LocalizationManager.t("basic_information"), Icons.Default.Info, general, initiallyExpanded = true)
@@ -590,6 +509,7 @@ private fun ProjectGeneralInfoTab(details: oms.data.ApiProjectDetails?) {
                 CollapsibleProjectSection(LocalizationManager.t("construction_contractor_information"), Icons.Default.Info, contractor)
                 CollapsibleProjectSection(LocalizationManager.t("technical_supervision_information"), Icons.Default.Info, technical)
                 CollapsibleProjectSection(LocalizationManager.t("engineer_consultant_information"), Icons.Default.Info, engineer)
+                if (procurement.isNotEmpty()) CollapsibleProjectSection(LocalizationManager.t("procurement_title"), Icons.Default.Info, procurement)
                 if (source.isNotEmpty()) CollapsibleProjectSection(LocalizationManager.t("source_information"), Icons.Default.Info, source)
             }
         }
