@@ -319,7 +319,7 @@ private fun ActEditorDialog(
     onSave: (String, oms.data.FinancialRecordRequest) -> Unit
 ) {
     var availableProjects by remember { mutableStateOf(projects) }
-    var projectUuid by remember { mutableStateOf(existing?.projectUuid ?: projects.firstOrNull { it.projectType.equals("project", true) }?.id) }
+    var projectUuid by remember { mutableStateOf(existing?.projectUuid) }
     var reference by remember { mutableStateOf(existing?.act?.referenceNumber ?: "") }
     var recordType by remember { mutableStateOf(existing?.act?.recordType ?: "act") }
     var amount by remember { mutableStateOf(existing?.act?.amount?.toString() ?: "") }
@@ -394,38 +394,57 @@ private fun FinancialProjectTargetSelector(
     loadProjectsOnOpen: suspend () -> List<oms.model.Project>,
     onTargetSelect: (String?) -> Unit
 ) {
-    val byId = projects.associateBy { it.id }
-    val selected = byId[selectedTargetUuid]
-    val ancestry = generateSequence(selected) { current -> current.parentProjectUuid?.let(byId::get) }.toList().asReversed()
-    val root = ancestry.firstOrNull { it.projectType.equals("project", true) }
-    val subproject = ancestry.firstOrNull { it.projectType.equals("subproject", true) }
-    val part = ancestry.firstOrNull { it.projectType.equals("subproject_part", true) }
-    val rootProjects = projects.filter { it.projectType.equals("project", true) }
-    val subprojects = projects.filter { it.projectType.equals("subproject", true) && it.parentProjectUuid == root?.id }
-    val parts = projects.filter { it.projectType.equals("subproject_part", true) && it.parentProjectUuid == subproject?.id }
+    var availableProjects by remember { mutableStateOf(projects) }
+    var rootUuid by remember { mutableStateOf<String?>(null) }
+    var subprojectUuid by remember { mutableStateOf<String?>(null) }
+    var partUuid by remember { mutableStateOf<String?>(null) }
+
+    fun restoreHierarchy(targetUuid: String?, source: List<oms.model.Project>) {
+        val byId = source.associateBy { it.id }
+        val selected = byId[targetUuid] ?: return
+        val ancestry = generateSequence(selected) { current -> current.parentProjectUuid?.let(byId::get) }.toList().asReversed()
+        rootUuid = ancestry.firstOrNull { it.projectType.equals("project", true) }?.id
+        subprojectUuid = ancestry.firstOrNull { it.projectType.equals("subproject", true) }?.id
+        partUuid = ancestry.firstOrNull { it.projectType.equals("subproject_part", true) }?.id
+    }
+
+    LaunchedEffect(projects) {
+        if (projects.isNotEmpty()) {
+            availableProjects = projects
+            if (rootUuid == null) restoreHierarchy(selectedTargetUuid, projects)
+        }
+    }
+
+    val rootProjects = availableProjects.filter { it.projectType.equals("project", true) }
+    val subprojects = availableProjects.filter { it.projectType.equals("subproject", true) && it.parentProjectUuid == rootUuid }
+    val parts = availableProjects.filter { it.projectType.equals("subproject_part", true) && it.parentProjectUuid == subprojectUuid }
+    suspend fun loadAndRemember(): List<oms.model.Project> = loadProjectsOnOpen().also { loaded ->
+        availableProjects = loaded
+        if (rootUuid == null) restoreHierarchy(selectedTargetUuid, loaded)
+    }
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         FinancialProjectLevelDropdown(
-            LocalizationManager.t("select_project"), rootProjects, root?.id, onTargetSelect,
-            loadOptionsOnOpen = { loadProjectsOnOpen().filter { it.projectType.equals("project", true) } }
+            LocalizationManager.t("select_project"), rootProjects, rootUuid,
+            onSelect = { selected -> rootUuid = selected; subprojectUuid = null; partUuid = null; onTargetSelect(null) },
+            loadOptionsOnOpen = { loadAndRemember().filter { it.projectType.equals("project", true) } }
         )
         FinancialProjectLevelDropdown(
-            LocalizationManager.t("select_subproject"), subprojects, subproject?.id, onTargetSelect,
-            // The initial project snapshot may intentionally be empty.  Once a
-            // root is selected, let this picker load its children on demand
-            // rather than leaving a disabled field the user cannot open.
-            enabled = root != null,
+            LocalizationManager.t("select_subproject"), subprojects, subprojectUuid,
+            onSelect = { selected -> subprojectUuid = selected; partUuid = null; onTargetSelect(selected) },
+            enabled = rootUuid != null,
             loadOptionsOnOpen = {
-                loadProjectsOnOpen().filter {
-                    it.projectType.equals("subproject", true) && it.parentProjectUuid == root?.id
+                loadAndRemember().filter {
+                    it.projectType.equals("subproject", true) && it.parentProjectUuid == rootUuid
                 }
             }
         )
         FinancialProjectLevelDropdown(
-            LocalizationManager.t("select_subproject_part"), parts, part?.id, onTargetSelect,
-            enabled = subproject != null,
+            LocalizationManager.t("select_subproject_part"), parts, partUuid,
+            onSelect = { selected -> partUuid = selected; onTargetSelect(selected) },
+            enabled = subprojectUuid != null,
             loadOptionsOnOpen = {
-                loadProjectsOnOpen().filter {
-                    it.projectType.equals("subproject_part", true) && it.parentProjectUuid == subproject?.id
+                loadAndRemember().filter {
+                    it.projectType.equals("subproject_part", true) && it.parentProjectUuid == subprojectUuid
                 }
             }
         )
