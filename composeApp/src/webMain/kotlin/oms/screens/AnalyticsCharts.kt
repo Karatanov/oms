@@ -33,6 +33,8 @@ import oms.data.ApiSubprojectFunding
 import oms.data.ApiSubprojectProgress
 import oms.localization.LocalizationManager
 import oms.screens.dashboard.toMonthName
+import oms.components.FilterDropdown
+import oms.components.localizedUkraineRegion
 
 @Composable
 fun FundingByOblastChart(items: List<ApiSubprojectFunding>, onOpenRegion: (String) -> Unit = {}) {
@@ -60,7 +62,10 @@ fun FundingByOblastChart(items: List<ApiSubprojectFunding>, onOpenRegion: (Strin
 
 @Composable
 fun SubprojectProgressChart(items: List<ApiSubprojectProgress>, onOpenFinancial: (String) -> Unit) {
+    var regionFilter by remember(items) { mutableStateOf<String?>(null) }
+    val regions = items.map { it.region }.filter(String::isNotBlank).distinct().sorted()
     val data = items
+        .filter { regionFilter == null || it.region == regionFilter }
         .sortedBy { it.name }
         .map {
             BarData(
@@ -77,7 +82,16 @@ fun SubprojectProgressChart(items: List<ApiSubprojectProgress>, onOpenFinancial:
         data = data,
         valueLabel = { "${it.toInt()}%" },
         onItemClick = { bar -> bar.id?.let(onOpenFinancial) },
-        labelMaxLines = 2
+        labelMaxLines = 2,
+        filterContent = {
+            FilterDropdown(
+                label = LocalizationManager.t("region"),
+                options = regions,
+                selected = regionFilter,
+                onSelect = { regionFilter = it },
+                itemLabel = ::localizedUkraineRegion
+            )
+        }
     )
 }
 
@@ -186,10 +200,11 @@ private fun AnalyticsCard(
     valueLabel: (Float) -> String = { it.toInt().toString() },
     onItemClick: ((BarData) -> Unit)? = null,
     compact: Boolean = false,
-    labelMaxLines: Int = 2
+    labelMaxLines: Int = 2,
+    filterContent: (@Composable () -> Unit)? = null
 ) {
     val cardModifier = Modifier.fillMaxWidth().then(
-        if (compact) Modifier.heightIn(min = 144.dp) else Modifier.height(420.dp)
+        if (compact) Modifier.heightIn(min = 144.dp) else Modifier.height(if (filterContent == null) 420.dp else 476.dp)
     )
     Card(cardModifier, shape = RoundedCornerShape(12.dp),
         colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
@@ -210,6 +225,9 @@ private fun AnalyticsCard(
                         textAlign = TextAlign.Center
                     )
                 }
+            }
+            filterContent?.let { content ->
+                Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) { content() }
             }
             Spacer(Modifier.height(if (compact) 8.dp else 16.dp))
             if (data.isEmpty()) Text(LocalizationManager.t("no_chart_data"), color = MaterialTheme.colorScheme.onSurfaceVariant)

@@ -26,7 +26,7 @@ fun Route.dashboardRoutes() {
                 recentInspections = overview.recentInspections.map { it.toResponse() },
                 monthlyActPayments = overview.monthlyActPayments.map { MonthlyActPaymentResponse(it.month, it.amountEurCents) },
                 subprojectFunding = overview.subprojectFunding.map { SubprojectFundingResponse(it.projectUuid, it.name, it.region, it.amount) },
-                subprojectProgress = overview.subprojectProgress.map { SubprojectProgressResponse(it.projectUuid, it.code, it.name, it.completionPct) },
+                subprojectProgress = overview.subprojectProgress.map { SubprojectProgressResponse(it.projectUuid, it.code, it.name, it.region, it.completionPct) },
                 procurementStatusCounts = overview.procurementStatusCounts.map { DashboardMetricResponse(it.label, it.value) }
             )
         )
@@ -49,6 +49,6 @@ fun Route.dashboardRoutes() {
                 )
             }
         } else emptyList()
-            call.respond(DashboardResponse(d.projectsTotal, d.projectsActive, d.projectsCompletedThisMonth, d.budgetPlanned, d.amountSpent, d.inspectionsTotal, d.pendingInspections, d.findingsTotal, d.recentInspections.map { it.toResponse() }, activities, d.monthlyActPayments.map { MonthlyActPaymentResponse(it.month, it.amountEurCents) }, d.subprojectFunding.map { SubprojectFundingResponse(it.projectUuid, it.name, it.region, it.amount) }, d.subprojectProgress.map { SubprojectProgressResponse(it.projectUuid, it.code, it.name, it.completionPct) }, d.procurementStatusCounts.map { DashboardMetricResponse(it.label, it.value) }, d.monthlyInspectionCounts.map { DashboardMetricResponse(it.label, it.value) }, d.monthlyEshsViolations.map { DashboardMetricResponse(it.label, it.value) }, d.monthlyEquipmentPayments.map { MonthlyActPaymentResponse(it.month, it.amountEurCents) }, d.monthlySignedConstructionContracts.map { DashboardMetricResponse(it.label, it.value) }))
+            call.respond(DashboardResponse(d.projectsTotal, d.projectsActive, d.projectsCompletedThisMonth, d.budgetPlanned, d.amountSpent, d.inspectionsTotal, d.pendingInspections, d.findingsTotal, d.recentInspections.map { it.toResponse() }, activities, d.monthlyActPayments.map { MonthlyActPaymentResponse(it.month, it.amountEurCents) }, d.subprojectFunding.map { SubprojectFundingResponse(it.projectUuid, it.name, it.region, it.amount) }, d.subprojectProgress.map { SubprojectProgressResponse(it.projectUuid, it.code, it.name, it.region, it.completionPct) }, d.procurementStatusCounts.map { DashboardMetricResponse(it.label, it.value) }, d.monthlyInspectionCounts.map { DashboardMetricResponse(it.label, it.value) }, d.monthlyEshsViolations.map { DashboardMetricResponse(it.label, it.value) }, d.monthlyEquipmentPayments.map { MonthlyActPaymentResponse(it.month, it.amountEurCents) }, d.monthlySignedConstructionContracts.map { DashboardMetricResponse(it.label, it.value) }))
     }
 }

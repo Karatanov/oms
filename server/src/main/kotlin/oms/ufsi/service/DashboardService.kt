@@ -10,7 +10,7 @@ import java.time.LocalDate
 
 data class MonthlyActPayment(val month: String, val amountEurCents: Long)
 data class DashboardSubprojectFunding(val projectUuid: String, val name: String, val region: String, val amount: Long)
-data class DashboardSubprojectProgress(val projectUuid: String, val code: String, val name: String, val completionPct: Double)
+data class DashboardSubprojectProgress(val projectUuid: String, val code: String, val name: String, val region: String, val completionPct: Double)
 data class DashboardMetric(val label: String, val value: Long)
 data class DashboardOverviewData(
     val recentInspections: List<InspectionReport>,
@@ -28,6 +28,9 @@ private val procurementStatusOrder = listOf(
     "Відмінено / Cancelled",
     "Договір розірвано / Contract terminated"
 )
+
+private fun isConstructionContractSigned(status: String) =
+    status.contains("Договір укладено", ignoreCase = true) || status.contains("Contract signed", ignoreCase = true)
 data class DashboardData(
     val projectsTotal:Long, val projectsActive:Long, val projectsCompletedThisMonth:Long, val budgetPlanned:Long,
     val amountSpent:Long, val inspectionsTotal:Long, val pendingInspections:Long, val findingsTotal:Long,
@@ -79,15 +82,23 @@ class DashboardService(
         val actualBySubproject = actRecords.groupBy { subprojectFor(it[FinancialRecordTable.projectId].value) }
             .filterKeys { it != null }
             .mapValues { (_, rows) -> rows.sumOf { it[FinancialRecordTable.amount] } }
-        val subprojectProgress = subprojects.map { row ->
+        val procurementRecords = if (allowedProjectIds == null) ProcurementRecordTable.selectAll().toList() else emptyList()
+        val signedSubprojectCodes = procurementRecords
+            .filter { isConstructionContractSigned(it[ProcurementRecordTable.purchaseStatus]) }
+            .map { it[ProcurementRecordTable.subProjectId].trim().lowercase() }
+            .filter(String::isNotBlank)
+            .toSet()
+        val subprojectProgress = subprojects.filter { row ->
+            val code = row[ProjectTable.siteNumber].orEmpty().trim().lowercase()
+            code in signedSubprojectCodes || row[ProjectTable.uuid].lowercase() in signedSubprojectCodes
+        }.map { row ->
             val id = row[ProjectTable.id].value
             val contract = row[ProjectTable.subprojectContractAmount] ?: row[ProjectTable.budgetPlanned]
             DashboardSubprojectProgress(
-                row[ProjectTable.uuid], row[ProjectTable.siteNumber].orEmpty(), row[ProjectTable.name],
+                row[ProjectTable.uuid], row[ProjectTable.siteNumber].orEmpty(), row[ProjectTable.name], row[ProjectTable.region].orEmpty(),
                 if (contract > 0) (actualBySubproject[id] ?: 0L) * 100.0 / contract else 0.0
             )
         }.sortedBy { it.name }
-        val procurementRecords = if (allowedProjectIds == null) ProcurementRecordTable.selectAll().toList() else emptyList()
         val procurementCountByStatus = procurementRecords.groupBy { it[ProcurementRecordTable.purchaseStatus] }
             .mapValues { (_, rows) -> rows.map { it[ProcurementRecordTable.subProjectId] }.distinct().size.toLong() }
         val procurementStatusCounts = procurementStatusOrder.map { status -> DashboardMetric(status, procurementCountByStatus[status] ?: 0L) } +
@@ -138,10 +149,19 @@ class DashboardService(
         val actualBySubproject = actRecords.groupBy { subprojectFor(it[FinancialRecordTable.projectId].value) }
             .filterKeys { it != null }
             .mapValues { (_, records) -> records.sumOf { it[FinancialRecordTable.amount] } }
-        val subprojectProgress = subprojects.map { row ->
+        val procurementRecords = if (allowedProjectIds == null) ProcurementRecordTable.selectAll().toList() else emptyList()
+        val signedSubprojectCodes = procurementRecords
+            .filter { isConstructionContractSigned(it[ProcurementRecordTable.purchaseStatus]) }
+            .map { it[ProcurementRecordTable.subProjectId].trim().lowercase() }
+            .filter(String::isNotBlank)
+            .toSet()
+        val subprojectProgress = subprojects.filter { row ->
+            val code = row[ProjectTable.siteNumber].orEmpty().trim().lowercase()
+            code in signedSubprojectCodes || row[ProjectTable.uuid].lowercase() in signedSubprojectCodes
+        }.map { row ->
             val id = row[ProjectTable.id].value
             val contract = row[ProjectTable.subprojectContractAmount] ?: row[ProjectTable.budgetPlanned]
-            DashboardSubprojectProgress(row[ProjectTable.uuid], row[ProjectTable.siteNumber].orEmpty(), row[ProjectTable.name], if (contract > 0) (actualBySubproject[id] ?: 0L) * 100.0 / contract else 0.0)
+            DashboardSubprojectProgress(row[ProjectTable.uuid], row[ProjectTable.siteNumber].orEmpty(), row[ProjectTable.name], row[ProjectTable.region].orEmpty(), if (contract > 0) (actualBySubproject[id] ?: 0L) * 100.0 / contract else 0.0)
         }.sortedBy { it.name }
         fun month(date: java.time.LocalDate) = date.toString().take(7)
         val monthlyInspectionCounts = reports.groupBy { month(it[InspectionReportTable.inspectionDate]) }
@@ -163,7 +183,6 @@ class DashboardService(
             .map { MonthlyActPayment(it.key, it.value.sumOf { row -> row[FinancialRecordTable.amountEurCents] ?: 0L }) }.sortedBy { it.month }
         // Procurement reference rows do not carry a project foreign key. Do not
         // expose their global aggregate to a manager whose dashboard is scoped.
-        val procurementRecords = if (allowedProjectIds == null) ProcurementRecordTable.selectAll().toList() else emptyList()
         val procurementCountByStatus = procurementRecords.groupBy { it[ProcurementRecordTable.purchaseStatus] }
             .mapValues { (_, rows) -> rows.map { it[ProcurementRecordTable.subProjectId] }.distinct().size.toLong() }
         val procurementStatusCounts = procurementStatusOrder.map { status ->
@@ -173,7 +192,7 @@ class DashboardService(
             .toSortedMap()
             .map { (status, count) -> DashboardMetric(status, count) }
         val monthlySignedConstructionContracts = procurementRecords
-            .filter { it[ProcurementRecordTable.purchaseStatus].contains("Договір укладено", true) || it[ProcurementRecordTable.purchaseStatus].contains("Contract signed", true) }
+            .filter { isConstructionContractSigned(it[ProcurementRecordTable.purchaseStatus]) }
             .mapNotNull { row -> row[ProcurementRecordTable.contractDate]?.let { date -> month(date) } }
             .groupingBy { it }.eachCount().map { DashboardMetric(it.key, it.value.toLong()) }.sortedBy { it.label }
         val findings = InspectionFindingTable.selectAll().count { it[InspectionFindingTable.inspectionReportId].value in reportIds }
