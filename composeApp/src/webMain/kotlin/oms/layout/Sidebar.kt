@@ -35,7 +35,6 @@ fun Sidebar(currentScreen: Screen, onNavigate: (Screen) -> Unit, onLogout: () ->
             }
             HorizontalDivider(Modifier.padding(vertical = 8.dp))
             Column(Modifier.weight(1f).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                if (!compact) Text(LocalizationManager.t("workspace"), Modifier.padding(12.dp), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 if (!isGuest) SidebarItem(LocalizationManager.t("dashboard"), Icons.Default.Dashboard, Screen.Dashboard, currentScreen, onNavigate, compact)
                 SidebarItem(LocalizationManager.t("projects"), Icons.AutoMirrored.Filled.ListAlt, Screen.Projects, currentScreen, onNavigate, compact)
                 SidebarItem(LocalizationManager.t("map"), Icons.Default.Map, Screen.Map, currentScreen, onNavigate, compact)
