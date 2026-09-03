@@ -42,7 +42,7 @@ import kotlin.math.roundToLong
 fun FundingByOblastChart(items: List<ApiSubprojectFunding>, onOpenRegion: (String) -> Unit = {}) {
     var currency by remember { mutableStateOf("EUR") }
     val data = items
-        .groupBy { localizedUkraineRegion(it.region).toOblastChartLabel() }
+        .groupBy { localizedUkraineRegion(it.region).toRegionChartLabel() }
         .entries
         .sortedBy { it.key }
         .map { entry ->
@@ -265,7 +265,7 @@ private fun AnalyticsCard(
 }
 
 private fun String.toChartMonth(): String = if (matches(Regex("\\d{4}-\\d{2}"))) "${toMonthName()} ${take(4)}" else this
-private fun String.toOblastChartLabel(): String = replace(Regex("(?i)\\s+(область|oblast)$"), "").trim()
+private fun String.toRegionChartLabel(): String = replace(Regex("(?i)\\s+(область|oblast|region)$"), "").trim()
 private fun formatChartAmount(value: Double, currency: String): String {
     if (currency == "EUR") {
         val cents = (value * 100).roundToLong()

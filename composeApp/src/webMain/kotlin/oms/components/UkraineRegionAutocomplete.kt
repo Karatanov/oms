@@ -25,30 +25,30 @@ import oms.localization.LocalizationManager
 private data class UkraineRegion(val ukrainianName: String, val englishName: String)
 
 private val ukraineRegions = listOf(
-    UkraineRegion("Вінницька область", "Vinnytsia Oblast"),
-    UkraineRegion("Волинська область", "Volyn Oblast"),
-    UkraineRegion("Дніпропетровська область", "Dnipropetrovsk Oblast"),
-    UkraineRegion("Донецька область", "Donetsk Oblast"),
-    UkraineRegion("Житомирська область", "Zhytomyr Oblast"),
-    UkraineRegion("Закарпатська область", "Zakarpattia Oblast"),
-    UkraineRegion("Запорізька область", "Zaporizhzhia Oblast"),
-    UkraineRegion("Івано-Франківська область", "Ivano-Frankivsk Oblast"),
-    UkraineRegion("Київська область", "Kyiv Oblast"),
-    UkraineRegion("Кіровоградська область", "Kirovohrad Oblast"),
-    UkraineRegion("Луганська область", "Luhansk Oblast"),
-    UkraineRegion("Львівська область", "Lviv Oblast"),
-    UkraineRegion("Миколаївська область", "Mykolaiv Oblast"),
-    UkraineRegion("Одеська область", "Odesa Oblast"),
-    UkraineRegion("Полтавська область", "Poltava Oblast"),
-    UkraineRegion("Рівненська область", "Rivne Oblast"),
-    UkraineRegion("Сумська область", "Sumy Oblast"),
-    UkraineRegion("Тернопільська область", "Ternopil Oblast"),
-    UkraineRegion("Харківська область", "Kharkiv Oblast"),
-    UkraineRegion("Херсонська область", "Kherson Oblast"),
-    UkraineRegion("Хмельницька область", "Khmelnytskyi Oblast"),
-    UkraineRegion("Черкаська область", "Cherkasy Oblast"),
-    UkraineRegion("Чернівецька область", "Chernivtsi Oblast"),
-    UkraineRegion("Чернігівська область", "Chernihiv Oblast"),
+    UkraineRegion("Вінницька область", "Vinnytsia Region"),
+    UkraineRegion("Волинська область", "Volyn Region"),
+    UkraineRegion("Дніпропетровська область", "Dnipropetrovsk Region"),
+    UkraineRegion("Донецька область", "Donetsk Region"),
+    UkraineRegion("Житомирська область", "Zhytomyr Region"),
+    UkraineRegion("Закарпатська область", "Zakarpattia Region"),
+    UkraineRegion("Запорізька область", "Zaporizhzhia Region"),
+    UkraineRegion("Івано-Франківська область", "Ivano-Frankivsk Region"),
+    UkraineRegion("Київська область", "Kyiv Region"),
+    UkraineRegion("Кіровоградська область", "Kirovohrad Region"),
+    UkraineRegion("Луганська область", "Luhansk Region"),
+    UkraineRegion("Львівська область", "Lviv Region"),
+    UkraineRegion("Миколаївська область", "Mykolaiv Region"),
+    UkraineRegion("Одеська область", "Odesa Region"),
+    UkraineRegion("Полтавська область", "Poltava Region"),
+    UkraineRegion("Рівненська область", "Rivne Region"),
+    UkraineRegion("Сумська область", "Sumy Region"),
+    UkraineRegion("Тернопільська область", "Ternopil Region"),
+    UkraineRegion("Харківська область", "Kharkiv Region"),
+    UkraineRegion("Херсонська область", "Kherson Region"),
+    UkraineRegion("Хмельницька область", "Khmelnytskyi Region"),
+    UkraineRegion("Черкаська область", "Cherkasy Region"),
+    UkraineRegion("Чернівецька область", "Chernivtsi Region"),
+    UkraineRegion("Чернігівська область", "Chernihiv Region"),
     UkraineRegion("місто Київ", "Kyiv City")
 )
 
@@ -64,9 +64,13 @@ private fun normalizedRegionName(value: String): String = value
 
 fun localizedUkraineRegion(value: String): String {
     val normalized = normalizedRegionName(value)
-    return ukraineRegions.firstOrNull {
+    val knownRegion = ukraineRegions.firstOrNull {
         normalizedRegionName(it.ukrainianName) == normalized || normalizedRegionName(it.englishName) == normalized
-    }?.displayName() ?: value
+    }
+    return knownRegion?.displayName()
+        ?: if (LocalizationManager.currentLanguage == Language.EN) {
+            value.replace(Regex("(?i)\\boblast\\b"), "Region")
+        } else value
 }
 
 /**
