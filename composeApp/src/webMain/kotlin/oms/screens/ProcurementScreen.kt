@@ -1,6 +1,7 @@
 package oms.screens
 
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.layout.*
@@ -29,6 +30,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.input.pointer.PointerIcon
+import androidx.compose.ui.input.pointer.pointerHoverIcon
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import oms.data.ApiProcurementRecord
 import oms.data.ApiDashboardMetric
@@ -350,6 +355,7 @@ private fun ProcurementRow(
     showActions: Boolean = false,
     isHeader: Boolean = false
 ) {
+    val uriHandler = LocalUriHandler.current
     Row(
         Modifier.width((columnWidths.sum() + if (showActions) 96 else 0).dp).padding(vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -369,6 +375,16 @@ private fun ProcurementRow(
         values.take(columnWidths.size).zip(columnWidths).forEachIndexed { index, (value, width) ->
             if (!isHeader && index == 6) Box(Modifier.width(width.dp).padding(horizontal = 6.dp)) {
                 oms.components.OmsBadge(value, oms.theme.OmsColors.Information)
+            } else if (!isHeader && index == 8 && value.isNotBlank()) {
+                Text(
+                    value,
+                    Modifier.width(width.dp).padding(horizontal = 6.dp)
+                        .clickable { uriHandler.openUri(value.toProzorroTenderUrl()) }
+                        .pointerHoverIcon(PointerIcon.Hand),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    textDecoration = TextDecoration.Underline
+                )
             } else Text(value, Modifier.width(width.dp).padding(horizontal = 6.dp), style = MaterialTheme.typography.bodySmall,
                 fontWeight = if (isHeader) FontWeight.SemiBold else FontWeight.Normal)
         }
@@ -394,6 +410,11 @@ private val procurementStatuses = listOf(
 
 private fun sameProcurementStatus(first: String, second: String): Boolean =
     LocalizationManager.procurementStatus(first).equals(LocalizationManager.procurementStatus(second), ignoreCase = true)
+
+private fun String.toProzorroTenderUrl(): String =
+    if (startsWith("https://", ignoreCase = true) || startsWith("http://", ignoreCase = true)) this
+    else "https://prozorro.gov.ua/tender/$this"
+
 private fun Double?.format(decimals: Int): String = this?.let { value ->
     val multiplier = if (decimals == 0) 1.0 else 100.0
     val rounded = kotlin.math.round(value * multiplier) / multiplier
