@@ -24,7 +24,11 @@ import oms.localization.LocalizationManager
 import oms.screens.*
 
 @Composable
-fun DashboardScreen(onOpenProject: (oms.model.Project) -> Unit = {}, onOpenFinancial: () -> Unit = {}) {
+fun DashboardScreen(
+    onOpenProject: (oms.model.Project) -> Unit = {},
+    onOpenFinancial: () -> Unit = {},
+    onOpenProjectsByRegion: (String) -> Unit = {}
+) {
     var dashboard by remember { mutableStateOf<ApiDashboardOverview?>(null) }
     var loading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf(false) }
@@ -88,7 +92,7 @@ fun DashboardScreen(onOpenProject: (oms.model.Project) -> Unit = {}, onOpenFinan
             else {
                 item {
                     AdaptiveChartRow(
-                        first = { FundingByOblastChart(dashboard?.subprojectFunding.orEmpty()) },
+                        first = { FundingByOblastChart(dashboard?.subprojectFunding.orEmpty(), onOpenProjectsByRegion) },
                         second = { SubprojectProgressChart(dashboard?.subprojectProgress.orEmpty()) { uuid ->
                             scope.launch {
                                 ProjectRepository.refresh()

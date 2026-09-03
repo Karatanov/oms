@@ -23,6 +23,9 @@ class AppState {
     // 🔹 Вибраний проєкт для detail page
     var selectedProject by mutableStateOf<Project?>(null)
 
+    // One-shot filter passed from dashboard analytics to the project registry.
+    var requestedProjectRegion by mutableStateOf<String?>(null)
+
     // 🔹 Чи авторизований користувач
     var isAuthenticated by mutableStateOf(false)
 
@@ -73,6 +76,11 @@ class AppState {
 
     fun openCreateProject() {
         navigate(Screen.CreateProject)
+    }
+
+    fun openProjectsByRegion(region: String) {
+        requestedProjectRegion = region
+        navigate(Screen.Projects)
     }
 
     fun openEditProject(project: Project) {

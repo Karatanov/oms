@@ -64,7 +64,9 @@ fun ProjectsScreen(
     onCreateProject: () -> Unit = {},
     onEditProject: (Project) -> Unit = {},
     canManageProjects: Boolean = false,
-    canBulkReassign: Boolean = false
+    canBulkReassign: Boolean = false,
+    requestedRegionFilter: String? = null,
+    onRequestedRegionFilterConsumed: () -> Unit = {}
 ) {
 
     val deletion = oms.components.LocalDeleteConfirmation.current
@@ -80,6 +82,13 @@ fun ProjectsScreen(
     var managersLoaded by remember { mutableStateOf(false) }
     var showReassign by remember { mutableStateOf(false) }
     val pageScrollState = rememberScrollState()
+
+    LaunchedEffect(requestedRegionFilter) {
+        requestedRegionFilter?.let {
+            regionFilter = it
+            onRequestedRegionFilterConsumed()
+        }
+    }
 
     LaunchedEffect(showReassign) {
         if (showReassign) {

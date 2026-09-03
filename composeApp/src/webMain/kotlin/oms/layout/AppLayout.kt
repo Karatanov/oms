@@ -52,7 +52,8 @@ fun AppLayout(appState: AppState) {
 
                 is Screen.Dashboard -> if (appState.roleCode != "GUEST") DashboardScreen(
                     onOpenProject = appState::openProjectDetail,
-                    onOpenFinancial = { if (appState.roleCode in setOf("ADMIN", "PROJECT_MANAGER")) appState.navigate(Screen.Financial) }
+                    onOpenFinancial = { if (appState.roleCode in setOf("ADMIN", "PROJECT_MANAGER")) appState.navigate(Screen.Financial) },
+                    onOpenProjectsByRegion = appState::openProjectsByRegion
                 )
 
                 is Screen.Projects -> ProjectsScreen(
@@ -60,7 +61,9 @@ fun AppLayout(appState: AppState) {
                     onCreateProject = { appState.openCreateProject() },
                     onEditProject = { appState.openEditProject(it) },
                     canManageProjects = appState.roleCode in setOf("ADMIN", "PROJECT_MANAGER"),
-                    canBulkReassign = appState.roleCode == "ADMIN"
+                    canBulkReassign = appState.roleCode == "ADMIN",
+                    requestedRegionFilter = appState.requestedProjectRegion,
+                    onRequestedRegionFilterConsumed = { appState.requestedProjectRegion = null }
                 )
 
                 is Screen.CreateProject -> if (appState.roleCode in setOf("ADMIN", "PROJECT_MANAGER")) CreateProjectScreen(

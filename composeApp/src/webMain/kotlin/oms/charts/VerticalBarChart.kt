@@ -8,6 +8,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.PointerIcon
+import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.semantics.*
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
@@ -35,7 +37,10 @@ fun VerticalBarChart(
                 val tooltip = listOf(item.label + ": " + displayValue, item.tooltip).filterNotNull().joinToString("\n")
                 oms.components.OmsTooltipBox(tooltip = { Text(tooltip) }) {
                     Column(Modifier.width(labelWidth).semantics { contentDescription = tooltip }
-                        .then(if (onItemClick == null) Modifier.focusable() else Modifier.clickable { onItemClick(item) }),
+                        .then(
+                            if (onItemClick == null) Modifier.focusable()
+                            else Modifier.clickable { onItemClick(item) }.pointerHoverIcon(PointerIcon.Hand)
+                        ),
                         horizontalAlignment = Alignment.CenterHorizontally) {
                         Box(Modifier.fillMaxWidth().height(154.dp), contentAlignment = Alignment.BottomCenter) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {

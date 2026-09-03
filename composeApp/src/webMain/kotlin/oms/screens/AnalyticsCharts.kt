@@ -35,7 +35,7 @@ import oms.localization.LocalizationManager
 import oms.screens.dashboard.toMonthName
 
 @Composable
-fun FundingByOblastChart(items: List<ApiSubprojectFunding>) {
+fun FundingByOblastChart(items: List<ApiSubprojectFunding>, onOpenRegion: (String) -> Unit = {}) {
     val data = items
         .groupBy { it.region.toOblastChartLabel() }
         .entries
@@ -44,13 +44,8 @@ fun FundingByOblastChart(items: List<ApiSubprojectFunding>) {
             BarData(
                 label = entry.key,
                 value = entry.value.sumOf { it.amount }.toFloat(),
+                id = entry.value.firstOrNull()?.region,
                 formattedValue = money(entry.value.sumOf { it.amount }),
-                tooltip = entry.value
-                    .map { it.name }
-                    .filter(String::isNotBlank)
-                    .distinct()
-                    .sorted()
-                    .joinToString("\n")
             )
         }
     AnalyticsCard(
@@ -58,6 +53,7 @@ fun FundingByOblastChart(items: List<ApiSubprojectFunding>) {
         hintKey = "approved_funding_by_oblast_hint",
         data = data,
         valueLabel = { money(it.toLong()) },
+        onItemClick = { bar -> bar.id?.let(onOpenRegion) },
         labelMaxLines = 2
     )
 }
