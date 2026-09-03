@@ -59,14 +59,15 @@ fun FundingByOblastChart(items: List<ApiSubprojectFunding>, onOpenRegion: (Strin
 }
 
 @Composable
-fun SubprojectProgressChart(items: List<ApiSubprojectProgress>, onOpenProject: (String) -> Unit) {
+fun SubprojectProgressChart(items: List<ApiSubprojectProgress>, onOpenFinancial: (String) -> Unit) {
     val data = items
         .sortedBy { it.name }
         .map {
             BarData(
-                label = it.name,
+                label = it.code.ifBlank { it.name },
                 value = it.completionPct.toFloat(),
                 id = it.projectUuid,
+                tooltip = it.name,
                 formattedValue = "${it.completionPct.toInt()}%"
             )
         }
@@ -75,7 +76,7 @@ fun SubprojectProgressChart(items: List<ApiSubprojectProgress>, onOpenProject: (
         hintKey = "subproject_completion_hint",
         data = data,
         valueLabel = { "${it.toInt()}%" },
-        onItemClick = { bar -> bar.id?.let(onOpenProject) },
+        onItemClick = { bar -> bar.id?.let(onOpenFinancial) },
         labelMaxLines = 2
     )
 }

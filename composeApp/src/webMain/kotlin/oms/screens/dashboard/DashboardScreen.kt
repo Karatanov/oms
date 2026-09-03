@@ -27,7 +27,8 @@ import oms.screens.*
 fun DashboardScreen(
     onOpenProject: (oms.model.Project) -> Unit = {},
     onOpenFinancial: () -> Unit = {},
-    onOpenProjectsByRegion: (String) -> Unit = {}
+    onOpenProjectsByRegion: (String) -> Unit = {},
+    onOpenFinancialBySubproject: (String) -> Unit = {}
 ) {
     var dashboard by remember { mutableStateOf<ApiDashboardOverview?>(null) }
     var loading by remember { mutableStateOf(true) }
@@ -93,12 +94,7 @@ fun DashboardScreen(
                 item {
                     AdaptiveChartRow(
                         first = { FundingByOblastChart(dashboard?.subprojectFunding.orEmpty(), onOpenProjectsByRegion) },
-                        second = { SubprojectProgressChart(dashboard?.subprojectProgress.orEmpty()) { uuid ->
-                            scope.launch {
-                                ProjectRepository.refresh()
-                                ProjectRepository.projects.firstOrNull { it.id == uuid }?.let(onOpenProject)
-                            }
-                        } }
+                        second = { SubprojectProgressChart(dashboard?.subprojectProgress.orEmpty(), onOpenFinancialBySubproject) }
                     )
                 }
                 item {

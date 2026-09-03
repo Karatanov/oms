@@ -53,7 +53,8 @@ fun AppLayout(appState: AppState) {
                 is Screen.Dashboard -> if (appState.roleCode != "GUEST") DashboardScreen(
                     onOpenProject = appState::openProjectDetail,
                     onOpenFinancial = { if (appState.roleCode in setOf("ADMIN", "PROJECT_MANAGER")) appState.navigate(Screen.Financial) },
-                    onOpenProjectsByRegion = appState::openProjectsByRegion
+                    onOpenProjectsByRegion = appState::openProjectsByRegion,
+                    onOpenFinancialBySubproject = appState::openFinancialBySubproject
                 )
 
                 is Screen.Projects -> ProjectsScreen(
@@ -118,7 +119,9 @@ fun AppLayout(appState: AppState) {
 
                 is Screen.Financial -> if (appState.roleCode in setOf("ADMIN", "PROJECT_MANAGER")) FinancialScreen(
                     canAccessFinancials = appState.roleCode in setOf("ADMIN", "PROJECT_MANAGER"),
-                    canManageFinancials = appState.roleCode in setOf("ADMIN", "PROJECT_MANAGER")
+                    canManageFinancials = appState.roleCode in setOf("ADMIN", "PROJECT_MANAGER"),
+                    requestedSubprojectUuid = appState.requestedFinancialSubprojectUuid,
+                    onRequestedSubprojectFilterConsumed = { appState.requestedFinancialSubprojectUuid = null }
                 )
 
                 is Screen.Procurement -> if (appState.roleCode != "GUEST") ProcurementScreen(

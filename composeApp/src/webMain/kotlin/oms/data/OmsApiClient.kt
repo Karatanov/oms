@@ -647,7 +647,7 @@ data class ApiDashboardOverview(
 @Serializable
 data class ApiMonthlyActPayment(val month: String, val amountEurCents: Long)
 @Serializable data class ApiSubprojectFunding(val projectUuid: String, val name: String, val region: String, val amount: Long)
-@Serializable data class ApiSubprojectProgress(val projectUuid: String, val name: String, val completionPct: Double)
+@Serializable data class ApiSubprojectProgress(val projectUuid: String, val code: String = "", val name: String, val completionPct: Double)
 @Serializable data class ApiDashboardMetric(val label: String, val value: Long)
 @Serializable data class ApiInspectionAnalytics(
     val monthlyInspectionCounts: List<ApiDashboardMetric> = emptyList(),

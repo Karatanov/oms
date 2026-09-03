@@ -10,7 +10,7 @@ import java.time.LocalDate
 
 data class MonthlyActPayment(val month: String, val amountEurCents: Long)
 data class DashboardSubprojectFunding(val projectUuid: String, val name: String, val region: String, val amount: Long)
-data class DashboardSubprojectProgress(val projectUuid: String, val name: String, val completionPct: Double)
+data class DashboardSubprojectProgress(val projectUuid: String, val code: String, val name: String, val completionPct: Double)
 data class DashboardMetric(val label: String, val value: Long)
 data class DashboardOverviewData(
     val recentInspections: List<InspectionReport>,
@@ -83,7 +83,7 @@ class DashboardService(
             val id = row[ProjectTable.id].value
             val contract = row[ProjectTable.subprojectContractAmount] ?: row[ProjectTable.budgetPlanned]
             DashboardSubprojectProgress(
-                row[ProjectTable.uuid], row[ProjectTable.name],
+                row[ProjectTable.uuid], row[ProjectTable.siteNumber].orEmpty(), row[ProjectTable.name],
                 if (contract > 0) (actualBySubproject[id] ?: 0L) * 100.0 / contract else 0.0
             )
         }.sortedBy { it.name }
@@ -141,7 +141,7 @@ class DashboardService(
         val subprojectProgress = subprojects.map { row ->
             val id = row[ProjectTable.id].value
             val contract = row[ProjectTable.subprojectContractAmount] ?: row[ProjectTable.budgetPlanned]
-            DashboardSubprojectProgress(row[ProjectTable.uuid], row[ProjectTable.name], if (contract > 0) (actualBySubproject[id] ?: 0L) * 100.0 / contract else 0.0)
+            DashboardSubprojectProgress(row[ProjectTable.uuid], row[ProjectTable.siteNumber].orEmpty(), row[ProjectTable.name], if (contract > 0) (actualBySubproject[id] ?: 0L) * 100.0 / contract else 0.0)
         }.sortedBy { it.name }
         fun month(date: java.time.LocalDate) = date.toString().take(7)
         val monthlyInspectionCounts = reports.groupBy { month(it[InspectionReportTable.inspectionDate]) }

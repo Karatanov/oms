@@ -44,6 +44,7 @@ external fun downloadFinancialExport(projectUuid: String)
 
 private data class ProjectActRow(
     val projectUuid: String,
+    val subprojectUuid: String?,
     val subprojectName: String,
     val subprojectPartCode: String?,
     val act: ApiFinancialRecord
@@ -55,7 +56,9 @@ private enum class FinancialSort { Number, Type, Purpose, Subproject, Subproject
 @OptIn(ExperimentalMaterial3Api::class)
 fun FinancialScreen(
     canAccessFinancials: Boolean = true,
-    canManageFinancials: Boolean = true
+    canManageFinancials: Boolean = true,
+    requestedSubprojectUuid: String? = null,
+    onRequestedSubprojectFilterConsumed: () -> Unit = {}
 ) {
     if (!canAccessFinancials) {
         FinancialAccessDenied()
@@ -64,6 +67,7 @@ fun FinancialScreen(
 
     var acts by remember { mutableStateOf<List<ProjectActRow>>(emptyList()) }
     var recordTypeFilter by remember { mutableStateOf<String?>(null) }
+    var subprojectFilter by remember { mutableStateOf<String?>(null) }
     var sort by remember { mutableStateOf(FinancialSort.ActDate) }
     var ascending by remember { mutableStateOf(false) }
     var reloadKey by remember { mutableStateOf(0) }
@@ -79,6 +83,13 @@ fun FinancialScreen(
     val pageScrollState = rememberScrollState()
     val tableTopPaddingPx = with(LocalDensity.current) { 24.dp.toPx() }
 
+    LaunchedEffect(requestedSubprojectUuid) {
+        requestedSubprojectUuid?.let {
+            subprojectFilter = it
+            onRequestedSubprojectFilterConsumed()
+        }
+    }
+
     LaunchedEffect(reloadKey) {
         loading = true; loadFailed = false
         try {
@@ -92,7 +103,7 @@ fun FinancialScreen(
                 val ancestry = generateSequence(project) { current -> current.parentProjectUuid?.let(projectsById::get) }.toList().asReversed()
                 val subproject = ancestry.firstOrNull { it.projectType == "subproject" }
                 val partCode = ancestry.firstOrNull { it.projectType == "subproject_part" }?.siteNumber
-                ProjectActRow(project.id, subproject?.name ?: project.name, partCode, item.record)
+                ProjectActRow(project.id, subproject?.id, subproject?.name ?: project.name, partCode, item.record)
             }
         }.sortedByDescending { it.act.recordDate }
         } catch (failure: Exception) {
@@ -105,7 +116,10 @@ fun FinancialScreen(
         .filter { it.act.recordType == "act" }
         .groupBy { it.act.currency }
         .mapValues { (_, rows) -> rows.sumOf { it.act.amount } }
-    val visibleActs = acts.filter { recordTypeFilter == null || it.act.recordType == recordTypeFilter }.sortedWith(compareBy<ProjectActRow> {
+    val visibleActs = acts.filter {
+        (recordTypeFilter == null || it.act.recordType == recordTypeFilter) &&
+            (subprojectFilter == null || it.subprojectUuid == subprojectFilter)
+    }.sortedWith(compareBy<ProjectActRow> {
         when (sort) {
             FinancialSort.Number -> it.act.referenceNumber
             FinancialSort.Type -> it.act.recordType

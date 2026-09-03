@@ -25,6 +25,7 @@ class AppState {
 
     // One-shot filter passed from dashboard analytics to the project registry.
     var requestedProjectRegion by mutableStateOf<String?>(null)
+    var requestedFinancialSubprojectUuid by mutableStateOf<String?>(null)
 
     // 🔹 Чи авторизований користувач
     var isAuthenticated by mutableStateOf(false)
@@ -81,6 +82,11 @@ class AppState {
     fun openProjectsByRegion(region: String) {
         requestedProjectRegion = region
         navigate(Screen.Projects)
+    }
+
+    fun openFinancialBySubproject(subprojectUuid: String) {
+        requestedFinancialSubprojectUuid = subprojectUuid
+        navigate(Screen.Financial)
     }
 
     fun openEditProject(project: Project) {
