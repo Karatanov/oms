@@ -51,7 +51,6 @@ fun MonthlyActPaymentsChart(primary: Color, payments: List<ApiMonthlyActPayment>
                 data = data,
                 color = primary,
                 valueLabel = { formatActAmount(it.toLong()) },
-                labelWidth = 116.dp,
                 labelMaxLines = 1,
                 onItemClick = { onOpenFinancial() }
             )

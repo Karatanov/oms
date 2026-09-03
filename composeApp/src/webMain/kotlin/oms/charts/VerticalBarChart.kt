@@ -20,7 +20,7 @@ import oms.components.TableScrollControls
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
 fun VerticalBarChart(
-    data: List<BarData>, color: Color, labelWidth: Dp = 116.dp, labelMaxLines: Int = 2,
+    data: List<BarData>, color: Color, labelWidth: Dp = 88.dp, labelMaxLines: Int = 2,
     maxVisibleItems: Int? = null, initialScrollToEnd: Boolean = false,
     valueLabel: (Float) -> String = { it.toLong().toString() }, onItemClick: ((BarData) -> Unit)? = null
 ) {
@@ -31,7 +31,7 @@ fun VerticalBarChart(
     val laneHeight = if (labelMaxLines == 1) 24.dp else 52.dp
     Column(Modifier.fillMaxWidth()) {
         Column(Modifier.fillMaxWidth().horizontalScroll(scroll)) {
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             data.forEach { item ->
                 val displayValue = item.formattedValue ?: valueLabel(item.value)
                 val tooltip = listOf(item.label + ": " + displayValue, item.tooltip).filterNotNull().joinToString("\n")
@@ -46,7 +46,7 @@ fun VerticalBarChart(
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Text(displayValue, style = MaterialTheme.typography.labelMedium, maxLines = 1)
                                 Spacer(Modifier.height(6.dp))
-                                Box(Modifier.width(36.dp).height((118f * (item.value.coerceAtLeast(0f) / maxValue)).dp)
+                                Box(Modifier.width(28.dp).height((118f * (item.value.coerceAtLeast(0f) / maxValue)).dp)
                                     .clip(MaterialTheme.shapes.extraSmall).background(item.color ?: color))
                             }
                         }
@@ -66,9 +66,9 @@ fun VerticalBarChart(
                     groups.add(previous.first to previous.second + 1)
                 } else groups.add(item.groupLabel to 1)
             }
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 groups.forEach { (year, count) ->
-                    Text(year.orEmpty(), Modifier.width(labelWidth * count + 12.dp * (count - 1)),
+                    Text(year.orEmpty(), Modifier.width(labelWidth * count + 8.dp * (count - 1)),
                         textAlign = TextAlign.Center, style = MaterialTheme.typography.labelMedium)
                 }
             }
