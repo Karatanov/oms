@@ -19,7 +19,6 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.semantics.*
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
-import kotlinx.coroutines.launch
 import oms.localization.LocalizationManager
 
 /** One viewport with a sticky header and a draggable horizontal scrollbar. */
@@ -67,23 +66,32 @@ fun ScrollableTable(
 @Composable
 fun TableScrollControls(scroll: ScrollState) {
     if (scroll.maxValue <= 0) return
-    val scope = rememberCoroutineScope()
     Row(
         Modifier.fillMaxWidth().padding(top = 8.dp),
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        TableActionIconButton(LocalizationManager.t("scroll_table_left"), Icons.Default.KeyboardArrowLeft) {
-            scope.launch { scroll.animateScrollTo((scroll.value - 500).coerceAtLeast(0)) }
-        }
+        HoldToScrollButton(
+            tooltip = LocalizationManager.t("scroll_table_left"),
+            icon = Icons.Default.KeyboardArrowLeft,
+            scrollState = scroll,
+            direction = -1,
+            clickDistance = 500f,
+            continuousPixelsPerFrame = 10f
+        )
         Text(
             "${((scroll.value.toFloat() / scroll.maxValue.toFloat()) * 100).toInt()}%",
             modifier = Modifier.width(64.dp).semantics { contentDescription = LocalizationManager.t("table_scroll") },
             style = MaterialTheme.typography.labelMedium,
             textAlign = androidx.compose.ui.text.style.TextAlign.Center
         )
-        TableActionIconButton(LocalizationManager.t("scroll_table_right"), Icons.Default.KeyboardArrowRight) {
-            scope.launch { scroll.animateScrollTo((scroll.value + 500).coerceAtMost(scroll.maxValue)) }
-        }
+        HoldToScrollButton(
+            tooltip = LocalizationManager.t("scroll_table_right"),
+            icon = Icons.Default.KeyboardArrowRight,
+            scrollState = scroll,
+            direction = 1,
+            clickDistance = 500f,
+            continuousPixelsPerFrame = 10f
+        )
     }
 }
