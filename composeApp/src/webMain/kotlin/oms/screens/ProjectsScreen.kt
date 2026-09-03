@@ -151,20 +151,11 @@ fun ProjectsScreen(
             }
         }
 
-        Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(12.dp))
         if (ProjectRepository.loading) oms.components.ContentState(LocalizationManager.t("loading_records"), loading = true)
         ProjectRepository.errorMessage?.let { oms.components.ContentState(it, error = true, onRetry = { scope.launch { ProjectRepository.refresh(force = true) } }) }
 
-        OutlinedTextField(
-            value = searchText,
-            onValueChange = { searchText = it },
-            label = { Text(LocalizationManager.t("search_project")) },
-            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth()
-        )
         if (canManageProjects && selectedProjectIds.isNotEmpty()) {
-            Spacer(Modifier.height(12.dp))
             Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)) {
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(12.dp),
@@ -193,11 +184,12 @@ fun ProjectsScreen(
             }
         }
 
-        Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(8.dp))
 
         ProjectsTable(
             projects = filteredProjects,
             searchText = searchText,
+            onSearchTextChange = { searchText = it },
             filters = {
                 ProjectsFilters(regionFilter, { regionFilter = it }, statusFilter, { statusFilter = it },
                     constructionTypeFilter, { constructionTypeFilter = it }, sectorFilter, { sectorFilter = it },
@@ -273,6 +265,7 @@ fun ProjectsScreen(
 fun ProjectsTable(
     projects: List<Project>,
     searchText: String,
+    onSearchTextChange: (String) -> Unit,
     filters: @Composable () -> Unit,
     onOpenProject: (Project) -> Unit,
     onEditProject: (Project) -> Unit,
@@ -327,9 +320,24 @@ fun ProjectsTable(
     else sortedProjects.drop(currentPage * pageSize).take(pageSize)
 
     Column(Modifier.fillMaxWidth()) {
-        ProjectPagination(pageSize, currentPage, pageCount, sortedProjects.size, { pageSize = it }) {
-            currentPage = it.coerceIn(0, pageCount - 1)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            OutlinedTextField(
+                value = searchText,
+                onValueChange = onSearchTextChange,
+                label = { Text(LocalizationManager.t("search_project")) },
+                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                singleLine = true,
+                modifier = Modifier.weight(1f).widthIn(min = 280.dp)
+            )
+            ProjectPagination(pageSize, currentPage, pageCount, sortedProjects.size, { pageSize = it }) {
+                currentPage = it.coerceIn(0, pageCount - 1)
+            }
         }
+        Spacer(Modifier.height(8.dp))
         oms.components.ScrollableTable(
             header = {
                 filters()
@@ -365,9 +373,6 @@ fun ProjectsTable(
                 ) }
             }
         }
-        ProjectPagination(pageSize, currentPage, pageCount, sortedProjects.size, { pageSize = it }) {
-            currentPage = it.coerceIn(0, pageCount - 1)
-        }
     }
 }
 
@@ -376,7 +381,7 @@ private fun ProjectPagination(
     pageSize: Int, currentPage: Int, pageCount: Int, total: Int,
     onPageSize: (Int) -> Unit, onPage: (Int) -> Unit
 ) {
-    Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
+    Row(horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
         Text(LocalizationManager.t("rows_per_page"), style = MaterialTheme.typography.bodySmall)
         Spacer(Modifier.width(8.dp))
         InlineOptionPicker(listOf(20, 50, 100, Int.MAX_VALUE), pageSize, LocalizationManager.t("rows_per_page"), onPageSize,
