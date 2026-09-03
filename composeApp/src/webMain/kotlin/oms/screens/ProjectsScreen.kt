@@ -2,6 +2,8 @@ package oms.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.focusable
+import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.horizontalScroll
@@ -30,7 +32,11 @@ import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.input.pointer.onPointerEvent
 import androidx.compose.ui.input.pointer.pointerHoverIcon
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.text.font.FontWeight
@@ -84,6 +90,7 @@ fun ProjectsScreen(
     var managersLoaded by remember { mutableStateOf(false) }
     var showReassign by remember { mutableStateOf(false) }
     val pageScrollState = rememberScrollState()
+    fun scrollPageBy(delta: Float) = scope.launch { pageScrollState.animateScrollBy(delta) }
 
     LaunchedEffect(requestedRegionFilter) {
         requestedRegionFilter?.let {
@@ -137,6 +144,19 @@ fun ProjectsScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .focusable()
+            .onKeyEvent { event ->
+                if (event.type != KeyEventType.KeyDown) return@onKeyEvent false
+                when (event.key) {
+                    Key.DirectionUp -> { scrollPageBy(-420f); true }
+                    Key.DirectionDown -> { scrollPageBy(420f); true }
+                    Key.PageUp -> { scrollPageBy(-720f); true }
+                    Key.PageDown -> { scrollPageBy(720f); true }
+                    Key.MoveHome -> { scope.launch { pageScrollState.animateScrollTo(0) }; true }
+                    Key.MoveEnd -> { scope.launch { pageScrollState.animateScrollTo(pageScrollState.maxValue) }; true }
+                    else -> false
+                }
+            }
             .verticalScroll(pageScrollState)
             // Leave a fixed lane for the page-scroll controls, as on the
             // procurement and inspection-report screens.
@@ -237,23 +257,31 @@ fun ProjectsScreen(
         Spacer(Modifier.height(16.dp))
 
     }
-    Column(
-        modifier = Modifier.align(Alignment.CenterEnd).padding(end = 20.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+    Surface(
+        modifier = Modifier.align(Alignment.CenterEnd).padding(end = 16.dp).zIndex(10f),
+        shape = MaterialTheme.shapes.large,
+        color = MaterialTheme.colorScheme.surface,
+        tonalElevation = 6.dp,
+        shadowElevation = 6.dp
     ) {
-        oms.components.HoldToScrollButton(
-            LocalizationManager.t("dashboard_scroll_up"),
-            Icons.Default.KeyboardArrowUp,
-            pageScrollState,
-            -1
-        )
-        oms.components.HoldToScrollButton(
-            LocalizationManager.t("dashboard_scroll_down"),
-            Icons.Default.KeyboardArrowDown,
-            pageScrollState,
-            1
-        )
+        Column(
+            modifier = Modifier.padding(4.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            oms.components.HoldToScrollButton(
+                LocalizationManager.t("dashboard_scroll_up"),
+                Icons.Default.KeyboardArrowUp,
+                pageScrollState,
+                -1
+            )
+            oms.components.HoldToScrollButton(
+                LocalizationManager.t("dashboard_scroll_down"),
+                Icons.Default.KeyboardArrowDown,
+                pageScrollState,
+                1
+            )
+        }
     }
     }
     }
