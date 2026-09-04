@@ -1,5 +1,6 @@
 package oms.screens
 
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
@@ -208,7 +209,8 @@ fun ProcurementScreen(
                 Box(Modifier.onGloballyPositioned { tableTopInRootPx = it.positionInRoot().y }) {
                     ProcurementTable(
                         pageRecords, records.orEmpty(), oblastFilter, { oblastFilter = it }, statusFilter, { statusFilter = it },
-                        canManageProcurements, { error = null; editorRecord = it }, { error = null; recordPendingDeletion = it }
+                        canManageProcurements, { error = null; editorRecord = it }, { error = null; recordPendingDeletion = it },
+                        contentScrollState
                     )
                 }
             }
@@ -300,10 +302,11 @@ private fun ProcurementTable(
     onStatusChange: (String?) -> Unit,
     canManage: Boolean,
     onEdit: (ApiProcurementRecord) -> Unit,
-    onDelete: (ApiProcurementRecord) -> Unit
+    onDelete: (ApiProcurementRecord) -> Unit,
+    pageScrollState: ScrollState
 ) {
     Column(Modifier.fillMaxWidth()) {
-        oms.components.ScrollableTable(pageScrollState = contentScrollState, header = {
+        oms.components.ScrollableTable(pageScrollState = pageScrollState, header = {
                 ProcurementFilters(allRecords, oblastFilter, onOblastChange, statusFilter, onStatusChange, canManage)
                 ProcurementRow(procurementHeaderLabels(), showActions = canManage, isHeader = true)
                 HorizontalDivider()
