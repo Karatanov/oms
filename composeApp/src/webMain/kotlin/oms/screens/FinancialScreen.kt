@@ -421,7 +421,15 @@ private fun FinancialProjectTargetSelector(
     }
 
     val rootProjects = availableProjects.filter { it.projectType.equals("project", true) }
-    val subprojects = availableProjects.filter { it.projectType.equals("subproject", true) && it.parentProjectUuid == rootUuid }
+    fun subprojectsForRoot(source: List<oms.model.Project>, selectedRoot: String?): List<oms.model.Project> {
+        if (selectedRoot == null) return source.filter { it.projectType.equals("subproject", true) }
+        val onlyRootUuid = source.filter { it.projectType.equals("project", true) }.singleOrNull()?.id
+        return source.filter {
+            it.projectType.equals("subproject", true) &&
+                (it.parentProjectUuid == selectedRoot || (onlyRootUuid == selectedRoot && it.parentProjectUuid == null))
+        }
+    }
+    val subprojects = subprojectsForRoot(availableProjects, rootUuid)
     val parts = availableProjects.filter { it.projectType.equals("subproject_part", true) && it.parentProjectUuid == subprojectUuid }
     suspend fun loadAndRemember(): List<oms.model.Project> = loadProjectsOnOpen().also { loaded ->
         availableProjects = loaded
@@ -451,10 +459,7 @@ private fun FinancialProjectTargetSelector(
                     .filter { it.projectType.equals("project", true) }
                     .singleOrNull()?.id
                 if (rootUuid == null && selectedRoot != null) rootUuid = selectedRoot
-                loaded.filter {
-                    it.projectType.equals("subproject", true) &&
-                        (selectedRoot == null || it.parentProjectUuid == selectedRoot)
-                }
+                subprojectsForRoot(loaded, selectedRoot)
             }
         )
         FinancialProjectLevelDropdown(
