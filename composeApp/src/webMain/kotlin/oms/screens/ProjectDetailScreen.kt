@@ -417,7 +417,6 @@ private fun EmptyProjectTab(title: String, description: String) {
     }
 }
 
-@Composable
 private fun localizedProjectAddress(details: oms.data.ApiProjectDetails): String {
     val data = details.data
     if (LocalizationManager.currentLanguage != Language.EN) return data.address.ifBlank { "—" }
@@ -452,6 +451,7 @@ private fun localizedOrganisationName(value: String?): String {
     }
 }
 
+@Composable
 private fun ProjectGeneralInfoTab(details: oms.data.ApiProjectDetails?) {
     Card(Modifier.fillMaxWidth()) {
         if (details == null) {
