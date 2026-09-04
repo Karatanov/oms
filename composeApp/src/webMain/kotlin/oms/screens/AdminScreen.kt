@@ -97,6 +97,7 @@ fun AdminScreen() {
     var sort by remember { mutableStateOf(UserSort.Username) }
     var ascending by remember { mutableStateOf(true) }
     val scope = rememberCoroutineScope()
+    val pageScrollState = rememberScrollState()
     fun refreshActivities() {
         scope.launch {
             activities = runCatching { OmsApiClient.dashboard().activities }.getOrDefault(activities)
@@ -136,7 +137,7 @@ fun AdminScreen() {
 
     Box(Modifier.fillMaxSize()) {
     Column(
-        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp),
+        Modifier.fillMaxSize().verticalScroll(pageScrollState).padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         oms.components.PageHeading(LocalizationManager.t("admin_title"), Icons.Default.AdminPanelSettings) {
@@ -152,6 +153,7 @@ fun AdminScreen() {
         Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
             oms.components.ScrollableTable(
                 Modifier.padding(16.dp),
+                pageScrollState = pageScrollState,
                 header = {
                     Row(Modifier.width(2046.dp).padding(vertical = 6.dp)) {
                         SortableTableHeader(LocalizationManager.t("username"), sort == UserSort.Username, ascending, { changeSort(UserSort.Username) }, Modifier.width(130.dp))

@@ -190,6 +190,7 @@ fun ReportsScreen(
             oms.components.ScrollableTable(
                 Modifier.padding(16.dp),
                 showScrollControls = visible.isNotEmpty(),
+                pageScrollState = contentScrollState,
                 header = {
                     ReportTableHeader(
                         sort = sort,

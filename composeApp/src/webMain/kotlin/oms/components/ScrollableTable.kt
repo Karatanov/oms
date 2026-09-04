@@ -26,14 +26,23 @@ import oms.localization.LocalizationManager
 fun ScrollableTable(
     modifier: Modifier = Modifier,
     showScrollControls: Boolean = true,
+    pageScrollState: ScrollState? = null,
     header: @Composable ColumnScope.() -> Unit,
     content: @Composable ColumnScope.() -> Unit
 ) {
     val scroll = rememberScrollState()
     var tableTopInRoot by remember { mutableStateOf(0f) }
+    var tableTopInPage by remember { mutableStateOf<Float?>(null) }
     var tableHeight by remember { mutableStateOf(0) }
     var headerHeight by remember { mutableStateOf(0) }
-    val stickyOffset = (-tableTopInRoot)
+    // Browser/Wasm scrolling is applied as a layer transform, so layout
+    // coordinates alone can remain stale while the page moves.  Keep the
+    // table's stable page position and derive its live position from the
+    // actual ScrollState instead.
+    val liveTableTop = pageScrollState?.let { scrollState ->
+        (tableTopInPage ?: tableTopInRoot + scrollState.value) - scrollState.value
+    } ?: tableTopInRoot
+    val stickyOffset = (-liveTableTop)
         .coerceAtLeast(0f)
         .coerceAtMost((tableHeight - headerHeight).coerceAtLeast(0).toFloat())
     val surface = MaterialTheme.colorScheme.surface
@@ -44,6 +53,7 @@ fun ScrollableTable(
                 .onGloballyPositioned { coordinates ->
                     val bounds = coordinates.boundsInRoot()
                     tableTopInRoot = bounds.top
+                    tableTopInPage = bounds.top + (pageScrollState?.value ?: 0)
                     tableHeight = coordinates.size.height
                 }
                 .horizontalScroll(scroll)

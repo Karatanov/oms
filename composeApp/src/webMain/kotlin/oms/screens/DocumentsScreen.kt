@@ -77,6 +77,7 @@ fun DocumentsScreen(canManageDocuments: Boolean = true) {
     var loadFailed by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var showUploadDialog by remember { mutableStateOf(false) }
+    val pageScrollState = rememberScrollState()
     var reloadKey by remember { mutableStateOf(0) }
     var pageSize by remember { mutableStateOf(20) }
     var currentPage by remember { mutableStateOf(0) }
@@ -152,7 +153,7 @@ fun DocumentsScreen(canManageDocuments: Boolean = true) {
     fun selectSort(column: DocumentSort) { if (sort == column) ascending = !ascending else { sort = column; ascending = true } }
     Box(Modifier.fillMaxSize()) {
     Column(
-        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp),
+        Modifier.fillMaxSize().verticalScroll(pageScrollState).padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         oms.components.PageHeading(LocalizationManager.t("documents_title"), Icons.Default.FolderOpen) {
@@ -179,6 +180,7 @@ fun DocumentsScreen(canManageDocuments: Boolean = true) {
         Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
             oms.components.ScrollableTable(
                 Modifier.padding(16.dp),
+                pageScrollState = pageScrollState,
                 header = { DocumentTableHeader(sort, ascending, ::selectSort); HorizontalDivider() }
             ) {
                 if (!loading && !loadFailed && visibleDocuments.isEmpty()) Text(LocalizationManager.t("no_documents"))

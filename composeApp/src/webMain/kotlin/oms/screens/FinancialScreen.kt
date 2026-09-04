@@ -210,6 +210,7 @@ fun FinancialScreen(
                 oms.components.ScrollableTable(
                     Modifier.padding(16.dp),
                     showScrollControls = visibleActs.isNotEmpty(),
+                    pageScrollState = pageScrollState,
                     header = { FinancialTableHeader(sort, ascending, ::selectSort); HorizontalDivider() }
                 ) {
                     if (!loading && !loadFailed && visibleActs.isEmpty()) Text(LocalizationManager.t(emptyRecordsMessage))

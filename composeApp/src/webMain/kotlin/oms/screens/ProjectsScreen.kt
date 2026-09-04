@@ -1,6 +1,7 @@
 package oms.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.gestures.animateScrollBy
@@ -212,6 +213,7 @@ fun ProjectsScreen(
             projects = filteredProjects,
             searchText = searchText,
             onSearchTextChange = { searchText = it },
+            pageScrollState = pageScrollState,
             filters = {
                 ProjectsFilters(regionFilter, { regionFilter = it }, statusFilter, { statusFilter = it },
                     constructionTypeFilter, { constructionTypeFilter = it }, sectorFilter, { sectorFilter = it },
@@ -296,6 +298,7 @@ fun ProjectsTable(
     projects: List<Project>,
     searchText: String,
     onSearchTextChange: (String) -> Unit,
+    pageScrollState: ScrollState,
     filters: @Composable () -> Unit,
     onOpenProject: (Project) -> Unit,
     onEditProject: (Project) -> Unit,
@@ -369,6 +372,7 @@ fun ProjectsTable(
         }
         Spacer(Modifier.height(8.dp))
         oms.components.ScrollableTable(
+            pageScrollState = pageScrollState,
             header = {
                 filters()
                 TableHeader(sortColumn, ascending) { column ->

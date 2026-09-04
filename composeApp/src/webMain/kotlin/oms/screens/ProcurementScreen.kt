@@ -303,7 +303,7 @@ private fun ProcurementTable(
     onDelete: (ApiProcurementRecord) -> Unit
 ) {
     Column(Modifier.fillMaxWidth()) {
-        oms.components.ScrollableTable(header = {
+        oms.components.ScrollableTable(pageScrollState = contentScrollState, header = {
                 ProcurementFilters(allRecords, oblastFilter, onOblastChange, statusFilter, onStatusChange, canManage)
                 ProcurementRow(procurementHeaderLabels(), showActions = canManage, isHeader = true)
                 HorizontalDivider()
