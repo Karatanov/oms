@@ -102,11 +102,11 @@ internal fun ProjectForm(
                 { field("constructionContractNumber", "contract_number", it)() },
                 { OmsDateField(state["constructionContractSigningDate"], { value -> state["constructionContractSigningDate"] = value }, L.t("contract_date"), it) }
             )
-            FormPair(
+            FormEqualTriplet(
                 { OmsDateField(state["constructionStartDate"], { value -> state["constructionStartDate"] = value }, L.t("construction_start_date"), it) },
-                { OmsDateField(state["projectedCompletionTime"], { value -> state["projectedCompletionTime"] = value }, L.t("planned_end_date"), it) }
+                { OmsDateField(state["projectedCompletionTime"], { value -> state["projectedCompletionTime"] = value }, L.t("planned_end_date"), it) },
+                { OmsDateField(state["endDate"], { value -> state["endDate"] = value }, L.t("actual_end_date"), it) }
             )
-            OmsDateField(state["endDate"], { state["endDate"] = it }, L.t("actual_end_date"), Modifier.fillMaxWidth())
         }
     }
     ContractInformationCard(
@@ -182,6 +182,25 @@ private fun FormTriplet(
             first(Modifier.weight(1f))
             second(Modifier.weight(1f))
             third(Modifier.width(170.dp))
+        }
+    }
+}
+
+@Composable
+private fun FormEqualTriplet(
+    first: @Composable (Modifier) -> Unit,
+    second: @Composable (Modifier) -> Unit,
+    third: @Composable (Modifier) -> Unit
+) {
+    BoxWithConstraints(Modifier.fillMaxWidth()) {
+        if (maxWidth < 900.dp) Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            first(Modifier.fillMaxWidth())
+            second(Modifier.fillMaxWidth())
+            third(Modifier.fillMaxWidth())
+        } else Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            first(Modifier.weight(1f))
+            second(Modifier.weight(1f))
+            third(Modifier.weight(1f))
         }
     }
 }
