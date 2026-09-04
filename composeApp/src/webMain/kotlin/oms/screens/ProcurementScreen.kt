@@ -160,15 +160,6 @@ fun ProcurementScreen(
             }
         )
         Spacer(Modifier.height(16.dp))
-        OutlinedTextField(search, { search = it }, singleLine = true, label = { Text(LocalizationManager.t("procurement_search")) }, leadingIcon = { Icon(Icons.Default.Search, null) }, modifier = Modifier.fillMaxWidth())
-        signedContractMonthFilter?.let { month ->
-            FilterChip(
-                selected = true,
-                onClick = { signedContractMonthFilter = null; statusFilter = null },
-                label = { Text("${LocalizationManager.t("signed_construction_contracts")}: $month") }
-            )
-        }
-        Spacer(Modifier.height(12.dp))
         val visibleRecords = records.orEmpty().filter { record ->
             (oblastFilter == null || record.oblastName == oblastFilter) &&
             (statusFilter?.let { sameProcurementStatus(record.purchaseStatus, it) } ?: true) &&
@@ -184,21 +175,42 @@ fun ProcurementScreen(
             loadError != null -> oms.components.ContentState(loadError!!, error = true, onRetry = { reloadKey++ })
             records == null -> CircularProgressIndicator()
             else -> {
-                ProcurementPagination(
-                    pageSize = pageSize,
-                    currentPage = currentPage,
-                    pageCount = pageCount,
-                    total = visibleRecords.size,
-                    onPageSize = { pageSize = it },
-                    onPage = { currentPage = it.coerceIn(0, pageCount - 1) }
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    OutlinedTextField(
+                        value = search,
+                        onValueChange = { search = it },
+                        singleLine = true,
+                        label = { Text(LocalizationManager.t("procurement_search")) },
+                        leadingIcon = { Icon(Icons.Default.Search, null) },
+                        modifier = Modifier.weight(1f).widthIn(min = 280.dp)
+                    )
+                    ProcurementPagination(
+                        pageSize = pageSize,
+                        currentPage = currentPage,
+                        pageCount = pageCount,
+                        total = visibleRecords.size,
+                        onPageSize = { pageSize = it },
+                        onPage = { currentPage = it.coerceIn(0, pageCount - 1) }
+                    )
+                }
+                signedContractMonthFilter?.let { month ->
+                    FilterChip(
+                        selected = true,
+                        onClick = { signedContractMonthFilter = null; statusFilter = null },
+                        label = { Text("${LocalizationManager.t("signed_construction_contracts")}: $month") }
+                    )
+                }
+                Spacer(Modifier.height(8.dp))
                 Box(Modifier.onGloballyPositioned { tableTopInRootPx = it.positionInRoot().y }) {
                     ProcurementTable(
                         pageRecords, records.orEmpty(), oblastFilter, { oblastFilter = it }, statusFilter, { statusFilter = it },
                         canManageProcurements, { error = null; editorRecord = it }, { error = null; recordPendingDeletion = it }
                     )
                 }
-                ProcurementPagination(pageSize, currentPage, pageCount, visibleRecords.size, { pageSize = it }, { currentPage = it.coerceIn(0, pageCount - 1) })
             }
         }
     }
@@ -251,7 +263,6 @@ private fun ProcurementPagination(
     onPage: (Int) -> Unit
 ) {
     Row(
-        Modifier.fillMaxWidth().padding(vertical = 8.dp),
         horizontalArrangement = Arrangement.End,
         verticalAlignment = Alignment.CenterVertically
     ) {
