@@ -1,6 +1,10 @@
 package oms.screens
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import oms.data.ApiFinancialRecord
 import oms.data.ApiMonthlyActPayment
 import oms.localization.LocalizationManager
@@ -18,11 +22,14 @@ private data class MonthlyFinancialAggregation(
 @Composable
 fun MonthlyPaymentsChart(records: List<FinancialChartRecord>) {
     val aggregation = aggregateMonthlyPayments(records, "works")
+    var expanded by remember { mutableStateOf(false) }
     MonthlyAmountsChart(
         titleKey = "monthly_project_payments",
         hintKey = null,
         payments = aggregation.payments,
-        tooltipByMonth = aggregation.tooltipByMonth
+        tooltipByMonth = aggregation.tooltipByMonth,
+        expanded = expanded,
+        onExpandedChange = { expanded = it }
     )
 }
 

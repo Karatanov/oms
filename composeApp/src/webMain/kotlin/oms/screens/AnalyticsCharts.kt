@@ -18,6 +18,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.IconButton
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
@@ -26,6 +27,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.input.pointer.pointerHoverIcon
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material3.Icon
 import oms.charts.BarData
 import oms.charts.VerticalBarChart
 import oms.data.ApiDashboardMetric
@@ -205,7 +210,9 @@ fun MonthlyAmountsChart(
     titleKey: String,
     hintKey: String? = null,
     payments: List<ApiMonthlyActPayment>,
-    tooltipByMonth: Map<String, String> = emptyMap()
+    tooltipByMonth: Map<String, String> = emptyMap(),
+    expanded: Boolean = true,
+    onExpandedChange: ((Boolean) -> Unit)? = null
 ) {
     val data = payments.sortedBy { it.month }.map {
         BarData(
@@ -216,7 +223,10 @@ fun MonthlyAmountsChart(
             formattedValue = oms.components.formatEuroCents(it.amountEurCents)
         )
     }
-    AnalyticsCard(titleKey, hintKey, data, { euro(it.toLong()) }, labelMaxLines = 1)
+    AnalyticsCard(
+        titleKey, hintKey, data, { euro(it.toLong()) }, labelMaxLines = 1,
+        expanded = expanded, onExpandedChange = onExpandedChange
+    )
 }
 
 @Composable
@@ -229,10 +239,14 @@ private fun AnalyticsCard(
     compact: Boolean = false,
     labelMaxLines: Int = 2,
     filterContent: (@Composable () -> Unit)? = null,
-    showScrollControls: Boolean = true
+    showScrollControls: Boolean = true,
+    expanded: Boolean = true,
+    onExpandedChange: ((Boolean) -> Unit)? = null
 ) {
     val cardModifier = Modifier.fillMaxWidth().then(
-        if (compact) Modifier.heightIn(min = 144.dp) else Modifier.height(if (filterContent == null) 420.dp else 476.dp)
+        if (!expanded) Modifier
+        else if (compact) Modifier.heightIn(min = 144.dp)
+        else Modifier.height(if (filterContent == null) 420.dp else 476.dp)
     )
     Card(cardModifier, shape = RoundedCornerShape(12.dp),
         colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
@@ -243,23 +257,36 @@ private fun AnalyticsCard(
                     style = MaterialTheme.typography.titleMedium,
                     textAlign = TextAlign.Center
                 )
-            }
-            Box(Modifier.fillMaxWidth().height(40.dp), contentAlignment = Alignment.Center) {
-                hintKey?.let {
-                    Text(
-                        LocalizationManager.t(it),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Center
-                    )
+                onExpandedChange?.let { onToggle ->
+                    IconButton(
+                        onClick = { onToggle(!expanded) },
+                        modifier = Modifier.align(Alignment.CenterEnd)
+                    ) {
+                        Icon(
+                            if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                            contentDescription = LocalizationManager.t(if (expanded) "collapse" else "expand")
+                        )
+                    }
                 }
             }
-            filterContent?.let { content ->
-                Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) { content() }
+            if (expanded) {
+                Box(Modifier.fillMaxWidth().height(40.dp), contentAlignment = Alignment.Center) {
+                    hintKey?.let {
+                        Text(
+                            LocalizationManager.t(it),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
+                filterContent?.let { content ->
+                    Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) { content() }
+                }
+                Spacer(Modifier.height(if (compact) 8.dp else 16.dp))
+                if (data.isEmpty()) Text(LocalizationManager.t("no_chart_data"), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                else VerticalBarChart(data, MaterialTheme.colorScheme.primary, labelMaxLines = labelMaxLines, maxVisibleItems = 6, valueLabel = valueLabel, onItemClick = onItemClick, showScrollControls = showScrollControls)
             }
-            Spacer(Modifier.height(if (compact) 8.dp else 16.dp))
-            if (data.isEmpty()) Text(LocalizationManager.t("no_chart_data"), color = MaterialTheme.colorScheme.onSurfaceVariant)
-            else VerticalBarChart(data, MaterialTheme.colorScheme.primary, labelMaxLines = labelMaxLines, maxVisibleItems = 6, valueLabel = valueLabel, onItemClick = onItemClick, showScrollControls = showScrollControls)
         }
     }
 }
