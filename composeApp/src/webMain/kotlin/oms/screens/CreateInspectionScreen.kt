@@ -72,7 +72,7 @@ fun CreateInspectionScreen(
     var contractor by remember { mutableStateOf("") }
     var inspectorName by remember { mutableStateOf(currentUserName) }
     var contractorRepresentative by remember { mutableStateOf("") }
-    var qaStaff by remember { mutableStateOf("") }
+    var qaStaff by remember { mutableStateOf(currentUserName) }
     var usifRepresentative by remember { mutableStateOf("") }
     var skilledLabor by remember { mutableStateOf("") }
     var unskilledLabor by remember { mutableStateOf("") }
@@ -86,6 +86,14 @@ fun CreateInspectionScreen(
     var scheduleRemark by remember { mutableStateOf("") }
     var inspectorTitle by remember { mutableStateOf("") }
     val scope = rememberCoroutineScope()
+
+    // The report's QA staff is normally the person creating it.  Preserve a
+    // manually selected value, but recover the default if the user context
+    // becomes available after the screen has first composed.
+    LaunchedEffect(currentUserName) {
+        if (qaStaff.isBlank()) qaStaff = currentUserName
+        if (inspectorName.isBlank()) inspectorName = currentUserName
+    }
 
     val projects = ProjectRepository.projects
     val subprojects = projects.filter {
@@ -299,7 +307,7 @@ fun CreateInspectionScreen(
                                             inspectionType = inspectionType.name.lowercase(),
                                             contractor = contractor,
                                             contractorRepresentative = contractorRepresentative.ifBlank { null },
-                                            qaStaff = qaStaff.ifBlank { null },
+                                            qaStaff = qaStaff.trim().ifBlank { inspectorName.trim() }.ifBlank { null },
                                             usifRepresentative = usifRepresentative.ifBlank { null },
                                             skilledLabor = skilledLabor.ifBlank { null },
                                             unskilledLabor = unskilledLabor.ifBlank { null },
@@ -423,14 +431,14 @@ private fun ManualSirForm(
             Text(LocalizationManager.t("manual_sir_fund"), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
 
             SirSectionTitle(LocalizationManager.t("sir_contractor_section"))
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedTextField(contractor, { onContractorChange(it.inspectionText(300)) }, label = { Text("${LocalizationManager.t("contractor")} *") }, modifier = Modifier.weight(1f), singleLine = true)
                 OmsDateField(date, onDateChange, LocalizationManager.t("date_label"), Modifier.weight(1f), required = true)
             }
 
             SirSectionTitle(LocalizationManager.t("sir_representatives"))
             OutlinedTextField(contractorRepresentative, { onContractorRepresentativeChange(it.inspectionText(300)) }, label = { Text(LocalizationManager.t("sir_contractor_representative")) }, modifier = Modifier.fillMaxWidth(), singleLine = true)
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedTextField(qaStaff, { onQaStaffChange(it.inspectionText(300)) }, label = { Text(LocalizationManager.t("sir_qa_staff")) }, modifier = Modifier.weight(1f), singleLine = true)
                 OutlinedTextField(usifRepresentative, { onUsifRepresentativeChange(it.inspectionText(300)) }, label = { Text(LocalizationManager.t("sir_usif_representative")) }, modifier = Modifier.weight(1f), singleLine = true)
             }

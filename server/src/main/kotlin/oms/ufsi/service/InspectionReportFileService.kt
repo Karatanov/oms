@@ -28,6 +28,7 @@ class InspectionReportFileService(
     private val reportService: InspectionReportService
 ) {
     fun createManual(projectId: Long, request: CreateManualInspectionReportRequest, createdBy: Long): InspectionReport {
+        val qaStaff = request.qaStaff?.trim()?.takeIf { it.isNotBlank() } ?: request.inspectorName.trim()
         val report = reportService.createReport(
             projectId, request.inspectionDate, "Manual SIR [${request.inspectionType}]: ${request.contractor}", createdBy,
             inspectionType = request.inspectionType,
@@ -44,7 +45,7 @@ class InspectionReportFileService(
             fun row(vararg cells: String?) = sheet.createRow(rowIndex++).apply { cells.forEachIndexed { index, value -> createCell(index).setCellValue(value.orEmpty()) } }
             row("Ukrainian Social Investment Fund (USIF)"); row("SITE INSPECTION REPORT")
             row("CONTRACTOR", request.contractor, "DATE", request.inspectionDate)
-            row("CONTRACTOR'S REPRESENTATIVE", request.contractorRepresentative, "M4H QA STAFF", request.qaStaff, "USIF / MOH REPRESENTATIVE", request.usifRepresentative)
+            row("CONTRACTOR'S REPRESENTATIVE", request.contractorRepresentative, "M4H QA STAFF", qaStaff, "USIF / MOH REPRESENTATIVE", request.usifRepresentative)
             row("SKILLED LABOR", request.skilledLabor, "UNSKILLED LABOR", request.unskilledLabor, "MANAGEMENT ON SITE", request.siteManagement, "WEATHER CONDITIONS", request.weather)
             row("ONGOING ACTIVITIES"); row("BLOCK / LOCATION", "DESCRIPTION OF WORK (PER BOQ ITEM)", "PER SCHEDULE?", "REMARKS")
             request.activities.forEach { row(it.location, it.description, it.onSchedule, it.remarks) }
