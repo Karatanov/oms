@@ -31,6 +31,7 @@ import oms.localization.LocalizationManager
 import oms.components.OmsDateField
 import oms.components.toOmsDate
 import oms.components.InlineOptionPicker
+import oms.components.SearchableOptionPicker
 import oms.components.currentIsoDate
 import oms.components.WasmSafeOverlay
 import kotlin.js.JsName
@@ -454,6 +455,7 @@ private fun FinancialProjectTargetSelector(
             // memory yet. Opening it loads the projects and can infer the root
             // from the selected subproject.
             enabled = true,
+            searchable = true,
             loadOptionsOnOpen = {
                 val loaded = loadAndRemember()
                 val selectedRoot = rootUuid ?: loaded
@@ -483,23 +485,27 @@ private fun FinancialProjectLevelDropdown(
     selectedUuid: String?,
     onSelect: (String?) -> Unit,
     enabled: Boolean = true,
+    searchable: Boolean = false,
     loadOptionsOnOpen: (suspend () -> List<oms.model.Project>)? = null
 ) {
     val selected = options.firstOrNull { it.id == selectedUuid }
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(label, style = MaterialTheme.typography.labelLarge)
-        InlineOptionPicker(
-            options = options,
-            selected = selected,
-            prompt = label,
-            onSelect = { onSelect(it.id) },
-            itemLabel = { project ->
+        val itemLabel: (oms.model.Project) -> String = { project ->
                 if (project.siteNumber.equals(project.name, ignoreCase = true)) project.name
                 else "${project.siteNumber} — ${project.name}"
-            },
-            enabled = enabled,
-            loadOptionsOnOpen = loadOptionsOnOpen
-        )
+            }
+        if (searchable) {
+            SearchableOptionPicker(
+                options, selected, label, { onSelect(it.id) }, itemLabel,
+                enabled = enabled, loadOptionsOnInput = loadOptionsOnOpen
+            )
+        } else {
+            InlineOptionPicker(
+                options = options, selected = selected, prompt = label, onSelect = { onSelect(it.id) },
+                itemLabel = itemLabel, enabled = enabled, loadOptionsOnOpen = loadOptionsOnOpen
+            )
+        }
     }
 }
 

@@ -26,6 +26,7 @@ import oms.components.SortableTableHeader
 import oms.components.DocumentTypeChip
 import oms.components.TableActionIconButton
 import oms.components.InlineOptionPicker
+import oms.components.SearchableOptionPicker
 import oms.components.WasmSafeOverlay
 import oms.localization.LocalizationManager
 import oms.model.localizedName
@@ -269,10 +270,10 @@ private fun ProjectDocumentUploadDialog(
                     loaded.filter { it.projectType == "project" }
                 }
             )
-            InlineOptionPicker(
+            SearchableOptionPicker(
                 options = subprojects,
                 selected = subprojects.firstOrNull { it.id == subprojectUuid },
-                prompt = LocalizationManager.t("select_subproject"),
+                label = LocalizationManager.t("select_subproject"),
                 onSelect = { subprojectUuid = it.id; partUuid = null },
                 itemLabel = { listOf(it.siteNumber, it.localizedName()).filter(String::isNotBlank).distinct().joinToString(" — ") },
                 enabled = rootUuid != null && subprojects.isNotEmpty()

@@ -18,6 +18,7 @@ import oms.data.ProjectRepository
 import oms.localization.LocalizationManager
 import oms.components.OmsDateField
 import oms.components.InlineOptionPicker
+import oms.components.SearchableOptionPicker
 import oms.components.currentIsoDate
 import oms.model.Project
 import kotlin.js.JsName
@@ -534,7 +535,10 @@ private fun InspectionProjectSelector(
             LocalizationManager.t("select_project"), rootProjects, selectedProjectUuid, onProjectSelect,
             loadOptionsOnOpen = { loadProjectsOnOpen().filter { it.projectType.equals("project", true) } }
         )
-        ProjectLevelDropdown(LocalizationManager.t("select_subproject"), subprojects, selectedSubprojectUuid, onSubprojectSelect, enabled = subprojects.isNotEmpty())
+        ProjectLevelDropdown(
+            LocalizationManager.t("select_subproject"), subprojects, selectedSubprojectUuid, onSubprojectSelect,
+            enabled = subprojects.isNotEmpty(), searchable = true
+        )
         ProjectLevelDropdown(LocalizationManager.t("select_subproject_part"), parts, selectedSubprojectPartUuid, onSubprojectPartSelect, enabled = parts.isNotEmpty())
     }
 }
@@ -546,23 +550,27 @@ private fun ProjectLevelDropdown(
     selectedUuid: String?,
     onSelect: (String?) -> Unit,
     enabled: Boolean = true,
+    searchable: Boolean = false,
     loadOptionsOnOpen: (suspend () -> List<Project>)? = null
 ) {
     val selected = options.firstOrNull { it.id == selectedUuid }
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(label, style = MaterialTheme.typography.labelLarge)
-        InlineOptionPicker(
-            options = options,
-            selected = selected,
-            prompt = label,
-            onSelect = { onSelect(it.id) },
-            itemLabel = {
+        val itemLabel: (Project) -> String = {
                 if (it.siteNumber.equals(it.name, ignoreCase = true)) it.name
                 else "${it.siteNumber} — ${it.name}"
-            },
-            enabled = enabled,
-            loadOptionsOnOpen = loadOptionsOnOpen
-        )
+            }
+        if (searchable) {
+            SearchableOptionPicker(
+                options, selected, label, { onSelect(it.id) }, itemLabel,
+                enabled = enabled, loadOptionsOnInput = loadOptionsOnOpen
+            )
+        } else {
+            InlineOptionPicker(
+                options = options, selected = selected, prompt = label, onSelect = { onSelect(it.id) },
+                itemLabel = itemLabel, enabled = enabled, loadOptionsOnOpen = loadOptionsOnOpen
+            )
+        }
     }
 }
 
