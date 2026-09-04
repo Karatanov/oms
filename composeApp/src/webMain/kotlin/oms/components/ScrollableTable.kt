@@ -27,6 +27,7 @@ import oms.localization.LocalizationManager
 fun ScrollableTable(
     modifier: Modifier = Modifier,
     showScrollControls: Boolean = true,
+    stickyScrollControls: Boolean = true,
     header: @Composable ColumnScope.() -> Unit,
     content: @Composable ColumnScope.() -> Unit
 ) {
@@ -64,9 +65,11 @@ fun ScrollableTable(
         }
         if (showScrollControls) {
             val naturalBottom = tableTopInRoot + tableHeight + controlsHeight
-            val footerOffset = (viewportHeight - naturalBottom - 8f)
-                .coerceAtMost(0f)
-                .coerceAtLeast(-(tableHeight - headerHeight).coerceAtLeast(0).toFloat())
+            val footerOffset = if (stickyScrollControls) {
+                (viewportHeight - naturalBottom - 8f)
+                    .coerceAtMost(0f)
+                    .coerceAtLeast(-(tableHeight - headerHeight).coerceAtLeast(0).toFloat())
+            } else 0f
             Box(
                 Modifier.fillMaxWidth()
                     .zIndex(3f)

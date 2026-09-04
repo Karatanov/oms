@@ -369,6 +369,7 @@ fun ProjectsTable(
         }
         Spacer(Modifier.height(8.dp))
         oms.components.ScrollableTable(
+            stickyScrollControls = false,
             header = {
                 filters()
                 TableHeader(sortColumn, ascending) { column ->
