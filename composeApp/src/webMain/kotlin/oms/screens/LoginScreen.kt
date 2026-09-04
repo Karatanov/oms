@@ -15,6 +15,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.PointerIcon
+import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.VisualTransformation
@@ -226,7 +228,9 @@ fun LoginScreen(
                             else PasswordVisualTransformation(),
 
                         trailingIcon = {
-                            IconButton(onClick = {
+                            IconButton(
+                                modifier = Modifier.pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true),
+                                onClick = {
                                 passwordVisible = !passwordVisible
                             }) {
                                 Icon(
@@ -250,6 +254,7 @@ fun LoginScreen(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Checkbox(
                                 checked = rememberMe,
+                                modifier = Modifier.pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true),
                                 onCheckedChange = { selected ->
                                     rememberMe = selected
                                     if (!selected) BrowserCredentialStorage.clear()
@@ -258,7 +263,10 @@ fun LoginScreen(
                             Text(LocalizationManager.t("remember_me"))
                         }
 
-                        TextButton(onClick = { showPasswordReset = true }) {
+                        TextButton(
+                            modifier = Modifier.pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true),
+                            onClick = { showPasswordReset = true }
+                        ) {
                             Text(LocalizationManager.t("forgot_password"))
                         }
                     }
@@ -279,6 +287,7 @@ fun LoginScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(52.dp)
+                            .pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true)
                     ) {
 
                         if (isLoading) {
@@ -307,6 +316,7 @@ fun LoginScreen(
                             contentColor = Color.White
                         ),
                         modifier = Modifier.fillMaxWidth()
+                            .pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true)
                     ) { Text(LocalizationManager.t("continue_as_guest")) }
                 }
             }
@@ -352,7 +362,10 @@ private fun PasswordResetDialog(initialIdentifier: String, onDismiss: () -> Unit
             if (sent) Text(LocalizationManager.t("password_reset_sent"), color = MaterialTheme.colorScheme.primary)
             error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
-                OutlinedButton(onClick = onDismiss) { Text(LocalizationManager.t("close")) }
+                OutlinedButton(
+                    modifier = Modifier.pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true),
+                    onClick = onDismiss
+                ) { Text(LocalizationManager.t("close")) }
                 Button(
                     onClick = {
                         isSending = true
@@ -363,7 +376,8 @@ private fun PasswordResetDialog(initialIdentifier: String, onDismiss: () -> Unit
                             isSending = false
                         }
                     },
-                    enabled = identifier.isNotBlank() && !isSending
+                    enabled = identifier.isNotBlank() && !isSending,
+                    modifier = Modifier.pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true)
                 ) {
                     if (isSending) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
                     else Text(LocalizationManager.t("password_reset_send"))
