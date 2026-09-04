@@ -29,6 +29,11 @@ body {
 #compose-host, #compose-host * {
     cursor: pointer !important;
 }
+/* Compose/Wasm dispatches button hit-testing through this canvas. Target it
+   directly because a browser does not always inherit cursor from its parent. */
+#compose-host canvas {
+    cursor: pointer !important;
+}
 #compose-host input, #compose-host textarea, #compose-host [contenteditable="true"] {
     cursor: text !important;
 }
