@@ -128,6 +128,7 @@ private fun String.toActivityLabel(): String = when (this) {
     "project_deleted" -> LocalizationManager.t("activity_project_deleted")
     "inspection_imported" -> LocalizationManager.t("activity_inspection_imported")
     "inspection_manual_created" -> LocalizationManager.t("activity_inspection_manual_created")
+    "inspection_status_updated" -> LocalizationManager.t("activity_inspection_status_updated")
     "inspection_source_file_replaced" -> LocalizationManager.t("activity_inspection_source_file_replaced")
     "financial_record_created" -> LocalizationManager.t("activity_financial_created")
     "financial_records_imported" -> LocalizationManager.t("activity_financial_imported")

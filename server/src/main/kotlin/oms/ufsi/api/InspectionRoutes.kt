@@ -237,6 +237,21 @@ fun Route.inspectionRoutes() {
             call.respond(report.toResponse())
         }
 
+        patch("status") {
+            val session = call.requireRole("ADMIN", "PROJECT_MANAGER") ?: return@patch
+            val existingReport = call.findReport() ?: return@patch
+            val request = call.receive<UpdateInspectionReportStatusRequest>()
+            try {
+                val report = AppContainer.inspectionReportService.setStatus(
+                    existingReport.uuid.toString(), request.status
+                ) ?: return@patch call.notFound("Inspection report not found.")
+                AppContainer.auditLogService.record(session.userId, "inspection_status_updated", "inspection_report", report.id)
+                call.respond(report.toResponse())
+            } catch (exception: IllegalArgumentException) {
+                call.validationError(exception)
+            }
+        }
+
         post("submit") {
             call.requireRole("ADMIN", "PROJECT_MANAGER", "INSPECTOR") ?: return@post
             val report = call.findReport() ?: return@post

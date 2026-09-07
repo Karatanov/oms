@@ -266,15 +266,19 @@ fun ReportsScreen(
         ReportEditorDialog(
             report = report,
             canMoveReports = canMoveReports,
+            canChangeStatus = canReviewReports,
             onDismiss = { reportToEdit = null },
-            onSave = { date, summary, inspectionType, latitude, longitude, targetProjectUuid ->
+            onSave = { date, summary, inspectionType, latitude, longitude, targetProjectUuid, requestedStatus ->
                 scope.launch {
                     runCatching {
-                        val updated = OmsApiClient.updateInspectionReport(
+                        var updated = OmsApiClient.updateInspectionReport(
                             report.report.uuid, date, summary, null, inspectionType, latitude, longitude
                         )
                         if (targetProjectUuid != report.projectUuid && !OmsApiClient.moveInspectionReport(report.report.uuid, targetProjectUuid)) {
                             throw IllegalStateException(LocalizationManager.t("error_move_report"))
+                        }
+                        if (requestedStatus != null && requestedStatus != updated.status) {
+                            updated = OmsApiClient.updateInspectionReportStatus(report.report.uuid, requestedStatus)
                         }
                         updated
                     }
@@ -341,12 +345,14 @@ fun ReportsScreen(
 private fun ReportEditorDialog(
     report: ReportRow,
     canMoveReports: Boolean,
+    canChangeStatus: Boolean,
     onDismiss: () -> Unit,
-    onSave: (String, String, String, Double?, Double?, String) -> Unit
+    onSave: (String, String, String, Double?, Double?, String, String?) -> Unit
 ) {
     var date by remember(report.report.uuid) { mutableStateOf(report.report.inspectionDate) }
     var summary by remember(report.report.uuid) { mutableStateOf(report.report.summary.orEmpty()) }
     var inspectionType by remember(report.report.uuid) { mutableStateOf(report.report.inspectionType) }
+    var status by remember(report.report.uuid) { mutableStateOf(report.report.status) }
     var latitude by remember(report.report.uuid) { mutableStateOf(report.report.latitude?.toString().orEmpty()) }
     var longitude by remember(report.report.uuid) { mutableStateOf(report.report.longitude?.toString().orEmpty()) }
     val projects = ProjectRepository.projects
@@ -387,6 +393,16 @@ private fun ReportEditorDialog(
                 itemLabel = { LocalizationManager.t(it) },
                 modifier = Modifier.fillMaxWidth()
             )
+            if (canChangeStatus) {
+                InlineOptionPicker(
+                    options = listOf("draft", "pending_review", "completed"),
+                    selected = status,
+                    prompt = LocalizationManager.t("status"),
+                    onSelect = { status = it },
+                    itemLabel = { LocalizationManager.t("${it}_status") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
             OutlinedTextField(
                 value = summary,
                 onValueChange = { summary = it },
@@ -434,7 +450,8 @@ private fun ReportEditorDialog(
                 Button(
                     onClick = {
                         onSave(
-                            date, summary, inspectionType, latitudeValue, longitudeValue, targetProjectUuid
+                            date, summary, inspectionType, latitudeValue, longitudeValue, targetProjectUuid,
+                            status.takeIf { canChangeStatus }
                         )
                     },
                     enabled = valid

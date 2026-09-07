@@ -101,6 +101,19 @@ class InspectionReportService(
         return repository.changeStatus(uuid.trim(), "pending_review", null)
     }
 
+    /**
+     * Allows an authorised manager to correct a report workflow state from the
+     * edit screen. Inspectors still use the normal submit workflow only.
+     */
+    fun setStatus(uuid: String, status: String): InspectionReport? {
+        val normalizedStatus = status.trim().lowercase()
+        require(normalizedStatus in setOf("draft", "pending_review", "completed")) {
+            "Inspection report status is invalid."
+        }
+        getByUuid(uuid) ?: return null
+        return repository.changeStatus(uuid.trim(), normalizedStatus, null)
+    }
+
     fun reviewReport(
         uuid: String,
         action: String,
