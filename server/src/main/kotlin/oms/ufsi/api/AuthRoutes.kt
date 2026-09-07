@@ -23,6 +23,20 @@ fun Route.authRoutes() {
 
     val authService = AppContainer.authService
 
+    /** Restores the browser's HttpOnly session after a page refresh. */
+    get("/api/v1/auth/session") {
+        val session = call.sessions.get<UserSession>()
+            ?: return@get call.respond(HttpStatusCode.Unauthorized)
+        if (session.roleCode.equals("GUEST", ignoreCase = true)) {
+            return@get call.respond(
+                mapOf("guest" to true, "username" to "Guest", "roleCode" to "GUEST")
+            )
+        }
+        val user = AppContainer.userService.getAllUsers().firstOrNull { it.id == session.userId }
+            ?: return@get call.respond(HttpStatusCode.Unauthorized)
+        call.respond(user.toResponse())
+    }
+
     /**
      * Вхід користувача до системи.
      */

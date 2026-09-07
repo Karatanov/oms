@@ -88,10 +88,8 @@ private suspend fun ApplicationCall.photoReport(): InspectionReport? {
 }
 
 private suspend fun ApplicationCall.editablePhotoReport(): InspectionReport? {
-    val report = photoReport() ?: return null
-    if (report.status == InspectionReportStatus.COMPLETED) {
-        respond(HttpStatusCode.Conflict, ErrorResponse("REPORT_LOCKED", "Completed inspection reports cannot be changed."))
-        return null
-    }
-    return report
+    // Photos are inspection evidence and are often received after the report
+    // workflow is completed.  Authorised staff must therefore be able to add
+    // and correct them without reopening the whole report.
+    return photoReport()
 }

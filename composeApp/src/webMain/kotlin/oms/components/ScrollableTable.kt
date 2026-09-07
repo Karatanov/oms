@@ -104,7 +104,13 @@ fun ScrollableTable(
 
 @Composable
 fun TableScrollControls(scroll: ScrollState) {
-    if (scroll.maxValue <= 0) return
+    // Keep the control visible while the browser measures a wide table.  In
+    // Wasm the first composition can happen before maxValue is calculated;
+    // returning here made the percentage slider disappear permanently on
+    // large registries such as Administration.
+    val percentage = if (scroll.maxValue > 0) {
+        ((scroll.value.toFloat() / scroll.maxValue.toFloat()) * 100).toInt()
+    } else 0
     Row(
         Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
         horizontalArrangement = Arrangement.Center,
@@ -119,7 +125,7 @@ fun TableScrollControls(scroll: ScrollState) {
             continuousPixelsPerFrame = 10f
         )
         Text(
-            "${((scroll.value.toFloat() / scroll.maxValue.toFloat()) * 100).toInt()}%",
+            "$percentage%",
             modifier = Modifier.width(64.dp).semantics { contentDescription = LocalizationManager.t("table_scroll") },
             style = MaterialTheme.typography.labelMedium,
             textAlign = androidx.compose.ui.text.style.TextAlign.Center

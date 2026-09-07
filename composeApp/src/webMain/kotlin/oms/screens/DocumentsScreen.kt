@@ -49,14 +49,13 @@ private data class DocumentRow(
 )
 private enum class DocumentSort { Name, Project, SubprojectPartCode, Type, Date, Size, Author }
 private enum class DocumentTypeFilter(val labelKey: String) {
-    ALL("all"), CONTRACT("contract"), PROJECT("project_documents"), DESIGN("design"),
+    ALL("all"), CONTRACT("contract"), DESIGN("design"),
     ESTIMATE("estimate"), FINANCIAL("financial_doc"), PHOTO("photo"), SIR("sir_source_files"), OTHER("other");
 
     fun matches(type: String, isSirSource: Boolean): Boolean = when (this) {
         ALL -> true
         SIR -> isSirSource
         CONTRACT -> type == "contract"
-        PROJECT -> type in setOf("project", "subproject", "subproject_part")
         DESIGN -> type == "design"
         ESTIMATE -> type == "estimate"
         FINANCIAL -> type == "invoice" || type == "act"
@@ -291,7 +290,7 @@ private fun ProjectDocumentUploadDialog(
             )
             Text(LocalizationManager.t("type"), style = MaterialTheme.typography.labelLarge)
             InlineOptionPicker(
-                options = listOf("contract", "project", "subproject", "subproject_part", "design", "estimate", "invoice", "act", "photo", "other"),
+                options = listOf("contract", "design", "estimate", "invoice", "act", "photo", "other"),
                 selected = docType,
                 prompt = LocalizationManager.t("type"),
                 onSelect = { docType = it },

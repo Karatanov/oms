@@ -221,10 +221,11 @@ fun ReportsScreen(
                 visible.forEach { row ->
                     Row(Modifier.width(1_475.dp).padding(vertical = 8.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                         Text(row.report.inspectionDate.toOmsDate(), Modifier.width(105.dp))
-                        Column(Modifier.width(400.dp).padding(end = 12.dp)) {
-                            Text(row.report.inspectionCode, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onPrimaryContainer)
-                            Text(row.report.summary ?: LocalizationManager.t("inspection_report"), style = MaterialTheme.typography.bodyMedium)
-                        }
+                        Text(
+                            row.report.summary ?: LocalizationManager.t("inspection_report"),
+                            Modifier.width(400.dp).padding(end = 12.dp),
+                            style = MaterialTheme.typography.bodyMedium
+                        )
                         ExpandableTableText(row.projectName, Modifier.width(180.dp), style = MaterialTheme.typography.bodySmall)
                         ExpandableTableText(row.localizedSubprojectName() ?: "—", Modifier.width(180.dp), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Text(row.subprojectPartCode ?: "—", Modifier.width(160.dp), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -244,7 +245,7 @@ fun ReportsScreen(
                             TableActionIconButton(LocalizationManager.t("findings"), Icons.AutoMirrored.Filled.FactCheck) { findingsReport = row }
                         } else Spacer(Modifier.width(48.dp))
                         if (canCreateReports) TableActionIconButton(LocalizationManager.t("delete_report"), Icons.Default.Delete) {
-                            deletion.show(row.report.inspectionCode) { scope.launch {
+                            deletion.show(row.report.summary ?: LocalizationManager.t("inspection_report")) { scope.launch {
                                 if (OmsApiClient.deleteInspectionReport(row.report.uuid)) reports = reports.filterNot { it.report.uuid == row.report.uuid }
                                 else errorMessage = LocalizationManager.t("error_delete_report")
                             } }
@@ -392,7 +393,7 @@ private fun ReportEditorDialog(
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedTextField(
                     value = latitude,
-                    onValueChange = { value -> if (value.matches(Regex("-?[0-9.,]*"))) latitude = value },
+                    onValueChange = { value -> value.coordinateInputOrNull()?.let { latitude = it } },
                     label = { Text(LocalizationManager.t("latitude")) },
                     modifier = Modifier.weight(1f),
                     singleLine = true,
@@ -400,7 +401,7 @@ private fun ReportEditorDialog(
                 )
                 OutlinedTextField(
                     value = longitude,
-                    onValueChange = { value -> if (value.matches(Regex("-?[0-9.,]*"))) longitude = value },
+                    onValueChange = { value -> value.coordinateInputOrNull()?.let { longitude = it } },
                     label = { Text(LocalizationManager.t("longitude")) },
                     modifier = Modifier.weight(1f),
                     singleLine = true,
@@ -578,12 +579,12 @@ private fun FindingEditorDialog(
     Card(Modifier.widthIn(max = 720.dp).fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
         Column(Modifier.padding(20.dp).heightIn(max = 560.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text(if (finding == null) LocalizationManager.t("add_finding") else LocalizationManager.t("edit_finding"), style = MaterialTheme.typography.titleLarge)
-                OutlinedTextField(category, { category = it }, label = { Text(LocalizationManager.t("category")) }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(category, { category = it.safePastedText(200) }, label = { Text(LocalizationManager.t("category")) }, modifier = Modifier.fillMaxWidth())
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     listOf("low", "medium", "high", "critical").forEach { value -> FilterChip(selected = severity == value, onClick = { severity = value }, label = { Text(LocalizationManager.t("severity_$value")) }) }
                 }
-                OutlinedTextField(description, { description = it }, label = { Text(LocalizationManager.t("description")) }, minLines = 3, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(recommendation, { recommendation = it }, label = { Text(LocalizationManager.t("recommendation")) }, minLines = 2, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(description, { description = it.safePastedText(8_000) }, label = { Text(LocalizationManager.t("description")) }, minLines = 3, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(recommendation, { recommendation = it.safePastedText(8_000) }, label = { Text(LocalizationManager.t("recommendation")) }, minLines = 2, modifier = Modifier.fillMaxWidth())
                 if (finding != null) Row(verticalAlignment = Alignment.CenterVertically) { Checkbox(isResolved, { isResolved = it }); Text(LocalizationManager.t("resolved")) }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
                 OutlinedButton(onClick = onDismiss) { Text(LocalizationManager.t("cancel")) }
@@ -592,6 +593,9 @@ private fun FindingEditorDialog(
         }
     }
 }
+
+private fun String.safePastedText(maxLength: Int): String =
+    replace("\u0000", "").take(maxLength)
 
 @Composable
 private fun ReportTableHeader(

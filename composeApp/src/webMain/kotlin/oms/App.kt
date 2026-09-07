@@ -22,10 +22,17 @@ import kotlin.js.JsName
 @Composable
 fun App() {
     val appState = remember { AppState() }
+    var restoringSession by remember { mutableStateOf(true) }
     val activationToken = remember { window.location.search.removePrefix("?").split("&").firstOrNull { it.startsWith("token=") }?.removePrefix("token=") }
     DisposableEffect(appState) {
         setOmsRouteHandler { route -> if (appState.isAuthenticated) appState.restoreRoute(route) }
         onDispose { setOmsRouteHandler { } }
+    }
+    LaunchedEffect(Unit) {
+        runCatching { OmsApiClient.currentSessionUser() }
+            .getOrNull()
+            ?.let { user -> appState.restoreAuthenticatedSession(user.username, user.role.code, window.location.hash.removePrefix("#")) }
+        restoringSession = false
     }
 
     OMSTheme {
@@ -33,7 +40,9 @@ fun App() {
         oms.components.OptionOverlayHost {
         oms.components.ConfirmationHost {
         SelectionContainer {
-            if (!appState.isAuthenticated && !activationToken.isNullOrBlank()) {
+            if (restoringSession) {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
+            } else if (!appState.isAuthenticated && !activationToken.isNullOrBlank()) {
                 ActivationScreen(activationToken) { window.location.href = window.location.pathname }
             } else if (!appState.isAuthenticated) {
                 LoginScreen(

@@ -72,8 +72,8 @@ internal fun ProjectForm(
                 { UkraineCityAutocomplete(state["city"], { value -> state["city"] = value }, L.t("city"), it, false) }
             )
             FormPair(
-                { modifier -> OutlinedTextField(state["latitude"], { if (it.matches(Regex("-?[0-9.,]*"))) state["latitude"] = it }, label = { Text(L.t("latitude")) }, enabled = !geocoding, modifier = modifier) },
-                { modifier -> OutlinedTextField(state["longitude"], { if (it.matches(Regex("-?[0-9.,]*"))) state["longitude"] = it }, label = { Text(L.t("longitude")) }, enabled = !geocoding, modifier = modifier) }
+                { modifier -> OutlinedTextField(state["latitude"], { value -> value.coordinateInputOrNull()?.let { state["latitude"] = it } }, label = { Text(L.t("latitude")) }, enabled = !geocoding, modifier = modifier) },
+                { modifier -> OutlinedTextField(state["longitude"], { value -> value.coordinateInputOrNull()?.let { state["longitude"] = it } }, label = { Text(L.t("longitude")) }, enabled = !geocoding, modifier = modifier) }
             )
             AddressCoordinatesCalculator(state["address"], state["city"], state["region"], geocoding, { geocoding = it },
                 { lat, lon -> state["latitude"] = lat; state["longitude"] = lon })
@@ -204,3 +204,11 @@ private fun FormEqualTriplet(
         }
     }
 }
+
+/**
+ * Coordinates are intentionally short.  Rejecting an oversized clipboard
+ * payload before evaluating a regular expression prevents the WASM UI from
+ * freezing when somebody pastes a whole spreadsheet or web page into a field.
+ */
+internal fun String.coordinateInputOrNull(): String? =
+    takeIf { length <= 24 && matches(Regex("-?[0-9.,]*")) }

@@ -112,6 +112,15 @@ class AppState {
         replaceOmsRoute(Screen.Dashboard.route())
     }
 
+    /** Restores a verified HttpOnly session without redirecting away from the current route. */
+    fun restoreAuthenticatedSession(username: String, roleCode: String, route: String) {
+        token = "session"
+        this.username = username
+        this.roleCode = roleCode
+        isAuthenticated = true
+        restoreRoute(route)
+    }
+
     fun onGuestAccess() {
         token = "guest-session"
         username = "Guest"

@@ -21,7 +21,10 @@ class ProjectDocumentService(private val repository: ProjectDocumentRepository) 
         return deleted
     }
     fun upload(projectId: Long, type: String, name: String, contentType: String?, input: InputStream, relatedEntity: String? = null, relatedId: Long? = null, description: String? = null): ProjectDocument {
-        val documentType = type.lowercase(); require(documentType in setOf("contract", "project", "subproject", "subproject_part", "design", "estimate", "invoice", "act", "photo", "other")) { "Unsupported document type." }
+        // Keep the API aligned with the database ENUM.  Placement in the
+        // project/subproject hierarchy is selected separately via projectId;
+        // it is not a document type.
+        val documentType = type.lowercase(); require(documentType in setOf("contract", "design", "estimate", "invoice", "act", "photo", "other")) { "Unsupported document type." }
         val originalName = name.replace(Regex("[\\r\\n\\u0000]"), "").trim()
         require(originalName.isNotBlank() && originalName.length <= 255) { "File name is required and must not exceed 255 characters." }
         val extension = originalName.substringAfterLast('.', "").lowercase(); require(extension in setOf("pdf","xls","xlsx","jpg","jpeg","png")) { "Allowed formats: PDF, XLS, XLSX, JPG, PNG." }

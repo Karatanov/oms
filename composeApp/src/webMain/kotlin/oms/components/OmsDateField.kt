@@ -40,12 +40,25 @@ fun OmsDateField(
 ) {
     var anchorLeft by remember { mutableStateOf(16f) }
     var anchorTop by remember { mutableStateOf(16f) }
+    // Native pickers are convenient, but dates also need to be usable with a
+    // keyboard and pasted from a spreadsheet.  Keep a local display value so
+    // an incomplete DD.MM.YYYY value does not overwrite the API-safe ISO one.
+    var displayValue by remember { mutableStateOf(value.toOmsDate()) }
+    androidx.compose.runtime.LaunchedEffect(value) {
+        val formatted = value.toOmsDate()
+        if (displayValue != formatted) displayValue = formatted
+    }
     OutlinedTextField(
-        value = value.toOmsDate(),
-        onValueChange = {},
+        value = displayValue,
+        onValueChange = { rawValue ->
+            val sanitized = rawValue.filter { it.isDigit() || it == '.' || it == '-' }.take(10)
+            displayValue = sanitized
+            sanitized.toIsoDateOrNull()?.let(onValueChange)
+            if (sanitized.isBlank()) onValueChange("")
+        },
         label = { Text(if (required) "$label *" else label) },
         modifier = modifier,
-        readOnly = true,
+        readOnly = false,
         singleLine = true,
         trailingIcon = {
             IconButton(
@@ -60,6 +73,16 @@ fun OmsDateField(
             }
         }
     )
+}
+
+private fun String.toIsoDateOrNull(): String? {
+    val normalized = trim()
+    val ddMmYyyy = Regex("(\\d{2})\\.(\\d{2})\\.(\\d{4})").matchEntire(normalized)
+    if (ddMmYyyy != null) {
+        val (day, month, year) = ddMmYyyy.destructured
+        return "$year-$month-$day"
+    }
+    return normalized.takeIf { Regex("\\d{4}-\\d{2}-\\d{2}").matches(it) }
 }
 
 fun String?.toOmsDate(): String {

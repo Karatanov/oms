@@ -205,8 +205,9 @@ fun InspectionReport.toResponse():
         uuid =
             uuid.toString(),
 
-        inspectionCode =
-            reportCode ?: "SIR-${uuid.toString().substringBefore('-').uppercase()}",
+        // A UUID fragment is not a meaningful SIR code.  Only retain a code
+        // that actually came from the source report or was entered explicitly.
+        inspectionCode = reportCode.orEmpty(),
 
         reportCode = reportCode,
 

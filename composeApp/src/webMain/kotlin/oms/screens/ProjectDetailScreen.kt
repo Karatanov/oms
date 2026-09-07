@@ -405,8 +405,12 @@ private fun HseAnswerBadge(
     }
 }
 
-private fun String?.isPositiveHseAnswer() = this?.trim()?.lowercase()?.let { it == "y" || it == "так" || it.startsWith("yes") } == true
-private fun String?.isNegativeHseAnswer() = this?.trim()?.lowercase()?.startsWith("no") == true || this?.trim()?.lowercase() == "ні"
+private fun String?.isPositiveHseAnswer() = this?.trim()?.lowercase()?.let {
+    it == "y" || it == "так" || it == "true" || it == "1" || Regex("\\byes\\b").containsMatchIn(it)
+} == true
+private fun String?.isNegativeHseAnswer() = this?.trim()?.lowercase()?.let {
+    it == "ні" || it == "false" || it == "0" || Regex("\\bno\\b").containsMatchIn(it)
+} == true
 
 @Composable
 private fun EmptyProjectTab(title: String, description: String) {
@@ -529,7 +533,7 @@ private fun ProjectGeneralInfoTab(details: oms.data.ApiProjectDetails?) {
             }.orEmpty()
             val source = buildList {
                 details.programmeDetails?.let { add(LocalizationManager.t("implementor") to it.implementor); add(LocalizationManager.t("financing_institution") to it.financingInstitution); add(LocalizationManager.t("finance_contract_number") to it.financeContractNumber); add("Serapis" to it.serapisNumber) }
-                details.monitoringDetails?.let { add(LocalizationManager.t("source_subproject_id") to it.sourceSubprojectId); add(LocalizationManager.t("source_lot_id") to it.sourceLotId); add(LocalizationManager.t("english_name") to (it.nameEn ?: "—")); add(LocalizationManager.t("municipality") to (if (LocalizationManager.currentLanguage == Language.EN) it.municipalityNameEn ?: it.municipalityNameUk else it.municipalityNameUk) .orEmpty().ifBlank { "—" }); add(LocalizationManager.t("beneficiary") to (if (LocalizationManager.currentLanguage == Language.EN) it.beneficiaryNameEn ?: it.beneficiaryNameUk else it.beneficiaryNameUk).orEmpty().ifBlank { "—" }); add(LocalizationManager.t("project_manager") to (if (LocalizationManager.currentLanguage == Language.EN) it.projectManagerNameEn ?: it.projectManagerNameUk else it.projectManagerNameUk).orEmpty().ifBlank { "—" }); add(LocalizationManager.t("coordinate_accuracy") to LocalizationManager.t("geocode_accuracy_${it.geocodeAccuracy ?: "unknown"}")); add(LocalizationManager.t("source_workbook") to it.sourceWorkbook) }
+                details.monitoringDetails?.let { add(LocalizationManager.t("source_subproject_id") to it.sourceSubprojectId); add(LocalizationManager.t("source_lot_id") to it.sourceLotId); add(LocalizationManager.t("english_name") to (it.nameEn ?: "—")); add(LocalizationManager.t("municipality") to (if (LocalizationManager.currentLanguage == Language.EN) it.municipalityNameEn ?: it.municipalityNameUk else it.municipalityNameUk) .orEmpty().ifBlank { "—" }); add(LocalizationManager.t("beneficiary") to (if (LocalizationManager.currentLanguage == Language.EN) it.beneficiaryNameEn ?: it.beneficiaryNameUk else it.beneficiaryNameUk).orEmpty().ifBlank { "—" }); add(LocalizationManager.t("project_manager") to (if (LocalizationManager.currentLanguage == Language.EN) it.projectManagerNameEn ?: it.projectManagerNameUk else it.projectManagerNameUk).orEmpty().ifBlank { "—" }); add(LocalizationManager.t("coordinate_accuracy") to LocalizationManager.t("geocode_accuracy_${it.geocodeAccuracy ?: "unknown"}")) }
             }
             Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 CollapsibleProjectSection(LocalizationManager.t("basic_information"), Icons.Default.Info, general, initiallyExpanded = true)

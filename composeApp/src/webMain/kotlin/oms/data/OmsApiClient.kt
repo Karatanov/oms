@@ -75,6 +75,18 @@ object OmsApiClient {
         return response.body<LoginPayload>().user
     }
 
+    /** Returns the active server session without showing the global loader. */
+    suspend fun currentSessionUser(): ApiUser? {
+        val response = client.get("$baseUrl/auth/session?background=true")
+        if (response.status.value == 401) return null
+        if (!response.status.isSuccess()) throw IllegalStateException(response.bodyAsText())
+        // Guest sessions are restored through their own lightweight marker;
+        // authenticated users use the normal user payload.
+        val body = response.bodyAsText()
+        if (body.contains("\"guest\":true")) return null
+        return Json { ignoreUnknownKeys = true }.decodeFromString(body)
+    }
+
     suspend fun startGuestSession() {
         val response = client.post("$baseUrl/auth/guest")
         if (!response.status.isSuccess()) throw IllegalStateException(response.bodyAsText())

@@ -533,7 +533,7 @@
             if (pane) pane.classList.remove("visible");
         }
 
-        function showDashboardPhotoSlider(inspectionDate, inspectionCode, photosJson) {
+        function showDashboardPhotoSlider(inspectionDate, photosJson) {
             const pane = document.getElementById("dashboard-photo-slider");
             if (!pane) return;
             const photos = JSON.parse(photosJson);
@@ -543,7 +543,7 @@
             const title = document.createElement("div");
             title.className = "photo-slider-title";
             title.textContent = inspectionDate
-                ? `${omsText("lastInspection")}: ${formatOmsDate(inspectionDate)}${inspectionCode ? ` · ${omsText("inspectionCode")}: ${inspectionCode}` : ""}`
+                ? `${omsText("lastInspection")}: ${formatOmsDate(inspectionDate)}`
                 : omsText("noReports");
             pane.append(title);
             if (!inspectionDate) return;
