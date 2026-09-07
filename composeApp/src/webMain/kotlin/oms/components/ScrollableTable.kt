@@ -61,6 +61,11 @@ fun ScrollableTable(
     val fixedControlsOffset = if (pageScrollState != null && rootHeight > 0 && controlsHeight > 0) {
         rootHeight - controlsHeight - bottomInsetPx - liveControlsTop
     } else 0f
+    // A fixed table navigator must not overlap chart navigators while the
+    // user is still above the table. It becomes visible only for the table
+    // currently being read.
+    val tableIsInViewport = rootHeight == 0 ||
+        (liveTableTop < rootHeight && liveTableTop + tableHeight > 0)
     val surface = MaterialTheme.colorScheme.surface
 
     Column(modifier.fillMaxWidth()) {
@@ -98,7 +103,7 @@ fun ScrollableTable(
             }
             Column(Modifier.fillMaxWidth().horizontalScroll(scroll), content = content)
         }
-        if (showScrollControls) {
+        if (showScrollControls && tableIsInViewport) {
             Box(
                 Modifier.fillMaxWidth()
                     .background(surface)
@@ -120,10 +125,10 @@ fun ScrollableTable(
 
 @Composable
 fun TableScrollControls(scroll: ScrollState) {
-    // Keep the control visible while the browser measures a wide table.  In
-    // Wasm the first composition can happen before maxValue is calculated;
-    // returning here made the percentage slider disappear permanently on
-    // large registries such as Administration.
+    // Charts and tables which fit on screen do not need a dead 0% navigator.
+    // ScrollState.maxValue is observable, so this recomposes once Web/Wasm
+    // finishes measuring the actual content width.
+    if (scroll.maxValue <= 0) return
     val percentage = if (scroll.maxValue > 0) {
         ((scroll.value.toFloat() / scroll.maxValue.toFloat()) * 100).toInt()
     } else 0
