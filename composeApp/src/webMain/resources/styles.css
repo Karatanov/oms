@@ -202,6 +202,7 @@ a, button, [role="button"], [role="link"], [role="tab"], [role="menuitem"] {
 }
 .oms-map-preview { min-width: 0; max-width: 340px; color: #20313c; line-height: 1.5; }
 .oms-map-preview p { margin: 8px 0; color: #536571; }
+.oms-map-status-badge { display: inline-block; padding: 3px 7px; border-radius: 4px; font-size: .82rem; font-weight: 500; line-height: 1.2; }
 .oms-map-preview button { width: 100%; padding: 10px 12px; border: 0; border-radius: 6px; background: #278DAD; color: white; font: inherit; cursor: pointer; }
 
 .oms-project-marker {

@@ -657,7 +657,17 @@
                 const subprojectCode = document.createElement("p");
                 subprojectCode.textContent = project.subprojectCodeLabel + ": " + (project.subprojectCode || "—");
                 const status = document.createElement("p");
-                status.textContent = project.statusLabel + ": " + project.statusText;
+                const statusLabel = document.createElement("span");
+                statusLabel.textContent = project.statusLabel + ": ";
+                const statusBadge = document.createElement("span");
+                statusBadge.className = "oms-map-status-badge";
+                // Same colour and light tinted background as StatusChip in
+                // the Projects registry; the colour is supplied by Kotlin's
+                // shared ProjectStatus presentation mapping.
+                statusBadge.style.color = color;
+                statusBadge.style.backgroundColor = color + "17";
+                statusBadge.textContent = project.statusText;
+                status.append(statusLabel, statusBadge);
                 const open = document.createElement("button");
                 open.type = "button";
                 open.textContent = omsText("details");
