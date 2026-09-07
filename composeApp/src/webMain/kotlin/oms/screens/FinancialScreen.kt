@@ -35,6 +35,7 @@ import oms.components.SearchableOptionPicker
 import oms.components.currentIsoDate
 import oms.components.WasmSafeOverlay
 import kotlin.js.JsName
+import kotlin.math.roundToInt
 import kotlin.math.roundToLong
 
 @JsName("openFinancialImport")
@@ -568,5 +569,5 @@ private fun Double.formatUiAmount(): String {
     val whole = absolute / 100
     val fraction = absolute % 100
     val groupedWhole = whole.toString().reversed().chunked(3).joinToString(" ").reversed()
-    return if (fraction == 0) "$sign$groupedWhole" else "$sign$groupedWhole,${fraction.toString().padStart(2, '0').trimEnd('0')}"
+    return if (fraction == 0L) "$sign$groupedWhole" else "$sign$groupedWhole,${fraction.toString().padStart(2, '0').trimEnd('0')}"
 }
