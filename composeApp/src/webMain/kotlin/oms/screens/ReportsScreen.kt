@@ -20,7 +20,6 @@ import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.RateReview
-import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -49,15 +48,17 @@ import oms.components.ReportStatusChip
 import oms.components.TableActionIconButton
 import oms.components.FilterDropdown
 import oms.components.InlineOptionPicker
+import oms.components.SearchableOptionPicker
 import oms.components.OmsDateField
 import oms.components.toOmsDate
 import oms.components.WasmSafeOverlay
 import oms.localization.Language
 import oms.localization.LocalizationManager
+import oms.model.localizedName
 import kotlin.js.JsName
 
 @JsName("openInspectionPhotoUpload")
-external fun openInspectionPhotoUpload(reportUuid: String)
+external fun openInspectionPhotoUpload(reportUuid: String, onComplete: (String) -> Unit)
 
 @JsName("openInspectionSourceReplacement")
 external fun openInspectionSourceReplacement(reportUuid: String, onComplete: (String) -> Unit)
@@ -94,11 +95,9 @@ fun ReportsScreen(
     var loading by remember { mutableStateOf(true) }
     var loadFailed by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
-    var reportToMove by remember { mutableStateOf<ReportRow?>(null) }
     var reportToEdit by remember { mutableStateOf<ReportRow?>(null) }
     var findingsReport by remember { mutableStateOf<ReportRow?>(null) }
     var reportToReview by remember { mutableStateOf<ReportRow?>(null) }
-    var isMovingReport by remember { mutableStateOf(false) }
     var analytics by remember { mutableStateOf<ApiInspectionAnalytics?>(null) }
     val scope = rememberCoroutineScope()
     var sort by remember { mutableStateOf(ReportSort.Date) }
@@ -219,7 +218,7 @@ fun ReportsScreen(
             ) {
                 if (!loading && !loadFailed && visible.isEmpty()) Text(LocalizationManager.t("no_reports"))
                 visible.forEach { row ->
-                    Row(Modifier.width(1_623.dp).padding(vertical = 8.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                    Row(Modifier.width(1_475.dp).padding(vertical = 8.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                         Text(row.report.inspectionDate.toOmsDate(), Modifier.width(105.dp))
                         Column(Modifier.width(400.dp).padding(end = 12.dp)) {
                             Text(row.report.inspectionCode, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onPrimaryContainer)
@@ -241,18 +240,8 @@ fun ReportsScreen(
                             uriHandler.openUri(oms.data.omsApiUrl("/inspection-reports/${row.report.uuid}/source-file"))
                         }
                         if (canCreateReports) {
-                            TableActionIconButton(LocalizationManager.t("replace_source_file"), Icons.Default.UploadFile) {
-                                openInspectionSourceReplacement(row.report.uuid) { uploadError ->
-                                    if (uploadError.isNotBlank()) errorMessage = uploadError
-                                }
-                            }
-                        } else Spacer(Modifier.width(48.dp))
-                        if (canCreateReports) {
-                            TableActionIconButton(LocalizationManager.t("upload_photo"), Icons.Default.PhotoCamera) { openInspectionPhotoUpload(row.report.uuid) }
                             TableActionIconButton(LocalizationManager.t("findings"), Icons.AutoMirrored.Filled.FactCheck) { findingsReport = row }
-                        } else Spacer(Modifier.width(96.dp))
-                        if (canMoveReports) TableActionIconButton(LocalizationManager.t("move_report"), Icons.Default.SwapHoriz) { reportToMove = row }
-                        else Spacer(Modifier.width(48.dp))
+                        } else Spacer(Modifier.width(48.dp))
                         if (canCreateReports) TableActionIconButton(LocalizationManager.t("delete_report"), Icons.Default.Delete) {
                             deletion.show(row.report.inspectionCode) { scope.launch {
                                 if (OmsApiClient.deleteInspectionReport(row.report.uuid)) reports = reports.filterNot { it.report.uuid == row.report.uuid }
@@ -270,56 +259,43 @@ fun ReportsScreen(
     reportToEdit?.let { report -> WasmSafeOverlay(onDismiss = { reportToEdit = null }, errorMessage = errorMessage) {
         ReportEditorDialog(
             report = report,
+            canMoveReports = canMoveReports,
             onDismiss = { reportToEdit = null },
-            onSave = { date, summary, reportCode, inspectionType, latitude, longitude ->
+            onSave = { date, summary, inspectionType, latitude, longitude, targetProjectUuid ->
                 scope.launch {
                     runCatching {
-                        OmsApiClient.updateInspectionReport(
-                            report.report.uuid, date, summary, reportCode, inspectionType, latitude, longitude
+                        val updated = OmsApiClient.updateInspectionReport(
+                            report.report.uuid, date, summary, null, inspectionType, latitude, longitude
                         )
+                        if (targetProjectUuid != report.projectUuid && !OmsApiClient.moveInspectionReport(report.report.uuid, targetProjectUuid)) {
+                            throw IllegalStateException(LocalizationManager.t("error_move_report"))
+                        }
+                        updated
                     }
                         .onSuccess { updated ->
-                            reports = reports.map { if (it.report.uuid == updated.uuid) it.copy(report = updated) else it }
+                            val target = ProjectRepository.projects.firstOrNull { it.id == targetProjectUuid }
+                            reports = reports.map {
+                                if (it.report.uuid != updated.uuid) it else {
+                                    val ancestry = target?.let { selected ->
+                                        generateSequence(selected) { current -> current.parentProjectUuid?.let { parentUuid -> ProjectRepository.projects.firstOrNull { project -> project.id == parentUuid } } }
+                                            .toList().asReversed()
+                                    }.orEmpty()
+                                    it.copy(
+                                        projectUuid = targetProjectUuid,
+                                        projectName = ancestry.firstOrNull()?.name ?: it.projectName,
+                                        subprojectName = ancestry.getOrNull(1)?.name,
+                                        subprojectNameEn = ancestry.getOrNull(1)?.nameEn,
+                                        subprojectPartCode = ancestry.getOrNull(2)?.siteNumber,
+                                        report = updated
+                                    )
+                                }
+                            }
                             reportToEdit = null
                         }
                         .onFailure {
                             errorMessage = LocalizationManager.t("error_update_report")
                                 .replace("{message}", it.message ?: LocalizationManager.t("unknown_error"))
                         }
-                }
-            }
-        )
-    } }
-    reportToMove?.let { report -> WasmSafeOverlay(onDismiss = { if (!isMovingReport) reportToMove = null }, errorMessage = errorMessage) {
-        MoveReportDialog(
-            report = report,
-            onDismiss = { reportToMove = null },
-            isMoving = isMovingReport,
-            onMove = { target ->
-                isMovingReport = true
-                scope.launch {
-                    runCatching { OmsApiClient.moveInspectionReport(report.report.uuid, target.id) }
-                        .onSuccess { moved ->
-                            if (!moved) {
-                                errorMessage = LocalizationManager.t("error_move_report")
-                                return@onSuccess
-                            }
-                            reports = reports.map {
-                                if (it.report.uuid == report.report.uuid) {
-                                    val ancestry = generateSequence(target) { current -> current.parentProjectUuid?.let { ProjectRepository.projects.firstOrNull { project -> project.id == it } } }.toList().asReversed()
-                                    it.copy(
-                                        projectUuid = target.id,
-                                        projectName = ancestry.firstOrNull()?.name ?: target.name,
-                                        subprojectName = ancestry.getOrNull(1)?.name,
-                                        subprojectNameEn = ancestry.getOrNull(1)?.nameEn,
-                                        subprojectPartCode = ancestry.getOrNull(2)?.siteNumber
-                                    )
-                                } else it
-                            }
-                            reportToMove = null
-                        }
-                        .onFailure { errorMessage = LocalizationManager.t("error_move_report_detail").replace("{message}", it.message ?: LocalizationManager.t("unknown_error")) }
-                    isMovingReport = false
                 }
             }
         )
@@ -358,15 +334,26 @@ fun ReportsScreen(
 @Composable
 private fun ReportEditorDialog(
     report: ReportRow,
+    canMoveReports: Boolean,
     onDismiss: () -> Unit,
-    onSave: (String, String, String?, String, Double?, Double?) -> Unit
+    onSave: (String, String, String, Double?, Double?, String) -> Unit
 ) {
     var date by remember(report.report.uuid) { mutableStateOf(report.report.inspectionDate) }
     var summary by remember(report.report.uuid) { mutableStateOf(report.report.summary.orEmpty()) }
-    var reportCode by remember(report.report.uuid) { mutableStateOf(report.report.reportCode.orEmpty()) }
     var inspectionType by remember(report.report.uuid) { mutableStateOf(report.report.inspectionType) }
     var latitude by remember(report.report.uuid) { mutableStateOf(report.report.latitude?.toString().orEmpty()) }
     var longitude by remember(report.report.uuid) { mutableStateOf(report.report.longitude?.toString().orEmpty()) }
+    val projects = ProjectRepository.projects
+    val projectsById = remember(projects) { projects.associateBy { it.id } }
+    val initialAncestry = remember(report.report.uuid, projects) {
+        projectsById[report.projectUuid]?.let { target ->
+            generateSequence(target) { current -> current.parentProjectUuid?.let(projectsById::get) }.toList().asReversed()
+        }.orEmpty()
+    }
+    var selectedProjectUuid by remember(report.report.uuid, projects) { mutableStateOf(initialAncestry.getOrNull(0)?.id) }
+    var selectedSubprojectUuid by remember(report.report.uuid, projects) { mutableStateOf(initialAncestry.getOrNull(1)?.id) }
+    var selectedSubprojectPartUuid by remember(report.report.uuid, projects) { mutableStateOf(initialAncestry.getOrNull(2)?.id) }
+    val targetProjectUuid = selectedSubprojectPartUuid ?: selectedSubprojectUuid ?: selectedProjectUuid ?: report.projectUuid
     val latitudeValue = latitude.replace(',', '.').toDoubleOrNull()
     val longitudeValue = longitude.replace(',', '.').toDoubleOrNull()
     val latitudeInvalid = latitude.isNotBlank() && (latitudeValue == null || latitudeValue !in -90.0..90.0)
@@ -375,14 +362,17 @@ private fun ReportEditorDialog(
     Card(Modifier.widthIn(max = 720.dp).fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
         Column(Modifier.padding(20.dp).heightIn(max = 560.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(LocalizationManager.t("edit_inspection"), style = MaterialTheme.typography.titleLarge)
-            OmsDateField(date, { date = it }, LocalizationManager.t("date"), Modifier.fillMaxWidth(), true)
-            OutlinedTextField(
-                value = reportCode,
-                onValueChange = { reportCode = it },
-                label = { Text(LocalizationManager.t("inspection_code")) },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true
+            ReportLocationSelector(
+                projects = projects,
+                selectedProjectUuid = selectedProjectUuid,
+                selectedSubprojectUuid = selectedSubprojectUuid,
+                selectedSubprojectPartUuid = selectedSubprojectPartUuid,
+                onProjectSelect = { selectedProjectUuid = it; selectedSubprojectUuid = null; selectedSubprojectPartUuid = null },
+                onSubprojectSelect = { selectedSubprojectUuid = it; selectedSubprojectPartUuid = null },
+                onSubprojectPartSelect = { selectedSubprojectPartUuid = it },
+                enabled = canMoveReports
             )
+            OmsDateField(date, { date = it }, LocalizationManager.t("date"), Modifier.fillMaxWidth(), true)
             InlineOptionPicker(
                 options = listOf("planned", "unplanned", "final"),
                 selected = inspectionType,
@@ -416,19 +406,68 @@ private fun ReportEditorDialog(
                     isError = longitudeInvalid
                 )
             }
+            Text(LocalizationManager.t("attachments"), style = MaterialTheme.typography.titleSmall)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(onClick = {
+                    openInspectionSourceReplacement(report.report.uuid) { }
+                }) {
+                    Icon(Icons.Default.UploadFile, null)
+                    Spacer(Modifier.width(6.dp))
+                    Text(LocalizationManager.t("replace_source_file"))
+                }
+                OutlinedButton(onClick = {
+                    openInspectionPhotoUpload(report.report.uuid) { }
+                }) {
+                    Icon(Icons.Default.PhotoCamera, null)
+                    Spacer(Modifier.width(6.dp))
+                    Text(LocalizationManager.t("upload_photo"))
+                }
+            }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
                 OutlinedButton(onClick = onDismiss) { Text(LocalizationManager.t("cancel")) }
                 Button(
                     onClick = {
                         onSave(
-                            date, summary, reportCode.trim().ifBlank { null }, inspectionType,
-                            latitudeValue, longitudeValue
+                            date, summary, inspectionType, latitudeValue, longitudeValue, targetProjectUuid
                         )
                     },
                     enabled = valid
                 ) { Text(LocalizationManager.t("save")) }
             }
         }
+    }
+}
+
+/** Three-level placement picker for changing where an existing SIR belongs. */
+@Composable
+private fun ReportLocationSelector(
+    projects: List<oms.model.Project>,
+    selectedProjectUuid: String?,
+    selectedSubprojectUuid: String?,
+    selectedSubprojectPartUuid: String?,
+    onProjectSelect: (String) -> Unit,
+    onSubprojectSelect: (String) -> Unit,
+    onSubprojectPartSelect: (String) -> Unit,
+    enabled: Boolean
+) {
+    val rootProjects = projects.filter { it.projectType.equals("project", true) }
+    val subprojects = projects.filter { it.projectType.equals("subproject", true) && it.parentProjectUuid == selectedProjectUuid }
+    val parts = projects.filter { it.projectType.equals("subproject_part", true) && it.parentProjectUuid == selectedSubprojectUuid }
+    fun label(project: oms.model.Project) = if (project.siteNumber.equals(project.localizedName(), true)) project.localizedName() else "${project.siteNumber} — ${project.localizedName()}"
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(LocalizationManager.t("report_location"), style = MaterialTheme.typography.titleSmall)
+        InlineOptionPicker(
+            rootProjects, rootProjects.firstOrNull { it.id == selectedProjectUuid }, LocalizationManager.t("select_project"),
+            onSelect = { onProjectSelect(it.id) }, itemLabel = ::label, enabled = enabled
+        )
+        SearchableOptionPicker(
+            subprojects, subprojects.firstOrNull { it.id == selectedSubprojectUuid }, LocalizationManager.t("select_subproject"),
+            onSelect = { onSubprojectSelect(it.id) }, itemLabel = ::label, enabled = enabled && subprojects.isNotEmpty()
+        )
+        InlineOptionPicker(
+            parts, parts.firstOrNull { it.id == selectedSubprojectPartUuid }, LocalizationManager.t("select_subproject_part"),
+            onSelect = { onSubprojectPartSelect(it.id) }, itemLabel = ::label, enabled = enabled && parts.isNotEmpty()
+        )
     }
 }
 
@@ -554,42 +593,6 @@ private fun FindingEditorDialog(
 }
 
 @Composable
-private fun MoveReportDialog(
-    report: ReportRow,
-    onDismiss: () -> Unit,
-    isMoving: Boolean,
-    onMove: (oms.model.Project) -> Unit
-) {
-    var selectedUuid by remember(report.report.uuid) { mutableStateOf<String?>(null) }
-    val projects = ProjectRepository.projects.filter { it.id != report.projectUuid }
-    val selected = projects.firstOrNull { it.id == selectedUuid }
-    // Compose/Wasm AlertDialog can leave a popup focus layer active when an inline
-    // selector changes its state.  Keep this editor in the page layout instead.
-    Card(Modifier.widthIn(max = 720.dp).fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-        Column(Modifier.padding(20.dp).heightIn(max = 520.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(LocalizationManager.t("move_report"), style = MaterialTheme.typography.titleLarge)
-            Text(report.report.summary ?: LocalizationManager.t("inspection_report"), style = MaterialTheme.typography.bodyMedium)
-            InlineOptionPicker(
-                options = projects,
-                selected = selected,
-                prompt = LocalizationManager.t("select_target_project"),
-                onSelect = { selectedUuid = it.id },
-                itemLabel = { "${it.name} (${it.region})" },
-                enabled = !isMoving
-            )
-            if (projects.isEmpty()) Text(LocalizationManager.t("no_other_project"))
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
-                OutlinedButton(onClick = onDismiss, enabled = !isMoving) { Text(LocalizationManager.t("cancel")) }
-                Button(onClick = { selected?.let(onMove) }, enabled = selected != null && !isMoving) {
-                    if (isMoving) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
-                    else Text(LocalizationManager.t("move"))
-                }
-            }
-        }
-    }
-}
-
-@Composable
 private fun ReportTableHeader(
     sort: ReportSort,
     ascending: Boolean,
@@ -621,7 +624,7 @@ private fun ReportTableHeader(
         .toList()
     val statuses = listOf("draft", "pending_review", "completed")
 
-    Column(Modifier.width(1_623.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    Column(Modifier.width(1_475.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Row(verticalAlignment = Alignment.Top) {
             Box(Modifier.width(105.dp).padding(top = 14.dp)) {
                 Text(LocalizationManager.t("filters"), style = MaterialTheme.typography.labelLarge)
@@ -645,7 +648,7 @@ private fun ReportTableHeader(
                     Modifier.fillMaxWidth()
                 ) { LocalizationManager.t("${it}_status") }
             }
-            Spacer(Modifier.width(80.dp + 384.dp))
+            Spacer(Modifier.width(80.dp + 240.dp))
         }
         Row(Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
             SortableTableHeader(LocalizationManager.t("date"), sort == ReportSort.Date, ascending, { onSort(ReportSort.Date) }, Modifier.width(105.dp))
@@ -655,7 +658,7 @@ private fun ReportTableHeader(
             SortableTableHeader(LocalizationManager.t("subproject_part_code_label"), sort == ReportSort.SubprojectPartCode, ascending, { onSort(ReportSort.SubprojectPartCode) }, Modifier.width(160.dp))
             SortableTableHeader(LocalizationManager.t("status"), sort == ReportSort.Status, ascending, { onSort(ReportSort.Status) }, Modifier.width(130.dp))
             SortableTableHeader(LocalizationManager.t("uploaded_by_short"), sort == ReportSort.Author, ascending, { onSort(ReportSort.Author) }, Modifier.width(80.dp))
-            Box(Modifier.width(384.dp).height(52.dp), contentAlignment = Alignment.Center) {
+            Box(Modifier.width(240.dp).height(52.dp), contentAlignment = Alignment.Center) {
                 Text(LocalizationManager.t("actions"))
             }
         }

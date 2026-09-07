@@ -297,6 +297,8 @@ object Strings {
         "unplanned" to "Позаплановий",
         "final" to "Підсумковий",
         "inspection_code" to "Код інспекції",
+        "report_location" to "Розміщення звіту",
+        "attachments" to "Файли та фото",
 
         "edit_inspection" to "Редагувати інспекцію",
         "create_inspection" to "Створити інспекцію",
@@ -977,6 +979,8 @@ object Strings {
         "unplanned" to "Unplanned",
         "final" to "Final",
         "inspection_code" to "Inspection code",
+        "report_location" to "Report location",
+        "attachments" to "Files and photos",
 
         "edit_inspection" to "Edit Inspection",
         "create_inspection" to "Create Inspection",

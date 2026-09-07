@@ -81,12 +81,14 @@ class InspectionReportService(
         longitude: Double?
     ): InspectionReport? {
         validateDate(inspectionDate)
-        getByUuid(uuid) ?: return null
+        val existing = getByUuid(uuid) ?: return null
         // Metadata corrections (date, type, SIR code and coordinates) remain possible
         // after review; the workflow status itself is still changed only via submit/review.
         return repository.update(
             uuid.trim(), inspectionDate, summary?.trim(),
-            reportCode?.trim()?.takeIf(String::isNotBlank), validateType(inspectionType),
+            // The code is generated/imported report metadata, not an editable
+            // UI field. Preserve it when a metadata update omits it.
+            reportCode?.trim()?.takeIf(String::isNotBlank) ?: existing.reportCode, validateType(inspectionType),
             validateLatitude(latitude), validateLongitude(longitude)
         )
     }

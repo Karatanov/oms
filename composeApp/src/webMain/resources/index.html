@@ -353,8 +353,8 @@
             uploadWithDialog(".pdf,.xls,.xlsx,.jpg,.jpeg,.png", omsApiUrl(`/projects/${projectUuid}/documents`), { docType }, omsText("documentUploaded"), onComplete);
         }
 
-        function openInspectionPhotoUpload(reportUuid) {
-            uploadWithDialog("image/jpeg,image/png,image/webp", omsApiUrl(`/inspection-reports/${reportUuid}/photos`), {}, omsText("photoUploaded"));
+        function openInspectionPhotoUpload(reportUuid, onComplete = null) {
+            uploadWithDialog("image/jpeg,image/png,image/webp", omsApiUrl(`/inspection-reports/${reportUuid}/photos`), {}, omsText("photoUploaded"), onComplete);
         }
 
         function openInspectionSourceReplacement(reportUuid, onComplete) {
