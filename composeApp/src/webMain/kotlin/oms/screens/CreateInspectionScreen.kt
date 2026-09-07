@@ -3,6 +3,8 @@ package oms.screens
 import androidx.compose.foundation.background
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.focusable
+import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -12,6 +14,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.key.type
 import kotlinx.coroutines.launch
 import oms.data.OmsApiClient
 import oms.data.ProjectRepository
@@ -26,6 +33,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.FactCheck
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Remove
+import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import oms.components.PageHeading
 import oms.components.TableActionIconButton
 import oms.components.NativePaneAnchor
@@ -86,6 +95,8 @@ fun CreateInspectionScreen(
     var scheduleRemark by remember { mutableStateOf("") }
     var inspectorTitle by remember { mutableStateOf("") }
     val scope = rememberCoroutineScope()
+    val pageScrollState = rememberScrollState()
+    fun scrollBy(delta: Float) = scope.launch { pageScrollState.animateScrollBy(delta) }
 
     // The report's QA staff is normally the person creating it.  Preserve a
     // manually selected value, but recover the default if the user context
@@ -112,11 +123,25 @@ fun CreateInspectionScreen(
 
     val maxComments = 2000
 
+    Box(Modifier.fillMaxSize()) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(24.dp),
+            .focusable()
+            .onKeyEvent { event ->
+                if (event.type != KeyEventType.KeyDown) return@onKeyEvent false
+                when (event.key) {
+                    Key.DirectionUp -> { scrollBy(-420f); true }
+                    Key.DirectionDown -> { scrollBy(420f); true }
+                    Key.PageUp -> { scrollBy(-720f); true }
+                    Key.PageDown -> { scrollBy(720f); true }
+                    Key.MoveHome -> { scope.launch { pageScrollState.animateScrollTo(0) }; true }
+                    Key.MoveEnd -> { scope.launch { pageScrollState.animateScrollTo(pageScrollState.maxValue) }; true }
+                    else -> false
+                }
+            }
+            .verticalScroll(pageScrollState)
+            .padding(start = 24.dp, top = 24.dp, end = 76.dp, bottom = 24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         PageHeading(if (isEditMode) LocalizationManager.t("edit_inspection") else LocalizationManager.t("create_inspection"), Icons.Default.FactCheck)
@@ -388,6 +413,15 @@ fun CreateInspectionScreen(
             }
         }
         errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+    }
+    Column(
+        modifier = Modifier.align(Alignment.CenterEnd).padding(end = 20.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        oms.components.HoldToScrollButton(LocalizationManager.t("dashboard_scroll_up"), Icons.Default.KeyboardArrowUp, pageScrollState, -1)
+        oms.components.HoldToScrollButton(LocalizationManager.t("dashboard_scroll_down"), Icons.Default.KeyboardArrowDown, pageScrollState, 1)
+    }
     }
 }
 
