@@ -13,6 +13,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.findRootCoordinates
@@ -68,7 +69,11 @@ fun ScrollableTable(
                 .onGloballyPositioned { coordinates ->
                     val bounds = coordinates.boundsInRoot()
                     tableTopInRoot = bounds.top
-                    tableTopInPage = bounds.top + (pageScrollState?.value ?: 0)
+                    // Capture the document position once. Replacing it on
+                    // every browser-scroll frame cancels the sticky offset.
+                    if (tableTopInPage == null || (pageScrollState?.value ?: 0) == 0) {
+                        tableTopInPage = bounds.top + (pageScrollState?.value ?: 0)
+                    }
                     tableHeight = coordinates.size.height
                 }
         ) {
@@ -81,11 +86,16 @@ fun ScrollableTable(
                     .fillMaxWidth()
                     .zIndex(2f)
                     .graphicsLayer { translationY = stickyOffset }
+                    .clipToBounds()
                     .background(surface)
                     .then(if (stickyOffset > 0f) Modifier.shadow(3.dp) else Modifier)
                     .onGloballyPositioned { headerHeight = it.size.height }
-                    .horizontalScroll(scroll)
-            ) { Column(content = header) }
+            ) {
+                // Content owns the actual horizontal ScrollState.  The header
+                // follows that state as a layer so it cannot steal or reset
+                // the Projects table's horizontal scrolling range.
+                Column(Modifier.graphicsLayer { translationX = -scroll.value.toFloat() }, content = header)
+            }
             Column(Modifier.fillMaxWidth().horizontalScroll(scroll), content = content)
         }
         if (showScrollControls) {
@@ -95,9 +105,11 @@ fun ScrollableTable(
                     .zIndex(5f)
                     .graphicsLayer { translationY = fixedControlsOffset }
                     .onGloballyPositioned { coordinates ->
-                        val bounds = coordinates.boundsInRoot()
-                        controlsTopInRoot = bounds.top
+                    val bounds = coordinates.boundsInRoot()
+                    controlsTopInRoot = bounds.top
+                    if (controlsTopInPage == null || (pageScrollState?.value ?: 0) == 0) {
                         controlsTopInPage = bounds.top + (pageScrollState?.value ?: 0)
+                    }
                         controlsHeight = coordinates.size.height
                         rootHeight = coordinates.findRootCoordinates().size.height
                     }
