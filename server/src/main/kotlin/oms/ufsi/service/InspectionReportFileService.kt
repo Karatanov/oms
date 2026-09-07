@@ -2,6 +2,7 @@ package oms.ufsi.service
 
 import oms.ufsi.domain.InspectionReport
 import oms.ufsi.domain.InspectionReportFile
+import oms.ufsi.domain.Project
 import oms.ufsi.repository.InspectionReportFileRepository
 import java.nio.file.Files
 import java.nio.file.Path
@@ -27,10 +28,10 @@ class InspectionReportFileService(
     private val fileRepository: InspectionReportFileRepository,
     private val reportService: InspectionReportService
 ) {
-    fun createManual(projectId: Long, request: CreateManualInspectionReportRequest, createdBy: Long): InspectionReport {
+    fun createManual(project: Project, request: CreateManualInspectionReportRequest, createdBy: Long): InspectionReport {
         val qaStaff = request.qaStaff?.trim()?.takeIf { it.isNotBlank() } ?: request.inspectorName.trim()
         val report = reportService.createReport(
-            projectId, request.inspectionDate, "Manual SIR [${request.inspectionType}]: ${request.contractor}", createdBy,
+            project.id, request.inspectionDate, "Manual SIR [${request.inspectionType}]: ${request.contractor}", createdBy,
             inspectionType = request.inspectionType,
             latitude = request.latitude,
             longitude = request.longitude
@@ -39,22 +40,8 @@ class InspectionReportFileService(
         val directory = uploadDirectory("inspection-reports")
         Files.createDirectories(directory)
         val target = directory.resolve("${report.uuid}.xlsx")
-        XSSFWorkbook().use { workbook ->
-            val sheet = workbook.createSheet("SIR")
-            var rowIndex = 0
-            fun row(vararg cells: String?) = sheet.createRow(rowIndex++).apply { cells.forEachIndexed { index, value -> createCell(index).setCellValue(value.orEmpty()) } }
-            row("Ukrainian Social Investment Fund (USIF)"); row("SITE INSPECTION REPORT")
-            row("CONTRACTOR", request.contractor, "DATE", request.inspectionDate)
-            row("CONTRACTOR'S REPRESENTATIVE", request.contractorRepresentative, "M4H QA STAFF", qaStaff, "USIF / MOH REPRESENTATIVE", request.usifRepresentative)
-            row("SKILLED LABOR", request.skilledLabor, "UNSKILLED LABOR", request.unskilledLabor, "MANAGEMENT ON SITE", request.siteManagement, "WEATHER CONDITIONS", request.weather)
-            row("ONGOING ACTIVITIES"); row("BLOCK / LOCATION", "DESCRIPTION OF WORK (PER BOQ ITEM)", "PER SCHEDULE?", "REMARKS")
-            request.activities.forEach { row(it.location, it.description, it.onSchedule, it.remarks) }
-            row("OBSERVANCES ON ONGOING ACTIVITIES"); request.ongoingObservations.forEach { row(it) }
-            row("OBSERVANCES ON HEALTH & SAFETY"); request.hseObservations.forEach { row(it.observation, it.answer, it.comment) }
-            row("NARRATIVE ASSESSMENT - COMMENTS ON QUALITY", "RECTIFICATION REMARKS (NNC / NTC)"); request.qualityRemarks.forEach { row(it.comment, it.rectification) }
-            row("NARRATIVE ASSESSMENT - COMMENTS ON PROGRESS", "SCHEDULE REVISION REMARKS"); row(request.progressComment, request.scheduleRemark)
-            row("M4H QA STAFF"); row("NAME", request.inspectorName, "TITLE", request.inspectorTitle, "DATE", request.inspectionDate)
-            sheet.setColumnWidth(0, 9000); sheet.setColumnWidth(1, 18000); sheet.setColumnWidth(2, 5000); sheet.setColumnWidth(3, 14000)
+        loadManualSirTemplate().use { workbook ->
+            populateManualSir(workbook, project, request, qaStaff)
             Files.newOutputStream(target).use(workbook::write)
         }
         try {
@@ -65,6 +52,96 @@ class InspectionReportFileService(
             runCatching { DurableFileStorage.delete(target.toString()) }
             throw exception
         }
+    }
+
+    /**
+     * The manual report is filled into the approved SIR layout, not rebuilt
+     * from generic rows.  This preserves the exact column geometry, merged
+     * cells, fonts, borders and print settings used by the field template.
+     */
+    private fun loadManualSirTemplate(): XSSFWorkbook {
+        val input = checkNotNull(javaClass.getResourceAsStream("/templates/sir-manual-template.xlsx")) {
+            "Manual SIR template is unavailable."
+        }
+        return input.use { source -> WorkbookFactory.create(source) as? XSSFWorkbook
+            ?: error("Manual SIR template must be an XLSX workbook.") }
+    }
+
+    private fun populateManualSir(
+        workbook: XSSFWorkbook,
+        project: Project,
+        request: CreateManualInspectionReportRequest,
+        qaStaff: String
+    ) {
+        // The supplied template's second sheet contains photographs from its
+        // reference inspection. Generated reports must never carry those
+        // unrelated photographs into a new report.
+        while (workbook.numberOfSheets > 1) workbook.removeSheetAt(1)
+        val sheet = checkNotNull(workbook.getSheet("SIR")) { "Manual SIR sheet is unavailable." }
+        val date = LocalDate.parse(request.inspectionDate)
+
+        fun text(row: Int, column: Int, value: String?) {
+            sheet.getRow(row - 1).getCell(column - 1).setCellValue(value.orEmpty())
+        }
+        fun date(row: Int, column: Int) {
+            sheet.getRow(row - 1).getCell(column - 1).setCellValue(java.sql.Date.valueOf(date))
+        }
+        fun clear(rows: IntRange) {
+            rows.forEach { row ->
+                sheet.getRow(row - 1)?.forEach { cell -> cell.setBlank() }
+            }
+        }
+        fun mergedText(items: List<String>, capacity: Int): List<String> = when {
+            items.size <= capacity -> items
+            else -> items.take(capacity - 1) + items.drop(capacity - 1).joinToString("\n\n")
+        }
+
+        // Clear only cells that hold inspection-specific data. Section labels,
+        // merged ranges, borders, row heights and print geometry remain intact.
+        clear(13..26)
+        clear(28..39)
+        clear(41..46)
+        clear(49..53)
+        text(5, 1, request.contractor)
+        text(5, 5, listOf(project.siteNumber, project.address ?: project.name).filter(String::isNotBlank).joinToString(", "))
+        date(5, 9)
+        text(7, 1, request.contractorRepresentative)
+        text(7, 5, qaStaff)
+        text(7, 9, request.usifRepresentative)
+        text(10, 1, request.skilledLabor)
+        text(10, 3, request.unskilledLabor)
+        text(10, 5, request.siteManagement)
+        text(10, 9, request.weather)
+
+        request.activities.take(14).forEachIndexed { index, activity ->
+            val row = 13 + index
+            text(row, 1, activity.location)
+            text(row, 3, activity.description)
+            text(row, 8, activity.onSchedule)
+            text(row, 10, activity.remarks)
+        }
+        mergedText(request.ongoingObservations.map(String::trim).filter(String::isNotBlank), 12)
+            .forEachIndexed { index, observation -> text(28 + index, 1, observation) }
+        mergedText(request.hseObservations.map { observation ->
+            listOf(observation.observation, observation.answer, observation.comment)
+                .filterNotNull().map(String::trim).filter(String::isNotBlank).joinToString(" — ")
+        }.filter(String::isNotBlank), 6).forEachIndexed { index, observation -> text(41 + index, 1, observation) }
+        val qualityRemarks = if (request.qualityRemarks.size <= 5) request.qualityRemarks else {
+            request.qualityRemarks.take(4) + oms.ufsi.dto.ManualRemark(
+                request.qualityRemarks.drop(4).joinToString("\n\n") { it.comment },
+                request.qualityRemarks.drop(4).mapNotNull { it.rectification?.trim()?.takeIf(String::isNotBlank) }
+                    .joinToString("\n\n").ifBlank { null }
+            )
+        }
+        qualityRemarks.forEachIndexed { index, remark ->
+            text(49 + index, 1, remark.comment)
+            text(49 + index, 10, remark.rectification)
+        }
+        text(55, 1, request.progressComment)
+        text(55, 10, request.scheduleRemark)
+        text(59, 1, request.inspectorName)
+        text(59, 4, request.inspectorTitle)
+        date(59, 6)
     }
     fun import(projectId: Long, originalName: String, contentType: String?, input: java.io.InputStream, createdBy: Long): InspectionReport {
         val extension = originalName.substringAfterLast('.', "").lowercase()

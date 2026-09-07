@@ -59,7 +59,7 @@ fun Route.inspectionRoutes() {
         val project = AppContainer.projectService.getProjectByUuid(projectUuid) ?: return@post call.notFound("Project not found.")
         if (!call.requireProjectAccess(session, projectUuid)) return@post
         try {
-            val report = AppContainer.inspectionReportFileService.createManual(project.id, call.receive(), session.userId)
+            val report = AppContainer.inspectionReportFileService.createManual(project, call.receive(), session.userId)
             AppContainer.auditLogService.record(session.userId, "inspection_manual_created", "inspection_report", report.id)
             call.respond(HttpStatusCode.Created, report.toResponse())
         } catch (exception: IllegalArgumentException) { call.validationError(exception) }
