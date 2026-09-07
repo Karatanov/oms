@@ -21,8 +21,6 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.*
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
-import kotlinx.coroutines.launch
-import kotlin.math.roundToInt
 import oms.localization.LocalizationManager
 
 /** One viewport with a sticky header and a permanently visible horizontal scrollbar. */
@@ -107,7 +105,6 @@ fun ScrollableTable(
 @Composable
 fun TableScrollControls(scroll: ScrollState) {
     if (scroll.maxValue <= 0) return
-    val scope = rememberCoroutineScope()
     Row(
         Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
         horizontalArrangement = Arrangement.Center,
@@ -121,16 +118,11 @@ fun TableScrollControls(scroll: ScrollState) {
             clickDistance = 500f,
             continuousPixelsPerFrame = 10f
         )
-        Slider(
-            value = scroll.value.toFloat(),
-            onValueChange = { target -> scope.launch { scroll.scrollTo(target.roundToInt()) } },
-            valueRange = 0f..scroll.maxValue.toFloat(),
-            modifier = Modifier.widthIn(min = 180.dp, max = 420.dp).weight(1f, fill = false)
-                .semantics { contentDescription = LocalizationManager.t("table_scroll") },
-            colors = SliderDefaults.colors(
-                thumbColor = MaterialTheme.colorScheme.primary,
-                activeTrackColor = MaterialTheme.colorScheme.primary
-            )
+        Text(
+            "${((scroll.value.toFloat() / scroll.maxValue.toFloat()) * 100).toInt()}%",
+            modifier = Modifier.width(64.dp).semantics { contentDescription = LocalizationManager.t("table_scroll") },
+            style = MaterialTheme.typography.labelMedium,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center
         )
         HoldToScrollButton(
             tooltip = LocalizationManager.t("scroll_table_right"),
