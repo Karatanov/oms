@@ -92,6 +92,12 @@ fun Route.inspectionRoutes() {
 
     get("/api/v1/inspection-reports/{reportUuid}/source-file") {
         val report = call.findReport() ?: return@get
+        AppContainer.inspectionReportFileService.synchronizeManualPhotoSheet(
+            report,
+            AppContainer.inspectionPhotoService.list(report.id)
+        ) { photo ->
+            AppContainer.inspectionPhotoService.resolveFile(photo, thumbnail = true)
+        }
         val file = AppContainer.inspectionReportFileService.getFile(report.id)
             ?: return@get call.notFound("Original SIR file not found.")
         val path = AppContainer.inspectionReportFileService.resolveFile(file)

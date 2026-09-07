@@ -2,6 +2,7 @@ package oms.ufsi.service
 
 import oms.ufsi.domain.InspectionReport
 import oms.ufsi.domain.InspectionReportFile
+import oms.ufsi.domain.InspectionPhoto
 import oms.ufsi.domain.Project
 import oms.ufsi.repository.InspectionReportFileRepository
 import java.nio.file.Files
@@ -28,6 +29,71 @@ class InspectionReportFileService(
     private val fileRepository: InspectionReportFileRepository,
     private val reportService: InspectionReportService
 ) {
+    /**
+     * Keeps the downloadable workbook for a manually created SIR in sync with
+     * its uploaded evidence photographs. The template's sample photo sheet is
+     * intentionally removed when a manual report is first created; this sheet
+     * is therefore generated solely from photographs belonging to this report.
+     */
+    @Synchronized
+    fun synchronizeManualPhotoSheet(
+        report: InspectionReport,
+        photos: List<InspectionPhoto>,
+        resolveThumbnail: (InspectionPhoto) -> Path?
+    ) {
+        if (!report.summary.orEmpty().startsWith("Manual SIR")) return
+        val source = getFile(report.id) ?: return
+        if (!source.originalName.endsWith(".xlsx", ignoreCase = true)) return
+        val sourcePath = resolveFile(source) ?: return
+        val temporary = Files.createTempFile(sourcePath.parent, "sir-photos-", ".xlsx")
+        try {
+            WorkbookFactory.create(sourcePath.toFile()).use { workbook ->
+                val xlsx = workbook as? XSSFWorkbook ?: return
+                workbook.getSheetIndex("Photos")
+                    .takeIf { it >= 0 }
+                    ?.let(workbook::removeSheetAt)
+                val sheet = workbook.createSheet("Photos")
+                sheet.setColumnWidth(0, 5_000)
+                sheet.setColumnWidth(6, 5_000)
+                sheet.createRow(0).apply {
+                    createCell(0).setCellValue("Inspection photographs")
+                }
+                val drawing = sheet.createDrawingPatriarch()
+                val helper = workbook.creationHelper
+                photos.forEachIndexed { index, photo ->
+                    val thumbnail = resolveThumbnail(photo) ?: return@forEachIndexed
+                    if (!Files.isRegularFile(thumbnail)) return@forEachIndexed
+                    val rowStart = 3 + (index / 2) * 18
+                    val columnStart = if (index % 2 == 0) 0 else 6
+                    sheet.getRow(rowStart - 1) ?: sheet.createRow(rowStart - 1)
+                    sheet.getRow(rowStart - 1).createCell(columnStart).setCellValue(photo.originalName)
+                    for (rowIndex in rowStart until rowStart + 15) {
+                        (sheet.getRow(rowIndex) ?: sheet.createRow(rowIndex)).heightInPoints = 20f
+                    }
+                    val imageType = if (photo.contentType.contains("png", ignoreCase = true)) {
+                        Workbook.PICTURE_TYPE_PNG
+                    } else {
+                        Workbook.PICTURE_TYPE_JPEG
+                    }
+                    val pictureIndex = workbook.addPicture(Files.readAllBytes(thumbnail), imageType)
+                    val anchor = helper.createClientAnchor().apply {
+                        col1 = columnStart
+                        row1 = rowStart
+                        col2 = columnStart + 5
+                        row2 = rowStart + 15
+                    }
+                    drawing.createPicture(anchor, pictureIndex)
+                }
+                Files.newOutputStream(temporary).use(xlsx::write)
+            }
+            Files.move(temporary, sourcePath, StandardCopyOption.REPLACE_EXISTING)
+            DurableFileStorage.persist(sourcePath)
+            fileRepository.replace(source.copy(fileSizeBytes = Files.size(sourcePath)))
+        } finally {
+            Files.deleteIfExists(temporary)
+        }
+    }
+
     fun createManual(project: Project, request: CreateManualInspectionReportRequest, createdBy: Long): InspectionReport {
         val qaStaff = request.qaStaff?.trim()?.takeIf { it.isNotBlank() } ?: request.inspectorName.trim()
         val report = reportService.createReport(

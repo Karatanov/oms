@@ -37,7 +37,14 @@ fun Route.photoRoutes() = route("/api/v1/inspection-reports/{reportUuid}/photos"
                 }
                 part.dispose()
             }
-            call.respond(HttpStatusCode.Created, (result ?: throw IllegalArgumentException("Field file is required.")).toResponse(report.uuid.toString()))
+            val photo = result ?: throw IllegalArgumentException("Field file is required.")
+            AppContainer.inspectionReportFileService.synchronizeManualPhotoSheet(
+                report,
+                AppContainer.inspectionPhotoService.list(report.id)
+            ) { item ->
+                AppContainer.inspectionPhotoService.resolveFile(item, thumbnail = true)
+            }
+            call.respond(HttpStatusCode.Created, photo.toResponse(report.uuid.toString()))
         } catch (exception: IllegalArgumentException) {
             call.respond(HttpStatusCode.BadRequest, ErrorResponse("VALIDATION_ERROR", exception.message ?: "Invalid request."))
         }
