@@ -12,7 +12,7 @@ The deterministic generator is `tools/generate_urp3_seed.py`; its canonical UTF-
 
 Migration V34 adds the designer name, design-contract number/term and construction-contract number to `projects`. Exact monetary entry is stored in `project_amounts`, one row per project and amount kind (`budget`, `engineer`, `supervision`, `construction`). It preserves `DECIMAL(18,2)` source/equivalent values, EUR/UAH currency, `DECIMAL(18,8)` UAH-per-EUR rate, effective date and whether the user edited the conversion. Existing whole-UAH project columns remain compatibility projections for current totals and charts; they are derived from the snapshots on save. The unique `(project_id, amount_kind)` key prevents duplicates and the project foreign key cascades deletion.
 
-Migration V35 adds `design_start_date` and `design_planned_end_date` to `projects`. The design duration is derived from these two dates in whole calendar days; it is never entered manually. The compatibility `design_contract_term` value is refreshed from this calculation when both dates are present.
+Migration V35 adds `design_start_date` and `design_planned_end_date` to `projects`. The design duration is derived from these two dates and is never entered manually. Internal API compatibility values retain days, while the UI presents the calculated duration in rounded months. The compatibility `design_contract_term` value is refreshed from this calculation when both dates are present.
 
 Migration V36 adds the two full contract-information groups to `projects`: technical supervision and engineer-consultant. Each group has the organisation name, contract number/date, start date and planned end date. Durations are calculated from the latter two dates in the API and are not persisted as editable values.
 

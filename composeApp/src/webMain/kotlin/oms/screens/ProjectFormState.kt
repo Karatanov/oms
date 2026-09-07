@@ -6,6 +6,7 @@ import oms.components.currentIsoDate
 import oms.data.*
 import oms.localization.LocalizationManager as L
 import kotlin.js.JsName
+import kotlin.math.roundToInt
 
 @JsName("daysBetweenIsoDates")
 private external fun browserDaysBetweenIsoDates(start: String, end: String): Int?
@@ -69,10 +70,10 @@ internal class ProjectFormState(details: ApiProjectDetailsData? = null) {
         else -> null
     }
     fun designDurationLabel(): String = browserDaysBetweenIsoDates(this["designStartDate"], this["designPlannedEndDate"])
-        ?.let { L.t("design_duration_days").replace("{days}", it.toString()) }
+        ?.let(::durationMonthsLabel)
         .orEmpty()
     fun durationLabel(startKey: String, endKey: String): String = browserDaysBetweenIsoDates(this[startKey], this[endKey])
-        ?.let { L.t("design_duration_days").replace("{days}", it.toString()) }
+        ?.let(::durationMonthsLabel)
         .orEmpty()
     private fun coordinate(key: String) = this[key].replace(',', '.').toDoubleOrNull()
     private fun amounts() = money.filterValues { it.amount.isNotBlank() }.mapValues { it.value.toDto() }
@@ -113,6 +114,12 @@ internal class ProjectFormState(details: ApiProjectDetailsData? = null) {
             amounts = p.amounts)
     }
 }
+
+/** User-facing contract duration is shown in rounded months, not days. */
+internal fun durationMonthsLabel(days: Long): String = L.t("duration_months")
+    .replace("{months}", (days / 30.4375).roundToInt().toString())
+
+private fun durationMonthsLabel(days: Int): String = durationMonthsLabel(days.toLong())
 
 private fun initialDate(details: ApiProjectDetailsData?, value: String?) = if (details == null) currentIsoDate() else value.orEmpty()
 private fun initialMoney(details: ApiProjectDetailsData?, key: String, legacy: Long?): ProjectMoneyDraft {

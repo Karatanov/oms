@@ -490,7 +490,7 @@ private fun ProjectGeneralInfoTab(details: oms.data.ApiProjectDetails?) {
                 LocalizationManager.t("design_contract_date") to data.designContractSigningDate.toOmsDate(),
                 LocalizationManager.t("design_start_date") to data.designStartDate.toOmsDate(),
                 LocalizationManager.t("design_planned_end_date") to data.designPlannedEndDate.toOmsDate(),
-                LocalizationManager.t("design_contract_term") to (data.designDurationDays?.let { LocalizationManager.t("design_duration_days").replace("{days}", it.toString()) } ?: "—")
+                LocalizationManager.t("design_contract_term") to (data.designDurationDays?.let(::durationMonthsLabel) ?: "—")
             )
             val contractor = listOf(
                 LocalizationManager.t("contractor") to if (LocalizationManager.currentLanguage == Language.EN) {
@@ -500,7 +500,7 @@ private fun ProjectGeneralInfoTab(details: oms.data.ApiProjectDetails?) {
                 LocalizationManager.t("construction_contract_date") to data.constructionContractSigningDate.toOmsDate(),
                 LocalizationManager.t("construction_start_date") to data.constructionStartDate.toOmsDate(),
                 LocalizationManager.t("projected_completion_date") to data.projectedCompletionTime.toOmsDate(),
-                LocalizationManager.t("contract_duration") to (data.contractDurationDays?.let { LocalizationManager.t("days_value").replace("{count}", it.toString()) } ?: "—")
+                LocalizationManager.t("contract_duration") to (data.contractDurationDays?.let(::durationMonthsLabel) ?: "—")
             )
             val technical = listOf(
                 LocalizationManager.t("technical_supervision_contract_amount") to (data.technicalSupervisionAmount?.toMoney() ?: "—"),
@@ -509,7 +509,7 @@ private fun ProjectGeneralInfoTab(details: oms.data.ApiProjectDetails?) {
                 LocalizationManager.t("contract_date") to data.technicalSupervisionContractDate.toOmsDate(),
                 LocalizationManager.t("design_start_date") to data.technicalSupervisionStartDate.toOmsDate(),
                 LocalizationManager.t("design_planned_end_date") to data.technicalSupervisionPlannedEndDate.toOmsDate(),
-                LocalizationManager.t("contract_duration") to (data.technicalSupervisionDurationDays?.let { LocalizationManager.t("design_duration_days").replace("{days}", it.toString()) } ?: "—")
+                LocalizationManager.t("contract_duration") to (data.technicalSupervisionDurationDays?.let(::durationMonthsLabel) ?: "—")
             )
             val engineer = listOf(
                 LocalizationManager.t("engineer_consultant_contract_amount") to (data.engineerConsultantContractAmount?.toMoney() ?: "—"),
@@ -518,7 +518,7 @@ private fun ProjectGeneralInfoTab(details: oms.data.ApiProjectDetails?) {
                 LocalizationManager.t("contract_date") to data.engineerConsultantContractDate.toOmsDate(),
                 LocalizationManager.t("design_start_date") to data.engineerConsultantStartDate.toOmsDate(),
                 LocalizationManager.t("design_planned_end_date") to data.engineerConsultantPlannedEndDate.toOmsDate(),
-                LocalizationManager.t("contract_duration") to (data.engineerConsultantDurationDays?.let { LocalizationManager.t("design_duration_days").replace("{days}", it.toString()) } ?: "—")
+                LocalizationManager.t("contract_duration") to (data.engineerConsultantDurationDays?.let(::durationMonthsLabel) ?: "—")
             )
             val procurement = details.monitoringDetails?.let {
                 listOf(
