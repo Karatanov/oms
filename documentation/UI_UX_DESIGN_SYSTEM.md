@@ -14,7 +14,7 @@ Login-specific refinement: filled sign-in/language buttons follow the global whi
 
 The sidebar is 232 px wide or a 72 px icon rail. It starts compact below 1100 px and can be toggled. Current domains remain selected while creating/editing their entities. Finance is visible only to Admin/Project Manager; Administration only to Admin. Anonymous visitors see the public project registry and map. Server authorization remains authoritative.
 
-Analytical pairs use two columns when content width is at least 900 px and stack below it. Dashboard charts precede the latest-inspection photo strip. Long tables remain information-dense and use horizontal scrolling with separate left/right controls and a draggable, keyboard-operable slider; horizontal controls never overlay row actions. Long forms retain scrolling.
+Analytical pairs use two columns when content width is at least 900 px and stack below it. Dashboard charts precede the latest-inspection photo strip. Long tables remain information-dense and use horizontal scrolling with separate left/right controls and a draggable, keyboard-operable slider. The horizontal navigator remains fixed at the bottom of the visible page, so users can move a wide table without returning to its final row. Long forms retain scrolling.
 
 ## Interaction patterns
 
@@ -70,7 +70,7 @@ Procurement charts are derived from the same procurement records loaded for the 
 
 Vertical scroll controls share one mouse/touch interaction: a short press performs the existing animated step, while holding either arrow starts continuous smooth scrolling in its direction after the platform long-press threshold. Scrolling stops immediately on release or pointer cancellation. The behavior is used by Inspection Reports, Procurement and the Dashboard.
 
-Registry column headers are sticky within their table boundaries. During vertical page scrolling, the header remains at the top of the content viewport, shares the table's horizontal scroll position and returns to normal flow after the final row. The shared implementation covers Projects, Inspection Reports, Financial Records, Documents, Procurement and Administration without duplicating column widths.
+Registry column headers are sticky within their table boundaries. During vertical page scrolling, the header remains at the top of the content viewport, shares the table's horizontal scroll position and returns to normal flow after the final row. The synchronized horizontal navigator remains fixed near the bottom of the visible page. The shared implementation covers Projects, Inspection Reports, Financial Records, Documents, Procurement and Administration without duplicating column widths.
 
 Project detail resource failures are scoped to the selected tab; reopening a loaded tab clears stale errors. The financial tab follows the same Admin/Project Manager restriction as financial navigation. Procurement form errors do not replace the registry; load failures expose a separate retry action.
 
