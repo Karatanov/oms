@@ -97,7 +97,7 @@ class DashboardService(
         }
         val actualBySubproject = actRecords.groupBy { subprojectFor(it[FinancialRecordTable.projectId].value) }
             .filterKeys { it != null }
-            .mapValues { (_, rows) -> rows.sumOf { it[FinancialRecordTable.amount] } }
+            .mapValues { (_, rows) -> rows.sumOf { it[FinancialRecordTable.amount] }.toDouble() }
         val procurementRecords = if (allowedProjectIds == null) ProcurementRecordTable.selectAll().toList() else emptyList()
         val signedSubprojectCodes = procurementRecords
             .filter { isConstructionContractSigned(it[ProcurementRecordTable.purchaseStatus]) }
@@ -112,7 +112,7 @@ class DashboardService(
             val contract = row[ProjectTable.subprojectContractAmount] ?: row[ProjectTable.budgetPlanned]
             DashboardSubprojectProgress(
                 row[ProjectTable.uuid], row[ProjectTable.siteNumber].orEmpty(), row[ProjectTable.name], nameEnByProjectId[id], row[ProjectTable.region].orEmpty(),
-                if (contract > 0) (actualBySubproject[id] ?: 0L) * 100.0 / contract else 0.0
+                if (contract > 0) (actualBySubproject[id] ?: 0.0) * 100.0 / contract else 0.0
             )
         }.sortedBy { it.name }
         val procurementCountByStatus = procurementRecords.groupBy { it[ProcurementRecordTable.purchaseStatus] }
@@ -141,7 +141,7 @@ class DashboardService(
         val actRecords = FinancialRecordTable.selectAll().filter {
             it[FinancialRecordTable.projectId].value in projectIds && it[FinancialRecordTable.recordType] == "act"
         }
-        val spent = actRecords.sumOf { it[FinancialRecordTable.amount] }
+        val spent = actRecords.sumOf { it[FinancialRecordTable.amount] }.toDouble()
         val monthlyActPayments = actRecords.filter { it[FinancialRecordTable.amountEurCents] != null }
             .groupBy { (it[FinancialRecordTable.paymentDate] ?: it[FinancialRecordTable.recordDate]).toString().take(7) }
             .map { (month, records) -> MonthlyActPayment(month, records.sumOf { it[FinancialRecordTable.amountEurCents] ?: 0L }) }
@@ -168,7 +168,7 @@ class DashboardService(
         }
         val actualBySubproject = actRecords.groupBy { subprojectFor(it[FinancialRecordTable.projectId].value) }
             .filterKeys { it != null }
-            .mapValues { (_, records) -> records.sumOf { it[FinancialRecordTable.amount] } }
+            .mapValues { (_, records) -> records.sumOf { it[FinancialRecordTable.amount] }.toDouble() }
         val procurementRecords = if (allowedProjectIds == null) ProcurementRecordTable.selectAll().toList() else emptyList()
         val signedSubprojectCodes = procurementRecords
             .filter { isConstructionContractSigned(it[ProcurementRecordTable.purchaseStatus]) }
@@ -181,7 +181,7 @@ class DashboardService(
         }.map { row ->
             val id = row[ProjectTable.id].value
             val contract = row[ProjectTable.subprojectContractAmount] ?: row[ProjectTable.budgetPlanned]
-            DashboardSubprojectProgress(row[ProjectTable.uuid], row[ProjectTable.siteNumber].orEmpty(), row[ProjectTable.name], nameEnByProjectId[id], row[ProjectTable.region].orEmpty(), if (contract > 0) (actualBySubproject[id] ?: 0L) * 100.0 / contract else 0.0)
+            DashboardSubprojectProgress(row[ProjectTable.uuid], row[ProjectTable.siteNumber].orEmpty(), row[ProjectTable.name], nameEnByProjectId[id], row[ProjectTable.region].orEmpty(), if (contract > 0) (actualBySubproject[id] ?: 0.0) * 100.0 / contract else 0.0)
         }.sortedBy { it.name }
         fun month(date: java.time.LocalDate) = date.toString().take(7)
         val monthlyInspectionCounts = reports.groupBy { month(it[InspectionReportTable.inspectionDate]) }
@@ -220,7 +220,7 @@ class DashboardService(
         // recent window without introducing a separate request for every user.
         val activities = if (allowedProjectIds == null) auditLogService.recent(limit = 100) else emptyList()
         val currentMonth = LocalDate.now()
-        DashboardData(projects.size.toLong(), projects.count { it[ProjectTable.status] == "active" }.toLong(), projects.count { it[ProjectTable.status] == "completed" && it[ProjectTable.endDate]?.let { date -> date.year == currentMonth.year && date.month == currentMonth.month } == true }.toLong(), projects.sumOf { it[ProjectTable.budgetPlanned] }, spent, reports.size.toLong(), reports.count { it[InspectionReportTable.status] == "pending_review" }.toLong(), findings.toLong(), reports.sortedByDescending { it[InspectionReportTable.inspectionDate] }.take(5).map { r -> InspectionReport(r[InspectionReportTable.id].value, UUID.fromString(r[InspectionReportTable.uuid]), r[InspectionReportTable.projectId].value, r[InspectionReportTable.reportCode], r[InspectionReportTable.inspectionType], r[InspectionReportTable.inspectionDate], r[InspectionReportTable.summary], InspectionReportStatus.valueOf(r[InspectionReportTable.status].uppercase()), r[InspectionReportTable.rejectionReason], r[InspectionReportTable.latitude]?.toDouble(), r[InspectionReportTable.longitude]?.toDouble(), r[InspectionReportTable.createdBy].value) }, activities, monthlyActPayments, subprojectFunding, subprojectProgress, procurementStatusCounts, monthlyInspectionCounts, monthlyEshsViolations, monthlyEquipmentPayments, monthlySignedConstructionContracts)
+        DashboardData(projects.size.toLong(), projects.count { it[ProjectTable.status] == "active" }.toLong(), projects.count { it[ProjectTable.status] == "completed" && it[ProjectTable.endDate]?.let { date -> date.year == currentMonth.year && date.month == currentMonth.month } == true }.toLong(), projects.sumOf { it[ProjectTable.budgetPlanned] }, spent.toLong(), reports.size.toLong(), reports.count { it[InspectionReportTable.status] == "pending_review" }.toLong(), findings.toLong(), reports.sortedByDescending { it[InspectionReportTable.inspectionDate] }.take(5).map { r -> InspectionReport(r[InspectionReportTable.id].value, UUID.fromString(r[InspectionReportTable.uuid]), r[InspectionReportTable.projectId].value, r[InspectionReportTable.reportCode], r[InspectionReportTable.inspectionType], r[InspectionReportTable.inspectionDate], r[InspectionReportTable.summary], InspectionReportStatus.valueOf(r[InspectionReportTable.status].uppercase()), r[InspectionReportTable.rejectionReason], r[InspectionReportTable.latitude]?.toDouble(), r[InspectionReportTable.longitude]?.toDouble(), r[InspectionReportTable.createdBy].value) }, activities, monthlyActPayments, subprojectFunding, subprojectProgress, procurementStatusCounts, monthlyInspectionCounts, monthlyEshsViolations, monthlyEquipmentPayments, monthlySignedConstructionContracts)
         }
     }
 }

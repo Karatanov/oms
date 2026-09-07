@@ -26,8 +26,8 @@ class NbuExchangeRateService {
 
     fun eurRate(date: LocalDate): Pair<LocalDate, Double> = rateCache.computeIfAbsent(date, ::loadRate)
 
-    fun convertToEur(amount: Long, currency: String, actDate: LocalDate): EurConversion {
-        if (currency == "EUR") return EurConversion(1.0, actDate, amount * 100)
+    fun convertToEur(amount: Double, currency: String, actDate: LocalDate): EurConversion {
+        if (currency == "EUR") return EurConversion(1.0, actDate, BigDecimal.valueOf(amount).movePointRight(2).setScale(0, RoundingMode.HALF_UP).longValueExact())
         require(currency == "UAH") { "Only UAH and EUR financial records are currently supported." }
         val (effectiveDate, rate) = rateCache.computeIfAbsent(actDate, ::loadRate)
         val cents = BigDecimal.valueOf(amount)

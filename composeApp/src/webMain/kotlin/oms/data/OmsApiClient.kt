@@ -405,7 +405,7 @@ data class UpdateInspectionFindingRequest(val category: String, val severity: St
 data class FinancialRecordRequest(
     val recordType: String,
     val referenceNumber: String,
-    val amount: Long,
+    val amount: Double,
     val currency: String = "EUR",
     val recordDate: String,
     val paymentDate: String? = null,
@@ -418,7 +418,7 @@ data class FinancialRecordRequest(
 data class FinancialRecordUpdateRequest(
     val recordType: String,
     val referenceNumber: String,
-    val amount: Long,
+    val amount: Double,
     val currency: String,
     val recordDate: String,
     val paymentDate: String? = null,
@@ -842,11 +842,11 @@ data class ApiProjectDetailsData(
 
 @Serializable
 data class ApiFinancialSummary(
-    val budgetPlanned: Long,
-    val constructionContractAmount: Long = budgetPlanned,
-    val amountSpent: Long,
-    val financialDocumentsAmount: Long = amountSpent,
-    val budgetRemaining: Long,
+    val budgetPlanned: Double,
+    val constructionContractAmount: Double = budgetPlanned,
+    val amountSpent: Double,
+    val financialDocumentsAmount: Double = amountSpent,
+    val budgetRemaining: Double,
     val completionPct: Double = 0.0,
     val financialCompletionPct: Double = completionPct
 )
@@ -865,7 +865,7 @@ data class ApiFinancialRecord(
     val uuid: String,
     val recordType: String,
     val referenceNumber: String,
-    val amount: Long,
+    val amount: Double,
     val currency: String,
     val recordDate: String,
     val paymentDate: String? = null,

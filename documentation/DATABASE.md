@@ -1,6 +1,6 @@
 # Database and Migration Reference
 
-OMS uses MySQL 8 and Flyway. The canonical source is `server/src/main/resources/db/migration`; Exposed table mappings mirror the current schema. Migrations V1-V38 run automatically at startup in version order.
+OMS uses MySQL 8 and Flyway. The canonical source is `server/src/main/resources/db/migration`; Exposed table mappings mirror the current schema. Migrations run automatically at startup in version order.
 
 ## URP III operational dataset
 
@@ -15,6 +15,8 @@ Migration V34 adds the designer name, design-contract number/term and constructi
 Migration V35 adds `design_start_date` and `design_planned_end_date` to `projects`. The design duration is derived from these two dates in whole calendar days; it is never entered manually. The compatibility `design_contract_term` value is refreshed from this calculation when both dates are present.
 
 Migration V36 adds the two full contract-information groups to `projects`: technical supervision and engineer-consultant. Each group has the organisation name, contract number/date, start date and planned end date. Durations are calculated from the latter two dates in the API and are not persisted as editable values.
+
+Migration V42 changes `financial_records.amount` to `DECIMAL(18,2)`. Financial invoices, acts, payments and advances preserve the exact amount in their selected currency, including cents; API clients may submit a JSON decimal number with no more than two fractional digits. The frozen `amount_eur_cents` field remains the deterministic EUR equivalent used by charts.
 
 ```mermaid
 erDiagram

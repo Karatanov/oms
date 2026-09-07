@@ -12,23 +12,23 @@ data class FinancialSummaryResponse(
     /**
      * Запланований бюджет.
      */
-    val budgetPlanned: Long,
+    val budgetPlanned: Double,
 
     /** Construction-contract amount used as the completion baseline. */
-    val constructionContractAmount: Long = budgetPlanned,
+    val constructionContractAmount: Double = budgetPlanned,
 
     /**
      * Витрачена сума.
      */
-    val amountSpent: Long,
+    val amountSpent: Double,
 
     /** Total amount across all financial documents. */
-    val financialDocumentsAmount: Long = amountSpent,
+    val financialDocumentsAmount: Double = amountSpent,
 
     /**
      * Залишок бюджету.
      */
-    val budgetRemaining: Long,
+    val budgetRemaining: Double,
 
     /**
      * Відсоток виконання бюджету.

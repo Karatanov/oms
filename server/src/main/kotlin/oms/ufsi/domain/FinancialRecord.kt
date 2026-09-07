@@ -9,7 +9,7 @@ data class FinancialRecord(
     val projectId: Long,
     val recordType: FinancialRecordType,
     val referenceNumber: String,
-    val amount: Long,
+    val amount: Double,
     val currency: String,
     val recordDate: LocalDate,
     val paymentDate: LocalDate?,

@@ -645,4 +645,5 @@ private fun ProjectDocumentsTab(projectUuid: String, documents: List<ApiProjectD
     }
 }
 
-private fun Long.toMoney(): String = "${toString().reversed().chunked(3).joinToString(" ").reversed()} UAH"
+private fun Double.toMoney(): String = "${asDynamic().toLocaleString(\"uk-UA\", js(\"({ minimumFractionDigits: 0, maximumFractionDigits: 2 })\")) as String} UAH"
+private fun Long.toMoney(): String = toDouble().toMoney()

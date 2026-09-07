@@ -329,7 +329,8 @@ private fun ActEditorDialog(
     var date by remember { mutableStateOf(existing?.act?.recordDate ?: currentIsoDate()) }
     var description by remember { mutableStateOf(existing?.act?.description ?: existing?.act?.milestone ?: "") }
     var paymentPurpose by remember { mutableStateOf(existing?.act?.paymentPurpose ?: "works") }
-    val valid = projectUuid != null && reference.isNotBlank() && amount.toLongOrNull()?.let { it > 0 } == true && date.matches(Regex("\\d{4}-\\d{2}-\\d{2}"))
+    val parsedAmount = amount.replace(',', '.').toDoubleOrNull()
+    val valid = projectUuid != null && reference.isNotBlank() && parsedAmount?.let { it.isFinite() && it > 0 } == true && date.matches(Regex("\\d{4}-\\d{2}-\\d{2}"))
     Card(Modifier.widthIn(max = 720.dp).fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
         Column(
             Modifier.padding(20.dp).heightIn(max = 560.dp).verticalScroll(rememberScrollState()),
@@ -355,7 +356,7 @@ private fun ActEditorDialog(
                     val filtered = entered
                         .filter { it.isDigit() || it == '.' || it == ',' }
                         .replace(',', '.')
-                    amount = if (filtered.count { it == '.' } <= 1) filtered else amount
+                    amount = if (filtered.matches(Regex("\\d{0,13}(\\.\\d{0,2})?"))) filtered else amount
                 },
                 label = { Text("${LocalizationManager.t("amount")}, $currency") },
                 modifier = Modifier.fillMaxWidth(),
@@ -382,7 +383,7 @@ private fun ActEditorDialog(
             )
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, androidx.compose.ui.Alignment.End)) {
                 OutlinedButton(onClick = onDismiss) { Text(LocalizationManager.t("cancel")) }
-                Button(onClick = { onSave(projectUuid!!, oms.data.FinancialRecordRequest(recordType, reference, amount.toLong(), currency, date, description = description.ifBlank { null }, milestone = null, paymentPurpose = paymentPurpose)) }, enabled = valid) { Text(LocalizationManager.t("save")) }
+                Button(onClick = { onSave(projectUuid!!, oms.data.FinancialRecordRequest(recordType, reference, parsedAmount!!, currency, date, description = description.ifBlank { null }, milestone = null, paymentPurpose = paymentPurpose)) }, enabled = valid) { Text(LocalizationManager.t("save")) }
             }
         }
     }
@@ -557,4 +558,7 @@ private fun FinancialAccessDenied() {
     }
 }
 
-private fun Long.toMoney(currency: String): String = "${toString().reversed().chunked(3).joinToString(" ").reversed()} $currency"
+private fun Double.toMoney(currency: String): String {
+    val formatted = asDynamic().toLocaleString("uk-UA", js("({ minimumFractionDigits: 0, maximumFractionDigits: 2 })")) as String
+    return "$formatted $currency"
+}

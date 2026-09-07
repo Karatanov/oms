@@ -9,7 +9,8 @@ object FinancialRecordTable : LongIdTable("financial_records") {
     val projectId = reference("project_id", ProjectTable, onDelete = ReferenceOption.RESTRICT)
     val recordType = varchar("record_type", 20)
     val referenceNumber = varchar("reference_number", 100)
-    val amount = long("amount")
+    /** Original amount in the record currency, including up to two decimal places. */
+    val amount = decimal("amount", 18, 2)
     val currency = varchar("currency", 3)
     val recordDate = date("record_date")
     val paymentDate = date("payment_date").nullable()

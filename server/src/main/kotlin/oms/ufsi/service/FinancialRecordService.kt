@@ -26,17 +26,19 @@ class FinancialRecordService(
         }
     }
     fun get(projectId: Long, uuid: String) = repository.findByUuid(projectId, uuid.trim())
-    fun create(projectId: Long, type: String, reference: String, amount: Long, currency: String, date: String, paymentDate: String?, description: String?, milestone: String?, paymentPurpose: String = "works"): FinancialRecord {
+    fun create(projectId: Long, type: String, reference: String, amount: Double, currency: String, date: String, paymentDate: String?, description: String?, milestone: String?, paymentPurpose: String = "works"): FinancialRecord {
         val normalizedCurrency = currency(currency)
         val normalizedDate = date(date)
-        val conversion = exchangeRateService.convertToEur(positive(amount), normalizedCurrency, java.time.LocalDate.parse(normalizedDate))
-        return repository.create(projectId, validatedType(type), required(reference, "Reference number"), amount, normalizedCurrency, normalizedDate, optionalDate(paymentDate), optional(description) ?: optional(milestone), null, paymentPurpose(paymentPurpose), conversion.rate, conversion.effectiveDate.toString(), conversion.amountEurCents, 1L)
+        val normalizedAmount = positive(amount)
+        val conversion = exchangeRateService.convertToEur(normalizedAmount, normalizedCurrency, java.time.LocalDate.parse(normalizedDate))
+        return repository.create(projectId, validatedType(type), required(reference, "Reference number"), normalizedAmount, normalizedCurrency, normalizedDate, optionalDate(paymentDate), optional(description) ?: optional(milestone), null, paymentPurpose(paymentPurpose), conversion.rate, conversion.effectiveDate.toString(), conversion.amountEurCents, 1L)
     }
-    fun update(projectId: Long, uuid: String, type: String, reference: String, amount: Long, currency: String, date: String, paymentDate: String?, description: String?, milestone: String?, paymentPurpose: String = "works"): FinancialRecord? {
+    fun update(projectId: Long, uuid: String, type: String, reference: String, amount: Double, currency: String, date: String, paymentDate: String?, description: String?, milestone: String?, paymentPurpose: String = "works"): FinancialRecord? {
         val normalizedCurrency = currency(currency)
         val normalizedDate = date(date)
-        val conversion = exchangeRateService.convertToEur(positive(amount), normalizedCurrency, java.time.LocalDate.parse(normalizedDate))
-        return repository.update(projectId, uuid.trim(), validatedType(type), required(reference, "Reference number"), amount, normalizedCurrency, normalizedDate, optionalDate(paymentDate), optional(description) ?: optional(milestone), null, paymentPurpose(paymentPurpose), conversion.rate, conversion.effectiveDate.toString(), conversion.amountEurCents)
+        val normalizedAmount = positive(amount)
+        val conversion = exchangeRateService.convertToEur(normalizedAmount, normalizedCurrency, java.time.LocalDate.parse(normalizedDate))
+        return repository.update(projectId, uuid.trim(), validatedType(type), required(reference, "Reference number"), normalizedAmount, normalizedCurrency, normalizedDate, optionalDate(paymentDate), optional(description) ?: optional(milestone), null, paymentPurpose(paymentPurpose), conversion.rate, conversion.effectiveDate.toString(), conversion.amountEurCents)
     }
     fun move(projectId: Long, uuid: String, targetProjectId: Long) = repository.move(projectId, uuid.trim(), targetProjectId)
     /** One-time safe upgrade for existing UAH rows created before EUR storage existed. */
@@ -71,7 +73,7 @@ class FinancialRecordService(
                     continue
                 }
                 try {
-                    create(projectId, cell(row, "record_type"), reference, cell(row, "amount").toDouble().toLong(), cell(row, "currency").ifBlank { "UAH" }, cell(row, "record_date"), cell(row, "payment_date").ifBlank { null }, cell(row, "description").ifBlank { null }, cell(row, "milestone").ifBlank { null }, cell(row, "payment_purpose").ifBlank { "works" })
+                    create(projectId, cell(row, "record_type"), reference, cell(row, "amount").replace(',', '.').toDouble(), cell(row, "currency").ifBlank { "UAH" }, cell(row, "record_date"), cell(row, "payment_date").ifBlank { null }, cell(row, "description").ifBlank { null }, cell(row, "milestone").ifBlank { null }, cell(row, "payment_purpose").ifBlank { "works" })
                     imported++
                 } catch (exception: Exception) { errors += FinancialImportError(index + 1, null, exception.message ?: "Invalid row.") }
             }
@@ -87,7 +89,7 @@ class FinancialRecordService(
                 sheet.createRow(index + 1).apply {
                     createCell(0).setCellValue(record.recordType.name.lowercase())
                     createCell(1).setCellValue(record.referenceNumber)
-                    createCell(2).setCellValue(record.amount.toDouble())
+                    createCell(2).setCellValue(record.amount)
                     createCell(3).setCellValue(record.currency)
                     createCell(4).setCellValue(record.recordDate.toString())
                     createCell(5).setCellValue(record.paymentDate?.toString().orEmpty())
@@ -106,13 +108,20 @@ class FinancialRecordService(
     fun summary(project: Project): FinancialSummary {
         val records = getAll(project.id)
         return FinancialSummary(
-            constructionContractAmount = project.subprojectContractAmount ?: project.budgetPlanned,
+            constructionContractAmount = (project.subprojectContractAmount ?: project.budgetPlanned).toDouble(),
             amountSpent = records.filter { it.recordType == FinancialRecordType.ACT }.sumOf { it.amount },
             financialDocumentsAmount = records.sumOf { it.amount }
         )
     }
     private fun validatedType(value: String) = try { FinancialRecordType.valueOf(value.trim().uppercase()) } catch (_: Exception) { throw IllegalArgumentException("Record type must be invoice, act, payment, or advance.") }
-    private fun positive(value: Long): Long { require(value > 0) { "Amount must be positive." }; return value }
+    private fun positive(value: Double): Double {
+        require(value.isFinite() && value > 0) { "Amount must be positive." }
+        return try {
+            java.math.BigDecimal.valueOf(value).setScale(2, java.math.RoundingMode.UNNECESSARY).toDouble()
+        } catch (_: ArithmeticException) {
+            throw IllegalArgumentException("Amount may contain at most two decimal places.")
+        }
+    }
     private fun required(value: String, field: String): String { val result = value.trim(); require(result.isNotEmpty()) { "$field is required." }; return result }
     private fun currency(value: String): String { val result = value.trim().uppercase(); require(result.matches(Regex("[A-Z]{3}"))) { "Currency must be a three-letter ISO code." }; return result }
     private fun date(value: String): String = try { java.time.LocalDate.parse(value.trim()).toString() } catch (_: Exception) { throw IllegalArgumentException("Date must use YYYY-MM-DD format.") }
@@ -129,13 +138,13 @@ data class FinancialImportError(val row: Int, val field: String?, val message: S
 data class FinancialImportResult(val imported: Int, val skipped: Int, val errors: List<FinancialImportError>)
 
 data class FinancialSummary(
-    val constructionContractAmount: Long,
-    val amountSpent: Long,
-    val financialDocumentsAmount: Long
+    val constructionContractAmount: Double,
+    val amountSpent: Double,
+    val financialDocumentsAmount: Double
 ) {
     // Kept for existing API consumers; it is the construction-contract balance.
     val budgetPlanned get() = constructionContractAmount
     val budgetRemaining get() = constructionContractAmount - amountSpent
-    val completionPct get() = if (constructionContractAmount == 0L) 0.0 else amountSpent * 100.0 / constructionContractAmount
-    val financialCompletionPct get() = if (constructionContractAmount == 0L) 0.0 else financialDocumentsAmount * 100.0 / constructionContractAmount
+    val completionPct get() = if (constructionContractAmount == 0.0) 0.0 else amountSpent * 100.0 / constructionContractAmount
+    val financialCompletionPct get() = if (constructionContractAmount == 0.0) 0.0 else financialDocumentsAmount * 100.0 / constructionContractAmount
 }
