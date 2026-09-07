@@ -54,6 +54,7 @@ import oms.model.Project
 import oms.model.localizedName
 import oms.navigation.Screen
 import kotlinx.coroutines.launch
+import kotlin.math.roundToLong
 
 @Composable
 fun ProjectDetailScreen(
@@ -645,5 +646,22 @@ private fun ProjectDocumentsTab(projectUuid: String, documents: List<ApiProjectD
     }
 }
 
-private fun Double.toMoney(): String = "${asDynamic().toLocaleString(\"uk-UA\", js(\"({ minimumFractionDigits: 0, maximumFractionDigits: 2 })\")) as String} UAH"
-private fun Long.toMoney(): String = toDouble().toMoney()
+private fun Double.toMoney(): String = "${formatUiAmount()} UAH"
+private fun Long.toMoney(): String = "${formatUiAmount()} UAH"
+
+/** Locale-independent formatter that also works in Kotlin/Wasm. */
+private fun Long.formatUiAmount(): String {
+    val sign = if (this < 0) "-" else ""
+    val digits = if (this < 0) (-this).toString() else toString()
+    return sign + digits.reversed().chunked(3).joinToString(" ").reversed()
+}
+
+private fun Double.formatUiAmount(): String {
+    val scaled = (this * 100).roundToLong()
+    val sign = if (scaled < 0) "-" else ""
+    val absolute = kotlin.math.abs(scaled)
+    val whole = absolute / 100
+    val fraction = absolute % 100
+    val groupedWhole = whole.toString().reversed().chunked(3).joinToString(" ").reversed()
+    return if (fraction == 0L) "$sign$groupedWhole" else "$sign$groupedWhole,${fraction.toString().padStart(2, '0').trimEnd('0')}"
+}

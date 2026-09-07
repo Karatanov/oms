@@ -35,7 +35,7 @@ import oms.components.SearchableOptionPicker
 import oms.components.currentIsoDate
 import oms.components.WasmSafeOverlay
 import kotlin.js.JsName
-import kotlin.math.roundToInt
+import kotlin.math.roundToLong
 
 @JsName("openFinancialImport")
 external fun openFinancialImport(projectUuid: String, onComplete: (String) -> Unit)
@@ -558,7 +558,15 @@ private fun FinancialAccessDenied() {
     }
 }
 
-private fun Double.toMoney(currency: String): String {
-    val formatted = asDynamic().toLocaleString("uk-UA", js("({ minimumFractionDigits: 0, maximumFractionDigits: 2 })")) as String
-    return "$formatted $currency"
+private fun Double.toMoney(currency: String): String = "${formatUiAmount()} $currency"
+
+/** Locale-independent formatter that also works in Kotlin/Wasm. */
+private fun Double.formatUiAmount(): String {
+    val scaled = (this * 100).roundToLong()
+    val sign = if (scaled < 0) "-" else ""
+    val absolute = kotlin.math.abs(scaled)
+    val whole = absolute / 100
+    val fraction = absolute % 100
+    val groupedWhole = whole.toString().reversed().chunked(3).joinToString(" ").reversed()
+    return if (fraction == 0) "$sign$groupedWhole" else "$sign$groupedWhole,${fraction.toString().padStart(2, '0').trimEnd('0')}"
 }
