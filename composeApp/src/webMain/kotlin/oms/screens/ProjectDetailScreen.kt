@@ -482,7 +482,9 @@ private fun ProjectGeneralInfoTab(details: oms.data.ApiProjectDetails?) {
             val finance = listOf(
                 LocalizationManager.t("currency") to data.currency,
                 LocalizationManager.t("budget") to data.budgetPlanned.toMoney(),
-                LocalizationManager.t("subproject_contract_amount") to (data.subprojectContractAmount?.toMoney() ?: "—")
+                LocalizationManager.t("subproject_contract_amount") to (data.subprojectContractAmount?.toMoney() ?: "—"),
+                LocalizationManager.t("technical_supervision_contract_amount") to (data.technicalSupervisionAmount?.toMoney() ?: "—"),
+                LocalizationManager.t("engineer_consultant_contract_amount") to (data.engineerConsultantContractAmount?.toMoney() ?: "—")
             )
             val designer = listOf(
                 LocalizationManager.t("designer_name") to (data.designerName ?: "—"),
@@ -503,7 +505,6 @@ private fun ProjectGeneralInfoTab(details: oms.data.ApiProjectDetails?) {
                 LocalizationManager.t("contract_duration") to (data.contractDurationDays?.let(::durationMonthsLabel) ?: "—")
             )
             val technical = listOf(
-                LocalizationManager.t("technical_supervision_contract_amount") to (data.technicalSupervisionAmount?.toMoney() ?: "—"),
                 LocalizationManager.t("name") to localizedOrganisationName(data.technicalSupervisionName),
                 LocalizationManager.t("contract_number") to (data.technicalSupervisionContractNumber ?: "—"),
                 LocalizationManager.t("contract_date") to data.technicalSupervisionContractDate.toOmsDate(),
@@ -512,7 +513,6 @@ private fun ProjectGeneralInfoTab(details: oms.data.ApiProjectDetails?) {
                 LocalizationManager.t("contract_duration") to (data.technicalSupervisionDurationDays?.let(::durationMonthsLabel) ?: "—")
             )
             val engineer = listOf(
-                LocalizationManager.t("engineer_consultant_contract_amount") to (data.engineerConsultantContractAmount?.toMoney() ?: "—"),
                 LocalizationManager.t("name") to localizedOrganisationName(data.engineerConsultantName),
                 LocalizationManager.t("contract_number") to (data.engineerConsultantContractNumber ?: "—"),
                 LocalizationManager.t("contract_date") to data.engineerConsultantContractDate.toOmsDate(),
