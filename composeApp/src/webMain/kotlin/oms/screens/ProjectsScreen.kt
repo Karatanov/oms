@@ -48,6 +48,7 @@ import oms.components.StatusChip
 import oms.components.TableHeader
 import oms.components.ProjectTableColumns
 import oms.components.TableActionIconButton
+import oms.components.ExpandableTableText
 import oms.data.ProjectRepository
 import oms.localization.LocalizationManager
 import oms.model.Project
@@ -670,10 +671,10 @@ fun ProjectRow(
         Text(project.siteNumber, modifier = Modifier.width(ProjectTableColumns.width(SortColumn.ID)), fontWeight = rowFontWeight)
         Text(project.trancheNumber.toString(), modifier = Modifier.width(ProjectTableColumns.width(SortColumn.TRANCHE)), fontWeight = rowFontWeight)
 
-        Text(
+        ExpandableTableText(
             project.localizedName(),
             modifier = Modifier.width(ProjectTableColumns.width(SortColumn.NAME)),
-            fontWeight = rowFontWeight,
+            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = rowFontWeight),
             color = if (isSubproject) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface
         )
 

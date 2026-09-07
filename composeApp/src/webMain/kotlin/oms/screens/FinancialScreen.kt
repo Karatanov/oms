@@ -27,6 +27,7 @@ import oms.data.OmsApiClient
 import oms.data.ProjectRepository
 import oms.components.SortableTableHeader
 import oms.components.TableActionIconButton
+import oms.components.ExpandableTableText
 import oms.localization.LocalizationManager
 import oms.components.OmsDateField
 import oms.components.toOmsDate
@@ -221,7 +222,7 @@ fun FinancialScreen(
                             Text(row.act.referenceNumber, Modifier.width(130.dp))
                             Text(LocalizationManager.t("record_type_${row.act.recordType}"), Modifier.width(95.dp))
                             Box(Modifier.width(210.dp)) { FinancialPaymentPurposeBadge(row.act.recordType, row.act.paymentPurpose) }
-                            Text(row.subprojectName, Modifier.width(200.dp))
+                            ExpandableTableText(row.subprojectName, Modifier.width(200.dp))
                             Text(row.subprojectPartCode ?: "—", Modifier.width(160.dp))
                             Text(row.act.recordDate.toOmsDate(), Modifier.width(105.dp))
                             Text(row.act.paymentDate.toOmsDate(), Modifier.width(105.dp))

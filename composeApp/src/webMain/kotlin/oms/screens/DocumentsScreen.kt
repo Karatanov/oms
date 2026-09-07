@@ -25,6 +25,7 @@ import oms.data.ProjectRepository
 import oms.components.SortableTableHeader
 import oms.components.DocumentTypeChip
 import oms.components.TableActionIconButton
+import oms.components.ExpandableTableText
 import oms.components.InlineOptionPicker
 import oms.components.SearchableOptionPicker
 import oms.components.WasmSafeOverlay
@@ -188,7 +189,7 @@ fun DocumentsScreen(canManageDocuments: Boolean = true) {
                 pageDocuments.forEach { row ->
                     Row(Modifier.width(1_370.dp).padding(vertical = 8.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                         Text(row.fileName, Modifier.width(260.dp))
-                        Text(row.projectName, Modifier.width(210.dp))
+                        ExpandableTableText(row.projectName, Modifier.width(210.dp))
                         Text(row.subprojectPartCode ?: "—", Modifier.width(165.dp))
                         Box(Modifier.width(140.dp)) { DocumentTypeChip(row.documentType) }
                         Text(row.date ?: "—", Modifier.width(105.dp))

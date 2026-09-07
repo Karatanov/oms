@@ -55,17 +55,23 @@ fun TooltipOverlayHost(content: @Composable () -> Unit) {
 
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
-fun OmsTooltipBox(modifier: Modifier = Modifier, tooltip: @Composable () -> Unit, content: @Composable () -> Unit) {
+fun OmsTooltipBox(
+    modifier: Modifier = Modifier,
+    tooltip: @Composable () -> Unit,
+    openOnPress: Boolean = false,
+    content: @Composable () -> Unit
+) {
     val host = LocalTooltipOverlay.current
     val id = remember { Any() }
     var bounds by remember { mutableStateOf(Rect.Zero) }
     var hovered by remember { mutableStateOf(false) }
     var focused by remember { mutableStateOf(false) }
+    var pinned by remember { mutableStateOf(false) }
     val currentTooltip by rememberUpdatedState(tooltip)
-    LaunchedEffect(hovered, focused, bounds) {
+    LaunchedEffect(hovered, focused, pinned, bounds) {
         host.dismiss(id)
-        if (hovered || focused) {
-            delay(450)
+        if (hovered || focused || pinned) {
+            if (!pinned) delay(450)
             host.entry = TooltipEntry(id, bounds) { currentTooltip() }
         }
     }
@@ -74,7 +80,10 @@ fun OmsTooltipBox(modifier: Modifier = Modifier, tooltip: @Composable () -> Unit
         .onGloballyPositioned { if (it.isAttached) bounds = it.boundsInRoot() }
         .onPointerEvent(PointerEventType.Enter) { hovered = true }
         .onPointerEvent(PointerEventType.Exit) { hovered = false }
-        .onPointerEvent(PointerEventType.Press) { hovered = false; host.dismiss(id) }
+        .onPointerEvent(PointerEventType.Press) {
+            if (openOnPress) pinned = !pinned
+            else { hovered = false; host.dismiss(id) }
+        }
         .onFocusChanged { focused = it.hasFocus }
     ) { content() }
 }

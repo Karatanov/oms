@@ -49,6 +49,7 @@ import oms.components.TableActionIconButton
 import oms.components.FilterDropdown
 import oms.components.InlineOptionPicker
 import oms.components.SearchableOptionPicker
+import oms.components.ExpandableTableText
 import oms.components.OmsDateField
 import oms.components.toOmsDate
 import oms.components.WasmSafeOverlay
@@ -224,8 +225,8 @@ fun ReportsScreen(
                             Text(row.report.inspectionCode, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onPrimaryContainer)
                             Text(row.report.summary ?: LocalizationManager.t("inspection_report"), style = MaterialTheme.typography.bodyMedium)
                         }
-                        Text(row.projectName, Modifier.width(180.dp), style = MaterialTheme.typography.bodySmall)
-                        Text(row.localizedSubprojectName() ?: "—", Modifier.width(180.dp), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        ExpandableTableText(row.projectName, Modifier.width(180.dp), style = MaterialTheme.typography.bodySmall)
+                        ExpandableTableText(row.localizedSubprojectName() ?: "—", Modifier.width(180.dp), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Text(row.subprojectPartCode ?: "—", Modifier.width(160.dp), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Box(Modifier.width(130.dp)) { ReportStatusChip(row.report.status) }
                         Text(row.report.authorUsername ?: "—", Modifier.width(80.dp))
