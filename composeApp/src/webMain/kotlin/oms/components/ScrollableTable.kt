@@ -71,18 +71,22 @@ fun ScrollableTable(
                     tableTopInPage = bounds.top + (pageScrollState?.value ?: 0)
                     tableHeight = coordinates.size.height
                 }
-                .horizontalScroll(scroll)
         ) {
-            Column(
+            // The header itself must live outside the clipped horizontal-scroll
+            // content.  Translating a child of horizontalScroll works on JVM,
+            // but Web/Wasm clips it as soon as the page moves.  Keeping this
+            // outer layer separate makes it a real sticky header on the page.
+            Box(
                 Modifier
+                    .fillMaxWidth()
                     .zIndex(2f)
                     .graphicsLayer { translationY = stickyOffset }
                     .background(surface)
                     .then(if (stickyOffset > 0f) Modifier.shadow(3.dp) else Modifier)
-                    .onGloballyPositioned { headerHeight = it.size.height },
-                content = header
-            )
-            Column(content = content)
+                    .onGloballyPositioned { headerHeight = it.size.height }
+                    .horizontalScroll(scroll)
+            ) { Column(content = header) }
+            Column(Modifier.fillMaxWidth().horizontalScroll(scroll), content = content)
         }
         if (showScrollControls) {
             Box(
