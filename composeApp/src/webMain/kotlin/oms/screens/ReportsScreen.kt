@@ -1,6 +1,7 @@
 package oms.screens
 
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.background
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.verticalScroll
@@ -194,7 +195,10 @@ fun ReportsScreen(
             first = { MetricsChart("inspections_by_month", "inspections_by_month_hint", analytics?.monthlyInspectionCounts.orEmpty(), compact = true) },
             second = { MetricsChart("eshs_violations_by_month", "eshs_violations_by_month_hint", analytics?.monthlyEshsViolations.orEmpty(), compact = true) }
         )
-        Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+        // Card clips translated children in Web/Wasm.  A drawn surface keeps
+        // the same light table background while allowing its header to stick
+        // above the scrolling page.
+        Box(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface)) {
             oms.components.ScrollableTable(
                 Modifier.padding(16.dp),
                 showScrollControls = visible.isNotEmpty(),

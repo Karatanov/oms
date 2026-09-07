@@ -1,6 +1,7 @@
 package oms.screens
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.background
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.verticalScroll
@@ -205,11 +206,11 @@ fun FinancialScreen(
                 FilterChip(selected = recordTypeFilter == type, onClick = { selectRecordType(type) }, label = { Text(type?.let { LocalizationManager.t("record_type_$it") } ?: LocalizationManager.t("all")) })
             }
         }
-        Card(
-            Modifier.fillMaxWidth().onGloballyPositioned { tableTopInRootPx = it.positionInRoot().y },
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        Box(
+            Modifier.fillMaxWidth()
+                .background(MaterialTheme.colorScheme.surface)
+                .onGloballyPositioned { tableTopInRootPx = it.positionInRoot().y }
         ) {
-            Box(Modifier.fillMaxWidth()) {
                 oms.components.ScrollableTable(
                     Modifier.padding(16.dp),
                     showScrollControls = visibleActs.isNotEmpty(),
@@ -243,7 +244,6 @@ fun FinancialScreen(
                         HorizontalDivider()
                     }
                 }
-            }
         }
 
         errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error) }

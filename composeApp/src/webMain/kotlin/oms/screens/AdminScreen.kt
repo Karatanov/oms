@@ -150,7 +150,8 @@ fun AdminScreen() {
         OutlinedTextField(search, { search = it }, singleLine = true, label = { Text(LocalizationManager.t("admin_search")) }, leadingIcon = { Icon(Icons.Default.Search, null) }, modifier = Modifier.fillMaxWidth())
         if (loading) oms.components.ContentState(LocalizationManager.t("loading_records"), loading = true)
         if (!loading && sortedUsers.isEmpty()) oms.components.ContentState(LocalizationManager.t("no_search_results"))
-        Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+        // Unlike Card, a background does not clip the sticky table header.
+        Box(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface)) {
             oms.components.ScrollableTable(
                 Modifier.padding(16.dp),
                 pageScrollState = pageScrollState,
