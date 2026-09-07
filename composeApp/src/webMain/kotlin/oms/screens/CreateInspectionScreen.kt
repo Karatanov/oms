@@ -110,14 +110,12 @@ fun CreateInspectionScreen(
     val subprojects = projects.filter {
         it.projectType.equals("subproject", true) && it.parentProjectUuid == selectedProjectUuid
     }
-    val subprojectParts = projects.filter {
-        it.projectType.equals("subproject_part", true) && it.parentProjectUuid == selectedSubprojectUuid
-    }
     val inspectionTargetUuid = selectedSubprojectPartUuid ?: selectedSubprojectUuid ?: selectedProjectUuid
     val selectionError = when {
         selectedProjectUuid == null -> LocalizationManager.t("select_project_error")
         subprojects.isNotEmpty() && selectedSubprojectUuid == null -> LocalizationManager.t("select_subproject_error")
-        subprojectParts.isNotEmpty() && selectedSubprojectPartUuid == null -> LocalizationManager.t("select_subproject_part_error")
+        // A report may belong directly to a subproject. Selecting a part is
+        // optional and only narrows that placement when it is applicable.
         else -> null
     }
 
