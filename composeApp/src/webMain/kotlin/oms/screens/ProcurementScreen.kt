@@ -28,6 +28,7 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalDensity
@@ -378,7 +379,14 @@ private fun ProcurementRow(
     ) {
         if (showActions) {
             if (isHeader) {
-                Text(LocalizationManager.t("actions"), Modifier.width(96.dp).padding(horizontal = 6.dp), style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
+                Text(
+                    LocalizationManager.t("actions"),
+                    Modifier.width(96.dp).padding(horizontal = 6.dp),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.SemiBold
+                )
             } else if (record != null) {
                 Box(Modifier) {
                 TableActionIconButton(LocalizationManager.t("edit_procurement_record"), Icons.Default.Edit) { onEdit(record) }
@@ -401,8 +409,14 @@ private fun ProcurementRow(
                     color = MaterialTheme.colorScheme.primary,
                     textDecoration = TextDecoration.Underline
                 )
-            } else Text(value, Modifier.width(width.dp).padding(horizontal = 6.dp), style = MaterialTheme.typography.bodySmall,
-                fontWeight = if (isHeader) FontWeight.SemiBold else FontWeight.Normal)
+            } else Text(
+                value,
+                Modifier.width(width.dp).padding(horizontal = 6.dp),
+                maxLines = if (isHeader) 1 else Int.MAX_VALUE,
+                overflow = if (isHeader) TextOverflow.Ellipsis else TextOverflow.Clip,
+                style = if (isHeader) MaterialTheme.typography.labelSmall else MaterialTheme.typography.bodySmall,
+                fontWeight = if (isHeader) FontWeight.SemiBold else FontWeight.Normal
+            )
         }
     }
 }
