@@ -902,13 +902,16 @@ private fun InspectionTypeDropdown(
     value: InspectionType,
     onChange: (InspectionType) -> Unit
 ) {
-    InlineOptionPicker(
-        options = InspectionType.entries,
-        selected = value,
-        prompt = LocalizationManager.t("inspection_type"),
-        onSelect = onChange,
-        itemLabel = { it.label }
-    )
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(LocalizationManager.t("inspection_type"), style = MaterialTheme.typography.labelLarge)
+        InlineOptionPicker(
+            options = InspectionType.entries,
+            selected = value,
+            prompt = LocalizationManager.t("inspection_type"),
+            onSelect = onChange,
+            itemLabel = { it.label }
+        )
+    }
 }
 
 private enum class InspectionType {
