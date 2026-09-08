@@ -9,6 +9,7 @@ import kotlinx.serialization.Serializable
 /** Complete information entered in the browser to create a standard SIR workbook. */
 @Serializable data class CreateManualInspectionReportRequest(
     val inspectionDate: String = "", val inspectionType: String = "planned", val contractor: String = "", val contractorRepresentative: String? = null,
+    val projectName: String? = null, val siteReference: String? = null,
     val qaStaff: String? = null, val usifRepresentative: String? = null,
     val skilledLabor: String? = null, val unskilledLabor: String? = null, val siteManagement: String? = null,
     val weather: String? = null, val activities: List<ManualActivity> = emptyList(),

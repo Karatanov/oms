@@ -87,7 +87,8 @@ fun CreateInspectionScreen(
     var unskilledLabor by remember { mutableStateOf("") }
     var siteManagement by remember { mutableStateOf("") }
     var weather by remember { mutableStateOf("") }
-    var activities by remember { mutableStateOf(listOf("")) }
+    var activities by remember { mutableStateOf(listOf(ManualActivityInput())) }
+    var projectName by remember { mutableStateOf("") }
     var ongoingObservations by remember { mutableStateOf(listOf("")) }
     var hseObservations by remember { mutableStateOf(defaultHseObservations) }
     var qualityText by remember { mutableStateOf("") }
@@ -111,6 +112,12 @@ fun CreateInspectionScreen(
         it.projectType.equals("subproject", true) && it.parentProjectUuid == selectedProjectUuid
     }
     val inspectionTargetUuid = selectedSubprojectPartUuid ?: selectedSubprojectUuid ?: selectedProjectUuid
+    val selectedSubproject = projects.firstOrNull { it.id == selectedSubprojectUuid }
+    val siteReference = selectedSubproject?.let { subproject ->
+        listOf(subproject.siteNumber, subproject.address ?: subproject.name)
+            .filter(String::isNotBlank)
+            .joinToString(", ")
+    }.orEmpty()
     val selectionError = when {
         selectedProjectUuid == null -> LocalizationManager.t("select_project_error")
         subprojects.isNotEmpty() && selectedSubprojectUuid == null -> LocalizationManager.t("select_subproject_error")
@@ -189,6 +196,7 @@ fun CreateInspectionScreen(
                     onProjectSelect = {
                         errorMessage = null
                         selectedProjectUuid = it
+                        projectName = projects.firstOrNull { project -> project.id == it }?.name.orEmpty()
                         selectedSubprojectUuid = null
                         selectedSubprojectPartUuid = null
                     },
@@ -248,7 +256,8 @@ fun CreateInspectionScreen(
         }
 
         if (entryMode == "manual") ManualSirForm(
-            date = date, onDateChange = { date = it }, contractor = contractor, onContractorChange = { contractor = it },
+            date = date, onDateChange = { date = it }, projectName = projectName, onProjectNameChange = { projectName = it }, siteReference = siteReference,
+            contractor = contractor, onContractorChange = { contractor = it },
             contractorRepresentative = contractorRepresentative, onContractorRepresentativeChange = { contractorRepresentative = it },
             qaStaff = qaStaff, onQaStaffChange = { qaStaff = it }, usifRepresentative = usifRepresentative, onUsifRepresentativeChange = { usifRepresentative = it },
             skilledLabor = skilledLabor, onSkilledLaborChange = { skilledLabor = it }, unskilledLabor = unskilledLabor, onUnskilledLaborChange = { unskilledLabor = it },
@@ -336,7 +345,18 @@ fun CreateInspectionScreen(
                                             unskilledLabor = unskilledLabor.ifBlank { null },
                                             siteManagement = siteManagement.ifBlank { null },
                                             weather = weather.ifBlank { null },
-                                            activities = activities.joinToString("\n").toManualActivities(),
+                                            projectName = projectName.ifBlank { null },
+                                            siteReference = siteReference.ifBlank { null },
+                                            activities = activities.map { activity ->
+                                                oms.data.ManualActivityRequest(
+                                                    location = activity.location,
+                                                    description = activity.description,
+                                                    onSchedule = activity.onSchedule,
+                                                    remarks = activity.remarks.ifBlank { null }
+                                                )
+                                            }.filter { activity ->
+                                                activity.location.isNotBlank() || activity.description.isNotBlank() || activity.remarks != null
+                                            },
                                             ongoingObservations = ongoingObservations.map(String::trim).filter(String::isNotBlank),
                                             hseObservations = hseObservations.map { oms.data.ManualHseObservationRequest(it.observation, if (it.isYes) "Yes" else "No", it.comment.ifBlank { null }) },
                                             qualityRemarks = qualityText.toManualQualityRemarks(),
@@ -435,6 +455,7 @@ private fun PendingInspectionPhotoPreviews(revision: Int, onSelectionChanged: (I
 @Composable
 private fun ManualSirForm(
     date: String, onDateChange: (String) -> Unit,
+    projectName: String, onProjectNameChange: (String) -> Unit, siteReference: String,
     contractor: String, onContractorChange: (String) -> Unit,
     contractorRepresentative: String, onContractorRepresentativeChange: (String) -> Unit,
     qaStaff: String, onQaStaffChange: (String) -> Unit,
@@ -443,7 +464,7 @@ private fun ManualSirForm(
     unskilledLabor: String, onUnskilledLaborChange: (String) -> Unit,
     siteManagement: String, onSiteManagementChange: (String) -> Unit,
     weather: String, onWeatherChange: (String) -> Unit,
-    activities: List<String>, onActivitiesChange: (List<String>) -> Unit,
+    activities: List<ManualActivityInput>, onActivitiesChange: (List<ManualActivityInput>) -> Unit,
     ongoingObservations: List<String>, onOngoingObservationsChange: (List<String>) -> Unit,
     hseObservations: List<HseObservationInput>, onHseObservationsChange: (List<HseObservationInput>) -> Unit,
     quality: String, onQualityChange: (String) -> Unit,
@@ -460,6 +481,22 @@ private fun ManualSirForm(
     ) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(LocalizationManager.t("manual_sir_title"), style = MaterialTheme.typography.titleLarge, color = Color(0xFF278DAD))
+
+            OutlinedTextField(
+                projectName,
+                { onProjectNameChange(it.inspectionText(500)) },
+                label = { Text(LocalizationManager.t("sir_project_name")) },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+            OutlinedTextField(
+                siteReference,
+                onValueChange = {},
+                readOnly = true,
+                label = { Text(LocalizationManager.t("sir_site_reference")) },
+                modifier = Modifier.fillMaxWidth(),
+                minLines = 2
+            )
 
             SirSectionTitle(LocalizationManager.t("sir_contractor_section"))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -485,7 +522,7 @@ private fun ManualSirForm(
             }
 
             SirSectionTitle(LocalizationManager.t("sir_ongoing_activities"))
-            RepeatableSirRows(activities, onActivitiesChange, LocalizationManager.t("sir_activities_hint"))
+            RepeatableManualActivities(activities, onActivitiesChange)
             SirSectionTitle(LocalizationManager.t("sir_ongoing_observations"))
             RepeatableSirRows(ongoingObservations, onOngoingObservationsChange, LocalizationManager.t("sir_one_per_line"))
 
@@ -529,6 +566,41 @@ private fun RepeatableSirRows(values: List<String>, onChange: (List<String>) -> 
         }
     }
     TableActionIconButton(LocalizationManager.t("add"), Icons.Default.Add) { onChange(values + "") }
+}
+
+private data class ManualActivityInput(
+    val location: String = "",
+    val description: String = "",
+    val onSchedule: String = "no",
+    val remarks: String = ""
+)
+
+@Composable
+private fun RepeatableManualActivities(
+    values: List<ManualActivityInput>,
+    onChange: (List<ManualActivityInput>) -> Unit
+) {
+    fun update(index: Int, transform: (ManualActivityInput) -> ManualActivityInput) {
+        onChange(values.mapIndexed { current, item -> if (current == index) transform(item) else item })
+    }
+    values.forEachIndexed { index, activity ->
+        Card(colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FBFC))) {
+            Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(activity.location, { value -> update(index) { it.copy(location = value.inspectionText(500)) } }, label = { Text(LocalizationManager.t("sir_activity_location")) }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(activity.description, { value -> update(index) { it.copy(description = value.inspectionText(2_000)) } }, label = { Text(LocalizationManager.t("description")) }, modifier = Modifier.fillMaxWidth(), minLines = 2)
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    InlineOptionPicker(
+                        options = listOf("yes", "no"), selected = activity.onSchedule,
+                        prompt = LocalizationManager.t("sir_on_schedule"), onSelect = { value -> update(index) { it.copy(onSchedule = value) } },
+                        itemLabel = { value -> LocalizationManager.t(value) }, modifier = Modifier.weight(1f)
+                    )
+                    if (values.size > 1) TableActionIconButton(LocalizationManager.t("delete"), Icons.Default.Remove) { onChange(values.filterIndexed { current, _ -> current != index }) }
+                }
+                OutlinedTextField(activity.remarks, { value -> update(index) { it.copy(remarks = value.inspectionText(2_000)) } }, label = { Text(LocalizationManager.t("sir_activity_remarks")) }, modifier = Modifier.fillMaxWidth())
+            }
+        }
+    }
+    TableActionIconButton(LocalizationManager.t("add"), Icons.Default.Add) { onChange(values + ManualActivityInput()) }
 }
 
 private data class HseObservationInput(val observation: String, val isYes: Boolean = false, val comment: String = "")
@@ -611,16 +683,6 @@ private fun ProjectLevelDropdown(
             )
         }
     }
-}
-
-private fun String.toManualActivities() = lines().map(String::trim).filter(String::isNotBlank).map { line ->
-    val fields = line.split('|').map(String::trim)
-    oms.data.ManualActivityRequest(
-        location = fields.firstOrNull().orEmpty(),
-        description = fields.getOrElse(1) { "" },
-        onSchedule = fields.getOrElse(2) { "no" },
-        remarks = fields.getOrNull(3)?.ifBlank { null }
-    )
 }
 
 private fun String.toManualHseObservations() = lines().map(String::trim).filter(String::isNotBlank).map { line ->
