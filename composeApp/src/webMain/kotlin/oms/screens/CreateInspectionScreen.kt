@@ -765,11 +765,24 @@ private fun RepeatableManualActivities(
                 OutlinedTextField(activity.location, { value -> update(index) { it.copy(location = value.inspectionText(500)) } }, label = { Text(LocalizationManager.t("sir_activity_location")) }, modifier = Modifier.fillMaxWidth())
                 OutlinedTextField(activity.description, { value -> update(index) { it.copy(description = value.inspectionText(2_000)) } }, label = { Text(LocalizationManager.t("description")) }, modifier = Modifier.fillMaxWidth(), minLines = 2)
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    InlineOptionPicker(
-                        options = listOf("yes", "no"), selected = activity.onSchedule,
-                        prompt = LocalizationManager.t("sir_on_schedule"), onSelect = { value -> update(index) { it.copy(onSchedule = value) } },
-                        itemLabel = { value -> LocalizationManager.t(value) }, modifier = Modifier.weight(1f)
-                    )
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(LocalizationManager.t("sir_on_schedule"), style = MaterialTheme.typography.labelLarge)
+                        SingleChoiceSegmentedButtonRow(Modifier.widthIn(max = 260.dp).fillMaxWidth()) {
+                            listOf("yes", "no").forEachIndexed { optionIndex, option ->
+                                SegmentedButton(
+                                    selected = activity.onSchedule.equals(option, ignoreCase = true),
+                                    onClick = { update(index) { it.copy(onSchedule = option) } },
+                                    shape = SegmentedButtonDefaults.itemShape(optionIndex, 2),
+                                    colors = SegmentedButtonDefaults.colors(
+                                        activeContainerColor = MaterialTheme.colorScheme.primary,
+                                        activeContentColor = Color.White
+                                    ),
+                                    icon = {},
+                                    label = { Text(LocalizationManager.t(option)) }
+                                )
+                            }
+                        }
+                    }
                     if (values.size > 1) TableActionIconButton(LocalizationManager.t("delete"), Icons.Default.Remove) { onChange(values.filterIndexed { current, _ -> current != index }) }
                 }
                 OutlinedTextField(activity.remarks, { value -> update(index) { it.copy(remarks = value.inspectionText(2_000)) } }, label = { Text(LocalizationManager.t("sir_activity_remarks")) }, modifier = Modifier.fillMaxWidth())
