@@ -2,6 +2,7 @@ package oms.screens
 
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.verticalScroll
@@ -39,6 +40,7 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import oms.data.ApiInspectionReport
+import oms.data.ApiInspectionReportPreview
 import oms.data.CreateInspectionFindingRequest
 import oms.data.OmsApiClient
 import oms.data.ProjectRepository
@@ -104,6 +106,7 @@ fun ReportsScreen(
     var reportToEdit by remember { mutableStateOf<ReportRow?>(null) }
     var findingsReport by remember { mutableStateOf<ReportRow?>(null) }
     var reportToReview by remember { mutableStateOf<ReportRow?>(null) }
+    var reportToPreview by remember { mutableStateOf<ReportRow?>(null) }
     var analytics by remember { mutableStateOf<ApiInspectionAnalytics?>(null) }
     var inspectionsChartExpanded by remember { mutableStateOf(true) }
     var eshsChartExpanded by remember { mutableStateOf(true) }
@@ -241,7 +244,7 @@ fun ReportsScreen(
             ) {
                 if (!loading && !loadFailed && visible.isEmpty()) Text(LocalizationManager.t("no_reports"))
                 visible.forEach { row ->
-                    Row(Modifier.width(1_115.dp).padding(vertical = 8.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                    Row(Modifier.width(1_163.dp).padding(vertical = 8.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                         Text(row.report.inspectionDate.toOmsDate(), Modifier.width(105.dp))
                         ExpandableTableText(row.localizedSubprojectName() ?: "—", Modifier.width(220.dp), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Text(row.subprojectCode ?: "—", Modifier.width(150.dp), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -255,6 +258,7 @@ fun ReportsScreen(
                         } else {
                             Spacer(Modifier.width(48.dp))
                         }
+                        TableActionIconButton(LocalizationManager.t("preview_report"), Icons.Default.Visibility) { reportToPreview = row }
                         TableActionIconButton(LocalizationManager.t("open_source_file"), Icons.Default.FileDownload) {
                             uriHandler.openUri(oms.data.omsApiUrl("/inspection-reports/${row.report.uuid}/source-file"))
                         }
@@ -324,6 +328,9 @@ fun ReportsScreen(
             }
         )
     } }
+    reportToPreview?.let { report -> WasmSafeOverlay(onDismiss = { reportToPreview = null }) {
+        ReportPreviewDialog(report, onDismiss = { reportToPreview = null })
+    } }
     findingsReport?.let { report -> WasmSafeOverlay(onDismiss = { findingsReport = null }, errorMessage = errorMessage) {
         FindingsDialog(report = report, onDismiss = { findingsReport = null })
     } }
@@ -352,6 +359,86 @@ fun ReportsScreen(
         oms.components.HoldToScrollButton(LocalizationManager.t("dashboard_scroll_down"), Icons.Default.KeyboardArrowDown, contentScrollState, 1)
     }
     }
+    }
+}
+
+/** Read-only browser preview of the stored XLS/XLSX source. */
+@Composable
+private fun ReportPreviewDialog(report: ReportRow, onDismiss: () -> Unit) {
+    var preview by remember(report.report.uuid) { mutableStateOf<ApiInspectionReportPreview?>(null) }
+    var failed by remember(report.report.uuid) { mutableStateOf(false) }
+    var selectedSheet by remember(report.report.uuid) { mutableStateOf(0) }
+    val contentScroll = rememberScrollState()
+    val tableScroll = rememberScrollState()
+    LaunchedEffect(report.report.uuid) {
+        failed = false
+        runCatching { OmsApiClient.inspectionReportPreview(report.report.uuid) }
+            .onSuccess { preview = it; selectedSheet = 0 }
+            .onFailure { failed = true }
+    }
+    Card(
+        Modifier.widthIn(max = 920.dp).fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+    ) {
+        Column(
+            Modifier.padding(20.dp).heightIn(max = 680.dp).verticalScroll(contentScroll),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text(LocalizationManager.t("report_preview"), style = MaterialTheme.typography.titleLarge)
+                    Text(report.title(), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    preview?.let { Text(it.fileName, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                }
+                TableActionIconButton(LocalizationManager.t("close"), Icons.Default.Close, onDismiss)
+            }
+            when {
+                preview == null && !failed -> oms.components.ContentState(LocalizationManager.t("loading_records"), loading = true)
+                failed -> oms.components.ContentState(LocalizationManager.t("report_preview_failed"), error = true)
+                else -> {
+                    val loaded = requireNotNull(preview)
+                    if (loaded.sheets.isEmpty()) {
+                        Text(LocalizationManager.t("report_preview_empty"))
+                    } else {
+                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            loaded.sheets.forEachIndexed { index, sheet ->
+                                FilterChip(
+                                    selected = selectedSheet == index,
+                                    onClick = { selectedSheet = index },
+                                    label = { Text(sheet.name) }
+                                )
+                            }
+                        }
+                        val sheet = loaded.sheets.getOrNull(selectedSheet) ?: loaded.sheets.first()
+                        if (sheet.rows.isEmpty()) Text(LocalizationManager.t("report_preview_empty"))
+                        else Box(Modifier.fillMaxWidth().horizontalScroll(tableScroll)) {
+                            Column(Modifier.widthIn(min = 920.dp)) {
+                                sheet.rows.forEach { row ->
+                                    Row(Modifier.fillMaxWidth()) {
+                                        Text(
+                                            row.rowNumber.toString(),
+                                            Modifier.width(42.dp).border(0.5.dp, MaterialTheme.colorScheme.outlineVariant).padding(6.dp),
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                        row.cells.forEach { cell ->
+                                            Text(
+                                                cell.ifBlank { " " },
+                                                Modifier.width(140.dp).border(0.5.dp, MaterialTheme.colorScheme.outlineVariant).padding(6.dp).heightIn(min = 34.dp),
+                                                style = MaterialTheme.typography.bodySmall
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                OutlinedButton(onClick = onDismiss) { Text(LocalizationManager.t("close")) }
+            }
+        }
     }
 }
 
@@ -666,7 +753,7 @@ private fun ReportTableHeader(
     val authors = reports.mapNotNull { it.report.authorUsername?.takeIf(String::isNotBlank) }.distinct().sorted()
     val statuses = listOf("draft", "pending_review", "completed")
 
-    Column(Modifier.width(1_115.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    Column(Modifier.width(1_163.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Row(verticalAlignment = Alignment.Top) {
             Box(Modifier.width(105.dp).padding(top = 14.dp)) {
                 Text(LocalizationManager.t("filters"), style = MaterialTheme.typography.labelLarge)
@@ -692,7 +779,7 @@ private fun ReportTableHeader(
             Box(Modifier.width(110.dp)) {
                 FilterDropdown(LocalizationManager.t("uploaded_by_short"), authors, authorFilter, onAuthorFilterChange, Modifier.fillMaxWidth()) { it }
             }
-            Spacer(Modifier.width(240.dp))
+            Spacer(Modifier.width(288.dp))
         }
         Row(Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
             SortableTableHeader(LocalizationManager.t("date"), sort == ReportSort.Date, ascending, { onSort(ReportSort.Date) }, Modifier.width(105.dp))
@@ -701,7 +788,7 @@ private fun ReportTableHeader(
             SortableTableHeader(LocalizationManager.t("subproject_part_code_label"), sort == ReportSort.SubprojectPartCode, ascending, { onSort(ReportSort.SubprojectPartCode) }, Modifier.width(160.dp))
             SortableTableHeader(LocalizationManager.t("status"), sort == ReportSort.Status, ascending, { onSort(ReportSort.Status) }, Modifier.width(130.dp))
             SortableTableHeader(LocalizationManager.t("uploaded_by_short"), sort == ReportSort.Author, ascending, { onSort(ReportSort.Author) }, Modifier.width(110.dp))
-            Box(Modifier.width(240.dp).height(52.dp), contentAlignment = Alignment.Center) {
+            Box(Modifier.width(288.dp).height(52.dp), contentAlignment = Alignment.Center) {
                 Text(LocalizationManager.t("actions"))
             }
         }

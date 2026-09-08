@@ -19,6 +19,9 @@ import oms.ufsi.dto.CreateManualInspectionReportRequest
 import oms.ufsi.dto.ManualActivity
 import oms.ufsi.dto.ManualHseObservation
 import oms.ufsi.dto.ManualRemark
+import oms.ufsi.dto.InspectionReportPreviewResponse
+import oms.ufsi.dto.InspectionReportPreviewRow
+import oms.ufsi.dto.InspectionReportPreviewSheet
 import oms.ufsi.storage.DurableFileStorage
 import oms.ufsi.storage.uploadDirectory
 
@@ -310,6 +313,45 @@ class InspectionReportFileService(
     fun getFile(reportId: Long): InspectionReportFile? = fileRepository.findByReportId(reportId)
 
     fun resolveFile(file: InspectionReportFile): Path? = DurableFileStorage.resolve(file.storagePath)
+
+    /**
+     * Converts the meaningful cells of an SIR workbook into a compact payload
+     * for the web preview.  Keeping parsing on the server avoids downloading a
+     * binary Office file merely to let a user read its contents in the browser.
+     */
+    fun preview(reportId: Long): InspectionReportPreviewResponse {
+        val file = getFile(reportId) ?: throw IllegalArgumentException("Original SIR file not found.")
+        val path = resolveFile(file) ?: throw IllegalArgumentException("Original SIR file is unavailable.")
+        return try {
+            Files.newInputStream(path).use { input ->
+                WorkbookFactory.create(input).use { workbook ->
+                    val formatter = DataFormatter()
+                    val evaluator = workbook.creationHelper.createFormulaEvaluator()
+                    val sheets = workbook.map { sheet ->
+                        val rows = buildList {
+                            for (index in 0..sheet.lastRowNum) {
+                                val row = sheet.getRow(index) ?: continue
+                                val width = minOf((row.lastCellNum.toInt()).coerceAtLeast(0), 16)
+                                val cells = (0 until width).map { column ->
+                                    row.getCell(column)?.let { cell ->
+                                        formatter.formatCellValue(cell, evaluator).trim()
+                                    }.orEmpty()
+                                }
+                                if (cells.any(String::isNotBlank)) add(InspectionReportPreviewRow(index + 1, cells))
+                                if (size >= 180) break
+                            }
+                        }
+                        InspectionReportPreviewSheet(sheet.sheetName, rows)
+                    }
+                    InspectionReportPreviewResponse(file.originalName, sheets)
+                }
+            }
+        } catch (exception: IllegalArgumentException) {
+            throw exception
+        } catch (_: Exception) {
+            throw IllegalArgumentException("The SIR file could not be prepared for preview.")
+        }
+    }
 
     fun replace(report: InspectionReport, originalName: String, contentType: String?, input: java.io.InputStream): InspectionReportFile {
         val safeName = originalName.replace(Regex("[\\r\\n\\u0000]"), "").trim()

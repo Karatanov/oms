@@ -106,6 +106,15 @@ fun Route.inspectionRoutes() {
         call.respondFile(path.toFile())
     }
 
+    get("/api/v1/inspection-reports/{reportUuid}/preview") {
+        val report = call.findReport() ?: return@get
+        try {
+            call.respond(AppContainer.inspectionReportFileService.preview(report.id))
+        } catch (exception: IllegalArgumentException) {
+            call.validationError(exception)
+        }
+    }
+
     put("/api/v1/inspection-reports/{reportUuid}/source-file") {
         val session = call.requireRole("ADMIN", "PROJECT_MANAGER", "INSPECTOR") ?: return@put
         val report = call.findReport() ?: return@put

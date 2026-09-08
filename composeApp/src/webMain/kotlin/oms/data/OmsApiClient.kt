@@ -212,6 +212,9 @@ object OmsApiClient {
     suspend fun inspectionReports(): List<ApiProjectInspectionReport> =
         client.get("$baseUrl/inspection-reports").body()
 
+    suspend fun inspectionReportPreview(reportUuid: String): ApiInspectionReportPreview =
+        client.get("$baseUrl/inspection-reports/$reportUuid/preview").body()
+
     suspend fun healthSafetyObservations(projectUuid: String): ApiHealthSafetyObservations =
         client.get("$baseUrl/projects/$projectUuid/health-safety-observations").body()
 
@@ -756,6 +759,24 @@ data class ApiInspectionReport(
     val latitude: Double? = null,
     val longitude: Double? = null,
     val authorUsername: String? = null
+)
+
+@Serializable
+data class ApiInspectionReportPreview(
+    val fileName: String,
+    val sheets: List<ApiInspectionReportPreviewSheet>
+)
+
+@Serializable
+data class ApiInspectionReportPreviewSheet(
+    val name: String,
+    val rows: List<ApiInspectionReportPreviewRow>
+)
+
+@Serializable
+data class ApiInspectionReportPreviewRow(
+    val rowNumber: Int,
+    val cells: List<String>
 )
 
 @Serializable
