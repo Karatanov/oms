@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
@@ -35,7 +36,7 @@ fun MonthlyActPaymentsChart(primary: Color, payments: List<ApiMonthlyActPayment>
                 formattedValue = oms.components.formatEuroCents(payment.amountEurCents)
             )
         }
-    Card(modifier = Modifier.fillMaxWidth().height(420.dp), shape = RoundedCornerShape(12.dp),
+    Card(modifier = Modifier.fillMaxWidth().heightIn(min = 420.dp), shape = RoundedCornerShape(12.dp),
         colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
         Column(modifier = Modifier.padding(16.dp)) {
             Box(Modifier.fillMaxWidth().height(44.dp), contentAlignment = Alignment.Center) {

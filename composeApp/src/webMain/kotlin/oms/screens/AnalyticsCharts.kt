@@ -257,7 +257,7 @@ private fun AnalyticsCard(
     val cardModifier = Modifier.fillMaxWidth().then(
         if (!expanded) Modifier
         else if (compact) Modifier.heightIn(min = 144.dp)
-        else Modifier.height(if (filterContent == null) 420.dp else 476.dp)
+        else Modifier.heightIn(min = if (filterContent == null) 420.dp else 476.dp)
     )
     Card(cardModifier, shape = RoundedCornerShape(12.dp),
         colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {

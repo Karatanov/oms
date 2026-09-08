@@ -30,9 +30,10 @@ fun VerticalBarChart(
     val scroll = rememberScrollState()
     LaunchedEffect(data, initialScrollToEnd, scroll.maxValue) { if (initialScrollToEnd) scroll.scrollTo(scroll.maxValue) }
     val laneHeight = if (labelMaxLines == 1) 24.dp else 52.dp
+    val plotWidth = labelWidth * data.size + 8.dp * (data.size - 1)
     Column(Modifier.fillMaxWidth()) {
         Column(Modifier.fillMaxWidth().horizontalScroll(scroll)) {
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(Modifier.width(plotWidth), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             data.forEach { item ->
                 val displayValue = item.formattedValue ?: valueLabel(item.value)
                 val tooltip = listOf(item.label + ": " + displayValue, item.tooltip).filterNotNull().joinToString("\n")
@@ -76,6 +77,14 @@ fun VerticalBarChart(
             }
         }
         }
-        if (showScrollControls) TableScrollControls(scroll)
+        if (showScrollControls) {
+            Surface(
+                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                shape = MaterialTheme.shapes.medium,
+                color = MaterialTheme.colorScheme.surfaceContainerLow
+            ) {
+                TableScrollControls(scroll, showWhenStationary = true)
+            }
+        }
     }
 }
