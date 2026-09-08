@@ -112,7 +112,11 @@ fun ScrollableTable(
                     .onGloballyPositioned { coordinates ->
                     val bounds = coordinates.boundsInRoot()
                     controlsTopInRoot = bounds.top
-                    if (controlsTopInPage == null || (pageScrollState?.value ?: 0) == 0) {
+                    // boundsInRoot includes graphicsLayer translation. Updating
+                    // the stored base position after the navigator was moved
+                    // feeds that translated value back into fixedControlsOffset
+                    // and makes the control oscillate on Web/Wasm.
+                    if (controlsTopInPage == null) {
                         controlsTopInPage = bounds.top + (pageScrollState?.value ?: 0)
                     }
                         controlsHeight = coordinates.size.height
