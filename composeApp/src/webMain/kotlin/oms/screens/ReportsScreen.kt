@@ -68,7 +68,6 @@ external fun openInspectionSourceReplacement(reportUuid: String, onComplete: (St
 private data class ReportRow(
     val projectUuid: String,
     val projectName: String,
-    val projectCode: String,
     val subprojectName: String?,
     val subprojectNameEn: String?,
     val subprojectCode: String?,
@@ -80,7 +79,7 @@ private fun ReportRow.localizedSubprojectName(): String? =
     if (LocalizationManager.currentLanguage == Language.EN) subprojectNameEn?.takeIf(String::isNotBlank) ?: subprojectName
     else subprojectName
 private fun ReportRow.title(): String = "${localizedSubprojectName() ?: projectName} ${report.inspectionDate.toOmsDate()}"
-private enum class ReportSort { Date, Project, Subproject, SubprojectCode, SubprojectPartCode, Status, Author }
+private enum class ReportSort { Date, Subproject, SubprojectCode, SubprojectPartCode, Status, Author }
 
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
@@ -95,7 +94,6 @@ fun ReportsScreen(
     var reports by remember { mutableStateOf<List<ReportRow>>(emptyList()) }
     var search by remember { mutableStateOf("") }
     var status by remember { mutableStateOf<String?>(null) }
-    var projectFilter by remember { mutableStateOf<String?>(null) }
     var subprojectFilter by remember { mutableStateOf<String?>(null) }
     var subprojectPartCodeFilter by remember { mutableStateOf<String?>(null) }
     var loading by remember { mutableStateOf(true) }
@@ -133,12 +131,11 @@ fun ReportsScreen(
             }.toList().asReversed()
             val root = ancestry.firstOrNull() ?: attachedProject
             val projectName = root.name
-            val projectCode = root.siteNumber
             val subprojectName = ancestry.getOrNull(1)?.name
             val subprojectNameEn = ancestry.getOrNull(1)?.nameEn
             val subprojectCode = ancestry.getOrNull(1)?.siteNumber
             val subprojectPartCode = ancestry.getOrNull(2)?.siteNumber
-            ReportRow(attachedProject.id, projectName, projectCode, subprojectName, subprojectNameEn, subprojectCode, subprojectPartCode, item.report)
+            ReportRow(attachedProject.id, projectName, subprojectName, subprojectNameEn, subprojectCode, subprojectPartCode, item.report)
         }.sortedByDescending { it.report.inspectionDate }
         } catch (failure: Exception) {
             if (failure is kotlinx.coroutines.CancellationException) throw failure
@@ -146,18 +143,16 @@ fun ReportsScreen(
         } finally { loading = false }
     }
     val language = LocalizationManager.currentLanguage
-    val visible = remember(reports, search, status, projectFilter, subprojectFilter, subprojectPartCodeFilter, sort, ascending, language) {
+    val visible = remember(reports, search, status, subprojectFilter, subprojectPartCodeFilter, sort, ascending, language) {
         reports.asSequence().filter {
-                (search.isBlank() || it.report.inspectionCode.contains(search, true) || it.title().contains(search, true) || it.projectCode.contains(search, true) || it.subprojectCode.orEmpty().contains(search, true)) &&
+                (search.isBlank() || it.report.inspectionCode.contains(search, true) || it.title().contains(search, true) || it.subprojectCode.orEmpty().contains(search, true)) &&
                 (status == null || it.report.status == status) &&
-                (projectFilter == null || it.projectCode == projectFilter) &&
                 (subprojectFilter == null || it.localizedSubprojectName() == subprojectFilter) &&
                 (subprojectPartCodeFilter == null || it.subprojectPartCode == subprojectPartCodeFilter)
         }.sortedWith(
             compareBy<ReportRow> {
                 when (sort) {
                     ReportSort.Date -> it.report.inspectionDate
-                    ReportSort.Project -> it.projectCode
                     ReportSort.Subproject -> it.localizedSubprojectName().orEmpty()
                     ReportSort.SubprojectCode -> it.subprojectCode.orEmpty()
                     ReportSort.SubprojectPartCode -> it.subprojectPartCode.orEmpty()
@@ -226,8 +221,6 @@ fun ReportsScreen(
                         ascending = ascending,
                         onSort = ::selectSort,
                         reports = reports,
-                        projectFilter = projectFilter,
-                        onProjectFilterChange = { projectFilter = it; subprojectFilter = null; subprojectPartCodeFilter = null },
                         subprojectFilter = subprojectFilter,
                         onSubprojectFilterChange = { subprojectFilter = it; subprojectPartCodeFilter = null },
                         subprojectPartCodeFilter = subprojectPartCodeFilter,
@@ -240,9 +233,8 @@ fun ReportsScreen(
             ) {
                 if (!loading && !loadFailed && visible.isEmpty()) Text(LocalizationManager.t("no_reports"))
                 visible.forEach { row ->
-                    Row(Modifier.width(1_265.dp).padding(vertical = 8.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                    Row(Modifier.width(1_115.dp).padding(vertical = 8.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                         Text(row.report.inspectionDate.toOmsDate(), Modifier.width(105.dp))
-                        Text(row.projectCode, Modifier.width(150.dp), style = MaterialTheme.typography.bodySmall)
                         ExpandableTableText(row.localizedSubprojectName() ?: "—", Modifier.width(220.dp), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Text(row.subprojectCode ?: "—", Modifier.width(150.dp), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Text(row.subprojectPartCode ?: "—", Modifier.width(160.dp), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -306,7 +298,6 @@ fun ReportsScreen(
                                     it.copy(
                                         projectUuid = targetProjectUuid,
                                         projectName = ancestry.firstOrNull()?.name ?: it.projectName,
-                                        projectCode = ancestry.firstOrNull()?.siteNumber ?: it.projectCode,
                                         subprojectName = ancestry.getOrNull(1)?.name,
                                         subprojectNameEn = ancestry.getOrNull(1)?.nameEn,
                                         subprojectCode = ancestry.getOrNull(1)?.siteNumber,
@@ -639,8 +630,6 @@ private fun ReportTableHeader(
     ascending: Boolean,
     onSort: (ReportSort) -> Unit,
     reports: List<ReportRow>,
-    projectFilter: String?,
-    onProjectFilterChange: (String?) -> Unit,
     subprojectFilter: String?,
     onSubprojectFilterChange: (String?) -> Unit,
     subprojectPartCodeFilter: String?,
@@ -650,14 +639,12 @@ private fun ReportTableHeader(
 ) {
     val subprojects = reports
         .asSequence()
-        .filter { projectFilter == null || it.projectCode == projectFilter }
         .mapNotNull { it.localizedSubprojectName() }
         .distinct()
         .sorted()
         .toList()
     val partCodes = reports
         .asSequence()
-        .filter { projectFilter == null || it.projectCode == projectFilter }
         .filter { subprojectFilter == null || it.localizedSubprojectName() == subprojectFilter }
         .mapNotNull { it.subprojectPartCode }
         .distinct()
@@ -665,13 +652,10 @@ private fun ReportTableHeader(
         .toList()
     val statuses = listOf("draft", "pending_review", "completed")
 
-    Column(Modifier.width(1_265.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    Column(Modifier.width(1_115.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Row(verticalAlignment = Alignment.Top) {
             Box(Modifier.width(105.dp).padding(top = 14.dp)) {
                 Text(LocalizationManager.t("filters"), style = MaterialTheme.typography.labelLarge)
-            }
-            Box(Modifier.width(150.dp)) {
-                FilterDropdown(LocalizationManager.t("project"), reports.map { it.projectCode }.distinct().sorted(), projectFilter, onProjectFilterChange, Modifier.fillMaxWidth()) { it }
             }
             Box(Modifier.width(220.dp)) {
                 FilterDropdown(LocalizationManager.t("subproject"), subprojects, subprojectFilter, onSubprojectFilterChange, Modifier.fillMaxWidth()) { it }
@@ -693,7 +677,6 @@ private fun ReportTableHeader(
         }
         Row(Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
             SortableTableHeader(LocalizationManager.t("date"), sort == ReportSort.Date, ascending, { onSort(ReportSort.Date) }, Modifier.width(105.dp))
-            SortableTableHeader(LocalizationManager.t("project_code"), sort == ReportSort.Project, ascending, { onSort(ReportSort.Project) }, Modifier.width(150.dp))
             SortableTableHeader(LocalizationManager.t("subproject"), sort == ReportSort.Subproject, ascending, { onSort(ReportSort.Subproject) }, Modifier.width(220.dp))
             SortableTableHeader(LocalizationManager.t("subproject_code"), sort == ReportSort.SubprojectCode, ascending, { onSort(ReportSort.SubprojectCode) }, Modifier.width(150.dp))
             SortableTableHeader(LocalizationManager.t("subproject_part_code_label"), sort == ReportSort.SubprojectPartCode, ascending, { onSort(ReportSort.SubprojectPartCode) }, Modifier.width(160.dp))
