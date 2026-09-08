@@ -27,6 +27,7 @@ class AppState {
     var requestedProjectRegion by mutableStateOf<String?>(null)
     var requestedFinancialSubprojectUuid by mutableStateOf<String?>(null)
     var requestedProcurementStatus by mutableStateOf<String?>(null)
+    var editingInspectionUuid by mutableStateOf<String?>(null)
 
     // 🔹 Чи авторизований користувач
     var isAuthenticated by mutableStateOf(false)
@@ -73,6 +74,12 @@ class AppState {
 
     // 🔹 Відкрити створення інспекції
     fun openCreateInspection() {
+        editingInspectionUuid = null
+        navigate(Screen.CreateInspection)
+    }
+
+    fun openEditInspection(reportUuid: String) {
+        editingInspectionUuid = reportUuid
         navigate(Screen.CreateInspection)
     }
 

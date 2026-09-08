@@ -16,6 +16,9 @@ import org.apache.poi.ss.usermodel.Workbook
 import org.apache.poi.ss.usermodel.WorkbookFactory
 import org.apache.poi.xssf.usermodel.XSSFWorkbook
 import oms.ufsi.dto.CreateManualInspectionReportRequest
+import oms.ufsi.dto.ManualActivity
+import oms.ufsi.dto.ManualHseObservation
+import oms.ufsi.dto.ManualRemark
 import oms.ufsi.storage.DurableFileStorage
 import oms.ufsi.storage.uploadDirectory
 
@@ -120,6 +123,70 @@ class InspectionReportFileService(
         }
     }
 
+    /** Reads the fields of a generated manual SIR back from its workbook. */
+    fun readManual(report: InspectionReport): CreateManualInspectionReportRequest {
+        val source = getFile(report.id) ?: throw IllegalArgumentException("Original SIR file not found.")
+        val path = resolveFile(source) ?: throw IllegalArgumentException("Original SIR file is unavailable.")
+        WorkbookFactory.create(path.toFile()).use { workbook ->
+            val sheet = workbook.getSheet("SIR") ?: throw IllegalArgumentException("Manual SIR sheet is unavailable.")
+            val formatter = DataFormatter()
+            fun text(row: Int, column: Int) = sheet.getRow(row - 1)?.getCell(column - 1)
+                ?.let(formatter::formatCellValue)?.trim().orEmpty()
+            fun date(row: Int, column: Int): String = runCatching {
+                sheet.getRow(row - 1).getCell(column - 1).localDateTimeCellValue.toLocalDate().toString()
+            }.getOrDefault(report.inspectionDate.toString())
+            fun rows(start: Int, end: Int, column: Int) = (start..end).map { text(it, column) }.filter(String::isNotBlank)
+            return CreateManualInspectionReportRequest(
+                inspectionDate = date(5, 9), inspectionType = report.inspectionType,
+                contractor = text(5, 1), contractorRepresentative = text(7, 1).ifBlank { null },
+                projectName = text(1, 1).ifBlank { null }, siteReference = text(5, 5).ifBlank { null },
+                qaStaff = text(7, 5).ifBlank { null }, usifRepresentative = text(7, 9).ifBlank { null },
+                skilledLabor = text(10, 1).ifBlank { null }, unskilledLabor = text(10, 3).ifBlank { null },
+                siteManagement = text(10, 5).ifBlank { null }, weather = text(10, 9).ifBlank { null },
+                activities = (13..26).mapNotNull { row ->
+                    val activity = ManualActivity(text(row, 1), text(row, 3), text(row, 8), text(row, 10).ifBlank { null })
+                    activity.takeIf { it.location.isNotBlank() || it.description.isNotBlank() || !it.remarks.isNullOrBlank() }
+                },
+                ongoingObservations = rows(28, 39, 1),
+                hseObservations = (41..46).mapNotNull { row ->
+                    text(row, 1).takeIf(String::isNotBlank)?.split(" — ", limit = 3)?.let { parts ->
+                        ManualHseObservation(parts[0], parts.getOrNull(1), parts.getOrNull(2))
+                    }
+                },
+                qualityRemarks = (49..53).mapNotNull { row ->
+                    ManualRemark(text(row, 1), text(row, 10).ifBlank { null }).takeIf { it.comment.isNotBlank() || !it.rectification.isNullOrBlank() }
+                },
+                progressComment = text(55, 1).ifBlank { null }, scheduleRemark = text(55, 10).ifBlank { null },
+                inspectorName = text(59, 1), inspectorTitle = text(59, 4).ifBlank { null },
+                latitude = report.latitude, longitude = report.longitude
+            )
+        }
+    }
+
+    /** Rewrites a manual SIR in its existing workbook, preserving its Photos sheet. */
+    fun updateManual(report: InspectionReport, project: Project, request: CreateManualInspectionReportRequest): InspectionReport {
+        val source = getFile(report.id) ?: throw IllegalArgumentException("Original SIR file not found.")
+        val path = resolveFile(source) ?: throw IllegalArgumentException("Original SIR file is unavailable.")
+        val temporary = Files.createTempFile(path.parent, "sir-edit-", ".xlsx")
+        try {
+            WorkbookFactory.create(path.toFile()).use { workbook ->
+                val xlsx = workbook as? XSSFWorkbook ?: throw IllegalArgumentException("Manual SIR file must be XLSX.")
+                populateManualSir(xlsx, project, request, request.qaStaff?.trim()?.takeIf(String::isNotBlank) ?: request.inspectorName.trim(), removeReferencePhotoSheets = false)
+                Files.newOutputStream(temporary).use(xlsx::write)
+            }
+            Files.move(temporary, path, StandardCopyOption.REPLACE_EXISTING)
+            DurableFileStorage.persist(path)
+            fileRepository.replace(source.copy(fileSizeBytes = Files.size(path)))
+            return reportService.updateReport(
+                report.uuid.toString(), request.inspectionDate,
+                "Manual SIR [${request.inspectionType}]: ${request.contractor}", report.reportCode,
+                request.inspectionType, request.latitude, request.longitude
+            ) ?: throw IllegalArgumentException("Inspection report not found.")
+        } finally {
+            Files.deleteIfExists(temporary)
+        }
+    }
+
     /**
      * The manual report is filled into the approved SIR layout, not rebuilt
      * from generic rows.  This preserves the exact column geometry, merged
@@ -137,12 +204,13 @@ class InspectionReportFileService(
         workbook: XSSFWorkbook,
         project: Project,
         request: CreateManualInspectionReportRequest,
-        qaStaff: String
+        qaStaff: String,
+        removeReferencePhotoSheets: Boolean = true
     ) {
         // The supplied template's second sheet contains photographs from its
         // reference inspection. Generated reports must never carry those
         // unrelated photographs into a new report.
-        while (workbook.numberOfSheets > 1) workbook.removeSheetAt(1)
+        if (removeReferencePhotoSheets) while (workbook.numberOfSheets > 1) workbook.removeSheetAt(1)
         val sheet = checkNotNull(workbook.getSheet("SIR")) { "Manual SIR sheet is unavailable." }
         val date = LocalDate.parse(request.inspectionDate)
 

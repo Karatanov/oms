@@ -216,6 +216,49 @@ fun Route.inspectionRoutes() {
             call.respond(HttpStatusCode.NoContent)
         }
 
+        get("manual") {
+            val report = call.findReport() ?: return@get
+            try {
+                val project = AppContainer.projectService.getAllProjects().firstOrNull { it.id == report.projectId }
+                    ?: return@get call.notFound("Project not found.")
+                call.respond(
+                    ManualInspectionReportEditorResponse(
+                        project.uuid.toString(), report.status.name.lowercase(),
+                        AppContainer.inspectionReportFileService.readManual(report)
+                    )
+                )
+            } catch (exception: IllegalArgumentException) {
+                call.validationError(exception)
+            }
+        }
+
+        put("manual") {
+            val session = call.requireRole("ADMIN", "PROJECT_MANAGER", "INSPECTOR") ?: return@put
+            val report = call.findReport() ?: return@put
+            val request = call.receive<UpdateManualInspectionReportRequest>()
+            val targetProject = AppContainer.projectService.getProjectByUuid(request.projectUuid.trim())
+                ?: return@put call.notFound("Target project not found.")
+            if (!call.requireProjectAccess(session, targetProject.uuid.toString())) return@put
+            try {
+                val moved = if (report.projectId == targetProject.id) report else {
+                    AppContainer.inspectionReportService.moveToProject(report.uuid.toString(), targetProject.id)
+                        ?: return@put call.notFound("Inspection report not found.")
+                }
+                val updated = AppContainer.inspectionReportFileService.updateManual(moved, targetProject, request.manual)
+                val finalReport = if (request.status != null && request.status != updated.status.name.lowercase()) {
+                    if (!session.roleCode.equals("ADMIN", true) && !session.roleCode.equals("PROJECT_MANAGER", true)) {
+                        throw IllegalArgumentException("Only an administrator or project manager can change report status.")
+                    }
+                    AppContainer.inspectionReportService.setStatus(updated.uuid.toString(), request.status)
+                        ?: return@put call.notFound("Inspection report not found.")
+                } else updated
+                AppContainer.auditLogService.record(session.userId, "inspection_manual_updated", "inspection_report", updated.id)
+                call.respond(finalReport.toResponse())
+            } catch (exception: IllegalArgumentException) {
+                call.validationError(exception)
+            }
+        }
+
         put {
             call.requireRole("ADMIN", "PROJECT_MANAGER", "INSPECTOR") ?: return@put
             val report = call.findReport() ?: return@put

@@ -62,13 +62,16 @@ external fun hidePendingInspectionPhotoPreviews()
 @Composable
 fun CreateInspectionScreen(
     isEditMode: Boolean = false,
+    editingReportUuid: String? = null,
     currentUserName: String = "",
     isAdmin: Boolean = false,
+    canChangeReportStatus: Boolean = false,
     rejectedReason: String? = null,
     onSaveDraft: () -> Unit = {},
     onSubmit: () -> Unit = {},
     onImportXls: () -> Unit = {}
 ) {
+    val isManualEdit = editingReportUuid != null
     var date by remember { mutableStateOf(currentIsoDate()) }
     var inspectionType by remember { mutableStateOf(InspectionType.PLANNED) }
     var latitude by remember { mutableStateOf("") }
@@ -101,6 +104,8 @@ fun CreateInspectionScreen(
     var progressComment by remember { mutableStateOf("") }
     var scheduleRemark by remember { mutableStateOf("") }
     var inspectorTitle by remember { mutableStateOf("") }
+    var reportStatus by remember { mutableStateOf("draft") }
+    var loadingManualReport by remember(editingReportUuid) { mutableStateOf(isManualEdit) }
     val scope = rememberCoroutineScope()
     val pageScrollState = rememberScrollState()
     fun scrollBy(delta: Float) = scope.launch { pageScrollState.animateScrollBy(delta) }
@@ -132,6 +137,57 @@ fun CreateInspectionScreen(
         else -> null
     }
 
+    LaunchedEffect(editingReportUuid) {
+        val reportUuid = editingReportUuid ?: return@LaunchedEffect
+        loadingManualReport = true
+        runCatching {
+            ProjectRepository.refresh()
+            OmsApiClient.manualInspectionReport(reportUuid)
+        }.onSuccess { editor ->
+            val manual = editor.manual
+            val projectsById = ProjectRepository.projects.associateBy { it.id }
+            val target = projectsById[editor.projectUuid]
+            val ancestry = target?.let {
+                generateSequence(it) { current -> current.parentProjectUuid?.let(projectsById::get) }
+                    .toList().asReversed()
+            }.orEmpty()
+            selectedProjectUuid = ancestry.getOrNull(0)?.id
+            selectedSubprojectUuid = ancestry.getOrNull(1)?.id
+            selectedSubprojectPartUuid = ancestry.getOrNull(2)?.id
+            date = manual.inspectionDate
+            reportStatus = editor.status
+            inspectionType = InspectionType.entries.firstOrNull { it.name.equals(manual.inspectionType, true) } ?: InspectionType.PLANNED
+            projectName = manual.projectName.orEmpty()
+            contractor = manual.contractor
+            contractorRepresentative = manual.contractorRepresentative.orEmpty()
+            qaStaff = manual.qaStaff.orEmpty()
+            usifRepresentative = manual.usifRepresentative.orEmpty()
+            skilledLabor = manual.skilledLabor.orEmpty()
+            unskilledLabor = manual.unskilledLabor.orEmpty()
+            siteManagement = manual.siteManagement.orEmpty()
+            weatherCondition = WeatherCondition.fromWorkbookValue(manual.weather)
+            temperatureCelsius = manual.weather.workbookTemperature()
+            activities = manual.activities.map {
+                ManualActivityInput(it.location, it.description, it.onSchedule.lowercase().ifBlank { "no" }, it.remarks.orEmpty())
+            }.ifEmpty { listOf(ManualActivityInput()) }
+            ongoingObservations = manual.ongoingObservations.ifEmpty { listOf("") }
+            hseObservations = manual.hseObservations.map {
+                HseObservationInput(it.observation, it.answer.equals("yes", true), it.comment.orEmpty())
+            }.ifEmpty { defaultHseObservations }
+            qualityText = manual.qualityRemarks.joinToString("\n") { remark -> listOfNotNull(remark.comment, remark.rectification).joinToString(" | ") }
+            progressComment = manual.progressComment.orEmpty()
+            scheduleRemark = manual.scheduleRemark.orEmpty()
+            inspectorName = manual.inspectorName.ifBlank { currentUserName }
+            inspectorTitle = manual.inspectorTitle.orEmpty()
+            latitude = manual.latitude?.toString().orEmpty()
+            longitude = manual.longitude?.toString().orEmpty()
+            entryMode = "manual"
+        }.onFailure { failure ->
+            errorMessage = LocalizationManager.t("error_update_report").replace("{message}", failure.message ?: LocalizationManager.t("unknown_error"))
+        }
+        loadingManualReport = false
+    }
+
     val maxComments = 2000
 
     Box(Modifier.fillMaxSize()) {
@@ -155,9 +211,13 @@ fun CreateInspectionScreen(
             .padding(start = 24.dp, top = 24.dp, end = 76.dp, bottom = 24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        PageHeading(if (isEditMode) LocalizationManager.t("edit_inspection") else LocalizationManager.t("create_inspection"), Icons.Default.FactCheck)
+        PageHeading(if (isEditMode || isManualEdit) LocalizationManager.t("edit_inspection") else LocalizationManager.t("create_inspection"), Icons.Default.FactCheck)
 
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        if (loadingManualReport) {
+            oms.components.ContentState(LocalizationManager.t("loading_records"), loading = true)
+        }
+
+        if (!isManualEdit) Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             FilterChip(entryMode == "manual", { entryMode = "manual"; errorMessage = null }, label = { Text(LocalizationManager.t("manual_sir_entry")) })
             FilterChip(entryMode == "import", { entryMode = "import"; errorMessage = null }, label = { Text(LocalizationManager.t("import_sir_xlsx")) })
         }
@@ -219,6 +279,13 @@ fun CreateInspectionScreen(
                 )
 
                 InspectionTypeDropdown(value = inspectionType, onChange = { inspectionType = it })
+                if (isManualEdit && canChangeReportStatus) {
+                    InlineOptionPicker(
+                        options = listOf("draft", "pending_review", "completed"), selected = reportStatus,
+                        prompt = LocalizationManager.t("status"), onSelect = { reportStatus = it },
+                        itemLabel = { value -> LocalizationManager.t("${value}_status") }
+                    )
+                }
             }
         }
 
@@ -278,8 +345,8 @@ fun CreateInspectionScreen(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.End)
         ) {
-            OutlinedButton(
-                enabled = !isSubmitting,
+            if (!isManualEdit) OutlinedButton(
+                enabled = !isSubmitting && !loadingManualReport,
                 onClick = {
                     val selectedProject = inspectionTargetUuid
                     when {
@@ -312,7 +379,7 @@ fun CreateInspectionScreen(
                 Text(LocalizationManager.t("save_draft"))
             }
 
-            OutlinedButton(enabled = entryMode == "import", onClick = {
+            if (!isManualEdit) OutlinedButton(enabled = entryMode == "import" && !loadingManualReport, onClick = {
                 val selectedProject = inspectionTargetUuid
                 if (selectionError != null) errorMessage = selectionError
                 else {
@@ -328,7 +395,7 @@ fun CreateInspectionScreen(
             }
 
             Button(
-                enabled = !isSubmitting,
+                enabled = !isSubmitting && !loadingManualReport,
                 onClick = {
                     if (entryMode == "manual") {
                         val target = inspectionTargetUuid
@@ -338,9 +405,7 @@ fun CreateInspectionScreen(
                             isSubmitting = true
                             scope.launch {
                                 runCatching {
-                                    OmsApiClient.createManualInspectionReport(
-                                        requireNotNull(target),
-                                        oms.data.ManualInspectionReportRequest(
+                                    val manualRequest = oms.data.ManualInspectionReportRequest(
                                             inspectionDate = date,
                                             inspectionType = inspectionType.name.lowercase(),
                                             contractor = contractor,
@@ -372,8 +437,15 @@ fun CreateInspectionScreen(
                                             inspectorTitle = inspectorTitle.ifBlank { null },
                                             latitude = latitude.replace(',', '.').toDoubleOrNull(),
                                             longitude = longitude.replace(',', '.').toDoubleOrNull()
-                                        )
                                     )
+                                    if (editingReportUuid == null) {
+                                        OmsApiClient.createManualInspectionReport(requireNotNull(target), manualRequest)
+                                    } else {
+                                        OmsApiClient.updateManualInspectionReport(
+                                            editingReportUuid, requireNotNull(target),
+                                            reportStatus.takeIf { canChangeReportStatus }, manualRequest
+                                        )
+                                    }
                                 }.onSuccess { report ->
                                     uploadSelectedInspectionPhotos(report.uuid) { uploadError ->
                                         if (uploadError.isBlank()) onSubmit()
@@ -433,7 +505,7 @@ fun CreateInspectionScreen(
                 }
             ) {
                 if (isSubmitting) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
-                else Text(LocalizationManager.t("submit_report"))
+                else Text(if (isManualEdit) LocalizationManager.t("save") else LocalizationManager.t("submit_report"))
             }
         }
         errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error) }
@@ -579,7 +651,12 @@ private enum class WeatherCondition(val localizationKey: String, val workbookVal
     SUNNY("weather_sunny", "Sunny"),
     CLOUDY("weather_cloudy", "Cloudy"),
     RAIN("weather_rain", "Rain"),
-    SNOW("weather_snow", "Snow")
+    SNOW("weather_snow", "Snow");
+
+    companion object {
+        fun fromWorkbookValue(value: String?): WeatherCondition? =
+            entries.firstOrNull { condition -> value.orEmpty().contains(condition.workbookValue, ignoreCase = true) }
+    }
 }
 
 private fun WeatherCondition?.toWeatherWorkbookValue(temperatureCelsius: String): String? {
@@ -588,6 +665,9 @@ private fun WeatherCondition?.toWeatherWorkbookValue(temperatureCelsius: String)
     val condition = this?.workbookValue
     return listOfNotNull(condition, temperature).joinToString(", ").ifBlank { null }
 }
+
+private fun String?.workbookTemperature(): String =
+    this.orEmpty().substringAfter(',', "").replace("°C", "").trim().temperatureInput()
 
 @Composable
 private fun WeatherPicker(

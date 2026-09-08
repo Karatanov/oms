@@ -283,6 +283,20 @@ object OmsApiClient {
         }
     }
 
+    suspend fun manualInspectionReport(reportUuid: String): ApiManualInspectionEditor =
+        client.get("$baseUrl/inspection-reports/$reportUuid/manual").body()
+
+    suspend fun updateManualInspectionReport(
+        reportUuid: String,
+        projectUuid: String,
+        status: String?,
+        manual: ManualInspectionReportRequest
+    ): ApiInspectionReport =
+        client.put("$baseUrl/inspection-reports/$reportUuid/manual") {
+            contentType(ContentType.Application.Json)
+            setBody(UpdateManualInspectionReportRequest(projectUuid, status, manual))
+        }.body()
+
     suspend fun reviewInspectionReport(
         reportUuid: String,
         action: String,
@@ -388,6 +402,20 @@ data class ManualActivityRequest(val location: String, val description: String, 
     val activities: List<ManualActivityRequest> = emptyList(), val ongoingObservations: List<String> = emptyList(), val hseObservations: List<ManualHseObservationRequest> = emptyList(),
     val qualityRemarks: List<ManualRemarkRequest> = emptyList(), val progressComment: String? = null, val scheduleRemark: String? = null, val inspectorName: String, val inspectorTitle: String? = null,
     val latitude: Double? = null, val longitude: Double? = null
+)
+
+@Serializable
+data class ApiManualInspectionEditor(
+    val projectUuid: String,
+    val status: String,
+    val manual: ManualInspectionReportRequest
+)
+
+@Serializable
+data class UpdateManualInspectionReportRequest(
+    val projectUuid: String,
+    val status: String? = null,
+    val manual: ManualInspectionReportRequest
 )
 
 @Serializable

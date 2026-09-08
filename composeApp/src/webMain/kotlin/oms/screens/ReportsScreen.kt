@@ -83,6 +83,7 @@ private enum class ReportSort { Date, ReportTitle, Project, Subproject, Subproje
 @OptIn(ExperimentalMaterial3Api::class)
 fun ReportsScreen(
     onNewInspection: () -> Unit = {},
+    onEditInspection: (String) -> Unit = {},
     canCreateReports: Boolean = true,
     canReviewReports: Boolean = true,
     canMoveReports: Boolean = true
@@ -235,7 +236,7 @@ fun ReportsScreen(
                         Text(row.subprojectPartCode ?: "—", Modifier.width(160.dp), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Box(Modifier.width(130.dp)) { ReportStatusChip(row.report.status) }
                         Text(row.report.authorUsername ?: "—", Modifier.width(80.dp))
-                        if (canCreateReports) TableActionIconButton(LocalizationManager.t("edit_inspection"), Icons.Default.Edit) { reportToEdit = row }
+                        if (canCreateReports) TableActionIconButton(LocalizationManager.t("edit_inspection"), Icons.Default.Edit) { onEditInspection(row.report.uuid) }
                         else Spacer(Modifier.width(48.dp))
                         if (canReviewReports && row.report.status == "pending_review") {
                             TableActionIconButton(LocalizationManager.t("review_report"), Icons.Default.RateReview) { reportToReview = row }
