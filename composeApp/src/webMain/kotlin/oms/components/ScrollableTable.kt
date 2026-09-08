@@ -22,7 +22,9 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.*
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
+import kotlinx.coroutines.launch
 import oms.localization.LocalizationManager
+import kotlin.math.roundToInt
 
 /** One viewport with a sticky header and a permanently visible horizontal scrollbar. */
 @Composable
@@ -61,11 +63,6 @@ fun ScrollableTable(
     val fixedControlsOffset = if (pageScrollState != null && rootHeight > 0 && controlsHeight > 0) {
         rootHeight - controlsHeight - bottomInsetPx - liveControlsTop
     } else 0f
-    // A fixed table navigator must not overlap chart navigators while the
-    // user is still above the table. It becomes visible only for the table
-    // currently being read.
-    val tableIsInViewport = rootHeight == 0 ||
-        (liveTableTop < rootHeight && liveTableTop + tableHeight > 0)
     val surface = MaterialTheme.colorScheme.surface
 
     Column(modifier.fillMaxWidth()) {
@@ -103,7 +100,11 @@ fun ScrollableTable(
             }
             Column(Modifier.fillMaxWidth().horizontalScroll(scroll), content = content)
         }
-        if (showScrollControls && tableIsInViewport) {
+        // The navigator belongs to every table and stays in the lower part of
+        // the viewport.  Do not hide it when the table's coordinates are
+        // temporarily outside the viewport: on Wasm that produces a visible
+        // "disappearing" control during vertical page scrolling.
+        if (showScrollControls) {
             Box(
                 Modifier.fillMaxWidth()
                     .background(surface)
@@ -129,9 +130,9 @@ fun ScrollableTable(
 
 @Composable
 fun TableScrollControls(scroll: ScrollState) {
-    // Charts and tables which fit on screen do not need a dead 0% navigator.
-    // ScrollState.maxValue is observable, so this recomposes once Web/Wasm
-    // finishes measuring the actual content width.
+    val scope = rememberCoroutineScope()
+    // Wait for actual horizontal overflow. ScrollState.maxValue is observable,
+    // so this appears as soon as the browser completes table measurement.
     if (scroll.maxValue <= 0) return
     val percentage = if (scroll.maxValue > 0) {
         ((scroll.value.toFloat() / scroll.maxValue.toFloat()) * 100).toInt()
@@ -148,6 +149,17 @@ fun TableScrollControls(scroll: ScrollState) {
             direction = -1,
             clickDistance = 500f,
             continuousPixelsPerFrame = 10f
+        )
+        Slider(
+            value = scroll.value.toFloat(),
+            onValueChange = { target -> scope.launch { scroll.scrollTo(target.roundToInt()) } },
+            valueRange = 0f..scroll.maxValue.toFloat(),
+            modifier = Modifier.widthIn(min = 160.dp, max = 360.dp).weight(1f, fill = false)
+                .semantics { contentDescription = LocalizationManager.t("table_scroll") },
+            colors = SliderDefaults.colors(
+                thumbColor = MaterialTheme.colorScheme.primary,
+                activeTrackColor = MaterialTheme.colorScheme.primary
+            )
         )
         Text(
             "$percentage%",
