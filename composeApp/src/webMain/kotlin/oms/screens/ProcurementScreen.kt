@@ -337,7 +337,7 @@ private fun ProcurementFilters(
     showActions: Boolean
 ) {
     Row(
-        Modifier.width((columnWidths.sum() + if (showActions) 96 else 0).dp).padding(vertical = 8.dp),
+        Modifier.width((columnWidths.sum() + if (showActions) 96 else 0).dp).padding(vertical = 2.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         if (showActions) Spacer(Modifier.width(96.dp))
@@ -372,7 +372,8 @@ private fun ProcurementRow(
 ) {
     val uriHandler = LocalUriHandler.current
     Row(
-        Modifier.width((columnWidths.sum() + if (showActions) 96 else 0).dp).padding(vertical = 6.dp),
+        Modifier.width((columnWidths.sum() + if (showActions) 96 else 0).dp)
+            .padding(vertical = if (isHeader) 2.dp else 6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         if (showActions) {
