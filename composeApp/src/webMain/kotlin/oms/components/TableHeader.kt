@@ -18,7 +18,7 @@ fun TableHeader(currentSort: SortColumn, ascending: Boolean, onSort: (SortColumn
             val labelKey = when (column) {
                 SortColumn.ID -> "project_code"
                 SortColumn.TRANCHE -> "tranche"
-                SortColumn.NAME -> "project"
+                SortColumn.NAME -> "subproject_name"
                 SortColumn.REGION -> "region"
                 SortColumn.CITY -> "city"
                 SortColumn.SECTOR -> "sector"

@@ -206,6 +206,7 @@ object Strings {
         "sort" to "Сортування",
         "id" to "ID",
         "name" to "Назва",
+        "subproject_name" to "Назва субпроєкту",
         "open" to "Відкрити",
 
         "documents_title" to "Документи",
@@ -910,6 +911,7 @@ object Strings {
         "sort" to "Sort",
         "id" to "ID",
         "name" to "Name",
+        "subproject_name" to "Subproject name",
         "open" to "Open",
 
         "documents_title" to "Documents",
