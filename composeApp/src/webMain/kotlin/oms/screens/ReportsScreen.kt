@@ -219,7 +219,6 @@ fun ReportsScreen(
         Box(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface)) {
             oms.components.ScrollableTable(
                 Modifier.padding(start = 16.dp, top = 4.dp, end = 16.dp, bottom = 16.dp),
-                showScrollControls = visible.isNotEmpty(),
                 pageScrollState = contentScrollState,
                 header = {
                     ReportTableHeader(

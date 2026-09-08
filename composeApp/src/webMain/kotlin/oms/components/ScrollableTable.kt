@@ -96,13 +96,16 @@ fun ScrollableTable(
 }
 
 @Composable
-fun TableScrollControls(scroll: ScrollState) {
+fun TableScrollControls(scroll: ScrollState, showWhenStationary: Boolean = false) {
     val scope = rememberCoroutineScope()
-    // Wait for actual horizontal overflow. ScrollState.maxValue is observable,
-    // so this appears as soon as the browser completes table measurement.
-    if (scroll.maxValue <= 0) return
-    val percentage = if (scroll.maxValue > 0) {
-        ((scroll.value.toFloat() / scroll.maxValue.toFloat()) * 100).toInt()
+    val maxValue = scroll.maxValue
+    // Tables keep their navigator at the bottom of the screen even when a
+    // wide viewport temporarily fits every column. Charts retain the compact
+    // behaviour by using the default false value.
+    if (!showWhenStationary && maxValue <= 0) return
+    val canScroll = maxValue > 0
+    val percentage = if (canScroll) {
+        ((scroll.value.toFloat() / maxValue.toFloat()) * 100).toInt()
     } else 0
     Row(
         Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
@@ -115,17 +118,19 @@ fun TableScrollControls(scroll: ScrollState) {
             scrollState = scroll,
             direction = -1,
             clickDistance = 500f,
-            continuousPixelsPerFrame = 10f
+            continuousPixelsPerFrame = 10f,
+            enabled = canScroll
         )
         Slider(
             value = scroll.value.toFloat(),
             onValueChange = { target -> scope.launch { scroll.scrollTo(target.roundToInt()) } },
-            valueRange = 0f..scroll.maxValue.toFloat(),
+            valueRange = 0f..maxValue.coerceAtLeast(1).toFloat(),
             // `fill = false` lets Wasm measure the slider at zero width inside
             // a narrow chart card.  Keep a real weighted lane so the control
             // remains visible together with its percentage indicator.
             modifier = Modifier.widthIn(min = 160.dp, max = 360.dp).weight(1f)
                 .semantics { contentDescription = LocalizationManager.t("table_scroll") },
+            enabled = canScroll,
             colors = SliderDefaults.colors(
                 thumbColor = MaterialTheme.colorScheme.primary,
                 activeTrackColor = MaterialTheme.colorScheme.primary
@@ -143,7 +148,8 @@ fun TableScrollControls(scroll: ScrollState) {
             scrollState = scroll,
             direction = 1,
             clickDistance = 500f,
-            continuousPixelsPerFrame = 10f
+            continuousPixelsPerFrame = 10f,
+            enabled = canScroll
         )
     }
 }

@@ -17,6 +17,7 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.zIndex
 import androidx.compose.ui.unit.dp
 
 private data class ActiveTableNavigator(val id: Any, val scroll: ScrollState)
@@ -35,19 +36,17 @@ internal class TableScrollOverlayState {
     @Composable
     fun BoxScope.Content() {
         val navigator = active ?: return
-        // ScrollState.maxValue is observable: the navigator appears as soon
-        // as the browser has measured a table wider than its viewport.
-        if (navigator.scroll.maxValue <= 0) return
         Surface(
             modifier = Modifier.align(Alignment.BottomCenter)
                 .fillMaxWidth()
-                .padding(horizontal = 24.dp, vertical = 12.dp)
+                .padding(start = 16.dp, top = 8.dp, end = 16.dp)
+                .zIndex(100f)
                 .shadow(6.dp),
             color = MaterialTheme.colorScheme.surface,
             tonalElevation = 2.dp,
             shape = MaterialTheme.shapes.medium
         ) {
-            TableScrollControls(navigator.scroll)
+            TableScrollControls(navigator.scroll, showWhenStationary = true)
         }
     }
 }

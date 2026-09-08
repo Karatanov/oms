@@ -31,7 +31,8 @@ fun HoldToScrollButton(
     direction: Int,
     modifier: Modifier = Modifier,
     clickDistance: Float = 420f,
-    continuousPixelsPerFrame: Float = 9f
+    continuousPixelsPerFrame: Float = 9f,
+    enabled: Boolean = true
 ) {
     val scope = rememberCoroutineScope()
     var suppressClick by remember { mutableStateOf(false) }
@@ -39,7 +40,7 @@ fun HoldToScrollButton(
 
     OmsTooltipBox(tooltip = { Text(tooltip) }) {
         FilledIconButton(
-            modifier = modifier.pointerInput(scrollState, sign) {
+            modifier = if (enabled) modifier.pointerInput(scrollState, sign) {
                 awaitEachGesture {
                     awaitFirstDown(requireUnconsumed = false)
                     suppressClick = false
@@ -59,14 +60,15 @@ fun HoldToScrollButton(
                         scope.launch { delay(120); suppressClick = false }
                     }
                 }
-            },
+            } else modifier,
             onClick = {
                 if (suppressClick) {
                     suppressClick = false
                 } else {
                     scope.launch { scrollState.animateScrollBy(sign * clickDistance) }
                 }
-            }
+            },
+            enabled = enabled
         ) {
             Icon(icon, tooltip)
         }
