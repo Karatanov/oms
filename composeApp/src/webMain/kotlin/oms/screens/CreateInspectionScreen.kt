@@ -48,16 +48,19 @@ import oms.components.NativePaneAnchor
 external fun openSirImportDialog(projectUuid: String, onComplete: (String) -> Unit)
 
 @JsName("openInspectionPhotoPicker")
-external fun openInspectionPhotoPicker(onSelectionChanged: (Int) -> Unit)
+external fun openInspectionPhotoPicker(activityKey: String, onSelectionChanged: (Int) -> Unit)
 
 @JsName("uploadSelectedInspectionPhotos")
 external fun uploadSelectedInspectionPhotos(reportUuid: String, onComplete: (String) -> Unit)
 
 @JsName("showPendingInspectionPhotoPreviews")
-external fun showPendingInspectionPhotoPreviews(onSelectionChanged: (Int) -> Unit)
+external fun showPendingInspectionPhotoPreviews(activityKey: String, onSelectionChanged: (Int) -> Unit)
 
 @JsName("hidePendingInspectionPhotoPreviews")
-external fun hidePendingInspectionPhotoPreviews()
+external fun hidePendingInspectionPhotoPreviews(activityKey: String)
+
+@JsName("setPendingInspectionPhotoDescription")
+external fun setPendingInspectionPhotoDescription(activityKey: String, description: String)
 
 @Composable
 fun CreateInspectionScreen(
@@ -77,8 +80,6 @@ fun CreateInspectionScreen(
     var latitude by remember { mutableStateOf("") }
     var longitude by remember { mutableStateOf("") }
     var comments by remember { mutableStateOf(TextFieldValue("")) }
-    var photoCount by remember { mutableStateOf(0) }
-    var photoSelectionRevision by remember { mutableStateOf(0) }
     var selectedProjectUuid by remember { mutableStateOf<String?>(null) }
     var selectedSubprojectUuid by remember { mutableStateOf<String?>(null) }
     var selectedSubprojectPartUuid by remember { mutableStateOf<String?>(null) }
@@ -169,7 +170,12 @@ fun CreateInspectionScreen(
             weatherCondition = WeatherCondition.fromWorkbookValue(manual.weather)
             temperatureCelsius = manual.weather.workbookTemperature()
             activities = manual.activities.map {
-                ManualActivityInput(it.location, it.description, it.onSchedule.lowercase().ifBlank { "no" }, it.remarks.orEmpty())
+                ManualActivityInput(
+                    location = it.location,
+                    description = it.description,
+                    onSchedule = it.onSchedule.lowercase().ifBlank { "no" },
+                    remarks = it.remarks.orEmpty()
+                )
             }.ifEmpty { listOf(ManualActivityInput()) }
             ongoingObservations = manual.ongoingObservations.ifEmpty { listOf("") }
             hseObservations = manual.hseObservations.map {
@@ -309,45 +315,6 @@ fun CreateInspectionScreen(
                         itemLabel = { value -> LocalizationManager.t("${value}_status") }
                     )
                 }
-            }
-        }
-
-        if (entryMode != "import") Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(
-                containerColor = Color.White
-            ),
-            shape = RoundedCornerShape(12.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-        ) {
-            Column(
-                modifier = Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Text(
-                    text = LocalizationManager.t("photos"),
-                    style = MaterialTheme.typography.titleMedium
-                )
-
-                OutlinedButton(
-                    onClick = { openInspectionPhotoPicker { count -> photoCount = count; photoSelectionRevision++ } },
-                    modifier = Modifier.fillMaxWidth().height(56.dp)
-                ) {
-                    Text(LocalizationManager.t("add_inspection_photos"))
-                }
-                Text(
-                    text = if (photoCount == 0) LocalizationManager.t("no_photos_selected") else LocalizationManager.t("photos_selected").replace("{count}", photoCount.toString()),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                if (photoCount > 0) PendingInspectionPhotoPreviews(photoSelectionRevision) { count ->
-                    photoCount = count
-                    photoSelectionRevision++
-                }
-                Text(
-                    text = LocalizationManager.t("photo_upload_requirements"),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
             }
         }
 
@@ -545,11 +512,12 @@ fun CreateInspectionScreen(
 }
 
 @Composable
-private fun PendingInspectionPhotoPreviews(revision: Int, onSelectionChanged: (Int) -> Unit) {
-    NativePaneAnchor("inspection-photo-preview-pane", Modifier.fillMaxWidth().height(210.dp))
-    DisposableEffect(revision, LocalizationManager.currentLanguage) {
-        showPendingInspectionPhotoPreviews(onSelectionChanged)
-        onDispose(::hidePendingInspectionPhotoPreviews)
+private fun PendingInspectionPhotoPreviews(activityKey: String, revision: Int, onSelectionChanged: (Int) -> Unit) {
+    val paneId = "inspection-photo-preview-pane-$activityKey"
+    NativePaneAnchor(paneId, Modifier.fillMaxWidth().height(210.dp))
+    DisposableEffect(activityKey, revision, LocalizationManager.currentLanguage) {
+        showPendingInspectionPhotoPreviews(activityKey, onSelectionChanged)
+        onDispose { hidePendingInspectionPhotoPreviews(activityKey) }
     }
 }
 
@@ -745,10 +713,13 @@ private fun String.temperatureInput(): String {
 }
 
 private data class ManualActivityInput(
+    val photoKey: String = "activity-${kotlin.random.Random.nextInt()}-${kotlin.random.Random.nextInt()}",
     val location: String = "",
     val description: String = "",
     val onSchedule: String = "no",
-    val remarks: String = ""
+    val remarks: String = "",
+    val photoCount: Int = 0,
+    val photoRevision: Int = 0
 )
 
 @Composable
@@ -760,6 +731,9 @@ private fun RepeatableManualActivities(
         onChange(values.mapIndexed { current, item -> if (current == index) transform(item) else item })
     }
     values.forEachIndexed { index, activity ->
+        LaunchedEffect(activity.photoKey, activity.description) {
+            setPendingInspectionPhotoDescription(activity.photoKey, activity.description)
+        }
         Card(colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FBFC))) {
             Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(activity.location, { value -> update(index) { it.copy(location = value.inspectionText(500)) } }, label = { Text(LocalizationManager.t("sir_activity_location")) }, modifier = Modifier.fillMaxWidth())
@@ -786,6 +760,32 @@ private fun RepeatableManualActivities(
                     if (values.size > 1) TableActionIconButton(LocalizationManager.t("delete"), Icons.Default.Remove) { onChange(values.filterIndexed { current, _ -> current != index }) }
                 }
                 OutlinedTextField(activity.remarks, { value -> update(index) { it.copy(remarks = value.inspectionText(2_000)) } }, label = { Text(LocalizationManager.t("sir_activity_remarks")) }, modifier = Modifier.fillMaxWidth())
+                OutlinedButton(
+                    onClick = {
+                        openInspectionPhotoPicker(activity.photoKey) { count ->
+                            update(index) { it.copy(photoCount = count, photoRevision = it.photoRevision + 1) }
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(LocalizationManager.t("add_inspection_photos"))
+                }
+                Text(
+                    text = if (activity.photoCount == 0) LocalizationManager.t("no_photos_selected")
+                    else LocalizationManager.t("photos_selected").replace("{count}", activity.photoCount.toString()),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                if (activity.photoCount > 0) {
+                    PendingInspectionPhotoPreviews(activity.photoKey, activity.photoRevision) { count ->
+                        update(index) { it.copy(photoCount = count, photoRevision = it.photoRevision + 1) }
+                    }
+                }
+                Text(
+                    LocalizationManager.t("photo_upload_requirements"),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
     }

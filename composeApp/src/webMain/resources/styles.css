@@ -60,7 +60,7 @@ body {
 
 #dashboard-photo-slider.visible { display: block; }
 
-#inspection-photo-preview-pane {
+.inspection-photo-preview-pane {
     position: fixed;
     z-index: 3;
     display: none;
@@ -70,8 +70,8 @@ body {
     overflow: auto;
     padding: 4px;
 }
-#inspection-photo-preview-pane.visible { display: grid; }
-#inspection-photo-preview-pane .inspection-photo-preview { min-width: 0; }
+.inspection-photo-preview-pane.visible { display: grid; }
+.inspection-photo-preview-pane .inspection-photo-preview { min-width: 0; }
 
 .photo-slider-title { margin-bottom: 12px; color: #1e293b; font-size: 16px; font-weight: 700; }
 .photo-slider-empty { display: grid; min-height: 150px; place-items: center; color: #64748b; }
@@ -127,7 +127,7 @@ body.map-visible #map-pane {
 }
 
 /* The in-canvas option layer must remain above native map/image surfaces. */
-body.canvas-overlay-open #map-pane, body.canvas-overlay-open #dashboard-photo-slider, body.canvas-overlay-open #inspection-photo-preview-pane { visibility: hidden; }
+body.canvas-overlay-open #map-pane, body.canvas-overlay-open #dashboard-photo-slider, body.canvas-overlay-open .inspection-photo-preview-pane { visibility: hidden; }
 
 #oms-paste-notice {
     position: fixed;

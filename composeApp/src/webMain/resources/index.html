@@ -255,7 +255,14 @@
         }
 
         function setOmsPaneBounds(id, x, y, width, height) {
-            const pane = document.getElementById(id);
+            let pane = document.getElementById(id);
+            if (!pane && id.startsWith("inspection-photo-preview-pane-")) {
+                pane = document.createElement("section");
+                pane.id = id;
+                pane.className = "inspection-photo-preview-pane";
+                pane.setAttribute("aria-live", "polite");
+                document.body.appendChild(pane);
+            }
             if (!pane) return;
             pane.classList.toggle("oms-pane-clipped", height <= 0 || width <= 0);
             Object.assign(pane.style, { left: x + "px", top: y + "px", width: width + "px", height: height + "px", right: "auto", bottom: "auto" });
@@ -384,8 +391,26 @@
             window.location.assign(omsApiUrl(`/projects/${projectUuid}/financials/export`));
         }
 
-        let ufsiPendingInspectionPhotos = [];
+        const ufsiPendingInspectionPhotos = new Map();
+        const ufsiPendingInspectionPhotoDescriptions = new Map();
         let ufsiPendingInspectionPhotoUrls = new WeakMap();
+
+        function pendingInspectionPhotos(activityKey) {
+            if (!ufsiPendingInspectionPhotos.has(activityKey)) ufsiPendingInspectionPhotos.set(activityKey, []);
+            return ufsiPendingInspectionPhotos.get(activityKey);
+        }
+
+        function pendingInspectionPhotoTotal() {
+            return Array.from(ufsiPendingInspectionPhotos.values()).reduce((total, files) => total + files.length, 0);
+        }
+
+        function pendingInspectionPhotoPane(activityKey) {
+            return document.getElementById(`inspection-photo-preview-pane-${activityKey}`);
+        }
+
+        function setPendingInspectionPhotoDescription(activityKey, description) {
+            ufsiPendingInspectionPhotoDescriptions.set(activityKey, String(description || "").trim());
+        }
 
         function pendingInspectionPhotoUrl(file) {
             let url = ufsiPendingInspectionPhotoUrls.get(file);
@@ -402,21 +427,22 @@
             ufsiPendingInspectionPhotoUrls.delete(file);
         }
 
-        function hidePendingInspectionPhotoPreviews() {
-            const pane = document.getElementById("inspection-photo-preview-pane");
+        function hidePendingInspectionPhotoPreviews(activityKey) {
+            const pane = pendingInspectionPhotoPane(activityKey);
             if (pane) {
                 pane.classList.remove("visible");
                 pane.replaceChildren();
             }
         }
 
-        function showPendingInspectionPhotoPreviews(onSelectionChanged) {
-            const pane = document.getElementById("inspection-photo-preview-pane");
+        function showPendingInspectionPhotoPreviews(activityKey, onSelectionChanged) {
+            const pane = pendingInspectionPhotoPane(activityKey);
             if (!pane) return;
             pane.replaceChildren();
-            if (!ufsiPendingInspectionPhotos.length) return hidePendingInspectionPhotoPreviews();
+            const photos = pendingInspectionPhotos(activityKey);
+            if (!photos.length) return hidePendingInspectionPhotoPreviews(activityKey);
             pane.classList.add("visible");
-            ufsiPendingInspectionPhotos.forEach((file, index) => {
+            photos.forEach((file, index) => {
                 const card = document.createElement("div");
                 card.className = "inspection-photo-preview";
                 const image = document.createElement("img");
@@ -428,9 +454,9 @@
                 remove.textContent = "×";
                 remove.setAttribute("aria-label", `${omsText("remove")} ${file.name}`);
                 remove.onclick = () => {
-                    const [removed] = ufsiPendingInspectionPhotos.splice(index, 1);
+                    const [removed] = photos.splice(index, 1);
                     if (removed) releasePendingInspectionPhoto(removed);
-                    onSelectionChanged(ufsiPendingInspectionPhotos.length);
+                    onSelectionChanged(photos.length);
                 };
                 const name = document.createElement("span");
                 name.textContent = file.name;
@@ -439,7 +465,7 @@
             });
         }
 
-        function openInspectionPhotoPicker(onSelectionChanged) {
+        function openInspectionPhotoPicker(activityKey, onSelectionChanged) {
             const overlay = document.createElement("div");
             overlay.className = "inspection-photo-picker";
             const dialog = document.createElement("section");
@@ -466,10 +492,11 @@
             done.className = "inspection-photo-done";
             done.textContent = omsText("done");
 
-            const notify = () => onSelectionChanged(ufsiPendingInspectionPhotos.length);
+            const photos = pendingInspectionPhotos(activityKey);
+            const notify = () => onSelectionChanged(photos.length);
             const render = () => {
                 previews.replaceChildren();
-                ufsiPendingInspectionPhotos.forEach((file, index) => {
+                photos.forEach((file, index) => {
                     const card = document.createElement("div");
                     card.className = "inspection-photo-preview";
                     const image = document.createElement("img");
@@ -480,7 +507,7 @@
                     remove.className = "inspection-photo-remove";
                     remove.textContent = "×";
                     remove.setAttribute("aria-label", `${omsText("remove")} ${file.name}`);
-                    remove.onclick = () => { const [removed] = ufsiPendingInspectionPhotos.splice(index, 1); if (removed) releasePendingInspectionPhoto(removed); notify(); render(); };
+                    remove.onclick = () => { const [removed] = photos.splice(index, 1); if (removed) releasePendingInspectionPhoto(removed); notify(); render(); };
                     const name = document.createElement("span");
                     name.textContent = file.name;
                     card.append(image, remove, name);
@@ -491,9 +518,9 @@
                 const candidates = Array.from(files || []);
                 const invalid = candidates.find(file => !["image/jpeg", "image/png"].includes(file.type) || file.size > 10_000_000);
                 if (invalid) { error.textContent = `${invalid.name}: ${omsText("invalidPhoto")}`; return; }
-                if (ufsiPendingInspectionPhotos.length + candidates.length > 30) { error.textContent = omsText("maxPhotos"); return; }
+                if (pendingInspectionPhotoTotal() + candidates.length > 30) { error.textContent = omsText("maxPhotos"); return; }
                 error.textContent = "";
-                ufsiPendingInspectionPhotos.push(...candidates);
+                photos.push(...candidates);
                 notify(); render();
             };
             dropZone.onclick = () => input.click();
@@ -512,14 +539,22 @@
         async function uploadSelectedInspectionPhotos(reportUuid, onComplete) {
             showOmsLoading(omsText("uploadingFile"));
             try {
-                for (const file of ufsiPendingInspectionPhotos) {
-                    const formData = new FormData();
-                    formData.append("file", file, file.name);
-                    const response = await fetch(omsApiUrl(`/inspection-reports/${reportUuid}/photos`), { method: "POST", body: formData, credentials: "include" });
-                    if (!response.ok) throw new Error(await response.text());
+                for (const [activityKey, photos] of ufsiPendingInspectionPhotos.entries()) {
+                    const description = ufsiPendingInspectionPhotoDescriptions.get(activityKey) || "photo";
+                    const baseName = description.replace(/[\\/:*?"<>|\u0000-\u001f]+/g, " ").replace(/\s+/g, " ").trim().slice(0, 220) || "photo";
+                    for (let index = 0; index < photos.length; index += 1) {
+                        const file = photos[index];
+                        const extension = (file.name.split(".").pop() || "jpg").toLowerCase();
+                        const fileName = `${baseName}${photos.length > 1 ? ` ${index + 1}` : ""}.${extension}`;
+                        const formData = new FormData();
+                        formData.append("file", file, fileName);
+                        const response = await fetch(omsApiUrl(`/inspection-reports/${reportUuid}/photos`), { method: "POST", body: formData, credentials: "include" });
+                        if (!response.ok) throw new Error(await response.text());
+                    }
                 }
-                ufsiPendingInspectionPhotos.forEach(releasePendingInspectionPhoto);
-                ufsiPendingInspectionPhotos = [];
+                ufsiPendingInspectionPhotos.forEach(files => files.forEach(releasePendingInspectionPhoto));
+                ufsiPendingInspectionPhotos.clear();
+                ufsiPendingInspectionPhotoDescriptions.clear();
                 onComplete("");
             } catch (error) {
                 onComplete(error.message || String(error));
