@@ -693,36 +693,41 @@ private fun WeatherPicker(
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(LocalizationManager.t("sir_weather_conditions"), style = MaterialTheme.typography.labelLarge)
         Row(
-            Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            WeatherCondition.entries.forEach { condition ->
-                FilterChip(
-                    selected = selected == condition,
-                    onClick = { onSelect(if (selected == condition) null else condition) },
-                    label = { Text(LocalizationManager.t(condition.localizationKey)) },
-                    leadingIcon = {
-                        Icon(
-                            imageVector = when (condition) {
-                                WeatherCondition.SUNNY -> Icons.Default.WbSunny
-                                WeatherCondition.CLOUDY -> Icons.Default.Cloud
-                                WeatherCondition.RAIN -> Icons.Default.WaterDrop
-                                WeatherCondition.SNOW -> Icons.Default.AcUnit
-                            },
-                            contentDescription = LocalizationManager.t(condition.localizationKey)
-                        )
-                    }
-                )
+            Row(
+                Modifier.weight(1f).horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                WeatherCondition.entries.forEach { condition ->
+                    FilterChip(
+                        selected = selected == condition,
+                        onClick = { onSelect(if (selected == condition) null else condition) },
+                        label = { Text(LocalizationManager.t(condition.localizationKey)) },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = when (condition) {
+                                    WeatherCondition.SUNNY -> Icons.Default.WbSunny
+                                    WeatherCondition.CLOUDY -> Icons.Default.Cloud
+                                    WeatherCondition.RAIN -> Icons.Default.WaterDrop
+                                    WeatherCondition.SNOW -> Icons.Default.AcUnit
+                                },
+                                contentDescription = LocalizationManager.t(condition.localizationKey)
+                            )
+                        }
+                    )
+                }
             }
+            OutlinedTextField(
+                value = temperatureCelsius,
+                onValueChange = { value -> onTemperatureChange(value.temperatureInput()) },
+                label = { Text(LocalizationManager.t("temperature_celsius")) },
+                singleLine = true,
+                modifier = Modifier.width(170.dp)
+            )
         }
-        OutlinedTextField(
-            value = temperatureCelsius,
-            onValueChange = { value -> onTemperatureChange(value.temperatureInput()) },
-            label = { Text(LocalizationManager.t("temperature_celsius")) },
-            suffix = { Text("°C") },
-            singleLine = true,
-            modifier = Modifier.widthIn(max = 220.dp)
-        )
     }
 }
 
