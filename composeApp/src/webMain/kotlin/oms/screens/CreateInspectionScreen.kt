@@ -1,6 +1,7 @@
 package oms.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.focusable
@@ -35,6 +36,10 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.WbSunny
+import androidx.compose.material.icons.filled.Cloud
+import androidx.compose.material.icons.filled.WaterDrop
+import androidx.compose.material.icons.filled.AcUnit
 import oms.components.PageHeading
 import oms.components.TableActionIconButton
 import oms.components.NativePaneAnchor
@@ -86,7 +91,8 @@ fun CreateInspectionScreen(
     var skilledLabor by remember { mutableStateOf("") }
     var unskilledLabor by remember { mutableStateOf("") }
     var siteManagement by remember { mutableStateOf("") }
-    var weather by remember { mutableStateOf("") }
+    var weatherCondition by remember { mutableStateOf<WeatherCondition?>(null) }
+    var temperatureCelsius by remember { mutableStateOf("") }
     var activities by remember { mutableStateOf(listOf(ManualActivityInput())) }
     var projectName by remember { mutableStateOf("") }
     var ongoingObservations by remember { mutableStateOf(listOf("")) }
@@ -261,7 +267,7 @@ fun CreateInspectionScreen(
             contractorRepresentative = contractorRepresentative, onContractorRepresentativeChange = { contractorRepresentative = it },
             qaStaff = qaStaff, onQaStaffChange = { qaStaff = it }, usifRepresentative = usifRepresentative, onUsifRepresentativeChange = { usifRepresentative = it },
             skilledLabor = skilledLabor, onSkilledLaborChange = { skilledLabor = it }, unskilledLabor = unskilledLabor, onUnskilledLaborChange = { unskilledLabor = it },
-            siteManagement = siteManagement, onSiteManagementChange = { siteManagement = it }, weather = weather, onWeatherChange = { weather = it },
+            siteManagement = siteManagement, onSiteManagementChange = { siteManagement = it }, weatherCondition = weatherCondition, onWeatherConditionChange = { weatherCondition = it }, temperatureCelsius = temperatureCelsius, onTemperatureCelsiusChange = { temperatureCelsius = it },
             activities = activities, onActivitiesChange = { activities = it }, ongoingObservations = ongoingObservations, onOngoingObservationsChange = { ongoingObservations = it },
             hseObservations = hseObservations, onHseObservationsChange = { hseObservations = it }, quality = qualityText, onQualityChange = { qualityText = it },
             progress = progressComment, onProgressChange = { progressComment = it }, schedule = scheduleRemark, onScheduleChange = { scheduleRemark = it },
@@ -344,7 +350,7 @@ fun CreateInspectionScreen(
                                             skilledLabor = skilledLabor.ifBlank { null },
                                             unskilledLabor = unskilledLabor.ifBlank { null },
                                             siteManagement = siteManagement.ifBlank { null },
-                                            weather = weather.ifBlank { null },
+                                            weather = weatherCondition.toWeatherWorkbookValue(temperatureCelsius),
                                             projectName = projectName.ifBlank { null },
                                             siteReference = siteReference.ifBlank { null },
                                             activities = activities.map { activity ->
@@ -463,7 +469,8 @@ private fun ManualSirForm(
     skilledLabor: String, onSkilledLaborChange: (String) -> Unit,
     unskilledLabor: String, onUnskilledLaborChange: (String) -> Unit,
     siteManagement: String, onSiteManagementChange: (String) -> Unit,
-    weather: String, onWeatherChange: (String) -> Unit,
+    weatherCondition: WeatherCondition?, onWeatherConditionChange: (WeatherCondition?) -> Unit,
+    temperatureCelsius: String, onTemperatureCelsiusChange: (String) -> Unit,
     activities: List<ManualActivityInput>, onActivitiesChange: (List<ManualActivityInput>) -> Unit,
     ongoingObservations: List<String>, onOngoingObservationsChange: (List<String>) -> Unit,
     hseObservations: List<HseObservationInput>, onHseObservationsChange: (List<HseObservationInput>) -> Unit,
@@ -518,8 +525,8 @@ private fun ManualSirForm(
             }
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedTextField(siteManagement, { onSiteManagementChange(it.inspectionText(300)) }, label = { Text(LocalizationManager.t("sir_site_management")) }, modifier = Modifier.weight(1f), singleLine = true)
-                OutlinedTextField(weather, { onWeatherChange(it.inspectionText(300)) }, label = { Text(LocalizationManager.t("sir_weather_conditions")) }, modifier = Modifier.weight(1f), singleLine = true)
             }
+            WeatherPicker(weatherCondition, onWeatherConditionChange, temperatureCelsius, onTemperatureCelsiusChange)
 
             SirSectionTitle(LocalizationManager.t("sir_ongoing_activities"))
             RepeatableManualActivities(activities, onActivitiesChange)
@@ -566,6 +573,76 @@ private fun RepeatableSirRows(values: List<String>, onChange: (List<String>) -> 
         }
     }
     TableActionIconButton(LocalizationManager.t("add"), Icons.Default.Add) { onChange(values + "") }
+}
+
+private enum class WeatherCondition(val localizationKey: String, val workbookValue: String) {
+    SUNNY("weather_sunny", "Sunny"),
+    CLOUDY("weather_cloudy", "Cloudy"),
+    RAIN("weather_rain", "Rain"),
+    SNOW("weather_snow", "Snow")
+}
+
+private fun WeatherCondition?.toWeatherWorkbookValue(temperatureCelsius: String): String? {
+    val normalizedTemperature = temperatureCelsius.replace(',', '.').trim()
+    val temperature = normalizedTemperature.takeIf { it.isNotBlank() }?.let { "$it °C" }
+    val condition = this?.workbookValue
+    return listOfNotNull(condition, temperature).joinToString(", ").ifBlank { null }
+}
+
+@Composable
+private fun WeatherPicker(
+    selected: WeatherCondition?,
+    onSelect: (WeatherCondition?) -> Unit,
+    temperatureCelsius: String,
+    onTemperatureChange: (String) -> Unit
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(LocalizationManager.t("sir_weather_conditions"), style = MaterialTheme.typography.labelLarge)
+        Row(
+            Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            WeatherCondition.entries.forEach { condition ->
+                FilterChip(
+                    selected = selected == condition,
+                    onClick = { onSelect(if (selected == condition) null else condition) },
+                    label = { Text(LocalizationManager.t(condition.localizationKey)) },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = when (condition) {
+                                WeatherCondition.SUNNY -> Icons.Default.WbSunny
+                                WeatherCondition.CLOUDY -> Icons.Default.Cloud
+                                WeatherCondition.RAIN -> Icons.Default.WaterDrop
+                                WeatherCondition.SNOW -> Icons.Default.AcUnit
+                            },
+                            contentDescription = LocalizationManager.t(condition.localizationKey)
+                        )
+                    }
+                )
+            }
+        }
+        OutlinedTextField(
+            value = temperatureCelsius,
+            onValueChange = { value -> onTemperatureChange(value.temperatureInput()) },
+            label = { Text(LocalizationManager.t("temperature_celsius")) },
+            suffix = { Text("°C") },
+            singleLine = true,
+            modifier = Modifier.widthIn(max = 220.dp)
+        )
+    }
+}
+
+private fun String.temperatureInput(): String {
+    val normalized = replace(',', '.')
+    val result = StringBuilder()
+    normalized.forEach { character ->
+        when {
+            character.isDigit() -> result.append(character)
+            (character == '-' || character == '+') && result.isEmpty() -> result.append(character)
+            character == '.' && '.' !in result -> result.append(character)
+        }
+    }
+    return result.toString().take(7)
 }
 
 private data class ManualActivityInput(
