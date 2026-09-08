@@ -20,9 +20,7 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.semantics.*
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
-import kotlinx.coroutines.launch
 import oms.localization.LocalizationManager
-import kotlin.math.roundToInt
 
 /** One viewport with a sticky header and a permanently visible horizontal scrollbar. */
 @Composable
@@ -97,7 +95,6 @@ fun ScrollableTable(
 
 @Composable
 fun TableScrollControls(scroll: ScrollState, showWhenStationary: Boolean = false) {
-    val scope = rememberCoroutineScope()
     val maxValue = scroll.maxValue
     // Tables keep their navigator at the bottom of the screen even when a
     // wide viewport temporarily fits every column. Charts retain the compact
@@ -120,21 +117,6 @@ fun TableScrollControls(scroll: ScrollState, showWhenStationary: Boolean = false
             clickDistance = 500f,
             continuousPixelsPerFrame = 10f,
             enabled = canScroll
-        )
-        Slider(
-            value = scroll.value.toFloat(),
-            onValueChange = { target -> scope.launch { scroll.scrollTo(target.roundToInt()) } },
-            valueRange = 0f..maxValue.coerceAtLeast(1).toFloat(),
-            // `fill = false` lets Wasm measure the slider at zero width inside
-            // a narrow chart card.  Keep a real weighted lane so the control
-            // remains visible together with its percentage indicator.
-            modifier = Modifier.widthIn(min = 160.dp, max = 360.dp).weight(1f)
-                .semantics { contentDescription = LocalizationManager.t("table_scroll") },
-            enabled = canScroll,
-            colors = SliderDefaults.colors(
-                thumbColor = MaterialTheme.colorScheme.primary,
-                activeTrackColor = MaterialTheme.colorScheme.primary
-            )
         )
         Text(
             "$percentage%",
