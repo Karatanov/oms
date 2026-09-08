@@ -63,7 +63,7 @@ fun TableScrollOverlayHost(content: @Composable () -> Unit) {
     CompositionLocalProvider(LocalTableScrollOverlay provides state) {
         Box(Modifier.fillMaxSize()) {
             content()
-            state.Content()
+            with(state) { Content() }
         }
     }
 }
