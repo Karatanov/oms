@@ -161,10 +161,25 @@ fun FinancialScreen(
         modifier = Modifier.fillMaxSize().verticalScroll(pageScrollState).padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        oms.components.PageHeading(LocalizationManager.t("financial_monitoring"), Icons.Default.AccountBalance)
+        oms.components.PageHeading(LocalizationManager.t("financial_monitoring"), Icons.Default.AccountBalance) {
+            if (canManageFinancials) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedButton(onClick = { showTransferDialog = true }) {
+                        Text(LocalizationManager.t("import_export_xlsx"))
+                    }
+                    Button(onClick = {
+                        errorMessage = null
+                        addAct = true
+                    }) {
+                        Icon(Icons.Default.Add, null)
+                        Spacer(Modifier.width(8.dp))
+                        Text(LocalizationManager.t("add_record"))
+                    }
+                }
+            }
+        }
         if (loading) oms.components.ContentState(LocalizationManager.t("loading_records"), loading = true)
         if (loadFailed) oms.components.ContentState(LocalizationManager.t("load_records_error"), error = true, onRetry = { reloadKey++ })
-        Text(LocalizationManager.t("only_completed_works"), color = MaterialTheme.colorScheme.onSurfaceVariant)
 
         Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -185,21 +200,6 @@ fun FinancialScreen(
 
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
             Text(LocalizationManager.t("financial_records"), style = MaterialTheme.typography.titleLarge)
-            if (canManageFinancials) {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(onClick = {
-                        showTransferDialog = true
-                    }) { Text(LocalizationManager.t("import_export_xlsx")) }
-                    Button(onClick = {
-                        errorMessage = null
-                        addAct = true
-                    }) {
-                        Icon(Icons.Default.Add, null)
-                        Spacer(Modifier.width(8.dp))
-                        Text(LocalizationManager.t("add_record"))
-                    }
-                }
-            }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             listOf(null, "invoice", "act", "payment", "advance").forEach { type ->
