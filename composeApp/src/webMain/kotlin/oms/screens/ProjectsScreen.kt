@@ -43,6 +43,7 @@ import androidx.compose.ui.zIndex
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import kotlinx.coroutines.launch
 import oms.components.StatusChip
 import oms.components.TableHeader
@@ -69,6 +70,14 @@ import oms.data.ApiUser
 import kotlinx.browser.window
 
 // ... existing code ...
+
+private const val PROGRAMME_ROOT_CODE = "URP-III"
+
+/** The programme remains the database parent; it is a page heading, not a row. */
+private fun Project.isProgrammeRoot(): Boolean =
+    projectType.equals("project", ignoreCase = true) &&
+        (siteNumber.equals(PROGRAMME_ROOT_CODE, ignoreCase = true) ||
+            name.equals("Ukraine Recovery Programme III", ignoreCase = true))
 
 @Composable
 fun ProjectsScreen(
@@ -122,6 +131,7 @@ fun ProjectsScreen(
         ProjectRepository.refresh()
     }
     val projects = ProjectRepository.projects
+    val programme = projects.firstOrNull(Project::isProgrammeRoot)
 
     val filteredProjects = remember(projects, searchText, regionFilter, statusFilter, trancheFilter, constructionTypeFilter, sectorFilter) {
         fun matches(project: Project) =
@@ -135,14 +145,14 @@ fun ProjectsScreen(
                 (trancheFilter == null || project.trancheNumber == trancheFilter) &&
                 (constructionTypeFilter == null || project.constructionType.equals(constructionTypeFilter, ignoreCase = true)) &&
                 (sectorFilter == null || project.sector.equals(sectorFilter, ignoreCase = true))
-        val matchingProjects = projects.filter(::matches)
+        val matchingProjects = projects.filter(::matches).filterNot(Project::isProgrammeRoot)
         val projectsById = projects.associateBy { it.id }
         val visibleIds = matchingProjects
             .flatMap { project ->
                 generateSequence(project) { current -> current.parentProjectUuid?.let(projectsById::get) }.toList()
             }
             .mapTo(mutableSetOf()) { it.id }
-        projects.filter { it.id in visibleIds }
+        projects.filter { it.id in visibleIds && !it.isProgrammeRoot() }
     }
 
     MaterialTheme(colorScheme = MaterialTheme.colorScheme.copy(onPrimary = Color.White)) {
@@ -175,6 +185,16 @@ fun ProjectsScreen(
                 Spacer(Modifier.width(8.dp))
                 Text(LocalizationManager.t("create_project"))
             }
+        }
+
+        programme?.let { root ->
+            Text(
+                root.localizedName(),
+                modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                style = MaterialTheme.typography.titleLarge,
+                textAlign = TextAlign.Center,
+                color = MaterialTheme.colorScheme.primary
+            )
         }
 
         Spacer(Modifier.height(12.dp))
@@ -330,8 +350,15 @@ fun ProjectsTable(
         val childrenByParent = projects
             .filter { !it.projectType.equals("project", ignoreCase = true) }
             .groupBy { it.parentProjectUuid }
-        val parents = sort(projects.filter { it.projectType.equals("project", ignoreCase = true) })
-        val expanded = expandedParentIds ?: parents.map { it.id }.toSet()
+        val displayedIds = projects.mapTo(mutableSetOf()) { it.id }
+        // The programme parent is intentionally omitted from this visual tree.
+        // Its direct subprojects become the visible roots without losing their
+        // parent UUID in the persisted model.
+        val roots = sort(projects.filter { project ->
+            project.projectType.equals("project", ignoreCase = true) ||
+                project.parentProjectUuid !in displayedIds
+        })
+        val expanded = expandedParentIds ?: roots.map { it.id }.toSet()
         buildList {
             fun addBranch(item: Project, depth: Int, isLast: Boolean) {
                 val children = sort(childrenByParent[item.id].orEmpty())
@@ -341,8 +368,7 @@ fun ProjectsTable(
                     addBranch(child, depth + 1, index == children.lastIndex)
                 }
             }
-            parents.forEachIndexed { index, parent -> addBranch(parent, 0, index == parents.lastIndex) }
-            sort(childrenByParent[null].orEmpty()).forEach { addBranch(it, 1, true) }
+            roots.forEachIndexed { index, root -> addBranch(root, 0, index == roots.lastIndex) }
         }
     }
 
@@ -389,7 +415,7 @@ fun ProjectsTable(
                 pageRows.forEach { row -> ProjectRow(
                     project = row.project,
                     highlightSearchMatch = searchText.isNotBlank() && row.project.matchesProjectSearch(searchText),
-                    isSubproject = row.depth > 0,
+                    isSubproject = !row.project.projectType.equals("project", ignoreCase = true),
                     isLastSubproject = row.isLastSubproject,
                     indentLevel = row.depth,
                     childCount = row.childCount,
@@ -657,7 +683,7 @@ fun ProjectRow(
                     modifier = Modifier.size(20.dp)
                 )
             } else {
-                if (indentLevel > 1) {
+                if (project.projectType.equals("subproject_part", ignoreCase = true)) {
                     Box(
                         modifier = Modifier.size(24.dp).background(Color.White, CircleShape),
                         contentAlignment = Alignment.Center
@@ -669,6 +695,13 @@ fun ProjectRow(
                             modifier = Modifier.size(18.dp)
                         )
                     }
+                } else if (indentLevel == 0) {
+                    Icon(
+                        imageVector = Icons.Default.FolderOpen,
+                        contentDescription = LocalizationManager.t("subproject"),
+                        tint = Primary,
+                        modifier = Modifier.size(20.dp)
+                    )
                 } else {
                     Text("•", color = Primary, style = MaterialTheme.typography.titleMedium)
                 }
