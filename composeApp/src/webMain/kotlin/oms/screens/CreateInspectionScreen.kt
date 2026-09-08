@@ -40,9 +40,14 @@ import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.WaterDrop
 import androidx.compose.material.icons.filled.AcUnit
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Engineering
+import androidx.compose.material.icons.filled.LocationOn
 import oms.components.PageHeading
 import oms.components.TableActionIconButton
 import oms.components.NativePaneAnchor
+import oms.components.FormSectionTitle
+import androidx.compose.ui.graphics.vector.ImageVector
 
 @JsName("openSirImportDialog")
 external fun openSirImportDialog(projectUuid: String, onComplete: (String) -> Unit)
@@ -272,6 +277,7 @@ fun CreateInspectionScreen(
                 modifier = Modifier.padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
+                FormSectionTitle(LocalizationManager.t("sir_header_site"), Icons.Default.LocationOn)
                 InspectionProjectSelector(
                     projects = projects,
                     loadProjectsOnOpen = {
@@ -549,15 +555,9 @@ private fun ManualSirForm(
     inspectorName: String,
     inspectorTitle: String, onInspectorTitleChange: (String) -> Unit
 ) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        shape = RoundedCornerShape(12.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-    ) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        SirFormSection(LocalizationManager.t("sir_report_header"), Icons.Default.Description) {
             Text(LocalizationManager.t("manual_sir_title"), style = MaterialTheme.typography.titleLarge, color = Color(0xFF278DAD))
-
             OutlinedTextField(
                 projectName,
                 { onProjectNameChange(it.inspectionText(500)) },
@@ -565,20 +565,27 @@ private fun ManualSirForm(
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
             )
-            SirSectionTitle(LocalizationManager.t("sir_contractor_section"))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedTextField(contractor, { onContractorChange(it.inspectionText(300)) }, label = { Text("${LocalizationManager.t("contractor")} *") }, modifier = Modifier.weight(1f), singleLine = true)
                 OmsDateField(date, onDateChange, LocalizationManager.t("date_label"), Modifier.weight(1f), required = true)
             }
+        }
 
-            SirSectionTitle(LocalizationManager.t("sir_representatives"))
-            OutlinedTextField(contractorRepresentative, { onContractorRepresentativeChange(it.inspectionText(300)) }, label = { Text(LocalizationManager.t("sir_contractor_representative")) }, modifier = Modifier.fillMaxWidth(), singleLine = true)
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedTextField(qaStaff, { onQaStaffChange(it.inspectionText(300)) }, label = { Text(LocalizationManager.t("sir_qa_staff")) }, modifier = Modifier.weight(1f), singleLine = true)
-                OutlinedTextField(usifRepresentative, { onUsifRepresentativeChange(it.inspectionText(300)) }, label = { Text(LocalizationManager.t("sir_usif_representative")) }, modifier = Modifier.weight(1f), singleLine = true)
+        SirFormSection(LocalizationManager.t("sir_representatives"), Icons.Default.Engineering) {
+            BoxWithConstraints(Modifier.fillMaxWidth()) {
+                if (maxWidth >= 900.dp) Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    OutlinedTextField(contractorRepresentative, { onContractorRepresentativeChange(it.inspectionText(300)) }, label = { Text(LocalizationManager.t("sir_contractor_representative")) }, modifier = Modifier.weight(1f), singleLine = true)
+                    OutlinedTextField(qaStaff, { onQaStaffChange(it.inspectionText(300)) }, label = { Text(LocalizationManager.t("sir_qa_staff")) }, modifier = Modifier.weight(1f), singleLine = true)
+                    OutlinedTextField(usifRepresentative, { onUsifRepresentativeChange(it.inspectionText(300)) }, label = { Text(LocalizationManager.t("sir_usif_representative")) }, modifier = Modifier.weight(1f), singleLine = true)
+                } else Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    OutlinedTextField(contractorRepresentative, { onContractorRepresentativeChange(it.inspectionText(300)) }, label = { Text(LocalizationManager.t("sir_contractor_representative")) }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                    OutlinedTextField(qaStaff, { onQaStaffChange(it.inspectionText(300)) }, label = { Text(LocalizationManager.t("sir_qa_staff")) }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                    OutlinedTextField(usifRepresentative, { onUsifRepresentativeChange(it.inspectionText(300)) }, label = { Text(LocalizationManager.t("sir_usif_representative")) }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                }
             }
+        }
 
-            SirSectionTitle(LocalizationManager.t("sir_personnel_weather"))
+        SirFormSection(LocalizationManager.t("sir_personnel_weather"), Icons.Default.WbSunny) {
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedTextField(skilledLabor, { onSkilledLaborChange(it.filter(Char::isDigit).take(6)) }, label = { Text(LocalizationManager.t("sir_skilled_labor")) }, modifier = Modifier.weight(1f), singleLine = true)
                 OutlinedTextField(unskilledLabor, { value -> onUnskilledLaborChange(value.filter { it.isDigit() || it == '-' }.take(7).takeIf { it == "-" || it.all(Char::isDigit) } ?: unskilledLabor) }, label = { Text(LocalizationManager.t("sir_unskilled_labor")) }, modifier = Modifier.weight(1f), singleLine = true)
@@ -587,13 +594,17 @@ private fun ManualSirForm(
                 OutlinedTextField(siteManagement, { onSiteManagementChange(it.inspectionText(300)) }, label = { Text(LocalizationManager.t("sir_site_management")) }, modifier = Modifier.weight(1f), singleLine = true)
             }
             WeatherPicker(weatherCondition, onWeatherConditionChange, temperatureCelsius, onTemperatureCelsiusChange)
+        }
 
-            SirSectionTitle(LocalizationManager.t("sir_ongoing_activities"))
+        SirFormSection(LocalizationManager.t("sir_ongoing_activities"), Icons.Default.Engineering) {
             RepeatableManualActivities(activities, onActivitiesChange)
-            SirSectionTitle(LocalizationManager.t("sir_ongoing_observations"))
-            RepeatableSirRows(ongoingObservations, onOngoingObservationsChange, LocalizationManager.t("sir_one_per_line"))
+        }
 
-            SirSectionTitle(LocalizationManager.t("sir_hse_observations"))
+        SirFormSection(LocalizationManager.t("sir_ongoing_observations"), Icons.Default.FactCheck) {
+            RepeatableSirRows(ongoingObservations, onOngoingObservationsChange, LocalizationManager.t("sir_one_per_line"))
+        }
+
+        SirFormSection(LocalizationManager.t("sir_hse_observations"), Icons.Default.FactCheck) {
             hseObservations.forEachIndexed { index, item ->
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Checkbox(checked = item.isYes, onCheckedChange = { checked -> onHseObservationsChange(hseObservations.mapIndexed { current, value -> if (current == index) value.copy(isYes = checked) else value }) })
@@ -601,15 +612,17 @@ private fun ManualSirForm(
                     OutlinedTextField(item.comment, { comment -> onHseObservationsChange(hseObservations.mapIndexed { current, value -> if (current == index) value.copy(comment = comment.inspectionText(2_000)) else value }) }, label = { Text(LocalizationManager.t("comment")) }, maxLines = 3, modifier = Modifier.widthIn(min = 220.dp).weight(1f))
                 }
             }
+        }
 
-            SirSectionTitle(LocalizationManager.t("sir_quality_assessment"))
+        SirFormSection(LocalizationManager.t("sir_quality_assessment"), Icons.Default.FactCheck) {
             RepeatableQualityRemarks(qualityRemarks, onQualityRemarksChange)
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedTextField(progress, { onProgressChange(it.inspectionText(4_000)) }, label = { Text(LocalizationManager.t("sir_progress_comments")) }, minLines = 2, maxLines = 6, modifier = Modifier.weight(1f))
                 OutlinedTextField(schedule, { onScheduleChange(it.inspectionText(4_000)) }, label = { Text(LocalizationManager.t("sir_schedule_remarks")) }, minLines = 2, maxLines = 6, modifier = Modifier.weight(1f))
             }
+        }
 
-            SirSectionTitle(LocalizationManager.t("sir_inspector_section"))
+        SirFormSection(LocalizationManager.t("sir_inspector_section"), Icons.Default.Description) {
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedTextField(
                     value = inspectorName,
@@ -620,6 +633,22 @@ private fun ManualSirForm(
                 )
                 OutlinedTextField(inspectorTitle, { onInspectorTitleChange(it.inspectionText(300)) }, label = { Text(LocalizationManager.t("sir_title_field")) }, modifier = Modifier.weight(1f), singleLine = true)
             }
+        }
+    }
+}
+
+/** Matches the light, icon-led sections used in subproject details. */
+@Composable
+private fun SirFormSection(title: String, icon: ImageVector, content: @Composable ColumnScope.() -> Unit) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            FormSectionTitle(title, icon)
+            content()
         }
     }
 }
@@ -738,30 +767,33 @@ private fun RepeatableManualActivities(
         }
         Card(colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FBFC))) {
             Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(activity.location, { value -> update(index) { it.copy(location = value.inspectionText(500)) } }, label = { Text(LocalizationManager.t("sir_activity_location")) }, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(activity.description, { value -> update(index) { it.copy(description = value.inspectionText(2_000)) } }, label = { Text(LocalizationManager.t("description")) }, modifier = Modifier.fillMaxWidth(), minLines = 2)
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text(LocalizationManager.t("sir_on_schedule"), style = MaterialTheme.typography.labelLarge)
-                        SingleChoiceSegmentedButtonRow(Modifier.widthIn(max = 260.dp).fillMaxWidth()) {
-                            listOf("yes", "no").forEachIndexed { optionIndex, option ->
-                                SegmentedButton(
-                                    selected = activity.onSchedule.equals(option, ignoreCase = true),
-                                    onClick = { update(index) { it.copy(onSchedule = option) } },
-                                    shape = SegmentedButtonDefaults.itemShape(optionIndex, 2),
-                                    colors = SegmentedButtonDefaults.colors(
-                                        activeContainerColor = MaterialTheme.colorScheme.primary,
-                                        activeContentColor = Color.White
-                                    ),
-                                    icon = {},
-                                    label = { Text(LocalizationManager.t(option)) }
-                                )
-                            }
+                BoxWithConstraints(Modifier.fillMaxWidth()) {
+                    if (maxWidth >= 900.dp) Row(
+                        Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.Top
+                    ) {
+                        OutlinedTextField(activity.location, { value -> update(index) { it.copy(location = value.inspectionText(500)) } }, label = { Text(LocalizationManager.t("sir_activity_location")) }, modifier = Modifier.weight(1f), minLines = 2)
+                        OutlinedTextField(activity.description, { value -> update(index) { it.copy(description = value.inspectionText(2_000)) } }, label = { Text(LocalizationManager.t("description")) }, modifier = Modifier.weight(2f), minLines = 2)
+                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text(LocalizationManager.t("sir_on_schedule"), style = MaterialTheme.typography.labelLarge)
+                            ScheduleChoice(activity.onSchedule) { value -> update(index) { it.copy(onSchedule = value) } }
                         }
+                        OutlinedTextField(activity.remarks, { value -> update(index) { it.copy(remarks = value.inspectionText(2_000)) } }, label = { Text(LocalizationManager.t("sir_activity_remarks")) }, modifier = Modifier.weight(1.5f), minLines = 2)
+                        if (values.size > 1) TableActionIconButton(LocalizationManager.t("delete"), Icons.Default.Remove) { onChange(values.filterIndexed { current, _ -> current != index }) }
+                    } else Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedTextField(activity.location, { value -> update(index) { it.copy(location = value.inspectionText(500)) } }, label = { Text(LocalizationManager.t("sir_activity_location")) }, modifier = Modifier.fillMaxWidth())
+                        OutlinedTextField(activity.description, { value -> update(index) { it.copy(description = value.inspectionText(2_000)) } }, label = { Text(LocalizationManager.t("description")) }, modifier = Modifier.fillMaxWidth(), minLines = 2)
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Text(LocalizationManager.t("sir_on_schedule"), style = MaterialTheme.typography.labelLarge)
+                                ScheduleChoice(activity.onSchedule) { value -> update(index) { it.copy(onSchedule = value) } }
+                            }
+                            if (values.size > 1) TableActionIconButton(LocalizationManager.t("delete"), Icons.Default.Remove) { onChange(values.filterIndexed { current, _ -> current != index }) }
+                        }
+                        OutlinedTextField(activity.remarks, { value -> update(index) { it.copy(remarks = value.inspectionText(2_000)) } }, label = { Text(LocalizationManager.t("sir_activity_remarks")) }, modifier = Modifier.fillMaxWidth())
                     }
-                    if (values.size > 1) TableActionIconButton(LocalizationManager.t("delete"), Icons.Default.Remove) { onChange(values.filterIndexed { current, _ -> current != index }) }
                 }
-                OutlinedTextField(activity.remarks, { value -> update(index) { it.copy(remarks = value.inspectionText(2_000)) } }, label = { Text(LocalizationManager.t("sir_activity_remarks")) }, modifier = Modifier.fillMaxWidth())
                 OutlinedButton(
                     onClick = {
                         openInspectionPhotoPicker(activity.photoKey) { count ->
@@ -794,6 +826,25 @@ private fun RepeatableManualActivities(
     TableActionIconButton(LocalizationManager.t("add"), Icons.Default.Add) { onChange(values + ManualActivityInput()) }
 }
 
+@Composable
+private fun ScheduleChoice(selected: String, onSelect: (String) -> Unit) {
+    SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+        listOf("yes", "no").forEachIndexed { optionIndex, option ->
+            SegmentedButton(
+                selected = selected.equals(option, ignoreCase = true),
+                onClick = { onSelect(option) },
+                shape = SegmentedButtonDefaults.itemShape(optionIndex, 2),
+                colors = SegmentedButtonDefaults.colors(
+                    activeContainerColor = MaterialTheme.colorScheme.primary,
+                    activeContentColor = Color.White
+                ),
+                icon = {},
+                label = { Text(LocalizationManager.t(option)) }
+            )
+        }
+    }
+}
+
 private data class HseObservationInput(val observation: String, val isYes: Boolean = false, val comment: String = "")
 internal data class QualityRemarkInput(val comment: String = "", val rectification: String = "")
 private val defaultHseObservations = listOf(
@@ -804,16 +855,6 @@ private val defaultHseObservations = listOf(
     "There are safety briefing logs.",
     "Safety information plate is in tact."
 ).map(::HseObservationInput)
-
-@Composable
-private fun SirSectionTitle(text: String) {
-    Text(
-        text,
-        modifier = Modifier.fillMaxWidth().background(Color(0xFFE3F2F7), RoundedCornerShape(6.dp)).padding(horizontal = 10.dp, vertical = 7.dp),
-        style = MaterialTheme.typography.labelLarge,
-        color = Color(0xFF176B84)
-    )
-}
 
 @Composable
 private fun InspectionProjectSelector(

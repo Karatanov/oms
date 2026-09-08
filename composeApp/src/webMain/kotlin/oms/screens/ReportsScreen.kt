@@ -23,11 +23,15 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.RateReview
 import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Engineering
+import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
@@ -411,32 +415,68 @@ private fun ReportPreviewDialog(report: ReportRow, onDismiss: () -> Unit) {
                         }
                         val sheet = loaded.sheets.getOrNull(selectedSheet) ?: loaded.sheets.first()
                         if (sheet.rows.isEmpty()) Text(LocalizationManager.t("report_preview_empty"))
-                        else Box(Modifier.fillMaxWidth().horizontalScroll(tableScroll)) {
-                            Column(Modifier.widthIn(min = 920.dp)) {
-                                sheet.rows.forEach { row ->
-                                    Row(Modifier.fillMaxWidth()) {
-                                        Text(
-                                            row.rowNumber.toString(),
-                                            Modifier.width(42.dp).border(0.5.dp, MaterialTheme.colorScheme.outlineVariant).padding(6.dp),
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                        row.cells.forEach { cell ->
-                                            Text(
-                                                cell.ifBlank { " " },
-                                                Modifier.width(140.dp).border(0.5.dp, MaterialTheme.colorScheme.outlineVariant).padding(6.dp).heightIn(min = 34.dp),
-                                                style = MaterialTheme.typography.bodySmall
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                        }
+                        else ReportWorkbookPreview(sheet, tableScroll)
                     }
                 }
             }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                 OutlinedButton(onClick = onDismiss) { Text(LocalizationManager.t("close")) }
+            }
+        }
+    }
+}
+
+private data class PreviewSection(val title: String, val icon: ImageVector, val rows: IntRange)
+
+/** Groups the standard SIR sheet exactly in the same reading order as its form. */
+@Composable
+private fun ReportWorkbookPreview(sheet: oms.data.ApiInspectionReportPreviewSheet, tableScroll: androidx.compose.foundation.ScrollState) {
+    val isSir = sheet.name.equals("SIR", ignoreCase = true)
+    val sections = if (isSir) listOf(
+        PreviewSection(LocalizationManager.t("sir_report_header"), Icons.Default.Description, 1..5),
+        PreviewSection(LocalizationManager.t("sir_personnel_weather"), Icons.Default.WbSunny, 6..10),
+        PreviewSection(LocalizationManager.t("sir_ongoing_activities"), Icons.Default.Engineering, 11..26),
+        PreviewSection(LocalizationManager.t("sir_ongoing_observations"), Icons.Default.FactCheck, 27..39),
+        PreviewSection(LocalizationManager.t("sir_hse_observations"), Icons.Default.FactCheck, 40..46),
+        PreviewSection(LocalizationManager.t("sir_quality_assessment"), Icons.Default.FactCheck, 47..55),
+        PreviewSection(LocalizationManager.t("sir_inspector_section"), Icons.Default.Description, 56..Int.MAX_VALUE)
+    ) else listOf(PreviewSection(sheet.name, Icons.Default.Description, 0..Int.MAX_VALUE))
+
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        sections.forEach { section ->
+            val rows = sheet.rows.filter { it.rowNumber in section.rows }
+            if (rows.isEmpty()) return@forEach
+            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)) {
+                Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    oms.components.FormSectionTitle(section.title, section.icon)
+                    ReportWorkbookGrid(rows, tableScroll)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ReportWorkbookGrid(rows: List<oms.data.ApiInspectionReportPreviewRow>, scroll: androidx.compose.foundation.ScrollState) {
+    val columns = rows.maxOfOrNull { it.cells.size } ?: 1
+    Box(Modifier.fillMaxWidth().horizontalScroll(scroll)) {
+        Column(Modifier.width((42 + columns * 140).dp)) {
+            rows.forEach { row ->
+                Row(Modifier.fillMaxWidth()) {
+                    Text(
+                        row.rowNumber.toString(),
+                        Modifier.width(42.dp).border(0.5.dp, MaterialTheme.colorScheme.outlineVariant).padding(6.dp),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    (0 until columns).forEach { column ->
+                        Text(
+                            row.cells.getOrElse(column) { " " }.ifBlank { " " },
+                            Modifier.width(140.dp).border(0.5.dp, MaterialTheme.colorScheme.outlineVariant).padding(6.dp).heightIn(min = 34.dp),
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                }
             }
         }
     }
