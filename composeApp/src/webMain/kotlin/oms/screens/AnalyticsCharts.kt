@@ -175,7 +175,9 @@ fun MetricsChart(
     compact: Boolean = false,
     onItemClick: ((String) -> Unit)? = null,
     showScrollControls: Boolean = true,
-    orientation: BarChartOrientation = BarChartOrientation.Vertical
+    orientation: BarChartOrientation = BarChartOrientation.Vertical,
+    expanded: Boolean = true,
+    onExpandedChange: ((Boolean) -> Unit)? = null
 ) {
     val sortedMetrics = metrics.sortedBy { it.label }
     val data = sortedMetrics.mapIndexed { index, metric ->
@@ -197,7 +199,9 @@ fun MetricsChart(
         compact = compact,
         showScrollControls = showScrollControls,
         onItemClick = onItemClick?.let { handler -> { bar -> bar.id?.let(handler) } },
-        orientation = orientation
+        orientation = orientation,
+        expanded = expanded,
+        onExpandedChange = onExpandedChange
     )
 }
 

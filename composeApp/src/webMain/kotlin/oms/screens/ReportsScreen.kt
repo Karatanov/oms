@@ -102,6 +102,8 @@ fun ReportsScreen(
     var findingsReport by remember { mutableStateOf<ReportRow?>(null) }
     var reportToReview by remember { mutableStateOf<ReportRow?>(null) }
     var analytics by remember { mutableStateOf<ApiInspectionAnalytics?>(null) }
+    var inspectionsChartExpanded by remember { mutableStateOf(false) }
+    var eshsChartExpanded by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     var sort by remember { mutableStateOf(ReportSort.Date) }
     var ascending by remember { mutableStateOf(false) }
@@ -191,17 +193,27 @@ fun ReportsScreen(
         OutlinedTextField(search, { search = it }, singleLine = true, label = { Text(LocalizationManager.t("reports_search")) }, leadingIcon = { Icon(Icons.Default.Search, null) }, modifier = Modifier.fillMaxWidth())
         if (loading) oms.components.ContentState(LocalizationManager.t("loading_records"), loading = true)
         if (loadFailed) oms.components.ContentState(LocalizationManager.t("load_records_error"), error = true, onRetry = { reloadKey++ })
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         oms.components.AdaptiveChartRow(
-            first = { MetricsChart("inspections_by_month", "inspections_by_month_hint", analytics?.monthlyInspectionCounts.orEmpty(), compact = true) },
-            second = { MetricsChart("eshs_violations_by_month", "eshs_violations_by_month_hint", analytics?.monthlyEshsViolations.orEmpty(), compact = true) }
+            first = {
+                MetricsChart(
+                    "inspections_by_month", "inspections_by_month_hint", analytics?.monthlyInspectionCounts.orEmpty(),
+                    compact = true, expanded = inspectionsChartExpanded, onExpandedChange = { inspectionsChartExpanded = it }
+                )
+            },
+            second = {
+                MetricsChart(
+                    "eshs_violations_by_month", "eshs_violations_by_month_hint", analytics?.monthlyEshsViolations.orEmpty(),
+                    compact = true, expanded = eshsChartExpanded, onExpandedChange = { eshsChartExpanded = it }
+                )
+            }
         )
         // Card clips translated children in Web/Wasm.  A drawn surface keeps
         // the same light table background while allowing its header to stick
         // above the scrolling page.
         Box(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface)) {
             oms.components.ScrollableTable(
-                Modifier.padding(16.dp),
+                Modifier.padding(start = 16.dp, top = 4.dp, end = 16.dp, bottom = 16.dp),
                 showScrollControls = visible.isNotEmpty(),
                 pageScrollState = contentScrollState,
                 header = {
