@@ -39,6 +39,7 @@ fun App() {
         oms.components.TooltipOverlayHost {
         oms.components.OptionOverlayHost {
         oms.components.ConfirmationHost {
+        oms.components.TableScrollOverlayHost {
         SelectionContainer {
             if (restoringSession) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
@@ -54,6 +55,7 @@ fun App() {
             } else if (appState.isAuthenticated) {
                 AppLayout(appState)
             }
+        }
         }
         }
         }

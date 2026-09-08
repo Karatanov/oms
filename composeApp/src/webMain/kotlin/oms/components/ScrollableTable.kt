@@ -16,9 +16,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.boundsInRoot
-import androidx.compose.ui.layout.findRootCoordinates
 import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.*
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
@@ -36,15 +34,12 @@ fun ScrollableTable(
     content: @Composable ColumnScope.() -> Unit
 ) {
     val scroll = rememberScrollState()
+    val navigatorOverlay = LocalTableScrollOverlay.current
+    val navigatorId = remember { Any() }
     var tableTopInRoot by remember { mutableStateOf(0f) }
     var tableTopInPage by remember { mutableStateOf<Float?>(null) }
     var tableHeight by remember { mutableStateOf(0) }
     var headerHeight by remember { mutableStateOf(0) }
-    var controlsTopInRoot by remember { mutableStateOf(0f) }
-    var controlsTopInPage by remember { mutableStateOf<Float?>(null) }
-    var controlsHeight by remember { mutableStateOf(0) }
-    var rootHeight by remember { mutableStateOf(0) }
-    val bottomInsetPx = with(LocalDensity.current) { 12.dp.toPx() }
     // Browser/Wasm scrolling is applied as a layer transform, so layout
     // coordinates alone can remain stale while the page moves.  Keep the
     // table's stable page position and derive its live position from the
@@ -55,15 +50,12 @@ fun ScrollableTable(
     val stickyOffset = (-liveTableTop)
         .coerceAtLeast(0f)
         .coerceAtMost((tableHeight - headerHeight).coerceAtLeast(0).toFloat())
-    // Keep the horizontal scrollbar in the lower part of the visible page,
-    // regardless of where the table itself is in the vertical scroll.
-    val liveControlsTop = pageScrollState?.let { scrollState ->
-        (controlsTopInPage ?: controlsTopInRoot + scrollState.value) - scrollState.value
-    } ?: controlsTopInRoot
-    val fixedControlsOffset = if (pageScrollState != null && rootHeight > 0 && controlsHeight > 0) {
-        rootHeight - controlsHeight - bottomInsetPx - liveControlsTop
-    } else 0f
     val surface = MaterialTheme.colorScheme.surface
+
+    DisposableEffect(navigatorId, showScrollControls) {
+        if (showScrollControls) navigatorOverlay.show(navigatorId, scroll)
+        onDispose { navigatorOverlay.dismiss(navigatorId) }
+    }
 
     Column(modifier.fillMaxWidth()) {
         Column(
@@ -99,31 +91,6 @@ fun ScrollableTable(
                 Column(Modifier.graphicsLayer { translationX = -scroll.value.toFloat() }, content = header)
             }
             Column(Modifier.fillMaxWidth().horizontalScroll(scroll), content = content)
-        }
-        // The navigator belongs to every table and stays in the lower part of
-        // the viewport.  Do not hide it when the table's coordinates are
-        // temporarily outside the viewport: on Wasm that produces a visible
-        // "disappearing" control during vertical page scrolling.
-        if (showScrollControls) {
-            Box(
-                Modifier.fillMaxWidth()
-                    .background(surface)
-                    .zIndex(5f)
-                    .graphicsLayer { translationY = fixedControlsOffset }
-                    .onGloballyPositioned { coordinates ->
-                    val bounds = coordinates.boundsInRoot()
-                    controlsTopInRoot = bounds.top
-                    // boundsInRoot includes graphicsLayer translation. Updating
-                    // the stored base position after the navigator was moved
-                    // feeds that translated value back into fixedControlsOffset
-                    // and makes the control oscillate on Web/Wasm.
-                    if (controlsTopInPage == null) {
-                        controlsTopInPage = bounds.top + (pageScrollState?.value ?: 0)
-                    }
-                        controlsHeight = coordinates.size.height
-                        rootHeight = coordinates.findRootCoordinates().size.height
-                    }
-            ) { TableScrollControls(scroll) }
         }
     }
 }
