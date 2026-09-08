@@ -98,6 +98,7 @@ fun CreateInspectionScreen(
     var temperatureCelsius by remember { mutableStateOf("") }
     var activities by remember { mutableStateOf(listOf(ManualActivityInput())) }
     var projectName by remember { mutableStateOf("") }
+    var siteAddress by remember { mutableStateOf("") }
     var ongoingObservations by remember { mutableStateOf(listOf("")) }
     var hseObservations by remember { mutableStateOf(defaultHseObservations) }
     var qualityText by remember { mutableStateOf("") }
@@ -125,7 +126,7 @@ fun CreateInspectionScreen(
     val inspectionTargetUuid = selectedSubprojectPartUuid ?: selectedSubprojectUuid ?: selectedProjectUuid
     val selectedSubproject = projects.firstOrNull { it.id == selectedSubprojectUuid }
     val siteReference = selectedSubproject?.let { subproject ->
-        listOf(subproject.siteNumber, subproject.city.ifBlank { subproject.name })
+        listOf(subproject.siteNumber, siteAddress)
             .filter(String::isNotBlank)
             .joinToString(", ")
     }.orEmpty()
@@ -186,6 +187,19 @@ fun CreateInspectionScreen(
             errorMessage = LocalizationManager.t("error_update_report").replace("{message}", failure.message ?: LocalizationManager.t("unknown_error"))
         }
         loadingManualReport = false
+    }
+
+    // The SIR workbook stores the code and address in a single cell.  Keep
+    // them separate in the form and load the address from the selected
+    // subproject whenever it is available.
+    LaunchedEffect(selectedSubprojectUuid) {
+        val subprojectUuid = selectedSubprojectUuid
+        if (subprojectUuid == null) {
+            siteAddress = ""
+        } else {
+            runCatching { OmsApiClient.projectDetails(subprojectUuid).data.address }
+                .onSuccess { address -> siteAddress = address }
+        }
     }
 
     val maxComments = 2000
@@ -278,6 +292,15 @@ fun CreateInspectionScreen(
                     }
                 )
 
+                OutlinedTextField(
+                    value = siteAddress,
+                    onValueChange = { siteAddress = it.inspectionText(500) },
+                    label = { Text(LocalizationManager.t("address")) },
+                    modifier = Modifier.fillMaxWidth(),
+                    minLines = 2,
+                    maxLines = 3
+                )
+
                 InspectionTypeDropdown(value = inspectionType, onChange = { inspectionType = it })
                 if (isManualEdit && canChangeReportStatus) {
                     InlineOptionPicker(
@@ -329,7 +352,7 @@ fun CreateInspectionScreen(
         }
 
         if (entryMode == "manual") ManualSirForm(
-            date = date, onDateChange = { date = it }, projectName = projectName, onProjectNameChange = { projectName = it }, siteReference = siteReference,
+            date = date, onDateChange = { date = it }, projectName = projectName, onProjectNameChange = { projectName = it },
             contractor = contractor, onContractorChange = { contractor = it },
             contractorRepresentative = contractorRepresentative, onContractorRepresentativeChange = { contractorRepresentative = it },
             qaStaff = qaStaff, onQaStaffChange = { qaStaff = it }, usifRepresentative = usifRepresentative, onUsifRepresentativeChange = { usifRepresentative = it },
@@ -533,7 +556,7 @@ private fun PendingInspectionPhotoPreviews(revision: Int, onSelectionChanged: (I
 @Composable
 private fun ManualSirForm(
     date: String, onDateChange: (String) -> Unit,
-    projectName: String, onProjectNameChange: (String) -> Unit, siteReference: String,
+    projectName: String, onProjectNameChange: (String) -> Unit,
     contractor: String, onContractorChange: (String) -> Unit,
     contractorRepresentative: String, onContractorRepresentativeChange: (String) -> Unit,
     qaStaff: String, onQaStaffChange: (String) -> Unit,
@@ -568,15 +591,6 @@ private fun ManualSirForm(
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
             )
-            OutlinedTextField(
-                siteReference,
-                onValueChange = {},
-                readOnly = true,
-                label = { Text(LocalizationManager.t("sir_site_reference")) },
-                modifier = Modifier.fillMaxWidth(),
-                minLines = 2
-            )
-
             SirSectionTitle(LocalizationManager.t("sir_contractor_section"))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedTextField(contractor, { onContractorChange(it.inspectionText(300)) }, label = { Text("${LocalizationManager.t("contractor")} *") }, modifier = Modifier.weight(1f), singleLine = true)
@@ -804,8 +818,8 @@ private fun InspectionProjectSelector(
             loadOptionsOnOpen = { loadProjectsOnOpen().filter { it.projectType.equals("project", true) } }
         )
         ProjectLevelDropdown(
-            LocalizationManager.t("select_subproject"), subprojects, selectedSubprojectUuid, onSubprojectSelect,
-            enabled = subprojects.isNotEmpty(), searchable = true
+            LocalizationManager.t("sir_subproject_number"), subprojects, selectedSubprojectUuid, onSubprojectSelect,
+            enabled = subprojects.isNotEmpty(), searchable = true, codeOnly = true
         )
         ProjectLevelDropdown(LocalizationManager.t("select_subproject_part"), parts, selectedSubprojectPartUuid, onSubprojectPartSelect, enabled = parts.isNotEmpty())
     }
@@ -819,15 +833,17 @@ private fun ProjectLevelDropdown(
     onSelect: (String?) -> Unit,
     enabled: Boolean = true,
     searchable: Boolean = false,
+    codeOnly: Boolean = false,
     loadOptionsOnOpen: (suspend () -> List<Project>)? = null
 ) {
     val selected = options.firstOrNull { it.id == selectedUuid }
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(label, style = MaterialTheme.typography.labelLarge)
         val itemLabel: (Project) -> String = {
-                if (it.siteNumber.equals(it.name, ignoreCase = true)) it.name
-                else "${it.siteNumber} — ${it.name}"
-            }
+            if (codeOnly) it.siteNumber
+            else if (it.siteNumber.equals(it.name, ignoreCase = true)) it.name
+            else "${it.siteNumber} — ${it.name}"
+        }
         if (searchable) {
             SearchableOptionPicker(
                 options, selected, label, { onSelect(it.id) }, itemLabel,
