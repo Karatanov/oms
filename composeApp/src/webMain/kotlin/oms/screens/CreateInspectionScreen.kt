@@ -102,7 +102,7 @@ fun CreateInspectionScreen(
     var siteAddress by remember { mutableStateOf("") }
     var ongoingObservations by remember { mutableStateOf(listOf("")) }
     var hseObservations by remember { mutableStateOf(defaultHseObservations) }
-    var qualityText by remember { mutableStateOf("") }
+    var qualityRemarks by remember { mutableStateOf(listOf(QualityRemarkInput())) }
     var progressComment by remember { mutableStateOf("") }
     var scheduleRemark by remember { mutableStateOf("") }
     var inspectorTitle by remember { mutableStateOf("") }
@@ -181,7 +181,9 @@ fun CreateInspectionScreen(
             hseObservations = manual.hseObservations.map {
                 HseObservationInput(it.observation, it.answer.equals("yes", true), it.comment.orEmpty())
             }.ifEmpty { defaultHseObservations }
-            qualityText = manual.qualityRemarks.joinToString("\n") { remark -> listOfNotNull(remark.comment, remark.rectification).joinToString(" | ") }
+            qualityRemarks = manual.qualityRemarks.map { remark ->
+                QualityRemarkInput(remark.comment, remark.rectification.orEmpty())
+            }.ifEmpty { listOf(QualityRemarkInput()) }
             progressComment = manual.progressComment.orEmpty()
             scheduleRemark = manual.scheduleRemark.orEmpty()
             inspectorName = manual.inspectorName.ifBlank { currentUserName }
@@ -326,7 +328,7 @@ fun CreateInspectionScreen(
             skilledLabor = skilledLabor, onSkilledLaborChange = { skilledLabor = it }, unskilledLabor = unskilledLabor, onUnskilledLaborChange = { unskilledLabor = it },
             siteManagement = siteManagement, onSiteManagementChange = { siteManagement = it }, weatherCondition = weatherCondition, onWeatherConditionChange = { weatherCondition = it }, temperatureCelsius = temperatureCelsius, onTemperatureCelsiusChange = { temperatureCelsius = it },
             activities = activities, onActivitiesChange = { activities = it }, ongoingObservations = ongoingObservations, onOngoingObservationsChange = { ongoingObservations = it },
-            hseObservations = hseObservations, onHseObservationsChange = { hseObservations = it }, quality = qualityText, onQualityChange = { qualityText = it },
+            hseObservations = hseObservations, onHseObservationsChange = { hseObservations = it }, qualityRemarks = qualityRemarks, onQualityRemarksChange = { qualityRemarks = it },
             progress = progressComment, onProgressChange = { progressComment = it }, schedule = scheduleRemark, onScheduleChange = { scheduleRemark = it },
             inspectorName = inspectorName, inspectorTitle = inspectorTitle, onInspectorTitleChange = { inspectorTitle = it }
         )
@@ -420,7 +422,11 @@ fun CreateInspectionScreen(
                                             },
                                             ongoingObservations = ongoingObservations.map(String::trim).filter(String::isNotBlank),
                                             hseObservations = hseObservations.map { oms.data.ManualHseObservationRequest(it.observation, if (it.isYes) "Yes" else "No", it.comment.ifBlank { null }) },
-                                            qualityRemarks = qualityText.toManualQualityRemarks(),
+                                            qualityRemarks = qualityRemarks.mapNotNull { remark ->
+                                                remark.comment.trim().takeIf(String::isNotBlank)?.let { comment ->
+                                                    oms.data.ManualRemarkRequest(comment, remark.rectification.trim().ifBlank { null })
+                                                }
+                                            },
                                             progressComment = progressComment.ifBlank { null },
                                             scheduleRemark = scheduleRemark.ifBlank { null },
                                             inspectorName = inspectorName,
@@ -537,7 +543,7 @@ private fun ManualSirForm(
     activities: List<ManualActivityInput>, onActivitiesChange: (List<ManualActivityInput>) -> Unit,
     ongoingObservations: List<String>, onOngoingObservationsChange: (List<String>) -> Unit,
     hseObservations: List<HseObservationInput>, onHseObservationsChange: (List<HseObservationInput>) -> Unit,
-    quality: String, onQualityChange: (String) -> Unit,
+    qualityRemarks: List<QualityRemarkInput>, onQualityRemarksChange: (List<QualityRemarkInput>) -> Unit,
     progress: String, onProgressChange: (String) -> Unit,
     schedule: String, onScheduleChange: (String) -> Unit,
     inspectorName: String,
@@ -597,7 +603,7 @@ private fun ManualSirForm(
             }
 
             SirSectionTitle(LocalizationManager.t("sir_quality_assessment"))
-            OutlinedTextField(quality, { onQualityChange(it.inspectionText(8_000)) }, label = { Text(LocalizationManager.t("sir_quality_hint")) }, minLines = 3, maxLines = 8, modifier = Modifier.fillMaxWidth())
+            RepeatableQualityRemarks(qualityRemarks, onQualityRemarksChange)
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedTextField(progress, { onProgressChange(it.inspectionText(4_000)) }, label = { Text(LocalizationManager.t("sir_progress_comments")) }, minLines = 2, maxLines = 6, modifier = Modifier.weight(1f))
                 OutlinedTextField(schedule, { onScheduleChange(it.inspectionText(4_000)) }, label = { Text(LocalizationManager.t("sir_schedule_remarks")) }, minLines = 2, maxLines = 6, modifier = Modifier.weight(1f))
@@ -793,6 +799,7 @@ private fun RepeatableManualActivities(
 }
 
 private data class HseObservationInput(val observation: String, val isYes: Boolean = false, val comment: String = "")
+internal data class QualityRemarkInput(val comment: String = "", val rectification: String = "")
 private val defaultHseObservations = listOf(
     "All workers wear PPE equipment as relevant.",
     "The fire shield / firefighting equipment is present at site.",
@@ -889,7 +896,7 @@ private fun String.toManualQualityRemarks() = lines().map(String::trim).filter(S
 private fun String.isIsoDate(): Boolean = matches(Regex("\\d{4}-\\d{2}-\\d{2}"))
 
 /** Bounds pasted text before Compose measures it, keeping the inspection form responsive. */
-private fun String.inspectionText(maxLength: Int): String = replace("\u0000", "").take(maxLength)
+internal fun String.inspectionText(maxLength: Int): String = replace("\u0000", "").take(maxLength)
 
 private fun buildInspectionSummary(type: InspectionType, comments: String, latitude: String, longitude: String): String = buildString {
     append("[${type.name.lowercase()}]")
