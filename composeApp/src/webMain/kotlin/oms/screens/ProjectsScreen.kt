@@ -178,20 +178,41 @@ fun ProjectsScreen(
             .padding(start = 16.dp, top = 16.dp, end = 76.dp, bottom = 16.dp)
     ) {
 
-        oms.components.PageHeading(LocalizationManager.t("projects_title"), Icons.Default.FolderOpen) {
-            programme?.let { root ->
-                Text(
-                    root.localizedName(),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                    maxLines = 1,
-                    modifier = Modifier.widthIn(max = 420.dp)
-                )
-            }
-            if (canManageProjects) Button(onClick = onCreateProject) {
-                Icon(Icons.Default.Add, null)
-                Spacer(Modifier.width(8.dp))
-                Text(LocalizationManager.t("create_project"))
+        // The programme is contextual information, not a table row.  Keep it
+        // centred independently of the page title and the create action.
+        BoxWithConstraints(Modifier.fillMaxWidth()) {
+            if (maxWidth >= 820.dp) Box(Modifier.fillMaxWidth().heightIn(min = 42.dp)) {
+                Row(
+                    modifier = Modifier.align(Alignment.CenterStart),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(Modifier.size(42.dp).background(MaterialTheme.colorScheme.primaryContainer, MaterialTheme.shapes.medium), contentAlignment = Alignment.Center) {
+                        Icon(Icons.Default.FolderOpen, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(22.dp))
+                    }
+                    Text(LocalizationManager.t("projects_title"), style = MaterialTheme.typography.headlineMedium)
+                }
+                programme?.let { root ->
+                    Text(
+                        root.localizedName(),
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        maxLines = 1,
+                        modifier = Modifier.align(Alignment.Center).widthIn(max = 360.dp)
+                    )
+                }
+                if (canManageProjects) Button(onClick = onCreateProject, modifier = Modifier.align(Alignment.CenterEnd)) {
+                    Icon(Icons.Default.Add, null)
+                    Spacer(Modifier.width(8.dp))
+                    Text(LocalizationManager.t("create_project"))
+                }
+            } else oms.components.PageHeading(LocalizationManager.t("projects_title"), Icons.Default.FolderOpen) {
+                programme?.let { root -> Text(root.localizedName(), maxLines = 1, modifier = Modifier.widthIn(max = 260.dp)) }
+                if (canManageProjects) Button(onClick = onCreateProject) {
+                    Icon(Icons.Default.Add, null)
+                    Spacer(Modifier.width(8.dp))
+                    Text(LocalizationManager.t("create_project"))
+                }
             }
         }
 
