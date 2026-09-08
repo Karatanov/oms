@@ -43,7 +43,6 @@ import androidx.compose.ui.zIndex
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import kotlinx.coroutines.launch
 import oms.components.StatusChip
 import oms.components.TableHeader
@@ -180,21 +179,20 @@ fun ProjectsScreen(
     ) {
 
         oms.components.PageHeading(LocalizationManager.t("projects_title"), Icons.Default.FolderOpen) {
+            programme?.let { root ->
+                Text(
+                    root.localizedName(),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    maxLines = 1,
+                    modifier = Modifier.widthIn(max = 420.dp)
+                )
+            }
             if (canManageProjects) Button(onClick = onCreateProject) {
                 Icon(Icons.Default.Add, null)
                 Spacer(Modifier.width(8.dp))
                 Text(LocalizationManager.t("create_project"))
             }
-        }
-
-        programme?.let { root ->
-            Text(
-                root.localizedName(),
-                modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
-                style = MaterialTheme.typography.titleLarge,
-                textAlign = TextAlign.Center,
-                color = MaterialTheme.colorScheme.primary
-            )
         }
 
         Spacer(Modifier.height(12.dp))
