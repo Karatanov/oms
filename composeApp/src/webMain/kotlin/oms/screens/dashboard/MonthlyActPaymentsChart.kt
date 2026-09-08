@@ -18,11 +18,13 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import oms.charts.BarData
 import oms.charts.VerticalBarChart
+import oms.charts.HorizontalBarChart
+import oms.charts.BarChartOrientation
 import oms.data.ApiMonthlyActPayment
 import oms.localization.LocalizationManager
 
 @Composable
-fun MonthlyActPaymentsChart(primary: Color, payments: List<ApiMonthlyActPayment>, onOpenFinancial: () -> Unit = {}) {
+fun MonthlyActPaymentsChart(primary: Color, payments: List<ApiMonthlyActPayment>, onOpenFinancial: () -> Unit = {}, orientation: BarChartOrientation = BarChartOrientation.Vertical) {
     val sortedPayments = payments.sortedBy { it.month }
     val data = sortedPayments
         .mapIndexed { index, payment ->
@@ -47,13 +49,9 @@ fun MonthlyActPaymentsChart(primary: Color, payments: List<ApiMonthlyActPayment>
             Spacer(Modifier.height(40.dp))
             Spacer(Modifier.height(16.dp))
             if (data.isEmpty()) Text(LocalizationManager.t("no_payments_yet"))
-            else VerticalBarChart(
-                data = data,
-                color = primary,
-                valueLabel = { formatActAmount(it.toLong()) },
-                labelMaxLines = 1,
-                onItemClick = { onOpenFinancial() }
-            )
+            else if (orientation == BarChartOrientation.Vertical) VerticalBarChart(
+                data = data, color = primary, valueLabel = { formatActAmount(it.toLong()) }, labelMaxLines = 1, onItemClick = { onOpenFinancial() }
+            ) else HorizontalBarChart(data, primary, valueLabel = { formatActAmount(it.toLong()) }, onItemClick = { onOpenFinancial() })
         }
     }
 }

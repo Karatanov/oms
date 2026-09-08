@@ -13,3 +13,5 @@ data class BarData(
     val tooltip: String? = null,
     val formattedValue: String? = null
 )
+
+enum class BarChartOrientation { Vertical, Horizontal }

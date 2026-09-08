@@ -33,6 +33,8 @@ import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.Icon
 import oms.charts.BarData
 import oms.charts.VerticalBarChart
+import oms.charts.HorizontalBarChart
+import oms.charts.BarChartOrientation
 import oms.data.ApiDashboardMetric
 import oms.data.ApiMonthlyActPayment
 import oms.data.ApiSubprojectFunding
@@ -44,7 +46,7 @@ import oms.components.localizedUkraineRegion
 import kotlin.math.roundToLong
 
 @Composable
-fun FundingByOblastChart(items: List<ApiSubprojectFunding>, onOpenRegion: (String) -> Unit = {}) {
+fun FundingByOblastChart(items: List<ApiSubprojectFunding>, onOpenRegion: (String) -> Unit = {}, orientation: BarChartOrientation = BarChartOrientation.Vertical) {
     var currency by remember { mutableStateOf("EUR") }
     val data = items
         .groupBy { localizedUkraineRegion(it.region).toRegionChartLabel() }
@@ -76,12 +78,12 @@ fun FundingByOblastChart(items: List<ApiSubprojectFunding>, onOpenRegion: (Strin
                 FilterChip(selected = currency == "EUR", onClick = { currency = "EUR" }, label = { Text("EUR") })
                 FilterChip(selected = currency == "UAH", onClick = { currency = "UAH" }, label = { Text("UAH") })
             }
-        }
+        }, orientation = orientation
     )
 }
 
 @Composable
-fun SubprojectProgressChart(items: List<ApiSubprojectProgress>, onOpenFinancial: (String) -> Unit) {
+fun SubprojectProgressChart(items: List<ApiSubprojectProgress>, onOpenFinancial: (String) -> Unit, orientation: BarChartOrientation = BarChartOrientation.Vertical) {
     var regionFilter by remember(items) { mutableStateOf<String?>(null) }
     val regions = items.map { it.region }.filter(String::isNotBlank).distinct().sorted()
     val data = items
@@ -95,7 +97,7 @@ fun SubprojectProgressChart(items: List<ApiSubprojectProgress>, onOpenFinancial:
                 tooltip = if (LocalizationManager.currentLanguage == oms.localization.Language.EN) it.nameEn?.takeIf(String::isNotBlank) ?: it.name else it.name,
                 formattedValue = "${it.completionPct.toInt()}%"
             )
-        }
+        }, orientation = orientation
     AnalyticsCard(
         titleKey = "subproject_completion",
         hintKey = "subproject_completion_hint",
@@ -172,7 +174,8 @@ fun MetricsChart(
     centerYearLabels: Boolean = false,
     compact: Boolean = false,
     onItemClick: ((String) -> Unit)? = null,
-    showScrollControls: Boolean = true
+    showScrollControls: Boolean = true,
+    orientation: BarChartOrientation = BarChartOrientation.Vertical
 ) {
     val sortedMetrics = metrics.sortedBy { it.label }
     val data = sortedMetrics.mapIndexed { index, metric ->
@@ -193,7 +196,8 @@ fun MetricsChart(
         data,
         compact = compact,
         showScrollControls = showScrollControls,
-        onItemClick = onItemClick?.let { handler -> { bar -> bar.id?.let(handler) } }
+        onItemClick = onItemClick?.let { handler -> { bar -> bar.id?.let(handler) } },
+        orientation = orientation
     )
 }
 
@@ -212,7 +216,8 @@ fun MonthlyAmountsChart(
     payments: List<ApiMonthlyActPayment>,
     tooltipByMonth: Map<String, String> = emptyMap(),
     expanded: Boolean = true,
-    onExpandedChange: ((Boolean) -> Unit)? = null
+    onExpandedChange: ((Boolean) -> Unit)? = null,
+    orientation: BarChartOrientation = BarChartOrientation.Vertical
 ) {
     val data = payments.sortedBy { it.month }.map {
         BarData(
@@ -241,7 +246,8 @@ private fun AnalyticsCard(
     filterContent: (@Composable () -> Unit)? = null,
     showScrollControls: Boolean = true,
     expanded: Boolean = true,
-    onExpandedChange: ((Boolean) -> Unit)? = null
+    onExpandedChange: ((Boolean) -> Unit)? = null,
+    orientation: BarChartOrientation = BarChartOrientation.Vertical
 ) {
     val cardModifier = Modifier.fillMaxWidth().then(
         if (!expanded) Modifier
@@ -285,7 +291,8 @@ private fun AnalyticsCard(
                 }
                 Spacer(Modifier.height(if (compact) 8.dp else 16.dp))
                 if (data.isEmpty()) Text(LocalizationManager.t("no_chart_data"), color = MaterialTheme.colorScheme.onSurfaceVariant)
-                else VerticalBarChart(data, MaterialTheme.colorScheme.primary, labelMaxLines = labelMaxLines, maxVisibleItems = 6, valueLabel = valueLabel, onItemClick = onItemClick, showScrollControls = showScrollControls)
+                else if (orientation == BarChartOrientation.Vertical) VerticalBarChart(data, MaterialTheme.colorScheme.primary, labelMaxLines = labelMaxLines, maxVisibleItems = 6, valueLabel = valueLabel, onItemClick = onItemClick, showScrollControls = showScrollControls)
+                else HorizontalBarChart(data, MaterialTheme.colorScheme.primary, valueLabel = valueLabel, onItemClick = onItemClick)
             }
         }
     }

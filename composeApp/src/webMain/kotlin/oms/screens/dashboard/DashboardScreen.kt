@@ -9,6 +9,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -22,6 +23,7 @@ import oms.components.*
 import oms.data.*
 import oms.localization.LocalizationManager
 import oms.screens.*
+import oms.charts.BarChartOrientation
 
 @Composable
 fun DashboardScreen(
@@ -36,6 +38,7 @@ fun DashboardScreen(
     var error by remember { mutableStateOf(false) }
     var reload by remember { mutableStateOf(0) }
     var latestPhotos by remember { mutableStateOf<List<ApiInspectionPhoto>?>(null) }
+    var chartOrientation by remember { mutableStateOf(BarChartOrientation.Vertical) }
     val scrollState = rememberLazyListState()
     val scope = rememberCoroutineScope()
     LaunchedEffect(reload) {
@@ -73,7 +76,15 @@ fun DashboardScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)) {
             item {
                 PageHeading(LocalizationManager.t("dashboard"), Icons.Default.Dashboard,
-                    LocalizationManager.t("portfolio_overview"))
+                    LocalizationManager.t("portfolio_overview")) {
+                    OutlinedButton(onClick = {
+                        chartOrientation = if (chartOrientation == BarChartOrientation.Vertical) BarChartOrientation.Horizontal else BarChartOrientation.Vertical
+                    }) {
+                        Icon(Icons.Default.SwapHoriz, null)
+                        Spacer(Modifier.width(6.dp))
+                        Text(LocalizationManager.t(if (chartOrientation == BarChartOrientation.Vertical) "horizontal_charts" else "vertical_charts"))
+                    }
+                }
             }
             if (loading) {
                 item { ContentState(LocalizationManager.t("loading_dashboard"), loading = true) }
@@ -94,8 +105,8 @@ fun DashboardScreen(
             else {
                 item {
                     AdaptiveChartRow(
-                        first = { FundingByOblastChart(dashboard?.subprojectFunding.orEmpty(), onOpenProjectsByRegion) },
-                        second = { SubprojectProgressChart(dashboard?.subprojectProgress.orEmpty(), onOpenFinancialBySubproject) }
+                        first = { FundingByOblastChart(dashboard?.subprojectFunding.orEmpty(), onOpenProjectsByRegion, chartOrientation) },
+                        second = { SubprojectProgressChart(dashboard?.subprojectProgress.orEmpty(), onOpenFinancialBySubproject, chartOrientation) }
                     )
                 }
                 item {
@@ -105,10 +116,11 @@ fun DashboardScreen(
                                 "procurement_status_by_subprojects",
                                 metrics = dashboard?.procurementStatusCounts.orEmpty(),
                                 onItemClick = onOpenProcurementsByStatus,
-                                showScrollControls = false
+                                showScrollControls = false,
+                                orientation = chartOrientation
                             )
                         },
-                        second = { MonthlyActPaymentsChart(MaterialTheme.colorScheme.primary, dashboard?.monthlyActPayments.orEmpty(), onOpenFinancial) }
+                        second = { MonthlyActPaymentsChart(MaterialTheme.colorScheme.primary, dashboard?.monthlyActPayments.orEmpty(), onOpenFinancial, chartOrientation) }
                     )
                 }
                 item { DashboardPhotoSlider(latest?.inspectionDate, latestPhotos) }
