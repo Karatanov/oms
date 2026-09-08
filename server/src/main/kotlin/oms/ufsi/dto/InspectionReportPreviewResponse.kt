@@ -6,7 +6,9 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class InspectionReportPreviewResponse(
     val fileName: String,
-    val sheets: List<InspectionReportPreviewSheet>
+    val sheets: List<InspectionReportPreviewSheet>,
+    /** Parsed standard SIR values when the source workbook follows the SIR template. */
+    val manual: CreateManualInspectionReportRequest? = null
 )
 
 @Serializable

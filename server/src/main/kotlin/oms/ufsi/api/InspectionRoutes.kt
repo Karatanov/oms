@@ -109,7 +109,7 @@ fun Route.inspectionRoutes() {
     get("/api/v1/inspection-reports/{reportUuid}/preview") {
         val report = call.findReport() ?: return@get
         try {
-            call.respond(AppContainer.inspectionReportFileService.preview(report.id))
+            call.respond(AppContainer.inspectionReportFileService.preview(report))
         } catch (exception: IllegalArgumentException) {
             call.validationError(exception)
         }

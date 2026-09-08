@@ -764,7 +764,8 @@ data class ApiInspectionReport(
 @Serializable
 data class ApiInspectionReportPreview(
     val fileName: String,
-    val sheets: List<ApiInspectionReportPreviewSheet>
+    val sheets: List<ApiInspectionReportPreviewSheet>,
+    val manual: ManualInspectionReportRequest? = null
 )
 
 @Serializable

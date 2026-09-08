@@ -131,39 +131,45 @@ class InspectionReportFileService(
         val source = getFile(report.id) ?: throw IllegalArgumentException("Original SIR file not found.")
         val path = resolveFile(source) ?: throw IllegalArgumentException("Original SIR file is unavailable.")
         WorkbookFactory.create(path.toFile()).use { workbook ->
-            val sheet = workbook.getSheet("SIR") ?: throw IllegalArgumentException("Manual SIR sheet is unavailable.")
-            val formatter = DataFormatter()
-            fun text(row: Int, column: Int) = sheet.getRow(row - 1)?.getCell(column - 1)
-                ?.let(formatter::formatCellValue)?.trim().orEmpty()
-            fun date(row: Int, column: Int): String = runCatching {
-                sheet.getRow(row - 1).getCell(column - 1).localDateTimeCellValue.toLocalDate().toString()
-            }.getOrDefault(report.inspectionDate.toString())
-            fun rows(start: Int, end: Int, column: Int) = (start..end).map { text(it, column) }.filter(String::isNotBlank)
-            return CreateManualInspectionReportRequest(
-                inspectionDate = date(5, 9), inspectionType = report.inspectionType,
-                contractor = text(5, 1), contractorRepresentative = text(7, 1).ifBlank { null },
-                projectName = text(1, 1).ifBlank { null }, siteReference = text(5, 5).ifBlank { null },
-                qaStaff = text(7, 5).ifBlank { null }, usifRepresentative = text(7, 9).ifBlank { null },
-                skilledLabor = text(10, 1).ifBlank { null }, unskilledLabor = text(10, 3).ifBlank { null },
-                siteManagement = text(10, 5).ifBlank { null }, weather = text(10, 9).ifBlank { null },
-                activities = (13..26).mapNotNull { row ->
-                    val activity = ManualActivity(text(row, 1), text(row, 3), text(row, 8), text(row, 10).ifBlank { null })
-                    activity.takeIf { it.location.isNotBlank() || it.description.isNotBlank() || !it.remarks.isNullOrBlank() }
-                },
-                ongoingObservations = rows(28, 39, 1),
-                hseObservations = (41..46).mapNotNull { row ->
-                    text(row, 1).takeIf(String::isNotBlank)?.split(" — ", limit = 3)?.let { parts ->
-                        ManualHseObservation(parts[0], parts.getOrNull(1), parts.getOrNull(2))
-                    }
-                },
-                qualityRemarks = (49..53).mapNotNull { row ->
-                    ManualRemark(text(row, 1), text(row, 10).ifBlank { null }).takeIf { it.comment.isNotBlank() || !it.rectification.isNullOrBlank() }
-                },
-                progressComment = text(55, 1).ifBlank { null }, scheduleRemark = text(55, 10).ifBlank { null },
-                inspectorName = text(59, 1), inspectorTitle = text(59, 4).ifBlank { null },
-                latitude = report.latitude, longitude = report.longitude
-            )
+            return readSirWorkbook(workbook, report)
         }
+    }
+
+    /** Parses fixed SIR template cells for both manual and imported reports. */
+    private fun readSirWorkbook(workbook: Workbook, report: InspectionReport): CreateManualInspectionReportRequest {
+        val sheet = workbook.getSheet("SIR") ?: workbook.takeIf { it.numberOfSheets > 0 }?.getSheetAt(0)
+            ?: throw IllegalArgumentException("SIR sheet is unavailable.")
+        val formatter = DataFormatter()
+        fun text(row: Int, column: Int) = sheet.getRow(row - 1)?.getCell(column - 1)
+            ?.let(formatter::formatCellValue)?.trim().orEmpty()
+        fun date(row: Int, column: Int): String = runCatching {
+            sheet.getRow(row - 1).getCell(column - 1).localDateTimeCellValue.toLocalDate().toString()
+        }.getOrDefault(report.inspectionDate.toString())
+        fun rows(start: Int, end: Int, column: Int) = (start..end).map { text(it, column) }.filter(String::isNotBlank)
+        return CreateManualInspectionReportRequest(
+            inspectionDate = date(5, 9), inspectionType = report.inspectionType,
+            contractor = text(5, 1), contractorRepresentative = text(7, 1).ifBlank { null },
+            projectName = text(1, 1).ifBlank { null }, siteReference = text(5, 5).ifBlank { null },
+            qaStaff = text(7, 5).ifBlank { null }, usifRepresentative = text(7, 9).ifBlank { null },
+            skilledLabor = text(10, 1).ifBlank { null }, unskilledLabor = text(10, 3).ifBlank { null },
+            siteManagement = text(10, 5).ifBlank { null }, weather = text(10, 9).ifBlank { null },
+            activities = (13..26).mapNotNull { row ->
+                val activity = ManualActivity(text(row, 1), text(row, 3), text(row, 8), text(row, 10).ifBlank { null })
+                activity.takeIf { it.location.isNotBlank() || it.description.isNotBlank() || !it.remarks.isNullOrBlank() }
+            },
+            ongoingObservations = rows(28, 39, 1),
+            hseObservations = (41..46).mapNotNull { row ->
+                text(row, 1).takeIf(String::isNotBlank)?.split(" — ", limit = 3)?.let { parts ->
+                    ManualHseObservation(parts[0], parts.getOrNull(1), parts.getOrNull(2))
+                }
+            },
+            qualityRemarks = (49..53).mapNotNull { row ->
+                ManualRemark(text(row, 1), text(row, 10).ifBlank { null }).takeIf { it.comment.isNotBlank() || !it.rectification.isNullOrBlank() }
+            },
+            progressComment = text(55, 1).ifBlank { null }, scheduleRemark = text(55, 10).ifBlank { null },
+            inspectorName = text(59, 1), inspectorTitle = text(59, 4).ifBlank { null },
+            latitude = report.latitude, longitude = report.longitude
+        )
     }
 
     /** Rewrites a manual SIR in its existing workbook, preserving its Photos sheet. */
@@ -319,14 +325,21 @@ class InspectionReportFileService(
      * for the web preview.  Keeping parsing on the server avoids downloading a
      * binary Office file merely to let a user read its contents in the browser.
      */
-    fun preview(reportId: Long): InspectionReportPreviewResponse {
-        val file = getFile(reportId) ?: throw IllegalArgumentException("Original SIR file not found.")
+    fun preview(report: InspectionReport): InspectionReportPreviewResponse {
+        val file = getFile(report.id) ?: throw IllegalArgumentException("Original SIR file not found.")
         val path = resolveFile(file) ?: throw IllegalArgumentException("Original SIR file is unavailable.")
         return try {
             Files.newInputStream(path).use { input ->
                 WorkbookFactory.create(input).use { workbook ->
                     val formatter = DataFormatter()
                     val evaluator = workbook.creationHelper.createFormulaEvaluator()
+                    val manual = runCatching { readSirWorkbook(workbook, report) }.getOrNull()
+                        ?.takeIf { parsed ->
+                            parsed.projectName?.isNotBlank() == true ||
+                                parsed.contractor.isNotBlank() ||
+                                parsed.activities.isNotEmpty() ||
+                                parsed.hseObservations.isNotEmpty()
+                        }
                     val sheets = workbook.map { sheet ->
                         val rows = buildList {
                             for (index in 0..sheet.lastRowNum) {
@@ -343,7 +356,7 @@ class InspectionReportFileService(
                         }
                         InspectionReportPreviewSheet(sheet.sheetName, rows)
                     }
-                    InspectionReportPreviewResponse(file.originalName, sheets)
+                    InspectionReportPreviewResponse(file.originalName, sheets, manual)
                 }
             }
         } catch (exception: IllegalArgumentException) {

@@ -45,6 +45,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import oms.data.ApiInspectionReport
 import oms.data.ApiInspectionReportPreview
+import oms.data.ManualInspectionReportRequest
 import oms.data.CreateInspectionFindingRequest
 import oms.data.OmsApiClient
 import oms.data.ProjectRepository
@@ -401,7 +402,9 @@ private fun ReportPreviewDialog(report: ReportRow, onDismiss: () -> Unit) {
                 failed -> oms.components.ContentState(LocalizationManager.t("report_preview_failed"), error = true)
                 else -> {
                     val loaded = requireNotNull(preview)
-                    if (loaded.sheets.isEmpty()) {
+                    if (loaded.manual != null) {
+                        ReadOnlySirReport(requireNotNull(loaded.manual))
+                    } else if (loaded.sheets.isEmpty()) {
                         Text(LocalizationManager.t("report_preview_empty"))
                     } else {
                         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -481,6 +484,126 @@ private fun ReportWorkbookGrid(rows: List<oms.data.ApiInspectionReportPreviewRow
         }
     }
 }
+
+/** The SIR template rendered in the same section order as the editable form. */
+@Composable
+private fun ReadOnlySirReport(manual: ManualInspectionReportRequest) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        ReadOnlySirSection(LocalizationManager.t("sir_header_site"), Icons.Default.Description) {
+            PreviewField(LocalizationManager.t("sir_project_name"), manual.projectName)
+            PreviewFieldRow(
+                LocalizationManager.t("contractor") to manual.contractor,
+                LocalizationManager.t("sir_site_reference") to manual.siteReference,
+                LocalizationManager.t("date_label") to manual.inspectionDate.toOmsDate(),
+                LocalizationManager.t("inspection_type") to LocalizationManager.t(manual.inspectionType)
+            )
+        }
+        ReadOnlySirSection(LocalizationManager.t("sir_representatives"), Icons.Default.Engineering) {
+            PreviewFieldRow(
+                LocalizationManager.t("sir_contractor_representative") to manual.contractorRepresentative,
+                LocalizationManager.t("sir_qa_staff") to manual.qaStaff,
+                LocalizationManager.t("sir_usif_representative") to manual.usifRepresentative
+            )
+        }
+        ReadOnlySirSection(LocalizationManager.t("sir_personnel_weather"), Icons.Default.WbSunny) {
+            PreviewFieldRow(
+                LocalizationManager.t("sir_skilled_labor") to manual.skilledLabor,
+                LocalizationManager.t("sir_unskilled_labor") to manual.unskilledLabor,
+                LocalizationManager.t("sir_site_management") to manual.siteManagement,
+                LocalizationManager.t("sir_weather_conditions") to manual.weather
+            )
+        }
+        ReadOnlySirSection(LocalizationManager.t("sir_ongoing_activities"), Icons.Default.Engineering) {
+            if (manual.activities.isEmpty()) PreviewEmpty()
+            manual.activities.forEach { activity ->
+                Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+                    Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        PreviewFieldRow(
+                            LocalizationManager.t("sir_activity_location") to activity.location,
+                            LocalizationManager.t("description") to activity.description,
+                            LocalizationManager.t("sir_activity_remarks") to activity.remarks
+                        )
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text(LocalizationManager.t("sir_on_schedule"), style = MaterialTheme.typography.labelMedium)
+                            oms.components.OmsBadge(
+                                LocalizationManager.t(if (activity.onSchedule.equals("yes", true)) "yes" else "no"),
+                                if (activity.onSchedule.equals("yes", true)) Color(0xFF2E7D32) else Color(0FFC62828)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+        ReadOnlySirSection(LocalizationManager.t("sir_ongoing_observations"), Icons.Default.FactCheck) {
+            if (manual.ongoingObservations.isEmpty()) PreviewEmpty()
+            manual.ongoingObservations.forEach { observation -> Text("• $observation") }
+        }
+        ReadOnlySirSection(LocalizationManager.t("sir_hse_observations"), Icons.Default.FactCheck) {
+            if (manual.hseObservations.isEmpty()) PreviewEmpty()
+            manual.hseObservations.forEach { observation ->
+                Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+                    Row(Modifier.fillMaxWidth().padding(10.dp), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Text(LocalizationManager.hseObservation(observation.observation), Modifier.weight(1f))
+                        val yes = observation.answer.equals("yes", true)
+                        oms.components.OmsBadge(LocalizationManager.t(if (yes) "yes" else "no"), if (yes) Color(0xFF2E7D32) else Color(0FFC62828))
+                        observation.comment?.takeIf(String::isNotBlank)?.let { Text(it, Modifier.weight(1f), color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                    }
+                }
+            }
+        }
+        ReadOnlySirSection(LocalizationManager.t("sir_quality_assessment"), Icons.Default.FactCheck) {
+            if (manual.qualityRemarks.isEmpty() && manual.progressComment.isNullOrBlank() && manual.scheduleRemark.isNullOrBlank()) PreviewEmpty()
+            manual.qualityRemarks.forEach { remark ->
+                PreviewFieldRow(
+                    LocalizationManager.t("sir_quality_comment") to remark.comment,
+                    LocalizationManager.t("sir_quality_rectification") to remark.rectification
+                )
+            }
+            PreviewFieldRow(
+                LocalizationManager.t("sir_progress_comments") to manual.progressComment,
+                LocalizationManager.t("sir_schedule_remarks") to manual.scheduleRemark
+            )
+        }
+        ReadOnlySirSection(LocalizationManager.t("sir_inspector_section"), Icons.Default.Description) {
+            PreviewFieldRow(
+                LocalizationManager.t("sir_name") to manual.inspectorName,
+                LocalizationManager.t("sir_title_field") to manual.inspectorTitle
+            )
+        }
+    }
+}
+
+@Composable
+private fun ReadOnlySirSection(title: String, icon: ImageVector, content: @Composable ColumnScope.() -> Unit) {
+    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            oms.components.FormSectionTitle(title, icon)
+            content()
+        }
+    }
+}
+
+@Composable
+private fun PreviewFieldRow(vararg fields: Pair<String, String?>) {
+    BoxWithConstraints(Modifier.fillMaxWidth()) {
+        if (maxWidth >= 800.dp) Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            fields.forEach { (label, value) -> PreviewField(label, value, Modifier.weight(1f)) }
+        } else Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            fields.forEach { (label, value) -> PreviewField(label, value, Modifier.fillMaxWidth()) }
+        }
+    }
+}
+
+@Composable
+private fun PreviewField(label: String, value: String?, modifier: Modifier = Modifier.fillMaxWidth()) {
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(3.dp)) {
+        Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(value?.takeIf(String::isNotBlank) ?: "—", style = MaterialTheme.typography.bodyMedium)
+    }
+}
+
+@Composable
+private fun PreviewEmpty() = Text("—", color = MaterialTheme.colorScheme.onSurfaceVariant)
 
 @Composable
 private fun ReportEditorDialog(
