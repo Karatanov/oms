@@ -666,14 +666,10 @@ private fun WeatherPicker(
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(LocalizationManager.t("sir_weather_conditions"), style = MaterialTheme.typography.labelLarge)
-        Row(
-            Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+        Box(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
             Row(
-                Modifier.weight(1f).horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 WeatherCondition.entries.forEach { condition ->
                     FilterChip(
@@ -693,14 +689,14 @@ private fun WeatherPicker(
                         }
                     )
                 }
+                OutlinedTextField(
+                    value = temperatureCelsius,
+                    onValueChange = { value -> onTemperatureChange(value.temperatureInput()) },
+                    label = { Text(LocalizationManager.t("temperature_celsius")) },
+                    singleLine = true,
+                    modifier = Modifier.width(170.dp)
+                )
             }
-            OutlinedTextField(
-                value = temperatureCelsius,
-                onValueChange = { value -> onTemperatureChange(value.temperatureInput()) },
-                label = { Text(LocalizationManager.t("temperature_celsius")) },
-                singleLine = true,
-                modifier = Modifier.width(170.dp)
-            )
         }
     }
 }
