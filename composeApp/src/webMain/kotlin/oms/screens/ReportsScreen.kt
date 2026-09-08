@@ -95,7 +95,9 @@ fun ReportsScreen(
     var search by remember { mutableStateOf("") }
     var status by remember { mutableStateOf<String?>(null) }
     var subprojectFilter by remember { mutableStateOf<String?>(null) }
+    var subprojectCodeFilter by remember { mutableStateOf<String?>(null) }
     var subprojectPartCodeFilter by remember { mutableStateOf<String?>(null) }
+    var authorFilter by remember { mutableStateOf<String?>(null) }
     var loading by remember { mutableStateOf(true) }
     var loadFailed by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
@@ -143,12 +145,14 @@ fun ReportsScreen(
         } finally { loading = false }
     }
     val language = LocalizationManager.currentLanguage
-    val visible = remember(reports, search, status, subprojectFilter, subprojectPartCodeFilter, sort, ascending, language) {
+    val visible = remember(reports, search, status, subprojectFilter, subprojectCodeFilter, subprojectPartCodeFilter, authorFilter, sort, ascending, language) {
         reports.asSequence().filter {
                 (search.isBlank() || it.report.inspectionCode.contains(search, true) || it.title().contains(search, true) || it.subprojectCode.orEmpty().contains(search, true)) &&
                 (status == null || it.report.status == status) &&
                 (subprojectFilter == null || it.localizedSubprojectName() == subprojectFilter) &&
-                (subprojectPartCodeFilter == null || it.subprojectPartCode == subprojectPartCodeFilter)
+                (subprojectCodeFilter == null || it.subprojectCode == subprojectCodeFilter) &&
+                (subprojectPartCodeFilter == null || it.subprojectPartCode == subprojectPartCodeFilter) &&
+                (authorFilter == null || it.report.authorUsername == authorFilter)
         }.sortedWith(
             compareBy<ReportRow> {
                 when (sort) {
@@ -223,10 +227,14 @@ fun ReportsScreen(
                         reports = reports,
                         subprojectFilter = subprojectFilter,
                         onSubprojectFilterChange = { subprojectFilter = it; subprojectPartCodeFilter = null },
+                        subprojectCodeFilter = subprojectCodeFilter,
+                        onSubprojectCodeFilterChange = { subprojectCodeFilter = it },
                         subprojectPartCodeFilter = subprojectPartCodeFilter,
                         onSubprojectPartCodeFilterChange = { subprojectPartCodeFilter = it },
                         statusFilter = status,
-                        onStatusFilterChange = { status = it }
+                        onStatusFilterChange = { status = it },
+                        authorFilter = authorFilter,
+                        onAuthorFilterChange = { authorFilter = it }
                     )
                     HorizontalDivider()
                 }
@@ -632,10 +640,14 @@ private fun ReportTableHeader(
     reports: List<ReportRow>,
     subprojectFilter: String?,
     onSubprojectFilterChange: (String?) -> Unit,
+    subprojectCodeFilter: String?,
+    onSubprojectCodeFilterChange: (String?) -> Unit,
     subprojectPartCodeFilter: String?,
     onSubprojectPartCodeFilterChange: (String?) -> Unit,
     statusFilter: String?,
-    onStatusFilterChange: (String?) -> Unit
+    onStatusFilterChange: (String?) -> Unit,
+    authorFilter: String?,
+    onAuthorFilterChange: (String?) -> Unit
 ) {
     val subprojects = reports
         .asSequence()
@@ -650,6 +662,8 @@ private fun ReportTableHeader(
         .distinct()
         .sorted()
         .toList()
+    val subprojectCodes = reports.mapNotNull { it.subprojectCode }.distinct().sorted()
+    val authors = reports.mapNotNull { it.report.authorUsername?.takeIf(String::isNotBlank) }.distinct().sorted()
     val statuses = listOf("draft", "pending_review", "completed")
 
     Column(Modifier.width(1_115.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -660,7 +674,9 @@ private fun ReportTableHeader(
             Box(Modifier.width(220.dp)) {
                 FilterDropdown(LocalizationManager.t("subproject"), subprojects, subprojectFilter, onSubprojectFilterChange, Modifier.fillMaxWidth()) { it }
             }
-            Spacer(Modifier.width(150.dp))
+            Box(Modifier.width(150.dp)) {
+                FilterDropdown(LocalizationManager.t("subproject_code"), subprojectCodes, subprojectCodeFilter, onSubprojectCodeFilterChange, Modifier.fillMaxWidth()) { it }
+            }
             Box(Modifier.width(160.dp)) {
                 FilterDropdown(LocalizationManager.t("subproject_part_code_label"), partCodes, subprojectPartCodeFilter, onSubprojectPartCodeFilterChange, Modifier.fillMaxWidth()) { it }
             }
@@ -673,7 +689,10 @@ private fun ReportTableHeader(
                     Modifier.fillMaxWidth()
                 ) { LocalizationManager.t("${it}_status") }
             }
-            Spacer(Modifier.width(110.dp + 240.dp))
+            Box(Modifier.width(110.dp)) {
+                FilterDropdown(LocalizationManager.t("uploaded_by_short"), authors, authorFilter, onAuthorFilterChange, Modifier.fillMaxWidth()) { it }
+            }
+            Spacer(Modifier.width(240.dp))
         }
         Row(Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
             SortableTableHeader(LocalizationManager.t("date"), sort == ReportSort.Date, ascending, { onSort(ReportSort.Date) }, Modifier.width(105.dp))
