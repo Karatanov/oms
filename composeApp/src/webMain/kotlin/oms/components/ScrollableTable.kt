@@ -121,7 +121,10 @@ fun TableScrollControls(scroll: ScrollState) {
             value = scroll.value.toFloat(),
             onValueChange = { target -> scope.launch { scroll.scrollTo(target.roundToInt()) } },
             valueRange = 0f..scroll.maxValue.toFloat(),
-            modifier = Modifier.widthIn(min = 160.dp, max = 360.dp).weight(1f, fill = false)
+            // `fill = false` lets Wasm measure the slider at zero width inside
+            // a narrow chart card.  Keep a real weighted lane so the control
+            // remains visible together with its percentage indicator.
+            modifier = Modifier.widthIn(min = 160.dp, max = 360.dp).weight(1f)
                 .semantics { contentDescription = LocalizationManager.t("table_scroll") },
             colors = SliderDefaults.colors(
                 thumbColor = MaterialTheme.colorScheme.primary,
