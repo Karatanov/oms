@@ -105,7 +105,7 @@ fun TableScrollControls(scroll: ScrollState, showWhenStationary: Boolean = false
         ((scroll.value.toFloat() / maxValue.toFloat()) * 100).toInt()
     } else 0
     Row(
-        Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
+        Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically
     ) {

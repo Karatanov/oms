@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
@@ -38,8 +39,8 @@ internal class TableScrollOverlayState {
         val navigator = active ?: return
         Surface(
             modifier = Modifier.align(Alignment.BottomCenter)
-                .fillMaxWidth()
-                .padding(start = 16.dp, top = 8.dp, end = 16.dp)
+                .width(208.dp)
+                .padding(top = 8.dp)
                 .zIndex(100f)
                 .shadow(6.dp),
             color = MaterialTheme.colorScheme.surface,

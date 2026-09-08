@@ -78,12 +78,14 @@ fun VerticalBarChart(
         }
         }
         if (showScrollControls) {
-            Surface(
-                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                shape = MaterialTheme.shapes.medium,
-                color = MaterialTheme.colorScheme.surfaceContainerLow
-            ) {
-                TableScrollControls(scroll, showWhenStationary = true)
+            Box(Modifier.fillMaxWidth().padding(top = 8.dp), contentAlignment = Alignment.Center) {
+                Surface(
+                    modifier = Modifier.width(208.dp),
+                    shape = MaterialTheme.shapes.medium,
+                    color = MaterialTheme.colorScheme.surfaceContainerLow
+                ) {
+                    TableScrollControls(scroll, showWhenStationary = true)
+                }
             }
         }
     }
