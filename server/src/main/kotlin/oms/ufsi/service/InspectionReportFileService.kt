@@ -80,9 +80,9 @@ class InspectionReportFileService(
                     }
                     val pictureIndex = workbook.addPicture(Files.readAllBytes(thumbnail), imageType)
                     val anchor = helper.createClientAnchor().apply {
-                        col1 = columnStart.toShort()
+                        setCol1(columnStart)
                         row1 = rowStart
-                        col2 = (columnStart + 5).toShort()
+                        setCol2(columnStart + 5)
                         row2 = rowStart + 15
                     }
                     drawing.createPicture(anchor, pictureIndex)
