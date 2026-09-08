@@ -487,6 +487,8 @@ private fun ProjectGeneralInfoTab(details: oms.data.ApiProjectDetails?) {
             val finance = listOf(
                 LocalizationManager.t("currency") to data.currency,
                 LocalizationManager.t("budget") to data.budgetPlanned.toMoney(),
+                LocalizationManager.t("subproject_cost_eib_financing") to (data.amounts["eib_financing"]?.toMoney() ?: "—"),
+                LocalizationManager.t("subproject_cost_local_financing") to (data.amounts["local_financing"]?.toMoney() ?: "—"),
                 LocalizationManager.t("subproject_contract_amount") to (data.subprojectContractAmount?.toMoney() ?: "—"),
                 LocalizationManager.t("technical_supervision_contract_amount") to (data.technicalSupervisionAmount?.toMoney() ?: "—"),
                 LocalizationManager.t("engineer_consultant_contract_amount") to (data.engineerConsultantContractAmount?.toMoney() ?: "—")
@@ -652,6 +654,8 @@ private fun ProjectDocumentsTab(projectUuid: String, documents: List<ApiProjectD
 
 private fun Double.toMoney(): String = "${formatUiAmount()} UAH"
 private fun Long.toMoney(): String = "${formatUiAmount()} UAH"
+private fun oms.data.ProjectAmountDto.toMoney(): String =
+    "${amount.toDoubleOrNull()?.formatUiAmount() ?: amount} $currency"
 
 /** Locale-independent formatter that also works in Kotlin/Wasm. */
 private fun Long.formatUiAmount(): String {

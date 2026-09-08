@@ -46,7 +46,9 @@ internal class ProjectFormState(details: ApiProjectDetailsData? = null) {
         "budget" to initialMoney(details, "budget", details?.budgetPlanned),
         "engineer" to initialMoney(details, "engineer", details?.engineerConsultantContractAmount),
         "supervision" to initialMoney(details, "supervision", details?.technicalSupervisionAmount),
-        "construction" to initialMoney(details, "construction", details?.subprojectContractAmount)
+        "construction" to initialMoney(details, "construction", details?.subprojectContractAmount),
+        "eib_financing" to initialMoney(details, "eib_financing", null),
+        "local_financing" to initialMoney(details, "local_financing", null)
     ))
     var currentRate by mutableStateOf<ProjectExchangeRate?>(null)
     operator fun get(key: String) = fields[key].orEmpty()

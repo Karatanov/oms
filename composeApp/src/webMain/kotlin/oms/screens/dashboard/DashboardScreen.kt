@@ -116,7 +116,6 @@ fun DashboardScreen(
                                 "procurement_status_by_subprojects",
                                 metrics = dashboard?.procurementStatusCounts.orEmpty(),
                                 onItemClick = onOpenProcurementsByStatus,
-                                showScrollControls = false,
                                 orientation = chartOrientation
                             )
                         },

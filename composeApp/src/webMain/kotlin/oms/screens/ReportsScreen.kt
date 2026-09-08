@@ -68,8 +68,10 @@ external fun openInspectionSourceReplacement(reportUuid: String, onComplete: (St
 private data class ReportRow(
     val projectUuid: String,
     val projectName: String,
+    val projectCode: String,
     val subprojectName: String?,
     val subprojectNameEn: String?,
+    val subprojectCode: String?,
     val subprojectPartCode: String?,
     val report: ApiInspectionReport
 )
@@ -77,7 +79,8 @@ private data class ReportRow(
 private fun ReportRow.localizedSubprojectName(): String? =
     if (LocalizationManager.currentLanguage == Language.EN) subprojectNameEn?.takeIf(String::isNotBlank) ?: subprojectName
     else subprojectName
-private enum class ReportSort { Date, ReportTitle, Project, Subproject, SubprojectPartCode, Status, Author }
+private fun ReportRow.title(): String = "${localizedSubprojectName() ?: projectName} ${report.inspectionDate.toOmsDate()}"
+private enum class ReportSort { Date, Project, Subproject, SubprojectCode, SubprojectPartCode, Status, Author }
 
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
@@ -130,10 +133,12 @@ fun ReportsScreen(
             }.toList().asReversed()
             val root = ancestry.firstOrNull() ?: attachedProject
             val projectName = root.name
+            val projectCode = root.siteNumber
             val subprojectName = ancestry.getOrNull(1)?.name
             val subprojectNameEn = ancestry.getOrNull(1)?.nameEn
+            val subprojectCode = ancestry.getOrNull(1)?.siteNumber
             val subprojectPartCode = ancestry.getOrNull(2)?.siteNumber
-            ReportRow(attachedProject.id, projectName, subprojectName, subprojectNameEn, subprojectPartCode, item.report)
+            ReportRow(attachedProject.id, projectName, projectCode, subprojectName, subprojectNameEn, subprojectCode, subprojectPartCode, item.report)
         }.sortedByDescending { it.report.inspectionDate }
         } catch (failure: Exception) {
             if (failure is kotlinx.coroutines.CancellationException) throw failure
@@ -143,18 +148,18 @@ fun ReportsScreen(
     val language = LocalizationManager.currentLanguage
     val visible = remember(reports, search, status, projectFilter, subprojectFilter, subprojectPartCodeFilter, sort, ascending, language) {
         reports.asSequence().filter {
-                (search.isBlank() || it.report.inspectionCode.contains(search, true) || it.report.summary.orEmpty().contains(search, true)) &&
+                (search.isBlank() || it.report.inspectionCode.contains(search, true) || it.title().contains(search, true) || it.projectCode.contains(search, true) || it.subprojectCode.orEmpty().contains(search, true)) &&
                 (status == null || it.report.status == status) &&
-                (projectFilter == null || it.projectName == projectFilter) &&
+                (projectFilter == null || it.projectCode == projectFilter) &&
                 (subprojectFilter == null || it.localizedSubprojectName() == subprojectFilter) &&
                 (subprojectPartCodeFilter == null || it.subprojectPartCode == subprojectPartCodeFilter)
         }.sortedWith(
             compareBy<ReportRow> {
                 when (sort) {
                     ReportSort.Date -> it.report.inspectionDate
-                    ReportSort.ReportTitle -> it.report.summary.orEmpty()
-                    ReportSort.Project -> it.projectName
+                    ReportSort.Project -> it.projectCode
                     ReportSort.Subproject -> it.localizedSubprojectName().orEmpty()
+                    ReportSort.SubprojectCode -> it.subprojectCode.orEmpty()
                     ReportSort.SubprojectPartCode -> it.subprojectPartCode.orEmpty()
                     ReportSort.Status -> it.report.status
                     ReportSort.Author -> it.report.authorUsername.orEmpty()
@@ -236,18 +241,14 @@ fun ReportsScreen(
             ) {
                 if (!loading && !loadFailed && visible.isEmpty()) Text(LocalizationManager.t("no_reports"))
                 visible.forEach { row ->
-                    Row(Modifier.width(1_475.dp).padding(vertical = 8.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                    Row(Modifier.width(1_265.dp).padding(vertical = 8.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                         Text(row.report.inspectionDate.toOmsDate(), Modifier.width(105.dp))
-                        Text(
-                            row.report.summary ?: LocalizationManager.t("inspection_report"),
-                            Modifier.width(400.dp).padding(end = 12.dp),
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                        ExpandableTableText(row.projectName, Modifier.width(180.dp), style = MaterialTheme.typography.bodySmall)
-                        ExpandableTableText(row.localizedSubprojectName() ?: "—", Modifier.width(180.dp), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(row.projectCode, Modifier.width(150.dp), style = MaterialTheme.typography.bodySmall)
+                        ExpandableTableText(row.localizedSubprojectName() ?: "—", Modifier.width(220.dp), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(row.subprojectCode ?: "—", Modifier.width(150.dp), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Text(row.subprojectPartCode ?: "—", Modifier.width(160.dp), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Box(Modifier.width(130.dp)) { ReportStatusChip(row.report.status) }
-                        Text(row.report.authorUsername ?: "—", Modifier.width(80.dp))
+                        Text(row.report.authorUsername ?: "—", Modifier.width(110.dp))
                         if (canCreateReports) TableActionIconButton(LocalizationManager.t("edit_inspection"), Icons.Default.Edit) { onEditInspection(row.report.uuid) }
                         else Spacer(Modifier.width(48.dp))
                         if (canReviewReports && row.report.status == "pending_review") {
@@ -262,7 +263,7 @@ fun ReportsScreen(
                             TableActionIconButton(LocalizationManager.t("findings"), Icons.AutoMirrored.Filled.FactCheck) { findingsReport = row }
                         } else Spacer(Modifier.width(48.dp))
                         if (canCreateReports) TableActionIconButton(LocalizationManager.t("delete_report"), Icons.Default.Delete) {
-                            deletion.show(row.report.summary ?: LocalizationManager.t("inspection_report")) { scope.launch {
+                            deletion.show(row.title()) { scope.launch {
                                 if (OmsApiClient.deleteInspectionReport(row.report.uuid)) reports = reports.filterNot { it.report.uuid == row.report.uuid }
                                 else errorMessage = LocalizationManager.t("error_delete_report")
                             } }
@@ -306,8 +307,10 @@ fun ReportsScreen(
                                     it.copy(
                                         projectUuid = targetProjectUuid,
                                         projectName = ancestry.firstOrNull()?.name ?: it.projectName,
+                                        projectCode = ancestry.firstOrNull()?.siteNumber ?: it.projectCode,
                                         subprojectName = ancestry.getOrNull(1)?.name,
                                         subprojectNameEn = ancestry.getOrNull(1)?.nameEn,
+                                        subprojectCode = ancestry.getOrNull(1)?.siteNumber,
                                         subprojectPartCode = ancestry.getOrNull(2)?.siteNumber,
                                         report = updated
                                     )
@@ -648,14 +651,14 @@ private fun ReportTableHeader(
 ) {
     val subprojects = reports
         .asSequence()
-        .filter { projectFilter == null || it.projectName == projectFilter }
+        .filter { projectFilter == null || it.projectCode == projectFilter }
         .mapNotNull { it.localizedSubprojectName() }
         .distinct()
         .sorted()
         .toList()
     val partCodes = reports
         .asSequence()
-        .filter { projectFilter == null || it.projectName == projectFilter }
+        .filter { projectFilter == null || it.projectCode == projectFilter }
         .filter { subprojectFilter == null || it.localizedSubprojectName() == subprojectFilter }
         .mapNotNull { it.subprojectPartCode }
         .distinct()
@@ -663,18 +666,18 @@ private fun ReportTableHeader(
         .toList()
     val statuses = listOf("draft", "pending_review", "completed")
 
-    Column(Modifier.width(1_475.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    Column(Modifier.width(1_265.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Row(verticalAlignment = Alignment.Top) {
             Box(Modifier.width(105.dp).padding(top = 14.dp)) {
                 Text(LocalizationManager.t("filters"), style = MaterialTheme.typography.labelLarge)
             }
-            Spacer(Modifier.width(400.dp))
-            Box(Modifier.width(180.dp)) {
-                FilterDropdown(LocalizationManager.t("project"), reports.map { it.projectName }.distinct().sorted(), projectFilter, onProjectFilterChange, Modifier.fillMaxWidth()) { it }
+            Box(Modifier.width(150.dp)) {
+                FilterDropdown(LocalizationManager.t("project"), reports.map { it.projectCode }.distinct().sorted(), projectFilter, onProjectFilterChange, Modifier.fillMaxWidth()) { it }
             }
-            Box(Modifier.width(180.dp)) {
+            Box(Modifier.width(220.dp)) {
                 FilterDropdown(LocalizationManager.t("subproject"), subprojects, subprojectFilter, onSubprojectFilterChange, Modifier.fillMaxWidth()) { it }
             }
+            Spacer(Modifier.width(150.dp))
             Box(Modifier.width(160.dp)) {
                 FilterDropdown(LocalizationManager.t("subproject_part_code_label"), partCodes, subprojectPartCodeFilter, onSubprojectPartCodeFilterChange, Modifier.fillMaxWidth()) { it }
             }
@@ -687,16 +690,16 @@ private fun ReportTableHeader(
                     Modifier.fillMaxWidth()
                 ) { LocalizationManager.t("${it}_status") }
             }
-            Spacer(Modifier.width(80.dp + 240.dp))
+            Spacer(Modifier.width(110.dp + 240.dp))
         }
         Row(Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
             SortableTableHeader(LocalizationManager.t("date"), sort == ReportSort.Date, ascending, { onSort(ReportSort.Date) }, Modifier.width(105.dp))
-            SortableTableHeader(LocalizationManager.t("report_title"), sort == ReportSort.ReportTitle, ascending, { onSort(ReportSort.ReportTitle) }, Modifier.width(400.dp))
-            SortableTableHeader(LocalizationManager.t("project"), sort == ReportSort.Project, ascending, { onSort(ReportSort.Project) }, Modifier.width(180.dp))
-            SortableTableHeader(LocalizationManager.t("subproject"), sort == ReportSort.Subproject, ascending, { onSort(ReportSort.Subproject) }, Modifier.width(180.dp))
+            SortableTableHeader(LocalizationManager.t("project_code"), sort == ReportSort.Project, ascending, { onSort(ReportSort.Project) }, Modifier.width(150.dp))
+            SortableTableHeader(LocalizationManager.t("subproject"), sort == ReportSort.Subproject, ascending, { onSort(ReportSort.Subproject) }, Modifier.width(220.dp))
+            SortableTableHeader(LocalizationManager.t("subproject_code"), sort == ReportSort.SubprojectCode, ascending, { onSort(ReportSort.SubprojectCode) }, Modifier.width(150.dp))
             SortableTableHeader(LocalizationManager.t("subproject_part_code_label"), sort == ReportSort.SubprojectPartCode, ascending, { onSort(ReportSort.SubprojectPartCode) }, Modifier.width(160.dp))
             SortableTableHeader(LocalizationManager.t("status"), sort == ReportSort.Status, ascending, { onSort(ReportSort.Status) }, Modifier.width(130.dp))
-            SortableTableHeader(LocalizationManager.t("uploaded_by_short"), sort == ReportSort.Author, ascending, { onSort(ReportSort.Author) }, Modifier.width(80.dp))
+            SortableTableHeader(LocalizationManager.t("uploaded_by_short"), sort == ReportSort.Author, ascending, { onSort(ReportSort.Author) }, Modifier.width(110.dp))
             Box(Modifier.width(240.dp).height(52.dp), contentAlignment = Alignment.Center) {
                 Text(LocalizationManager.t("actions"))
             }

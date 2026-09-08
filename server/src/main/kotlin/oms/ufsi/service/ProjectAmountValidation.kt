@@ -7,7 +7,16 @@ import java.math.RoundingMode
 import java.time.LocalDate
 import java.time.ZoneId
 
-val projectAmountKinds = setOf("budget", "engineer", "supervision", "construction")
+/**
+ * Each value is stored with its own currency and NBU conversion snapshot.
+ * EIB and local financing are deliberately separate from the overall project
+ * cost: together they describe its funding sources, while `budget` remains
+ * the total cost used by the legacy financial summaries.
+ */
+val projectAmountKinds = setOf(
+    "budget", "engineer", "supervision", "construction",
+    "eib_financing", "local_financing"
+)
 
 fun validateProjectAmounts(values: Map<String, ProjectAmountDto>): Map<String, ProjectAmount> {
     require(values.keys.all { it in projectAmountKinds }) { "Unknown project amount kind." }

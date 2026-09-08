@@ -61,7 +61,9 @@ internal fun ProjectForm(
                 { ConstructionTypeSelector(state["constructionType"], { value -> state["constructionType"] = value }, it) }
             )
             FormSectionTitle(L.t("financial_parameters"), Icons.Default.AccountBalanceWallet)
-            ProjectMoneyField(L.t("planned_budget"), state.money.getValue("budget"), state.currentRate) { state.money = state.money + ("budget" to it) }
+            ProjectMoneyField(L.t("total_project_cost"), state.money.getValue("budget"), state.currentRate) { state.money = state.money + ("budget" to it) }
+            ProjectMoneyField(L.t("subproject_cost_eib_financing"), state.money.getValue("eib_financing"), state.currentRate) { state.money = state.money + ("eib_financing" to it) }
+            ProjectMoneyField(L.t("subproject_cost_local_financing"), state.money.getValue("local_financing"), state.currentRate) { state.money = state.money + ("local_financing" to it) }
             ProjectMoneyField(L.t("technical_supervision_contract_amount"), state.money.getValue("supervision"), state.currentRate) { state.money = state.money + ("supervision" to it) }
             ProjectMoneyField(L.t("engineer_consultant_contract_amount"), state.money.getValue("engineer"), state.currentRate) { state.money = state.money + ("engineer" to it) }
             ProjectMoneyField(L.t("construction_contract_amount"), state.money.getValue("construction"), state.currentRate) { state.money = state.money + ("construction" to it) }

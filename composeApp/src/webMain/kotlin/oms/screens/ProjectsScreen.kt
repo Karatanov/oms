@@ -85,6 +85,7 @@ fun ProjectsScreen(
     var searchText by remember { mutableStateOf("") }
     var regionFilter by remember { mutableStateOf<String?>(null) }
     var statusFilter by remember { mutableStateOf<ProjectStatus?>(null) }
+    var trancheFilter by remember { mutableStateOf<Int?>(null) }
     var constructionTypeFilter by remember { mutableStateOf<String?>(null) }
     var sectorFilter by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
@@ -122,7 +123,7 @@ fun ProjectsScreen(
     }
     val projects = ProjectRepository.projects
 
-    val filteredProjects = remember(projects, searchText, regionFilter, statusFilter, constructionTypeFilter, sectorFilter) {
+    val filteredProjects = remember(projects, searchText, regionFilter, statusFilter, trancheFilter, constructionTypeFilter, sectorFilter) {
         fun matches(project: Project) =
             (searchText.isBlank() ||
                 project.localizedName().contains(searchText, true) ||
@@ -131,6 +132,7 @@ fun ProjectsScreen(
                 project.localizedCity().contains(searchText, true)) &&
                 (regionFilter == null || project.region == regionFilter) &&
                 (statusFilter == null || project.status == statusFilter) &&
+                (trancheFilter == null || project.trancheNumber == trancheFilter) &&
                 (constructionTypeFilter == null || project.constructionType.equals(constructionTypeFilter, ignoreCase = true)) &&
                 (sectorFilter == null || project.sector.equals(sectorFilter, ignoreCase = true))
         val matchingProjects = projects.filter(::matches)
@@ -216,10 +218,10 @@ fun ProjectsScreen(
             onSearchTextChange = { searchText = it },
             pageScrollState = pageScrollState,
             filters = {
-                ProjectsFilters(regionFilter, { regionFilter = it }, statusFilter, { statusFilter = it },
+                ProjectsFilters(regionFilter, { regionFilter = it }, statusFilter, { statusFilter = it }, trancheFilter, { trancheFilter = it },
                     constructionTypeFilter, { constructionTypeFilter = it }, sectorFilter, { sectorFilter = it },
-                    canReset = searchText.isNotBlank() || regionFilter != null || statusFilter != null || constructionTypeFilter != null || sectorFilter != null,
-                    onReset = { searchText = ""; regionFilter = null; statusFilter = null; constructionTypeFilter = null; sectorFilter = null })
+                    canReset = searchText.isNotBlank() || regionFilter != null || statusFilter != null || trancheFilter != null || constructionTypeFilter != null || sectorFilter != null,
+                    onReset = { searchText = ""; regionFilter = null; statusFilter = null; trancheFilter = null; constructionTypeFilter = null; sectorFilter = null })
             },
             onOpenProject = onOpenProject,
             onEditProject = onEditProject,
@@ -447,6 +449,8 @@ private fun ProjectsFilters(
     onRegionChange: (String?) -> Unit,
     statusFilter: ProjectStatus?,
     onStatusChange: (ProjectStatus?) -> Unit,
+    trancheFilter: Int?,
+    onTrancheChange: (Int?) -> Unit,
     constructionTypeFilter: String?,
     onConstructionTypeChange: (String?) -> Unit,
     sectorFilter: String?,
@@ -477,6 +481,9 @@ private fun ProjectsFilters(
                         LocalizationManager.t("region"),
                         ProjectRepository.projects.map { it.region }.filter { it.isNotBlank() }.distinct().sorted(),
                         regionFilter, onRegionChange, ::localizedUkraineRegion)
+                    SortColumn.TRANCHE -> ProjectFilterDropdown(
+                        LocalizationManager.t("tranche"), ProjectRepository.projects.map { it.trancheNumber }.distinct().sorted(),
+                        trancheFilter, onTrancheChange, Int::trancheLabel)
                     SortColumn.SECTOR -> ProjectFilterDropdown(
                         LocalizationManager.t("sector"), sectors, sectorFilter, onSectorChange, String::sectorLabel)
                     SortColumn.CONSTRUCTION_TYPE -> ProjectFilterDropdown(
@@ -669,7 +676,7 @@ fun ProjectRow(
         }
 
         Text(project.siteNumber, modifier = Modifier.width(ProjectTableColumns.width(SortColumn.ID)), fontWeight = rowFontWeight)
-        Text(project.trancheNumber.toString(), modifier = Modifier.width(ProjectTableColumns.width(SortColumn.TRANCHE)), fontWeight = rowFontWeight)
+        Text(project.trancheNumber.trancheLabel(), modifier = Modifier.width(ProjectTableColumns.width(SortColumn.TRANCHE)), fontWeight = rowFontWeight)
 
         ExpandableTableText(
             project.localizedName(),
@@ -708,6 +715,12 @@ fun ProjectRow(
 
 private fun Project.budgetLabel(): String {
     return "${budgetDisplayAmount ?: budgetPlanned} $budgetCurrency"
+}
+
+private fun Int.trancheLabel(): String = when (this) {
+    8 -> "A"
+    9 -> "B"
+    else -> toString()
 }
 
 private fun Project.matchesProjectSearch(query: String): Boolean =
