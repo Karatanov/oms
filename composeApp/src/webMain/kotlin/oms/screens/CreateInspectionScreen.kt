@@ -125,7 +125,7 @@ fun CreateInspectionScreen(
     val inspectionTargetUuid = selectedSubprojectPartUuid ?: selectedSubprojectUuid ?: selectedProjectUuid
     val selectedSubproject = projects.firstOrNull { it.id == selectedSubprojectUuid }
     val siteReference = selectedSubproject?.let { subproject ->
-        listOf(subproject.siteNumber, subproject.address ?: subproject.name)
+        listOf(subproject.siteNumber, subproject.city.ifBlank { subproject.name })
             .filter(String::isNotBlank)
             .joinToString(", ")
     }.orEmpty()

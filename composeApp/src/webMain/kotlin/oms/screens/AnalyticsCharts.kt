@@ -97,7 +97,7 @@ fun SubprojectProgressChart(items: List<ApiSubprojectProgress>, onOpenFinancial:
                 tooltip = if (LocalizationManager.currentLanguage == oms.localization.Language.EN) it.nameEn?.takeIf(String::isNotBlank) ?: it.name else it.name,
                 formattedValue = "${it.completionPct.toInt()}%"
             )
-        }, orientation = orientation
+        }
     AnalyticsCard(
         titleKey = "subproject_completion",
         hintKey = "subproject_completion_hint",
@@ -113,7 +113,8 @@ fun SubprojectProgressChart(items: List<ApiSubprojectProgress>, onOpenFinancial:
                 onSelect = { regionFilter = it },
                 itemLabel = ::localizedUkraineRegion
             )
-        }
+        },
+        orientation = orientation
     )
 }
 
