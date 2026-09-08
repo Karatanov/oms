@@ -1405,7 +1405,7 @@ object Strings {
         "sir_schedule_remarks" to "Schedule revision remarks",
         "sir_inspector_section" to "UNDP Quality Assurance Staff",
         "sir_name" to "Name",
-        "sir_title_field" to "Title",
+        "sir_title_field" to "Position",
         "manual_sir_required" to "Fill in the contractor and inspector.",
         "unknown_error" to "unknown error"
     )
