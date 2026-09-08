@@ -102,8 +102,8 @@ fun ReportsScreen(
     var findingsReport by remember { mutableStateOf<ReportRow?>(null) }
     var reportToReview by remember { mutableStateOf<ReportRow?>(null) }
     var analytics by remember { mutableStateOf<ApiInspectionAnalytics?>(null) }
-    var inspectionsChartExpanded by remember { mutableStateOf(false) }
-    var eshsChartExpanded by remember { mutableStateOf(false) }
+    var inspectionsChartExpanded by remember { mutableStateOf(true) }
+    var eshsChartExpanded by remember { mutableStateOf(true) }
     val scope = rememberCoroutineScope()
     var sort by remember { mutableStateOf(ReportSort.Date) }
     var ascending by remember { mutableStateOf(false) }
