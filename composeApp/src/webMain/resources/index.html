@@ -97,6 +97,29 @@
             omsPasteNoticeTimer = setTimeout(() => notice.classList.remove("visible"), 4500);
         }
 
+        // Compose/Wasm may also subscribe to clipboard and context-menu events
+        // for its canvas layer. Native HTML inputs already implement these
+        // operations in the browser; forwarding them to both paths can leave a
+        // field stuck after Copy from the right-click menu. Keep the native
+        // default action, but do not let Compose handle it a second time.
+        function isOmsNativeTextField(element) {
+            return element instanceof HTMLInputElement ||
+                element instanceof HTMLTextAreaElement ||
+                Boolean(element && element.isContentEditable);
+        }
+
+        function hasOmsNativeTextFieldFocus(event) {
+            return isOmsNativeTextField(event.target) || isOmsNativeTextField(document.activeElement);
+        }
+
+        window.addEventListener("contextmenu", event => {
+            if (hasOmsNativeTextFieldFocus(event)) event.stopImmediatePropagation();
+        }, true);
+
+        window.addEventListener("copy", event => {
+            if (hasOmsNativeTextFieldFocus(event)) event.stopImmediatePropagation();
+        }, true);
+
         window.addEventListener("paste", event => {
             if (omsSanitisedPasteEvents.has(event) || !event.clipboardData) return;
 
