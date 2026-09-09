@@ -106,7 +106,7 @@ class ProjectService(
 
             address = address,
 
-            region = region,
+            region = normalizeRegion(region),
 
             city = city,
 
@@ -280,7 +280,7 @@ class ProjectService(
 
             address = address,
 
-            region = region,
+            region = normalizeRegion(region),
 
             city = city,
 
@@ -390,7 +390,7 @@ class ProjectService(
             siteNumber = request.siteNumber?.trim() ?: current.siteNumber,
             description = if (request.description == null) current.description else request.description.trim().ifBlank { null },
             address = request.address?.trim() ?: current.address,
-            region = request.region?.trim() ?: current.region,
+            region = request.region?.let(::normalizeRegion) ?: current.region,
             city = request.city?.trim() ?: current.city,
             status = request.status?.trim()?.uppercase()?.let { value ->
                 runCatching { ProjectStatus.valueOf(value) }.getOrElse { throw IllegalArgumentException("Unknown project status.") }
@@ -453,6 +453,16 @@ class ProjectService(
 
     private fun normalizeConstructionTypeOrDefault(value: String): String =
         value.trim().takeIf { it.isNotEmpty() }?.let(::normalizeConstructionType) ?: "reconstruction"
+
+    /**
+     * The column itself already makes the administrative unit clear.  Keep the
+     * stored value concise (for example, "Рівненська", not "Рівненська область")
+     * so filters, exports, and map data all use the same canonical value.
+     */
+    private fun normalizeRegion(value: String): String =
+        value.trim()
+            .replace(Regex("\\s+(область|oblast)\\s*$", RegexOption.IGNORE_CASE), "")
+            .trim()
 
     private fun nextSubprojectPartCode(parent: Project): String {
         val parentCode = parent.siteNumber.trim().ifBlank { parent.siteName.trim() }
