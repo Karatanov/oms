@@ -330,6 +330,7 @@ fun CreateInspectionScreen(
 
                 InspectionTypeDropdown(value = inspectionType, onChange = { inspectionType = it })
                 if (isManualEdit && canChangeReportStatus) {
+                    Text(LocalizationManager.t("status"), style = MaterialTheme.typography.labelLarge)
                     InlineOptionPicker(
                         options = listOf("draft", "pending_review", "completed"), selected = reportStatus,
                         prompt = LocalizationManager.t("status"), onSelect = { reportStatus = it },
