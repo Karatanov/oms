@@ -330,6 +330,31 @@ private fun ActEditorDialog(
     var date by remember { mutableStateOf(existing?.act?.recordDate ?: currentIsoDate()) }
     var description by remember { mutableStateOf(existing?.act?.description ?: existing?.act?.milestone ?: "") }
     var paymentPurpose by remember { mutableStateOf(existing?.act?.paymentPurpose ?: "works") }
+    var basisActs by remember { mutableStateOf<List<ApiFinancialRecord>>(emptyList()) }
+    var loadingBasisActs by remember { mutableStateOf(false) }
+    var basisProjectUuid by remember { mutableStateOf<String?>(null) }
+    fun selectedSubprojectUuid(targetUuid: String?): String? {
+        val byId = availableProjects.associateBy { it.id }
+        return byId[targetUuid]?.let { target ->
+            generateSequence(target) { current -> current.parentProjectUuid?.let(byId::get) }
+                .firstOrNull { it.projectType.equals("subproject", true) }
+                ?.id
+        }
+    }
+    LaunchedEffect(recordType, projectUuid, availableProjects) {
+        val subprojectUuid = selectedSubprojectUuid(projectUuid)
+        basisProjectUuid = subprojectUuid
+        if (recordType != "payment" || subprojectUuid == null) {
+            basisActs = emptyList()
+            loadingBasisActs = false
+            return@LaunchedEffect
+        }
+        loadingBasisActs = true
+        basisActs = runCatching { OmsApiClient.financials(subprojectUuid).data }
+            .getOrDefault(emptyList())
+            .filter { it.recordType.equals("act", true) }
+        loadingBasisActs = false
+    }
     val parsedAmount = amount.replace(',', '.').toDoubleOrNull()
     val valid = projectUuid != null && reference.isNotBlank() && parsedAmount?.let { it.isFinite() && it > 0 } == true && date.matches(Regex("\\d{4}-\\d{2}-\\d{2}"))
     Card(Modifier.widthIn(max = 720.dp).fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
@@ -374,14 +399,28 @@ private fun ActEditorDialog(
                 }
             }
             OmsDateField(date, { date = it }, LocalizationManager.t("date"), Modifier.fillMaxWidth(), true)
-            OutlinedTextField(
-                value = description,
-                onValueChange = { description = it },
-                label = { Text(LocalizationManager.t(if (recordType == "payment") "payment_basis" else "description")) },
-                placeholder = if (recordType == "payment") { { Text(LocalizationManager.t("payment_basis_hint")) } } else null,
-                modifier = Modifier.fillMaxWidth(),
-                minLines = if (recordType == "payment") 2 else 1
-            )
+            if (recordType == "payment" && basisProjectUuid != null && basisActs.isNotEmpty()) {
+                val selectedBasis = basisActs.firstOrNull { it.referenceNumber == description }
+                InlineOptionPicker(
+                    options = basisActs,
+                    selected = selectedBasis,
+                    prompt = LocalizationManager.t("payment_basis"),
+                    onSelect = { act -> description = act.referenceNumber },
+                    itemLabel = { act -> "${act.referenceNumber} · ${act.recordDate.toOmsDate()} · ${act.amount.toMoney(act.currency)}" }
+                )
+            } else {
+                OutlinedTextField(
+                    value = description,
+                    onValueChange = { description = it },
+                    label = { Text(LocalizationManager.t(if (recordType == "payment") "payment_basis" else "description")) },
+                    placeholder = if (recordType == "payment") { { Text(LocalizationManager.t("payment_basis_hint")) } } else null,
+                    supportingText = if (recordType == "payment" && loadingBasisActs) {
+                        { Text(LocalizationManager.t("loading_records")) }
+                    } else null,
+                    modifier = Modifier.fillMaxWidth(),
+                    minLines = if (recordType == "payment") 2 else 1
+                )
+            }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, androidx.compose.ui.Alignment.End)) {
                 OutlinedButton(onClick = onDismiss) { Text(LocalizationManager.t("cancel")) }
                 Button(onClick = { onSave(projectUuid!!, oms.data.FinancialRecordRequest(recordType, reference, parsedAmount!!, currency, date, description = description.ifBlank { null }, milestone = null, paymentPurpose = paymentPurpose)) }, enabled = valid) { Text(LocalizationManager.t("save")) }
