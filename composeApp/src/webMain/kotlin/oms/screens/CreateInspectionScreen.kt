@@ -972,7 +972,7 @@ private fun InspectionProjectSelector(
         )
         ProjectLevelDropdown(
             LocalizationManager.t("sir_subproject_number"), subprojects, selectedSubprojectUuid, onSubprojectSelect,
-            enabled = subprojects.isNotEmpty(), searchable = true, codeOnly = true
+            enabled = subprojects.isNotEmpty(), searchable = true, codeOnly = true, showLabel = false
         )
         ProjectLevelDropdown(LocalizationManager.t("select_subproject_part"), parts, selectedSubprojectPartUuid, onSubprojectPartSelect, enabled = parts.isNotEmpty())
     }
@@ -987,11 +987,12 @@ private fun ProjectLevelDropdown(
     enabled: Boolean = true,
     searchable: Boolean = false,
     codeOnly: Boolean = false,
+    showLabel: Boolean = true,
     loadOptionsOnOpen: (suspend () -> List<Project>)? = null
 ) {
     val selected = options.firstOrNull { it.id == selectedUuid }
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text(label, style = MaterialTheme.typography.labelLarge)
+        if (showLabel) Text(label, style = MaterialTheme.typography.labelLarge)
         val itemLabel: (Project) -> String = {
             if (codeOnly) it.siteNumber
             else if (it.siteNumber.equals(it.name, ignoreCase = true)) it.name
