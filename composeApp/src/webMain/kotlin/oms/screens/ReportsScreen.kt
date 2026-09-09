@@ -527,7 +527,7 @@ private fun ReadOnlySirReport(manual: ManualInspectionReportRequest) {
                             Text(LocalizationManager.t("sir_on_schedule"), style = MaterialTheme.typography.labelMedium)
                             oms.components.OmsBadge(
                                 LocalizationManager.t(if (activity.onSchedule.equals("yes", true)) "yes" else "no"),
-                                if (activity.onSchedule.equals("yes", true)) Color(0xFF2E7D32) else Color(0FFC62828)
+                                if (activity.onSchedule.equals("yes", true)) Color(0xFF2E7D32) else Color(0xFFC62828)
                             )
                         }
                     }
@@ -545,7 +545,7 @@ private fun ReadOnlySirReport(manual: ManualInspectionReportRequest) {
                     Row(Modifier.fillMaxWidth().padding(10.dp), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
                         Text(LocalizationManager.hseObservation(observation.observation), Modifier.weight(1f))
                         val yes = observation.answer.equals("yes", true)
-                        oms.components.OmsBadge(LocalizationManager.t(if (yes) "yes" else "no"), if (yes) Color(0xFF2E7D32) else Color(0FFC62828))
+                        oms.components.OmsBadge(LocalizationManager.t(if (yes) "yes" else "no"), if (yes) Color(0xFF2E7D32) else Color(0xFFC62828))
                         observation.comment?.takeIf(String::isNotBlank)?.let { Text(it, Modifier.weight(1f), color = MaterialTheme.colorScheme.onSurfaceVariant) }
                     }
                 }
