@@ -149,8 +149,14 @@ class InspectionReportFileService(
         }.getOrDefault(report.inspectionDate.toString())
         fun firstRow(predicate: (String) -> Boolean): Int? =
             (1..(sheet.lastRowNum + 1)).firstOrNull { predicate(text(it, 1)) }
-        val hasPurchasedMaterials = text(28, 1).equals("PURCHASED MATERIALS", ignoreCase = true)
-        val contentOffset = if (hasPurchasedMaterials) 5 else 0
+        val purchasedMaterialsTitleRow = firstRow {
+            it.equals("PURCHASED MATERIALS", ignoreCase = true)
+        }
+        // Older generated workbooks placed this optional table at row 28,
+        // shifting the report's remaining content down. New workbooks place it
+        // directly above the signing block, where it belongs.
+        val legacyMaterialsAtTop = purchasedMaterialsTitleRow == 28
+        val contentOffset = if (legacyMaterialsAtTop) 5 else 0
         // Imported SIRs can contain a different number of current-work rows.
         // Locate their section labels instead of letting observations spill into
         // the activities list because of a fixed row range.
@@ -161,10 +167,10 @@ class InspectionReportFileService(
         val hseTitleRow = firstRow {
             it.contains("OBSERVANCES ON HEALTH & SAFETY", ignoreCase = true)
         } ?: 40 + contentOffset
-        val purchasedMaterialsTitleRow = firstRow {
-            it.equals("PURCHASED MATERIALS", ignoreCase = true)
-        }
-        val activityEndExclusive = minOf(ongoingObservationsTitleRow, purchasedMaterialsTitleRow ?: Int.MAX_VALUE)
+        val activityEndExclusive = minOf(
+            ongoingObservationsTitleRow,
+            purchasedMaterialsTitleRow?.takeIf { it < ongoingObservationsTitleRow } ?: Int.MAX_VALUE
+        )
         val activityRows = (activityTitleRow + 2 until activityEndExclusive)
         val observationRows = (ongoingObservationsTitleRow + 1 until hseTitleRow)
         return CreateManualInspectionReportRequest(
@@ -178,10 +184,10 @@ class InspectionReportFileService(
                 val activity = ManualActivity(text(row, 1), text(row, 3), text(row, 8), text(row, 10).ifBlank { null })
                 activity.takeIf { it.location.isNotBlank() || it.description.isNotBlank() || !it.remarks.isNullOrBlank() }
             },
-            purchasedMaterials = if (hasPurchasedMaterials) (30..32).mapNotNull { row ->
+            purchasedMaterials = purchasedMaterialsTitleRow?.let { titleRow -> (titleRow + 2..titleRow + 4).mapNotNull { row ->
                 ManualPurchasedMaterial(text(row, 1), text(row, 4).ifBlank { null }, text(row, 7).ifBlank { null }, text(row, 10).ifBlank { null })
                     .takeIf { it.materialsAndEquipment.isNotBlank() || !it.characteristics.isNullOrBlank() || !it.perDed.isNullOrBlank() || !it.notes.isNullOrBlank() }
-            } else emptyList(),
+            } } ?: emptyList(),
             ongoingObservations = observationRows.map { text(it, 1) }.filter(String::isNotBlank),
             hseObservations = ((41 + contentOffset)..(46 + contentOffset)).mapNotNull { row ->
                 text(row, 1).takeIf(String::isNotBlank)?.split(" — ", limit = 3)?.let { parts ->
@@ -203,7 +209,8 @@ class InspectionReportFileService(
             },
             progressComment = text(55 + contentOffset, 1).ifBlank { null },
             scheduleRemark = text(55 + contentOffset, 10).ifBlank { null },
-            inspectorName = text(59 + contentOffset, 1), inspectorTitle = text(59 + contentOffset, 4).ifBlank { null },
+            inspectorName = text((firstRow { it.equals("M4H QA STAFF", ignoreCase = true) } ?: 56 + contentOffset) + 3, 1),
+            inspectorTitle = text((firstRow { it.equals("M4H QA STAFF", ignoreCase = true) } ?: 56 + contentOffset) + 3, 4).ifBlank { null },
             latitude = report.latitude, longitude = report.longitude
         )
     }
@@ -276,28 +283,28 @@ class InspectionReportFileService(
             items.size <= capacity -> items
             else -> items.take(capacity - 1) + items.drop(capacity - 1).joinToString("\n\n")
         }
-        // Purchase materials are an optional SIR section. Do not insert its
-        // five-row table into a new workbook unless at least one record exists.
-        // Existing workbooks that already contain it retain their geometry.
+        // Purchase materials are optional. When present, their table sits
+        // directly above the M4H QA signing block.
         val materials = request.purchasedMaterials.filter { material ->
             material.materialsAndEquipment.isNotBlank() || !material.characteristics.isNullOrBlank() ||
                 !material.perDed.isNullOrBlank() || !material.notes.isNullOrBlank()
         }
-        val contentOffset = when {
-            materials.isNotEmpty() -> ensurePurchasedMaterialsLayout(sheet)
-            sheet.getRow(27)?.getCell(0)?.let { DataFormatter().formatCellValue(it) }
-                ?.equals("PURCHASED MATERIALS", ignoreCase = true) == true -> 5
-            else -> 0
-        }
+        // Rebuild this optional block from the form state so removing its last
+        // row removes the block from the workbook as well.
+        firstRow(sheet, "PURCHASED MATERIALS")?.let { removePurchasedMaterialsLayout(sheet, it) }
+        if (materials.isNotEmpty()) ensurePurchasedMaterialsLayout(sheet)
+        val signatureTitleRow = firstRow(sheet, "M4H QA STAFF") ?: 56
+        val signatureDataRow = signatureTitleRow + 3
+        val materialsTitleRow = firstRow(sheet, "PURCHASED MATERIALS")
 
         // Clear only cells that hold inspection-specific data. Section labels,
         // merged ranges, borders, row heights and print geometry remain intact.
         clear(13..26)
-        clear(30..32)
-        clear((28 + contentOffset)..(39 + contentOffset))
-        clear((41 + contentOffset)..(46 + contentOffset))
-        clear((49 + contentOffset)..(53 + contentOffset))
-        clear((55 + contentOffset)..(55 + contentOffset))
+        clear(28..39)
+        clear(41..46)
+        clear(49..53)
+        clear(55..55)
+        materialsTitleRow?.let { clear((it + 2)..(it + 4)) }
         text(1, 1, request.projectName?.trim().orEmpty())
         text(5, 1, request.contractor)
         text(5, 5, request.siteReference?.trim().takeIf { !it.isNullOrBlank() }
@@ -319,18 +326,18 @@ class InspectionReportFileService(
             text(row, 10, activity.remarks)
         }
         materials.take(3).forEachIndexed { index, material ->
-            val row = 30 + index
+            val row = checkNotNull(materialsTitleRow) + 2 + index
             text(row, 1, material.materialsAndEquipment)
             text(row, 4, material.characteristics)
             text(row, 7, material.perDed)
             text(row, 10, material.notes)
         }
         mergedText(request.ongoingObservations.map(String::trim).filter(String::isNotBlank), 12)
-            .forEachIndexed { index, observation -> text(28 + contentOffset + index, 1, observation) }
+            .forEachIndexed { index, observation -> text(28 + index, 1, observation) }
         mergedText(request.hseObservations.map { observation ->
             listOf(observation.observation, observation.answer, observation.comment)
                 .filterNotNull().map(String::trim).filter(String::isNotBlank).joinToString(" — ")
-        }.filter(String::isNotBlank), 6).forEachIndexed { index, observation -> text(41 + contentOffset + index, 1, observation) }
+        }.filter(String::isNotBlank), 6).forEachIndexed { index, observation -> text(41 + index, 1, observation) }
         val qualityRemarks = if (request.qualityRemarks.size <= 5) request.qualityRemarks else {
             request.qualityRemarks.take(4) + oms.ufsi.dto.ManualRemark(
                 work = request.qualityRemarks.drop(4).joinToString("\n\n") { it.work },
@@ -341,34 +348,30 @@ class InspectionReportFileService(
                     .joinToString("\n\n").ifBlank { null }
             )
         }
-        configureQualityAssessmentColumns(sheet, 48 + contentOffset)
+        configureQualityAssessmentColumns(sheet, 48)
         qualityRemarks.forEachIndexed { index, remark ->
-            text(49 + contentOffset + index, 1, remark.work)
-            text(49 + contentOffset + index, 4, remark.comment)
-            text(49 + contentOffset + index, 7, remark.rectification)
-            text(49 + contentOffset + index, 10, remark.status)
+            text(49 + index, 1, remark.work)
+            text(49 + index, 4, remark.comment)
+            text(49 + index, 7, remark.rectification)
+            text(49 + index, 10, remark.status)
         }
-        text(55 + contentOffset, 1, request.progressComment)
-        text(55 + contentOffset, 10, request.scheduleRemark)
-        text(59 + contentOffset, 1, request.inspectorName)
-        text(59 + contentOffset, 4, request.inspectorTitle)
-        date(59 + contentOffset, 6)
+        text(55, 1, request.progressComment)
+        text(55, 10, request.scheduleRemark)
+        text(signatureDataRow, 1, request.inspectorName)
+        text(signatureDataRow, 4, request.inspectorTitle)
+        date(signatureDataRow, 6)
     }
 
-    /** Inserts the missing materials table once, without altering reports that already contain it. */
-    private fun ensurePurchasedMaterialsLayout(sheet: org.apache.poi.ss.usermodel.Sheet): Int {
-        val titleRow = 28
-        if (sheet.getRow(titleRow - 1)?.getCell(0)?.let { DataFormatter().formatCellValue(it) }
-                ?.equals("PURCHASED MATERIALS", ignoreCase = true) == true) {
-            listOf(59, 60).forEach { row -> sheet.getRow(row - 1)?.zeroHeight = false }
-            return 5
-        }
-
-        sheet.shiftRows(titleRow - 1, sheet.lastRowNum, 5, true, false)
-        val titleStyle = sheet.getRow(32)?.getCell(0)?.cellStyle
+    /** Inserts the optional materials table immediately before the signature. */
+    private fun ensurePurchasedMaterialsLayout(sheet: org.apache.poi.ss.usermodel.Sheet) {
+        val existingTitleRow = firstRow(sheet, "PURCHASED MATERIALS")
+        if (existingTitleRow != null) return
+        val titleRow = firstRow(sheet, "M4H QA STAFF") ?: 56
+        val titleStyle = sheet.getRow(titleRow - 1)?.getCell(0)?.cellStyle
         val headerStyle = sheet.getRow(11)?.getCell(0)?.cellStyle
         val sourceColumns = listOf(0, 2, 7, 9)
         val dataStyles = sourceColumns.map { column -> sheet.getRow(12)?.getCell(column)?.cellStyle }
+        sheet.shiftRows(titleRow - 1, sheet.lastRowNum, 5, true, false)
         fun cell(row: Int, column: Int) = (sheet.getRow(row - 1) ?: sheet.createRow(row - 1)).getCell(column - 1)
             ?: (sheet.getRow(row - 1) ?: sheet.createRow(row - 1)).createCell(column - 1)
         fun mergeRow(row: Int) {
@@ -382,20 +385,38 @@ class InspectionReportFileService(
             if (titleStyle != null) cellStyle = titleStyle
             setCellValue("PURCHASED MATERIALS")
         }
-        mergeRow(29)
+        mergeRow(titleRow + 1)
         listOf("MATERIALS AND EQUIPMENT", "CHARACTERISTICS", "PER DED? (yes/no)", "NOTES").forEachIndexed { index, label ->
-            cell(29, index * 3 + 1).apply {
+            cell(titleRow + 1, index * 3 + 1).apply {
                 if (headerStyle != null) cellStyle = headerStyle
                 setCellValue(label)
             }
         }
-        (30..32).forEach { row ->
+        (titleRow + 2..titleRow + 4).forEach { row ->
             mergeRow(row)
             dataStyles.forEachIndexed { index, style ->
                 cell(row, index * 3 + 1).apply { if (style != null) cellStyle = style }
             }
         }
-        return 5
+    }
+
+    /** Restores the surrounding row geometry after removing an optional materials table. */
+    private fun removePurchasedMaterialsLayout(sheet: org.apache.poi.ss.usermodel.Sheet, titleRow: Int) {
+        removeMergedRows(sheet, titleRow..(titleRow + 4))
+        sheet.shiftRows(titleRow + 4, sheet.lastRowNum, -5, true, false)
+    }
+
+    private fun firstRow(sheet: org.apache.poi.ss.usermodel.Sheet, value: String): Int? =
+        (1..(sheet.lastRowNum + 1)).firstOrNull { row ->
+            sheet.getRow(row - 1)?.getCell(0)?.let { DataFormatter().formatCellValue(it).trim() }
+                ?.equals(value, ignoreCase = true) == true
+        }
+
+    private fun removeMergedRows(sheet: org.apache.poi.ss.usermodel.Sheet, rows: IntRange) {
+        for (index in sheet.mergedRegions.size - 1 downTo 0) {
+            val range = sheet.mergedRegions[index]
+            if (range.firstRow + 1 in rows || range.lastRow + 1 in rows) sheet.removeMergedRegion(index)
+        }
     }
 
     /** Uses the four SIR quality columns while preserving the template's row geometry and styles. */

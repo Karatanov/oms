@@ -774,10 +774,6 @@ private fun ManualSirForm(
             RepeatableManualActivities(activities, onActivitiesChange)
         }
 
-        SirFormSection(LocalizationManager.t("sir_purchased_materials"), Icons.Default.Description) {
-            RepeatablePurchasedMaterials(purchasedMaterials, onPurchasedMaterialsChange)
-        }
-
         SirFormSection(LocalizationManager.t("sir_ongoing_observations"), Icons.Default.FactCheck) {
             RepeatableSirRows(ongoingObservations, onOngoingObservationsChange, LocalizationManager.t("sir_one_per_line"))
         }
@@ -822,6 +818,10 @@ private fun ManualSirForm(
             }
         }
 
+        SirFormSection(LocalizationManager.t("sir_purchased_materials"), Icons.Default.Description) {
+            RepeatablePurchasedMaterials(purchasedMaterials, onPurchasedMaterialsChange)
+        }
+
         SirFormSection(LocalizationManager.t("sir_inspector_section"), Icons.Default.Description) {
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedTextField(
@@ -834,6 +834,7 @@ private fun ManualSirForm(
                 OutlinedTextField(inspectorTitle, { onInspectorTitleChange(it.inspectionText(300)) }, label = { Text(LocalizationManager.t("sir_title_field")) }, modifier = Modifier.weight(1f), singleLine = true)
             }
         }
+
     }
 }
 
