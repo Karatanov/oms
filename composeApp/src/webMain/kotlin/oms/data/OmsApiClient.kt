@@ -400,6 +400,7 @@ private data class ApiErrorPayload(val error: String? = null, val message: Strin
 // a whole activity, HSE answer, or signature cell was left blank.
 @Serializable
 data class ManualActivityRequest(val location: String = "", val description: String = "", val onSchedule: String = "no", val remarks: String? = null)
+@Serializable data class ManualPurchasedMaterialRequest(val materialsAndEquipment: String = "", val characteristics: String? = null, val perDed: String? = null, val notes: String? = null)
 @Serializable data class ManualHseObservationRequest(val observation: String = "", val answer: String? = null, val comment: String? = null)
 @Serializable data class ManualRemarkRequest(
     val work: String = "",
@@ -410,7 +411,7 @@ data class ManualActivityRequest(val location: String = "", val description: Str
 @Serializable data class ManualInspectionReportRequest(
     val inspectionDate: String = "", val inspectionType: String = "planned", val contractor: String = "", val contractorRepresentative: String? = null, val projectName: String? = null, val siteReference: String? = null, val qaStaff: String? = null, val usifRepresentative: String? = null,
     val skilledLabor: String? = null, val unskilledLabor: String? = null, val siteManagement: String? = null, val weather: String? = null,
-    val activities: List<ManualActivityRequest> = emptyList(), val ongoingObservations: List<String> = emptyList(), val hseObservations: List<ManualHseObservationRequest> = emptyList(),
+    val activities: List<ManualActivityRequest> = emptyList(), val purchasedMaterials: List<ManualPurchasedMaterialRequest> = emptyList(), val ongoingObservations: List<String> = emptyList(), val hseObservations: List<ManualHseObservationRequest> = emptyList(),
     val qualityRemarks: List<ManualRemarkRequest> = emptyList(), val progressComment: String? = null, val scheduleRemark: String? = null, val inspectorName: String = "", val inspectorTitle: String? = null,
     val latitude: Double? = null, val longitude: Double? = null
 )

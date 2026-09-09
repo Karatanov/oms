@@ -531,6 +531,17 @@ internal fun ReadOnlySirReport(manual: ManualInspectionReportRequest) {
                 }
             }
         }
+        ReadOnlySirSection(LocalizationManager.t("sir_purchased_materials"), Icons.Default.Description) {
+            if (manual.purchasedMaterials.isEmpty()) PreviewEmpty()
+            manual.purchasedMaterials.forEach { material ->
+                PreviewFieldRow(
+                    LocalizationManager.t("sir_materials_equipment") to material.materialsAndEquipment,
+                    LocalizationManager.t("sir_material_characteristics") to material.characteristics,
+                    LocalizationManager.t("sir_material_per_ded") to material.perDed,
+                    LocalizationManager.t("sir_material_notes") to material.notes
+                )
+            }
+        }
         ReadOnlySirSection(LocalizationManager.t("sir_ongoing_observations"), Icons.Default.FactCheck) {
             if (manual.ongoingObservations.isEmpty()) PreviewEmpty()
             manual.ongoingObservations.forEach { observation -> Text("• $observation") }

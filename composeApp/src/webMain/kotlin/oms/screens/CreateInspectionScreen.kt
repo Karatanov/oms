@@ -106,6 +106,7 @@ fun CreateInspectionScreen(
     var weatherCondition by remember { mutableStateOf<WeatherCondition?>(null) }
     var temperatureCelsius by remember { mutableStateOf("") }
     var activities by remember { mutableStateOf(listOf(ManualActivityInput())) }
+    var purchasedMaterials by remember { mutableStateOf(listOf(PurchasedMaterialInput())) }
     var projectName by remember { mutableStateOf("") }
     var siteAddress by remember { mutableStateOf("") }
     var ongoingObservations by remember { mutableStateOf(listOf("")) }
@@ -187,6 +188,9 @@ fun CreateInspectionScreen(
                     remarks = it.remarks.orEmpty()
                 )
             }.ifEmpty { listOf(ManualActivityInput()) }
+            purchasedMaterials = manual.purchasedMaterials.map {
+                PurchasedMaterialInput(it.materialsAndEquipment, it.characteristics.orEmpty(), it.perDed.orEmpty(), it.notes.orEmpty())
+            }.ifEmpty { listOf(PurchasedMaterialInput()) }
             ongoingObservations = manual.ongoingObservations.ifEmpty { listOf("") }
             hseObservations = manual.hseObservations.map {
                 HseObservationInput(it.observation, it.answer.equals("yes", true), it.comment.orEmpty())
@@ -353,6 +357,7 @@ fun CreateInspectionScreen(
                     siteManagement = siteManagement.ifBlank { null },
                     weather = weatherCondition.toWeatherWorkbookValue(temperatureCelsius),
                     activities = activities.map { oms.data.ManualActivityRequest(it.location, it.description, it.onSchedule, it.remarks.ifBlank { null }) },
+                    purchasedMaterials = purchasedMaterials.map { oms.data.ManualPurchasedMaterialRequest(it.materialsAndEquipment, it.characteristics.ifBlank { null }, it.perDed.ifBlank { null }, it.notes.ifBlank { null }) },
                     ongoingObservations = ongoingObservations.filter(String::isNotBlank),
                     hseObservations = hseObservations.map { oms.data.ManualHseObservationRequest(it.observation, if (it.isYes) "yes" else "no", it.comment.ifBlank { null }) },
                     qualityRemarks = qualityRemarks.map { oms.data.ManualRemarkRequest(it.work, it.comment, it.rectification.ifBlank { null }, it.status.ifBlank { null }) },
@@ -369,6 +374,7 @@ fun CreateInspectionScreen(
             skilledLabor = skilledLabor, onSkilledLaborChange = { skilledLabor = it }, unskilledLabor = unskilledLabor, onUnskilledLaborChange = { unskilledLabor = it },
             siteManagement = siteManagement, onSiteManagementChange = { siteManagement = it }, weatherCondition = weatherCondition, onWeatherConditionChange = { weatherCondition = it }, temperatureCelsius = temperatureCelsius, onTemperatureCelsiusChange = { temperatureCelsius = it },
             activities = activities, onActivitiesChange = { activities = it }, ongoingObservations = ongoingObservations, onOngoingObservationsChange = { ongoingObservations = it },
+            purchasedMaterials = purchasedMaterials, onPurchasedMaterialsChange = { purchasedMaterials = it },
             hseObservations = hseObservations, onHseObservationsChange = { hseObservations = it }, qualityRemarks = qualityRemarks, onQualityRemarksChange = { qualityRemarks = it },
             inspectorName = inspectorName, inspectorTitle = inspectorTitle, onInspectorTitleChange = { inspectorTitle = it }
             )
@@ -467,6 +473,10 @@ fun CreateInspectionScreen(
                                                 )
                                             }.filter { activity ->
                                                 activity.location.isNotBlank() || activity.description.isNotBlank() || activity.remarks != null
+                                            },
+                                            purchasedMaterials = purchasedMaterials.mapNotNull { material ->
+                                                material.takeIf { it.materialsAndEquipment.isNotBlank() || it.characteristics.isNotBlank() || it.perDed.isNotBlank() || it.notes.isNotBlank() }
+                                                    ?.let { oms.data.ManualPurchasedMaterialRequest(it.materialsAndEquipment.trim(), it.characteristics.trim().ifBlank { null }, it.perDed.trim().ifBlank { null }, it.notes.trim().ifBlank { null }) }
                                             },
                                             ongoingObservations = ongoingObservations.map(String::trim).filter(String::isNotBlank),
                                             hseObservations = hseObservations.map { oms.data.ManualHseObservationRequest(it.observation, if (it.isYes) "Yes" else "No", it.comment.ifBlank { null }) },
@@ -636,6 +646,7 @@ private fun ManualSirForm(
     weatherCondition: WeatherCondition?, onWeatherConditionChange: (WeatherCondition?) -> Unit,
     temperatureCelsius: String, onTemperatureCelsiusChange: (String) -> Unit,
     activities: List<ManualActivityInput>, onActivitiesChange: (List<ManualActivityInput>) -> Unit,
+    purchasedMaterials: List<PurchasedMaterialInput>, onPurchasedMaterialsChange: (List<PurchasedMaterialInput>) -> Unit,
     ongoingObservations: List<String>, onOngoingObservationsChange: (List<String>) -> Unit,
     hseObservations: List<HseObservationInput>, onHseObservationsChange: (List<HseObservationInput>) -> Unit,
     qualityRemarks: List<QualityRemarkInput>, onQualityRemarksChange: (List<QualityRemarkInput>) -> Unit,
@@ -683,6 +694,10 @@ private fun ManualSirForm(
 
         SirFormSection(LocalizationManager.t("sir_ongoing_activities"), Icons.Default.Engineering) {
             RepeatableManualActivities(activities, onActivitiesChange)
+        }
+
+        SirFormSection(LocalizationManager.t("sir_purchased_materials"), Icons.Default.Description) {
+            RepeatablePurchasedMaterials(purchasedMaterials, onPurchasedMaterialsChange)
         }
 
         SirFormSection(LocalizationManager.t("sir_ongoing_observations"), Icons.Default.FactCheck) {
