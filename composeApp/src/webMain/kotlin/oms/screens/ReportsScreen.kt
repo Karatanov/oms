@@ -487,7 +487,7 @@ private fun ReportWorkbookGrid(rows: List<oms.data.ApiInspectionReportPreviewRow
 internal fun ReadOnlySirReport(manual: ManualInspectionReportRequest) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         ReadOnlySirSection(LocalizationManager.t("sir_header_site"), Icons.Default.Description) {
-            PreviewField(LocalizationManager.t("sir_project_name"), manual.projectName)
+            PreviewField(LocalizationManager.t("sir_inspection_organisation"), manual.projectName)
             PreviewFieldRow(
                 LocalizationManager.t("contractor") to manual.contractor,
                 LocalizationManager.t("sir_site_reference") to manual.siteReference,

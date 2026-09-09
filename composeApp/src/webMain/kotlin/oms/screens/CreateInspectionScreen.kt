@@ -47,6 +47,7 @@ import oms.components.PageHeading
 import oms.components.TableActionIconButton
 import oms.components.NativePaneAnchor
 import oms.components.FormSectionTitle
+import oms.components.AutocompleteField
 import androidx.compose.ui.graphics.vector.ImageVector
 
 @JsName("openSirImportDialog")
@@ -165,7 +166,11 @@ fun CreateInspectionScreen(
             date = manual.inspectionDate
             reportStatus = editor.status
             inspectionType = InspectionType.entries.firstOrNull { it.name.equals(manual.inspectionType, true) } ?: InspectionType.PLANNED
+            // USIF was a legacy template default, not report data. Keep it as
+            // a selectable suggestion but never prefill it into the form.
             projectName = manual.projectName.orEmpty()
+                .takeUnless { it.equals("Ukrainian Social Investment Fund (USIF)", ignoreCase = true) }
+                .orEmpty()
             contractor = manual.contractor
             contractorRepresentative = manual.contractorRepresentative.orEmpty()
             qaStaff = manual.qaStaff.orEmpty()
@@ -299,7 +304,6 @@ fun CreateInspectionScreen(
                     onProjectSelect = {
                         errorMessage = null
                         selectedProjectUuid = it
-                        projectName = projects.firstOrNull { project -> project.id == it }?.name.orEmpty()
                         selectedSubprojectUuid = null
                         selectedSubprojectPartUuid = null
                     },
@@ -644,12 +648,12 @@ private fun ManualSirForm(
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         SirFormSection(LocalizationManager.t("sir_report_header"), Icons.Default.Description) {
             Text(LocalizationManager.t("manual_sir_title"), style = MaterialTheme.typography.titleLarge, color = Color(0xFF278DAD))
-            OutlinedTextField(
-                projectName,
-                { onProjectNameChange(it.inspectionText(500)) },
-                label = { Text(LocalizationManager.t("sir_project_name")) },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true
+            AutocompleteField(
+                value = projectName,
+                onValueChange = { onProjectNameChange(it.inspectionText(500)) },
+                label = LocalizationManager.t("sir_inspection_organisation"),
+                options = listOf("Ukrainian Social Investment Fund (USIF)" to "Ukrainian Social Investment Fund (USIF)"),
+                modifier = Modifier.fillMaxWidth()
             )
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedTextField(contractor, { onContractorChange(it.inspectionText(300)) }, label = { Text("${LocalizationManager.t("contractor")} *") }, modifier = Modifier.weight(1f), singleLine = true)

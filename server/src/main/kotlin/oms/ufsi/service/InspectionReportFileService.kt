@@ -245,7 +245,7 @@ class InspectionReportFileService(
         clear(28..39)
         clear(41..46)
         clear(49..53)
-        text(1, 1, request.projectName?.trim().takeIf { !it.isNullOrBlank() } ?: project.name)
+        text(1, 1, request.projectName?.trim().orEmpty())
         text(5, 1, request.contractor)
         text(5, 5, request.siteReference?.trim().takeIf { !it.isNullOrBlank() }
             ?: listOf(project.siteNumber, project.address ?: project.name).filter(String::isNotBlank).joinToString(", "))
