@@ -395,15 +395,18 @@ data class LoginPayload(val user: ApiUser)
 @Serializable
 private data class ApiErrorPayload(val error: String? = null, val message: String? = null)
 
+// Server JSON intentionally omits default-valued cells from Excel templates.
+// Defaults here keep imported/older SIR files readable and editable even when
+// a whole activity, HSE answer, or signature cell was left blank.
 @Serializable
-data class ManualActivityRequest(val location: String, val description: String, val onSchedule: String = "no", val remarks: String? = null)
-@Serializable data class ManualHseObservationRequest(val observation: String, val answer: String? = null, val comment: String? = null)
-@Serializable data class ManualRemarkRequest(val comment: String, val rectification: String? = null)
+data class ManualActivityRequest(val location: String = "", val description: String = "", val onSchedule: String = "no", val remarks: String? = null)
+@Serializable data class ManualHseObservationRequest(val observation: String = "", val answer: String? = null, val comment: String? = null)
+@Serializable data class ManualRemarkRequest(val comment: String = "", val rectification: String? = null)
 @Serializable data class ManualInspectionReportRequest(
-    val inspectionDate: String, val inspectionType: String = "planned", val contractor: String, val contractorRepresentative: String? = null, val projectName: String? = null, val siteReference: String? = null, val qaStaff: String? = null, val usifRepresentative: String? = null,
+    val inspectionDate: String = "", val inspectionType: String = "planned", val contractor: String = "", val contractorRepresentative: String? = null, val projectName: String? = null, val siteReference: String? = null, val qaStaff: String? = null, val usifRepresentative: String? = null,
     val skilledLabor: String? = null, val unskilledLabor: String? = null, val siteManagement: String? = null, val weather: String? = null,
     val activities: List<ManualActivityRequest> = emptyList(), val ongoingObservations: List<String> = emptyList(), val hseObservations: List<ManualHseObservationRequest> = emptyList(),
-    val qualityRemarks: List<ManualRemarkRequest> = emptyList(), val progressComment: String? = null, val scheduleRemark: String? = null, val inspectorName: String, val inspectorTitle: String? = null,
+    val qualityRemarks: List<ManualRemarkRequest> = emptyList(), val progressComment: String? = null, val scheduleRemark: String? = null, val inspectorName: String = "", val inspectorTitle: String? = null,
     val latitude: Double? = null, val longitude: Double? = null
 )
 
