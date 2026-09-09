@@ -62,6 +62,7 @@ fun ProcurementScreen(
 ) {
     var search by remember { mutableStateOf("") }
     var oblastFilter by remember { mutableStateOf<String?>(null) }
+    var subprojectFilter by remember { mutableStateOf<String?>(null) }
     var statusFilter by remember { mutableStateOf<String?>(null) }
     var signedContractMonthFilter by remember { mutableStateOf<String?>(null) }
     var records by remember { mutableStateOf<List<ApiProcurementRecord>?>(null) }
@@ -164,11 +165,12 @@ fun ProcurementScreen(
         Spacer(Modifier.height(16.dp))
         val visibleRecords = records.orEmpty().filter { record ->
             (oblastFilter == null || record.oblastName == oblastFilter) &&
+            (subprojectFilter == null || record.subProjectId == subprojectFilter) &&
             (statusFilter?.let { sameProcurementStatus(record.purchaseStatus, it) } ?: true) &&
             (signedContractMonthFilter == null || record.contractDate?.take(7) == signedContractMonthFilter) &&
             (search.isBlank() || listOf(record.subProjectId, record.subProjectLotId, record.oblastName, record.contractorNameUkr.orEmpty(), record.contractorNameEng.orEmpty()).any { it.contains(search, true) })
         }
-        LaunchedEffect(search, oblastFilter, statusFilter, signedContractMonthFilter, pageSize) { currentPage = 0 }
+        LaunchedEffect(search, oblastFilter, subprojectFilter, statusFilter, signedContractMonthFilter, pageSize) { currentPage = 0 }
         val pageCount = if (visibleRecords.isEmpty() || pageSize == Int.MAX_VALUE) 1 else (visibleRecords.size + pageSize - 1) / pageSize
         if (currentPage >= pageCount) currentPage = (pageCount - 1).coerceAtLeast(0)
         val pageRecords = if (pageSize == Int.MAX_VALUE) visibleRecords else visibleRecords.drop(currentPage * pageSize).take(pageSize)
@@ -209,7 +211,7 @@ fun ProcurementScreen(
                 Spacer(Modifier.height(8.dp))
                 Box(Modifier.onGloballyPositioned { tableTopInRootPx = it.positionInRoot().y }) {
                     ProcurementTable(
-                        pageRecords, records.orEmpty(), oblastFilter, { oblastFilter = it }, statusFilter, { statusFilter = it },
+                        pageRecords, records.orEmpty(), oblastFilter, { oblastFilter = it }, subprojectFilter, { subprojectFilter = it }, statusFilter, { statusFilter = it },
                         canManageProcurements, { error = null; editorRecord = it }, { error = null; recordPendingDeletion = it },
                         contentScrollState
                     )
@@ -310,6 +312,8 @@ private fun ProcurementTable(
     allRecords: List<ApiProcurementRecord>,
     oblastFilter: String?,
     onOblastChange: (String?) -> Unit,
+    subprojectFilter: String?,
+    onSubprojectChange: (String?) -> Unit,
     statusFilter: String?,
     onStatusChange: (String?) -> Unit,
     canManage: Boolean,
@@ -319,7 +323,7 @@ private fun ProcurementTable(
 ) {
     Column(Modifier.fillMaxWidth()) {
         oms.components.ScrollableTable(pageScrollState = pageScrollState, header = {
-                ProcurementFilters(allRecords, oblastFilter, onOblastChange, statusFilter, onStatusChange, canManage)
+                ProcurementFilters(allRecords, oblastFilter, onOblastChange, subprojectFilter, onSubprojectChange, statusFilter, onStatusChange, canManage)
                 ProcurementRow(procurementHeaderLabels(), showActions = canManage, isHeader = true)
                 HorizontalDivider()
             }
@@ -344,6 +348,8 @@ private fun ProcurementFilters(
     records: List<ApiProcurementRecord>,
     oblastFilter: String?,
     onOblastChange: (String?) -> Unit,
+    subprojectFilter: String?,
+    onSubprojectChange: (String?) -> Unit,
     statusFilter: String?,
     onStatusChange: (String?) -> Unit,
     showActions: Boolean
@@ -361,6 +367,11 @@ private fun ProcurementFilters(
                         LocalizationManager.t("proc_oblast_name"), onOblastChange,
                         ::localizedUkraineRegion,
                         clearLabel = LocalizationManager.t("all"), onClear = { onOblastChange(null) }
+                    )
+                    4 -> InlineOptionPicker(
+                        records.map { it.subProjectId }.filter(String::isNotBlank).distinct().sorted(), subprojectFilter,
+                        LocalizationManager.t("proc_subproject_id"), onSubprojectChange,
+                        clearLabel = LocalizationManager.t("all"), onClear = { onSubprojectChange(null) }
                     )
                     6 -> InlineOptionPicker(
                         procurementStatuses, statusFilter, LocalizationManager.t("procurement_status"), onStatusChange,
