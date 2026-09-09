@@ -110,7 +110,6 @@ fun ReportsScreen(
     var loadFailed by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var reportToEdit by remember { mutableStateOf<ReportRow?>(null) }
-    var findingsReport by remember { mutableStateOf<ReportRow?>(null) }
     var reportToReview by remember { mutableStateOf<ReportRow?>(null) }
     var analytics by remember { mutableStateOf<ApiInspectionAnalytics?>(null) }
     var inspectionsChartExpanded by remember { mutableStateOf(true) }
@@ -249,13 +248,15 @@ fun ReportsScreen(
             ) {
                 if (!loading && !loadFailed && visible.isEmpty()) Text(LocalizationManager.t("no_reports"))
                 visible.forEach { row ->
-                    Row(Modifier.width(1_163.dp).padding(vertical = 8.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                    Row(Modifier.width(1_115.dp).padding(vertical = 8.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                         Text(row.report.inspectionDate.toOmsDate(), Modifier.width(105.dp))
                         ExpandableTableText(row.localizedSubprojectName() ?: "—", Modifier.width(220.dp), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Text(row.subprojectCode ?: "—", Modifier.width(150.dp), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Text(row.subprojectPartCode ?: "—", Modifier.width(160.dp), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Box(Modifier.width(130.dp)) { ReportStatusChip(row.report.status) }
                         Text(row.report.authorUsername ?: "—", Modifier.width(110.dp))
+                        // Preview is the primary action and must be first in the cell.
+                        TableActionIconButton(LocalizationManager.t("preview_report"), Icons.Default.Visibility) { onPreviewInspection(row.report.uuid) }
                         if (canCreateReports) TableActionIconButton(LocalizationManager.t("edit_inspection"), Icons.Default.Edit) { onEditInspection(row.report.uuid) }
                         else Spacer(Modifier.width(48.dp))
                         if (canReviewReports && row.report.status == "pending_review") {
@@ -263,13 +264,9 @@ fun ReportsScreen(
                         } else {
                             Spacer(Modifier.width(48.dp))
                         }
-                        TableActionIconButton(LocalizationManager.t("preview_report"), Icons.Default.Visibility) { onPreviewInspection(row.report.uuid) }
                         TableActionIconButton(LocalizationManager.t("open_source_file"), Icons.Default.FileDownload) {
                             uriHandler.openUri(oms.data.omsApiUrl("/inspection-reports/${row.report.uuid}/source-file"))
                         }
-                        if (canCreateReports) {
-                            TableActionIconButton(LocalizationManager.t("findings"), Icons.AutoMirrored.Filled.FactCheck) { findingsReport = row }
-                        } else Spacer(Modifier.width(48.dp))
                         if (canCreateReports) TableActionIconButton(LocalizationManager.t("delete_report"), Icons.Default.Delete) {
                             deletion.show(row.title()) { scope.launch {
                                 if (OmsApiClient.deleteInspectionReport(row.report.uuid)) reports = reports.filterNot { it.report.uuid == row.report.uuid }
@@ -332,9 +329,6 @@ fun ReportsScreen(
                 }
             }
         )
-    } }
-    findingsReport?.let { report -> WasmSafeOverlay(onDismiss = { findingsReport = null }, errorMessage = errorMessage) {
-        FindingsDialog(report = report, onDismiss = { findingsReport = null })
     } }
     reportToReview?.let { report -> WasmSafeOverlay(onDismiss = { reportToReview = null }, errorMessage = errorMessage) {
         ReviewReportDialog(
@@ -941,7 +935,7 @@ private fun ReportTableHeader(
     val authors = reports.mapNotNull { it.report.authorUsername?.takeIf(String::isNotBlank) }.distinct().sorted()
     val statuses = listOf("draft", "pending_review", "completed")
 
-    Column(Modifier.width(1_163.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    Column(Modifier.width(1_115.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Row(verticalAlignment = Alignment.Top) {
             Box(Modifier.width(105.dp).padding(top = 14.dp)) {
                 Text(LocalizationManager.t("filters"), style = MaterialTheme.typography.labelLarge)
@@ -967,7 +961,7 @@ private fun ReportTableHeader(
             Box(Modifier.width(110.dp)) {
                 FilterDropdown(LocalizationManager.t("uploaded_by_short"), authors, authorFilter, onAuthorFilterChange, Modifier.fillMaxWidth()) { it }
             }
-            Spacer(Modifier.width(288.dp))
+            Spacer(Modifier.width(240.dp))
         }
         Row(Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
             SortableTableHeader(LocalizationManager.t("date"), sort == ReportSort.Date, ascending, { onSort(ReportSort.Date) }, Modifier.width(105.dp))
@@ -976,7 +970,7 @@ private fun ReportTableHeader(
             SortableTableHeader(LocalizationManager.t("subproject_part_code_label"), sort == ReportSort.SubprojectPartCode, ascending, { onSort(ReportSort.SubprojectPartCode) }, Modifier.width(160.dp))
             SortableTableHeader(LocalizationManager.t("status"), sort == ReportSort.Status, ascending, { onSort(ReportSort.Status) }, Modifier.width(130.dp))
             SortableTableHeader(LocalizationManager.t("uploaded_by_short"), sort == ReportSort.Author, ascending, { onSort(ReportSort.Author) }, Modifier.width(110.dp))
-            Box(Modifier.width(288.dp).height(52.dp), contentAlignment = Alignment.Center) {
+            Box(Modifier.width(240.dp).height(52.dp), contentAlignment = Alignment.Center) {
                 Text(LocalizationManager.t("actions"))
             }
         }
