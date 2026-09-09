@@ -147,9 +147,26 @@ class InspectionReportFileService(
         fun date(row: Int, column: Int): String = runCatching {
             sheet.getRow(row - 1).getCell(column - 1).localDateTimeCellValue.toLocalDate().toString()
         }.getOrDefault(report.inspectionDate.toString())
-        fun rows(start: Int, end: Int, column: Int) = (start..end).map { text(it, column) }.filter(String::isNotBlank)
+        fun firstRow(predicate: (String) -> Boolean): Int? =
+            (1..(sheet.lastRowNum + 1)).firstOrNull { predicate(text(it, 1)) }
         val hasPurchasedMaterials = text(28, 1).equals("PURCHASED MATERIALS", ignoreCase = true)
         val contentOffset = if (hasPurchasedMaterials) 5 else 0
+        // Imported SIRs can contain a different number of current-work rows.
+        // Locate their section labels instead of letting observations spill into
+        // the activities list because of a fixed row range.
+        val activityTitleRow = firstRow { it.equals("ONGOING ACTIVITIES", ignoreCase = true) } ?: 11
+        val ongoingObservationsTitleRow = firstRow {
+            it.contains("OBSERVANCES ON ONGOING ACTIVITIES", ignoreCase = true)
+        } ?: 27 + contentOffset
+        val hseTitleRow = firstRow {
+            it.contains("OBSERVANCES ON HEALTH & SAFETY", ignoreCase = true)
+        } ?: 40 + contentOffset
+        val purchasedMaterialsTitleRow = firstRow {
+            it.equals("PURCHASED MATERIALS", ignoreCase = true)
+        }
+        val activityEndExclusive = minOf(ongoingObservationsTitleRow, purchasedMaterialsTitleRow ?: Int.MAX_VALUE)
+        val activityRows = (activityTitleRow + 2 until activityEndExclusive)
+        val observationRows = (ongoingObservationsTitleRow + 1 until hseTitleRow)
         return CreateManualInspectionReportRequest(
             inspectionDate = date(5, 9), inspectionType = report.inspectionType,
             contractor = text(5, 1), contractorRepresentative = text(7, 1).ifBlank { null },
@@ -157,7 +174,7 @@ class InspectionReportFileService(
             qaStaff = text(7, 5).ifBlank { null }, usifRepresentative = text(7, 9).ifBlank { null },
             skilledLabor = text(10, 1).ifBlank { null }, unskilledLabor = text(10, 3).ifBlank { null },
             siteManagement = text(10, 5).ifBlank { null }, weather = text(10, 9).ifBlank { null },
-            activities = (13..26).mapNotNull { row ->
+            activities = activityRows.mapNotNull { row ->
                 val activity = ManualActivity(text(row, 1), text(row, 3), text(row, 8), text(row, 10).ifBlank { null })
                 activity.takeIf { it.location.isNotBlank() || it.description.isNotBlank() || !it.remarks.isNullOrBlank() }
             },
@@ -165,7 +182,7 @@ class InspectionReportFileService(
                 ManualPurchasedMaterial(text(row, 1), text(row, 4).ifBlank { null }, text(row, 7).ifBlank { null }, text(row, 10).ifBlank { null })
                     .takeIf { it.materialsAndEquipment.isNotBlank() || !it.characteristics.isNullOrBlank() || !it.perDed.isNullOrBlank() || !it.notes.isNullOrBlank() }
             } else emptyList(),
-            ongoingObservations = rows(28 + contentOffset, 39 + contentOffset, 1),
+            ongoingObservations = observationRows.map { text(it, 1) }.filter(String::isNotBlank),
             hseObservations = ((41 + contentOffset)..(46 + contentOffset)).mapNotNull { row ->
                 text(row, 1).takeIf(String::isNotBlank)?.split(" — ", limit = 3)?.let { parts ->
                     ManualHseObservation(parts[0], parts.getOrNull(1), parts.getOrNull(2))
