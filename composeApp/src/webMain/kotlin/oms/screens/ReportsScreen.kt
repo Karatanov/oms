@@ -511,25 +511,7 @@ internal fun ReadOnlySirReport(manual: ManualInspectionReportRequest) {
             )
         }
         ReadOnlySirSection(LocalizationManager.t("sir_ongoing_activities"), Icons.Default.Engineering) {
-            if (manual.activities.isEmpty()) PreviewEmpty()
-            manual.activities.forEach { activity ->
-                Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-                    Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        PreviewFieldRow(
-                            LocalizationManager.t("sir_activity_location") to activity.location,
-                            LocalizationManager.t("sir_activity_description") to activity.description,
-                            LocalizationManager.t("sir_activity_remarks") to activity.remarks
-                        )
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Text(LocalizationManager.t("sir_on_schedule"), style = MaterialTheme.typography.labelMedium)
-                            oms.components.OmsBadge(
-                                LocalizationManager.t(if (activity.onSchedule.equals("yes", true)) "yes" else "no"),
-                                if (activity.onSchedule.equals("yes", true)) Color(0xFF2E7D32) else Color(0xFFC62828)
-                            )
-                        }
-                    }
-                }
-            }
+            ReadOnlyActivitiesTable(manual.activities)
         }
         ReadOnlySirSection(LocalizationManager.t("sir_purchased_materials"), Icons.Default.Description) {
             if (manual.purchasedMaterials.isEmpty()) PreviewEmpty()
@@ -582,6 +564,34 @@ internal fun ReadOnlySirReport(manual: ManualInspectionReportRequest) {
                 LocalizationManager.t("sir_name") to manual.inspectorName,
                 LocalizationManager.t("sir_title_field") to manual.inspectorTitle
             )
+        }
+    }
+}
+
+/** The workbook's current-work section: headers appear once, each job is a row. */
+@Composable
+private fun ReadOnlyActivitiesTable(activities: List<oms.data.ManualActivityRequest>) {
+    if (activities.isEmpty()) {
+        PreviewEmpty()
+        return
+    }
+    val headerColor = MaterialTheme.colorScheme.surfaceVariant
+    Column(
+        Modifier.fillMaxWidth().border(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        verticalArrangement = Arrangement.spacedBy(0.dp)
+    ) {
+        Row(Modifier.fillMaxWidth().background(headerColor).padding(horizontal = 10.dp, vertical = 8.dp)) {
+            Text(LocalizationManager.t("sir_activity_location"), Modifier.weight(1f), style = MaterialTheme.typography.labelMedium)
+            Text(LocalizationManager.t("sir_activity_description"), Modifier.weight(2f), style = MaterialTheme.typography.labelMedium)
+            Text(LocalizationManager.t("sir_activity_remarks"), Modifier.weight(1.5f), style = MaterialTheme.typography.labelMedium)
+        }
+        activities.forEachIndexed { index, activity ->
+            if (index > 0) HorizontalDivider()
+            Row(Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 10.dp), verticalAlignment = Alignment.Top) {
+                Text(activity.location.ifBlank { "—" }, Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
+                Text(activity.description.ifBlank { "—" }, Modifier.weight(2f), style = MaterialTheme.typography.bodyMedium)
+                Text(activity.remarks?.takeIf(String::isNotBlank) ?: "—", Modifier.weight(1.5f), style = MaterialTheme.typography.bodyMedium)
+            }
         }
     }
 }
