@@ -276,7 +276,19 @@ class InspectionReportFileService(
             items.size <= capacity -> items
             else -> items.take(capacity - 1) + items.drop(capacity - 1).joinToString("\n\n")
         }
-        val contentOffset = ensurePurchasedMaterialsLayout(sheet)
+        // Purchase materials are an optional SIR section. Do not insert its
+        // five-row table into a new workbook unless at least one record exists.
+        // Existing workbooks that already contain it retain their geometry.
+        val materials = request.purchasedMaterials.filter { material ->
+            material.materialsAndEquipment.isNotBlank() || !material.characteristics.isNullOrBlank() ||
+                !material.perDed.isNullOrBlank() || !material.notes.isNullOrBlank()
+        }
+        val contentOffset = when {
+            materials.isNotEmpty() -> ensurePurchasedMaterialsLayout(sheet)
+            sheet.getRow(27)?.getCell(0)?.let { DataFormatter().formatCellValue(it) }
+                ?.equals("PURCHASED MATERIALS", ignoreCase = true) == true -> 5
+            else -> 0
+        }
 
         // Clear only cells that hold inspection-specific data. Section labels,
         // merged ranges, borders, row heights and print geometry remain intact.
@@ -306,7 +318,7 @@ class InspectionReportFileService(
             text(row, 8, activity.onSchedule)
             text(row, 10, activity.remarks)
         }
-        request.purchasedMaterials.take(3).forEachIndexed { index, material ->
+        materials.take(3).forEachIndexed { index, material ->
             val row = 30 + index
             text(row, 1, material.materialsAndEquipment)
             text(row, 4, material.characteristics)

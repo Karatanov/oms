@@ -507,8 +507,7 @@ internal fun ReadOnlySirReport(manual: ManualInspectionReportRequest) {
         ReadOnlySirSection(LocalizationManager.t("sir_ongoing_activities"), Icons.Default.Engineering) {
             ReadOnlyActivitiesTable(manual.activities)
         }
-        ReadOnlySirSection(LocalizationManager.t("sir_purchased_materials"), Icons.Default.Description) {
-            if (manual.purchasedMaterials.isEmpty()) PreviewEmpty()
+        if (manual.purchasedMaterials.isNotEmpty()) ReadOnlySirSection(LocalizationManager.t("sir_purchased_materials"), Icons.Default.Description) {
             manual.purchasedMaterials.forEach { material ->
                 PreviewFieldRow(
                     LocalizationManager.t("sir_materials_equipment") to material.materialsAndEquipment,

@@ -6,6 +6,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -36,9 +37,15 @@ internal fun RepeatablePurchasedMaterials(
                 Row(Modifier.fillMaxWidth().padding(10.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedTextField(material.materialsAndEquipment, { value -> update(index) { it.copy(materialsAndEquipment = value.inspectionText(4_000)) } }, label = { Text(LocalizationManager.t("sir_materials_equipment")) }, minLines = 2, maxLines = 5, modifier = Modifier.weight(1f))
                     OutlinedTextField(material.characteristics, { value -> update(index) { it.copy(characteristics = value.inspectionText(4_000)) } }, label = { Text(LocalizationManager.t("sir_material_characteristics")) }, minLines = 2, maxLines = 5, modifier = Modifier.weight(1f))
-                    OutlinedTextField(material.perDed, { value -> update(index) { it.copy(perDed = value.inspectionText(100)) } }, label = { Text(LocalizationManager.t("sir_material_per_ded")) }, minLines = 2, maxLines = 5, modifier = Modifier.weight(1f))
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(LocalizationManager.t("sir_material_per_ded"))
+                        Checkbox(
+                            checked = material.perDed.equals("yes", ignoreCase = true),
+                            onCheckedChange = { checked -> update(index) { it.copy(perDed = if (checked) "yes" else "no") } }
+                        )
+                    }
                     OutlinedTextField(material.notes, { value -> update(index) { it.copy(notes = value.inspectionText(4_000)) } }, label = { Text(LocalizationManager.t("sir_material_notes")) }, minLines = 2, maxLines = 5, modifier = Modifier.weight(1f))
-                    if (values.size > 1) TableActionIconButton(LocalizationManager.t("delete"), Icons.Default.Remove) { onChange(values.filterIndexed { current, _ -> current != index }) }
+                    TableActionIconButton(LocalizationManager.t("delete"), Icons.Default.Remove) { onChange(values.filterIndexed { current, _ -> current != index }) }
                 }
             }
         }

@@ -117,7 +117,9 @@ fun CreateInspectionScreen(
     var weatherCondition by remember { mutableStateOf<WeatherCondition?>(null) }
     var temperatureCelsius by remember { mutableStateOf("") }
     var activities by remember { mutableStateOf(listOf(ManualActivityInput())) }
-    var purchasedMaterials by remember { mutableStateOf(listOf(PurchasedMaterialInput())) }
+    // Materials are optional. A row is created only when the user explicitly
+    // asks to add one, so a new SIR starts without an empty materials record.
+    var purchasedMaterials by remember { mutableStateOf(emptyList<PurchasedMaterialInput>()) }
     var projectName by remember { mutableStateOf("") }
     var siteAddress by remember { mutableStateOf("") }
     var ongoingObservations by remember { mutableStateOf(listOf("")) }
@@ -204,7 +206,7 @@ fun CreateInspectionScreen(
             }.ifEmpty { listOf(ManualActivityInput()) }
             purchasedMaterials = manual.purchasedMaterials.map {
                 PurchasedMaterialInput(it.materialsAndEquipment, it.characteristics.orEmpty(), it.perDed.orEmpty(), it.notes.orEmpty())
-            }.ifEmpty { listOf(PurchasedMaterialInput()) }
+            }
             ongoingObservations = manual.ongoingObservations.ifEmpty { listOf("") }
             hseObservations = manual.hseObservations.map {
                 HseObservationInput(
