@@ -759,12 +759,18 @@ fun ProjectRow(
         Text(project.startDate.toOmsDate(), modifier = Modifier.width(ProjectTableColumns.width(SortColumn.START_DATE)), fontWeight = rowFontWeight)
         Text(project.contractorName.orEmpty(), modifier = Modifier.width(ProjectTableColumns.width(SortColumn.CONTRACTOR)), fontWeight = rowFontWeight)
 
-        Row(Modifier.width(ProjectTableColumns.actions), verticalAlignment = Alignment.CenterVertically) {
-        TableActionIconButton(LocalizationManager.t("view"), Icons.Default.Visibility) { onOpen(project) }
-        if (canManageProjects) {
-            TableActionIconButton(LocalizationManager.t("edit"), Icons.Default.Edit) { onEdit(project) }
-            TableActionIconButton(LocalizationManager.t("delete_project"), Icons.Default.Delete) { onDelete(project) }
-        }
+        // Keep the icon group centred in the exact same 144dp cell as the
+        // "Actions" heading.  This also keeps view-only rows aligned.
+        Row(
+            Modifier.width(ProjectTableColumns.actions),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            TableActionIconButton(LocalizationManager.t("view"), Icons.Default.Visibility) { onOpen(project) }
+            if (canManageProjects) {
+                TableActionIconButton(LocalizationManager.t("edit"), Icons.Default.Edit) { onEdit(project) }
+                TableActionIconButton(LocalizationManager.t("delete_project"), Icons.Default.Delete) { onDelete(project) }
+            }
         }
     }
 
