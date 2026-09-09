@@ -112,6 +112,8 @@ fun CreateInspectionScreen(
     var ongoingObservations by remember { mutableStateOf(listOf("")) }
     var hseObservations by remember { mutableStateOf(defaultHseObservations) }
     var qualityRemarks by remember { mutableStateOf(listOf(QualityRemarkInput())) }
+    var progressComment by remember { mutableStateOf("") }
+    var scheduleRemark by remember { mutableStateOf("") }
     var inspectorTitle by remember { mutableStateOf("") }
     var reportStatus by remember { mutableStateOf("draft") }
     var loadingManualReport by remember(editingReportUuid) { mutableStateOf(isManualEdit) }
@@ -198,6 +200,8 @@ fun CreateInspectionScreen(
             qualityRemarks = manual.qualityRemarks.map { remark ->
                 QualityRemarkInput(remark.work, remark.comment, remark.rectification.orEmpty(), remark.status.orEmpty())
             }.ifEmpty { listOf(QualityRemarkInput()) }
+            progressComment = manual.progressComment.orEmpty()
+            scheduleRemark = manual.scheduleRemark.orEmpty()
             inspectorName = manual.inspectorName.ifBlank { currentUserName }
             inspectorTitle = manual.inspectorTitle.orEmpty()
             latitude = manual.latitude?.toString().orEmpty()
@@ -361,6 +365,8 @@ fun CreateInspectionScreen(
                     ongoingObservations = ongoingObservations.filter(String::isNotBlank),
                     hseObservations = hseObservations.map { oms.data.ManualHseObservationRequest(it.observation, if (it.isYes) "yes" else "no", it.comment.ifBlank { null }) },
                     qualityRemarks = qualityRemarks.map { oms.data.ManualRemarkRequest(it.work, it.comment, it.rectification.ifBlank { null }, it.status.ifBlank { null }) },
+                    progressComment = progressComment.ifBlank { null },
+                    scheduleRemark = scheduleRemark.ifBlank { null },
                     inspectorName = inspectorName,
                     inspectorTitle = inspectorTitle.ifBlank { null },
                     latitude = latitude.replace(',', '.').toDoubleOrNull(),
@@ -376,6 +382,7 @@ fun CreateInspectionScreen(
             activities = activities, onActivitiesChange = { activities = it }, ongoingObservations = ongoingObservations, onOngoingObservationsChange = { ongoingObservations = it },
             purchasedMaterials = purchasedMaterials, onPurchasedMaterialsChange = { purchasedMaterials = it },
             hseObservations = hseObservations, onHseObservationsChange = { hseObservations = it }, qualityRemarks = qualityRemarks, onQualityRemarksChange = { qualityRemarks = it },
+            progress = progressComment, onProgressChange = { progressComment = it }, schedule = scheduleRemark, onScheduleChange = { scheduleRemark = it },
             inspectorName = inspectorName, inspectorTitle = inspectorTitle, onInspectorTitleChange = { inspectorTitle = it }
             )
         }
@@ -484,6 +491,8 @@ fun CreateInspectionScreen(
                                                 remark.takeIf { it.work.isNotBlank() || it.comment.isNotBlank() || it.rectification.isNotBlank() || it.status.isNotBlank() }
                                                     ?.let { oms.data.ManualRemarkRequest(it.work.trim(), it.comment.trim(), it.rectification.trim().ifBlank { null }, it.status.trim().ifBlank { null }) }
                                             },
+                                            progressComment = progressComment.ifBlank { null },
+                                            scheduleRemark = scheduleRemark.ifBlank { null },
                                             inspectorName = inspectorName,
                                             inspectorTitle = inspectorTitle.ifBlank { null },
                                             latitude = latitude.replace(',', '.').toDoubleOrNull(),
@@ -650,6 +659,8 @@ private fun ManualSirForm(
     ongoingObservations: List<String>, onOngoingObservationsChange: (List<String>) -> Unit,
     hseObservations: List<HseObservationInput>, onHseObservationsChange: (List<HseObservationInput>) -> Unit,
     qualityRemarks: List<QualityRemarkInput>, onQualityRemarksChange: (List<QualityRemarkInput>) -> Unit,
+    progress: String, onProgressChange: (String) -> Unit,
+    schedule: String, onScheduleChange: (String) -> Unit,
     inspectorName: String,
     inspectorTitle: String, onInspectorTitleChange: (String) -> Unit
 ) {
@@ -716,6 +727,13 @@ private fun ManualSirForm(
 
         SirFormSection(LocalizationManager.t("sir_quality_assessment"), Icons.Default.FactCheck) {
             RepeatableQualityRemarks(qualityRemarks, onQualityRemarksChange)
+        }
+
+        SirFormSection(LocalizationManager.t("sir_progress_assessment"), Icons.Default.FactCheck) {
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedTextField(progress, { onProgressChange(it.inspectionText(4_000)) }, label = { Text(LocalizationManager.t("sir_progress_comments")) }, minLines = 2, maxLines = 6, modifier = Modifier.weight(1f))
+                OutlinedTextField(schedule, { onScheduleChange(it.inspectionText(4_000)) }, label = { Text(LocalizationManager.t("sir_schedule_remarks")) }, minLines = 2, maxLines = 6, modifier = Modifier.weight(1f))
+            }
         }
 
         SirFormSection(LocalizationManager.t("sir_inspector_section"), Icons.Default.Description) {

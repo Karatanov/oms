@@ -570,6 +570,13 @@ internal fun ReadOnlySirReport(manual: ManualInspectionReportRequest) {
                 )
             }
         }
+        ReadOnlySirSection(LocalizationManager.t("sir_progress_assessment"), Icons.Default.FactCheck) {
+            if (manual.progressComment.isNullOrBlank() && manual.scheduleRemark.isNullOrBlank()) PreviewEmpty()
+            PreviewFieldRow(
+                LocalizationManager.t("sir_progress_comments") to manual.progressComment,
+                LocalizationManager.t("sir_schedule_remarks") to manual.scheduleRemark
+            )
+        }
         ReadOnlySirSection(LocalizationManager.t("sir_inspector_section"), Icons.Default.Description) {
             PreviewFieldRow(
                 LocalizationManager.t("sir_name") to manual.inspectorName,

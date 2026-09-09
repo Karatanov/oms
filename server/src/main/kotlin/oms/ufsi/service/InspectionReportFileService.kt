@@ -184,6 +184,8 @@ class InspectionReportFileService(
                     status = if (isLegacyTwoColumnLayout) null else status.ifBlank { null }
                 ).takeIf { it.work.isNotBlank() || it.comment.isNotBlank() || !it.rectification.isNullOrBlank() || !it.status.isNullOrBlank() }
             },
+            progressComment = text(55 + contentOffset, 1).ifBlank { null },
+            scheduleRemark = text(55 + contentOffset, 10).ifBlank { null },
             inspectorName = text(59 + contentOffset, 1), inspectorTitle = text(59 + contentOffset, 4).ifBlank { null },
             latitude = report.latitude, longitude = report.longitude
         )
@@ -317,6 +319,8 @@ class InspectionReportFileService(
             text(49 + contentOffset + index, 7, remark.rectification)
             text(49 + contentOffset + index, 10, remark.status)
         }
+        text(55 + contentOffset, 1, request.progressComment)
+        text(55 + contentOffset, 10, request.scheduleRemark)
         text(59 + contentOffset, 1, request.inspectorName)
         text(59 + contentOffset, 4, request.inspectorTitle)
         date(59 + contentOffset, 6)
@@ -325,14 +329,9 @@ class InspectionReportFileService(
     /** Inserts the missing materials table once, without altering reports that already contain it. */
     private fun ensurePurchasedMaterialsLayout(sheet: org.apache.poi.ss.usermodel.Sheet): Int {
         val titleRow = 28
-        fun hideLegacyProgressRows() {
-            // The four-column quality table replaces the legacy progress and
-            // schedule row, which must not appear in newly generated SIRs.
-            listOf(59, 60).forEach { row -> sheet.getRow(row - 1)?.zeroHeight = true }
-        }
         if (sheet.getRow(titleRow - 1)?.getCell(0)?.let { DataFormatter().formatCellValue(it) }
                 ?.equals("PURCHASED MATERIALS", ignoreCase = true) == true) {
-            hideLegacyProgressRows()
+            listOf(59, 60).forEach { row -> sheet.getRow(row - 1)?.zeroHeight = false }
             return 5
         }
 
@@ -367,7 +366,6 @@ class InspectionReportFileService(
                 cell(row, index * 3 + 1).apply { if (style != null) cellStyle = style }
             }
         }
-        hideLegacyProgressRows()
         return 5
     }
 
