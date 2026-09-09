@@ -23,6 +23,8 @@ import androidx.compose.ui.input.key.type
 import kotlinx.coroutines.launch
 import oms.data.OmsApiClient
 import oms.data.ProjectRepository
+import oms.data.ApiInspectionPhoto
+import oms.data.omsApiUrl
 import oms.localization.LocalizationManager
 import oms.components.OmsDateField
 import oms.components.InlineOptionPicker
@@ -41,6 +43,7 @@ import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.WaterDrop
 import androidx.compose.material.icons.filled.AcUnit
 import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.Engineering
 import androidx.compose.material.icons.filled.LocationOn
 import oms.components.PageHeading
@@ -49,6 +52,8 @@ import oms.components.NativePaneAnchor
 import oms.components.FormSectionTitle
 import oms.components.AutocompleteField
 import androidx.compose.ui.graphics.vector.ImageVector
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 
 @JsName("openSirImportDialog")
 external fun openSirImportDialog(projectUuid: String, onComplete: (String) -> Unit)
@@ -67,6 +72,12 @@ external fun hidePendingInspectionPhotoPreviews(activityKey: String)
 
 @JsName("setPendingInspectionPhotoDescription")
 external fun setPendingInspectionPhotoDescription(activityKey: String, description: String)
+
+@JsName("showInspectionReportPhotoGallery")
+external fun showInspectionReportPhotoGallery(reportUuid: String, photosJson: String)
+
+@JsName("hideInspectionReportPhotoGallery")
+external fun hideInspectionReportPhotoGallery(reportUuid: String)
 
 @Composable
 fun CreateInspectionScreen(
@@ -117,6 +128,7 @@ fun CreateInspectionScreen(
     var inspectorTitle by remember { mutableStateOf("") }
     var reportStatus by remember { mutableStateOf("draft") }
     var loadingManualReport by remember(editingReportUuid) { mutableStateOf(isManualEdit) }
+    var reportPhotos by remember(editingReportUuid) { mutableStateOf<List<ApiInspectionPhoto>?>(null) }
     val scope = rememberCoroutineScope()
     val pageScrollState = rememberScrollState()
     fun scrollBy(delta: Float) = scope.launch { pageScrollState.animateScrollBy(delta) }
@@ -211,6 +223,16 @@ fun CreateInspectionScreen(
             errorMessage = LocalizationManager.t("error_update_report").replace("{message}", failure.message ?: LocalizationManager.t("unknown_error"))
         }
         loadingManualReport = false
+    }
+
+    // Photos are evidence attached to the report rather than cells in its
+    // workbook, so load them independently from the manual-report payload.
+    // This keeps them viewable even when the original SIR was imported.
+    LaunchedEffect(readOnly, editingReportUuid) {
+        val reportUuid = editingReportUuid ?: return@LaunchedEffect
+        if (readOnly) reportPhotos = runCatching {
+            OmsApiClient.inspectionPhotos(reportUuid)
+        }.getOrDefault(emptyList())
     }
 
     // The SIR workbook stores the code and address in a single cell.  Keep
@@ -385,6 +407,15 @@ fun CreateInspectionScreen(
             progress = progressComment, onProgressChange = { progressComment = it }, schedule = scheduleRemark, onScheduleChange = { scheduleRemark = it },
             inspectorName = inspectorName, inspectorTitle = inspectorTitle, onInspectorTitleChange = { inspectorTitle = it }
             )
+        }
+
+        if (readOnly && editingReportUuid != null) {
+            SirFormSection(LocalizationManager.t("photos"), Icons.Default.PhotoCamera) {
+                when (val photos = reportPhotos) {
+                    null -> oms.components.ContentState(LocalizationManager.t("loading_photos"), loading = true)
+                    else -> InspectionReportPhotoGallery(editingReportUuid, photos)
+                }
+            }
         }
 
         if (!readOnly) Row(
@@ -640,6 +671,26 @@ private fun PendingInspectionPhotoPreviews(activityKey: String, revision: Int, o
         onDispose { hidePendingInspectionPhotoPreviews(activityKey) }
     }
 }
+
+/** Read-only evidence gallery for the inspection report preview. */
+@Composable
+private fun InspectionReportPhotoGallery(reportUuid: String, photos: List<ApiInspectionPhoto>) {
+    val paneId = "inspection-report-photo-gallery-$reportUuid"
+    NativePaneAnchor(paneId, Modifier.fillMaxWidth().height(228.dp))
+    DisposableEffect(reportUuid, photos, LocalizationManager.currentLanguage) {
+        val publicPhotos = photos.map { photo ->
+            photo.copy(
+                downloadUrl = photo.downloadUrl.toInspectionPhotoUrl(),
+                thumbnailUrl = photo.thumbnailUrl.toInspectionPhotoUrl()
+            )
+        }
+        showInspectionReportPhotoGallery(reportUuid, Json.encodeToString(publicPhotos))
+        onDispose { hideInspectionReportPhotoGallery(reportUuid) }
+    }
+}
+
+private fun String.toInspectionPhotoUrl(): String =
+    if (startsWith("http://") || startsWith("https://")) this else omsApiUrl(this)
 
 @Composable
 private fun ManualSirForm(
