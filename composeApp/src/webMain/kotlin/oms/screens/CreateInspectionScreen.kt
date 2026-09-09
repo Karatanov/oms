@@ -920,7 +920,7 @@ private fun RepeatableManualActivities(
             }
         }
     }
-    TableActionIconButton(LocalizationManager.t("add"), Icons.Default.Add) { onChange(values + ManualActivityInput()) }
+    TableActionIconButton(LocalizationManager.t("sir_add_activity"), Icons.Default.Add) { onChange(values + ManualActivityInput()) }
 }
 
 @Composable
