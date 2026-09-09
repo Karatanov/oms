@@ -111,8 +111,6 @@ fun CreateInspectionScreen(
     var ongoingObservations by remember { mutableStateOf(listOf("")) }
     var hseObservations by remember { mutableStateOf(defaultHseObservations) }
     var qualityRemarks by remember { mutableStateOf(listOf(QualityRemarkInput())) }
-    var progressComment by remember { mutableStateOf("") }
-    var scheduleRemark by remember { mutableStateOf("") }
     var inspectorTitle by remember { mutableStateOf("") }
     var reportStatus by remember { mutableStateOf("draft") }
     var loadingManualReport by remember(editingReportUuid) { mutableStateOf(isManualEdit) }
@@ -194,10 +192,8 @@ fun CreateInspectionScreen(
                 HseObservationInput(it.observation, it.answer.equals("yes", true), it.comment.orEmpty())
             }.ifEmpty { defaultHseObservations }
             qualityRemarks = manual.qualityRemarks.map { remark ->
-                QualityRemarkInput(remark.comment, remark.rectification.orEmpty())
+                QualityRemarkInput(remark.work, remark.comment, remark.rectification.orEmpty(), remark.status.orEmpty())
             }.ifEmpty { listOf(QualityRemarkInput()) }
-            progressComment = manual.progressComment.orEmpty()
-            scheduleRemark = manual.scheduleRemark.orEmpty()
             inspectorName = manual.inspectorName.ifBlank { currentUserName }
             inspectorTitle = manual.inspectorTitle.orEmpty()
             latitude = manual.latitude?.toString().orEmpty()
@@ -359,9 +355,7 @@ fun CreateInspectionScreen(
                     activities = activities.map { oms.data.ManualActivityRequest(it.location, it.description, it.onSchedule, it.remarks.ifBlank { null }) },
                     ongoingObservations = ongoingObservations.filter(String::isNotBlank),
                     hseObservations = hseObservations.map { oms.data.ManualHseObservationRequest(it.observation, if (it.isYes) "yes" else "no", it.comment.ifBlank { null }) },
-                    qualityRemarks = qualityRemarks.map { oms.data.ManualRemarkRequest(it.comment, it.rectification.ifBlank { null }) },
-                    progressComment = progressComment.ifBlank { null },
-                    scheduleRemark = scheduleRemark.ifBlank { null },
+                    qualityRemarks = qualityRemarks.map { oms.data.ManualRemarkRequest(it.work, it.comment, it.rectification.ifBlank { null }, it.status.ifBlank { null }) },
                     inspectorName = inspectorName,
                     inspectorTitle = inspectorTitle.ifBlank { null },
                     latitude = latitude.replace(',', '.').toDoubleOrNull(),
@@ -376,7 +370,6 @@ fun CreateInspectionScreen(
             siteManagement = siteManagement, onSiteManagementChange = { siteManagement = it }, weatherCondition = weatherCondition, onWeatherConditionChange = { weatherCondition = it }, temperatureCelsius = temperatureCelsius, onTemperatureCelsiusChange = { temperatureCelsius = it },
             activities = activities, onActivitiesChange = { activities = it }, ongoingObservations = ongoingObservations, onOngoingObservationsChange = { ongoingObservations = it },
             hseObservations = hseObservations, onHseObservationsChange = { hseObservations = it }, qualityRemarks = qualityRemarks, onQualityRemarksChange = { qualityRemarks = it },
-            progress = progressComment, onProgressChange = { progressComment = it }, schedule = scheduleRemark, onScheduleChange = { scheduleRemark = it },
             inspectorName = inspectorName, inspectorTitle = inspectorTitle, onInspectorTitleChange = { inspectorTitle = it }
             )
         }
@@ -478,12 +471,9 @@ fun CreateInspectionScreen(
                                             ongoingObservations = ongoingObservations.map(String::trim).filter(String::isNotBlank),
                                             hseObservations = hseObservations.map { oms.data.ManualHseObservationRequest(it.observation, if (it.isYes) "Yes" else "No", it.comment.ifBlank { null }) },
                                             qualityRemarks = qualityRemarks.mapNotNull { remark ->
-                                                remark.comment.trim().takeIf(String::isNotBlank)?.let { comment ->
-                                                    oms.data.ManualRemarkRequest(comment, remark.rectification.trim().ifBlank { null })
-                                                }
+                                                remark.takeIf { it.work.isNotBlank() || it.comment.isNotBlank() || it.rectification.isNotBlank() || it.status.isNotBlank() }
+                                                    ?.let { oms.data.ManualRemarkRequest(it.work.trim(), it.comment.trim(), it.rectification.trim().ifBlank { null }, it.status.trim().ifBlank { null }) }
                                             },
-                                            progressComment = progressComment.ifBlank { null },
-                                            scheduleRemark = scheduleRemark.ifBlank { null },
                                             inspectorName = inspectorName,
                                             inspectorTitle = inspectorTitle.ifBlank { null },
                                             latitude = latitude.replace(',', '.').toDoubleOrNull(),
@@ -649,8 +639,6 @@ private fun ManualSirForm(
     ongoingObservations: List<String>, onOngoingObservationsChange: (List<String>) -> Unit,
     hseObservations: List<HseObservationInput>, onHseObservationsChange: (List<HseObservationInput>) -> Unit,
     qualityRemarks: List<QualityRemarkInput>, onQualityRemarksChange: (List<QualityRemarkInput>) -> Unit,
-    progress: String, onProgressChange: (String) -> Unit,
-    schedule: String, onScheduleChange: (String) -> Unit,
     inspectorName: String,
     inspectorTitle: String, onInspectorTitleChange: (String) -> Unit
 ) {
@@ -713,10 +701,6 @@ private fun ManualSirForm(
 
         SirFormSection(LocalizationManager.t("sir_quality_assessment"), Icons.Default.FactCheck) {
             RepeatableQualityRemarks(qualityRemarks, onQualityRemarksChange)
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedTextField(progress, { onProgressChange(it.inspectionText(4_000)) }, label = { Text(LocalizationManager.t("sir_progress_comments")) }, minLines = 2, maxLines = 6, modifier = Modifier.weight(1f))
-                OutlinedTextField(schedule, { onScheduleChange(it.inspectionText(4_000)) }, label = { Text(LocalizationManager.t("sir_schedule_remarks")) }, minLines = 2, maxLines = 6, modifier = Modifier.weight(1f))
-            }
         }
 
         SirFormSection(LocalizationManager.t("sir_inspector_section"), Icons.Default.Description) {
@@ -943,7 +927,12 @@ private fun ScheduleChoice(selected: String, onSelect: (String) -> Unit) {
 }
 
 private data class HseObservationInput(val observation: String, val isYes: Boolean = false, val comment: String = "")
-internal data class QualityRemarkInput(val comment: String = "", val rectification: String = "")
+internal data class QualityRemarkInput(
+    val work: String = "",
+    val comment: String = "",
+    val rectification: String = "",
+    val status: String = ""
+)
 private val defaultHseObservations = listOf(
     "All workers wear PPE equipment as relevant.",
     "The fire shield / firefighting equipment is present at site.",
@@ -1025,7 +1014,12 @@ private fun String.toManualHseObservations() = lines().map(String::trim).filter(
 
 private fun String.toManualQualityRemarks() = lines().map(String::trim).filter(String::isNotBlank).map { line ->
     val fields = line.split('|').map(String::trim)
-    oms.data.ManualRemarkRequest(fields.firstOrNull().orEmpty(), fields.getOrNull(1)?.ifBlank { null })
+    oms.data.ManualRemarkRequest(
+        work = fields.firstOrNull().orEmpty(),
+        comment = fields.getOrNull(1).orEmpty(),
+        rectification = fields.getOrNull(2)?.ifBlank { null },
+        status = fields.getOrNull(3)?.ifBlank { null }
+    )
 }
 
 private fun String.isIsoDate(): Boolean = matches(Regex("\\d{4}-\\d{2}-\\d{2}"))

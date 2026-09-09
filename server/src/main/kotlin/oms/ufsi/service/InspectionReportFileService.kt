@@ -14,6 +14,7 @@ import java.util.UUID
 import org.apache.poi.ss.usermodel.DataFormatter
 import org.apache.poi.ss.usermodel.Workbook
 import org.apache.poi.ss.usermodel.WorkbookFactory
+import org.apache.poi.ss.util.CellRangeAddress
 import org.apache.poi.xssf.usermodel.XSSFWorkbook
 import oms.ufsi.dto.CreateManualInspectionReportRequest
 import oms.ufsi.dto.ManualActivity
@@ -164,9 +165,18 @@ class InspectionReportFileService(
                 }
             },
             qualityRemarks = (49..53).mapNotNull { row ->
-                ManualRemark(text(row, 1), text(row, 10).ifBlank { null }).takeIf { it.comment.isNotBlank() || !it.rectification.isNullOrBlank() }
+                val work = text(row, 1)
+                val comments = text(row, 4)
+                val rectification = text(row, 7)
+                val status = text(row, 10)
+                val isLegacyTwoColumnLayout = text(48, 4).isBlank() && text(48, 7).isBlank()
+                ManualRemark(
+                    work = if (isLegacyTwoColumnLayout) "" else work,
+                    comment = if (isLegacyTwoColumnLayout) work else comments,
+                    rectification = if (isLegacyTwoColumnLayout) status.ifBlank { null } else rectification.ifBlank { null },
+                    status = if (isLegacyTwoColumnLayout) null else status.ifBlank { null }
+                ).takeIf { it.work.isNotBlank() || it.comment.isNotBlank() || !it.rectification.isNullOrBlank() || !it.status.isNullOrBlank() }
             },
-            progressComment = text(55, 1).ifBlank { null }, scheduleRemark = text(55, 10).ifBlank { null },
             inspectorName = text(59, 1), inspectorTitle = text(59, 4).ifBlank { null },
             latitude = report.latitude, longitude = report.longitude
         )
@@ -245,6 +255,7 @@ class InspectionReportFileService(
         clear(28..39)
         clear(41..46)
         clear(49..53)
+        clear(55..55)
         text(1, 1, request.projectName?.trim().orEmpty())
         text(5, 1, request.contractor)
         text(5, 5, request.siteReference?.trim().takeIf { !it.isNullOrBlank() }
@@ -273,20 +284,48 @@ class InspectionReportFileService(
         }.filter(String::isNotBlank), 6).forEachIndexed { index, observation -> text(41 + index, 1, observation) }
         val qualityRemarks = if (request.qualityRemarks.size <= 5) request.qualityRemarks else {
             request.qualityRemarks.take(4) + oms.ufsi.dto.ManualRemark(
-                request.qualityRemarks.drop(4).joinToString("\n\n") { it.comment },
-                request.qualityRemarks.drop(4).mapNotNull { it.rectification?.trim()?.takeIf(String::isNotBlank) }
+                work = request.qualityRemarks.drop(4).joinToString("\n\n") { it.work },
+                comment = request.qualityRemarks.drop(4).joinToString("\n\n") { it.comment },
+                rectification = request.qualityRemarks.drop(4).mapNotNull { it.rectification?.trim()?.takeIf(String::isNotBlank) }
+                    .joinToString("\n\n").ifBlank { null },
+                status = request.qualityRemarks.drop(4).mapNotNull { it.status?.trim()?.takeIf(String::isNotBlank) }
                     .joinToString("\n\n").ifBlank { null }
             )
         }
+        configureQualityAssessmentColumns(sheet)
         qualityRemarks.forEachIndexed { index, remark ->
-            text(49 + index, 1, remark.comment)
-            text(49 + index, 10, remark.rectification)
+            text(49 + index, 1, remark.work)
+            text(49 + index, 4, remark.comment)
+            text(49 + index, 7, remark.rectification)
+            text(49 + index, 10, remark.status)
         }
-        text(55, 1, request.progressComment)
-        text(55, 10, request.scheduleRemark)
         text(59, 1, request.inspectorName)
         text(59, 4, request.inspectorTitle)
         date(59, 6)
+    }
+
+    /** Uses the four SIR quality columns while preserving the template's row geometry and styles. */
+    private fun configureQualityAssessmentColumns(sheet: org.apache.poi.ss.usermodel.Sheet) {
+        val headerRow = 48
+        val qualityRows = 49..53
+        for (index in sheet.mergedRegions.size - 1 downTo 0) {
+            val range = sheet.mergedRegions[index]
+            if (range.firstRow + 1 in headerRow..qualityRows.last) sheet.removeMergedRegion(index)
+        }
+        (headerRow..qualityRows.last).forEach { row ->
+            val zeroBasedRow = row - 1
+            listOf(0..2, 3..5, 6..8, 9..11).forEach { columns ->
+                sheet.addMergedRegion(CellRangeAddress(zeroBasedRow, zeroBasedRow, columns.first, columns.last))
+            }
+        }
+        listOf(
+            "WORK",
+            "COMMENTS ON QUALITY",
+            "RECTIFICATION REMARKS (NNC / NTC)",
+            "STATUS OF RECTIFICATION"
+        ).forEachIndexed { index, label ->
+            sheet.getRow(headerRow - 1).getCell(index * 3).setCellValue(label)
+        }
     }
     fun import(projectId: Long, originalName: String, contentType: String?, input: java.io.InputStream, createdBy: Long): InspectionReport {
         val extension = originalName.substringAfterLast('.', "").lowercase()

@@ -4,7 +4,12 @@ import kotlinx.serialization.Serializable
 
 @Serializable data class ManualActivity(val location: String = "", val description: String = "", val onSchedule: String = "no", val remarks: String? = null)
 @Serializable data class ManualHseObservation(val observation: String, val answer: String? = null, val comment: String? = null)
-@Serializable data class ManualRemark(val comment: String, val rectification: String? = null)
+@Serializable data class ManualRemark(
+    val work: String = "",
+    val comment: String = "",
+    val rectification: String? = null,
+    val status: String? = null
+)
 
 /** Complete information entered in the browser to create a standard SIR workbook. */
 @Serializable data class CreateManualInspectionReportRequest(

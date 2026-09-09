@@ -401,7 +401,12 @@ private data class ApiErrorPayload(val error: String? = null, val message: Strin
 @Serializable
 data class ManualActivityRequest(val location: String = "", val description: String = "", val onSchedule: String = "no", val remarks: String? = null)
 @Serializable data class ManualHseObservationRequest(val observation: String = "", val answer: String? = null, val comment: String? = null)
-@Serializable data class ManualRemarkRequest(val comment: String = "", val rectification: String? = null)
+@Serializable data class ManualRemarkRequest(
+    val work: String = "",
+    val comment: String = "",
+    val rectification: String? = null,
+    val status: String? = null
+)
 @Serializable data class ManualInspectionReportRequest(
     val inspectionDate: String = "", val inspectionType: String = "planned", val contractor: String = "", val contractorRepresentative: String? = null, val projectName: String? = null, val siteReference: String? = null, val qaStaff: String? = null, val usifRepresentative: String? = null,
     val skilledLabor: String? = null, val unskilledLabor: String? = null, val siteManagement: String? = null, val weather: String? = null,

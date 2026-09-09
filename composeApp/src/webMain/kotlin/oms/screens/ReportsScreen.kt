@@ -549,17 +549,15 @@ internal fun ReadOnlySirReport(manual: ManualInspectionReportRequest) {
             }
         }
         ReadOnlySirSection(LocalizationManager.t("sir_quality_assessment"), Icons.Default.FactCheck) {
-            if (manual.qualityRemarks.isEmpty() && manual.progressComment.isNullOrBlank() && manual.scheduleRemark.isNullOrBlank()) PreviewEmpty()
+            if (manual.qualityRemarks.isEmpty()) PreviewEmpty()
             manual.qualityRemarks.forEach { remark ->
                 PreviewFieldRow(
+                    LocalizationManager.t("sir_quality_work") to remark.work,
                     LocalizationManager.t("sir_quality_comment") to remark.comment,
-                    LocalizationManager.t("sir_quality_rectification") to remark.rectification
+                    LocalizationManager.t("sir_quality_rectification") to remark.rectification,
+                    LocalizationManager.t("sir_quality_status") to remark.status
                 )
             }
-            PreviewFieldRow(
-                LocalizationManager.t("sir_progress_comments") to manual.progressComment,
-                LocalizationManager.t("sir_schedule_remarks") to manual.scheduleRemark
-            )
         }
         ReadOnlySirSection(LocalizationManager.t("sir_inspector_section"), Icons.Default.Description) {
             PreviewFieldRow(

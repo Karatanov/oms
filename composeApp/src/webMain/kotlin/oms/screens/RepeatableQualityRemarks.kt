@@ -2,8 +2,10 @@ package oms.screens
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.weight
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Remove
@@ -32,22 +34,12 @@ internal fun RepeatableQualityRemarks(
         values.forEachIndexed { index, remark ->
             Card(colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FBFC))) {
                 Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(
-                        remark.comment,
-                        { value -> update(index) { it.copy(comment = value.inspectionText(8_000)) } },
-                        label = { Text(LocalizationManager.t("sir_quality_comment")) },
-                        minLines = 2,
-                        maxLines = 6,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    OutlinedTextField(
-                        remark.rectification,
-                        { value -> update(index) { it.copy(rectification = value.inspectionText(8_000)) } },
-                        label = { Text(LocalizationManager.t("sir_quality_rectification")) },
-                        minLines = 2,
-                        maxLines = 6,
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedTextField(remark.work, { value -> update(index) { it.copy(work = value.inspectionText(4_000)) } }, label = { Text(LocalizationManager.t("sir_quality_work")) }, minLines = 2, maxLines = 6, modifier = Modifier.weight(1f))
+                        OutlinedTextField(remark.comment, { value -> update(index) { it.copy(comment = value.inspectionText(8_000)) } }, label = { Text(LocalizationManager.t("sir_quality_comment")) }, minLines = 2, maxLines = 6, modifier = Modifier.weight(1f))
+                        OutlinedTextField(remark.rectification, { value -> update(index) { it.copy(rectification = value.inspectionText(8_000)) } }, label = { Text(LocalizationManager.t("sir_quality_rectification")) }, minLines = 2, maxLines = 6, modifier = Modifier.weight(1f))
+                        OutlinedTextField(remark.status, { value -> update(index) { it.copy(status = value.inspectionText(1_000)) } }, label = { Text(LocalizationManager.t("sir_quality_status")) }, minLines = 2, maxLines = 6, modifier = Modifier.weight(1f))
+                    }
                     if (values.size > 1) {
                         TableActionIconButton(LocalizationManager.t("delete"), Icons.Default.Remove) {
                             onChange(values.filterIndexed { current, _ -> current != index })
