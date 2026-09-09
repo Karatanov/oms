@@ -104,6 +104,7 @@ fun AppLayout(appState: AppState) {
                     onSaveDraft = { appState.navigate(Screen.Inspections) },
                     onSubmit = { appState.navigate(Screen.Inspections) },
                     onImportXls = { appState.navigate(Screen.Inspections) },
+                    onCancel = { appState.navigate(Screen.Inspections) },
                     currentUserName = appState.username,
                     isAdmin = appState.roleCode == "ADMIN",
                     canChangeReportStatus = appState.roleCode in setOf("ADMIN", "PROJECT_MANAGER"),

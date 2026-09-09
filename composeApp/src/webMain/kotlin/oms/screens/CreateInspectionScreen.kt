@@ -79,7 +79,8 @@ fun CreateInspectionScreen(
     rejectedReason: String? = null,
     onSaveDraft: () -> Unit = {},
     onSubmit: () -> Unit = {},
-    onImportXls: () -> Unit = {}
+    onImportXls: () -> Unit = {},
+    onCancel: () -> Unit = {}
 ) {
     val isManualEdit = editingReportUuid != null
     var date by remember { mutableStateOf(currentIsoDate()) }
@@ -384,6 +385,13 @@ fun CreateInspectionScreen(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.End)
         ) {
+            OutlinedButton(
+                enabled = !isSubmitting && !loadingManualReport,
+                onClick = onCancel
+            ) {
+                Text(LocalizationManager.t("cancel"))
+            }
+
             if (!isManualEdit) OutlinedButton(
                 enabled = !isSubmitting && !loadingManualReport,
                 onClick = {
