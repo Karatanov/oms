@@ -214,6 +214,17 @@ fun ProcurementScreen(
                         contentScrollState
                     )
                 }
+                Spacer(Modifier.height(12.dp))
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                    ProcurementPagination(
+                        pageSize = pageSize,
+                        currentPage = currentPage,
+                        pageCount = pageCount,
+                        total = visibleRecords.size,
+                        onPageSize = { pageSize = it },
+                        onPage = { currentPage = it.coerceIn(0, pageCount - 1) }
+                    )
+                }
             }
         }
     }

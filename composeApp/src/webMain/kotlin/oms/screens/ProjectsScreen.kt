@@ -455,6 +455,12 @@ fun ProjectsTable(
                 ) }
             }
         }
+        Spacer(Modifier.height(12.dp))
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+            ProjectPagination(pageSize, currentPage, pageCount, sortedProjects.size, { pageSize = it }) {
+                currentPage = it.coerceIn(0, pageCount - 1)
+            }
+        }
     }
 }
 
