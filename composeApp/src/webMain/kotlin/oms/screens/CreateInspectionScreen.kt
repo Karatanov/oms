@@ -207,7 +207,12 @@ fun CreateInspectionScreen(
             }.ifEmpty { listOf(PurchasedMaterialInput()) }
             ongoingObservations = manual.ongoingObservations.ifEmpty { listOf("") }
             hseObservations = manual.hseObservations.map {
-                HseObservationInput(it.observation, it.answer.equals("yes", true), it.comment.orEmpty())
+                HseObservationInput(
+                    observation = it.observation,
+                    isYes = it.answer.equals("yes", true),
+                    comment = it.comment.orEmpty(),
+                    isCustom = it.answer.isNullOrBlank() || !it.answer.equals("yes", true) && !it.answer.equals("no", true)
+                )
             }.ifEmpty { defaultHseObservations }
             qualityRemarks = manual.qualityRemarks.map { remark ->
                 QualityRemarkInput(remark.work, remark.comment, remark.rectification.orEmpty(), remark.status.orEmpty())
@@ -385,7 +390,7 @@ fun CreateInspectionScreen(
                     activities = activities.map { oms.data.ManualActivityRequest(it.location, it.description, it.onSchedule, it.remarks.ifBlank { null }) },
                     purchasedMaterials = purchasedMaterials.map { oms.data.ManualPurchasedMaterialRequest(it.materialsAndEquipment, it.characteristics.ifBlank { null }, it.perDed.ifBlank { null }, it.notes.ifBlank { null }) },
                     ongoingObservations = ongoingObservations.filter(String::isNotBlank),
-                    hseObservations = hseObservations.map { oms.data.ManualHseObservationRequest(it.observation, if (it.isYes) "yes" else "no", it.comment.ifBlank { null }) },
+                    hseObservations = hseObservations.map { oms.data.ManualHseObservationRequest(it.observation, it.answer(), it.comment.ifBlank { null }) },
                     qualityRemarks = qualityRemarks.map { oms.data.ManualRemarkRequest(it.work, it.comment, it.rectification.ifBlank { null }, it.status.ifBlank { null }) },
                     progressComment = progressComment.ifBlank { null },
                     scheduleRemark = scheduleRemark.ifBlank { null },
@@ -517,7 +522,11 @@ fun CreateInspectionScreen(
                                                     ?.let { oms.data.ManualPurchasedMaterialRequest(it.materialsAndEquipment.trim(), it.characteristics.trim().ifBlank { null }, it.perDed.trim().ifBlank { null }, it.notes.trim().ifBlank { null }) }
                                             },
                                             ongoingObservations = ongoingObservations.map(String::trim).filter(String::isNotBlank),
-                                            hseObservations = hseObservations.map { oms.data.ManualHseObservationRequest(it.observation, if (it.isYes) "Yes" else "No", it.comment.ifBlank { null }) },
+                                            hseObservations = hseObservations.mapNotNull { item ->
+                                                item.observation.trim().takeIf(String::isNotBlank)?.let { observation ->
+                                                    oms.data.ManualHseObservationRequest(observation, item.answer(), item.comment.trim().ifBlank { null })
+                                                }
+                                            },
                                             qualityRemarks = qualityRemarks.mapNotNull { remark ->
                                                 remark.takeIf { it.work.isNotBlank() || it.comment.isNotBlank() || it.rectification.isNotBlank() || it.status.isNotBlank() }
                                                     ?.let { oms.data.ManualRemarkRequest(it.work.trim(), it.comment.trim(), it.rectification.trim().ifBlank { null }, it.status.trim().ifBlank { null }) }
@@ -768,11 +777,30 @@ private fun ManualSirForm(
 
         SirFormSection(LocalizationManager.t("sir_hse_observations"), Icons.Default.FactCheck) {
             hseObservations.forEachIndexed { index, item ->
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Checkbox(checked = item.isYes, onCheckedChange = { checked -> onHseObservationsChange(hseObservations.mapIndexed { current, value -> if (current == index) value.copy(isYes = checked) else value }) })
-                    Text(LocalizationManager.hseObservation(item.observation), modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
-                    OutlinedTextField(item.comment, { comment -> onHseObservationsChange(hseObservations.mapIndexed { current, value -> if (current == index) value.copy(comment = comment.inspectionText(2_000)) else value }) }, label = { Text(LocalizationManager.t("comment")) }, maxLines = 3, modifier = Modifier.widthIn(min = 220.dp).weight(1f))
+                if (item.isCustom) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedTextField(
+                            item.observation,
+                            { value -> onHseObservationsChange(hseObservations.mapIndexed { current, row -> if (current == index) row.copy(observation = value.inspectionText(2_000)) else row }) },
+                            label = { Text(LocalizationManager.t("custom_hse_observation")) },
+                            minLines = 2,
+                            maxLines = 4,
+                            modifier = Modifier.weight(1f)
+                        )
+                        TableActionIconButton(LocalizationManager.t("delete"), Icons.Default.Remove) {
+                            onHseObservationsChange(hseObservations.filterIndexed { current, _ -> current != index })
+                        }
+                    }
+                } else {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Checkbox(checked = item.isYes, onCheckedChange = { checked -> onHseObservationsChange(hseObservations.mapIndexed { current, value -> if (current == index) value.copy(isYes = checked) else value }) })
+                        Text(LocalizationManager.hseObservation(item.observation), modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
+                        OutlinedTextField(item.comment, { comment -> onHseObservationsChange(hseObservations.mapIndexed { current, value -> if (current == index) value.copy(comment = comment.inspectionText(2_000)) else value }) }, label = { Text(LocalizationManager.t("comment")) }, maxLines = 3, modifier = Modifier.widthIn(min = 220.dp).weight(1f))
+                    }
                 }
+            }
+            TableActionIconButton(LocalizationManager.t("add_custom_hse_observation"), Icons.Default.Add) {
+                onHseObservationsChange(hseObservations + HseObservationInput(observation = "", isCustom = true))
             }
         }
 
@@ -1010,7 +1038,14 @@ private fun ScheduleChoice(selected: String, onSelect: (String) -> Unit) {
     }
 }
 
-private data class HseObservationInput(val observation: String, val isYes: Boolean = false, val comment: String = "")
+private data class HseObservationInput(
+    val observation: String,
+    val isYes: Boolean = false,
+    val comment: String = "",
+    val isCustom: Boolean = false
+) {
+    fun answer(): String? = if (isCustom) null else if (isYes) "yes" else "no"
+}
 internal data class QualityRemarkInput(
     val work: String = "",
     val comment: String = "",
