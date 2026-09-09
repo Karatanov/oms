@@ -74,6 +74,7 @@ fun CreateInspectionScreen(
     currentUserName: String = "",
     isAdmin: Boolean = false,
     canChangeReportStatus: Boolean = false,
+    readOnly: Boolean = false,
     rejectedReason: String? = null,
     onSaveDraft: () -> Unit = {},
     onSubmit: () -> Unit = {},
@@ -238,7 +239,12 @@ fun CreateInspectionScreen(
             .padding(start = 24.dp, top = 24.dp, end = 76.dp, bottom = 24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        PageHeading(if (isEditMode || isManualEdit) LocalizationManager.t("edit_inspection") else LocalizationManager.t("create_inspection"), Icons.Default.FactCheck)
+        PageHeading(
+            if (readOnly) LocalizationManager.t("report_preview")
+            else if (isEditMode || isManualEdit) LocalizationManager.t("edit_inspection")
+            else LocalizationManager.t("create_inspection"),
+            Icons.Default.FactCheck
+        )
 
         if (loadingManualReport) {
             oms.components.ContentState(LocalizationManager.t("loading_records"), loading = true)
@@ -265,7 +271,10 @@ fun CreateInspectionScreen(
             }
         }
 
-        Card(
+        if (readOnly) ReadOnlyInspectionLocation(
+            projects, selectedProjectUuid, selectedSubprojectUuid, selectedSubprojectPartUuid,
+            siteAddress, inspectionType, reportStatus
+        ) else Card(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(
                 containerColor = Color.White
@@ -326,7 +335,33 @@ fun CreateInspectionScreen(
             }
         }
 
-        if (entryMode == "manual") ManualSirForm(
+        if (entryMode == "manual") {
+            if (readOnly) ReadOnlySirReport(
+                oms.data.ManualInspectionReportRequest(
+                    inspectionDate = date,
+                    inspectionType = inspectionType.name.lowercase(),
+                    contractor = contractor,
+                    contractorRepresentative = contractorRepresentative.ifBlank { null },
+                    projectName = projectName.ifBlank { null },
+                    siteReference = siteReference.ifBlank { null },
+                    qaStaff = qaStaff.ifBlank { null },
+                    usifRepresentative = usifRepresentative.ifBlank { null },
+                    skilledLabor = skilledLabor.ifBlank { null },
+                    unskilledLabor = unskilledLabor.ifBlank { null },
+                    siteManagement = siteManagement.ifBlank { null },
+                    weather = weatherCondition.toWeatherWorkbookValue(temperatureCelsius),
+                    activities = activities.map { oms.data.ManualActivityRequest(it.location, it.description, it.onSchedule, it.remarks.ifBlank { null }) },
+                    ongoingObservations = ongoingObservations.filter(String::isNotBlank),
+                    hseObservations = hseObservations.map { oms.data.ManualHseObservationRequest(it.observation, if (it.isYes) "yes" else "no", it.comment.ifBlank { null }) },
+                    qualityRemarks = qualityRemarks.map { oms.data.ManualRemarkRequest(it.comment, it.rectification.ifBlank { null }) },
+                    progressComment = progressComment.ifBlank { null },
+                    scheduleRemark = scheduleRemark.ifBlank { null },
+                    inspectorName = inspectorName,
+                    inspectorTitle = inspectorTitle.ifBlank { null },
+                    latitude = latitude.replace(',', '.').toDoubleOrNull(),
+                    longitude = longitude.replace(',', '.').toDoubleOrNull()
+                )
+            ) else ManualSirForm(
             date = date, onDateChange = { date = it }, projectName = projectName, onProjectNameChange = { projectName = it },
             contractor = contractor, onContractorChange = { contractor = it },
             contractorRepresentative = contractorRepresentative, onContractorRepresentativeChange = { contractorRepresentative = it },
@@ -337,9 +372,10 @@ fun CreateInspectionScreen(
             hseObservations = hseObservations, onHseObservationsChange = { hseObservations = it }, qualityRemarks = qualityRemarks, onQualityRemarksChange = { qualityRemarks = it },
             progress = progressComment, onProgressChange = { progressComment = it }, schedule = scheduleRemark, onScheduleChange = { scheduleRemark = it },
             inspectorName = inspectorName, inspectorTitle = inspectorTitle, onInspectorTitleChange = { inspectorTitle = it }
-        )
+            )
+        }
 
-        Row(
+        if (!readOnly) Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.End)
         ) {
@@ -520,6 +556,56 @@ fun CreateInspectionScreen(
         oms.components.HoldToScrollButton(LocalizationManager.t("dashboard_scroll_up"), Icons.Default.KeyboardArrowUp, pageScrollState, -1)
         oms.components.HoldToScrollButton(LocalizationManager.t("dashboard_scroll_down"), Icons.Default.KeyboardArrowDown, pageScrollState, 1)
     }
+    }
+}
+
+/** Read-only counterpart of the placement block on the edit screen. */
+@Composable
+private fun ReadOnlyInspectionLocation(
+    projects: List<Project>,
+    projectUuid: String?,
+    subprojectUuid: String?,
+    partUuid: String?,
+    address: String,
+    inspectionType: InspectionType,
+    status: String
+) {
+    fun projectLabel(uuid: String?): String {
+        val project = projects.firstOrNull { it.id == uuid } ?: return "—"
+        return if (project.siteNumber.equals(project.name, true)) project.name else "${project.siteNumber} — ${project.name}"
+    }
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            FormSectionTitle(LocalizationManager.t("sir_header_site"), Icons.Default.LocationOn)
+            BoxWithConstraints(Modifier.fillMaxWidth()) {
+                val fields = listOf(
+                    LocalizationManager.t("project") to projectLabel(projectUuid),
+                    LocalizationManager.t("subproject") to projectLabel(subprojectUuid),
+                    LocalizationManager.t("select_subproject_part") to projectLabel(partUuid),
+                    LocalizationManager.t("address") to address.ifBlank { "—" },
+                    LocalizationManager.t("inspection_type") to inspectionType.label,
+                    LocalizationManager.t("status") to LocalizationManager.t("${status}_status")
+                )
+                if (maxWidth >= 800.dp) Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    fields.forEach { (label, value) -> ReadOnlyInspectionField(label, value, Modifier.weight(1f)) }
+                } else Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    fields.forEach { (label, value) -> ReadOnlyInspectionField(label, value, Modifier.fillMaxWidth()) }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ReadOnlyInspectionField(label: String, value: String, modifier: Modifier = Modifier) {
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(3.dp)) {
+        Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(value, style = MaterialTheme.typography.bodyMedium)
     }
 }
 

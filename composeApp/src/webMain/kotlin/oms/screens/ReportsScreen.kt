@@ -93,6 +93,7 @@ private enum class ReportSort { Date, Subproject, SubprojectCode, SubprojectPart
 fun ReportsScreen(
     onNewInspection: () -> Unit = {},
     onEditInspection: (String) -> Unit = {},
+    onPreviewInspection: (String) -> Unit = {},
     canCreateReports: Boolean = true,
     canReviewReports: Boolean = true,
     canMoveReports: Boolean = true
@@ -111,7 +112,6 @@ fun ReportsScreen(
     var reportToEdit by remember { mutableStateOf<ReportRow?>(null) }
     var findingsReport by remember { mutableStateOf<ReportRow?>(null) }
     var reportToReview by remember { mutableStateOf<ReportRow?>(null) }
-    var reportToPreview by remember { mutableStateOf<ReportRow?>(null) }
     var analytics by remember { mutableStateOf<ApiInspectionAnalytics?>(null) }
     var inspectionsChartExpanded by remember { mutableStateOf(true) }
     var eshsChartExpanded by remember { mutableStateOf(true) }
@@ -263,7 +263,7 @@ fun ReportsScreen(
                         } else {
                             Spacer(Modifier.width(48.dp))
                         }
-                        TableActionIconButton(LocalizationManager.t("preview_report"), Icons.Default.Visibility) { reportToPreview = row }
+                        TableActionIconButton(LocalizationManager.t("preview_report"), Icons.Default.Visibility) { onPreviewInspection(row.report.uuid) }
                         TableActionIconButton(LocalizationManager.t("open_source_file"), Icons.Default.FileDownload) {
                             uriHandler.openUri(oms.data.omsApiUrl("/inspection-reports/${row.report.uuid}/source-file"))
                         }
@@ -332,9 +332,6 @@ fun ReportsScreen(
                 }
             }
         )
-    } }
-    reportToPreview?.let { report -> WasmSafeOverlay(onDismiss = { reportToPreview = null }) {
-        ReportPreviewDialog(report, onDismiss = { reportToPreview = null })
     } }
     findingsReport?.let { report -> WasmSafeOverlay(onDismiss = { findingsReport = null }, errorMessage = errorMessage) {
         FindingsDialog(report = report, onDismiss = { findingsReport = null })
@@ -487,7 +484,7 @@ private fun ReportWorkbookGrid(rows: List<oms.data.ApiInspectionReportPreviewRow
 
 /** The SIR template rendered in the same section order as the editable form. */
 @Composable
-private fun ReadOnlySirReport(manual: ManualInspectionReportRequest) {
+internal fun ReadOnlySirReport(manual: ManualInspectionReportRequest) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         ReadOnlySirSection(LocalizationManager.t("sir_header_site"), Icons.Default.Description) {
             PreviewField(LocalizationManager.t("sir_project_name"), manual.projectName)

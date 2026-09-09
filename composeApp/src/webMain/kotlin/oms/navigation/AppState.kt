@@ -28,6 +28,7 @@ class AppState {
     var requestedFinancialSubprojectUuid by mutableStateOf<String?>(null)
     var requestedProcurementStatus by mutableStateOf<String?>(null)
     var editingInspectionUuid by mutableStateOf<String?>(null)
+    var viewingInspection by mutableStateOf(false)
 
     // 🔹 Чи авторизований користувач
     var isAuthenticated by mutableStateOf(false)
@@ -75,11 +76,20 @@ class AppState {
     // 🔹 Відкрити створення інспекції
     fun openCreateInspection() {
         editingInspectionUuid = null
+        viewingInspection = false
         navigate(Screen.CreateInspection)
     }
 
     fun openEditInspection(reportUuid: String) {
         editingInspectionUuid = reportUuid
+        viewingInspection = false
+        navigate(Screen.CreateInspection)
+    }
+
+    /** Opens the same full SIR page as editing, but with no mutable controls. */
+    fun openInspectionPreview(reportUuid: String) {
+        editingInspectionUuid = reportUuid
+        viewingInspection = true
         navigate(Screen.CreateInspection)
     }
 
