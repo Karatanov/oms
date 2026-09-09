@@ -219,7 +219,12 @@ fun CreateInspectionScreen(
             }.ifEmpty { listOf(QualityRemarkInput()) }
             progressComment = manual.progressComment.orEmpty()
             scheduleRemark = manual.scheduleRemark.orEmpty()
-            inspectorName = manual.inspectorName.ifBlank { currentUserName }
+            // `NAME` in the workbook is the person signing this revision.
+            // When an authorised user edits an imported SIR, it must reflect
+            // the current editor rather than retain the historical template
+            // value (for example, the original Pawel Neugebauer entry).
+            inspectorName = if (!readOnly && currentUserName.isNotBlank()) currentUserName
+            else manual.inspectorName.ifBlank { currentUserName }
             inspectorTitle = manual.inspectorTitle.orEmpty()
             latitude = manual.latitude?.toString().orEmpty()
             longitude = manual.longitude?.toString().orEmpty()
