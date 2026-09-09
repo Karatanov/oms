@@ -871,7 +871,7 @@ private fun RepeatableManualActivities(
                         verticalAlignment = Alignment.Top
                     ) {
                         OutlinedTextField(activity.location, { value -> update(index) { it.copy(location = value.inspectionText(500)) } }, label = { Text(LocalizationManager.t("sir_activity_location")) }, modifier = Modifier.weight(1f), minLines = 2)
-                        OutlinedTextField(activity.description, { value -> update(index) { it.copy(description = value.inspectionText(2_000)) } }, label = { Text(LocalizationManager.t("description")) }, modifier = Modifier.weight(2f), minLines = 2)
+                        OutlinedTextField(activity.description, { value -> update(index) { it.copy(description = value.inspectionText(2_000)) } }, label = { Text(LocalizationManager.t("sir_activity_description")) }, modifier = Modifier.weight(2f), minLines = 2)
                         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                             Text(LocalizationManager.t("sir_on_schedule"), style = MaterialTheme.typography.labelLarge)
                             ScheduleChoice(activity.onSchedule) { value -> update(index) { it.copy(onSchedule = value) } }
@@ -880,7 +880,7 @@ private fun RepeatableManualActivities(
                         if (values.size > 1) TableActionIconButton(LocalizationManager.t("delete"), Icons.Default.Remove) { onChange(values.filterIndexed { current, _ -> current != index }) }
                     } else Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         OutlinedTextField(activity.location, { value -> update(index) { it.copy(location = value.inspectionText(500)) } }, label = { Text(LocalizationManager.t("sir_activity_location")) }, modifier = Modifier.fillMaxWidth())
-                        OutlinedTextField(activity.description, { value -> update(index) { it.copy(description = value.inspectionText(2_000)) } }, label = { Text(LocalizationManager.t("description")) }, modifier = Modifier.fillMaxWidth(), minLines = 2)
+                        OutlinedTextField(activity.description, { value -> update(index) { it.copy(description = value.inspectionText(2_000)) } }, label = { Text(LocalizationManager.t("sir_activity_description")) }, modifier = Modifier.fillMaxWidth(), minLines = 2)
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                 Text(LocalizationManager.t("sir_on_schedule"), style = MaterialTheme.typography.labelLarge)

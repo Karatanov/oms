@@ -517,7 +517,7 @@ internal fun ReadOnlySirReport(manual: ManualInspectionReportRequest) {
                     Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         PreviewFieldRow(
                             LocalizationManager.t("sir_activity_location") to activity.location,
-                            LocalizationManager.t("description") to activity.description,
+                            LocalizationManager.t("sir_activity_description") to activity.description,
                             LocalizationManager.t("sir_activity_remarks") to activity.remarks
                         )
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
