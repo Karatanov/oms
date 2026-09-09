@@ -517,6 +517,7 @@ data class CreateProjectRequest(
     val managerId: Long? = null,
     val projectType: String = "project",
     val parentProjectUuid: String? = null,
+    val trancheNumber: Int = 1,
     val subprojectContractAmount: Long? = null,
     val startDate: String? = null,
     val contractSignedDate: String? = null,

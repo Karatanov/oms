@@ -42,6 +42,7 @@ interface ProjectRepository {
         technicalSupervisionAmount: Long?,
         projectType: oms.ufsi.domain.ProjectType,
         parentProjectId: Long?,
+        trancheNumber: Int = 1,
         subprojectContractAmount: Long?,
         startDate: java.time.LocalDate?,
         contractSignedDate: java.time.LocalDate?,

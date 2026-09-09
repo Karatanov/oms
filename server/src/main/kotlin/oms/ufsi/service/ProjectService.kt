@@ -206,6 +206,7 @@ class ProjectService(
         technicalSupervisionAmount: Long?,
         projectType: String,
         parentProjectUuid: String?,
+        trancheNumber: Int,
         subprojectContractAmount: Long?,
         startDate: String?,
         contractSignedDate: String?,
@@ -214,6 +215,7 @@ class ProjectService(
     ): Project {
 
         val normalizedConstructionType = normalizeConstructionTypeOrDefault(constructionType)
+        require(trancheNumber in 1..2) { "Tranche must be A or B." }
         val normalizedType = when (projectType.trim().lowercase()) {
             "project" -> ProjectType.PROJECT
             "subproject" -> ProjectType.SUBPROJECT
@@ -301,6 +303,8 @@ class ProjectService(
             projectType = normalizedType,
 
             parentProjectId = parent?.id,
+
+            trancheNumber = trancheNumber,
 
             subprojectContractAmount = subprojectContractAmount,
 

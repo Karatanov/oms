@@ -283,6 +283,7 @@ class ExposedProjectRepository : ProjectRepository {
         technicalSupervisionAmount: Long?,
         projectType: ProjectType,
         parentProjectId: Long?,
+        trancheNumber: Int,
         subprojectContractAmount: Long?,
         startDate: java.time.LocalDate?,
         contractSignedDate: java.time.LocalDate?,
@@ -295,7 +296,7 @@ class ExposedProjectRepository : ProjectRepository {
         val projectId = ProjectTable.insertAndGetId {
             it[ProjectTable.uuid] = projectUuid.toString()
             it[ProjectTable.projectType] = projectType.name.lowercase()
-            it[ProjectTable.trancheNumber] = 1
+            it[ProjectTable.trancheNumber] = trancheNumber
             it[ProjectTable.parentProjectId] = parentProjectId?.let { id -> org.jetbrains.exposed.v1.core.dao.id.EntityID(id, ProjectTable) }
             it[ProjectTable.name] = name
             it[ProjectTable.siteName] = siteName
@@ -323,7 +324,7 @@ class ExposedProjectRepository : ProjectRepository {
             id = projectId.value,
             uuid = projectUuid,
             projectType = projectType,
-            trancheNumber = 1,
+            trancheNumber = trancheNumber,
             parentProjectId = parentProjectId,
             name = name,
             siteName = siteName,

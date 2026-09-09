@@ -87,6 +87,8 @@ data class CreateProjectRequest(
     /** Project hierarchy. A subproject must reference a parent project UUID. */
     val projectType: String = "project",
     val parentProjectUuid: String? = null,
+    /** Customer-facing tranche: A = 1, B = 2. */
+    val trancheNumber: Int = 1,
 
     /** Required contract and schedule data for subprojects. */
     val subprojectContractAmount: Long? = null,

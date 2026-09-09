@@ -15,7 +15,7 @@ internal class ProjectFormState(details: ApiProjectDetailsData? = null) {
     var projectType by mutableStateOf(details?.projectType ?: "project")
     var parentUuid by mutableStateOf(details?.parentProjectUuid)
     var fields by mutableStateOf(mapOf(
-        "name" to details?.name.orEmpty(), "code" to details?.siteName.orEmpty(), "description" to details?.description.orEmpty(),
+        "name" to details?.name.orEmpty(), "code" to details?.siteName.orEmpty(), "tranche" to "А", "description" to details?.description.orEmpty(),
         "status" to (details?.status ?: "planned"), "sector" to (details?.sector ?: "education").lowercase(),
         "constructionType" to (details?.constructionType ?: "reconstruction"),
         "address" to details?.address.orEmpty(), "region" to details?.region.orEmpty(), "city" to details?.city.orEmpty(),
@@ -60,6 +60,7 @@ internal class ProjectFormState(details: ApiProjectDetailsData? = null) {
     fun validationError(editing: Boolean): String? = when {
         this["name"].isBlank() || this["code"].isBlank() -> L.t("error_required_fields")
         !editing && projectType != "project" && parentUuid == null -> L.t("select_parent_project")
+        !editing && trancheNumber() == null -> L.t("tranche_invalid")
         money.getValue("budget").amount.isBlank() || money.values.any { it.amount.isNotBlank() && !it.valid() } -> L.t("project_money_invalid")
         money.getValue("budget").legacyUah() <= 0 -> L.t("error_positive_budget")
         this["latitude"].isNotBlank() && coordinate("latitude")?.let { it in -90.0..90.0 } != true -> L.t("error_latitude_range")
@@ -78,6 +79,11 @@ internal class ProjectFormState(details: ApiProjectDetailsData? = null) {
         ?.let(::durationMonthsLabel)
         .orEmpty()
     private fun coordinate(key: String) = this[key].replace(',', '.').toDoubleOrNull()
+    private fun trancheNumber(): Int? = when (this["tranche"].trim().uppercase()) {
+        "A", "А", "1" -> 1
+        "B", "В", "2" -> 2
+        else -> null
+    }
     private fun amounts() = money.filterValues { it.amount.isNotBlank() }.mapValues { it.value.toDto() }
     fun updateRequest() = UpdateProjectRequest(
         name = this["name"].trim(), siteName = this["code"].trim(), siteNumber = this["code"].trim(),
@@ -102,7 +108,7 @@ internal class ProjectFormState(details: ApiProjectDetailsData? = null) {
         return CreateProjectRequest(name = p.name!!, siteName = p.siteName!!, siteNumber = p.siteNumber!!, status = p.status,
             description = p.description, address = p.address!!, region = p.region!!, city = p.city!!,
             latitude = p.latitude!!, longitude = p.longitude!!, sector = p.sector!!, constructionType = p.constructionType!!,
-            budgetPlanned = money.getValue("budget").legacyUah(), projectType = projectType, parentProjectUuid = parentUuid,
+            budgetPlanned = money.getValue("budget").legacyUah(), projectType = projectType, parentProjectUuid = parentUuid, trancheNumber = trancheNumber() ?: 1,
             startDate = p.startDate, endDate = p.endDate, contractSignedDate = p.contractSignedDate, plannedEndDate = p.plannedEndDate,
             designContractSigningDate = p.designContractSigningDate, constructionContractSigningDate = p.constructionContractSigningDate,
             designStartDate = p.designStartDate, designPlannedEndDate = p.designPlannedEndDate,

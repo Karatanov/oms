@@ -151,6 +151,8 @@ fun Route.projectRoutes() {
 
                     parentProjectUuid = request.parentProjectUuid,
 
+                    trancheNumber = request.trancheNumber,
+
                     subprojectContractAmount = request.subprojectContractAmount,
 
                     startDate = request.startDate,

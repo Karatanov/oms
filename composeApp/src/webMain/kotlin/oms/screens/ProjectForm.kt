@@ -8,6 +8,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.launch
 import oms.components.*
 import oms.data.ApiProject
 import oms.localization.LocalizationManager as L
@@ -21,6 +22,12 @@ internal fun ProjectForm(
     loadParentsOnOpen: (suspend () -> List<ApiProject>)? = null
 ) {
     var geocoding by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+    fun programmeParent(options: List<ApiProject>): ApiProject? =
+        options.firstOrNull {
+            it.projectType.equals("project", true) &&
+                it.name.equals("Ukraine Recovery Programme III", true)
+        } ?: options.firstOrNull { it.projectType.equals("project", true) }
     fun field(key: String, label: String, modifier: Modifier = Modifier, lines: Int = 1) = @Composable {
         OutlinedTextField(state[key], { state[key] = it }, label = { Text(L.t(label)) }, modifier = modifier,
             singleLine = lines == 1, minLines = lines)
@@ -31,7 +38,17 @@ internal fun ProjectForm(
             if (!editing) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     listOf("project", "subproject", "subproject_part").forEach { type ->
-                        FilterChip(selected = state.projectType == type, onClick = { state.projectType = type; state.parentUuid = null }, label = { Text(L.t(type)) })
+                        FilterChip(selected = state.projectType == type, onClick = {
+                            state.projectType = type
+                            state.parentUuid = null
+                            // A newly created subproject belongs to the programme by
+                            // default.  Loading happens in the background so changing
+                            // the type never blocks the form.
+                            if (type == "subproject") scope.launch {
+                                val options = loadParentsOnOpen?.invoke() ?: parents
+                                state.parentUuid = programmeParent(options)?.uuid
+                            }
+                        }, label = { Text(L.t(type)) })
                     }
                 }
                 if (state.projectType != "project") {
@@ -49,6 +66,16 @@ internal fun ProjectForm(
                 { field("name", "project_name_required", it)() },
                 { field("code", if (state.projectType == "subproject_part") "subproject_part_code" else "project_code_required", it)() }
             )
+            if (!editing) {
+                OutlinedTextField(
+                    value = state["tranche"],
+                    onValueChange = { value -> if (value.length <= 1) state["tranche"] = value },
+                    label = { Text(L.t("tranche")) },
+                    supportingText = { Text("A / B") },
+                    singleLine = true,
+                    modifier = Modifier.widthIn(max = 180.dp)
+                )
+            }
             field("description", "description", Modifier.fillMaxWidth(), 3)()
             Text(L.t("status"), style = MaterialTheme.typography.labelLarge)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
