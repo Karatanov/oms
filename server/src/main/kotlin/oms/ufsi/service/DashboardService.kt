@@ -41,8 +41,8 @@ private val procurementStatusOrder = listOf(
     "Договір розірвано / Contract terminated"
 )
 
-private fun isConstructionContractSigned(status: String) =
-    status.contains("Договір укладено", ignoreCase = true) || status.contains("Contract signed", ignoreCase = true)
+private fun isConstructionContractSigned(status: String?) =
+    status?.let { it.contains("Договір укладено", ignoreCase = true) || it.contains("Contract signed", ignoreCase = true) } == true
 data class DashboardData(
     val projectsTotal:Long, val projectsActive:Long, val projectsCompletedThisMonth:Long, val budgetPlanned:Long,
     val amountSpent:Long, val inspectionsTotal:Long, val pendingInspections:Long, val findingsTotal:Long,
@@ -118,8 +118,9 @@ class DashboardService(
         val procurementCountByStatus = procurementRecords.groupBy { it[ProcurementRecordTable.purchaseStatus] }
             .mapValues { (_, rows) -> rows.map { it[ProcurementRecordTable.subProjectId] }.distinct().size.toLong() }
         val procurementStatusCounts = procurementStatusOrder.map { status -> DashboardMetric(status, procurementCountByStatus[status] ?: 0L) } +
-            procurementCountByStatus.filterKeys { it !in procurementStatusOrder }.toSortedMap()
-                .map { (status, count) -> DashboardMetric(status, count) }
+            procurementCountByStatus.filterKeys { it != null && it !in procurementStatusOrder }
+                .mapNotNull { (status, count) -> status?.let { DashboardMetric(it, count) } }
+                .sortedBy { it.label }
         fun report(row: org.jetbrains.exposed.v1.core.ResultRow) = InspectionReport(
             row[InspectionReportTable.id].value, UUID.fromString(row[InspectionReportTable.uuid]), row[InspectionReportTable.projectId].value,
             row[InspectionReportTable.reportCode], row[InspectionReportTable.inspectionType], row[InspectionReportTable.inspectionDate],
@@ -208,12 +209,12 @@ class DashboardService(
         val procurementStatusCounts = procurementStatusOrder.map { status ->
             DashboardMetric(status, procurementCountByStatus[status] ?: 0L)
         } + procurementCountByStatus
-            .filterKeys { it !in procurementStatusOrder }
-            .toSortedMap()
-            .map { (status, count) -> DashboardMetric(status, count) }
+            .filterKeys { it != null && it !in procurementStatusOrder }
+            .mapNotNull { (status, count) -> status?.let { DashboardMetric(it, count) } }
+            .sortedBy { it.label }
         val monthlySignedConstructionContracts = procurementRecords
             .filter { isConstructionContractSigned(it[ProcurementRecordTable.purchaseStatus]) }
-            .mapNotNull { row -> row[ProcurementRecordTable.contractDate]?.let { date -> month(date) } }
+            .mapNotNull { row -> (row[ProcurementRecordTable.contractDate] ?: row[ProcurementRecordTable.estimatedContractDate])?.let(::month) }
             .groupingBy { it }.eachCount().map { DashboardMetric(it.key, it.value.toLong()) }.sortedBy { it.label }
         val findings = InspectionFindingTable.selectAll().count { it[InspectionFindingTable.inspectionReportId].value in reportIds }
         // The admin activity panel filters and sorts locally, so return a useful

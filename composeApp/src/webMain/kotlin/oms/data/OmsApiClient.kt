@@ -737,12 +737,20 @@ data class ApiActivity(
 @Serializable
 data class ApiProcurementRecord(
     val id: Long, val recordNumber: Int, val batchId: Int,
-    val oblastName: String, val oblastId: String, val subProjectId: String, val subProjectLotId: String,
-    val purchaseStatus: String, val tenderId: String? = null, val prozorroTenderId: String? = null,
+    val oblastName: String, val oblastId: String, val subProjectId: String, val subProjectLotId: String? = null,
+    val purchaseStatus: String? = null, val tenderId: String? = null, val prozorroTenderId: String? = null,
     val contractorNameUkr: String? = null, val contractorNameEng: String? = null, val contractorId: String? = null,
     val contractDate: String? = null, val contractEndDate: String? = null, val contractDurationMonths: Int? = null,
     val contractAmountUah: Double? = null, val contractAmountEur: Double? = null,
-    val financingContractDifferencePct: Double? = null
+    val financingContractDifferencePct: Double? = null,
+    val promotorName: String? = null, val subprojectNameUk: String? = null, val subprojectNameEn: String? = null,
+    val spId: String? = null, val sourceContractType: String? = null, val sourceType: String? = null, val procurementId: String? = null,
+    val subprojectTotalCostUah: Double? = null, val subprojectEibFinancingUah: Double? = null, val subprojectLocalFinancingUah: Double? = null,
+    val estimatedTotalEur: Double? = null, val estimatedTotalUah: Double? = null, val estimatedEibEur: Double? = null, val estimatedEibUah: Double? = null,
+    val estimatedLocalEur: Double? = null, val estimatedLocalUah: Double? = null, val procurementMethod: String? = null, val tenderDocumentType: String? = null,
+    val publishedInOjeu: String? = null, val estimatedProzorroDate: String? = null, val estimatedBidSubmissionDate: String? = null,
+    val estimatedContractDate: String? = null, val estimatedContractEndDate: String? = null, val localFinancingPct: Double? = null,
+    val comments: String? = null, val sourceStatusCode: String? = null, val projectId: Long? = null
 )
 
 @Serializable

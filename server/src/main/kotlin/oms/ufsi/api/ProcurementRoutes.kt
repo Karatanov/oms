@@ -61,8 +61,21 @@ private suspend fun io.ktor.server.application.ApplicationCall.respondSafely(
 }
 
 private fun ProcurementRecord.toResponse() = ProcurementRecordResponse(
-    id, recordNumber, batchId, oblastName, oblastId, subProjectId, subProjectLotId, purchaseStatus,
-    tenderId, prozorroTenderId, contractorNameUkr, contractorNameEng, contractorId,
-    contractDate?.toString(), contractEndDate?.toString(), contractDurationMonths,
-    contractAmountUah, contractAmountEur, financingContractDifferencePct
+    id = id, recordNumber = recordNumber, batchId = batchId, oblastName = oblastName, oblastId = oblastId,
+    subProjectId = subProjectId, subProjectLotId = subProjectLotId, purchaseStatus = purchaseStatus,
+    tenderId = tenderId, prozorroTenderId = prozorroTenderId, contractorNameUkr = contractorNameUkr,
+    contractorNameEng = contractorNameEng, contractorId = contractorId, contractDate = contractDate?.toString(),
+    contractEndDate = contractEndDate?.toString(), contractDurationMonths = contractDurationMonths,
+    contractAmountUah = contractAmountUah, contractAmountEur = contractAmountEur,
+    financingContractDifferencePct = financingContractDifferencePct, promotorName = promotorName,
+    subprojectNameUk = subprojectNameUk, subprojectNameEn = subprojectNameEn, spId = spId,
+    sourceContractType = sourceContractType, sourceType = sourceType, procurementId = procurementId,
+    subprojectTotalCostUah = subprojectTotalCostUah, subprojectEibFinancingUah = subprojectEibFinancingUah,
+    subprojectLocalFinancingUah = subprojectLocalFinancingUah, estimatedTotalEur = estimatedTotalEur,
+    estimatedTotalUah = estimatedTotalUah, estimatedEibEur = estimatedEibEur, estimatedEibUah = estimatedEibUah,
+    estimatedLocalEur = estimatedLocalEur, estimatedLocalUah = estimatedLocalUah,
+    procurementMethod = procurementMethod, tenderDocumentType = tenderDocumentType, publishedInOjeu = publishedInOjeu,
+    estimatedProzorroDate = estimatedProzorroDate?.toString(), estimatedBidSubmissionDate = estimatedBidSubmissionDate?.toString(),
+    estimatedContractDate = estimatedContractDate?.toString(), estimatedContractEndDate = estimatedContractEndDate?.toString(),
+    localFinancingPct = localFinancingPct, comments = comments, sourceStatusCode = sourceStatusCode, projectId = projectId
 )

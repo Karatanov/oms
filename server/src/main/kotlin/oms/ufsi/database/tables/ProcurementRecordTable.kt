@@ -1,6 +1,7 @@
 package oms.ufsi.database.tables
 
 import org.jetbrains.exposed.v1.core.dao.id.LongIdTable
+import org.jetbrains.exposed.v1.core.ReferenceOption
 import org.jetbrains.exposed.v1.javatime.date
 
 object ProcurementRecordTable : LongIdTable("procurement_records") {
@@ -8,9 +9,25 @@ object ProcurementRecordTable : LongIdTable("procurement_records") {
     val batchId = integer("batch_id")
     val oblastName = varchar("oblast_name", 255)
     val oblastId = varchar("oblast_id", 32)
+    val promotorName = varchar("promotor_name", 500).nullable()
+    val subprojectNameUk = text("subproject_name_uk").nullable()
+    val subprojectNameEn = text("subproject_name_en").nullable()
     val subProjectId = varchar("sub_project_id", 64)
-    val subProjectLotId = varchar("sub_project_lot_id", 64)
-    val purchaseStatus = varchar("purchase_status", 255)
+    val subProjectLotId = varchar("sub_project_lot_id", 64).nullable()
+    val spId = varchar("sp_id", 100).nullable()
+    val sourceContractType = varchar("source_contract_type", 255).nullable()
+    val sourceType = varchar("source_type", 64).nullable()
+    val procurementId = varchar("procurement_id", 128).nullable()
+    val subprojectTotalCostUah = decimal("subproject_total_cost_uah", 18, 2).nullable()
+    val subprojectEibFinancingUah = decimal("subproject_eib_financing_uah", 18, 2).nullable()
+    val subprojectLocalFinancingUah = decimal("subproject_local_financing_uah", 18, 2).nullable()
+    val estimatedTotalEur = decimal("estimated_total_eur", 18, 4).nullable()
+    val estimatedTotalUah = decimal("estimated_total_uah", 18, 2).nullable()
+    val estimatedEibEur = decimal("estimated_eib_eur", 18, 4).nullable()
+    val estimatedEibUah = decimal("estimated_eib_uah", 18, 2).nullable()
+    val estimatedLocalEur = decimal("estimated_local_eur", 18, 4).nullable()
+    val estimatedLocalUah = decimal("estimated_local_uah", 18, 2).nullable()
+    val purchaseStatus = varchar("purchase_status", 255).nullable()
     val tenderId = varchar("tender_id", 128).nullable()
     val prozorroTenderId = varchar("prozorro_tender_id", 512).nullable()
     val contractorNameUkr = varchar("contractor_name_ukr", 500).nullable()
@@ -22,4 +39,15 @@ object ProcurementRecordTable : LongIdTable("procurement_records") {
     val contractAmountUah = decimal("contract_amount_uah", 18, 2).nullable()
     val contractAmountEur = decimal("contract_amount_eur", 18, 4).nullable()
     val financingContractDifferencePct = decimal("financing_contract_difference_pct", 14, 10).nullable()
+    val procurementMethod = varchar("procurement_method", 255).nullable()
+    val tenderDocumentType = varchar("tender_document_type", 255).nullable()
+    val publishedInOjeu = varchar("published_in_ojeu", 64).nullable()
+    val estimatedProzorroDate = date("estimated_prozorro_date").nullable()
+    val estimatedBidSubmissionDate = date("estimated_bid_submission_date").nullable()
+    val estimatedContractDate = date("estimated_contract_date").nullable()
+    val estimatedContractEndDate = date("estimated_contract_end_date").nullable()
+    val localFinancingPct = decimal("local_financing_pct", 14, 10).nullable()
+    val comments = text("comments").nullable()
+    val sourceStatusCode = varchar("source_status_code", 64).nullable()
+    val projectId = optReference("project_id", ProjectTable, onDelete = ReferenceOption.CASCADE)
 }
