@@ -3,6 +3,7 @@ package oms.ufsi.plugins
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import io.ktor.server.application.*
+import oms.ufsi.config.AppContainer
 import org.flywaydb.core.Flyway
 import org.jetbrains.exposed.v1.jdbc.Database
 
@@ -88,6 +89,9 @@ fun Application.configureDatabase() {
      * та життєвий цикл фізичних з'єднань.
      */
     Database.connect(dataSource)
+
+    val generatedActs = AppContainer.generatedFinancialActService.ensureGeneratedActs()
+    if (generatedActs > 0) log.info("Generated $generatedActs financial payment act(s).")
 
     log.info("База даних успішно ініціалізована.")
 }
