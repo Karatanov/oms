@@ -9,7 +9,15 @@ plugins {
 
 kotlin {
     js {
-        browser()
+        browser {
+            // The Render image intentionally uses the development Webpack task
+            // to stay inside the free builder's memory limit.  Its default
+            // eval source map made the delivered browser bundle ~58 MB and
+            // blocked navigation while the browser parsed it.
+            commonWebpackConfig {
+                sourceMaps = false
+            }
+        }
         binaries.executable()
     }
 
