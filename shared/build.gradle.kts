@@ -13,9 +13,11 @@ kotlin {
         browser()
     }
 
-    @OptIn(ExperimentalWasmDsl::class)
-    wasmJs {
-        browser()
+    if (!providers.gradleProperty("renderJsOnly").isPresent) {
+        @OptIn(ExperimentalWasmDsl::class)
+        wasmJs {
+            browser()
+        }
     }
 
     sourceSets {

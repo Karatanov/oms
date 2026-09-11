@@ -8,7 +8,7 @@ COPY gradlew gradlew.bat gradle.properties settings.gradle.kts build.gradle.kts 
 COPY server server
 COPY composeApp composeApp
 COPY shared shared
-RUN gradle :server:installDist --no-daemon
+RUN gradle -PrenderJsOnly :server:installDist --no-daemon --max-workers=2
 
 FROM eclipse-temurin:21-jre
 WORKDIR /opt/oms

@@ -13,10 +13,14 @@ kotlin {
         binaries.executable()
     }
 
-    @OptIn(ExperimentalWasmDsl::class)
-    wasmJs {
-        browser()
-        binaries.executable()
+    // The Render server image serves the JS bundle only. Do not even configure
+    // the Wasm target there: its tooling setup is unnecessary and memory-heavy.
+    if (!providers.gradleProperty("renderJsOnly").isPresent) {
+        @OptIn(ExperimentalWasmDsl::class)
+        wasmJs {
+            browser()
+            binaries.executable()
+        }
     }
 
     sourceSets {

@@ -8,12 +8,12 @@ plugins {
 }
 
 val copyRenderWebAssets by tasks.registering(Copy::class) {
-    // Render only needs the browser bundle. Building the Wasm target additionally
-    // runs Kotlin's external Wasm tooling setup, which is unnecessary for the
-    // server image and can fail in a minimal container before the application is
-    // compiled. The JavaScript distribution uses the same Compose Web sources.
-    dependsOn(":composeApp:jsBrowserDistribution")
-    from(project(":composeApp").layout.buildDirectory.dir("dist/js/productionExecutable"))
+    // The free Render build worker has an 8 GB memory ceiling. Production
+    // Webpack minification exceeds it for this Compose application, so the
+    // server image bundles the functional development JS distribution instead.
+    // Local releases still use the normal production/Wasm targets.
+    dependsOn(":composeApp:jsBrowserDevelopmentWebpack")
+    from(project(":composeApp").layout.buildDirectory.dir("dist/js/developmentExecutable"))
     into(layout.buildDirectory.dir("generated/render-web"))
 }
 
