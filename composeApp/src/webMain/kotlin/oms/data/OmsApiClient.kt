@@ -188,7 +188,14 @@ object OmsApiClient {
 
     suspend fun dashboard(): ApiDashboard = client.get("$baseUrl/dashboard").body()
 
-    suspend fun dashboardOverview(): ApiDashboardOverview = client.get("$baseUrl/dashboard/overview").body()
+    suspend fun dashboardOverview(): ApiDashboardOverview = try {
+        client.get("$baseUrl/dashboard/overview").body()
+    } catch (_: Exception) {
+        // Keep the dashboard useful while an older database or a partially
+        // migrated Render instance cannot serve the lightweight endpoint.
+        // The established endpoint carries the same chart data.
+        dashboard().toOverview()
+    }
 
     suspend fun inspectionAnalytics(): ApiInspectionAnalytics =
         client.get("$baseUrl/inspection-reports/analytics").body()
@@ -707,6 +714,14 @@ data class ApiDashboardOverview(
     val subprojectFunding: List<ApiSubprojectFunding> = emptyList(),
     val subprojectProgress: List<ApiSubprojectProgress> = emptyList(),
     val procurementStatusCounts: List<ApiDashboardMetric> = emptyList()
+)
+
+private fun ApiDashboard.toOverview() = ApiDashboardOverview(
+    recentInspections = recentInspections,
+    monthlyActPayments = monthlyActPayments,
+    subprojectFunding = subprojectFunding,
+    subprojectProgress = subprojectProgress,
+    procurementStatusCounts = procurementStatusCounts
 )
 
 @Serializable
