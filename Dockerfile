@@ -5,7 +5,7 @@ COPY gradlew gradlew.bat gradle.properties settings.gradle.kts build.gradle.kts 
 COPY server server
 COPY composeApp composeApp
 COPY shared shared
-RUN gradle -PrenderJsOnly :server:installDist --no-daemon --max-workers=2 \
+RUN gradle -PrenderJsOnly :composeApp:jsBrowserDevelopmentWebpack :server:installDist --no-daemon --max-workers=2 \
     && web_assets_dir=$(find /workspace/composeApp/build -type f -name index.html -printf '%h\\n' | head -n 1) \
     && test -n "$web_assets_dir" \
     && mkdir -p /workspace/server/build/render-web \
