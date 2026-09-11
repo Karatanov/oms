@@ -6,10 +6,9 @@ COPY server server
 COPY composeApp composeApp
 COPY shared shared
 RUN gradle -PrenderJsOnly :composeApp:jsBrowserDevelopmentWebpack :server:installDist --no-daemon --max-workers=2 \
-    && web_assets_dir=$(find /workspace/composeApp/build -type f -name index.html -printf '%h\\n' | head -n 1) \
-    && test -n "$web_assets_dir" \
+    && test -f /workspace/composeApp/build/kotlin-webpack/js/developmentExecutable/index.html \
     && mkdir -p /workspace/server/build/render-web \
-    && cp -a "$web_assets_dir"/. /workspace/server/build/render-web/
+    && cp -a /workspace/composeApp/build/kotlin-webpack/js/developmentExecutable/. /workspace/server/build/render-web/
 
 FROM eclipse-temurin:21-jre
 WORKDIR /opt/oms
