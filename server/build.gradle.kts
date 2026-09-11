@@ -13,7 +13,7 @@ val copyRenderWebAssets by tasks.registering(Copy::class) {
     // server image bundles the functional development JS distribution instead.
     // Local releases still use the normal production/Wasm targets.
     dependsOn(":composeApp:jsBrowserDevelopmentWebpack")
-    from(project(":composeApp").layout.buildDirectory.dir("dist/js/developmentExecutable"))
+    from(project(":composeApp").layout.buildDirectory.dir("distributions"))
     into(layout.buildDirectory.dir("generated/render-web"))
 }
 
