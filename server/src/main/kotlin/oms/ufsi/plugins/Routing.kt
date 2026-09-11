@@ -2,9 +2,9 @@ package oms.ufsi.plugins
 
 import io.ktor.server.application.*
 import io.ktor.server.http.content.*
-import io.ktor.server.response.respondResource
 import io.ktor.server.routing.*
 import oms.ufsi.api.*
+import java.io.File
 
 /**
  * Реєструє всі HTTP-маршрути застосунку.
@@ -43,13 +43,8 @@ fun Application.configureRouting() {
         photoRoutes()
         dashboardRoutes()
 
-        // The Render image packages the Compose Web distribution here.
+        // The Render image copies the Compose Web distribution to this folder.
         // Register this last so API and health routes always take precedence.
-        // Explicitly handle the root path: Ktor's static route can otherwise
-        // resolve it as an empty resource name after a container restart.
-        get("/") {
-            call.respondResource("static/index.html")
-        }
-        staticResources("/", "static", index = "index.html")
+        staticFiles("/", File("static"), index = "index.html")
     }
 }
