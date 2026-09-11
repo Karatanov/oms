@@ -227,7 +227,7 @@ WHERE NOT EXISTS (
 DELETE FROM procurement_records;
 
 INSERT INTO procurement_records (
-    record_number, batch_id, oblast_name, oblast_id, promotor_name, subproject_name_uk, subproject_name_en,
+    record_number, batch_id, oblast_name, oblast_id, promotor_name,
     sub_project_id, sub_project_lot_id, sp_id, source_contract_type, source_type, procurement_id,
     subproject_total_cost_uah, subproject_eib_financing_uah, subproject_local_financing_uah,
     estimated_total_eur, estimated_total_uah, estimated_eib_eur, estimated_eib_uah,
@@ -247,7 +247,7 @@ SELECT s.record_number, s.batch_id, CASE s.oblast_id
     WHEN 'RV' THEN 'Рівненська область' WHEN 'SM' THEN 'Сумська область'
     WHEN 'TR' THEN 'Тернопільська область' WHEN 'VN' THEN 'Вінницька область'
     WHEN 'ZH' THEN 'Житомирська область' WHEN 'ZK' THEN 'Закарпатська область'
-    WHEN 'ZP' THEN 'Запорізька область' ELSE NULL END, s.oblast_id, s.promotor_name, s.subproject_name_uk, s.subproject_name_en,
+    WHEN 'ZP' THEN 'Запорізька область' ELSE NULL END, s.oblast_id, s.promotor_name,
     s.subproject_id, NULL, s.sp_id, s.source_contract_type, s.source_type, s.procurement_id,
     s.subproject_total_cost_uah, s.subproject_eib_financing_uah, s.subproject_local_financing_uah,
     s.estimated_total_eur, s.estimated_total_uah, s.estimated_eib_eur, s.estimated_eib_uah,
