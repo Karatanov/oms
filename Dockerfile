@@ -6,8 +6,10 @@ COPY server server
 COPY composeApp composeApp
 COPY shared shared
 RUN gradle -PrenderJsOnly :composeApp:jsBrowserDevelopmentWebpack :server:installDist --no-daemon --max-workers=2 \
-    && test -f /workspace/composeApp/build/kotlin-webpack/js/developmentExecutable/index.html \
+    && test -f /workspace/composeApp/build/processedResources/js/main/index.html \
+    && test -f /workspace/composeApp/build/kotlin-webpack/js/developmentExecutable/composeApp.js \
     && mkdir -p /workspace/server/build/render-web \
+    && cp -a /workspace/composeApp/build/processedResources/js/main/. /workspace/server/build/render-web/ \
     && cp -a /workspace/composeApp/build/kotlin-webpack/js/developmentExecutable/. /workspace/server/build/render-web/
 
 FROM eclipse-temurin:21-jre
