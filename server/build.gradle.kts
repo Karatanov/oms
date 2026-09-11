@@ -7,16 +7,6 @@ plugins {
     application
 }
 
-val copyRenderWebAssets by tasks.registering(Copy::class) {
-    // The free Render build worker has an 8 GB memory ceiling. Production
-    // Webpack minification exceeds it for this Compose application, so the
-    // server image bundles the functional development JS distribution instead.
-    // Local releases still use the normal production/Wasm targets.
-    dependsOn(":composeApp:jsBrowserDevelopmentWebpack")
-    from(project(":composeApp").layout.buildDirectory.dir("distributions"))
-    into(layout.buildDirectory.dir("generated/render-web"))
-}
-
 // TiDB is MySQL-compatible but does not support MySQL's column-position
 // clauses ("AFTER column_name") in ALTER TABLE.  Generate a separate set of
 // migrations for it, leaving the canonical MySQL files and their Flyway
@@ -39,11 +29,7 @@ val copyTiDbMigrations by tasks.registering(Copy::class) {
 }
 
 tasks.named<ProcessResources>("processResources") {
-    dependsOn(copyRenderWebAssets)
     dependsOn(copyTiDbMigrations)
-    from(copyRenderWebAssets) {
-        into("static")
-    }
     from(layout.buildDirectory.dir("generated/tidb-migrations"))
 }
 
