@@ -2,6 +2,8 @@ package oms.ufsi
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 import oms.components.localizedUkraineRegion
 import oms.data.ApiFinancialSummary
 import oms.data.ApiProjectDetails
@@ -9,6 +11,8 @@ import oms.data.ApiProjectDetailsData
 import oms.localization.Language
 import oms.localization.LocalizationManager
 import oms.screens.localizedProjectAddress
+import oms.screens.isEarthTemperatureInput
+import oms.screens.temperatureInput
 import oms.screens.toRegionChartLabel
 
 /** Run on JS as well as Wasm: JVM/Wasm regexes accept inline flags that JS rejects. */
@@ -46,6 +50,19 @@ class RegionAndAddressWebTest {
         withLanguage(Language.UK) {
             assertEquals("вул. Головна, 12", localizedProjectAddress(projectDetails("School ADDRESS: 12 Main Street")))
         }
+    }
+
+    @Test
+    fun inspectionTemperatureAcceptsOnlyPracticalEarthRange() {
+        assertEquals("-12.5", "-12,5 °C".temperatureInput())
+        assertEquals("+60", "+60".temperatureInput())
+        assertEquals("", "letters".temperatureInput())
+        assertEquals("60", "60".temperatureInput())
+
+        assertTrue("-90".isEarthTemperatureInput())
+        assertTrue("+60".isEarthTemperatureInput())
+        assertFalse("-91".isEarthTemperatureInput())
+        assertFalse("61".isEarthTemperatureInput())
     }
 
     private fun projectDetails(englishName: String) = ApiProjectDetails(

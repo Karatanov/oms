@@ -3,6 +3,7 @@ package oms.ufsi.plugins
 import io.ktor.server.application.*
 import io.ktor.server.http.content.*
 import io.ktor.server.routing.*
+import io.ktor.http.CacheControl
 import oms.ufsi.api.*
 import java.io.File
 
@@ -45,6 +46,11 @@ fun Application.configureRouting() {
 
         // The Render image copies the Compose Web distribution to this folder.
         // Register this last so API and health routes always take precedence.
-        staticFiles("/", File("static"), index = "index.html")
+        staticFiles("/", File("static"), index = "index.html") {
+            // The Compose bundle keeps a stable filename. Revalidate it on
+            // every request so a browser cannot retain an older UI after a
+            // Render deployment and show a different table layout.
+            cacheControl { listOf(CacheControl.NoCache(null)) }
+        }
     }
 }

@@ -83,10 +83,15 @@ fun ScrollableTable(
                     .then(if (stickyOffset > 0f) Modifier.shadow(3.dp) else Modifier)
                     .onGloballyPositioned { headerHeight = it.size.height }
             ) {
-                // Content owns the actual horizontal ScrollState.  The header
-                // follows that state as a layer so it cannot steal or reset
-                // the Projects table's horizontal scrolling range.
-                Column(Modifier.graphicsLayer { translationX = -scroll.value.toFloat() }, content = header)
+                // Use the very same scroll state as the body. A translated
+                // layer works for narrow headers, but Web Compose can clip its
+                // far-right cells (notably Procurement columns after the ID).
+                // A true horizontal viewport keeps every header cell aligned
+                // with, and reachable alongside, its data column.
+                // Header is rendered from the body state but is not an
+                // additional gesture target; this avoids competing scroll
+                // ranges on wide Web/Wasm tables.
+                Column(Modifier.horizontalScroll(scroll, enabled = false), content = header)
             }
             Column(Modifier.fillMaxWidth().horizontalScroll(scroll), content = content)
         }

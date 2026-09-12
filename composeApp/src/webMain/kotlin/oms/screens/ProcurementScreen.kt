@@ -43,6 +43,7 @@ import oms.data.OmsApiClient
 import oms.data.ProcurementRecordRequest
 import oms.components.OmsDateField
 import oms.components.TableActionIconButton
+import oms.components.SortableTableHeader
 import oms.components.InlineOptionPicker
 import oms.components.UkraineRegionAutocomplete
 import oms.components.currentIsoDate
@@ -74,6 +75,8 @@ fun ProcurementScreen(
     var recordPendingDeletion by remember { mutableStateOf<ApiProcurementRecord?>(null) }
     var pageSize by remember { mutableStateOf(20) }
     var currentPage by remember { mutableStateOf(0) }
+    var sortColumnIndex by remember { mutableStateOf(0) }
+    var sortAscending by remember { mutableStateOf(true) }
     val scope = rememberCoroutineScope()
     val contentScrollState = rememberScrollState()
     var tableTopInRootPx by remember { mutableStateOf(0f) }
@@ -169,6 +172,14 @@ fun ProcurementScreen(
             (statusFilter?.let { sameProcurementStatus(record.purchaseStatus, it) } ?: true) &&
             (signedContractMonthFilter == null || (record.contractDate ?: record.estimatedContractDate)?.take(7) == signedContractMonthFilter) &&
             (search.isBlank() || listOf(record.subProjectId, record.subProjectLotId.orEmpty(), record.oblastName, record.promotorName.orEmpty(), record.subprojectNameUk.orEmpty(), record.subprojectNameEn.orEmpty(), record.procurementId.orEmpty()).any { it.contains(search, true) })
+        }.sortedWith(compareBy<ApiProcurementRecord> { it.sortKey(sortColumnIndex) }
+            .let { comparator -> if (sortAscending) comparator else comparator.reversed() })
+        fun selectSort(columnIndex: Int) {
+            if (sortColumnIndex == columnIndex) sortAscending = !sortAscending
+            else {
+                sortColumnIndex = columnIndex
+                sortAscending = true
+            }
         }
         LaunchedEffect(search, oblastFilter, subprojectFilter, statusFilter, signedContractMonthFilter, pageSize) { currentPage = 0 }
         val pageCount = if (visibleRecords.isEmpty() || pageSize == Int.MAX_VALUE) 1 else (visibleRecords.size + pageSize - 1) / pageSize
@@ -213,7 +224,7 @@ fun ProcurementScreen(
                     ProcurementTable(
                         pageRecords, records.orEmpty(), oblastFilter, { oblastFilter = it }, subprojectFilter, { subprojectFilter = it }, statusFilter, { statusFilter = it },
                         canManageProcurements, { error = null; editorRecord = it }, { error = null; recordPendingDeletion = it },
-                        contentScrollState
+                        contentScrollState, sortColumnIndex, sortAscending, ::selectSort
                     )
                 }
                 Spacer(Modifier.height(12.dp))
@@ -319,25 +330,21 @@ private fun ProcurementTable(
     canManage: Boolean,
     onEdit: (ApiProcurementRecord) -> Unit,
     onDelete: (ApiProcurementRecord) -> Unit,
-    pageScrollState: ScrollState
+    pageScrollState: ScrollState,
+    sortColumnIndex: Int,
+    sortAscending: Boolean,
+    onSort: (Int) -> Unit
 ) {
     Column(Modifier.fillMaxWidth()) {
         oms.components.ScrollableTable(pageScrollState = pageScrollState, header = {
                 ProcurementFilters(allRecords, oblastFilter, onOblastChange, subprojectFilter, onSubprojectChange, statusFilter, onStatusChange, canManage)
-                ProcurementRow(procurementHeaderLabels(), showActions = canManage, isHeader = true)
+                ProcurementRow(procurementHeaderLabels(), showActions = canManage, isHeader = true,
+                    sortColumnIndex = sortColumnIndex, sortAscending = sortAscending, onSort = onSort)
                 HorizontalDivider()
             }
         ) {
             records.forEach { record ->
-                ProcurementRow(listOf(
-                    record.recordNumber.toString(), if (record.batchId == 8) "A" else if (record.batchId == 9) "B" else record.batchId.toString(), localizedUkraineRegion(record.oblastName), record.oblastId,
-                    record.promotorName.orEmpty(), if (LocalizationManager.currentLanguage == Language.EN) record.subprojectNameEn ?: record.subprojectNameUk.orEmpty() else record.subprojectNameUk ?: record.subprojectNameEn.orEmpty(),
-                    record.subProjectId, record.spId.orEmpty(), record.sourceContractType.orEmpty(), record.sourceType.orEmpty(), record.procurementId.orEmpty(),
-                    record.subprojectTotalCostUah.format(0), record.subprojectEibFinancingUah.format(0), record.subprojectLocalFinancingUah.format(0), record.estimatedTotalEur.format(2),
-                    record.procurementMethod.orEmpty(), record.tenderDocumentType.orEmpty(), record.publishedInOjeu.orEmpty(), record.estimatedProzorroDate.toOmsDate(), record.estimatedBidSubmissionDate.toOmsDate(),
-                    record.estimatedContractDate.toOmsDate(), record.estimatedContractEndDate.toOmsDate(), LocalizationManager.procurementStatus(record.purchaseStatus.orEmpty()),
-                    record.localFinancingPct?.let { "${it.format(2)}%" }.orEmpty(), record.comments.orEmpty()
-                ), record.takeIf { canManage }, onEdit, onDelete, showActions = canManage)
+                ProcurementRow(record.displayValues(), record.takeIf { canManage }, onEdit, onDelete, showActions = canManage)
                 HorizontalDivider()
             }
         }
@@ -392,7 +399,10 @@ private fun ProcurementRow(
     onEdit: (ApiProcurementRecord) -> Unit = {},
     onDelete: (ApiProcurementRecord) -> Unit = {},
     showActions: Boolean = false,
-    isHeader: Boolean = false
+    isHeader: Boolean = false,
+    sortColumnIndex: Int = -1,
+    sortAscending: Boolean = true,
+    onSort: (Int) -> Unit = {}
 ) {
     val uriHandler = LocalUriHandler.current
     Row(
@@ -420,6 +430,10 @@ private fun ProcurementRow(
             }
         }
         values.take(columnWidths.size).zip(columnWidths).forEachIndexed { index, (value, width) ->
+            if (isHeader) {
+                SortableTableHeader(value, index == sortColumnIndex, sortAscending, { onSort(index) }, Modifier.width(width.dp))
+                return@forEachIndexed
+            }
             if (!isHeader && index == 22) Box(Modifier.width(width.dp).padding(horizontal = 6.dp)) {
                 oms.components.OmsBadge(value, oms.theme.OmsColors.Information)
             } else if (!isHeader && index == 10 && value.isNotBlank()) {
@@ -443,6 +457,32 @@ private fun ProcurementRow(
         }
     }
 }
+
+/** Keeps cell rendering and sorting aligned with every displayed procurement column. */
+private fun ApiProcurementRecord.displayValues(): List<String> = listOf(
+    recordNumber.toString(), if (batchId == 8) "A" else if (batchId == 9) "B" else batchId.toString(), localizedUkraineRegion(oblastName), oblastId,
+    promotorName.orEmpty(), if (LocalizationManager.currentLanguage == Language.EN) subprojectNameEn ?: subprojectNameUk.orEmpty() else subprojectNameUk ?: subprojectNameEn.orEmpty(),
+    subProjectId, spId.orEmpty(), sourceContractType.orEmpty(), sourceType.orEmpty(), procurementId.orEmpty(),
+    subprojectTotalCostUah.format(0), subprojectEibFinancingUah.format(0), subprojectLocalFinancingUah.format(0), estimatedTotalEur.format(2),
+    procurementMethod.orEmpty(), tenderDocumentType.orEmpty(), publishedInOjeu.orEmpty(), estimatedProzorroDate.toOmsDate(), estimatedBidSubmissionDate.toOmsDate(),
+    estimatedContractDate.toOmsDate(), estimatedContractEndDate.toOmsDate(), LocalizationManager.procurementStatus(purchaseStatus.orEmpty()),
+    localFinancingPct?.let { "${it.format(2)}%" }.orEmpty(), comments.orEmpty()
+)
+
+private fun ApiProcurementRecord.sortKey(columnIndex: Int): String = when (columnIndex) {
+    0 -> recordNumber.toString().padStart(12, '0')
+    1 -> batchId.toString().padStart(12, '0')
+    11 -> subprojectTotalCostUah.sortKey()
+    12 -> subprojectEibFinancingUah.sortKey()
+    13 -> subprojectLocalFinancingUah.sortKey()
+    14 -> estimatedTotalEur.sortKey()
+    23 -> localFinancingPct.sortKey()
+    else -> displayValues().getOrElse(columnIndex) { "" }.lowercase()
+}
+
+private fun Double?.sortKey(): String = this?.let { value ->
+    value.toString().padStart(28, '0')
+} ?: ""
 
 private fun procurementHeaderLabels(): List<String> = if (LocalizationManager.currentLanguage == Language.EN) listOf(
     "No.", "Tranche", "Region", "Region ID", "Promotor", "Subproject name", "Subproject ID", "SP ID", "Contract type", "Type", "Procurement ID",

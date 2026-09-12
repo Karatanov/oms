@@ -497,6 +497,7 @@ fun CreateInspectionScreen(
                         val target = inspectionTargetUuid
                         if (selectionError != null) errorMessage = selectionError
                         else if (contractor.isBlank() || inspectorName.isBlank()) errorMessage = LocalizationManager.t("manual_sir_required")
+                        else if (!temperatureCelsius.isEarthTemperatureInput()) errorMessage = LocalizationManager.t("error_temperature_range")
                         else {
                             isSubmitting = true
                             scope.launch {
@@ -879,7 +880,7 @@ private enum class WeatherCondition(val localizationKey: String, val workbookVal
 
 private fun WeatherCondition?.toWeatherWorkbookValue(temperatureCelsius: String): String? {
     val normalizedTemperature = temperatureCelsius.replace(',', '.').trim()
-    val temperature = normalizedTemperature.takeIf { it.isNotBlank() }?.let { "$it °C" }
+    val temperature = normalizedTemperature.takeIf { it.toDoubleOrNull()?.let(::isEarthTemperature) == true }?.let { "$it °C" }
     val condition = this?.workbookValue
     return listOfNotNull(condition, temperature).joinToString(", ").ifBlank { null }
 }
@@ -921,9 +922,13 @@ private fun WeatherPicker(
                 }
                 OutlinedTextField(
                     value = temperatureCelsius,
-                    onValueChange = { value -> onTemperatureChange(value.temperatureInput()) },
+                    onValueChange = { value ->
+                        value.temperatureInput().takeIf { it.isEarthTemperatureInput() }?.let(onTemperatureChange)
+                    },
                     label = { Text(LocalizationManager.t("temperature_celsius")) },
                     singleLine = true,
+                    isError = !temperatureCelsius.isEarthTemperatureInput(),
+                    supportingText = { Text(LocalizationManager.t("temperature_range_hint")) },
                     modifier = Modifier.width(170.dp)
                 )
             }
@@ -931,7 +936,7 @@ private fun WeatherPicker(
     }
 }
 
-private fun String.temperatureInput(): String {
+internal fun String.temperatureInput(): String {
     val normalized = replace(',', '.')
     val result = StringBuilder()
     normalized.forEach { character ->
@@ -943,6 +948,15 @@ private fun String.temperatureInput(): String {
     }
     return result.toString().take(7)
 }
+
+/** Historical terrestrial extremes rounded to practical whole-degree form. */
+private const val MIN_EARTH_TEMPERATURE_C = -90.0
+private const val MAX_EARTH_TEMPERATURE_C = 60.0
+
+private fun isEarthTemperature(value: Double): Boolean = value in MIN_EARTH_TEMPERATURE_C..MAX_EARTH_TEMPERATURE_C
+
+internal fun String.isEarthTemperatureInput(): Boolean =
+    isBlank() || this in setOf("-", "+", "-.", "+.") || toDoubleOrNull()?.let(::isEarthTemperature) == true
 
 private data class ManualActivityInput(
     val photoKey: String = "activity-${kotlin.random.Random.nextInt()}-${kotlin.random.Random.nextInt()}",

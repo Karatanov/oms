@@ -31,6 +31,8 @@ No database data, permissions or financial calculations changed.
 - Verify all four non-empty charts; UK/EN language switching; horizontal/vertical
   orientation switching; sidebar navigation to reports, subprojects, procurement,
   documents, administration and financial monitoring; return to the dashboard.
+  The fixture includes 36 financial records so the financial-table heading can
+  also be checked above its rows and after vertical scrolling.
   Inspect the browser console for uncaught exceptions, not just the route URL.
 
 ## Verification
@@ -44,6 +46,10 @@ exception was captured on the deployed site before applying the fix.
 
 The local UI fixture validates rendering/navigation, not production database
 contents or successful Render deployment. Deployment remains a separate step.
+
+The server marks packaged static assets as `no-cache`: the generated client
+bundle intentionally has a stable filename, so this prevents a browser from
+reusing a prior interface after a Render deployment.
 
 Windows Java's Unix-domain socket issue was bypassed only for the build process
 with `JAVA_TOOL_OPTIONS=-Djdk.net.unixdomain.tmpdir=<path-to-an-existing-file>`.
