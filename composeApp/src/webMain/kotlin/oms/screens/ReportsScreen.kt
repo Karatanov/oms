@@ -44,6 +44,7 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import oms.data.ApiInspectionReport
+import oms.data.ApiInspectionPhoto
 import oms.data.ApiInspectionReportPreview
 import oms.data.ManualInspectionReportRequest
 import oms.data.CreateInspectionFindingRequest
@@ -362,14 +363,24 @@ fun ReportsScreen(
 @Composable
 private fun ReportPreviewDialog(report: ReportRow, onDismiss: () -> Unit) {
     var preview by remember(report.report.uuid) { mutableStateOf<ApiInspectionReportPreview?>(null) }
+    var photos by remember(report.report.uuid) { mutableStateOf<List<ApiInspectionPhoto>>(emptyList()) }
     var failed by remember(report.report.uuid) { mutableStateOf(false) }
     var selectedSheet by remember(report.report.uuid) { mutableStateOf(0) }
     val contentScroll = rememberScrollState()
     val tableScroll = rememberScrollState()
     LaunchedEffect(report.report.uuid) {
         failed = false
-        runCatching { OmsApiClient.inspectionReportPreview(report.report.uuid) }
-            .onSuccess { preview = it; selectedSheet = 0 }
+        runCatching {
+            coroutineScope {
+                val loadedPreview = async { OmsApiClient.inspectionReportPreview(report.report.uuid) }
+                val loadedPhotos = async { OmsApiClient.inspectionPhotos(report.report.uuid) }
+                loadedPreview.await() to loadedPhotos.await()
+            }
+        }.onSuccess { (loadedPreview, loadedPhotos) ->
+            preview = loadedPreview
+            photos = loadedPhotos
+            selectedSheet = 0
+        }
             .onFailure { failed = true }
     }
     Card(
@@ -394,7 +405,7 @@ private fun ReportPreviewDialog(report: ReportRow, onDismiss: () -> Unit) {
                 else -> {
                     val loaded = requireNotNull(preview)
                     if (loaded.manual != null) {
-                        ReadOnlySirReport(requireNotNull(loaded.manual))
+                        ReadOnlySirReport(requireNotNull(loaded.manual), photos)
                     } else if (loaded.sheets.isEmpty()) {
                         Text(LocalizationManager.t("report_preview_empty"))
                     } else {
@@ -478,7 +489,7 @@ private fun ReportWorkbookGrid(rows: List<oms.data.ApiInspectionReportPreviewRow
 
 /** The SIR template rendered in the same section order as the editable form. */
 @Composable
-internal fun ReadOnlySirReport(manual: ManualInspectionReportRequest) {
+internal fun ReadOnlySirReport(manual: ManualInspectionReportRequest, photos: List<ApiInspectionPhoto> = emptyList()) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         ReadOnlySirSection(LocalizationManager.t("sir_header_site"), Icons.Default.Description) {
             PreviewField(LocalizationManager.t("sir_inspection_organisation"), manual.projectName)
@@ -505,7 +516,7 @@ internal fun ReadOnlySirReport(manual: ManualInspectionReportRequest) {
             )
         }
         ReadOnlySirSection(LocalizationManager.t("sir_ongoing_activities"), Icons.Default.Engineering) {
-            ReadOnlyActivitiesTable(manual.activities)
+            ReadOnlyActivitiesTable(manual.activities, photos)
         }
         ReadOnlySirSection(LocalizationManager.t("sir_ongoing_observations"), Icons.Default.FactCheck) {
             if (manual.ongoingObservations.isEmpty()) PreviewEmpty()
@@ -565,12 +576,20 @@ internal fun ReadOnlySirReport(manual: ManualInspectionReportRequest) {
 
 /** The workbook's current-work section: headers appear once, each job is a row. */
 @Composable
-private fun ReadOnlyActivitiesTable(activities: List<oms.data.ManualActivityRequest>) {
+private fun ReadOnlyActivitiesTable(activities: List<oms.data.ManualActivityRequest>, photos: List<ApiInspectionPhoto>) {
     if (activities.isEmpty()) {
         PreviewEmpty()
         return
     }
     val headerColor = MaterialTheme.colorScheme.surfaceVariant
+    val knownPhotoPrefixes = activities.map { it.description.toInspectionPhotoNamePrefix() }.filter(String::isNotBlank)
+    // Older reports may contain photos uploaded before activity-based names
+    // existed. Keep that evidence visible beside the first work rather than
+    // silently hiding it simply because a historical filename cannot match.
+    val unassignedPhotos = photos.filter { photo ->
+        val baseName = photo.fileName.substringBeforeLast('.', photo.fileName)
+        knownPhotoPrefixes.none { prefix -> baseName.startsWith(prefix, ignoreCase = true) }
+    }
     Column(
         Modifier.fillMaxWidth().border(1.dp, MaterialTheme.colorScheme.outlineVariant),
         verticalArrangement = Arrangement.spacedBy(0.dp)
@@ -579,6 +598,7 @@ private fun ReadOnlyActivitiesTable(activities: List<oms.data.ManualActivityRequ
             Text(LocalizationManager.t("sir_activity_location"), Modifier.weight(1f), style = MaterialTheme.typography.labelMedium)
             Text(LocalizationManager.t("sir_activity_description"), Modifier.weight(2f), style = MaterialTheme.typography.labelMedium)
             Text(LocalizationManager.t("sir_activity_remarks"), Modifier.weight(1.5f), style = MaterialTheme.typography.labelMedium)
+            Text(LocalizationManager.t("photos"), Modifier.weight(1f), style = MaterialTheme.typography.labelMedium)
         }
         activities.forEachIndexed { index, activity ->
             if (index > 0) HorizontalDivider()
@@ -586,10 +606,33 @@ private fun ReadOnlyActivitiesTable(activities: List<oms.data.ManualActivityRequ
                 Text(activity.location.ifBlank { "—" }, Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
                 Text(activity.description.ifBlank { "—" }, Modifier.weight(2f), style = MaterialTheme.typography.bodyMedium)
                 Text(activity.remarks?.takeIf(String::isNotBlank) ?: "—", Modifier.weight(1.5f), style = MaterialTheme.typography.bodyMedium)
+                val activityPhotos = photos.forActivity(activity) + if (index == 0) unassignedPhotos else emptyList()
+                if (activityPhotos.isEmpty()) Text("—", Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
+                else InspectionActivityPhotoGallery(
+                    activityKey = "${activity.description.toInspectionPhotoNamePrefix()}-$index",
+                    photos = activityPhotos,
+                    modifier = Modifier.weight(1f)
+                )
             }
         }
     }
 }
+
+/** Photo upload names are derived from the ongoing-work description. */
+private fun List<ApiInspectionPhoto>.forActivity(activity: oms.data.ManualActivityRequest): List<ApiInspectionPhoto> {
+    val prefix = activity.description.toInspectionPhotoNamePrefix()
+    if (prefix.isBlank()) return emptyList()
+    return filter { photo ->
+        photo.fileName.substringBeforeLast('.', photo.fileName)
+            .startsWith(prefix, ignoreCase = true)
+    }
+}
+
+private fun String.toInspectionPhotoNamePrefix(): String =
+    replace(Regex("[\\\\/:*?\"<>|\\u0000-\\u001f]+"), " ")
+        .replace(Regex("\\s+"), " ")
+        .trim()
+        .take(220)
 
 @Composable
 private fun ReadOnlySirSection(title: String, icon: ImageVector, content: @Composable ColumnScope.() -> Unit) {

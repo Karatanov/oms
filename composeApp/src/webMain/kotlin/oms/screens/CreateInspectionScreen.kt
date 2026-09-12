@@ -43,7 +43,6 @@ import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.WaterDrop
 import androidx.compose.material.icons.filled.AcUnit
 import androidx.compose.material.icons.filled.Description
-import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.Engineering
 import androidx.compose.material.icons.filled.LocationOn
 import oms.components.PageHeading
@@ -73,11 +72,11 @@ external fun hidePendingInspectionPhotoPreviews(activityKey: String)
 @JsName("setPendingInspectionPhotoDescription")
 external fun setPendingInspectionPhotoDescription(activityKey: String, description: String)
 
-@JsName("showInspectionReportPhotoGallery")
-external fun showInspectionReportPhotoGallery(reportUuid: String, photosJson: String)
+@JsName("showInspectionActivityPhotoGallery")
+external fun showInspectionActivityPhotoGallery(activityKey: String, photosJson: String)
 
-@JsName("hideInspectionReportPhotoGallery")
-external fun hideInspectionReportPhotoGallery(reportUuid: String)
+@JsName("hideInspectionActivityPhotoGallery")
+external fun hideInspectionActivityPhotoGallery(activityKey: String)
 
 @Composable
 fun CreateInspectionScreen(
@@ -405,7 +404,7 @@ fun CreateInspectionScreen(
                     inspectorTitle = inspectorTitle.ifBlank { null },
                     latitude = latitude.replace(',', '.').toDoubleOrNull(),
                     longitude = longitude.replace(',', '.').toDoubleOrNull()
-                )
+                ), reportPhotos.orEmpty()
             ) else ManualSirForm(
             date = date, onDateChange = { date = it }, projectName = projectName, onProjectNameChange = { projectName = it },
             contractor = contractor, onContractorChange = { contractor = it },
@@ -419,15 +418,6 @@ fun CreateInspectionScreen(
             progress = progressComment, onProgressChange = { progressComment = it }, schedule = scheduleRemark, onScheduleChange = { scheduleRemark = it },
             inspectorName = inspectorName, inspectorTitle = inspectorTitle, onInspectorTitleChange = { inspectorTitle = it }
             )
-        }
-
-        if (readOnly && editingReportUuid != null) {
-            SirFormSection(LocalizationManager.t("photos"), Icons.Default.PhotoCamera) {
-                when (val photos = reportPhotos) {
-                    null -> oms.components.ContentState(LocalizationManager.t("loading_photos"), loading = true)
-                    else -> InspectionReportPhotoGallery(editingReportUuid, photos)
-                }
-            }
         }
 
         if (!readOnly) Row(
@@ -689,20 +679,20 @@ private fun PendingInspectionPhotoPreviews(activityKey: String, revision: Int, o
     }
 }
 
-/** Read-only evidence gallery for the inspection report preview. */
+/** Compact evidence gallery anchored next to one current-work row. */
 @Composable
-private fun InspectionReportPhotoGallery(reportUuid: String, photos: List<ApiInspectionPhoto>) {
-    val paneId = "inspection-report-photo-gallery-$reportUuid"
-    NativePaneAnchor(paneId, Modifier.fillMaxWidth().height(228.dp))
-    DisposableEffect(reportUuid, photos, LocalizationManager.currentLanguage) {
+internal fun InspectionActivityPhotoGallery(activityKey: String, photos: List<ApiInspectionPhoto>, modifier: Modifier = Modifier) {
+    val paneId = "inspection-activity-photo-gallery-$activityKey"
+    NativePaneAnchor(paneId, modifier.height(88.dp))
+    DisposableEffect(activityKey, photos, LocalizationManager.currentLanguage) {
         val publicPhotos = photos.map { photo ->
             photo.copy(
                 downloadUrl = photo.downloadUrl.toInspectionPhotoUrl(),
                 thumbnailUrl = photo.thumbnailUrl.toInspectionPhotoUrl()
             )
         }
-        showInspectionReportPhotoGallery(reportUuid, Json.encodeToString(publicPhotos))
-        onDispose { hideInspectionReportPhotoGallery(reportUuid) }
+        showInspectionActivityPhotoGallery(activityKey, Json.encodeToString(publicPhotos))
+        onDispose { hideInspectionActivityPhotoGallery(activityKey) }
     }
 }
 

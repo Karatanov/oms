@@ -292,10 +292,10 @@
 
         function setOmsPaneBounds(id, x, y, width, height) {
             let pane = document.getElementById(id);
-            if (!pane && (id.startsWith("inspection-photo-preview-pane-") || id.startsWith("inspection-report-photo-gallery-"))) {
+            if (!pane && (id.startsWith("inspection-photo-preview-pane-") || id.startsWith("inspection-report-photo-gallery-") || id.startsWith("inspection-activity-photo-gallery-"))) {
                 pane = document.createElement("section");
                 pane.id = id;
-                pane.className = id.startsWith("inspection-report-photo-gallery-")
+                pane.className = (id.startsWith("inspection-report-photo-gallery-") || id.startsWith("inspection-activity-photo-gallery-"))
                     ? "inspection-report-photo-gallery"
                     : "inspection-photo-preview-pane";
                 pane.setAttribute("aria-live", "polite");
@@ -743,54 +743,78 @@
             render();
         }
 
-        function inspectionReportPhotoGallery(reportUuid) {
-            return document.getElementById(`inspection-report-photo-gallery-${reportUuid}`);
-        }
+        const ufsiNativePhotoGalleryRequests = new Map();
 
-        function hideInspectionReportPhotoGallery(reportUuid) {
-            const pane = inspectionReportPhotoGallery(reportUuid);
+        function hideNativePhotoGallery(paneId) {
+            ufsiNativePhotoGalleryRequests.set(paneId, (ufsiNativePhotoGalleryRequests.get(paneId) || 0) + 1);
+            const pane = document.getElementById(paneId);
             if (pane) {
                 pane.classList.remove("visible");
                 pane.replaceChildren();
             }
         }
 
-        function showInspectionReportPhotoGallery(reportUuid, photosJson) {
-            const pane = inspectionReportPhotoGallery(reportUuid);
-            if (!pane) return;
+        function showNativePhotoGallery(paneId, photosJson) {
+            const requestId = (ufsiNativePhotoGalleryRequests.get(paneId) || 0) + 1;
+            ufsiNativePhotoGalleryRequests.set(paneId, requestId);
             const photos = JSON.parse(photosJson || "[]");
-            pane.replaceChildren();
-            pane.classList.add("visible");
-            if (!photos.length) {
-                const empty = document.createElement("div");
-                empty.className = "inspection-report-photo-gallery-empty";
-                empty.textContent = omsText("noPhotos");
-                pane.append(empty);
-                return;
-            }
-            photos.forEach(photo => {
-                const button = document.createElement("button");
-                button.type = "button";
-                button.className = "inspection-report-photo-gallery-item";
-                button.setAttribute("aria-label", `${omsText("open")} ${photo.fileName}`);
-                const image = document.createElement("img");
-                image.alt = photo.fileName;
-                image.loading = "lazy";
-                image.addEventListener("error", () => {
-                    if (image.dataset.originalAttempted !== "true") {
-                        image.dataset.originalAttempted = "true";
-                        image.src = photo.downloadUrl;
-                    } else {
-                        button.classList.add("unavailable");
-                        button.textContent = omsText("noPhotos");
-                        image.remove();
-                    }
+            // NativePaneAnchor creates its target after the Compose layout pass.
+            // Retrying in the next frame prevents an empty report preview on
+            // the first visit to a screen.
+            const render = (attempt = 0) => {
+                if (ufsiNativePhotoGalleryRequests.get(paneId) !== requestId) return;
+                const pane = document.getElementById(paneId);
+                if (!pane) {
+                    if (attempt < 3) requestAnimationFrame(() => render(attempt + 1));
+                    return;
+                }
+                pane.replaceChildren();
+                pane.classList.add("visible");
+                if (!photos.length) {
+                    const empty = document.createElement("div");
+                    empty.className = "inspection-report-photo-gallery-empty";
+                    empty.textContent = omsText("noPhotos");
+                    pane.append(empty);
+                    return;
+                }
+                photos.forEach(photo => {
+                    const button = document.createElement("button");
+                    button.type = "button";
+                    button.className = "inspection-report-photo-gallery-item";
+                    button.setAttribute("aria-label", `${omsText("open")} ${photo.fileName}`);
+                    const image = document.createElement("img");
+                    image.alt = photo.fileName;
+                    image.loading = "lazy";
+                    image.addEventListener("error", () => {
+                        if (image.dataset.originalAttempted !== "true") {
+                            image.dataset.originalAttempted = "true";
+                            image.src = photo.downloadUrl;
+                        } else {
+                            button.classList.add("unavailable");
+                            button.textContent = omsText("noPhotos");
+                            image.remove();
+                        }
+                    });
+                    image.src = photo.thumbnailUrl;
+                    button.append(image);
+                    button.addEventListener("click", () => openPhotoLightbox(photos, photo.uuid));
+                    pane.append(button);
                 });
-                image.src = photo.thumbnailUrl;
-                button.append(image);
-                button.addEventListener("click", () => openPhotoLightbox(photos, photo.uuid));
-                pane.append(button);
-            });
+            };
+            requestAnimationFrame(() => render());
+        }
+
+        function showInspectionReportPhotoGallery(reportUuid, photosJson) {
+            showNativePhotoGallery(`inspection-report-photo-gallery-${reportUuid}`, photosJson);
+        }
+        function hideInspectionReportPhotoGallery(reportUuid) {
+            hideNativePhotoGallery(`inspection-report-photo-gallery-${reportUuid}`);
+        }
+        function showInspectionActivityPhotoGallery(activityKey, photosJson) {
+            showNativePhotoGallery(`inspection-activity-photo-gallery-${activityKey}`, photosJson);
+        }
+        function hideInspectionActivityPhotoGallery(activityKey) {
+            hideNativePhotoGallery(`inspection-activity-photo-gallery-${activityKey}`);
         }
 
         function fitLeafletResults() {
