@@ -519,19 +519,6 @@ private fun ProjectsFilters(
                         LocalizationManager.t("filters"),
                         style = MaterialTheme.typography.labelLarge
                     )
-                    SortColumn.NAME -> Row(
-                        Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.End,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        TextButton(
-                            onClick = onReset,
-                            enabled = canReset,
-                            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp)
-                        ) {
-                            Text(LocalizationManager.t("reset_filters"), maxLines = 1, style = MaterialTheme.typography.labelSmall)
-                        }
-                    }
                     SortColumn.REGION -> ProjectFilterDropdown(
                         LocalizationManager.t("region"),
                         ProjectRepository.projects.map { it.region }.filter { it.isNotBlank() }.distinct().sorted(),
@@ -551,7 +538,18 @@ private fun ProjectsFilters(
                 }
             }
         }
-        Spacer(Modifier.width(ProjectTableColumns.actions))
+        Box(
+            Modifier.width(ProjectTableColumns.actions),
+            contentAlignment = Alignment.CenterEnd
+        ) {
+            TextButton(
+                onClick = onReset,
+                enabled = canReset,
+                contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp)
+            ) {
+                Text(LocalizationManager.t("reset_filters"), maxLines = 1, style = MaterialTheme.typography.labelSmall)
+            }
+        }
     }
 }
 
