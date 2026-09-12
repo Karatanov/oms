@@ -25,19 +25,23 @@ fun Route.photoRoutes() = route("/api/v1/inspection-reports/{reportUuid}/photos"
         call.requireRole("ADMIN", "PROJECT_MANAGER", "INSPECTOR") ?: return@post
         val report = call.editablePhotoReport() ?: return@post
         val multipart = call.receiveMultipart()
-        var result: oms.ufsi.domain.InspectionPhoto? = null
+        val uploaded = mutableListOf<oms.ufsi.domain.InspectionPhoto>()
         try {
             multipart.forEachPart { part ->
                 if (part is PartData.FileItem && part.name == "file") {
                     val name = part.originalFileName ?: throw IllegalArgumentException("File name is required.")
-                    result = AppContainer.inspectionPhotoService.upload(
+                    uploaded += AppContainer.inspectionPhotoService.upload(
                         report.id, name, part.contentType?.toString(),
                         part.provider().readRemaining(10_000_001).readByteArray()
                     )
                 }
                 part.dispose()
             }
-            val photo = result ?: throw IllegalArgumentException("Field file is required.")
+            // A complete form submission may contain up to 30 photos. Syncing
+            // the XLSX evidence sheet once per HTTP request (rather than once
+            // per photo) removes repeated workbook parsing/writing and durable
+            // blob persistence from the critical upload path.
+            val photo = uploaded.firstOrNull() ?: throw IllegalArgumentException("Field file is required.")
             AppContainer.inspectionReportFileService.synchronizeManualPhotoSheet(
                 report,
                 AppContainer.inspectionPhotoService.list(report.id)

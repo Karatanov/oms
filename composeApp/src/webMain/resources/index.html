@@ -624,6 +624,11 @@
         async function uploadSelectedInspectionPhotos(reportUuid, onComplete) {
             showOmsLoading(omsText("uploadingFile"));
             try {
+                // Send the whole inspection evidence set as one multipart
+                // request. Previously each file caused a separate HTTP call
+                // and a complete XLSX rebuild, making a 10–30-photo report
+                // appear to save indefinitely on a remote deployment.
+                const formData = new FormData();
                 for (const [activityKey, photos] of ufsiPendingInspectionPhotos.entries()) {
                     const description = ufsiPendingInspectionPhotoDescriptions.get(activityKey) || "photo";
                     const baseName = description.replace(/[\\/:*?"<>|\u0000-\u001f]+/g, " ").replace(/\s+/g, " ").trim().slice(0, 220) || "photo";
@@ -631,11 +636,12 @@
                         const file = photos[index];
                         const extension = (file.name.split(".").pop() || "jpg").toLowerCase();
                         const fileName = `${baseName}${photos.length > 1 ? ` ${index + 1}` : ""}.${extension}`;
-                        const formData = new FormData();
                         formData.append("file", file, fileName);
-                        const response = await fetch(omsApiUrl(`/inspection-reports/${reportUuid}/photos`), { method: "POST", body: formData, credentials: "include" });
-                        if (!response.ok) throw new Error(await response.text());
                     }
+                }
+                if (formData.getAll("file").length > 0) {
+                    const response = await fetch(omsApiUrl(`/inspection-reports/${reportUuid}/photos`), { method: "POST", body: formData, credentials: "include" });
+                    if (!response.ok) throw new Error(await response.text());
                 }
                 ufsiPendingInspectionPhotos.forEach(files => files.forEach(releasePendingInspectionPhoto));
                 ufsiPendingInspectionPhotos.clear();

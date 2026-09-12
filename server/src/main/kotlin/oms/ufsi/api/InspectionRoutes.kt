@@ -92,12 +92,9 @@ fun Route.inspectionRoutes() {
 
     get("/api/v1/inspection-reports/{reportUuid}/source-file") {
         val report = call.findReport() ?: return@get
-        AppContainer.inspectionReportFileService.synchronizeManualPhotoSheet(
-            report,
-            AppContainer.inspectionPhotoService.list(report.id)
-        ) { photo ->
-            AppContainer.inspectionPhotoService.resolveFile(photo, thumbnail = true)
-        }
+        // The photo route synchronizes a manual workbook immediately after a
+        // successful batch upload. Rebuilding it again on every download made
+        // a read-only request parse, write and persist the same XLSX.
         val file = AppContainer.inspectionReportFileService.getFile(report.id)
             ?: return@get call.notFound("Original SIR file not found.")
         val path = AppContainer.inspectionReportFileService.resolveFile(file)
