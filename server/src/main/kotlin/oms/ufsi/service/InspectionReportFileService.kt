@@ -176,8 +176,11 @@ class InspectionReportFileService(
             it.contains("OBSERVANCES ON HEALTH & SAFETY", ignoreCase = true)
         } ?: 40 + contentOffset
         val qualityAssessmentTitleRow = firstRow {
-            it.contains("NARRATIVE ASSESSMENT", ignoreCase = true)
+            it.contains("NARRATIVE ASSESSMENT", ignoreCase = true) && it.contains("QUALITY", ignoreCase = true)
         } ?: 48 + contentOffset
+        val progressAssessmentTitleRow = firstRow {
+            it.contains("NARRATIVE ASSESSMENT", ignoreCase = true) && it.contains("PROGRESS", ignoreCase = true)
+        } ?: 55 + contentOffset
         val activityEndExclusive = minOf(
             ongoingObservationsTitleRow,
             purchasedMaterialsTitleRow?.takeIf { it < ongoingObservationsTitleRow } ?: Int.MAX_VALUE
@@ -215,17 +218,19 @@ class InspectionReportFileService(
                     }
                 }
             },
-            qualityRemarks = ((49 + contentOffset)..(53 + contentOffset)).mapNotNull { row ->
+            qualityRemarks = (qualityAssessmentTitleRow + 1 until progressAssessmentTitleRow).mapNotNull { row ->
                 val work = text(row, 1)
-                val comments = text(row, 4)
-                val rectification = text(row, 7)
-                val status = text(row, 10)
-                val isLegacyTwoColumnLayout = text(48 + contentOffset, 4).isBlank() && text(48 + contentOffset, 7).isBlank()
+                val comments = firstText(row, listOf(4, 2)).orEmpty()
+                val rectification = firstText(row, listOf(7, 6)).orEmpty()
+                val status = firstText(row, listOf(10, 8)).orEmpty()
+                val isHeader = work.equals("WORK", ignoreCase = true) ||
+                    work.contains("NARRATIVE ASSESSMENT", ignoreCase = true)
+                if (isHeader) return@mapNotNull null
                 ManualRemark(
-                    work = if (isLegacyTwoColumnLayout) "" else work,
-                    comment = if (isLegacyTwoColumnLayout) work else comments,
-                    rectification = if (isLegacyTwoColumnLayout) status.ifBlank { null } else rectification.ifBlank { null },
-                    status = if (isLegacyTwoColumnLayout) null else status.ifBlank { null }
+                    work = work,
+                    comment = comments,
+                    rectification = rectification.ifBlank { null },
+                    status = status.ifBlank { null }
                 ).takeIf { it.work.isNotBlank() || it.comment.isNotBlank() || !it.rectification.isNullOrBlank() || !it.status.isNullOrBlank() }
             },
             progressComment = text(55 + contentOffset, 1).ifBlank { null },
