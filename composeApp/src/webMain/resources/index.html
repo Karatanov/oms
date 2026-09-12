@@ -432,6 +432,7 @@
         const ufsiPendingInspectionPhotos = new Map();
         const ufsiPendingInspectionPhotoDescriptions = new Map();
         let ufsiPendingInspectionPhotoUrls = new WeakMap();
+        const ufsiPendingInspectionPreviewRequests = new Map();
 
         function pendingInspectionPhotos(activityKey) {
             if (!ufsiPendingInspectionPhotos.has(activityKey)) ufsiPendingInspectionPhotos.set(activityKey, []);
@@ -466,6 +467,9 @@
         }
 
         function hidePendingInspectionPhotoPreviews(activityKey) {
+            // Invalidate a queued layout-frame render before the native pane
+            // disappears with its Compose anchor.
+            ufsiPendingInspectionPreviewRequests.set(activityKey, (ufsiPendingInspectionPreviewRequests.get(activityKey) || 0) + 1);
             const pane = pendingInspectionPhotoPane(activityKey);
             if (pane) {
                 pane.classList.remove("visible");
@@ -474,15 +478,42 @@
         }
 
         function showPendingInspectionPhotoPreviews(activityKey, onSelectionChanged) {
-            const pane = pendingInspectionPhotoPane(activityKey);
-            if (!pane) return;
-            pane.replaceChildren();
-            const photos = pendingInspectionPhotos(activityKey);
-            if (!photos.length) return hidePendingInspectionPhotoPreviews(activityKey);
-            pane.classList.add("visible");
-            photos.forEach((file, index) => {
+            const requestId = (ufsiPendingInspectionPreviewRequests.get(activityKey) || 0) + 1;
+            ufsiPendingInspectionPreviewRequests.set(activityKey, requestId);
+            // The DOM pane is created by NativePaneAnchor after Compose has
+            // laid out this frame. Render on the next frame so a newly picked
+            // photo is visible immediately, rather than requiring reopening
+            // the activity section.
+            const render = (attempt = 0) => {
+                if (ufsiPendingInspectionPreviewRequests.get(activityKey) !== requestId) return;
+                const pane = pendingInspectionPhotoPane(activityKey);
+                if (!pane) {
+                    if (attempt < 3) requestAnimationFrame(() => render(attempt + 1));
+                    return;
+                }
+                pane.replaceChildren();
+                const photos = pendingInspectionPhotos(activityKey);
+                if (!photos.length) {
+                    pane.classList.remove("visible");
+                    return;
+                }
+                pane.classList.add("visible");
+                const gallery = photos.map((file, photoIndex) => ({
+                    uuid: `${activityKey}-${photoIndex}`,
+                    fileName: file.name,
+                    downloadUrl: pendingInspectionPhotoUrl(file)
+                }));
+                photos.forEach((file, index) => {
                 const card = document.createElement("div");
                 card.className = "inspection-photo-preview";
+                card.tabIndex = 0;
+                card.setAttribute("role", "button");
+                card.setAttribute("aria-label", `${omsText("open")} ${file.name}`);
+                const open = () => openPhotoLightbox(gallery, gallery[index].uuid);
+                card.onclick = open;
+                card.onkeydown = event => {
+                    if (event.key === "Enter" || event.key === " ") { event.preventDefault(); open(); }
+                };
                 const image = document.createElement("img");
                 image.src = pendingInspectionPhotoUrl(file);
                 image.alt = file.name;
@@ -491,7 +522,8 @@
                 remove.className = "inspection-photo-remove";
                 remove.textContent = "×";
                 remove.setAttribute("aria-label", `${omsText("remove")} ${file.name}`);
-                remove.onclick = () => {
+                remove.onclick = event => {
+                    event.stopPropagation();
                     const [removed] = photos.splice(index, 1);
                     if (removed) releasePendingInspectionPhoto(removed);
                     onSelectionChanged(photos.length);
@@ -501,6 +533,8 @@
                 card.append(image, remove, name);
                 pane.append(card);
             });
+            };
+            requestAnimationFrame(() => render());
         }
 
         function openInspectionPhotoPicker(activityKey, onSelectionChanged) {
@@ -534,9 +568,22 @@
             const notify = () => onSelectionChanged(photos.length);
             const render = () => {
                 previews.replaceChildren();
+                const gallery = photos.map((file, photoIndex) => ({
+                    uuid: `${activityKey}-${photoIndex}`,
+                    fileName: file.name,
+                    downloadUrl: pendingInspectionPhotoUrl(file)
+                }));
                 photos.forEach((file, index) => {
                     const card = document.createElement("div");
                     card.className = "inspection-photo-preview";
+                    card.tabIndex = 0;
+                    card.setAttribute("role", "button");
+                    card.setAttribute("aria-label", `${omsText("open")} ${file.name}`);
+                    const open = () => openPhotoLightbox(gallery, gallery[index].uuid);
+                    card.onclick = open;
+                    card.onkeydown = event => {
+                        if (event.key === "Enter" || event.key === " ") { event.preventDefault(); open(); }
+                    };
                     const image = document.createElement("img");
                     image.src = pendingInspectionPhotoUrl(file);
                     image.alt = file.name;
@@ -545,7 +592,7 @@
                     remove.className = "inspection-photo-remove";
                     remove.textContent = "×";
                     remove.setAttribute("aria-label", `${omsText("remove")} ${file.name}`);
-                    remove.onclick = () => { const [removed] = photos.splice(index, 1); if (removed) releasePendingInspectionPhoto(removed); notify(); render(); };
+                    remove.onclick = event => { event.stopPropagation(); const [removed] = photos.splice(index, 1); if (removed) releasePendingInspectionPhoto(removed); notify(); render(); };
                     const name = document.createElement("span");
                     name.textContent = file.name;
                     card.append(image, remove, name);
