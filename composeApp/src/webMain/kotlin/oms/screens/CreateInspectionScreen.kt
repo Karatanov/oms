@@ -38,6 +38,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.WaterDrop
@@ -287,6 +288,13 @@ fun CreateInspectionScreen(
             else if (isEditMode || isManualEdit) LocalizationManager.t("edit_inspection")
             else LocalizationManager.t("create_inspection"),
             Icons.Default.FactCheck
+        ) {
+            if (readOnly) OutlinedButton(onClick = onCancel) {
+                Icon(Icons.Default.ArrowBack, contentDescription = null)
+                Spacer(Modifier.width(6.dp))
+                Text(LocalizationManager.t("return_to_reports"))
+            }
+        }
         )
 
         if (loadingManualReport) {
