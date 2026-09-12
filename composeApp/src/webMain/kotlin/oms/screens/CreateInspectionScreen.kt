@@ -295,7 +295,6 @@ fun CreateInspectionScreen(
                 Text(LocalizationManager.t("return_to_reports"))
             }
         }
-        )
 
         if (loadingManualReport) {
             oms.components.ContentState(LocalizationManager.t("loading_records"), loading = true)
