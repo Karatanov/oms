@@ -12,9 +12,11 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.UUID
 import org.apache.poi.ss.usermodel.DataFormatter
+import org.apache.poi.ss.usermodel.BorderStyle
 import org.apache.poi.ss.usermodel.Workbook
 import org.apache.poi.ss.usermodel.WorkbookFactory
 import org.apache.poi.ss.util.CellRangeAddress
+import org.apache.poi.ss.util.RegionUtil
 import org.apache.poi.xssf.usermodel.XSSFWorkbook
 import oms.ufsi.dto.CreateManualInspectionReportRequest
 import oms.ufsi.dto.ManualActivity
@@ -376,7 +378,16 @@ class InspectionReportFileService(
             ?: (sheet.getRow(row - 1) ?: sheet.createRow(row - 1)).createCell(column - 1)
         fun mergeRow(row: Int) {
             listOf(0..2, 3..5, 6..8, 9..11).forEach { columns ->
-                sheet.addMergedRegion(CellRangeAddress(row - 1, row - 1, columns.first, columns.last))
+                val region = CellRangeAddress(row - 1, row - 1, columns.first, columns.last)
+                sheet.addMergedRegion(region)
+                // POI only retains the top-left cell style after a merge.
+                // Explicitly paint every edge, otherwise the right/bottom
+                // lines of newly inserted Purchased Materials rows disappear
+                // when the workbook is opened in Excel.
+                RegionUtil.setBorderTop(BorderStyle.THIN, region, sheet)
+                RegionUtil.setBorderBottom(BorderStyle.THIN, region, sheet)
+                RegionUtil.setBorderLeft(BorderStyle.THIN, region, sheet)
+                RegionUtil.setBorderRight(BorderStyle.THIN, region, sheet)
             }
         }
 
