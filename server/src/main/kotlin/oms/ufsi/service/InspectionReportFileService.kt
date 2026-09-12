@@ -146,6 +146,12 @@ class InspectionReportFileService(
         val formatter = DataFormatter()
         fun text(row: Int, column: Int) = sheet.getRow(row - 1)?.getCell(column - 1)
             ?.let(formatter::formatCellValue)?.trim().orEmpty()
+        // Source SIR workbooks have appeared with both the full-width
+        // YES/NO + COMMENTS layout and a compact three-column variant.
+        // Read the first populated cell from the relevant group of columns
+        // so neither layout loses an answer or a free-text observation.
+        fun firstText(row: Int, columns: List<Int>): String? =
+            columns.asSequence().map { column -> text(row, column) }.firstOrNull(String::isNotBlank)
         fun date(row: Int, column: Int): String = runCatching {
             sheet.getRow(row - 1).getCell(column - 1).localDateTimeCellValue.toLocalDate().toString()
         }.getOrDefault(report.inspectionDate.toString())
@@ -169,6 +175,9 @@ class InspectionReportFileService(
         val hseTitleRow = firstRow {
             it.contains("OBSERVANCES ON HEALTH & SAFETY", ignoreCase = true)
         } ?: 40 + contentOffset
+        val qualityAssessmentTitleRow = firstRow {
+            it.contains("NARRATIVE ASSESSMENT", ignoreCase = true)
+        } ?: 48 + contentOffset
         val activityEndExclusive = minOf(
             ongoingObservationsTitleRow,
             purchasedMaterialsTitleRow?.takeIf { it < ongoingObservationsTitleRow } ?: Int.MAX_VALUE
@@ -191,9 +200,19 @@ class InspectionReportFileService(
                     .takeIf { it.materialsAndEquipment.isNotBlank() || !it.characteristics.isNullOrBlank() || !it.perDed.isNullOrBlank() || !it.notes.isNullOrBlank() }
             } } ?: emptyList(),
             ongoingObservations = observationRows.map { text(it, 1) }.filter(String::isNotBlank),
-            hseObservations = ((41 + contentOffset)..(46 + contentOffset)).mapNotNull { row ->
-                text(row, 1).takeIf(String::isNotBlank)?.split(" — ", limit = 3)?.let { parts ->
-                    ManualHseObservation(parts[0], parts.getOrNull(1), parts.getOrNull(2))
+            hseObservations = (hseTitleRow + 1 until qualityAssessmentTitleRow).mapNotNull { row ->
+                val observation = text(row, 1).takeIf(String::isNotBlank) ?: return@mapNotNull null
+                val worksheetAnswer = firstText(row, listOf(8, 7, 2))
+                val worksheetComment = firstText(row, listOf(10, 9, 4, 3))
+                // Manual workbooks previously stored all three values in the
+                // first merged cell. Imported SIRs retain the real YES/NO and
+                // COMMENTS columns. Support both without losing custom rows.
+                if (worksheetAnswer != null || worksheetComment != null) {
+                    ManualHseObservation(observation, worksheetAnswer, worksheetComment)
+                } else {
+                    observation.split(" — ", limit = 3).let { parts ->
+                        ManualHseObservation(parts[0], parts.getOrNull(1), parts.getOrNull(2))
+                    }
                 }
             },
             qualityRemarks = ((49 + contentOffset)..(53 + contentOffset)).mapNotNull { row ->

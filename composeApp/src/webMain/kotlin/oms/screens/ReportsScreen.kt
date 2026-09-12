@@ -524,32 +524,7 @@ internal fun ReadOnlySirReport(manual: ManualInspectionReportRequest, photos: Li
         }
         ReadOnlySirSection(LocalizationManager.t("sir_hse_observations"), Icons.Default.FactCheck) {
             if (manual.hseObservations.isEmpty()) PreviewEmpty()
-            manual.hseObservations.forEach { observation ->
-                Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-                    Row(Modifier.fillMaxWidth().padding(10.dp), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Text(LocalizationManager.hseObservation(observation.observation), Modifier.weight(1f))
-                        observation.answer?.takeIf(String::isNotBlank)?.let { answer ->
-                            val yes = answer.equals("yes", true)
-                            // Keep answers in one visual column. Without a
-                            // comment, an unbounded Row used to push the badge
-                            // to the far right edge of the card.
-                            Box(Modifier.width(84.dp), contentAlignment = Alignment.Center) {
-                                oms.components.OmsBadge(
-                                    LocalizationManager.t(if (yes) "yes" else "no"),
-                                    if (yes) Color(0xFF2E7D32) else Color(0xFFC62828)
-                                )
-                            }
-                        }
-                        // Reserve the comment column even when it is empty so
-                        // every answer badge has the same horizontal position.
-                        Box(Modifier.weight(1f)) {
-                            observation.comment?.takeIf(String::isNotBlank)?.let { comment ->
-                                Text(comment, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
-                        }
-                    }
-                }
-            }
+            else ReadOnlyHealthSafetyTable(manual.hseObservations)
         }
         ReadOnlySirSection(LocalizationManager.t("sir_quality_assessment"), Icons.Default.FactCheck) {
             if (manual.qualityRemarks.isEmpty()) PreviewEmpty()
@@ -570,6 +545,43 @@ internal fun ReadOnlySirReport(manual: ManualInspectionReportRequest, photos: Li
                 LocalizationManager.t("sir_name") to manual.inspectorName,
                 LocalizationManager.t("sir_title_field") to manual.inspectorTitle
             )
+        }
+    }
+}
+
+/** HSE observations retain the three-column structure of the SIR worksheet. */
+@Composable
+private fun ReadOnlyHealthSafetyTable(observations: List<oms.data.ManualHseObservationRequest>) {
+    val headerColor = MaterialTheme.colorScheme.surfaceVariant
+    Column(
+        Modifier.fillMaxWidth().border(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        verticalArrangement = Arrangement.spacedBy(0.dp)
+    ) {
+        Row(Modifier.fillMaxWidth().background(headerColor).padding(horizontal = 10.dp, vertical = 8.dp)) {
+            Text(LocalizationManager.t("sir_hse_observations"), Modifier.weight(2f), style = MaterialTheme.typography.labelMedium)
+            Text("${LocalizationManager.t("yes")}/${LocalizationManager.t("no")}", Modifier.width(84.dp), style = MaterialTheme.typography.labelMedium)
+            Text(LocalizationManager.t("comments"), Modifier.weight(1.25f), style = MaterialTheme.typography.labelMedium)
+        }
+        observations.forEachIndexed { index, observation ->
+            if (index > 0) HorizontalDivider()
+            Row(Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 10.dp), verticalAlignment = Alignment.Top) {
+                Text(LocalizationManager.hseObservation(observation.observation), Modifier.weight(2f), style = MaterialTheme.typography.bodyMedium)
+                Box(Modifier.width(84.dp), contentAlignment = Alignment.TopCenter) {
+                    observation.answer?.takeIf(String::isNotBlank)?.let { answer ->
+                        when {
+                            answer.equals("yes", true) -> oms.components.OmsBadge(LocalizationManager.t("yes"), Color(0xFF2E7D32))
+                            answer.equals("no", true) -> oms.components.OmsBadge(LocalizationManager.t("no"), Color(0xFFC62828))
+                            else -> Text(answer, style = MaterialTheme.typography.bodyMedium)
+                        }
+                    }
+                }
+                Text(
+                    observation.comment?.takeIf(String::isNotBlank) ?: "—",
+                    Modifier.weight(1.25f),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
     }
 }
