@@ -40,7 +40,7 @@ class ComposeAppWebTest {
 
     @Test
     fun redesignedControlsHaveBothTranslations() {
-        listOf("retry", "no_options", "workspace", "expand_navigation", "collapse_navigation",
+        listOf("retry", "no_options", "dashboard", "expand_navigation", "collapse_navigation",
             "reset_filters", "confirm_delete_title", "confirm_delete_message", "table_scroll",
             "admin_search", "reports_search", "documents_search", "portfolio_overview").forEach {
             assertTrue(!Strings.uk[it].isNullOrBlank(), "UK: $it")

@@ -69,7 +69,7 @@ fun localizedUkraineRegion(value: String): String {
     }
     return knownRegion?.displayName()
         ?: if (LocalizationManager.currentLanguage == Language.EN) {
-            value.replace(Regex("(?i)\\boblast\\b"), "Region")
+            value.replace(Regex("\\boblast\\b", RegexOption.IGNORE_CASE), "Region")
         } else value
 }
 

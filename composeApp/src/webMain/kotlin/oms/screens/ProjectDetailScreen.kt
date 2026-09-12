@@ -422,12 +422,13 @@ private fun EmptyProjectTab(title: String, description: String) {
     }
 }
 
-private fun localizedProjectAddress(details: oms.data.ApiProjectDetails): String {
+internal fun localizedProjectAddress(details: oms.data.ApiProjectDetails): String {
     val data = details.data
     if (LocalizationManager.currentLanguage != Language.EN) return data.address.ifBlank { "—" }
     val englishSourceName = data.nameEn?.takeIf(String::isNotBlank) ?: details.monitoringDetails?.nameEn
     val extracted = englishSourceName?.let {
-        Regex("(?i)(?:at the address|address)\\s*[:,-]\\s*(.+)$").find(it)?.groupValues?.getOrNull(1)?.trim(' ', '"')
+        Regex("(?:at the address|address)\\s*[:,-]\\s*(.+)$", RegexOption.IGNORE_CASE)
+            .find(it)?.groupValues?.getOrNull(1)?.trim(' ', '"')
     }
     if (!extracted.isNullOrBlank()) return extracted
     return listOfNotNull(

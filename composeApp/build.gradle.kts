@@ -17,6 +17,9 @@ kotlin {
             commonWebpackConfig {
                 sourceMaps = false
             }
+            testTask {
+                useKarma { useChromeHeadless() }
+            }
         }
         binaries.executable()
     }

@@ -304,7 +304,9 @@ private fun AnalyticsCard(
 }
 
 private fun String.toChartMonth(): String = if (matches(Regex("\\d{4}-\\d{2}"))) "${toMonthName()} ${take(4)}" else this
-private fun String.toRegionChartLabel(): String = replace(Regex("(?i)\\s+(область|oblast|region)$"), "").trim()
+// Inline (?i) flags are not supported by the JavaScript RegExp engine.
+internal fun String.toRegionChartLabel(): String =
+    replace(Regex("\\s+(область|oblast|region)$", RegexOption.IGNORE_CASE), "").trim()
 private fun formatChartAmount(value: Double, currency: String): String {
     if (currency == "EUR") {
         val cents = (value * 100).roundToLong()
