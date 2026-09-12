@@ -515,11 +515,15 @@ private fun ProjectsFilters(
         ProjectTableColumns.columns.forEach { column ->
             Box(Modifier.width(ProjectTableColumns.width(column)).padding(end = 6.dp)) {
                 when (column) {
+                    SortColumn.ID -> Text(
+                        LocalizationManager.t("filters"),
+                        style = MaterialTheme.typography.labelLarge
+                    )
                     SortColumn.NAME -> Row(
                         Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(LocalizationManager.t("filters"), Modifier.weight(1f), style = MaterialTheme.typography.labelLarge)
                         TextButton(
                             onClick = onReset,
                             enabled = canReset,
