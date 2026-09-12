@@ -553,14 +553,7 @@ internal fun ReadOnlySirReport(manual: ManualInspectionReportRequest, photos: Li
         }
         ReadOnlySirSection(LocalizationManager.t("sir_quality_assessment"), Icons.Default.FactCheck) {
             if (manual.qualityRemarks.isEmpty()) PreviewEmpty()
-            manual.qualityRemarks.forEach { remark ->
-                PreviewFieldRow(
-                    LocalizationManager.t("sir_quality_work") to remark.work,
-                    LocalizationManager.t("sir_quality_comment") to remark.comment,
-                    LocalizationManager.t("sir_quality_rectification") to remark.rectification,
-                    LocalizationManager.t("sir_quality_status") to remark.status
-                )
-            }
+            else ReadOnlyQualityAssessmentTable(manual.qualityRemarks)
         }
         ReadOnlySirSection(LocalizationManager.t("sir_progress_assessment"), Icons.Default.FactCheck) {
             if (manual.progressComment.isNullOrBlank() && manual.scheduleRemark.isNullOrBlank()) PreviewEmpty()
@@ -570,20 +563,65 @@ internal fun ReadOnlySirReport(manual: ManualInspectionReportRequest, photos: Li
             )
         }
         if (manual.purchasedMaterials.isNotEmpty()) ReadOnlySirSection(LocalizationManager.t("sir_purchased_materials"), Icons.Default.Description) {
-            manual.purchasedMaterials.forEach { material ->
-                PreviewFieldRow(
-                    LocalizationManager.t("sir_materials_equipment") to material.materialsAndEquipment,
-                    LocalizationManager.t("sir_material_characteristics") to material.characteristics,
-                    LocalizationManager.t("sir_material_per_ded") to material.perDed,
-                    LocalizationManager.t("sir_material_notes") to material.notes
-                )
-            }
+            ReadOnlyPurchasedMaterialsTable(manual.purchasedMaterials)
         }
         ReadOnlySirSection(LocalizationManager.t("sir_inspector_section"), Icons.Default.Description) {
             PreviewFieldRow(
                 LocalizationManager.t("sir_name") to manual.inspectorName,
                 LocalizationManager.t("sir_title_field") to manual.inspectorTitle
             )
+        }
+    }
+}
+
+/** Quality assessment mirrors its four-column XLS block: one header, many rows. */
+@Composable
+private fun ReadOnlyQualityAssessmentTable(remarks: List<oms.data.ManualRemarkRequest>) {
+    val headerColor = MaterialTheme.colorScheme.surfaceVariant
+    Column(
+        Modifier.fillMaxWidth().border(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        verticalArrangement = Arrangement.spacedBy(0.dp)
+    ) {
+        Row(Modifier.fillMaxWidth().background(headerColor).padding(horizontal = 10.dp, vertical = 8.dp)) {
+            Text(LocalizationManager.t("sir_quality_work"), Modifier.weight(1f), style = MaterialTheme.typography.labelMedium)
+            Text(LocalizationManager.t("sir_quality_comment"), Modifier.weight(1.4f), style = MaterialTheme.typography.labelMedium)
+            Text(LocalizationManager.t("sir_quality_rectification"), Modifier.weight(1.4f), style = MaterialTheme.typography.labelMedium)
+            Text(LocalizationManager.t("sir_quality_status"), Modifier.weight(1f), style = MaterialTheme.typography.labelMedium)
+        }
+        remarks.forEachIndexed { index, remark ->
+            if (index > 0) HorizontalDivider()
+            Row(Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 10.dp), verticalAlignment = Alignment.Top) {
+                Text(remark.work.ifBlank { "—" }, Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
+                Text(remark.comment.ifBlank { "—" }, Modifier.weight(1.4f), style = MaterialTheme.typography.bodyMedium)
+                Text(remark.rectification?.takeIf(String::isNotBlank) ?: "—", Modifier.weight(1.4f), style = MaterialTheme.typography.bodyMedium)
+                Text(remark.status?.takeIf(String::isNotBlank) ?: "—", Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
+            }
+        }
+    }
+}
+
+/** Purchased materials mirror their four-column XLS block: one header, many rows. */
+@Composable
+private fun ReadOnlyPurchasedMaterialsTable(materials: List<oms.data.ManualPurchasedMaterialRequest>) {
+    val headerColor = MaterialTheme.colorScheme.surfaceVariant
+    Column(
+        Modifier.fillMaxWidth().border(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        verticalArrangement = Arrangement.spacedBy(0.dp)
+    ) {
+        Row(Modifier.fillMaxWidth().background(headerColor).padding(horizontal = 10.dp, vertical = 8.dp)) {
+            Text(LocalizationManager.t("sir_materials_equipment"), Modifier.weight(1.25f), style = MaterialTheme.typography.labelMedium)
+            Text(LocalizationManager.t("sir_material_characteristics"), Modifier.weight(1f), style = MaterialTheme.typography.labelMedium)
+            Text(LocalizationManager.t("sir_material_per_ded"), Modifier.weight(.7f), style = MaterialTheme.typography.labelMedium)
+            Text(LocalizationManager.t("sir_material_notes"), Modifier.weight(1.25f), style = MaterialTheme.typography.labelMedium)
+        }
+        materials.forEachIndexed { index, material ->
+            if (index > 0) HorizontalDivider()
+            Row(Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 10.dp), verticalAlignment = Alignment.Top) {
+                Text(material.materialsAndEquipment.ifBlank { "—" }, Modifier.weight(1.25f), style = MaterialTheme.typography.bodyMedium)
+                Text(material.characteristics?.takeIf(String::isNotBlank) ?: "—", Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
+                Text(material.perDed?.takeIf(String::isNotBlank)?.let { LocalizationManager.t(it.lowercase()) } ?: "—", Modifier.weight(.7f), style = MaterialTheme.typography.bodyMedium)
+                Text(material.notes?.takeIf(String::isNotBlank) ?: "—", Modifier.weight(1.25f), style = MaterialTheme.typography.bodyMedium)
+            }
         }
     }
 }
