@@ -530,9 +530,23 @@ internal fun ReadOnlySirReport(manual: ManualInspectionReportRequest, photos: Li
                         Text(LocalizationManager.hseObservation(observation.observation), Modifier.weight(1f))
                         observation.answer?.takeIf(String::isNotBlank)?.let { answer ->
                             val yes = answer.equals("yes", true)
-                            oms.components.OmsBadge(LocalizationManager.t(if (yes) "yes" else "no"), if (yes) Color(0xFF2E7D32) else Color(0xFFC62828))
+                            // Keep answers in one visual column. Without a
+                            // comment, an unbounded Row used to push the badge
+                            // to the far right edge of the card.
+                            Box(Modifier.width(84.dp), contentAlignment = Alignment.Center) {
+                                oms.components.OmsBadge(
+                                    LocalizationManager.t(if (yes) "yes" else "no"),
+                                    if (yes) Color(0xFF2E7D32) else Color(0xFFC62828)
+                                )
+                            }
                         }
-                        observation.comment?.takeIf(String::isNotBlank)?.let { Text(it, Modifier.weight(1f), color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                        // Reserve the comment column even when it is empty so
+                        // every answer badge has the same horizontal position.
+                        Box(Modifier.weight(1f)) {
+                            observation.comment?.takeIf(String::isNotBlank)?.let { comment ->
+                                Text(comment, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
                     }
                 }
             }
