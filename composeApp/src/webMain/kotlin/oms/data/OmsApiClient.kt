@@ -11,6 +11,7 @@ import io.ktor.client.request.delete
 import io.ktor.client.request.post
 import io.ktor.client.request.patch
 import io.ktor.client.request.put
+import io.ktor.client.request.parameter
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
@@ -186,15 +187,19 @@ object OmsApiClient {
     fun projectExportUrl(projectUuids: Collection<String>): String =
         "$baseUrl/projects/export" + projectUuids.joinToString(prefix = "?", separator = "&") { "uuid=$it" }
 
-    suspend fun dashboard(): ApiDashboard = client.get("$baseUrl/dashboard").body()
+    suspend fun dashboard(trancheNumber: Int? = null): ApiDashboard = client.get("$baseUrl/dashboard") {
+        trancheNumber?.let { parameter("tranche", it) }
+    }.body()
 
-    suspend fun dashboardOverview(): ApiDashboardOverview = try {
-        client.get("$baseUrl/dashboard/overview").body()
+    suspend fun dashboardOverview(trancheNumber: Int? = null): ApiDashboardOverview = try {
+        client.get("$baseUrl/dashboard/overview") {
+            trancheNumber?.let { parameter("tranche", it) }
+        }.body()
     } catch (_: Exception) {
         // Keep the dashboard useful while an older database or a partially
         // migrated Render instance cannot serve the lightweight endpoint.
         // The established endpoint carries the same chart data.
-        dashboard().toOverview()
+        dashboard(trancheNumber).toOverview()
     }
 
     suspend fun inspectionAnalytics(): ApiInspectionAnalytics =

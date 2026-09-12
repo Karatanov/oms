@@ -782,8 +782,8 @@ private fun Project.budgetLabel(): String {
 }
 
 private fun Int.trancheLabel(): String = when (this) {
-    8 -> "A"
-    9 -> "B"
+    1, 8 -> "A"
+    2, 9 -> "B"
     else -> toString()
 }
 

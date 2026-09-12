@@ -43,6 +43,14 @@ private val procurementStatusOrder = listOf(
 
 private fun isConstructionContractSigned(status: String?) =
     status?.let { it.contains("Договір укладено", ignoreCase = true) || it.contains("Contract signed", ignoreCase = true) } == true
+
+/** Source workbooks identify tranches as batches 8 and 9; user-created records
+ * use the application values 1 and 2. Both pairs represent the same A/B cut. */
+private fun Int.matchesTrancheFilter(filter: Int?): Boolean = filter == null || when (filter) {
+    1 -> this == 1 || this == 8
+    2 -> this == 2 || this == 9
+    else -> false
+}
 data class DashboardData(
     val projectsTotal:Long, val projectsActive:Long, val projectsCompletedThisMonth:Long, val budgetPlanned:Long,
     val amountSpent:Long, val inspectionsTotal:Long, val pendingInspections:Long, val findingsTotal:Long,
@@ -61,9 +69,12 @@ class DashboardService(
      * broader administrative Dashboard payload so opening the workspace does
      * not wait for audit history, inspection findings or unused financial cuts.
      */
-    fun getOverview(allowedProjectIds: Set<Long>? = null): DashboardOverviewData = transaction {
+    fun getOverview(allowedProjectIds: Set<Long>? = null, trancheNumber: Int? = null): DashboardOverviewData = transaction {
         val projects = ProjectTable.selectAll().toList()
-            .filter { allowedProjectIds == null || it[ProjectTable.id].value in allowedProjectIds }
+            .filter {
+                (allowedProjectIds == null || it[ProjectTable.id].value in allowedProjectIds) &&
+                    it[ProjectTable.trancheNumber].matchesTrancheFilter(trancheNumber)
+            }
         val projectIds = projects.map { it[ProjectTable.id].value }.toSet()
         val reports = InspectionReportTable.selectAll().toList()
             .filter { it[InspectionReportTable.projectId].value in projectIds }
@@ -98,7 +109,11 @@ class DashboardService(
         val actualBySubproject = actRecords.groupBy { subprojectFor(it[FinancialRecordTable.projectId].value) }
             .filterKeys { it != null }
             .mapValues { (_, rows) -> rows.sumOf { it[FinancialRecordTable.amount] }.toDouble() }
-        val procurementRecords = if (allowedProjectIds == null) ProcurementRecordTable.selectAll().toList() else emptyList()
+        val procurementProjectCodes = projects.mapNotNull { it[ProjectTable.siteNumber]?.trim()?.lowercase()?.takeIf(String::isNotBlank) }.toSet() +
+            projects.map { it[ProjectTable.uuid].lowercase() }.toSet()
+        val procurementRecords = if (allowedProjectIds == null) ProcurementRecordTable.selectAll().toList().filter { record ->
+            trancheNumber == null || record[ProcurementRecordTable.subProjectId].trim().lowercase() in procurementProjectCodes
+        } else emptyList()
         val signedSubprojectCodes = procurementRecords
             .filter { isConstructionContractSigned(it[ProcurementRecordTable.purchaseStatus]) }
             .map { it[ProcurementRecordTable.subProjectId].trim().lowercase() }
@@ -133,9 +148,12 @@ class DashboardService(
         )
     }
 
-    fun get(allowedProjectIds: Set<Long>? = null): DashboardData {
+    fun get(allowedProjectIds: Set<Long>? = null, trancheNumber: Int? = null): DashboardData {
         return transaction {
-        val projects = ProjectTable.selectAll().toList().filter { allowedProjectIds == null || it[ProjectTable.id].value in allowedProjectIds }
+        val projects = ProjectTable.selectAll().toList().filter {
+            (allowedProjectIds == null || it[ProjectTable.id].value in allowedProjectIds) &&
+                it[ProjectTable.trancheNumber].matchesTrancheFilter(trancheNumber)
+        }
         val projectIds = projects.map { it[ProjectTable.id].value }.toSet()
         val reports = InspectionReportTable.selectAll().toList().filter { it[InspectionReportTable.projectId].value in projectIds }
         val reportIds = reports.map { it[InspectionReportTable.id].value }.toSet()
@@ -170,7 +188,11 @@ class DashboardService(
         val actualBySubproject = actRecords.groupBy { subprojectFor(it[FinancialRecordTable.projectId].value) }
             .filterKeys { it != null }
             .mapValues { (_, records) -> records.sumOf { it[FinancialRecordTable.amount] }.toDouble() }
-        val procurementRecords = if (allowedProjectIds == null) ProcurementRecordTable.selectAll().toList() else emptyList()
+        val procurementProjectCodes = projects.mapNotNull { it[ProjectTable.siteNumber]?.trim()?.lowercase()?.takeIf(String::isNotBlank) }.toSet() +
+            projects.map { it[ProjectTable.uuid].lowercase() }.toSet()
+        val procurementRecords = if (allowedProjectIds == null) ProcurementRecordTable.selectAll().toList().filter { record ->
+            trancheNumber == null || record[ProcurementRecordTable.subProjectId].trim().lowercase() in procurementProjectCodes
+        } else emptyList()
         val signedSubprojectCodes = procurementRecords
             .filter { isConstructionContractSigned(it[ProcurementRecordTable.purchaseStatus]) }
             .map { it[ProcurementRecordTable.subProjectId].trim().lowercase() }

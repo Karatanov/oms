@@ -40,9 +40,10 @@ fun DashboardScreen(
     var reload by remember { mutableStateOf(0) }
     var latestPhotos by remember { mutableStateOf<List<ApiInspectionPhoto>?>(null) }
     var chartOrientation by remember { mutableStateOf(BarChartOrientation.Vertical) }
+    var trancheNumber by remember { mutableStateOf<Int?>(null) }
     val scrollState = rememberLazyListState()
     val scope = rememberCoroutineScope()
-    LaunchedEffect(reload) {
+    LaunchedEffect(reload, trancheNumber) {
         loading = true; error = false
         // Yield a frame first: the authenticated workspace and its navigation
         // become interactive before the remote overview begins loading.
@@ -53,7 +54,7 @@ fun DashboardScreen(
         try {
             repeat(4) { attempt ->
                 try {
-                    dashboard = OmsApiClient.dashboardOverview()
+                    dashboard = OmsApiClient.dashboardOverview(trancheNumber)
                     return@LaunchedEffect
                 } catch (cancelled: CancellationException) {
                     // Leaving Dashboard cancels this effect and aborts the pending fetch.
@@ -92,6 +93,24 @@ fun DashboardScreen(
                         Icon(Icons.Default.SwapHoriz, null)
                         Spacer(Modifier.width(6.dp))
                         Text(LocalizationManager.t(if (chartOrientation == BarChartOrientation.Vertical) "horizontal_charts" else "vertical_charts"))
+                    }
+                }
+            }
+            item {
+                SingleChoiceSegmentedButtonRow {
+                    listOf<Int?>(null, 1, 2).forEachIndexed { index, option ->
+                        SegmentedButton(
+                            selected = trancheNumber == option,
+                            onClick = { trancheNumber = option },
+                            shape = SegmentedButtonDefaults.itemShape(index, 3),
+                            label = {
+                                Text(LocalizationManager.t(when (option) {
+                                    null -> "all_tranches"
+                                    1 -> "tranche_a"
+                                    else -> "tranche_b"
+                                }))
+                            }
+                        )
                     }
                 }
             }

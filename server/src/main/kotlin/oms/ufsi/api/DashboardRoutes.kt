@@ -2,6 +2,7 @@ package oms.ufsi.api
 
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import io.ktor.server.request.*
 import oms.ufsi.config.AppContainer
 import oms.ufsi.dto.DashboardResponse
 import oms.ufsi.dto.DashboardOverviewResponse
@@ -16,11 +17,12 @@ import java.time.ZoneOffset
 fun Route.dashboardRoutes() {
     get("/api/v1/dashboard/overview") {
         val session = call.requireRole("ADMIN", "PROJECT_MANAGER", "INSPECTOR", "VIEWER") ?: return@get
+        val trancheNumber = call.request.queryParameters["tranche"]?.toIntOrNull()?.takeIf { it in 1..2 }
         val allowedProjectIds = if (session.roleCode.equals("PROJECT_MANAGER", ignoreCase = true)) {
             AppContainer.projectService.getAllProjects().filter { AppContainer.projectService.isManagedBy(it.uuid.toString(), session.userId) }
                 .map { it.id }.toSet()
         } else null
-        val overview = AppContainer.dashboardService.getOverview(allowedProjectIds)
+        val overview = AppContainer.dashboardService.getOverview(allowedProjectIds, trancheNumber)
         call.respond(
             DashboardOverviewResponse(
                 recentInspections = overview.recentInspections.map { it.toResponse() },
@@ -34,10 +36,11 @@ fun Route.dashboardRoutes() {
 
     get("/api/v1/dashboard") {
         val session = call.requireRole("ADMIN", "PROJECT_MANAGER", "INSPECTOR", "VIEWER") ?: return@get
+        val trancheNumber = call.request.queryParameters["tranche"]?.toIntOrNull()?.takeIf { it in 1..2 }
         val allowedProjectIds = if (session.roleCode.equals("PROJECT_MANAGER", ignoreCase = true)) {
             AppContainer.projectService.getAllProjects().filter { AppContainer.projectService.isManagedBy(it.uuid.toString(), session.userId) }.map { it.id }.toSet()
         } else null
-        val d = AppContainer.dashboardService.get(allowedProjectIds)
+        val d = AppContainer.dashboardService.get(allowedProjectIds, trancheNumber)
         val activities = if (session.roleCode.equals("ADMIN", ignoreCase = true)) {
             d.activities.map {
                 ActivityResponse(
