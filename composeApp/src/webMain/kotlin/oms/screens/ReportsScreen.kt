@@ -532,10 +532,7 @@ internal fun ReadOnlySirReport(manual: ManualInspectionReportRequest, photos: Li
         }
         ReadOnlySirSection(LocalizationManager.t("sir_progress_assessment"), Icons.Default.FactCheck) {
             if (manual.progressComment.isNullOrBlank() && manual.scheduleRemark.isNullOrBlank()) PreviewEmpty()
-            PreviewFieldRow(
-                LocalizationManager.t("sir_progress_comments") to manual.progressComment,
-                LocalizationManager.t("sir_schedule_remarks") to manual.scheduleRemark
-            )
+            else ReadOnlyProgressAssessmentTable(manual.progressComment, manual.scheduleRemark)
         }
         if (manual.purchasedMaterials.isNotEmpty()) ReadOnlySirSection(LocalizationManager.t("sir_purchased_materials"), Icons.Default.Description) {
             ReadOnlyPurchasedMaterialsTable(manual.purchasedMaterials)
@@ -545,6 +542,26 @@ internal fun ReadOnlySirReport(manual: ManualInspectionReportRequest, photos: Li
                 LocalizationManager.t("sir_name") to manual.inspectorName,
                 LocalizationManager.t("sir_title_field") to manual.inspectorTitle
             )
+        }
+    }
+}
+
+/** Progress and schedule remarks are one two-column row in the SIR worksheet. */
+@Composable
+private fun ReadOnlyProgressAssessmentTable(progressComment: String?, scheduleRemark: String?) {
+    val headerColor = MaterialTheme.colorScheme.surfaceVariant
+    Column(
+        Modifier.fillMaxWidth().border(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        verticalArrangement = Arrangement.spacedBy(0.dp)
+    ) {
+        Row(Modifier.fillMaxWidth().background(headerColor).padding(horizontal = 10.dp, vertical = 8.dp)) {
+            Text(LocalizationManager.t("sir_progress_comments"), Modifier.weight(1f), style = MaterialTheme.typography.labelMedium)
+            Text(LocalizationManager.t("sir_schedule_remarks"), Modifier.weight(1f), style = MaterialTheme.typography.labelMedium)
+        }
+        HorizontalDivider()
+        Row(Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 10.dp), verticalAlignment = Alignment.Top) {
+            Text(progressComment?.takeIf(String::isNotBlank) ?: "—", Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
+            Text(scheduleRemark?.takeIf(String::isNotBlank) ?: "—", Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
         }
     }
 }
