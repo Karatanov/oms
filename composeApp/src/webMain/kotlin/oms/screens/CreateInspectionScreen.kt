@@ -651,14 +651,18 @@ private fun ReadOnlyInspectionLocation(
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             FormSectionTitle(LocalizationManager.t("sir_header_site"), Icons.Default.LocationOn)
             BoxWithConstraints(Modifier.fillMaxWidth()) {
-                val fields = listOf(
-                    LocalizationManager.t("project") to projectLabel(projectUuid),
-                    LocalizationManager.t("subproject") to projectLabel(subprojectUuid),
-                    LocalizationManager.t("select_subproject_part") to projectLabel(partUuid),
-                    LocalizationManager.t("address") to address.ifBlank { "—" },
-                    LocalizationManager.t("inspection_type") to inspectionType.label,
-                    LocalizationManager.t("status") to LocalizationManager.t("${status}_status")
-                )
+                val fields = buildList {
+                    add(LocalizationManager.t("project") to projectLabel(projectUuid))
+                    add(LocalizationManager.t("subproject") to projectLabel(subprojectUuid))
+                    // A report may be attached directly to a subproject. Do
+                    // not show an empty third-level placement in that case.
+                    projects.firstOrNull { it.id == partUuid }?.let {
+                        add(LocalizationManager.t("subproject_part") to projectLabel(partUuid))
+                    }
+                    add(LocalizationManager.t("address") to address.ifBlank { "—" })
+                    add(LocalizationManager.t("inspection_type") to inspectionType.label)
+                    add(LocalizationManager.t("status") to LocalizationManager.t("${status}_status"))
+                }
                 if (maxWidth >= 800.dp) Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     fields.forEach { (label, value) -> ReadOnlyInspectionField(label, value, Modifier.weight(1f)) }
                 } else Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
