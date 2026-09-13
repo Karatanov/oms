@@ -181,6 +181,7 @@ class InspectionReportFileService(
         val detectedProgressAssessmentTitleRow = firstRow {
             it.contains("NARRATIVE ASSESSMENT", ignoreCase = true) && it.contains("PROGRESS", ignoreCase = true)
         }
+        val progressAssessmentTitleRow = detectedProgressAssessmentTitleRow ?: 54 + contentOffset
         val inspectorSectionTitleRow = firstRow { it.equals("M4H QA STAFF", ignoreCase = true) }
         // Quality has five input rows in the approved template. Some imported
         // reports place later section labels much lower in the worksheet, so
@@ -214,7 +215,7 @@ class InspectionReportFileService(
                     .takeIf { it.materialsAndEquipment.isNotBlank() || !it.characteristics.isNullOrBlank() || !it.perDed.isNullOrBlank() || !it.notes.isNullOrBlank() }
             } } ?: emptyList(),
             ongoingObservations = observationRows.map { text(it, 1) }.filter(String::isNotBlank),
-            hseObservations = (hseTitleRow + 1 until qualityAssessmentTitleRow).mapNotNull { row ->
+            hseObservations = (hseTitleRow + 2 until qualityAssessmentTitleRow).mapNotNull { row ->
                 val observation = text(row, 1).takeIf(String::isNotBlank) ?: return@mapNotNull null
                 val worksheetAnswer = firstText(row, listOf(8, 7, 2))
                 val worksheetComment = firstText(row, listOf(10, 9, 4, 3))
@@ -244,8 +245,8 @@ class InspectionReportFileService(
                     status = status.ifBlank { null }
                 ).takeIf { it.work.isNotBlank() || it.comment.isNotBlank() || !it.rectification.isNullOrBlank() || !it.status.isNullOrBlank() }
             },
-            progressComment = text(55 + contentOffset, 1).ifBlank { null },
-            scheduleRemark = text(55 + contentOffset, 10).ifBlank { null },
+            progressComment = text(progressAssessmentTitleRow + 1, 1).ifBlank { null },
+            scheduleRemark = text(progressAssessmentTitleRow + 1, 10).ifBlank { null },
             inspectorName = text((firstRow { it.equals("M4H QA STAFF", ignoreCase = true) } ?: 56 + contentOffset) + 3, 1),
             inspectorTitle = text((firstRow { it.equals("M4H QA STAFF", ignoreCase = true) } ?: 56 + contentOffset) + 3, 4).ifBlank { null },
             latitude = report.latitude, longitude = report.longitude
@@ -330,18 +331,42 @@ class InspectionReportFileService(
         // row removes the block from the workbook as well.
         firstRow(sheet, "PURCHASED MATERIALS")?.let { removePurchasedMaterialsLayout(sheet, it) }
         if (materials.isNotEmpty()) ensurePurchasedMaterialsLayout(sheet)
+        val activitiesTitleRow = firstRow(sheet, "ONGOING ACTIVITIES") ?: 11
+        val ongoingObservationsTitleRow = firstRow(sheet, "OBSERVANCES ON ONGOING ACTIVITIES") ?: 21
+        val hseTitleRow = firstRow(sheet, "OBSERVANCES ON HEALTH & SAFETY") ?: 31
+        val qualityTitleRow = firstRow(sheet, "NARRATIVE ASSESSMENT - COMMENTS ON QUALITY") ?: 42
+        val progressTitleRow = firstRow(sheet, "NARRATIVE ASSESSMENT - COMMENTS ON PROGRESS") ?: 60
         val signatureTitleRow = firstRow(sheet, "M4H QA STAFF") ?: 56
         val signatureDataRow = signatureTitleRow + 3
         val materialsTitleRow = firstRow(sheet, "PURCHASED MATERIALS")
+        fun nextSectionAfter(row: Int, candidates: List<Int?>): Int = candidates
+            .filterNotNull()
+            .filter { it > row }
+            .minOrNull() ?: signatureTitleRow
+        val qualityDataEndExclusive = nextSectionAfter(
+            qualityTitleRow,
+            listOf(progressTitleRow, materialsTitleRow, signatureTitleRow)
+        )
+        val progressDataEndExclusive = nextSectionAfter(
+            progressTitleRow,
+            listOf(materialsTitleRow, signatureTitleRow)
+        )
+        val materialsDataEndExclusive = materialsTitleRow?.let { titleRow ->
+            nextSectionAfter(titleRow, listOf(signatureTitleRow))
+        }
 
         // Clear only cells that hold inspection-specific data. Section labels,
         // merged ranges, borders, row heights and print geometry remain intact.
-        clear(13..26)
-        clear(28..39)
-        clear(41..46)
-        clear(49..53)
-        clear(55..55)
-        materialsTitleRow?.let { clear((it + 2)..(it + 4)) }
+        // Section locations are derived from the template headings.  Fixed
+        // row numbers here previously made activity data overwrite the
+        // "OBSERVANCES ON ONGOING ACTIVITIES" heading and every following
+        // section when an edited report was saved.
+        clear((activitiesTitleRow + 2) until ongoingObservationsTitleRow)
+        clear((ongoingObservationsTitleRow + 1) until hseTitleRow)
+        clear((hseTitleRow + 2) until qualityTitleRow)
+        clear((qualityTitleRow + 2) until qualityDataEndExclusive)
+        materialsTitleRow?.let { clear((it + 2) until checkNotNull(materialsDataEndExclusive)) }
+        clear((progressTitleRow + 1) until progressDataEndExclusive)
         text(1, 1, request.projectName?.trim().orEmpty())
         text(5, 1, request.contractor)
         text(5, 5, request.siteReference?.trim().takeIf { !it.isNullOrBlank() }
@@ -355,8 +380,9 @@ class InspectionReportFileService(
         text(10, 5, request.siteManagement)
         text(10, 9, request.weather)
 
-        request.activities.take(14).forEachIndexed { index, activity ->
-            val row = 13 + index
+        val activityRows = (activitiesTitleRow + 2) until ongoingObservationsTitleRow
+        request.activities.take(activityRows.count()).forEachIndexed { index, activity ->
+            val row = activityRows.first + index
             text(row, 1, activity.location)
             text(row, 3, activity.description)
             text(row, 8, activity.onSchedule)
@@ -369,12 +395,16 @@ class InspectionReportFileService(
             text(row, 7, material.perDed)
             text(row, 10, material.notes)
         }
-        mergedText(request.ongoingObservations.map(String::trim).filter(String::isNotBlank), 12)
-            .forEachIndexed { index, observation -> text(28 + index, 1, observation) }
-        mergedText(request.hseObservations.map { observation ->
-            listOf(observation.observation, observation.answer, observation.comment)
-                .filterNotNull().map(String::trim).filter(String::isNotBlank).joinToString(" — ")
-        }.filter(String::isNotBlank), 6).forEachIndexed { index, observation -> text(41 + index, 1, observation) }
+        val ongoingObservationRows = (ongoingObservationsTitleRow + 1) until hseTitleRow
+        mergedText(request.ongoingObservations.map(String::trim).filter(String::isNotBlank), ongoingObservationRows.count())
+            .forEachIndexed { index, observation -> text(ongoingObservationRows.first + index, 1, observation) }
+        val hseObservationRows = (hseTitleRow + 2) until qualityTitleRow
+        request.hseObservations.take(hseObservationRows.count()).forEachIndexed { index, observation ->
+            val row = hseObservationRows.first + index
+            text(row, 1, observation.observation)
+            text(row, 8, observation.answer)
+            text(row, 10, observation.comment)
+        }
         val qualityRemarks = if (request.qualityRemarks.size <= 5) request.qualityRemarks else {
             request.qualityRemarks.take(4) + oms.ufsi.dto.ManualRemark(
                 work = request.qualityRemarks.drop(4).joinToString("\n\n") { it.work },
@@ -385,15 +415,17 @@ class InspectionReportFileService(
                     .joinToString("\n\n").ifBlank { null }
             )
         }
-        configureQualityAssessmentColumns(sheet, 48)
-        qualityRemarks.forEachIndexed { index, remark ->
-            text(49 + index, 1, remark.work)
-            text(49 + index, 4, remark.comment)
-            text(49 + index, 7, remark.rectification)
-            text(49 + index, 10, remark.status)
+        configureQualityAssessmentColumns(sheet, qualityTitleRow + 1)
+        val qualityRows = (qualityTitleRow + 2) until qualityDataEndExclusive
+        qualityRemarks.take(qualityRows.count()).forEachIndexed { index, remark ->
+            val row = qualityRows.first + index
+            text(row, 1, remark.work)
+            text(row, 4, remark.comment)
+            text(row, 7, remark.rectification)
+            text(row, 10, remark.status)
         }
-        text(55, 1, request.progressComment)
-        text(55, 10, request.scheduleRemark)
+        text(progressTitleRow + 1, 1, request.progressComment)
+        text(progressTitleRow + 1, 10, request.scheduleRemark)
         text(signatureDataRow, 1, request.inspectorName)
         text(signatureDataRow, 4, request.inspectorTitle)
         date(signatureDataRow, 6)
@@ -408,7 +440,10 @@ class InspectionReportFileService(
         val headerStyle = sheet.getRow(11)?.getCell(0)?.cellStyle
         val sourceColumns = listOf(0, 2, 7, 9)
         val dataStyles = sourceColumns.map { column -> sheet.getRow(12)?.getCell(column)?.cellStyle }
-        sheet.shiftRows(titleRow - 1, sheet.lastRowNum, 5, true, false)
+        // The template reserves nine rows for this optional section: a title,
+        // a header, three data rows and four spacer rows.  Preserve that
+        // geometry, otherwise all following sections shift upward.
+        sheet.shiftRows(titleRow - 1, sheet.lastRowNum, 9, true, false)
         fun cell(row: Int, column: Int) = (sheet.getRow(row - 1) ?: sheet.createRow(row - 1)).getCell(column - 1)
             ?: (sheet.getRow(row - 1) ?: sheet.createRow(row - 1)).createCell(column - 1)
         fun mergeRow(row: Int, border: BorderStyle = BorderStyle.THIN) {
@@ -440,7 +475,7 @@ class InspectionReportFileService(
                 setCellValue(label)
             }
         }
-        (titleRow + 2..titleRow + 4).forEach { row ->
+        (titleRow + 2..titleRow + 8).forEach { row ->
             mergeRow(row)
             dataStyles.forEachIndexed { index, style ->
                 cell(row, index * 3 + 1).apply { if (style != null) cellStyle = style }
@@ -450,8 +485,8 @@ class InspectionReportFileService(
 
     /** Restores the surrounding row geometry after removing an optional materials table. */
     private fun removePurchasedMaterialsLayout(sheet: org.apache.poi.ss.usermodel.Sheet, titleRow: Int) {
-        removeMergedRows(sheet, titleRow..(titleRow + 4))
-        sheet.shiftRows(titleRow + 4, sheet.lastRowNum, -5, true, false)
+        removeMergedRows(sheet, titleRow..(titleRow + 8))
+        sheet.shiftRows(titleRow + 8, sheet.lastRowNum, -9, true, false)
     }
 
     private fun firstRow(sheet: org.apache.poi.ss.usermodel.Sheet, value: String): Int? =
