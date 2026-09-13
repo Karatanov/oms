@@ -464,7 +464,15 @@ class InspectionReportFileService(
         (headerRow..qualityRows.last).forEach { row ->
             val zeroBasedRow = row - 1
             listOf(0..2, 3..5, 6..8, 9..11).forEach { columns ->
-                sheet.addMergedRegion(CellRangeAddress(zeroBasedRow, zeroBasedRow, columns.first, columns.last))
+                val region = CellRangeAddress(zeroBasedRow, zeroBasedRow, columns.first, columns.last)
+                sheet.addMergedRegion(region)
+                // A merged range only keeps its top-left style in Apache POI.
+                // Paint every edge explicitly so empty quality rows remain a
+                // complete table when the generated SIR is opened in Excel.
+                RegionUtil.setBorderTop(BorderStyle.THIN, region, sheet)
+                RegionUtil.setBorderBottom(BorderStyle.THIN, region, sheet)
+                RegionUtil.setBorderLeft(BorderStyle.THIN, region, sheet)
+                RegionUtil.setBorderRight(BorderStyle.THIN, region, sheet)
             }
         }
         listOf(
