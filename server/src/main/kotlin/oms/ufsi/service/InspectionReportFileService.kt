@@ -335,12 +335,12 @@ class InspectionReportFileService(
         // row removes the block from the workbook as well.
         firstRow(sheet, "PURCHASED MATERIALS")?.let { removePurchasedMaterialsLayout(sheet, it) }
         if (materials.isNotEmpty()) ensurePurchasedMaterialsLayout(sheet)
-        val activitiesTitleRow = firstRow(sheet, "ONGOING ACTIVITIES") ?: 11
-        val ongoingObservationsTitleRow = firstRow(sheet, "OBSERVANCES ON ONGOING ACTIVITIES") ?: 21
-        val hseTitleRow = firstRow(sheet, "OBSERVANCES ON HEALTH & SAFETY") ?: 31
-        val qualityTitleRow = firstRow(sheet, "NARRATIVE ASSESSMENT - COMMENTS ON QUALITY") ?: 42
-        val progressTitleRow = firstRow(sheet, "NARRATIVE ASSESSMENT - COMMENTS ON PROGRESS") ?: 60
-        val signatureTitleRow = firstRow(sheet, "M4H QA STAFF") ?: 56
+        val activitiesTitleRow = sectionRow(sheet, "ONGOING ACTIVITIES")
+        val ongoingObservationsTitleRow = sectionRow(sheet, "OBSERVANCES ON ONGOING ACTIVITIES")
+        val hseTitleRow = sectionRow(sheet, "OBSERVANCES ON HEALTH & SAFETY")
+        val qualityTitleRow = sectionRow(sheet, "NARRATIVE ASSESSMENT - COMMENTS ON QUALITY")
+        val progressTitleRow = sectionRow(sheet, "NARRATIVE ASSESSMENT - COMMENTS ON PROGRESS")
+        val signatureTitleRow = sectionRow(sheet, "M4H QA STAFF")
         val signatureDataRow = signatureTitleRow + 3
         val materialsTitleRow = firstRow(sheet, "PURCHASED MATERIALS")
         fun nextSectionAfter(row: Int, candidates: List<Int?>): Int = candidates
@@ -385,14 +385,16 @@ class InspectionReportFileService(
         text(10, 9, request.weather)
 
         val activityRows = (activitiesTitleRow + 2) until ongoingObservationsTitleRow
-        request.activities.take(activityRows.count()).forEachIndexed { index, activity ->
+        val activities = request.activities.take(activityRows.count())
+        activities.forEachIndexed { index, activity ->
             val row = activityRows.first + index
             text(row, 1, activity.location)
             text(row, 3, activity.description)
             text(row, 8, activity.onSchedule)
             text(row, 10, activity.remarks)
         }
-        materials.take(3).forEachIndexed { index, material ->
+        val materialsToWrite = materials.take(3)
+        materialsToWrite.forEachIndexed { index, material ->
             val row = checkNotNull(materialsTitleRow) + 2 + index
             text(row, 1, material.materialsAndEquipment)
             text(row, 4, material.characteristics)
@@ -400,10 +402,15 @@ class InspectionReportFileService(
             text(row, 10, material.notes)
         }
         val ongoingObservationRows = (ongoingObservationsTitleRow + 1) until hseTitleRow
-        mergedText(request.ongoingObservations.map(String::trim).filter(String::isNotBlank), ongoingObservationRows.count())
+        val ongoingObservations = mergedText(
+            request.ongoingObservations.map(String::trim).filter(String::isNotBlank),
+            ongoingObservationRows.count()
+        )
+        ongoingObservations
             .forEachIndexed { index, observation -> text(ongoingObservationRows.first + index, 1, observation) }
         val hseObservationRows = (hseTitleRow + 2) until qualityTitleRow
-        request.hseObservations.take(hseObservationRows.count()).forEachIndexed { index, observation ->
+        val hseObservations = request.hseObservations.take(hseObservationRows.count())
+        hseObservations.forEachIndexed { index, observation ->
             val row = hseObservationRows.first + index
             text(row, 1, observation.observation)
             text(row, 8, observation.answer)
@@ -433,13 +440,42 @@ class InspectionReportFileService(
         text(signatureDataRow, 1, request.inspectorName)
         text(signatureDataRow, 4, request.inspectorTitle)
         date(signatureDataRow, 6)
+
+        // A section begins immediately after the data in the previous one.
+        // Trim unused template rows from bottom to top so shifting a section
+        // never invalidates the positions still to be processed.
+        if (materialsTitleRow != null) collapseUnusedSectionRows(
+            sheet, "PURCHASED MATERIALS", 2,
+            listOf("NARRATIVE ASSESSMENT - COMMENTS ON PROGRESS", "M4H QA STAFF"),
+            materialsToWrite.size
+        )
+        collapseUnusedSectionRows(
+            sheet, "NARRATIVE ASSESSMENT - COMMENTS ON QUALITY", 2,
+            listOf("NARRATIVE ASSESSMENT - COMMENTS ON PROGRESS", "PURCHASED MATERIALS", "M4H QA STAFF"),
+            qualityRemarks.size
+        )
+        collapseUnusedSectionRows(
+            sheet, "OBSERVANCES ON HEALTH & SAFETY", 2,
+            listOf("NARRATIVE ASSESSMENT - COMMENTS ON QUALITY"),
+            hseObservations.size
+        )
+        collapseUnusedSectionRows(
+            sheet, "OBSERVANCES ON ONGOING ACTIVITIES", 1,
+            listOf("OBSERVANCES ON HEALTH & SAFETY"),
+            ongoingObservations.size
+        )
+        collapseUnusedSectionRows(
+            sheet, "ONGOING ACTIVITIES", 2,
+            listOf("OBSERVANCES ON ONGOING ACTIVITIES"),
+            activities.size
+        )
     }
 
     /** Inserts the optional materials table immediately before the signature. */
     private fun ensurePurchasedMaterialsLayout(sheet: org.apache.poi.ss.usermodel.Sheet) {
         val existingTitleRow = firstRow(sheet, "PURCHASED MATERIALS")
         if (existingTitleRow != null) return
-        val titleRow = firstRow(sheet, "M4H QA STAFF") ?: 56
+        val titleRow = sectionRow(sheet, "M4H QA STAFF")
         val titleStyle = sheet.getRow(titleRow - 1)?.getCell(0)?.cellStyle
         val headerStyle = sheet.getRow(11)?.getCell(0)?.cellStyle
         val sourceColumns = listOf(0, 2, 7, 9)
@@ -498,6 +534,32 @@ class InspectionReportFileService(
             sheet.getRow(row - 1)?.getCell(0)?.let { DataFormatter().formatCellValue(it).trim() }
                 ?.equals(value, ignoreCase = true) == true
         }
+
+    private fun sectionRow(sheet: org.apache.poi.ss.usermodel.Sheet, title: String): Int =
+        requireNotNull(firstRow(sheet, title)) { "SIR template is missing the '$title' section." }
+
+    /** Removes blank reserved rows so the next section follows the actual data. */
+    private fun collapseUnusedSectionRows(
+        sheet: org.apache.poi.ss.usermodel.Sheet,
+        sectionTitle: String,
+        firstDataRowOffset: Int,
+        nextSectionTitles: List<String>,
+        usedRows: Int
+    ) {
+        val titleRow = sectionRow(sheet, sectionTitle)
+        val nextTitleRow = nextSectionTitles.mapNotNull { firstRow(sheet, it) }
+            .filter { it > titleRow }
+            .minOrNull() ?: return
+        val firstDataRow = titleRow + firstDataRowOffset
+        val availableRows = nextTitleRow - firstDataRow
+        val rowsToRemove = (availableRows - usedRows).coerceAtLeast(0)
+        if (rowsToRemove == 0) return
+        val removedRows = (firstDataRow + usedRows)..(nextTitleRow - 1)
+        removeMergedRows(sheet, removedRows)
+        // POI uses zero-based indices here. nextTitleRow - 1 is the first
+        // row after the deleted 1-based range.
+        sheet.shiftRows(nextTitleRow - 1, sheet.lastRowNum, -rowsToRemove, true, false)
+    }
 
     private fun removeMergedRows(sheet: org.apache.poi.ss.usermodel.Sheet, rows: IntRange) {
         for (index in sheet.mergedRegions.size - 1 downTo 0) {
