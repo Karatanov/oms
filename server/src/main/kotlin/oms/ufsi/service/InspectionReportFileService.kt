@@ -400,7 +400,7 @@ class InspectionReportFileService(
         sheet.shiftRows(titleRow - 1, sheet.lastRowNum, 5, true, false)
         fun cell(row: Int, column: Int) = (sheet.getRow(row - 1) ?: sheet.createRow(row - 1)).getCell(column - 1)
             ?: (sheet.getRow(row - 1) ?: sheet.createRow(row - 1)).createCell(column - 1)
-        fun mergeRow(row: Int) {
+        fun mergeRow(row: Int, border: BorderStyle = BorderStyle.THIN) {
             listOf(0..2, 3..5, 6..8, 9..11).forEach { columns ->
                 val region = CellRangeAddress(row - 1, row - 1, columns.first, columns.last)
                 sheet.addMergedRegion(region)
@@ -408,10 +408,10 @@ class InspectionReportFileService(
                 // Explicitly paint every edge, otherwise the right/bottom
                 // lines of newly inserted Purchased Materials rows disappear
                 // when the workbook is opened in Excel.
-                RegionUtil.setBorderTop(BorderStyle.THIN, region, sheet)
-                RegionUtil.setBorderBottom(BorderStyle.THIN, region, sheet)
-                RegionUtil.setBorderLeft(BorderStyle.THIN, region, sheet)
-                RegionUtil.setBorderRight(BorderStyle.THIN, region, sheet)
+                RegionUtil.setBorderTop(border, region, sheet)
+                RegionUtil.setBorderBottom(border, region, sheet)
+                RegionUtil.setBorderLeft(border, region, sheet)
+                RegionUtil.setBorderRight(border, region, sheet)
             }
         }
 
@@ -420,7 +420,9 @@ class InspectionReportFileService(
             if (titleStyle != null) cellStyle = titleStyle
             setCellValue("PURCHASED MATERIALS")
         }
-        mergeRow(titleRow + 1)
+        // The source SIR uses a heavier grid for the column headings, making
+        // the optional materials table distinguishable from its data rows.
+        mergeRow(titleRow + 1, BorderStyle.MEDIUM)
         listOf("MATERIALS AND EQUIPMENT", "CHARACTERISTICS", "PER DED? (yes/no)", "NOTES").forEachIndexed { index, label ->
             cell(titleRow + 1, index * 3 + 1).apply {
                 if (headerStyle != null) cellStyle = headerStyle
