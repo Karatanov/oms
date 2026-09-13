@@ -178,9 +178,20 @@ class InspectionReportFileService(
         val qualityAssessmentTitleRow = firstRow {
             it.contains("NARRATIVE ASSESSMENT", ignoreCase = true) && it.contains("QUALITY", ignoreCase = true)
         } ?: 48 + contentOffset
-        val progressAssessmentTitleRow = firstRow {
+        val detectedProgressAssessmentTitleRow = firstRow {
             it.contains("NARRATIVE ASSESSMENT", ignoreCase = true) && it.contains("PROGRESS", ignoreCase = true)
-        } ?: 55 + contentOffset
+        }
+        val inspectorSectionTitleRow = firstRow { it.equals("M4H QA STAFF", ignoreCase = true) }
+        // Quality has five input rows in the approved template. Some imported
+        // reports place later section labels much lower in the worksheet, so
+        // never scan all the way to a distant Progress title: doing so turns
+        // PURCHASED MATERIALS and signature values into quality remarks.
+        val qualitySectionEndExclusive = listOfNotNull(
+            qualityAssessmentTitleRow + 7,
+            detectedProgressAssessmentTitleRow,
+            purchasedMaterialsTitleRow,
+            inspectorSectionTitleRow
+        ).filter { it > qualityAssessmentTitleRow }.minOrNull() ?: qualityAssessmentTitleRow + 7
         val activityEndExclusive = minOf(
             ongoingObservationsTitleRow,
             purchasedMaterialsTitleRow?.takeIf { it < ongoingObservationsTitleRow } ?: Int.MAX_VALUE
@@ -218,7 +229,7 @@ class InspectionReportFileService(
                     }
                 }
             },
-            qualityRemarks = (qualityAssessmentTitleRow + 1 until progressAssessmentTitleRow).mapNotNull { row ->
+            qualityRemarks = (qualityAssessmentTitleRow + 1 until qualitySectionEndExclusive).mapNotNull { row ->
                 val work = text(row, 1)
                 val comments = firstText(row, listOf(4, 2)).orEmpty()
                 val rectification = firstText(row, listOf(7, 6)).orEmpty()
