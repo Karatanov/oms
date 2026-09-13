@@ -492,8 +492,8 @@ private fun ReportWorkbookGrid(rows: List<oms.data.ApiInspectionReportPreviewRow
 internal fun ReadOnlySirReport(manual: ManualInspectionReportRequest, photos: List<ApiInspectionPhoto> = emptyList()) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         ReadOnlySirSection(LocalizationManager.t("sir_header_site"), Icons.Default.Description) {
-            PreviewField(LocalizationManager.t("sir_inspection_organisation"), manual.projectName)
-            PreviewFieldRow(
+            ReadOnlyFieldsTable(
+                LocalizationManager.t("sir_inspection_organisation") to manual.projectName,
                 LocalizationManager.t("contractor") to manual.contractor,
                 LocalizationManager.t("sir_site_reference") to manual.siteReference,
                 LocalizationManager.t("date_label") to manual.inspectionDate.toOmsDate(),
@@ -501,14 +501,14 @@ internal fun ReadOnlySirReport(manual: ManualInspectionReportRequest, photos: Li
             )
         }
         ReadOnlySirSection(LocalizationManager.t("sir_representatives"), Icons.Default.Engineering) {
-            PreviewFieldRow(
+            ReadOnlyFieldsTable(
                 LocalizationManager.t("sir_contractor_representative") to manual.contractorRepresentative,
                 LocalizationManager.t("sir_qa_staff") to manual.qaStaff,
                 LocalizationManager.t("sir_usif_representative") to manual.usifRepresentative
             )
         }
         ReadOnlySirSection(LocalizationManager.t("sir_personnel_weather"), Icons.Default.WbSunny) {
-            PreviewFieldRow(
+            ReadOnlyFieldsTable(
                 LocalizationManager.t("sir_skilled_labor") to manual.skilledLabor,
                 LocalizationManager.t("sir_unskilled_labor") to manual.unskilledLabor,
                 LocalizationManager.t("sir_site_management") to manual.siteManagement,
@@ -520,7 +520,7 @@ internal fun ReadOnlySirReport(manual: ManualInspectionReportRequest, photos: Li
         }
         ReadOnlySirSection(LocalizationManager.t("sir_ongoing_observations"), Icons.Default.FactCheck) {
             if (manual.ongoingObservations.isEmpty()) PreviewEmpty()
-            manual.ongoingObservations.forEach { observation -> Text("• $observation") }
+            else ReadOnlySingleColumnTable(LocalizationManager.t("sir_ongoing_observations"), manual.ongoingObservations)
         }
         ReadOnlySirSection(LocalizationManager.t("sir_hse_observations"), Icons.Default.FactCheck) {
             if (manual.hseObservations.isEmpty()) PreviewEmpty()
@@ -538,10 +538,48 @@ internal fun ReadOnlySirReport(manual: ManualInspectionReportRequest, photos: Li
             ReadOnlyPurchasedMaterialsTable(manual.purchasedMaterials)
         }
         ReadOnlySirSection(LocalizationManager.t("sir_inspector_section"), Icons.Default.Description) {
-            PreviewFieldRow(
+            ReadOnlyFieldsTable(
                 LocalizationManager.t("sir_name") to manual.inspectorName,
                 LocalizationManager.t("sir_title_field") to manual.inspectorTitle
             )
+        }
+    }
+}
+
+/** Compact labelled table for fixed SIR fields such as site data and staff. */
+@Composable
+private fun ReadOnlyFieldsTable(vararg fields: Pair<String, String?>) {
+    val headerColor = MaterialTheme.colorScheme.surfaceVariant
+    Column(
+        Modifier.fillMaxWidth().border(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        verticalArrangement = Arrangement.spacedBy(0.dp)
+    ) {
+        Row(Modifier.fillMaxWidth().background(headerColor).padding(horizontal = 10.dp, vertical = 8.dp)) {
+            fields.forEach { (label, _) ->
+                Text(label, Modifier.weight(1f), style = MaterialTheme.typography.labelMedium)
+            }
+        }
+        HorizontalDivider()
+        Row(Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 10.dp), verticalAlignment = Alignment.Top) {
+            fields.forEach { (_, value) ->
+                Text(value?.takeIf(String::isNotBlank) ?: "—", Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
+            }
+        }
+    }
+}
+
+/** One column with shared heading, used for the free-text observation block. */
+@Composable
+private fun ReadOnlySingleColumnTable(header: String, values: List<String>) {
+    val headerColor = MaterialTheme.colorScheme.surfaceVariant
+    Column(
+        Modifier.fillMaxWidth().border(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        verticalArrangement = Arrangement.spacedBy(0.dp)
+    ) {
+        Text(header, Modifier.fillMaxWidth().background(headerColor).padding(horizontal = 10.dp, vertical = 8.dp), style = MaterialTheme.typography.labelMedium)
+        values.forEach { value ->
+            HorizontalDivider()
+            Text(value, Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 10.dp), style = MaterialTheme.typography.bodyMedium)
         }
     }
 }
@@ -722,25 +760,6 @@ private fun ReadOnlySirSection(title: String, icon: ImageVector, content: @Compo
             oms.components.FormSectionTitle(title, icon)
             content()
         }
-    }
-}
-
-@Composable
-private fun PreviewFieldRow(vararg fields: Pair<String, String?>) {
-    BoxWithConstraints(Modifier.fillMaxWidth()) {
-        if (maxWidth >= 800.dp) Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            fields.forEach { (label, value) -> PreviewField(label, value, Modifier.weight(1f)) }
-        } else Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            fields.forEach { (label, value) -> PreviewField(label, value, Modifier.fillMaxWidth()) }
-        }
-    }
-}
-
-@Composable
-private fun PreviewField(label: String, value: String?, modifier: Modifier = Modifier.fillMaxWidth()) {
-    Column(modifier, verticalArrangement = Arrangement.spacedBy(3.dp)) {
-        Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(value?.takeIf(String::isNotBlank) ?: "—", style = MaterialTheme.typography.bodyMedium)
     }
 }
 
