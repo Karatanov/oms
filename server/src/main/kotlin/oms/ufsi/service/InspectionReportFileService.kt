@@ -49,7 +49,7 @@ class InspectionReportFileService(
     fun synchronizeManualPhotoSheet(
         report: InspectionReport,
         photos: List<InspectionPhoto>,
-        resolveThumbnail: (InspectionPhoto) -> Path?
+        resolveOriginal: (InspectionPhoto) -> Path?
     ) {
         if (!report.summary.orEmpty().startsWith("Manual SIR")) return
         val source = getFile(report.id) ?: return
@@ -71,8 +71,12 @@ class InspectionReportFileService(
                 val drawing = sheet.createDrawingPatriarch()
                 val helper = workbook.creationHelper
                 photos.forEachIndexed { index, photo ->
-                    val thumbnail = resolveThumbnail(photo) ?: return@forEachIndexed
-                    if (!Files.isRegularFile(thumbnail)) return@forEachIndexed
+                    // Thumbnails are intended only for the web UI.  A SIR is
+                    // formal evidence, so the XLSX must embed the original
+                    // uploaded image bytes without downscaling or JPEG
+                    // re-encoding.
+                    val original = resolveOriginal(photo) ?: return@forEachIndexed
+                    if (!Files.isRegularFile(original)) return@forEachIndexed
                     val rowStart = 3 + (index / 2) * 18
                     val columnStart = if (index % 2 == 0) 0 else 6
                     sheet.getRow(rowStart - 1) ?: sheet.createRow(rowStart - 1)
@@ -85,7 +89,7 @@ class InspectionReportFileService(
                     } else {
                         Workbook.PICTURE_TYPE_JPEG
                     }
-                    val pictureIndex = workbook.addPicture(Files.readAllBytes(thumbnail), imageType)
+                    val pictureIndex = workbook.addPicture(Files.readAllBytes(original), imageType)
                     val anchor = helper.createClientAnchor().apply {
                         setCol1(columnStart)
                         row1 = rowStart

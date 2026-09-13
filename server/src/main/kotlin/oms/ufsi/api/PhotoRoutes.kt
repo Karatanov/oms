@@ -46,7 +46,7 @@ fun Route.photoRoutes() = route("/api/v1/inspection-reports/{reportUuid}/photos"
                 report,
                 AppContainer.inspectionPhotoService.list(report.id)
             ) { item ->
-                AppContainer.inspectionPhotoService.resolveFile(item, thumbnail = true)
+                AppContainer.inspectionPhotoService.resolveFile(item, thumbnail = false)
             }
             call.respond(HttpStatusCode.Created, photo.toResponse(report.uuid.toString()))
         } catch (exception: IllegalArgumentException) {
