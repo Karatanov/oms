@@ -426,6 +426,7 @@ class InspectionReportFileService(
                     .joinToString("\n\n").ifBlank { null }
             )
         }
+        normalizeQualityAssessmentTitle(sheet, qualityTitleRow)
         configureQualityAssessmentColumns(sheet, qualityTitleRow + 1)
         val qualityRows = (qualityTitleRow + 2) until qualityDataEndExclusive
         qualityRemarks.take(qualityRows.count()).forEachIndexed { index, remark ->
@@ -568,6 +569,18 @@ class InspectionReportFileService(
         }
     }
 
+    /** Restores the single full-width title cell for the quality assessment section. */
+    private fun normalizeQualityAssessmentTitle(sheet: org.apache.poi.ss.usermodel.Sheet, titleRow: Int) {
+        for (index in sheet.mergedRegions.size - 1 downTo 0) {
+            val range = sheet.mergedRegions[index]
+            if (range.firstRow + 1 == titleRow || range.lastRow + 1 == titleRow) sheet.removeMergedRegion(index)
+        }
+        val row = sheet.getRow(titleRow - 1) ?: sheet.createRow(titleRow - 1)
+        (1..11).forEach { column -> (row.getCell(column) ?: row.createCell(column)).setBlank() }
+        row.getCell(0).setCellValue("NARRATIVE ASSESSMENT - COMMENTS ON QUALITY")
+        sheet.addMergedRegion(CellRangeAddress(titleRow - 1, titleRow - 1, 0, 11))
+    }
+
     /** Uses the four SIR quality columns while preserving the template's row geometry and styles. */
     private fun configureQualityAssessmentColumns(sheet: org.apache.poi.ss.usermodel.Sheet, headerRow: Int) {
         val qualityRows = headerRow + 1..headerRow + 5
@@ -577,6 +590,8 @@ class InspectionReportFileService(
         }
         (headerRow..qualityRows.last).forEach { row ->
             val zeroBasedRow = row - 1
+            val currentRow = sheet.getRow(zeroBasedRow) ?: sheet.createRow(zeroBasedRow)
+            (0..11).forEach { column -> (currentRow.getCell(column) ?: currentRow.createCell(column)).setBlank() }
             listOf(0..2, 3..5, 6..8, 9..11).forEach { columns ->
                 val region = CellRangeAddress(zeroBasedRow, zeroBasedRow, columns.first, columns.last)
                 sheet.addMergedRegion(region)
