@@ -584,6 +584,44 @@ class InspectionReportFileService(
             listOf("OBSERVANCES ON ONGOING ACTIVITIES"),
             activities.size
         )
+        // Row shifts and merged-cell rewrites performed above can drop part
+        // of a merged heading's border in Excel. Locate their final rows and
+        // repaint the full medium-weight contour from the approved template.
+        firstRow(sheet, "PURCHASED MATERIALS")?.let { reinforcePurchasedMaterialsBorders(sheet, it) }
+        reinforceProgressAssessmentBorders(
+            sheet,
+            sectionRow(sheet, "NARRATIVE ASSESSMENT - COMMENTS ON PROGRESS")
+        )
+    }
+
+    private fun applyMediumOutline(
+        sheet: org.apache.poi.ss.usermodel.Sheet,
+        row: Int,
+        firstColumn: Int,
+        lastColumn: Int
+    ) {
+        val region = CellRangeAddress(row - 1, row - 1, firstColumn, lastColumn)
+        RegionUtil.setBorderTop(BorderStyle.MEDIUM, region, sheet)
+        RegionUtil.setBorderBottom(BorderStyle.MEDIUM, region, sheet)
+        RegionUtil.setBorderLeft(BorderStyle.MEDIUM, region, sheet)
+        RegionUtil.setBorderRight(BorderStyle.MEDIUM, region, sheet)
+    }
+
+    /** Keeps the optional materials title enclosed after inserting its rows. */
+    private fun reinforcePurchasedMaterialsBorders(sheet: org.apache.poi.ss.usermodel.Sheet, titleRow: Int) {
+        applyMediumOutline(sheet, titleRow, 0, 11)
+        // The four headings are separate merged cells; make each grid cell
+        // complete as well, rather than relying on a single top-left style.
+        listOf(0..2, 3..5, 6..8, 9..11).forEach { columns ->
+            applyMediumOutline(sheet, titleRow + 1, columns.first, columns.last)
+        }
+    }
+
+    /** Both progress-assessment headings must retain a closed, bold outline. */
+    private fun reinforceProgressAssessmentBorders(sheet: org.apache.poi.ss.usermodel.Sheet, titleRow: Int) {
+        listOf(0..8, 9..11).forEach { columns ->
+            applyMediumOutline(sheet, titleRow, columns.first, columns.last)
+        }
     }
 
     /** Inserts the optional materials table immediately before the signature. */
@@ -621,6 +659,7 @@ class InspectionReportFileService(
             if (titleStyle != null) cellStyle = titleStyle
             setCellValue("PURCHASED MATERIALS")
         }
+        applyMediumOutline(sheet, titleRow, 0, 11)
         // The source SIR uses a heavier grid for the column headings, making
         // the optional materials table distinguishable from its data rows.
         mergeRow(titleRow + 1, BorderStyle.MEDIUM)
