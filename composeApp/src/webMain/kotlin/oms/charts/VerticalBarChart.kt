@@ -77,14 +77,17 @@ fun VerticalBarChart(
             }
         }
         }
-        if (showScrollControls) {
+        // Do not show disabled navigation when every bar already fits in the
+        // available width. The navigator becomes visible only after there is
+        // actual horizontal content to browse.
+        if (showScrollControls && scroll.maxValue > 0) {
             Box(Modifier.fillMaxWidth().padding(top = 8.dp), contentAlignment = Alignment.Center) {
                 Surface(
                     modifier = Modifier.width(208.dp),
                     shape = MaterialTheme.shapes.medium,
                     color = MaterialTheme.colorScheme.surfaceContainerLow
                 ) {
-                    TableScrollControls(scroll, showWhenStationary = true)
+                    TableScrollControls(scroll)
                 }
             }
         }
