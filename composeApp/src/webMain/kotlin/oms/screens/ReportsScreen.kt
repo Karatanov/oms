@@ -542,11 +542,11 @@ internal fun ReadOnlySirReport(manual: ManualInspectionReportRequest, photos: Li
             )
         }
         ReadOnlySirSection(LocalizationManager.t("sir_ongoing_activities"), Icons.Default.Engineering) {
-            ReadOnlyActivitiesTable(manual.activities, photos)
+            ReadOnlyActivitiesTable(manual.activities, photos, manual.ongoingObservations)
         }
         ReadOnlySirSection(LocalizationManager.t("sir_ongoing_observations"), Icons.Default.FactCheck) {
             if (manual.ongoingObservations.isEmpty()) PreviewEmpty()
-            else ReadOnlySingleColumnTable(LocalizationManager.t("sir_ongoing_observations"), manual.ongoingObservations)
+            else ReadOnlyOngoingObservationsTable(manual.ongoingObservations, photos)
         }
         ReadOnlySirSection(LocalizationManager.t("sir_hse_observations"), Icons.Default.FactCheck) {
             if (manual.hseObservations.isEmpty()) PreviewEmpty()
@@ -727,13 +727,19 @@ private fun ReadOnlyPurchasedMaterialsTable(materials: List<oms.data.ManualPurch
 
 /** The workbook's current-work section: headers appear once, each job is a row. */
 @Composable
-private fun ReadOnlyActivitiesTable(activities: List<oms.data.ManualActivityRequest>, photos: List<ApiInspectionPhoto>) {
+private fun ReadOnlyActivitiesTable(
+    activities: List<oms.data.ManualActivityRequest>,
+    photos: List<ApiInspectionPhoto>,
+    ongoingObservations: List<String>
+) {
     if (activities.isEmpty()) {
         PreviewEmpty()
         return
     }
     val headerColor = MaterialTheme.colorScheme.surfaceVariant
-    val knownPhotoPrefixes = activities.map { it.description.toInspectionPhotoNamePrefix() }.filter(String::isNotBlank)
+    val knownPhotoPrefixes = (activities.map { it.description } + ongoingObservations)
+        .map(String::toInspectionPhotoNamePrefix)
+        .filter(String::isNotBlank)
     // Older reports may contain photos uploaded before activity-based names
     // existed. Keep that evidence visible beside the first work rather than
     // silently hiding it simply because a historical filename cannot match.
@@ -757,7 +763,7 @@ private fun ReadOnlyActivitiesTable(activities: List<oms.data.ManualActivityRequ
                 Text(activity.location.ifBlank { "—" }, Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
                 Text(activity.description.ifBlank { "—" }, Modifier.weight(2f), style = MaterialTheme.typography.bodyMedium)
                 Text(activity.remarks?.takeIf(String::isNotBlank) ?: "—", Modifier.weight(1.5f), style = MaterialTheme.typography.bodyMedium)
-                val activityPhotos = photos.forActivity(activity) + if (index == 0) unassignedPhotos else emptyList()
+                val activityPhotos = photos.forDescription(activity.description) + if (index == 0) unassignedPhotos else emptyList()
                 if (activityPhotos.isEmpty()) Text("—", Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
                 else InspectionActivityPhotoGallery(
                     activityKey = "${activity.description.toInspectionPhotoNamePrefix()}-$index",
@@ -770,12 +776,40 @@ private fun ReadOnlyActivitiesTable(activities: List<oms.data.ManualActivityRequ
 }
 
 /** Photo upload names are derived from the ongoing-work description. */
-private fun List<ApiInspectionPhoto>.forActivity(activity: oms.data.ManualActivityRequest): List<ApiInspectionPhoto> {
-    val prefix = activity.description.toInspectionPhotoNamePrefix()
+private fun List<ApiInspectionPhoto>.forDescription(description: String): List<ApiInspectionPhoto> {
+    val prefix = description.toInspectionPhotoNamePrefix()
     if (prefix.isBlank()) return emptyList()
     return filter { photo ->
         photo.fileName.substringBeforeLast('.', photo.fileName)
             .startsWith(prefix, ignoreCase = true)
+    }
+}
+
+/** Photos are captioned with the matching OBSERVANCES ON ONGOING ACTIVITIES row. */
+@Composable
+private fun ReadOnlyOngoingObservationsTable(observations: List<String>, photos: List<ApiInspectionPhoto>) {
+    val headerColor = MaterialTheme.colorScheme.surfaceVariant
+    Column(
+        Modifier.fillMaxWidth().border(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        verticalArrangement = Arrangement.spacedBy(0.dp)
+    ) {
+        Row(Modifier.fillMaxWidth().background(headerColor).padding(horizontal = 10.dp, vertical = 8.dp)) {
+            Text(LocalizationManager.t("sir_ongoing_observations"), Modifier.weight(3f), style = MaterialTheme.typography.labelMedium)
+            Text(LocalizationManager.t("photos"), Modifier.weight(1f), style = MaterialTheme.typography.labelMedium)
+        }
+        observations.forEachIndexed { index, observation ->
+            if (index > 0) HorizontalDivider()
+            Row(Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 10.dp), verticalAlignment = Alignment.Top) {
+                Text(observation, Modifier.weight(3f), style = MaterialTheme.typography.bodyMedium)
+                val observationPhotos = photos.forDescription(observation)
+                if (observationPhotos.isEmpty()) Text("—", Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
+                else InspectionActivityPhotoGallery(
+                    activityKey = "${observation.toInspectionPhotoNamePrefix()}-observation-$index",
+                    photos = observationPhotos,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        }
     }
 }
 

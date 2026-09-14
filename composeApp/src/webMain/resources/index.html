@@ -635,7 +635,10 @@
                     for (let index = 0; index < photos.length; index += 1) {
                         const file = photos[index];
                         const extension = (file.name.split(".").pop() || "jpg").toLowerCase();
-                        const fileName = `${baseName}${photos.length > 1 ? ` ${index + 1}` : ""}.${extension}`;
+                        // The server uses this durable caption to group photos
+                        // beside the matching ongoing work in both the web
+                        // preview and the generated XLSX evidence sheet.
+                        const fileName = `${baseName}${photos.length > 1 ? ` [photo ${index + 1}]` : ""}.${extension}`;
                         formData.append("file", file, fileName);
                     }
                 }

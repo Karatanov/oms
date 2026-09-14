@@ -12,10 +12,13 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.LinkedHashMap
 import java.util.UUID
+import javax.imageio.ImageIO
 import org.apache.poi.ss.usermodel.DataFormatter
 import org.apache.poi.ss.usermodel.BorderStyle
 import org.apache.poi.ss.usermodel.Workbook
 import org.apache.poi.ss.usermodel.WorkbookFactory
+import org.apache.poi.ss.usermodel.HorizontalAlignment
+import org.apache.poi.ss.usermodel.VerticalAlignment
 import org.apache.poi.ss.util.CellRangeAddress
 import org.apache.poi.ss.util.RegionUtil
 import org.apache.poi.xssf.usermodel.XSSFWorkbook
@@ -101,17 +104,27 @@ class InspectionReportFileService(
         try {
             WorkbookFactory.create(sourcePath.toFile()).use { workbook ->
                 val xlsx = workbook as? XSSFWorkbook ?: return
-                workbook.getSheetIndex("Photos")
-                    .takeIf { it >= 0 }
-                    ?.let(workbook::removeSheetAt)
-                val sheet = workbook.createSheet("Photos")
-                sheet.setColumnWidth(0, 5_000)
-                sheet.setColumnWidth(6, 5_000)
-                sheet.createRow(0).apply {
-                    createCell(0).setCellValue("Inspection photographs")
+                sequenceOf("Photos", "Photo Attachment").forEach { name ->
+                    while (workbook.getSheetIndex(name) >= 0) {
+                        workbook.removeSheetAt(workbook.getSheetIndex(name))
+                    }
                 }
+                // Match the supplied SIR-USIF Borodyanka reference: one
+                // evidence image per portrait page, with its caption directly
+                // underneath.  A two-column image grid made it impossible to
+                // unambiguously relate photographs to their observations.
+                val sheet = workbook.createSheet("Photo Attachment")
+                sheet.setColumnWidth(0, 3 * 256)
+                sheet.setColumnWidth(13, 2 * 256)
+                sheet.printSetup.landscape = false
                 val drawing = sheet.createDrawingPatriarch()
                 val helper = workbook.creationHelper
+                // Upload names are generated from the ongoing-work description.
+                // Preserve that human-readable link in the sheet, rather than
+                // showing an opaque camera filename next to the evidence.
+                val baseCaptions = photos.associateWith { inspectionPhotoCaption(it.originalName) }
+                val captionTotals = baseCaptions.values.groupingBy { it }.eachCount()
+                val captionPositions = mutableMapOf<String, Int>()
                 photos.forEachIndexed { index, photo ->
                     // Thumbnails are intended only for the web UI.  A SIR is
                     // formal evidence, so the XLSX must embed the original
@@ -119,12 +132,39 @@ class InspectionReportFileService(
                     // re-encoding.
                     val original = resolveOriginal(photo) ?: return@forEachIndexed
                     if (!Files.isRegularFile(original)) return@forEachIndexed
-                    val rowStart = 3 + (index / 2) * 18
-                    val columnStart = if (index % 2 == 0) 0 else 6
-                    sheet.getRow(rowStart - 1) ?: sheet.createRow(rowStart - 1)
-                    sheet.getRow(rowStart - 1).createCell(columnStart).setCellValue(photo.originalName)
-                    for (rowIndex in rowStart until rowStart + 15) {
+                    val imageStartRow = 3 + index * 30
+                    val captionRowIndex = imageStartRow + 25
+                    val sourceImage = runCatching { ImageIO.read(original.toFile()) }.getOrNull()
+                    val portrait = sourceImage?.let { it.height > it.width } ?: false
+                    val columnStart = if (portrait) 4 else 2
+                    val columnEnd = if (portrait) 10 else 12
+                    val caption = requireNotNull(baseCaptions[photo])
+                    val captionPosition = (captionPositions[caption] ?: 0) + 1
+                    captionPositions[caption] = captionPosition
+                    val displayCaption = if ((captionTotals[caption] ?: 0) > 1) {
+                        "$caption ($captionPosition/${captionTotals[caption]})"
+                    } else caption
+                    for (rowIndex in imageStartRow..captionRowIndex) {
                         (sheet.getRow(rowIndex) ?: sheet.createRow(rowIndex)).heightInPoints = 20f
+                    }
+                    // The reference workbook uses a thin visual separator
+                    // before the observation caption and leaves a small gap
+                    // before the following picture.
+                    sheet.addMergedRegion(CellRangeAddress(captionRowIndex - 1, captionRowIndex - 1, 1, 12))
+                    val separator = sheet.getRow(captionRowIndex - 1).getCell(1)
+                        ?: sheet.getRow(captionRowIndex - 1).createCell(1)
+                    separator.cellStyle = workbook.createCellStyle().apply {
+                        borderBottom = BorderStyle.MEDIUM
+                    }
+                    val captionRow = sheet.getRow(captionRowIndex) ?: sheet.createRow(captionRowIndex)
+                    sheet.addMergedRegion(CellRangeAddress(captionRowIndex, captionRowIndex, 1, 12))
+                    captionRow.createCell(1).apply {
+                        setCellValue(displayCaption)
+                        cellStyle = workbook.createCellStyle().apply {
+                            wrapText = true
+                            alignment = HorizontalAlignment.CENTER
+                            verticalAlignment = VerticalAlignment.CENTER
+                        }
                     }
                     val imageType = if (photo.contentType.contains("png", ignoreCase = true)) {
                         Workbook.PICTURE_TYPE_PNG
@@ -134,9 +174,9 @@ class InspectionReportFileService(
                     val pictureIndex = workbook.addPicture(Files.readAllBytes(original), imageType)
                     val anchor = helper.createClientAnchor().apply {
                         setCol1(columnStart)
-                        row1 = rowStart
-                        setCol2(columnStart + 5)
-                        row2 = rowStart + 15
+                        row1 = imageStartRow
+                        setCol2(columnEnd)
+                        row2 = captionRowIndex - 1
                     }
                     drawing.createPicture(anchor, pictureIndex)
                 }
@@ -150,6 +190,17 @@ class InspectionReportFileService(
             Files.deleteIfExists(temporary)
         }
     }
+
+    /**
+     * A pending upload is named from its activity description.  The suffix is
+     * only an upload disambiguator; it is deliberately omitted from the XLSX
+     * caption so every image reads like a comment on the associated work.
+     */
+    private fun inspectionPhotoCaption(fileName: String): String =
+        fileName.substringBeforeLast('.', fileName)
+            .replace(Regex("\\s*\\[photo\\s+\\d+]$", RegexOption.IGNORE_CASE), "")
+            .trim()
+            .ifBlank { "Photo" }
 
     fun createManual(project: Project, request: CreateManualInspectionReportRequest, createdBy: Long): InspectionReport {
         val qaStaff = request.qaStaff?.trim()?.takeIf { it.isNotBlank() } ?: request.inspectorName.trim()

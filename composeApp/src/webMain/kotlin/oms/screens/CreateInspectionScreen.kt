@@ -122,7 +122,7 @@ fun CreateInspectionScreen(
     var purchasedMaterials by remember { mutableStateOf(emptyList<PurchasedMaterialInput>()) }
     var projectName by remember { mutableStateOf("") }
     var siteAddress by remember { mutableStateOf("") }
-    var ongoingObservations by remember { mutableStateOf(listOf("")) }
+    var ongoingObservations by remember { mutableStateOf(listOf(OngoingObservationInput())) }
     var hseObservations by remember { mutableStateOf(defaultHseObservations) }
     var qualityRemarks by remember { mutableStateOf(listOf(QualityRemarkInput())) }
     var progressComment by remember { mutableStateOf("") }
@@ -221,7 +221,9 @@ fun CreateInspectionScreen(
             purchasedMaterials = manual.purchasedMaterials.map {
                 PurchasedMaterialInput(it.materialsAndEquipment, it.characteristics.orEmpty(), it.perDed.orEmpty().ifBlank { "no" }, it.notes.orEmpty())
             }
-            ongoingObservations = manual.ongoingObservations.ifEmpty { listOf("") }
+            ongoingObservations = manual.ongoingObservations
+                .map(::OngoingObservationInput)
+                .ifEmpty { listOf(OngoingObservationInput()) }
             hseObservations = manual.hseObservations.map {
                 HseObservationInput(
                     observation = it.observation,
@@ -416,7 +418,7 @@ fun CreateInspectionScreen(
                     weather = weatherCondition.toWeatherWorkbookValue(temperatureCelsius),
                     activities = activities.map { oms.data.ManualActivityRequest(it.location, it.description, it.onSchedule, it.remarks.ifBlank { null }) },
                     purchasedMaterials = purchasedMaterials.map { oms.data.ManualPurchasedMaterialRequest(it.materialsAndEquipment, it.characteristics.ifBlank { null }, it.perDed.ifBlank { "no" }, it.notes.ifBlank { null }) },
-                    ongoingObservations = ongoingObservations.filter(String::isNotBlank),
+                    ongoingObservations = ongoingObservations.map { it.description.trim() }.filter(String::isNotBlank),
                     hseObservations = hseObservations.map { oms.data.ManualHseObservationRequest(it.observation, it.answer(), it.comment.ifBlank { null }) },
                     qualityRemarks = qualityRemarks.map { oms.data.ManualRemarkRequest(it.work, it.comment, it.rectification.ifBlank { null }, it.status.ifBlank { null }) },
                     progressComment = progressComment.ifBlank { null },
@@ -540,7 +542,7 @@ fun CreateInspectionScreen(
                                                 material.takeIf { it.materialsAndEquipment.isNotBlank() || it.characteristics.isNotBlank() || it.notes.isNotBlank() }
                                                     ?.let { oms.data.ManualPurchasedMaterialRequest(it.materialsAndEquipment.trim(), it.characteristics.trim().ifBlank { null }, it.perDed.trim().ifBlank { "no" }, it.notes.trim().ifBlank { null }) }
                                             },
-                                            ongoingObservations = ongoingObservations.map(String::trim).filter(String::isNotBlank),
+                                            ongoingObservations = ongoingObservations.map { it.description.trim() }.filter(String::isNotBlank),
                                             hseObservations = hseObservations.mapNotNull { item ->
                                                 item.observation.trim().takeIf(String::isNotBlank)?.let { observation ->
                                                     oms.data.ManualHseObservationRequest(observation, item.answer(), item.comment.trim().ifBlank { null })
@@ -739,7 +741,7 @@ private fun ManualSirForm(
     temperatureCelsius: String, onTemperatureCelsiusChange: (String) -> Unit,
     activities: List<ManualActivityInput>, onActivitiesChange: (List<ManualActivityInput>) -> Unit,
     purchasedMaterials: List<PurchasedMaterialInput>, onPurchasedMaterialsChange: (List<PurchasedMaterialInput>) -> Unit,
-    ongoingObservations: List<String>, onOngoingObservationsChange: (List<String>) -> Unit,
+    ongoingObservations: List<OngoingObservationInput>, onOngoingObservationsChange: (List<OngoingObservationInput>) -> Unit,
     hseObservations: List<HseObservationInput>, onHseObservationsChange: (List<HseObservationInput>) -> Unit,
     qualityRemarks: List<QualityRemarkInput>, onQualityRemarksChange: (List<QualityRemarkInput>) -> Unit,
     progress: String, onProgressChange: (String) -> Unit,
@@ -791,7 +793,7 @@ private fun ManualSirForm(
         }
 
         SirFormSection(LocalizationManager.t("sir_ongoing_observations"), Icons.Default.FactCheck) {
-            RepeatableSirRows(ongoingObservations, onOngoingObservationsChange, LocalizationManager.t("sir_one_per_line"))
+            RepeatableOngoingObservations(ongoingObservations, onOngoingObservationsChange)
         }
 
         SirFormSection(LocalizationManager.t("sir_hse_observations"), Icons.Default.FactCheck) {
@@ -870,15 +872,72 @@ private fun SirFormSection(title: String, icon: ImageVector, content: @Composabl
     }
 }
 
+private data class OngoingObservationInput(
+    val description: String = "",
+    val photoKey: String = "observation-${kotlin.random.Random.nextInt()}-${kotlin.random.Random.nextInt()}",
+    val photoCount: Int = 0,
+    val photoRevision: Int = 0
+)
+
+/**
+ * The reference SIR's Photo Attachment sheet captions photographs with rows
+ * from OBSERVANCES ON ONGOING ACTIVITIES.  Keep a stable photo key per row so
+ * multiple photos remain attached to that exact observation while it is edited.
+ */
 @Composable
-private fun RepeatableSirRows(values: List<String>, onChange: (List<String>) -> Unit, label: String) {
-    values.forEachIndexed { index, value ->
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-            OutlinedTextField(value, { text -> onChange(values.mapIndexed { current, item -> if (current == index) text.inspectionText(8_000) else item }) }, label = { Text(label) }, minLines = 2, maxLines = 6, modifier = Modifier.weight(1f))
-            if (values.size > 1) TableActionIconButton(LocalizationManager.t("delete"), Icons.Default.Remove) { onChange(values.filterIndexed { current, _ -> current != index }) }
+private fun RepeatableOngoingObservations(
+    values: List<OngoingObservationInput>,
+    onChange: (List<OngoingObservationInput>) -> Unit
+) {
+    fun update(index: Int, transform: (OngoingObservationInput) -> OngoingObservationInput) {
+        onChange(values.mapIndexed { current, item -> if (current == index) transform(item) else item })
+    }
+    values.forEachIndexed { index, observation ->
+        LaunchedEffect(observation.photoKey, observation.description) {
+            setPendingInspectionPhotoDescription(observation.photoKey, observation.description)
+        }
+        Card(colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FBFC))) {
+            Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.Top) {
+                    OutlinedTextField(
+                        observation.description,
+                        { value -> update(index) { it.copy(description = value.inspectionText(8_000)) } },
+                        label = { Text(LocalizationManager.t("sir_one_per_line")) },
+                        minLines = 2,
+                        maxLines = 6,
+                        modifier = Modifier.weight(1f)
+                    )
+                    if (values.size > 1) {
+                        TableActionIconButton(LocalizationManager.t("delete"), Icons.Default.Remove) {
+                            onChange(values.filterIndexed { current, _ -> current != index })
+                        }
+                    }
+                }
+                OutlinedButton(
+                    onClick = {
+                        openInspectionPhotoPicker(observation.photoKey) { count ->
+                            update(index) { it.copy(photoCount = count, photoRevision = it.photoRevision + 1) }
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text(LocalizationManager.t("add_inspection_photos")) }
+                Text(
+                    if (observation.photoCount == 0) LocalizationManager.t("no_photos_selected")
+                    else LocalizationManager.t("photos_selected").replace("{count}", observation.photoCount.toString()),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                if (observation.photoCount > 0) {
+                    PendingInspectionPhotoPreviews(observation.photoKey, observation.photoRevision) { count ->
+                        update(index) { it.copy(photoCount = count, photoRevision = it.photoRevision + 1) }
+                    }
+                }
+            }
         }
     }
-    TableActionIconButton(LocalizationManager.t("add"), Icons.Default.Add) { onChange(values + "") }
+    TableActionIconButton(LocalizationManager.t("add"), Icons.Default.Add) {
+        onChange(values + OngoingObservationInput())
+    }
 }
 
 private enum class WeatherCondition(val localizationKey: String, val workbookValue: String) {
