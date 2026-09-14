@@ -196,10 +196,10 @@ fun FinancialScreen(
         val financialChartRecords = acts.map { FinancialChartRecord(it.act, it.subprojectName) }
         oms.components.AdaptiveChartRow(
             first = { MonthlyPaymentsChart(financialChartRecords) },
-            second = { MonthlyEquipmentPaymentsChart(financialChartRecords) }
+            second = { MonthlyTechnicalSupervisionPaymentsChart(financialChartRecords) }
         )
         oms.components.AdaptiveChartRow(
-            first = { MonthlyTechnicalSupervisionPaymentsChart(financialChartRecords) },
+            first = { MonthlyEquipmentPaymentsChart(financialChartRecords) },
             second = { MonthlyEngineerConsultantPaymentsChart(financialChartRecords) }
         )
 

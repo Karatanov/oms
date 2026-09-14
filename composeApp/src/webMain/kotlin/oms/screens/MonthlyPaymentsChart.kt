@@ -45,11 +45,14 @@ fun MonthlyEquipmentPaymentsChart(records: List<FinancialChartRecord>) {
 
 @Composable
 fun MonthlyTechnicalSupervisionPaymentsChart(records: List<FinancialChartRecord>) {
+    var expanded by remember { mutableStateOf(true) }
     MonthlyPurposePaymentsChart(
         records = records,
         purpose = "technical_supervision",
         titleKey = "monthly_technical_supervision_payments",
-        hintKey = "monthly_technical_supervision_payments_hint"
+        hintKey = "monthly_technical_supervision_payments_hint",
+        expanded = expanded,
+        onExpandedChange = { expanded = it }
     )
 }
 
@@ -68,11 +71,13 @@ private fun MonthlyPurposePaymentsChart(
     records: List<FinancialChartRecord>,
     purpose: String,
     titleKey: String,
-    hintKey: String
+    hintKey: String,
+    expanded: Boolean = true,
+    onExpandedChange: ((Boolean) -> Unit)? = null
 ) {
     val aggregation = aggregateMonthlyPayments(records, purpose)
     if (aggregation.payments.isEmpty()) return
-    MonthlyAmountsChart(titleKey, hintKey, aggregation.payments, aggregation.tooltipByMonth)
+    MonthlyAmountsChart(titleKey, hintKey, aggregation.payments, aggregation.tooltipByMonth, expanded, onExpandedChange)
 }
 
 private fun aggregateMonthlyPayments(
