@@ -78,11 +78,12 @@ class DashboardService(
         val projectIds = projects.map { it[ProjectTable.id].value }.toSet()
         val reports = InspectionReportTable.selectAll().toList()
             .filter { it[InspectionReportTable.projectId].value in projectIds }
-        val actRecords = FinancialRecordTable.selectAll().toList().filter {
-            it[FinancialRecordTable.projectId].value in projectIds && it[FinancialRecordTable.recordType] == "act"
+        val paymentRecords = FinancialRecordTable.selectAll().toList().filter {
+            it[FinancialRecordTable.projectId].value in projectIds &&
+                it[FinancialRecordTable.recordType] in setOf("payment", "advance")
         }
         fun month(date: java.time.LocalDate) = date.toString().take(7)
-        val monthlyActPayments = actRecords.filter { it[FinancialRecordTable.amountEurCents] != null }
+        val monthlyActPayments = paymentRecords.filter { it[FinancialRecordTable.amountEurCents] != null }
             .groupBy { month(it[FinancialRecordTable.paymentDate] ?: it[FinancialRecordTable.recordDate]) }
             .map { (label, rows) -> MonthlyActPayment(label, rows.sumOf { it[FinancialRecordTable.amountEurCents] ?: 0L }) }
             .sortedBy { it.month }
@@ -160,8 +161,12 @@ class DashboardService(
         val actRecords = FinancialRecordTable.selectAll().filter {
             it[FinancialRecordTable.projectId].value in projectIds && it[FinancialRecordTable.recordType] == "act"
         }
+        val paymentRecords = FinancialRecordTable.selectAll().filter {
+            it[FinancialRecordTable.projectId].value in projectIds &&
+                it[FinancialRecordTable.recordType] in setOf("payment", "advance")
+        }
         val spent = actRecords.sumOf { it[FinancialRecordTable.amount] }.toDouble()
-        val monthlyActPayments = actRecords.filter { it[FinancialRecordTable.amountEurCents] != null }
+        val monthlyActPayments = paymentRecords.filter { it[FinancialRecordTable.amountEurCents] != null }
             .groupBy { (it[FinancialRecordTable.paymentDate] ?: it[FinancialRecordTable.recordDate]).toString().take(7) }
             .map { (month, records) -> MonthlyActPayment(month, records.sumOf { it[FinancialRecordTable.amountEurCents] ?: 0L }) }
             .sortedBy { it.month }
