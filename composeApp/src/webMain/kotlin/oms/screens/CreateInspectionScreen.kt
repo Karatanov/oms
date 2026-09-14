@@ -439,7 +439,8 @@ fun CreateInspectionScreen(
             purchasedMaterials = purchasedMaterials, onPurchasedMaterialsChange = { purchasedMaterials = it },
             hseObservations = hseObservations, onHseObservationsChange = { hseObservations = it }, qualityRemarks = qualityRemarks, onQualityRemarksChange = { qualityRemarks = it },
             progress = progressComment, onProgressChange = { progressComment = it }, schedule = scheduleRemark, onScheduleChange = { scheduleRemark = it },
-            inspectorName = inspectorName, inspectorTitle = inspectorTitle, onInspectorTitleChange = { inspectorTitle = it }
+            inspectorName = inspectorName, onInspectorNameChange = { inspectorName = it },
+            inspectorTitle = inspectorTitle, onInspectorTitleChange = { inspectorTitle = it }
             )
         }
 
@@ -746,7 +747,7 @@ private fun ManualSirForm(
     qualityRemarks: List<QualityRemarkInput>, onQualityRemarksChange: (List<QualityRemarkInput>) -> Unit,
     progress: String, onProgressChange: (String) -> Unit,
     schedule: String, onScheduleChange: (String) -> Unit,
-    inspectorName: String,
+    inspectorName: String, onInspectorNameChange: (String) -> Unit,
     inspectorTitle: String, onInspectorTitleChange: (String) -> Unit
 ) {
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(14.dp)) {
@@ -847,10 +848,10 @@ private fun ManualSirForm(
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedTextField(
                     value = inspectorName,
-                    onValueChange = {},
-                    readOnly = true,
+                    onValueChange = { onInspectorNameChange(it.inspectionText(300)) },
                     label = { Text(LocalizationManager.t("sir_name")) },
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
+                    singleLine = true
                 )
                 OutlinedTextField(inspectorTitle, { onInspectorTitleChange(it.inspectionText(300)) }, label = { Text(LocalizationManager.t("sir_title_field")) }, modifier = Modifier.weight(1f), singleLine = true)
             }
