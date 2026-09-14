@@ -686,7 +686,13 @@ private fun ReadOnlyPurchasedMaterialsTable(materials: List<oms.data.ManualPurch
             Row(Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 10.dp), verticalAlignment = Alignment.Top) {
                 Text(material.materialsAndEquipment.ifBlank { "—" }, Modifier.weight(1.25f), style = MaterialTheme.typography.bodyMedium)
                 Text(material.characteristics?.takeIf(String::isNotBlank) ?: "—", Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
-                Text(material.perDed?.takeIf(String::isNotBlank)?.let { LocalizationManager.t(it.lowercase()) } ?: "—", Modifier.weight(.7f), style = MaterialTheme.typography.bodyMedium)
+                Box(Modifier.weight(.7f), contentAlignment = Alignment.TopCenter) {
+                    if (material.perDed.equals("yes", true)) {
+                        oms.components.OmsBadge(LocalizationManager.t("yes"), Color(0xFF2E7D32))
+                    } else {
+                        oms.components.OmsBadge(LocalizationManager.t("no"), Color(0xFFC62828))
+                    }
+                }
                 Text(material.notes?.takeIf(String::isNotBlank) ?: "—", Modifier.weight(1.25f), style = MaterialTheme.typography.bodyMedium)
             }
         }

@@ -329,7 +329,7 @@ class InspectionReportFileService(
         // directly above the M4H QA signing block.
         val materials = request.purchasedMaterials.filter { material ->
             material.materialsAndEquipment.isNotBlank() || !material.characteristics.isNullOrBlank() ||
-                !material.perDed.isNullOrBlank() || !material.notes.isNullOrBlank()
+                !material.notes.isNullOrBlank()
         }
         // Rebuild this optional block from the form state so removing its last
         // row removes the block from the workbook as well.
@@ -398,7 +398,9 @@ class InspectionReportFileService(
             val row = checkNotNull(materialsTitleRow) + 2 + index
             text(row, 1, material.materialsAndEquipment)
             text(row, 4, material.characteristics)
-            text(row, 7, material.perDed)
+            // Per DED is binary in the manual form. A missing legacy value
+            // means the checkbox was not selected, i.e. "no".
+            text(row, 7, material.perDed?.trim().takeIf(String::isNotBlank) ?: "no")
             text(row, 10, material.notes)
         }
         val ongoingObservationRows = (ongoingObservationsTitleRow + 1) until hseTitleRow

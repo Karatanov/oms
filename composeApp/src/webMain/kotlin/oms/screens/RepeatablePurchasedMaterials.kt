@@ -19,7 +19,8 @@ import oms.localization.LocalizationManager
 internal data class PurchasedMaterialInput(
     val materialsAndEquipment: String = "",
     val characteristics: String = "",
-    val perDed: String = "",
+    // An unchecked control is an explicit "no", never an undefined value.
+    val perDed: String = "no",
     val notes: String = ""
 )
 

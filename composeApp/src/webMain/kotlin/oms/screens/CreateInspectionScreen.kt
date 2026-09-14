@@ -205,7 +205,7 @@ fun CreateInspectionScreen(
                 )
             }.ifEmpty { listOf(ManualActivityInput()) }
             purchasedMaterials = manual.purchasedMaterials.map {
-                PurchasedMaterialInput(it.materialsAndEquipment, it.characteristics.orEmpty(), it.perDed.orEmpty(), it.notes.orEmpty())
+                PurchasedMaterialInput(it.materialsAndEquipment, it.characteristics.orEmpty(), it.perDed.orEmpty().ifBlank { "no" }, it.notes.orEmpty())
             }
             ongoingObservations = manual.ongoingObservations.ifEmpty { listOf("") }
             hseObservations = manual.hseObservations.map {
@@ -401,7 +401,7 @@ fun CreateInspectionScreen(
                     siteManagement = siteManagement.ifBlank { null },
                     weather = weatherCondition.toWeatherWorkbookValue(temperatureCelsius),
                     activities = activities.map { oms.data.ManualActivityRequest(it.location, it.description, it.onSchedule, it.remarks.ifBlank { null }) },
-                    purchasedMaterials = purchasedMaterials.map { oms.data.ManualPurchasedMaterialRequest(it.materialsAndEquipment, it.characteristics.ifBlank { null }, it.perDed.ifBlank { null }, it.notes.ifBlank { null }) },
+                    purchasedMaterials = purchasedMaterials.map { oms.data.ManualPurchasedMaterialRequest(it.materialsAndEquipment, it.characteristics.ifBlank { null }, it.perDed.ifBlank { "no" }, it.notes.ifBlank { null }) },
                     ongoingObservations = ongoingObservations.filter(String::isNotBlank),
                     hseObservations = hseObservations.map { oms.data.ManualHseObservationRequest(it.observation, it.answer(), it.comment.ifBlank { null }) },
                     qualityRemarks = qualityRemarks.map { oms.data.ManualRemarkRequest(it.work, it.comment, it.rectification.ifBlank { null }, it.status.ifBlank { null }) },
@@ -523,8 +523,8 @@ fun CreateInspectionScreen(
                                                 activity.location.isNotBlank() || activity.description.isNotBlank() || activity.remarks != null
                                             },
                                             purchasedMaterials = purchasedMaterials.mapNotNull { material ->
-                                                material.takeIf { it.materialsAndEquipment.isNotBlank() || it.characteristics.isNotBlank() || it.perDed.isNotBlank() || it.notes.isNotBlank() }
-                                                    ?.let { oms.data.ManualPurchasedMaterialRequest(it.materialsAndEquipment.trim(), it.characteristics.trim().ifBlank { null }, it.perDed.trim().ifBlank { null }, it.notes.trim().ifBlank { null }) }
+                                                material.takeIf { it.materialsAndEquipment.isNotBlank() || it.characteristics.isNotBlank() || it.notes.isNotBlank() }
+                                                    ?.let { oms.data.ManualPurchasedMaterialRequest(it.materialsAndEquipment.trim(), it.characteristics.trim().ifBlank { null }, it.perDed.trim().ifBlank { "no" }, it.notes.trim().ifBlank { null }) }
                                             },
                                             ongoingObservations = ongoingObservations.map(String::trim).filter(String::isNotBlank),
                                             hseObservations = hseObservations.mapNotNull { item ->
