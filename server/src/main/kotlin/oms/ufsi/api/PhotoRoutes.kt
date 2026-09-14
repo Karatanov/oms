@@ -18,7 +18,7 @@ import java.nio.file.Files
 fun Route.photoRoutes() = route("/api/v1/inspection-reports/{reportUuid}/photos") {
     get {
         val report = call.photoReport() ?: return@get
-        call.respond(AppContainer.inspectionPhotoService.list(report.id).map { it.toResponse(report.uuid.toString()) })
+        call.respond(hydrateEmbeddedSirPhotos(report).map { it.toResponse(report.uuid.toString()) })
     }
 
     post {
@@ -86,6 +86,26 @@ fun Route.photoRoutes() = route("/api/v1/inspection-reports/{reportUuid}/photos"
         if (path == null || !Files.isRegularFile(path)) return@get call.respond(HttpStatusCode.NotFound)
         call.respondFile(path.toFile())
     }
+}
+
+/**
+ * Older imported SIRs stored photographs only inside XLSX.  Materialise them
+ * once on first access so that the same URLs work in both edit and preview
+ * screens.  This is intentionally idempotent: a non-empty registry is never
+ * touched, and an unreadable/unsupported workbook simply remains photo-less.
+ */
+internal fun hydrateEmbeddedSirPhotos(report: InspectionReport): List<oms.ufsi.domain.InspectionPhoto> {
+    val photoService = AppContainer.inspectionPhotoService
+    val existing = photoService.list(report.id)
+    if (existing.isNotEmpty()) return existing
+    AppContainer.inspectionReportFileService.extractEmbeddedPhotos(report)
+        .take(30)
+        .forEach { embedded ->
+            runCatching {
+                photoService.upload(report.id, embedded.originalName, embedded.contentType, embedded.bytes)
+            }
+        }
+    return photoService.list(report.id)
 }
 
 private suspend fun ApplicationCall.photoReport(): InspectionReport? {

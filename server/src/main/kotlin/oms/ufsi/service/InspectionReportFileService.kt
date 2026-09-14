@@ -21,6 +21,7 @@ import org.apache.poi.ss.usermodel.HorizontalAlignment
 import org.apache.poi.ss.usermodel.VerticalAlignment
 import org.apache.poi.ss.util.CellRangeAddress
 import org.apache.poi.ss.util.RegionUtil
+import org.apache.poi.xssf.usermodel.XSSFPicture
 import org.apache.poi.xssf.usermodel.XSSFWorkbook
 import oms.ufsi.dto.CreateManualInspectionReportRequest
 import oms.ufsi.dto.ManualActivity
@@ -37,6 +38,18 @@ data class HealthSafetyObservation(
     val observation: String,
     val answer: String?,
     val comment: String?
+)
+
+/**
+ * An evidence image embedded in the `Photo Attachment` worksheet of an
+ * imported SIR.  Imported workbooks predate the application's photo registry,
+ * so their images have to be materialised as regular inspection photos before
+ * the web preview and editor can display them.
+ */
+data class EmbeddedInspectionPhoto(
+    val originalName: String,
+    val contentType: String,
+    val bytes: ByteArray
 )
 
 class InspectionReportFileService(
@@ -745,6 +758,69 @@ class InspectionReportFileService(
     fun getFile(reportId: Long): InspectionReportFile? = fileRepository.findByReportId(reportId)
 
     fun resolveFile(file: InspectionReportFile): Path? = DurableFileStorage.resolve(file.storagePath)
+
+    /**
+     * Reads evidence pictures from the sheet used by the official SIR template.
+     * `Photos` is retained as a compatibility fallback for workbooks generated
+     * by an older OMS build.  The text directly below each picture becomes the
+     * caption/filename, preserving the relation to an ongoing activity.
+     */
+    fun extractEmbeddedPhotos(report: InspectionReport): List<EmbeddedInspectionPhoto> {
+        val file = getFile(report.id) ?: return emptyList()
+        if (!file.originalName.endsWith(".xlsx", ignoreCase = true)) return emptyList()
+        val path = resolveFile(file) ?: return emptyList()
+        return runCatching {
+            Files.newInputStream(path).use { input ->
+                WorkbookFactory.create(input).use { workbook ->
+                    val xlsx = workbook as? XSSFWorkbook ?: return emptyList()
+                    val sheet = xlsx.getSheet("Photo Attachment") ?: xlsx.getSheet("Photos") ?: return emptyList()
+                    val formatter = DataFormatter()
+                    val occurrences = mutableMapOf<String, Int>()
+                    sheet.drawingPatriarch.shapes
+                        .filterIsInstance<XSSFPicture>()
+                        .sortedBy { it.clientAnchor.row1 }
+                        .mapNotNull { picture ->
+                            val extension = picture.pictureData.suggestFileExtension().lowercase()
+                                .let { if (it == "jpeg") "jpg" else it }
+                            if (extension !in setOf("jpg", "png")) return@mapNotNull null
+                            val caption = embeddedPhotoCaption(sheet, picture.clientAnchor.row1, formatter)
+                                .ifBlank { "Photo" }
+                            val sequence = (occurrences[caption] ?: 0) + 1
+                            occurrences[caption] = sequence
+                            val safeCaption = caption
+                                .replace(Regex("[\\r\\n\\u0000]"), " ")
+                                .trim()
+                                .take(220)
+                                .ifBlank { "Photo" }
+                            EmbeddedInspectionPhoto(
+                                originalName = "$safeCaption [photo $sequence].$extension",
+                                contentType = if (extension == "png") "image/png" else "image/jpeg",
+                                bytes = picture.pictureData.data
+                            )
+                        }
+                }
+            }
+        }.getOrDefault(emptyList())
+    }
+
+    private fun embeddedPhotoCaption(
+        sheet: org.apache.poi.ss.usermodel.Sheet,
+        imageStartRow: Int,
+        formatter: DataFormatter
+    ): String {
+        // The official template uses one-cell anchors: Excel does not expose a
+        // reliable bottom row for the image.  Its caption is consistently in
+        // the next 35 rows, so find the first non-empty row after the anchor.
+        for (rowIndex in imageStartRow..minOf(sheet.lastRowNum, imageStartRow + 35)) {
+            val row = sheet.getRow(rowIndex) ?: continue
+            val values = (0 until row.lastCellNum.coerceAtLeast(0).toInt())
+                .mapNotNull { column ->
+                    formatter.formatCellValue(row.getCell(column)).trim().takeIf(String::isNotBlank)
+                }
+            if (values.isNotEmpty()) return values.joinToString(" ")
+        }
+        return ""
+    }
 
     /**
      * Converts the meaningful cells of an SIR workbook into a compact payload

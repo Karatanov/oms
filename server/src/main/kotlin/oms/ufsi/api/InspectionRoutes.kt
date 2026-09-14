@@ -77,7 +77,9 @@ fun Route.inspectionRoutes() {
                     val name = part.originalFileName ?: throw IllegalArgumentException("File name is required.")
                     val bytes = part.provider().readRemaining(20_000_001).readByteArray()
                     require(bytes.size <= 20_000_000) { "File size must not exceed 20 MB." }
-                    imported = AppContainer.inspectionReportFileService.import(project.id, name, part.contentType?.toString(), java.io.ByteArrayInputStream(bytes), session.userId)
+                    imported = AppContainer.inspectionReportFileService
+                        .import(project.id, name, part.contentType?.toString(), java.io.ByteArrayInputStream(bytes), session.userId)
+                        .also { hydrateEmbeddedSirPhotos(it) }
                 }
                 part.dispose()
             }
