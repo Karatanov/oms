@@ -13,6 +13,7 @@ interface ProjectRepository {
     fun monitoringDetails(projectId: Long): oms.ufsi.domain.ProjectMonitoringDetails?
     fun monitoringDetailsByProjectIds(projectIds: Collection<Long>): Map<Long, oms.ufsi.domain.ProjectMonitoringDetails>
     fun managerIdForUuid(uuid: String): Long?
+    fun managedProjectIds(userId: Long): Set<Long>
 
     /**
      * Повертає всі доступні проєкти.

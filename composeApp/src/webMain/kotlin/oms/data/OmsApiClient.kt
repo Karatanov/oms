@@ -110,7 +110,10 @@ object OmsApiClient {
     }
 
     suspend fun projects(): List<ApiProject> {
-        val pageSize = 100
+        // The complete project tree is a shared in-memory client snapshot.
+        // A single moderately sized response avoids serial round-trips once
+        // the registry exceeds the former 100-row page size.
+        val pageSize = 250
         val projects = mutableListOf<ApiProject>()
         var page = 1
         do {

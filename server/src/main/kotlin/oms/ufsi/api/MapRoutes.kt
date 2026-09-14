@@ -9,12 +9,14 @@ import oms.ufsi.domain.ProjectType
 fun Route.mapRoutes() {
     get("/api/v1/projects/map") {
         val session = call.requireRole("ADMIN", "PROJECT_MANAGER", "INSPECTOR", "VIEWER", "GUEST") ?: return@get
+        val managedProjectIds = if (session.roleCode.equals("PROJECT_MANAGER", ignoreCase = true)) {
+            AppContainer.projectService.managedProjectIds(session.userId)
+        } else null
         call.respond(AppContainer.projectService.getAllProjects().filter {
             it.projectType != ProjectType.PROJECT &&
                 it.latitude != null && it.longitude != null &&
                 (it.latitude != 0.0 || it.longitude != 0.0) &&
-                (!session.roleCode.equals("PROJECT_MANAGER", ignoreCase = true) ||
-                    AppContainer.projectService.isManagedBy(it.uuid.toString(), session.userId))
+                (managedProjectIds == null || it.id in managedProjectIds)
         }.map {
             ProjectMapPointResponse(
                 uuid = it.uuid.toString(),

@@ -20,9 +20,11 @@ fun Route.financialRoutes() {
             call.respond(emptyList<FinancialRecordListItemResponse>())
             return@get
         }
+        val managedProjectIds = if (session.roleCode.equals("PROJECT_MANAGER", ignoreCase = true)) {
+            AppContainer.projectService.managedProjectIds(session.userId)
+        } else null
         val accessibleProjects = AppContainer.projectService.getAllProjects().filter { project ->
-            !session.roleCode.equals("PROJECT_MANAGER", ignoreCase = true) ||
-                AppContainer.projectService.isManagedBy(project.uuid.toString(), session.userId)
+            managedProjectIds == null || project.id in managedProjectIds
         }
         val projectUuidsById = accessibleProjects.associate { it.id to it.uuid.toString() }
         call.respond(

@@ -56,16 +56,18 @@ fun Route.projectRoutes() {
         val session = call.requireRole("ADMIN", "PROJECT_MANAGER", "INSPECTOR", "VIEWER", "GUEST") ?: return@get
         val page = call.request.queryParameters["page"]?.toIntOrNull() ?: 1
         val pageSize = call.request.queryParameters["pageSize"]?.toIntOrNull() ?: 20
-        if (page < 1 || pageSize !in 1..100) {
-            return@get call.respond(HttpStatusCode.BadRequest, ErrorResponse("VALIDATION_ERROR", "page must be positive and pageSize must be between 1 and 100."))
+        if (page < 1 || pageSize !in 1..250) {
+            return@get call.respond(HttpStatusCode.BadRequest, ErrorResponse("VALIDATION_ERROR", "page must be positive and pageSize must be between 1 and 250."))
         }
+        val managedProjectIds = if (session.roleCode.equals("PROJECT_MANAGER", ignoreCase = true)) {
+            projectService.managedProjectIds(session.userId)
+        } else null
         val projects = projectService.searchProjects(
             status = call.request.queryParameters["status"],
             region = call.request.queryParameters["region"],
             search = call.request.queryParameters["search"]
         ).filter { project ->
-            !session.roleCode.equals("PROJECT_MANAGER", ignoreCase = true) ||
-                projectService.isManagedBy(project.uuid.toString(), session.userId)
+            managedProjectIds == null || project.id in managedProjectIds
         }
         val total = projects.size.toLong()
         val pagedProjects = projects.drop((page - 1) * pageSize).take(pageSize)

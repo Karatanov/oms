@@ -22,9 +22,11 @@ fun Route.inspectionRoutes() {
             call.respond(emptyList<InspectionReportListItemResponse>())
             return@get
         }
+        val managedProjectIds = if (session.roleCode.equals("PROJECT_MANAGER", ignoreCase = true)) {
+            AppContainer.projectService.managedProjectIds(session.userId)
+        } else null
         val projects = AppContainer.projectService.getAllProjects().filter { project ->
-            !session.roleCode.equals("PROJECT_MANAGER", ignoreCase = true) ||
-                AppContainer.projectService.isManagedBy(project.uuid.toString(), session.userId)
+            managedProjectIds == null || project.id in managedProjectIds
         }
         val projectUuidsById = projects.associate { it.id to it.uuid.toString() }
         call.respond(
@@ -39,10 +41,7 @@ fun Route.inspectionRoutes() {
     get("/api/v1/inspection-reports/analytics") {
         val session = call.requireRole("ADMIN", "PROJECT_MANAGER", "INSPECTOR", "VIEWER") ?: return@get
         val allowedProjectIds = if (session.roleCode.equals("PROJECT_MANAGER", ignoreCase = true)) {
-            AppContainer.projectService.getAllProjects()
-                .filter { AppContainer.projectService.isManagedBy(it.uuid.toString(), session.userId) }
-                .map { it.id }
-                .toSet()
+            AppContainer.projectService.managedProjectIds(session.userId)
         } else null
         val analytics = AppContainer.inspectionAnalyticsService.get(allowedProjectIds)
         call.respond(

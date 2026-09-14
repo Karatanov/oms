@@ -13,7 +13,24 @@ import java.time.LocalDate
 class ProjectService(
     private val projectRepository: ProjectRepository
 ) {
+    /**
+     * Project lists feed the registry, map, filters and several access checks.
+     * Rebuilding the same full tree (including amounts) for every request was
+     * the main avoidable database cost on the hosted instance.  All project
+     * mutations below invalidate this short-lived snapshot immediately; the
+     * timeout also makes direct database maintenance visible without restart.
+     */
+    private val projectCacheLock = Any()
+    @Volatile private var cachedProjects: List<Project>? = null
+    @Volatile private var projectCacheExpiresAt = 0L
+
+    private fun invalidateProjectCache() = synchronized(projectCacheLock) {
+        cachedProjects = null
+        projectCacheExpiresAt = 0L
+    }
+
     fun isManagedBy(uuid: String, userId: Long): Boolean = projectRepository.managerIdForUuid(uuid) == userId
+    fun managedProjectIds(userId: Long): Set<Long> = projectRepository.managedProjectIds(userId)
     fun monitoringDetailsByProjectIds(projectIds: Collection<Long>) = projectRepository.monitoringDetailsByProjectIds(projectIds)
 
     /**
@@ -23,8 +40,15 @@ class ProjectService(
      * всі записи без обмежень.
      */
     fun getAllProjects(): List<Project> {
-
-        return projectRepository.findAll()
+        val now = System.currentTimeMillis()
+        cachedProjects?.takeIf { now < projectCacheExpiresAt }?.let { return it }
+        return synchronized(projectCacheLock) {
+            val current = System.currentTimeMillis()
+            cachedProjects?.takeIf { current < projectCacheExpiresAt } ?: projectRepository.findAll().also {
+                cachedProjects = it
+                projectCacheExpiresAt = current + 30_000L
+            }
+        }
     }
 
     fun searchProjects(
@@ -137,7 +161,7 @@ class ProjectService(
             plannedEndDate = plannedEndDate,
 
             managerId = managerId
-        )
+        ).also { invalidateProjectCache() }
     }
 
     /**
@@ -315,7 +339,7 @@ class ProjectService(
             plannedEndDate = parsedPlannedEndDate,
 
             managerId = managerId
-        )
+        ).also { invalidateProjectCache() }
     }
 
     /**
@@ -326,26 +350,34 @@ class ProjectService(
         uuid: String
     ): Project? {
 
-        return projectRepository.findByUuid(
-            uuid.trim()
-        )
+        val normalizedUuid = uuid.trim()
+        cachedProjects?.takeIf { System.currentTimeMillis() < projectCacheExpiresAt }
+            ?.firstOrNull { it.uuid.toString() == normalizedUuid }
+            ?.let { return it }
+        return projectRepository.findByUuid(normalizedUuid)
     }
 
-    fun deleteProject(uuid: String): Boolean = projectRepository.deleteByUuid(uuid.trim())
+    fun deleteProject(uuid: String): Boolean = projectRepository.deleteByUuid(uuid.trim()).also {
+        if (it) invalidateProjectCache()
+    }
 
     fun bulkUpdateStatus(projectUuids: List<String>, status: String): Int {
         val uuids = projectUuids.map(String::trim).filter(String::isNotEmpty).distinct()
         require(uuids.isNotEmpty()) { "Select at least one project." }
         val projectStatus = runCatching { ProjectStatus.valueOf(status.trim().uppercase()) }
             .getOrElse { throw IllegalArgumentException("Unknown project status.") }
-        return projectRepository.updateStatusByUuids(uuids, projectStatus)
+        return projectRepository.updateStatusByUuids(uuids, projectStatus).also {
+            if (it > 0) invalidateProjectCache()
+        }
     }
 
     fun bulkReassign(projectUuids: List<String>, managerId: Long): Int {
         val uuids = projectUuids.map(String::trim).filter(String::isNotEmpty).distinct()
         require(uuids.isNotEmpty()) { "Select at least one project." }
         require(managerId > 0) { "Project manager is required." }
-        return projectRepository.updateManagerByUuids(uuids, managerId)
+        return projectRepository.updateManagerByUuids(uuids, managerId).also {
+            if (it > 0) invalidateProjectCache()
+        }
     }
 
     fun updateProject(uuid: String, request: oms.ufsi.dto.UpdateProjectRequest): Project? {
@@ -441,7 +473,9 @@ class ProjectService(
         if (patch.constructionStartDate != null && patch.projectedCompletionTime != null) {
             require(!patch.projectedCompletionTime.isBefore(patch.constructionStartDate)) { "Planned completion cannot precede construction start." }
         }
-        return projectRepository.updateByUuid(uuid.trim(), patch)
+        return projectRepository.updateByUuid(uuid.trim(), patch).also {
+            if (it != null) invalidateProjectCache()
+        }
     }
 
     private fun parseOptionalDate(value: String?, label: String): LocalDate? =

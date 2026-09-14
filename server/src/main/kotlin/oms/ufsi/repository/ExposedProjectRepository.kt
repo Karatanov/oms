@@ -73,6 +73,12 @@ class ExposedProjectRepository : ProjectRepository {
             ?.value
     }
 
+    override fun managedProjectIds(userId: Long): Set<Long> = transaction {
+        ProjectTable.select(ProjectTable.id).where { ProjectTable.managerId eq userId }
+            .map { it[ProjectTable.id].value }
+            .toSet()
+    }
+
     override fun findAll(): List<Project> = transaction {
         val amountsByProject = ProjectAmountTable.selectAll().groupBy { it[ProjectAmountTable.projectId].value }
         ProjectTable
