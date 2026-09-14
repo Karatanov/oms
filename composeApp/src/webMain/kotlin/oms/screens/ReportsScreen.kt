@@ -613,15 +613,15 @@ private fun ReadOnlyHealthSafetyTable(observations: List<oms.data.ManualHseObser
         verticalArrangement = Arrangement.spacedBy(0.dp)
     ) {
         Row(Modifier.fillMaxWidth().background(headerColor).padding(horizontal = 10.dp, vertical = 8.dp)) {
-            Text(LocalizationManager.t("sir_hse_observations"), Modifier.weight(2f), style = MaterialTheme.typography.labelMedium)
-            Text("${LocalizationManager.t("yes")}/${LocalizationManager.t("no")}", Modifier.width(84.dp), style = MaterialTheme.typography.labelMedium)
-            Text(LocalizationManager.t("comments"), Modifier.weight(1.25f), style = MaterialTheme.typography.labelMedium)
+            Text(LocalizationManager.t("sir_hse_observations"), Modifier.weight(1.35f), style = MaterialTheme.typography.labelMedium)
+            Text("${LocalizationManager.t("yes")}/${LocalizationManager.t("no")}", Modifier.width(72.dp), style = MaterialTheme.typography.labelMedium)
+            Text(LocalizationManager.t("comments"), Modifier.weight(1.5f), style = MaterialTheme.typography.labelMedium)
         }
         observations.forEachIndexed { index, observation ->
             if (index > 0) HorizontalDivider()
             Row(Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 10.dp), verticalAlignment = Alignment.Top) {
-                Text(LocalizationManager.hseObservation(observation.observation), Modifier.weight(2f), style = MaterialTheme.typography.bodyMedium)
-                Box(Modifier.width(84.dp), contentAlignment = Alignment.TopCenter) {
+                Text(LocalizationManager.hseObservation(observation.observation), Modifier.weight(1.35f), style = MaterialTheme.typography.bodyMedium)
+                Box(Modifier.width(72.dp), contentAlignment = Alignment.TopStart) {
                     observation.answer?.takeIf(String::isNotBlank)?.let { answer ->
                         when {
                             answer.equals("yes", true) -> oms.components.OmsBadge(LocalizationManager.t("yes"), Color(0xFF2E7D32))
@@ -632,7 +632,7 @@ private fun ReadOnlyHealthSafetyTable(observations: List<oms.data.ManualHseObser
                 }
                 Text(
                     observation.comment?.takeIf(String::isNotBlank) ?: "—",
-                    Modifier.weight(1.25f),
+                    Modifier.weight(1.5f),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
