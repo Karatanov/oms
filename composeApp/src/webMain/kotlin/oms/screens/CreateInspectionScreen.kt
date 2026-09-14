@@ -201,7 +201,7 @@ fun CreateInspectionScreen(
             projectName = manual.projectName.orEmpty()
                 .takeUnless { it.equals("Ukrainian Social Investment Fund (USIF)", ignoreCase = true) }
                 .ifBlank { "UNDP" }
-            contractor = manual.contractor
+            contractor = manual.contractor.orEmpty()
             contractorRepresentative = manual.contractorRepresentative.orEmpty()
             qaStaff = manual.qaStaff.orEmpty()
             usifRepresentative = manual.usifRepresentative.orEmpty()
@@ -698,7 +698,7 @@ private fun ReadOnlyInspectionField(label: String, value: String, modifier: Modi
 }
 
 @Composable
-private fun PendingInspectionPhotoPreviews(activityKey: String, revision: Int, onSelectionChanged: (Int) -> Unit) {
+internal fun PendingInspectionPhotoPreviews(activityKey: String, revision: Int, onSelectionChanged: (Int) -> Unit) {
     val paneId = "inspection-photo-preview-pane-$activityKey"
     NativePaneAnchor(paneId, Modifier.fillMaxWidth().height(210.dp))
     DisposableEffect(activityKey, revision, LocalizationManager.currentLanguage) {
