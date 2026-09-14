@@ -15,13 +15,19 @@ class ProcurementService(private val repository: ProcurementRecordRepository) {
     private fun ProcurementRecordRequest.toRecord(): ProcurementRecord {
         require(recordNumber > 0) { "Record number must be positive." }
         require(batchId > 0) { "Pool number must be positive." }
-        require(oblastName.isNotBlank() && oblastId.isNotBlank() && subProjectId.isNotBlank() && subProjectLotId.isNotBlank() && purchaseStatus.isNotBlank()) { "Required procurement fields must not be blank." }
+        require(oblastName.isNotBlank() && oblastId.isNotBlank() && subProjectId.isNotBlank()) { "Region and subproject fields must not be blank." }
         require(contractDurationMonths == null || contractDurationMonths >= 0) { "Contract duration cannot be negative." }
         require(contractAmountUah == null || contractAmountUah >= 0) { "Contract amount cannot be negative." }
         require(contractAmountEur == null || contractAmountEur >= 0) { "Contract amount cannot be negative." }
-        return ProcurementRecord(0, recordNumber, batchId, oblastName.trim(), oblastId.trim(), subProjectId.trim(), subProjectLotId.trim(), purchaseStatus.trim(),
+        return ProcurementRecord(0, recordNumber, batchId, oblastName.trim(), oblastId.trim(), subProjectId.trim(), subProjectLotId.clean(), purchaseStatus.clean(),
             tenderId.clean(), prozorroTenderId.clean(), contractorNameUkr.clean(), contractorNameEng.clean(), contractorId.clean(),
-            contractDate.toDate(), contractEndDate.toDate(), contractDurationMonths, contractAmountUah, contractAmountEur, financingContractDifferencePct)
+            contractDate.toDate(), contractEndDate.toDate(), contractDurationMonths, contractAmountUah, contractAmountEur, financingContractDifferencePct,
+            promotorName.clean(), subprojectNameUk.clean(), subprojectNameEn.clean(), spId.clean(), sourceContractType.clean(), sourceType.clean(), procurementId.clean(),
+            subprojectTotalCostUah, subprojectEibFinancingUah, subprojectLocalFinancingUah,
+            estimatedTotalEur, estimatedTotalUah, estimatedEibEur, estimatedEibUah, estimatedLocalEur, estimatedLocalUah,
+            procurementMethod.clean(), tenderDocumentType.clean(), publishedInOjeu.clean(),
+            estimatedProzorroDate.toDate(), estimatedBidSubmissionDate.toDate(), estimatedContractDate.toDate(), estimatedContractEndDate.toDate(),
+            localFinancingPct, comments.clean(), sourceStatusCode.clean(), projectId = projectId)
     }
 
     private fun String?.clean() = this?.trim()?.ifBlank { null }

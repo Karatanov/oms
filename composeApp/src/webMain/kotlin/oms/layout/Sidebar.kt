@@ -28,7 +28,8 @@ fun Sidebar(currentScreen: Screen, onNavigate: (Screen) -> Unit, onLogout: () ->
         Column(Modifier.width(if (compact) 72.dp else 232.dp).fillMaxHeight().padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Row(Modifier.fillMaxWidth().height(52.dp), verticalAlignment = Alignment.CenterVertically) {
                 if (!compact) {
-                    Text("OMS", Modifier.weight(1f).padding(start = 12.dp), style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.primary)
+                    Icon(Icons.Default.AccountBalance, null, tint = MaterialTheme.colorScheme.primary)
+                    Text("UMITAF", Modifier.weight(1f).padding(start = 10.dp), style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.primary)
                 }
                 TableActionIconButton(LocalizationManager.t(if (compact) "expand_navigation" else "collapse_navigation"),
                     if (compact) Icons.Default.Menu else Icons.Default.MenuOpen, onToggle)

@@ -127,7 +127,7 @@ fun LoginScreen(
                     shape = MaterialTheme.shapes.small
                 ) {
                     Text(
-                        text = "OMS Platform",
+                        text = "UMITAF",
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
                         color = androidx.compose.ui.graphics.Color.White,
                         style = MaterialTheme.typography.labelMedium
