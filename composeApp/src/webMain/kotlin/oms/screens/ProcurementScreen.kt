@@ -448,7 +448,7 @@ private fun ProcurementRow(
                 return@forEachIndexed
             }
             if (!isHeader && index == 22) Box(Modifier.width(width.dp).padding(horizontal = 6.dp)) {
-                oms.components.OmsBadge(value, oms.theme.OmsColors.Information)
+                oms.components.OmsBadge(value, procurementStatusColor(record?.purchaseStatus ?: value))
             } else if (!isHeader && index == 10 && value.isNotBlank()) {
                 Text(
                     value,
@@ -481,6 +481,21 @@ private fun ApiProcurementRecord.displayValues(): List<String> = listOf(
     estimatedContractDate.toOmsDate(), estimatedContractEndDate.toOmsDate(), LocalizationManager.procurementStatus(purchaseStatus.orEmpty()),
     localFinancingPct?.let { "${it.format(2)}%" }.orEmpty(), comments.orEmpty()
 )
+
+/** Keeps procurement states visually distinguishable without depending on the selected UI language. */
+private fun procurementStatusColor(status: String) = when {
+    status.contains("договір укладено", ignoreCase = true) ||
+        status.contains("contract signed", ignoreCase = true) -> oms.theme.OmsColors.Success
+    status.contains("закупівля триває", ignoreCase = true) ||
+        status.contains("tender ongoing", ignoreCase = true) -> oms.theme.OmsColors.Information
+    status.contains("повідомлення про намір", ignoreCase = true) ||
+        status.contains("contract award notice", ignoreCase = true) -> oms.theme.OmsColors.Warning
+    status.contains("відмінено", ignoreCase = true) ||
+        status.contains("розірвано", ignoreCase = true) ||
+        status.contains("cancelled", ignoreCase = true) ||
+        status.contains("terminated", ignoreCase = true) -> oms.theme.OmsColors.Danger
+    else -> oms.theme.OmsColors.Neutral
+}
 
 private fun ApiProcurementRecord.sortKey(columnIndex: Int): String = when (columnIndex) {
     0 -> recordNumber.toString().padStart(12, '0')
