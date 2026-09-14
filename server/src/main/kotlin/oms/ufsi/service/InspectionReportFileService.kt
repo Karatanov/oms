@@ -461,6 +461,22 @@ class InspectionReportFileService(
         // row removes the block from the workbook as well.
         firstRow(sheet, "PURCHASED MATERIALS")?.let { removePurchasedMaterialsLayout(sheet, it) }
         if (materials.isNotEmpty()) ensurePurchasedMaterialsLayout(sheet)
+        // The supplied workbook reserves only a handful of H&S rows.  Unlike
+        // the other compact sections, this block is explicitly extendable in
+        // the manual form, so make room before locating subsequent sections.
+        // Previously everything after the reserved capacity was silently
+        // dropped while saving the XLSX.
+        val hseObservations = request.hseObservations.filter { it.observation.isNotBlank() }
+        val initialHseTitleRow = sectionRow(sheet, "OBSERVANCES ON HEALTH & SAFETY")
+        val initialQualityTitleRow = sectionRow(sheet, "NARRATIVE ASSESSMENT - COMMENTS ON QUALITY")
+        val reservedHseRows = (initialHseTitleRow + 2 until initialQualityTitleRow).count()
+        if (hseObservations.size > reservedHseRows) {
+            extendHealthSafetySection(
+                sheet = sheet,
+                qualityTitleRow = initialQualityTitleRow,
+                extraRows = hseObservations.size - reservedHseRows
+            )
+        }
         val activitiesTitleRow = sectionRow(sheet, "ONGOING ACTIVITIES")
         val ongoingObservationsTitleRow = sectionRow(sheet, "OBSERVANCES ON ONGOING ACTIVITIES")
         val hseTitleRow = sectionRow(sheet, "OBSERVANCES ON HEALTH & SAFETY")
@@ -537,7 +553,9 @@ class InspectionReportFileService(
         ongoingObservations
             .forEachIndexed { index, observation -> text(ongoingObservationRows.first + index, 1, observation) }
         val hseObservationRows = (hseTitleRow + 2) until qualityTitleRow
-        val hseObservations = request.hseObservations.take(hseObservationRows.count())
+        check(hseObservations.size <= hseObservationRows.count()) {
+            "The SIR health and safety section has insufficient rows."
+        }
         hseObservations.forEachIndexed { index, observation ->
             val row = hseObservationRows.first + index
             text(row, 1, observation.observation)
@@ -716,6 +734,54 @@ class InspectionReportFileService(
             sheet.getRow(row - 1)?.getCell(0)?.let { DataFormatter().formatCellValue(it).trim() }
                 ?.let(::isSignatureSectionTitle) == true
         }) { "SIR template is missing the '$SIGNATURE_SECTION_TITLE' section." }
+
+    /**
+     * Inserts formatted H&S table rows directly before the next section.
+     *
+     * The template has a finite set of preformatted rows, while the UI allows
+     * an inspector to record additional observations. Copying the final
+     * reserved row's style and merged-cell geometry preserves the document's
+     * visual layout without sacrificing observations that exceed that reserve.
+     */
+    private fun extendHealthSafetySection(
+        sheet: org.apache.poi.ss.usermodel.Sheet,
+        qualityTitleRow: Int,
+        extraRows: Int
+    ) {
+        if (extraRows <= 0) return
+        // Inputs are one-based; Apache POI row indices are zero-based.
+        val sourceRowIndex = qualityTitleRow - 2
+        val sourceRow = sheet.getRow(sourceRowIndex)
+            ?: error("SIR template is missing the final health and safety row.")
+        val sourceMerges = sheet.mergedRegions
+            .filter { it.firstRow == sourceRowIndex && it.lastRow == sourceRowIndex }
+            .map { range ->
+                CellRangeAddress(range.firstRow, range.lastRow, range.firstColumn, range.lastColumn)
+            }
+        val insertionIndex = qualityTitleRow - 1
+        sheet.shiftRows(insertionIndex, sheet.lastRowNum, extraRows, true, false)
+        repeat(extraRows) { offset ->
+            val targetIndex = insertionIndex + offset
+            val targetRow = sheet.getRow(targetIndex) ?: sheet.createRow(targetIndex)
+            targetRow.height = sourceRow.height
+            (0..11).forEach { column ->
+                val sourceCell = sourceRow.getCell(column) ?: return@forEach
+                val targetCell = targetRow.getCell(column) ?: targetRow.createCell(column)
+                targetCell.cellStyle = sourceCell.cellStyle
+                targetCell.setBlank()
+            }
+            sourceMerges.forEach { sourceRange ->
+                sheet.addMergedRegion(
+                    CellRangeAddress(
+                        targetIndex,
+                        targetIndex,
+                        sourceRange.firstColumn,
+                        sourceRange.lastColumn
+                    )
+                )
+            }
+        }
+    }
 
     /** Removes blank reserved rows so the next section follows the actual data. */
     private fun collapseUnusedSectionRows(
