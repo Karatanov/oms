@@ -907,6 +907,7 @@ data class ApiProjectDetailsData(
     val name: String,
     val nameEn: String? = null,
     val projectType: String = "project",
+    val trancheNumber: Int = 1,
     val parentProjectUuid: String? = null,
     val siteName: String,
     val siteNumber: String,
