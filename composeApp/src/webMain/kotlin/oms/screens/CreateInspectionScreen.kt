@@ -144,6 +144,20 @@ fun CreateInspectionScreen(
     }
 
     val projects = ProjectRepository.projects
+    val rootProjects = projects.filter { it.projectType.equals("project", true) }
+
+    // The current programme has one root project.  Preselect it as soon as
+    // the lightweight shared project snapshot is available, while preserving
+    // the explicit separate choice of subproject and subproject part.
+    LaunchedEffect(isManualEdit) {
+        if (!isManualEdit) ProjectRepository.refresh()
+    }
+    LaunchedEffect(isManualEdit, rootProjects) {
+        if (!isManualEdit && selectedProjectUuid == null && rootProjects.size == 1) {
+            selectedProjectUuid = rootProjects.single().id
+        }
+    }
+
     val subprojects = projects.filter {
         it.projectType.equals("subproject", true) && it.parentProjectUuid == selectedProjectUuid
     }
