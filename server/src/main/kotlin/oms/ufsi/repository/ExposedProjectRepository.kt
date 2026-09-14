@@ -405,6 +405,7 @@ class ExposedProjectRepository : ProjectRepository {
                 it[longitude] = patch.longitude?.toBigDecimal()
                 it[sector] = patch.sector
                 it[constructionType] = patch.constructionType
+                it[trancheNumber] = patch.trancheNumber
                 it[budgetPlanned] = patch.budgetPlanned
                 it[engineerConsultantContractAmount] = patch.engineerConsultantContractAmount
                 it[technicalSupervisionAmount] = patch.technicalSupervisionAmount

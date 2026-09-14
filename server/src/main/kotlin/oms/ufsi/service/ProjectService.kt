@@ -420,6 +420,8 @@ class ProjectService(
         val designTerm = if (designStartDate != null && designPlannedEndDate != null)
             java.time.temporal.ChronoUnit.DAYS.between(designStartDate, designPlannedEndDate).toString()
         else null
+        val trancheNumber = request.trancheNumber ?: current.trancheNumber
+        require(trancheNumber in 1..2) { "Tranche must be A or B." }
         val patch = ProjectPatch(
             name = request.name?.trim() ?: current.name,
             siteName = request.siteName?.trim() ?: current.siteName,
@@ -435,6 +437,7 @@ class ProjectService(
             longitude = request.longitude ?: current.longitude,
             sector = request.sector?.trim() ?: current.sector,
             constructionType = request.constructionType?.let(::normalizeConstructionTypeOrDefault) ?: current.constructionType,
+            trancheNumber = trancheNumber,
             budgetPlanned = amount("budget", request.budgetPlanned ?: current.budgetPlanned)!!,
             engineerConsultantContractAmount = amount("engineer", request.engineerConsultantContractAmount ?: current.engineerConsultantContractAmount),
             technicalSupervisionAmount = amount("supervision", request.technicalSupervisionAmount ?: current.technicalSupervisionAmount),

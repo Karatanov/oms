@@ -583,6 +583,7 @@ data class UpdateProjectRequest(
     val longitude: Double? = null,
     val sector: String? = null,
     val constructionType: String? = null,
+    val trancheNumber: Int? = null,
     val budgetPlanned: Long? = null,
     val engineerConsultantContractAmount: Long? = null,
     val technicalSupervisionAmount: Long? = null,

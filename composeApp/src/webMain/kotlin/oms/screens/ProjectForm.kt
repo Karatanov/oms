@@ -66,16 +66,15 @@ internal fun ProjectForm(
                 { field("name", "project_name_required", it)() },
                 { field("code", if (state.projectType == "subproject_part") "subproject_part_code" else "project_code_required", it)() }
             )
-            if (!editing) {
-                OutlinedTextField(
-                    value = state["tranche"],
-                    onValueChange = { value -> if (value.length <= 1) state["tranche"] = value },
-                    label = { Text(L.t("tranche")) },
-                    supportingText = { Text("A / B") },
-                    singleLine = true,
-                    modifier = Modifier.widthIn(max = 180.dp)
-                )
-            }
+            InlineOptionPicker(
+                options = listOf(1, 2),
+                selected = state.trancheNumber(),
+                prompt = L.t("tranche"),
+                onSelect = { state["tranche"] = if (it == 2) "B" else "A" },
+                itemLabel = { if (it == 2) L.t("tranche_b") else L.t("tranche_a") },
+                modifier = Modifier.widthIn(max = 220.dp),
+                fillWidth = false
+            )
             field("description", "description", Modifier.fillMaxWidth(), 3)()
             Text(L.t("status"), style = MaterialTheme.typography.labelLarge)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
