@@ -448,7 +448,7 @@ class InspectionReportFileService(
             text(row, 4, material.characteristics)
             // Per DED is binary in the manual form. A missing legacy value
             // means the checkbox was not selected, i.e. "no".
-            text(row, 7, material.perDed?.trim().takeIf(String::isNotBlank) ?: "no")
+            text(row, 7, material.perDed.orEmpty().trim().ifBlank { "no" })
             text(row, 10, material.notes)
         }
         val ongoingObservationRows = (ongoingObservationsTitleRow + 1) until hseTitleRow
