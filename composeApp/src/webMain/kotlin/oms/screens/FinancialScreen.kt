@@ -211,16 +211,12 @@ fun FinancialScreen(
                 FilterChip(selected = recordTypeFilter == type, onClick = { selectRecordType(type) }, label = { Text(type?.let { LocalizationManager.t("record_type_$it") } ?: LocalizationManager.t("all")) })
             }
         }
-        Box(
+        oms.components.ScrollableTable(
             Modifier.fillMaxWidth()
-                .background(MaterialTheme.colorScheme.surface)
-                .onGloballyPositioned { tableTopInRootPx = it.positionInRoot().y }
+                .onGloballyPositioned { tableTopInRootPx = it.positionInRoot().y },
+            pageScrollState = pageScrollState,
+            header = { FinancialTableHeader(sort, ascending, ::selectSort); HorizontalDivider() }
         ) {
-                oms.components.ScrollableTable(
-                    Modifier.padding(16.dp),
-                    pageScrollState = pageScrollState,
-                    header = { FinancialTableHeader(sort, ascending, ::selectSort); HorizontalDivider() }
-                ) {
                     if (!loading && !loadFailed && visibleActs.isEmpty()) Text(LocalizationManager.t(emptyRecordsMessage))
                     visibleActs.forEach { row ->
                         Row(Modifier.width(1_621.dp).padding(vertical = 8.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
@@ -247,7 +243,6 @@ fun FinancialScreen(
                         }
                         HorizontalDivider()
                     }
-                }
         }
 
         errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error) }
