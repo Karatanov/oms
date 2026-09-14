@@ -107,6 +107,11 @@ class DashboardService(
                 current = project[ProjectTable.parentProjectId]?.value ?: return null
             }
         }
+        val projectIdByCode = projects.associate { row ->
+            row[ProjectTable.siteNumber].orEmpty().trim().lowercase() to row[ProjectTable.id].value
+        }
+        fun subprojectForCode(code: String): Long? =
+            projectIdByCode[code.trim().lowercase()]?.let(::subprojectFor)
         val actualBySubproject = actRecords.groupBy { subprojectFor(it[FinancialRecordTable.projectId].value) }
             .filterKeys { it != null }
             .mapValues { (_, rows) -> rows.sumOf { it[FinancialRecordTable.amount] }.toDouble() }
@@ -115,14 +120,12 @@ class DashboardService(
         val procurementRecords = if (allowedProjectIds == null) ProcurementRecordTable.selectAll().toList().filter { record ->
             trancheNumber == null || record[ProcurementRecordTable.subProjectId].trim().lowercase() in procurementProjectCodes
         } else emptyList()
-        val signedSubprojectCodes = procurementRecords
+        val signedSubprojectIds = procurementRecords
             .filter { isConstructionContractSigned(it[ProcurementRecordTable.purchaseStatus]) }
-            .map { it[ProcurementRecordTable.subProjectId].trim().lowercase() }
-            .filter(String::isNotBlank)
+            .mapNotNull { subprojectForCode(it[ProcurementRecordTable.subProjectId]) }
             .toSet()
         val subprojectProgress = subprojects.filter { row ->
-            val code = row[ProjectTable.siteNumber].orEmpty().trim().lowercase()
-            code in signedSubprojectCodes || row[ProjectTable.uuid].lowercase() in signedSubprojectCodes
+            row[ProjectTable.id].value in signedSubprojectIds
         }.map { row ->
             val id = row[ProjectTable.id].value
             val contract = row[ProjectTable.subprojectContractAmount] ?: row[ProjectTable.budgetPlanned]
@@ -190,6 +193,11 @@ class DashboardService(
                 current = project[ProjectTable.parentProjectId]?.value ?: return null
             }
         }
+        val projectIdByCode = projects.associate { row ->
+            row[ProjectTable.siteNumber].orEmpty().trim().lowercase() to row[ProjectTable.id].value
+        }
+        fun subprojectForCode(code: String): Long? =
+            projectIdByCode[code.trim().lowercase()]?.let(::subprojectFor)
         val actualBySubproject = actRecords.groupBy { subprojectFor(it[FinancialRecordTable.projectId].value) }
             .filterKeys { it != null }
             .mapValues { (_, records) -> records.sumOf { it[FinancialRecordTable.amount] }.toDouble() }
@@ -198,14 +206,12 @@ class DashboardService(
         val procurementRecords = if (allowedProjectIds == null) ProcurementRecordTable.selectAll().toList().filter { record ->
             trancheNumber == null || record[ProcurementRecordTable.subProjectId].trim().lowercase() in procurementProjectCodes
         } else emptyList()
-        val signedSubprojectCodes = procurementRecords
+        val signedSubprojectIds = procurementRecords
             .filter { isConstructionContractSigned(it[ProcurementRecordTable.purchaseStatus]) }
-            .map { it[ProcurementRecordTable.subProjectId].trim().lowercase() }
-            .filter(String::isNotBlank)
+            .mapNotNull { subprojectForCode(it[ProcurementRecordTable.subProjectId]) }
             .toSet()
         val subprojectProgress = subprojects.filter { row ->
-            val code = row[ProjectTable.siteNumber].orEmpty().trim().lowercase()
-            code in signedSubprojectCodes || row[ProjectTable.uuid].lowercase() in signedSubprojectCodes
+            row[ProjectTable.id].value in signedSubprojectIds
         }.map { row ->
             val id = row[ProjectTable.id].value
             val contract = row[ProjectTable.subprojectContractAmount] ?: row[ProjectTable.budgetPlanned]
