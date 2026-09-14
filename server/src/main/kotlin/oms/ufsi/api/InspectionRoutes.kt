@@ -80,7 +80,11 @@ fun Route.inspectionRoutes() {
         if (!call.requireProjectAccess(session, projectUuid)) return@post
         try {
             val request = call.receive<CreateManualInspectionReportRequest>()
-            val report = AppContainer.inspectionReportFileService.createManual(project, request, session.userId)
+            val draft = AppContainer.inspectionReportFileService.createManual(project, request, session.userId)
+            // A completed manual form is submitted immediately.  The separate
+            // "Save draft" action creates a draft through its own endpoint.
+            val report = AppContainer.inspectionReportService.submitReport(draft.uuid.toString())
+                ?: error("Created inspection report is unavailable.")
             synchronizeManualHseFindings(report.id, request.hseObservations)
             AppContainer.auditLogService.record(session.userId, "inspection_manual_created", "inspection_report", report.id)
             call.respond(HttpStatusCode.Created, report.toResponse())
