@@ -5,8 +5,10 @@ import oms.ufsi.repository.InspectionPhotoRepository
 import oms.ufsi.storage.DurableFileStorage
 import oms.ufsi.storage.uploadDirectory
 import java.awt.RenderingHints
+import java.awt.geom.AffineTransform
 import java.awt.image.BufferedImage
 import java.io.ByteArrayInputStream
+import java.io.ByteArrayOutputStream
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.UUID
@@ -25,8 +27,9 @@ class InspectionPhotoService(private val repository: InspectionPhotoRepository) 
         val extension = originalName.substringAfterLast('.', "").lowercase()
         require(extension in setOf("jpg", "jpeg", "png")) { "Allowed photo formats: JPG, PNG." }
         require(matchesDeclaredFormat(bytes, extension)) { "Photo content does not match its declared format." }
+        val normalizedBytes = normalizeJpegOrientation(bytes, extension)
         val image = try {
-            ImageIO.read(ByteArrayInputStream(bytes))
+            ImageIO.read(ByteArrayInputStream(normalizedBytes))
         } catch (_: Exception) {
             null
         } ?: throw IllegalArgumentException("Invalid image file.")
@@ -38,7 +41,7 @@ class InspectionPhotoService(private val repository: InspectionPhotoRepository) 
         val original = directory.resolve("$uuid.$extension")
         val thumbnail = directory.resolve("$uuid-thumb.jpg")
         try {
-            Files.write(original, bytes)
+            Files.write(original, normalizedBytes)
             val ratio = minOf(1.0, 320.0 / image.width)
             val width = (image.width * ratio).toInt()
             val height = (image.height * ratio).toInt()
@@ -61,7 +64,7 @@ class InspectionPhotoService(private val repository: InspectionPhotoRepository) 
                 original.toString(),
                 thumbnail.toString(),
                 contentType ?: "image/$extension",
-                bytes.size.toLong(),
+                normalizedBytes.size.toLong(),
                 repository.list(reportId).isEmpty()
             )
             repository.create(photo)
@@ -85,6 +88,67 @@ class InspectionPhotoService(private val repository: InspectionPhotoRepository) 
             "png" -> starts(0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a)
             else -> false
         }
+    }
+
+    /**
+     * Excel ignores JPEG EXIF orientation while browser and phone viewers do
+     * not.  Convert the common camera rotations into real pixels on upload so
+     * the same evidence has one orientation everywhere, including XLSX.
+     */
+    private fun normalizeJpegOrientation(bytes: ByteArray, extension: String): ByteArray {
+        if (extension !in setOf("jpg", "jpeg")) return bytes
+        val orientation = jpegExifOrientation(bytes) ?: return bytes
+        if (orientation !in setOf(3, 6, 8)) return bytes
+        val source = runCatching { ImageIO.read(ByteArrayInputStream(bytes)) }.getOrNull() ?: return bytes
+        val target = if (orientation in setOf(6, 8)) {
+            BufferedImage(source.height, source.width, BufferedImage.TYPE_INT_RGB)
+        } else BufferedImage(source.width, source.height, BufferedImage.TYPE_INT_RGB)
+        val transform = AffineTransform().apply {
+            when (orientation) {
+                3 -> { translate(source.width.toDouble(), source.height.toDouble()); rotate(Math.PI) }
+                6 -> { translate(source.height.toDouble(), 0.0); rotate(Math.PI / 2) }
+                8 -> { translate(0.0, source.width.toDouble()); rotate(-Math.PI / 2) }
+            }
+        }
+        val graphics = target.createGraphics()
+        try {
+            graphics.drawImage(source, transform, null)
+        } finally {
+            graphics.dispose()
+        }
+        return ByteArrayOutputStream().use { output ->
+            if (ImageIO.write(target, "jpg", output)) output.toByteArray() else bytes
+        }
+    }
+
+    /** Minimal EXIF reader for JPEG orientation (tag 0x0112). */
+    private fun jpegExifOrientation(bytes: ByteArray): Int? {
+        if (bytes.size < 14 || (bytes[0].toInt() and 0xff) != 0xff || (bytes[1].toInt() and 0xff) != 0xd8) return null
+        fun unsigned(index: Int) = bytes[index].toInt() and 0xff
+        fun short(index: Int, little: Boolean) = if (little) unsigned(index) or (unsigned(index + 1) shl 8) else (unsigned(index) shl 8) or unsigned(index + 1)
+        fun int(index: Int, little: Boolean) = if (little) unsigned(index) or (unsigned(index + 1) shl 8) or (unsigned(index + 2) shl 16) or (unsigned(index + 3) shl 24) else (unsigned(index) shl 24) or (unsigned(index + 1) shl 16) or (unsigned(index + 2) shl 8) or unsigned(index + 3)
+        var index = 2
+        while (index + 4 <= bytes.size) {
+            if (unsigned(index) != 0xff) { index++; continue }
+            val marker = unsigned(index + 1)
+            if (marker == 0xda || marker == 0xd9) break
+            val length = short(index + 2, false)
+            val data = index + 4
+            if (marker == 0xe1 && length >= 10 && data + length - 2 <= bytes.size &&
+                String(bytes, data, 4, Charsets.US_ASCII) == "Exif") {
+                val tiff = data + 6
+                if (tiff + 8 > bytes.size) return null
+                val little = unsigned(tiff) == 0x49 && unsigned(tiff + 1) == 0x49
+                val count = short(tiff + int(tiff + 4, little), little)
+                for (entry in 0 until count) {
+                    val offset = tiff + int(tiff + 4, little) + 2 + entry * 12
+                    if (offset + 12 > bytes.size) break
+                    if (short(offset, little) == 0x0112) return short(offset + 8, little)
+                }
+            }
+            index += length + 2
+        }
+        return null
     }
 
     fun delete(reportId: Long, uuid: String): Boolean {
