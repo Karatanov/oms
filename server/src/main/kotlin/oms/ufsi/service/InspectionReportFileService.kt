@@ -18,6 +18,7 @@ import org.apache.poi.ss.usermodel.BorderStyle
 import org.apache.poi.ss.usermodel.Workbook
 import org.apache.poi.ss.usermodel.WorkbookFactory
 import org.apache.poi.ss.usermodel.HorizontalAlignment
+import org.apache.poi.ss.usermodel.PrintSetup
 import org.apache.poi.ss.usermodel.VerticalAlignment
 import org.apache.poi.ss.util.CellRangeAddress
 import org.apache.poi.ss.util.RegionUtil
@@ -128,14 +129,19 @@ class InspectionReportFileService(
                         workbook.removeSheetAt(workbook.getSheetIndex(name))
                     }
                 }
-                // Match the supplied SIR-USIF Borodyanka reference: one
-                // evidence image per portrait page, with its caption directly
-                // underneath.  A two-column image grid made it impossible to
-                // unambiguously relate photographs to their observations.
+                // Keep evidence legible when printed while avoiding needless
+                // paper waste: each portrait A4 page contains two separately
+                // captioned images. Captions preserve the relationship between
+                // a photo and its corresponding ongoing activity.
                 val sheet = workbook.createSheet("Photo Attachment")
                 sheet.setColumnWidth(0, 3 * 256)
-                sheet.setColumnWidth(13, 2 * 256)
+                sheet.setColumnWidth(14, 2 * 256)
                 sheet.printSetup.landscape = false
+                sheet.printSetup.paperSize = PrintSetup.A4_PAPERSIZE
+                sheet.fitToPage = true
+                sheet.autobreaks = false
+                sheet.printSetup.fitWidth = 1
+                sheet.printSetup.fitHeight = 0
                 val drawing = sheet.createDrawingPatriarch()
                 val helper = workbook.creationHelper
                 // Upload names are generated from the ongoing-work description.
@@ -151,12 +157,14 @@ class InspectionReportFileService(
                     // re-encoding.
                     val original = resolveOriginal(photo) ?: return@forEachIndexed
                     if (!Files.isRegularFile(original)) return@forEachIndexed
-                    val imageStartRow = 3 + index * 30
-                    val captionRowIndex = imageStartRow + 25
+                    val imageStartRow = 1 + (index % 2) * 17 + (index / 2) * 35
+                    val captionRowIndex = imageStartRow + 14
                     val sourceImage = runCatching { ImageIO.read(original.toFile()) }.getOrNull()
                     val portrait = sourceImage?.let { it.height > it.width } ?: false
-                    val columnStart = if (portrait) 4 else 2
-                    val columnEnd = if (portrait) 10 else 12
+                    // Shift each image one column to the right from the old
+                    // layout and start close to the top print margin.
+                    val columnStart = if (portrait) 5 else 3
+                    val columnEnd = if (portrait) 11 else 13
                     val caption = requireNotNull(baseCaptions[photo])
                     val captionPosition = (captionPositions[caption] ?: 0) + 1
                     captionPositions[caption] = captionPosition
@@ -164,20 +172,11 @@ class InspectionReportFileService(
                         "$caption ($captionPosition/${captionTotals[caption]})"
                     } else caption
                     for (rowIndex in imageStartRow..captionRowIndex) {
-                        (sheet.getRow(rowIndex) ?: sheet.createRow(rowIndex)).heightInPoints = 20f
-                    }
-                    // The reference workbook uses a thin visual separator
-                    // before the observation caption and leaves a small gap
-                    // before the following picture.
-                    sheet.addMergedRegion(CellRangeAddress(captionRowIndex - 1, captionRowIndex - 1, 1, 12))
-                    val separator = sheet.getRow(captionRowIndex - 1).getCell(1)
-                        ?: sheet.getRow(captionRowIndex - 1).createCell(1)
-                    separator.cellStyle = workbook.createCellStyle().apply {
-                        borderBottom = BorderStyle.MEDIUM
+                        (sheet.getRow(rowIndex) ?: sheet.createRow(rowIndex)).heightInPoints = 18f
                     }
                     val captionRow = sheet.getRow(captionRowIndex) ?: sheet.createRow(captionRowIndex)
-                    sheet.addMergedRegion(CellRangeAddress(captionRowIndex, captionRowIndex, 1, 12))
-                    captionRow.createCell(1).apply {
+                    sheet.addMergedRegion(CellRangeAddress(captionRowIndex, captionRowIndex, 2, 12))
+                    captionRow.createCell(2).apply {
                         setCellValue(displayCaption)
                         cellStyle = workbook.createCellStyle().apply {
                             wrapText = true
@@ -198,6 +197,11 @@ class InspectionReportFileService(
                         row2 = captionRowIndex - 1
                     }
                     drawing.createPicture(anchor, pictureIndex)
+                    // A manual break makes the two-photo page arrangement
+                    // deterministic in Excel and PDF printing.
+                    if (index % 2 == 1 && index + 1 < photos.size) {
+                        sheet.setRowBreak(captionRowIndex + 2)
+                    }
                 }
                 Files.newOutputStream(temporary).use(xlsx::write)
             }
