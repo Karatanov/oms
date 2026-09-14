@@ -64,6 +64,7 @@ fun ProcurementScreen(
     var search by remember { mutableStateOf("") }
     var oblastFilter by remember { mutableStateOf<String?>(null) }
     var subprojectFilter by remember { mutableStateOf<String?>(null) }
+    var contractTypeFilter by remember { mutableStateOf<String?>(null) }
     var statusFilter by remember { mutableStateOf<String?>(null) }
     var signedContractMonthFilter by remember { mutableStateOf<String?>(null) }
     var records by remember { mutableStateOf<List<ApiProcurementRecord>?>(null) }
@@ -169,6 +170,7 @@ fun ProcurementScreen(
         val visibleRecords = records.orEmpty().filter { record ->
             (oblastFilter == null || record.oblastName == oblastFilter) &&
             (subprojectFilter == null || record.subProjectId == subprojectFilter) &&
+            (contractTypeFilter == null || record.sourceContractType == contractTypeFilter) &&
             (statusFilter?.let { sameProcurementStatus(record.purchaseStatus, it) } ?: true) &&
             (signedContractMonthFilter == null || (record.contractDate ?: record.estimatedContractDate)?.take(7) == signedContractMonthFilter) &&
             (search.isBlank() || listOf(record.subProjectId, record.subProjectLotId.orEmpty(), record.oblastName, record.promotorName.orEmpty(), record.subprojectNameUk.orEmpty(), record.subprojectNameEn.orEmpty(), record.procurementId.orEmpty()).any { it.contains(search, true) })
@@ -181,7 +183,7 @@ fun ProcurementScreen(
                 sortAscending = true
             }
         }
-        LaunchedEffect(search, oblastFilter, subprojectFilter, statusFilter, signedContractMonthFilter, pageSize) { currentPage = 0 }
+        LaunchedEffect(search, oblastFilter, subprojectFilter, contractTypeFilter, statusFilter, signedContractMonthFilter, pageSize) { currentPage = 0 }
         val pageCount = if (visibleRecords.isEmpty() || pageSize == Int.MAX_VALUE) 1 else (visibleRecords.size + pageSize - 1) / pageSize
         if (currentPage >= pageCount) currentPage = (pageCount - 1).coerceAtLeast(0)
         val pageRecords = if (pageSize == Int.MAX_VALUE) visibleRecords else visibleRecords.drop(currentPage * pageSize).take(pageSize)
@@ -222,7 +224,8 @@ fun ProcurementScreen(
                 Spacer(Modifier.height(8.dp))
                 Box(Modifier.onGloballyPositioned { tableTopInRootPx = it.positionInRoot().y }) {
                     ProcurementTable(
-                        pageRecords, records.orEmpty(), oblastFilter, { oblastFilter = it }, subprojectFilter, { subprojectFilter = it }, statusFilter, { statusFilter = it },
+                        pageRecords, records.orEmpty(), oblastFilter, { oblastFilter = it }, subprojectFilter, { subprojectFilter = it },
+                        contractTypeFilter, { contractTypeFilter = it }, statusFilter, { statusFilter = it },
                         canManageProcurements, { error = null; editorRecord = it }, { error = null; recordPendingDeletion = it },
                         contentScrollState, sortColumnIndex, sortAscending, ::selectSort
                     )
@@ -325,6 +328,8 @@ private fun ProcurementTable(
     onOblastChange: (String?) -> Unit,
     subprojectFilter: String?,
     onSubprojectChange: (String?) -> Unit,
+    contractTypeFilter: String?,
+    onContractTypeChange: (String?) -> Unit,
     statusFilter: String?,
     onStatusChange: (String?) -> Unit,
     canManage: Boolean,
@@ -337,7 +342,8 @@ private fun ProcurementTable(
 ) {
     Column(Modifier.fillMaxWidth()) {
         oms.components.ScrollableTable(pageScrollState = pageScrollState, header = {
-                ProcurementFilters(allRecords, oblastFilter, onOblastChange, subprojectFilter, onSubprojectChange, statusFilter, onStatusChange, canManage)
+                ProcurementFilters(allRecords, oblastFilter, onOblastChange, subprojectFilter, onSubprojectChange,
+                    contractTypeFilter, onContractTypeChange, statusFilter, onStatusChange, canManage)
                 ProcurementRow(procurementHeaderLabels(), showActions = canManage, isHeader = true,
                     sortColumnIndex = sortColumnIndex, sortAscending = sortAscending, onSort = onSort)
                 HorizontalDivider()
@@ -358,6 +364,8 @@ private fun ProcurementFilters(
     onOblastChange: (String?) -> Unit,
     subprojectFilter: String?,
     onSubprojectChange: (String?) -> Unit,
+    contractTypeFilter: String?,
+    onContractTypeChange: (String?) -> Unit,
     statusFilter: String?,
     onStatusChange: (String?) -> Unit,
     showActions: Boolean
@@ -380,6 +388,11 @@ private fun ProcurementFilters(
                         records.map { it.subProjectId }.filter(String::isNotBlank).distinct().sorted(), subprojectFilter,
                         LocalizationManager.t("proc_subproject_id"), onSubprojectChange,
                         clearLabel = LocalizationManager.t("all"), onClear = { onSubprojectChange(null) }
+                    )
+                    8 -> InlineOptionPicker(
+                        records.mapNotNull { it.sourceContractType?.takeIf(String::isNotBlank) }.distinct().sorted(),
+                        contractTypeFilter, LocalizationManager.t("proc_contract_type"), onContractTypeChange,
+                        clearLabel = LocalizationManager.t("all"), onClear = { onContractTypeChange(null) }
                     )
                     22 -> InlineOptionPicker(
                         procurementStatuses, statusFilter, LocalizationManager.t("procurement_status"), onStatusChange,

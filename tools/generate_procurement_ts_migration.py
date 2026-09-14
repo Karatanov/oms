@@ -1,0 +1,107 @@
+"""Generate the auditable Flyway backfill for Technical Supervision rows.
+
+The procurement workbook stores a W row with subproject context followed by a
+TS row with the technical-supervision procurement facts.  V44 intentionally
+loaded only W; this generator restores every TS row from the authoritative
+workbook without duplicating a row that is already present.
+"""
+
+from __future__ import annotations
+
+import argparse
+from datetime import date, datetime
+from pathlib import Path
+
+from openpyxl import load_workbook
+
+
+OBLAST_NAMES = {
+    "CH": "Чернігівська", "CK": "Черкаська", "CV": "Чернівецька", "DP": "Дніпропетровська",
+    "IF": "Івано-Франківська", "KH": "Харківська", "KM": "Хмельницька", "KR": "Кіровоградська",
+    "KS": "Херсонська", "KV": "Київська", "LV": "Львівська", "MY": "Миколаївська",
+    "OD": "Одеська", "PL": "Полтавська", "RV": "Рівненська", "SM": "Сумська",
+    "TR": "Тернопільська", "VN": "Вінницька", "ZH": "Житомирська", "ZK": "Закарпатська",
+    "ZP": "Запорізька",
+}
+
+
+def clean(value):
+    if value is None or (isinstance(value, str) and value.startswith("#")):
+        return None
+    if isinstance(value, datetime):
+        return value.date().isoformat()
+    if isinstance(value, date):
+        return value.isoformat()
+    return " ".join(value.split()) if isinstance(value, str) else value
+
+
+def sql(value):
+    if value is None:
+        return "NULL"
+    if isinstance(value, bool):
+        return "TRUE" if value else "FALSE"
+    if isinstance(value, (int, float)):
+        return str(value)
+    return "'" + str(value).replace("\\", "\\\\").replace("'", "''") + "'"
+
+
+def source_date(value):
+    """Only real spreadsheet dates can be inserted into MySQL DATE columns."""
+    return value if isinstance(value, str) and len(value) == 10 and value[4] == "-" and value[7] == "-" else None
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--workbook", type=Path, required=True)
+    parser.add_argument("--output", type=Path, required=True)
+    args = parser.parse_args()
+
+    workbook = load_workbook(args.workbook, data_only=True, read_only=True)
+    inserts = []
+    for sheet in workbook.worksheets:
+        context = None
+        for row in sheet.iter_rows(min_row=10, values_only=True):
+            values = {index + 1: clean(value) for index, value in enumerate(row)}
+            kind = values.get(12)
+            if kind == "W":
+                context = values
+                continue
+            if kind != "TS" or context is None or not values.get(13):
+                continue
+            # TS rows inherit the subproject identity and beneficiary from the
+            # preceding construction-work row in the source workbook.
+            record_number = values.get(2) or values.get(1)
+            payload = [
+                record_number, context.get(4), OBLAST_NAMES.get(context.get(5)), context.get(5), context.get(6), context.get(7), context.get(8),
+                values.get(9), values.get(10), values.get(11), values.get(12), values.get(13),
+                values.get(17), values.get(18), values.get(19), values.get(20), values.get(21), values.get(22),
+                values.get(23), values.get(24), values.get(25), source_date(values.get(26)), source_date(values.get(27)), source_date(values.get(28)),
+                source_date(values.get(29)), values.get(30), values.get(32), values.get(33), values.get(34),
+            ]
+            columns = """record_number, batch_id, oblast_name, oblast_id, promotor_name, subproject_name_uk, subproject_name_en,
+                sub_project_id, sp_id, source_contract_type, source_type, procurement_id,
+                estimated_total_eur, estimated_total_uah, estimated_eib_eur, estimated_eib_uah, estimated_local_eur,
+                estimated_local_uah, procurement_method, tender_document_type, published_in_ojeu,
+                estimated_prozorro_date, estimated_bid_submission_date, estimated_contract_date,
+                estimated_contract_end_date, purchase_status, local_financing_pct, comments, source_status_code,
+                project_id, contract_type"""
+            values_sql = ", ".join(sql(value) for value in payload)
+            project_id = "(SELECT id FROM projects WHERE project_type = 'subproject' AND site_number = {0} LIMIT 1)".format(sql(values.get(9)))
+            contract_type = sql(values.get(11))
+            inserts.append(
+                "INSERT INTO procurement_records ({columns}) SELECT {values}, {project_id}, {contract_type} "
+                "WHERE NOT EXISTS (SELECT 1 FROM procurement_records WHERE procurement_id = {procurement_id});".format(
+                    columns=columns, values=values_sql, project_id=project_id, contract_type=contract_type,
+                    procurement_id=sql(values.get(13)),
+                )
+            )
+    args.output.write_text(
+        "-- Restores Technical Supervision (ТН / TS) rows from the authoritative procurement workbook.\n"
+        "-- Generated by tools/generate_procurement_ts_migration.py.\n\n" + "\n".join(inserts) + "\n",
+        encoding="utf-8",
+    )
+    print(f"Generated {len(inserts)} Technical Supervision rows.")
+
+
+if __name__ == "__main__":
+    main()
