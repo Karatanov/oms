@@ -10,6 +10,7 @@ import java.nio.file.Path
 import java.nio.file.StandardCopyOption
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import java.util.LinkedHashMap
 import java.util.UUID
 import org.apache.poi.ss.usermodel.DataFormatter
 import org.apache.poi.ss.usermodel.BorderStyle
@@ -39,6 +40,47 @@ class InspectionReportFileService(
     private val fileRepository: InspectionReportFileRepository,
     private val reportService: InspectionReportService
 ) {
+    /**
+     * Opening an XLSX through Apache POI is comparatively expensive on the
+     * hosted instance.  A report is immutable while it is being viewed, so
+     * retain its parsed representation until the physical workbook changes.
+     * The key includes the file version rather than only the report id, which
+     * also protects us when a replacement file is uploaded outside this
+     * service instance.
+     */
+    private data class WorkbookCacheKey(
+        val reportId: Long,
+        val storagePath: String,
+        val size: Long,
+        val modifiedAt: Long
+    )
+
+    private val previewCache = object : LinkedHashMap<WorkbookCacheKey, InspectionReportPreviewResponse>(
+        16, 0.75f, true
+    ) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<WorkbookCacheKey, InspectionReportPreviewResponse>?) =
+            size > 24
+    }
+    private val manualCache = object : LinkedHashMap<WorkbookCacheKey, CreateManualInspectionReportRequest>(
+        16, 0.75f, true
+    ) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<WorkbookCacheKey, CreateManualInspectionReportRequest>?) =
+            size > 24
+    }
+
+    private fun cacheKey(report: InspectionReport, file: InspectionReportFile, path: Path): WorkbookCacheKey =
+        WorkbookCacheKey(
+            report.id,
+            file.storagePath,
+            file.fileSizeBytes,
+            runCatching { Files.getLastModifiedTime(path).toMillis() }.getOrDefault(0L)
+        )
+
+    private fun invalidateWorkbookCache(reportId: Long) = synchronized(previewCache) {
+        previewCache.keys.removeIf { it.reportId == reportId }
+        manualCache.keys.removeIf { it.reportId == reportId }
+    }
+
     /**
      * Keeps the downloadable workbook for a manually created SIR in sync with
      * its uploaded evidence photographs. The template's sample photo sheet is
@@ -103,6 +145,7 @@ class InspectionReportFileService(
             Files.move(temporary, sourcePath, StandardCopyOption.REPLACE_EXISTING)
             DurableFileStorage.persist(sourcePath)
             fileRepository.replace(source.copy(fileSizeBytes = Files.size(sourcePath)))
+            invalidateWorkbookCache(report.id)
         } finally {
             Files.deleteIfExists(temporary)
         }
@@ -138,8 +181,12 @@ class InspectionReportFileService(
     fun readManual(report: InspectionReport): CreateManualInspectionReportRequest {
         val source = getFile(report.id) ?: throw IllegalArgumentException("Original SIR file not found.")
         val path = resolveFile(source) ?: throw IllegalArgumentException("Original SIR file is unavailable.")
+        val key = cacheKey(report, source, path)
+        synchronized(previewCache) { manualCache[key] }?.let { return it }
         WorkbookFactory.create(path.toFile()).use { workbook ->
-            return readSirWorkbook(workbook, report)
+            return readSirWorkbook(workbook, report).also { parsed ->
+                synchronized(previewCache) { manualCache[key] = parsed }
+            }
         }
     }
 
@@ -271,6 +318,7 @@ class InspectionReportFileService(
             Files.move(temporary, path, StandardCopyOption.REPLACE_EXISTING)
             DurableFileStorage.persist(path)
             fileRepository.replace(source.copy(fileSizeBytes = Files.size(path)))
+            invalidateWorkbookCache(report.id)
             return reportService.updateReport(
                 report.uuid.toString(), request.inspectionDate,
                 "Manual SIR [${request.inspectionType}]: ${request.contractor}", report.reportCode,
@@ -655,6 +703,17 @@ class InspectionReportFileService(
     fun preview(report: InspectionReport): InspectionReportPreviewResponse {
         val file = getFile(report.id) ?: throw IllegalArgumentException("Original SIR file not found.")
         val path = resolveFile(file) ?: throw IllegalArgumentException("Original SIR file is unavailable.")
+        val key = cacheKey(report, file, path)
+        synchronized(previewCache) { previewCache[key] }?.let { return it }
+        // Manual reports are rendered by ReadOnlySirReport, not by the generic
+        // workbook grid.  Parsing every worksheet and evaluating formulas after
+        // reading the manual fields doubled the initial wait time for no UI
+        // benefit.  Return the compact form payload directly instead.
+        if (report.summary.orEmpty().startsWith("Manual SIR")) {
+            val response = InspectionReportPreviewResponse(file.originalName, emptyList(), readManual(report))
+            synchronized(previewCache) { previewCache[key] = response }
+            return response
+        }
         return try {
             Files.newInputStream(path).use { input ->
                 WorkbookFactory.create(input).use { workbook ->
@@ -683,7 +742,9 @@ class InspectionReportFileService(
                         }
                         InspectionReportPreviewSheet(sheet.sheetName, rows)
                     }
-                    InspectionReportPreviewResponse(file.originalName, sheets, manual)
+                    InspectionReportPreviewResponse(file.originalName, sheets, manual).also { response ->
+                        synchronized(previewCache) { previewCache[key] = response }
+                    }
                 }
             }
         } catch (exception: IllegalArgumentException) {
@@ -715,6 +776,7 @@ class InspectionReportFileService(
                 size
             )
             fileRepository.replace(replacement)
+            invalidateWorkbookCache(report.id)
             if (previous != null && previous.storagePath != replacement.storagePath) {
                 DurableFileStorage.delete(previous.storagePath)
             }
