@@ -46,8 +46,23 @@ object LocalizationManager {
                 normalized.equals("${status.ukrainian} / ${status.english}", ignoreCase = true)
         }
         return when (currentLanguage) {
-            Language.UK -> match?.ukrainian ?: normalized.substringBefore(" / ").trim()
-            Language.EN -> match?.english ?: normalized.substringAfter(" / ", normalized).trim()
+            Language.UK -> match?.ukrainian ?: procurementValue(normalized)
+            Language.EN -> match?.english ?: procurementValue(normalized)
+        }
+    }
+
+    /**
+     * Procurement imports retain the Ukrainian and English source wording as
+     * `Український текст / English text`. Keep that stable source value for
+     * filtering, while presenting only the currently selected language.
+     */
+    fun procurementValue(value: String): String {
+        val normalized = value.trim()
+        val separatorIndex = normalized.indexOf(" / ")
+        if (separatorIndex < 0) return normalized
+        return when (currentLanguage) {
+            Language.UK -> normalized.substring(0, separatorIndex).trim()
+            Language.EN -> normalized.substring(separatorIndex + 3).trim().ifBlank { normalized }
         }
     }
 

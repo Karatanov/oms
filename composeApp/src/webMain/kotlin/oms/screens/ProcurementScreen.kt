@@ -392,6 +392,7 @@ private fun ProcurementFilters(
                     8 -> InlineOptionPicker(
                         records.mapNotNull { it.sourceContractType?.takeIf(String::isNotBlank) }.distinct().sorted(),
                         contractTypeFilter, LocalizationManager.t("proc_contract_type"), onContractTypeChange,
+                        LocalizationManager::procurementValue,
                         clearLabel = LocalizationManager.t("all"), onClear = { onContractTypeChange(null) }
                     )
                     22 -> InlineOptionPicker(
@@ -475,9 +476,12 @@ private fun ProcurementRow(
 private fun ApiProcurementRecord.displayValues(): List<String> = listOf(
     recordNumber.toString(), if (batchId == 8) "A" else if (batchId == 9) "B" else batchId.toString(), localizedUkraineRegion(oblastName), oblastId,
     promotorName.orEmpty(), if (LocalizationManager.currentLanguage == Language.EN) subprojectNameEn ?: subprojectNameUk.orEmpty() else subprojectNameUk ?: subprojectNameEn.orEmpty(),
-    subProjectId, spId.orEmpty(), sourceContractType.orEmpty(), sourceType.orEmpty(), procurementId.orEmpty(),
+    subProjectId, spId.orEmpty(), sourceContractType.orEmpty().let(LocalizationManager::procurementValue),
+    sourceType.orEmpty().let(LocalizationManager::procurementValue), procurementId.orEmpty(),
     subprojectTotalCostUah.format(0), subprojectEibFinancingUah.format(0), subprojectLocalFinancingUah.format(0), estimatedTotalEur.format(2),
-    procurementMethod.orEmpty(), tenderDocumentType.orEmpty(), publishedInOjeu.orEmpty(), estimatedProzorroDate.toOmsDate(), estimatedBidSubmissionDate.toOmsDate(),
+    procurementMethod.orEmpty().let(LocalizationManager::procurementValue),
+    tenderDocumentType.orEmpty().let(LocalizationManager::procurementValue),
+    publishedInOjeu.orEmpty().let(LocalizationManager::procurementValue), estimatedProzorroDate.toOmsDate(), estimatedBidSubmissionDate.toOmsDate(),
     estimatedContractDate.toOmsDate(), estimatedContractEndDate.toOmsDate(), LocalizationManager.procurementStatus(purchaseStatus.orEmpty()),
     localFinancingPct?.let { "${it.format(2)}%" }.orEmpty(), comments.orEmpty()
 )
