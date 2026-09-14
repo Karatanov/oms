@@ -554,7 +554,7 @@ internal fun ReadOnlySirReport(manual: ManualInspectionReportRequest, photos: Li
         }
         ReadOnlySirSection(LocalizationManager.t("sir_quality_assessment"), Icons.Default.FactCheck) {
             if (manual.qualityRemarks.isEmpty()) PreviewEmpty()
-            else ReadOnlyQualityAssessmentTable(manual.qualityRemarks)
+            else ReadOnlyQualityAssessmentTable(manual.qualityRemarks, photos)
         }
         ReadOnlySirSection(LocalizationManager.t("sir_progress_assessment"), Icons.Default.FactCheck) {
             if (manual.progressComment.isNullOrBlank() && manual.scheduleRemark.isNullOrBlank()) PreviewEmpty()
@@ -669,7 +669,7 @@ private fun ReadOnlyHealthSafetyTable(observations: List<oms.data.ManualHseObser
 
 /** Quality assessment mirrors its four-column XLS block: one header, many rows. */
 @Composable
-private fun ReadOnlyQualityAssessmentTable(remarks: List<oms.data.ManualRemarkRequest>) {
+private fun ReadOnlyQualityAssessmentTable(remarks: List<oms.data.ManualRemarkRequest>, photos: List<ApiInspectionPhoto>) {
     val headerColor = MaterialTheme.colorScheme.surfaceVariant
     Column(
         Modifier.fillMaxWidth().border(1.dp, MaterialTheme.colorScheme.outlineVariant),
@@ -680,6 +680,7 @@ private fun ReadOnlyQualityAssessmentTable(remarks: List<oms.data.ManualRemarkRe
             Text(LocalizationManager.t("sir_quality_comment"), Modifier.weight(1.4f), style = MaterialTheme.typography.labelMedium)
             Text(LocalizationManager.t("sir_quality_rectification"), Modifier.weight(1.4f), style = MaterialTheme.typography.labelMedium)
             Text(LocalizationManager.t("sir_quality_status"), Modifier.weight(1f), style = MaterialTheme.typography.labelMedium)
+            Text(LocalizationManager.t("photos"), Modifier.weight(.8f), style = MaterialTheme.typography.labelMedium)
         }
         remarks.forEachIndexed { index, remark ->
             if (index > 0) HorizontalDivider()
@@ -688,6 +689,13 @@ private fun ReadOnlyQualityAssessmentTable(remarks: List<oms.data.ManualRemarkRe
                 Text(remark.comment.ifBlank { "—" }, Modifier.weight(1.4f), style = MaterialTheme.typography.bodyMedium)
                 Text(remark.rectification?.takeIf(String::isNotBlank) ?: "—", Modifier.weight(1.4f), style = MaterialTheme.typography.bodyMedium)
                 Text(remark.status?.takeIf(String::isNotBlank) ?: "—", Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
+                val remarkPhotos = photos.forDescription(remark.work)
+                if (remarkPhotos.isEmpty()) Text("—", Modifier.weight(.8f), style = MaterialTheme.typography.bodyMedium)
+                else InspectionActivityPhotoGallery(
+                    activityKey = "quality-${remark.work.toInspectionPhotoNamePrefix()}-$index",
+                    photos = remarkPhotos,
+                    modifier = Modifier.weight(.8f)
+                )
             }
         }
     }

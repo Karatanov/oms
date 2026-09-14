@@ -52,6 +52,12 @@ data class EmbeddedInspectionPhoto(
     val bytes: ByteArray
 )
 
+private const val SIGNATURE_SECTION_TITLE = "UNDP QUALITY ASSURANCE STAFF"
+
+private fun isSignatureSectionTitle(value: String): Boolean =
+    value.equals(SIGNATURE_SECTION_TITLE, ignoreCase = true) ||
+        value.equals("M4H QA STAFF", ignoreCase = true)
+
 class InspectionReportFileService(
     private val fileRepository: InspectionReportFileRepository,
     private val reportService: InspectionReportService
@@ -297,7 +303,7 @@ class InspectionReportFileService(
             it.contains("NARRATIVE ASSESSMENT", ignoreCase = true) && it.contains("PROGRESS", ignoreCase = true)
         }
         val progressAssessmentTitleRow = detectedProgressAssessmentTitleRow ?: 54 + contentOffset
-        val inspectorSectionTitleRow = firstRow { it.equals("M4H QA STAFF", ignoreCase = true) }
+        val inspectorSectionTitleRow = firstRow(::isSignatureSectionTitle)
         // Quality has five input rows in the approved template. Some imported
         // reports place later section labels much lower in the worksheet, so
         // never scan all the way to a distant Progress title: doing so turns
@@ -325,10 +331,18 @@ class InspectionReportFileService(
                 val activity = ManualActivity(text(row, 1), text(row, 3), text(row, 8), text(row, 10).ifBlank { null })
                 activity.takeIf { it.location.isNotBlank() || it.description.isNotBlank() || !it.remarks.isNullOrBlank() }
             },
-            purchasedMaterials = purchasedMaterialsTitleRow?.let { titleRow -> (titleRow + 2..titleRow + 4).mapNotNull { row ->
-                ManualPurchasedMaterial(text(row, 1), text(row, 4).ifBlank { null }, text(row, 7).ifBlank { null }, text(row, 10).ifBlank { null })
-                    .takeIf { it.materialsAndEquipment.isNotBlank() || !it.characteristics.isNullOrBlank() || !it.perDed.isNullOrBlank() || !it.notes.isNullOrBlank() }
-            } } ?: emptyList(),
+            purchasedMaterials = purchasedMaterialsTitleRow?.let { titleRow ->
+                val endExclusive = inspectorSectionTitleRow?.takeIf { it > titleRow } ?: titleRow + 5
+                (titleRow + 2 until endExclusive).mapNotNull { row ->
+                    val material = ManualPurchasedMaterial(text(row, 1), text(row, 4).ifBlank { null }, text(row, 7).ifBlank { null }, text(row, 10).ifBlank { null })
+                    val isHeader = material.materialsAndEquipment.equals("MATERIALS AND EQUIPMENT", true) ||
+                        material.materialsAndEquipment.equals("NAME", true) ||
+                        material.materialsAndEquipment.equals("TITLE", true)
+                    material.takeUnless { isHeader }?.takeIf {
+                        it.materialsAndEquipment.isNotBlank() || !it.characteristics.isNullOrBlank() || !it.perDed.isNullOrBlank() || !it.notes.isNullOrBlank()
+                    }
+                }
+            } ?: emptyList(),
             ongoingObservations = observationRows.map { text(it, 1) }.filter(String::isNotBlank),
             hseObservations = (hseTitleRow + 2 until qualityAssessmentTitleRow).mapNotNull { row ->
                 val observation = text(row, 1).takeIf(String::isNotBlank) ?: return@mapNotNull null
@@ -362,8 +376,8 @@ class InspectionReportFileService(
             },
             progressComment = text(progressAssessmentTitleRow + 1, 1).ifBlank { null },
             scheduleRemark = text(progressAssessmentTitleRow + 1, 10).ifBlank { null },
-            inspectorName = text((firstRow { it.equals("M4H QA STAFF", ignoreCase = true) } ?: 56 + contentOffset) + 3, 1),
-            inspectorTitle = text((firstRow { it.equals("M4H QA STAFF", ignoreCase = true) } ?: 56 + contentOffset) + 3, 4).ifBlank { null },
+            inspectorName = text((inspectorSectionTitleRow ?: 56 + contentOffset) + 3, 1),
+            inspectorTitle = text((inspectorSectionTitleRow ?: 56 + contentOffset) + 3, 4).ifBlank { null },
             latitude = report.latitude, longitude = report.longitude
         )
     }
@@ -452,7 +466,7 @@ class InspectionReportFileService(
         val hseTitleRow = sectionRow(sheet, "OBSERVANCES ON HEALTH & SAFETY")
         val qualityTitleRow = sectionRow(sheet, "NARRATIVE ASSESSMENT - COMMENTS ON QUALITY")
         val progressTitleRow = sectionRow(sheet, "NARRATIVE ASSESSMENT - COMMENTS ON PROGRESS")
-        val signatureTitleRow = sectionRow(sheet, "M4H QA STAFF")
+        val signatureTitleRow = signatureSectionRow(sheet)
         val signatureDataRow = signatureTitleRow + 3
         val materialsTitleRow = firstRow(sheet, "PURCHASED MATERIALS")
         fun nextSectionAfter(row: Int, candidates: List<Int?>): Int = candidates
@@ -561,12 +575,12 @@ class InspectionReportFileService(
         // never invalidates the positions still to be processed.
         if (materialsTitleRow != null) collapseUnusedSectionRows(
             sheet, "PURCHASED MATERIALS", 2,
-            listOf("NARRATIVE ASSESSMENT - COMMENTS ON PROGRESS", "M4H QA STAFF"),
+            listOf("NARRATIVE ASSESSMENT - COMMENTS ON PROGRESS", SIGNATURE_SECTION_TITLE),
             materialsToWrite.size
         )
         collapseUnusedSectionRows(
             sheet, "NARRATIVE ASSESSMENT - COMMENTS ON QUALITY", 2,
-            listOf("NARRATIVE ASSESSMENT - COMMENTS ON PROGRESS", "PURCHASED MATERIALS", "M4H QA STAFF"),
+            listOf("NARRATIVE ASSESSMENT - COMMENTS ON PROGRESS", "PURCHASED MATERIALS", SIGNATURE_SECTION_TITLE),
             qualityRemarks.size
         )
         collapseUnusedSectionRows(
@@ -592,6 +606,9 @@ class InspectionReportFileService(
             sheet,
             sectionRow(sheet, "NARRATIVE ASSESSMENT - COMMENTS ON PROGRESS")
         )
+        // The old M4H wording was part of the supplied sample, not the
+        // current report template. Preserve the layout, but publish UNDP.
+        sheet.getRow(signatureSectionRow(sheet) - 1)?.getCell(0)?.setCellValue(SIGNATURE_SECTION_TITLE)
     }
 
     private fun applyMediumOutline(
@@ -628,7 +645,7 @@ class InspectionReportFileService(
     private fun ensurePurchasedMaterialsLayout(sheet: org.apache.poi.ss.usermodel.Sheet) {
         val existingTitleRow = firstRow(sheet, "PURCHASED MATERIALS")
         if (existingTitleRow != null) return
-        val titleRow = sectionRow(sheet, "M4H QA STAFF")
+        val titleRow = signatureSectionRow(sheet)
         val titleStyle = sheet.getRow(titleRow - 1)?.getCell(0)?.cellStyle
         val headerStyle = sheet.getRow(11)?.getCell(0)?.cellStyle
         val sourceColumns = listOf(0, 2, 7, 9)
@@ -685,12 +702,20 @@ class InspectionReportFileService(
 
     private fun firstRow(sheet: org.apache.poi.ss.usermodel.Sheet, value: String): Int? =
         (1..(sheet.lastRowNum + 1)).firstOrNull { row ->
-            sheet.getRow(row - 1)?.getCell(0)?.let { DataFormatter().formatCellValue(it).trim() }
-                ?.equals(value, ignoreCase = true) == true
+            sheet.getRow(row - 1)?.getCell(0)?.let { DataFormatter().formatCellValue(it).trim() }?.let { cell ->
+                if (value == SIGNATURE_SECTION_TITLE) isSignatureSectionTitle(cell)
+                else cell.equals(value, ignoreCase = true)
+            } == true
         }
 
     private fun sectionRow(sheet: org.apache.poi.ss.usermodel.Sheet, title: String): Int =
         requireNotNull(firstRow(sheet, title)) { "SIR template is missing the '$title' section." }
+
+    private fun signatureSectionRow(sheet: org.apache.poi.ss.usermodel.Sheet): Int =
+        requireNotNull((1..(sheet.lastRowNum + 1)).firstOrNull { row ->
+            sheet.getRow(row - 1)?.getCell(0)?.let { DataFormatter().formatCellValue(it).trim() }
+                ?.let(::isSignatureSectionTitle) == true
+        }) { "SIR template is missing the '$SIGNATURE_SECTION_TITLE' section." }
 
     /** Removes blank reserved rows so the next section follows the actual data. */
     private fun collapseUnusedSectionRows(

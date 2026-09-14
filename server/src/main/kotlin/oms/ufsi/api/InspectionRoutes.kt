@@ -11,6 +11,27 @@ import kotlinx.io.readByteArray
 import oms.ufsi.config.AppContainer
 import oms.ufsi.dto.*
 
+private const val AUTO_HSE_FINDING_CATEGORY = "hse_sir_auto"
+
+/** Keeps the H&S chart in step with a manually edited SIR without touching user-created findings. */
+private fun synchronizeManualHseFindings(reportId: Long, observations: List<ManualHseObservation>) {
+    val findings = AppContainer.inspectionFindingService
+    findings.getFindings(reportId)
+        .filter { it.category == AUTO_HSE_FINDING_CATEGORY }
+        .forEach { findings.deleteFinding(reportId, it.uuid.toString()) }
+    observations
+        .filter { it.answer.equals("no", ignoreCase = true) }
+        .forEach { observation ->
+            findings.createFinding(
+                reportId,
+                AUTO_HSE_FINDING_CATEGORY,
+                "medium",
+                observation.observation,
+                observation.comment
+            )
+        }
+}
+
 /** REST endpoints for inspection findings. */
 fun Route.inspectionRoutes() {
     get("/api/v1/inspection-reports") {
@@ -58,7 +79,9 @@ fun Route.inspectionRoutes() {
         val project = AppContainer.projectService.getProjectByUuid(projectUuid) ?: return@post call.notFound("Project not found.")
         if (!call.requireProjectAccess(session, projectUuid)) return@post
         try {
-            val report = AppContainer.inspectionReportFileService.createManual(project, call.receive(), session.userId)
+            val request = call.receive<CreateManualInspectionReportRequest>()
+            val report = AppContainer.inspectionReportFileService.createManual(project, request, session.userId)
+            synchronizeManualHseFindings(report.id, request.hseObservations)
             AppContainer.auditLogService.record(session.userId, "inspection_manual_created", "inspection_report", report.id)
             call.respond(HttpStatusCode.Created, report.toResponse())
         } catch (exception: IllegalArgumentException) { call.validationError(exception) }
@@ -257,6 +280,7 @@ fun Route.inspectionRoutes() {
                         ?: return@put call.notFound("Inspection report not found.")
                 }
                 val updated = AppContainer.inspectionReportFileService.updateManual(moved, targetProject, request.manual)
+                synchronizeManualHseFindings(updated.id, request.manual.hseObservations)
                 val finalReport = if (request.status != null && request.status != updated.status.name.lowercase()) {
                     if (!session.roleCode.equals("ADMIN", true) && !session.roleCode.equals("PROJECT_MANAGER", true)) {
                         throw IllegalArgumentException("Only an administrator or project manager can change report status.")

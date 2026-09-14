@@ -120,7 +120,7 @@ fun CreateInspectionScreen(
     // Materials are optional. A row is created only when the user explicitly
     // asks to add one, so a new SIR starts without an empty materials record.
     var purchasedMaterials by remember { mutableStateOf(emptyList<PurchasedMaterialInput>()) }
-    var projectName by remember { mutableStateOf("") }
+    var projectName by remember { mutableStateOf("UNDP") }
     var siteAddress by remember { mutableStateOf("") }
     var ongoingObservations by remember { mutableStateOf(listOf(OngoingObservationInput())) }
     var hseObservations by remember { mutableStateOf(defaultHseObservations) }
@@ -196,11 +196,11 @@ fun CreateInspectionScreen(
             date = manual.inspectionDate
             reportStatus = editor.status
             inspectionType = InspectionType.entries.firstOrNull { it.name.equals(manual.inspectionType, true) } ?: InspectionType.PLANNED
-            // USIF was a legacy template default, not report data. Keep it as
-            // a selectable suggestion but never prefill it into the form.
+            // USIF was a legacy template default. UNDP is the current
+            // organisation and is used when an older report has no value.
             projectName = manual.projectName.orEmpty()
                 .takeUnless { it.equals("Ukrainian Social Investment Fund (USIF)", ignoreCase = true) }
-                .orEmpty()
+                .ifBlank { "UNDP" }
             contractor = manual.contractor
             contractorRepresentative = manual.contractorRepresentative.orEmpty()
             qaStaff = manual.qaStaff.orEmpty()
@@ -233,7 +233,7 @@ fun CreateInspectionScreen(
                 )
             }.ifEmpty { defaultHseObservations }
             qualityRemarks = manual.qualityRemarks.map { remark ->
-                QualityRemarkInput(remark.work, remark.comment, remark.rectification.orEmpty(), remark.status.orEmpty())
+                QualityRemarkInput(work = remark.work, comment = remark.comment, rectification = remark.rectification.orEmpty(), status = remark.status.orEmpty())
             }.ifEmpty { listOf(QualityRemarkInput()) }
             progressComment = manual.progressComment.orEmpty()
             scheduleRemark = manual.scheduleRemark.orEmpty()
@@ -756,7 +756,10 @@ private fun ManualSirForm(
                 value = projectName,
                 onValueChange = { onProjectNameChange(it.inspectionText(500)) },
                 label = LocalizationManager.t("sir_inspection_organisation"),
-                options = listOf("Ukrainian Social Investment Fund (USIF)" to "Ukrainian Social Investment Fund (USIF)"),
+                options = listOf(
+                    "UNDP" to "UNDP",
+                    "Ukrainian Social Investment Fund (USIF)" to "Ukrainian Social Investment Fund (USIF)"
+                ),
                 modifier = Modifier.fillMaxWidth()
             )
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -1143,10 +1146,13 @@ private data class HseObservationInput(
     fun answer(): String? = if (isCustom) null else if (isYes) "yes" else "no"
 }
 internal data class QualityRemarkInput(
+    val photoKey: String = "quality-${kotlin.random.Random.nextInt()}-${kotlin.random.Random.nextInt()}",
     val work: String = "",
     val comment: String = "",
     val rectification: String = "",
-    val status: String = ""
+    val status: String = "",
+    val photoCount: Int = 0,
+    val photoRevision: Int = 0
 )
 private val defaultHseObservations = listOf(
     "All workers wear PPE equipment as relevant.",

@@ -78,14 +78,17 @@ body {
     z-index: 3;
     display: none;
     box-sizing: border-box;
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-    gap: 12px;
-    overflow: auto;
+    grid-template-rows: minmax(0, 1fr) auto;
+    overflow: hidden;
     padding: 4px;
 }
 .inspection-report-photo-gallery.visible { display: grid; }
+.inspection-report-photo-gallery-track { display: flex; gap: 10px; min-width: 0; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; }
+.inspection-report-photo-gallery-track::-webkit-scrollbar { display: none; }
+.inspection-report-photo-gallery-controls { display: flex; justify-content: center; gap: 8px; padding-top: 4px; }
+.inspection-report-photo-gallery-controls button { min-width: 34px; height: 28px; border: 1px solid #cbd5e1; border-radius: 7px; background: #fff; color: #278dad; font-size: 20px; line-height: 1; cursor: pointer; }
 .inspection-report-photo-gallery-item {
-    min-width: 0;
+    flex: 0 0 min(180px, 100%);
     padding: 0;
     overflow: hidden;
     border: 0;
@@ -93,7 +96,7 @@ body {
     background: #e2e8f0;
     cursor: pointer;
 }
-.inspection-report-photo-gallery-item img { display: block; width: 100%; aspect-ratio: 1.35; object-fit: cover; transition: transform 180ms ease; }
+.inspection-report-photo-gallery-item img { display: block; width: 100%; height: 100%; aspect-ratio: 1.35; object-fit: contain; transition: transform 180ms ease; }
 .inspection-report-photo-gallery-item:hover img, .inspection-report-photo-gallery-item:focus-visible img { transform: scale(1.06); }
 .inspection-report-photo-gallery-item:focus-visible { outline: 2px solid #278dad; outline-offset: 2px; }
 .inspection-report-photo-gallery-item.unavailable, .inspection-report-photo-gallery-empty { display: grid; min-height: 140px; place-items: center; padding: 12px; color: #64748b; font: inherit; text-align: center; }

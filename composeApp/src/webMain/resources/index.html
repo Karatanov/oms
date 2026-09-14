@@ -780,6 +780,8 @@
                     pane.append(empty);
                     return;
                 }
+                const track = document.createElement("div");
+                track.className = "inspection-report-photo-gallery-track";
                 photos.forEach(photo => {
                     const button = document.createElement("button");
                     button.type = "button";
@@ -801,8 +803,25 @@
                     image.src = photo.thumbnailUrl;
                     button.append(image);
                     button.addEventListener("click", () => openPhotoLightbox(photos, photo.uuid));
-                    pane.append(button);
+                    track.append(button);
                 });
+                pane.append(track);
+                if (photos.length > 1) {
+                    const controls = document.createElement("div");
+                    controls.className = "inspection-report-photo-gallery-controls";
+                    const previous = document.createElement("button");
+                    previous.type = "button";
+                    previous.textContent = "‹";
+                    previous.setAttribute("aria-label", omsText("previous"));
+                    previous.onclick = () => track.scrollBy({ left: -track.clientWidth * .8, behavior: "smooth" });
+                    const next = document.createElement("button");
+                    next.type = "button";
+                    next.textContent = "›";
+                    next.setAttribute("aria-label", omsText("next"));
+                    next.onclick = () => track.scrollBy({ left: track.clientWidth * .8, behavior: "smooth" });
+                    controls.append(previous, next);
+                    pane.append(controls);
+                }
             };
             requestAnimationFrame(() => render());
         }
