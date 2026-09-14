@@ -22,7 +22,7 @@ private data class MonthlyFinancialAggregation(
 @Composable
 fun MonthlyPaymentsChart(records: List<FinancialChartRecord>) {
     val aggregation = aggregateMonthlyPayments(records, "works")
-    var expanded by remember { mutableStateOf(false) }
+    var expanded by remember { mutableStateOf(true) }
     MonthlyAmountsChart(
         titleKey = "monthly_project_payments",
         hintKey = null,
