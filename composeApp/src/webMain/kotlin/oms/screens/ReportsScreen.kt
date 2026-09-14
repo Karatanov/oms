@@ -83,6 +83,20 @@ private data class ReportRow(
     val report: ApiInspectionReport
 )
 
+/** Retains the registry while a user opens a full-page SIR for read-only view. */
+private object InspectionReportsScreenCache {
+    var reports: List<ReportRow>? = null
+    var analytics: ApiInspectionAnalytics? = null
+
+    fun invalidate() {
+        reports = null
+        analytics = null
+    }
+}
+
+/** Called only after a report-changing workflow succeeds. */
+fun invalidateInspectionReportsScreenCache() = InspectionReportsScreenCache.invalidate()
+
 private fun ReportRow.localizedSubprojectName(): String? =
     if (LocalizationManager.currentLanguage == Language.EN) subprojectNameEn?.takeIf(String::isNotBlank) ?: subprojectName
     else subprojectName
@@ -100,19 +114,19 @@ fun ReportsScreen(
     canMoveReports: Boolean = true
 ) {
     val deletion = oms.components.LocalDeleteConfirmation.current
-    var reports by remember { mutableStateOf<List<ReportRow>>(emptyList()) }
+    var reports by remember { mutableStateOf(InspectionReportsScreenCache.reports ?: emptyList()) }
     var search by remember { mutableStateOf("") }
     var status by remember { mutableStateOf<String?>(null) }
     var subprojectFilter by remember { mutableStateOf<String?>(null) }
     var subprojectCodeFilter by remember { mutableStateOf<String?>(null) }
     var subprojectPartCodeFilter by remember { mutableStateOf<String?>(null) }
     var authorFilter by remember { mutableStateOf<String?>(null) }
-    var loading by remember { mutableStateOf(true) }
+    var loading by remember { mutableStateOf(InspectionReportsScreenCache.reports == null) }
     var loadFailed by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var reportToEdit by remember { mutableStateOf<ReportRow?>(null) }
     var reportToReview by remember { mutableStateOf<ReportRow?>(null) }
-    var analytics by remember { mutableStateOf<ApiInspectionAnalytics?>(null) }
+    var analytics by remember { mutableStateOf(InspectionReportsScreenCache.analytics) }
     var inspectionsChartExpanded by remember { mutableStateOf(true) }
     var eshsChartExpanded by remember { mutableStateOf(true) }
     val scope = rememberCoroutineScope()
@@ -122,6 +136,11 @@ fun ReportsScreen(
     val contentScrollState = rememberScrollState()
     var reloadKey by remember { mutableStateOf(0) }
     LaunchedEffect(reloadKey) {
+        if (reloadKey == 0 && InspectionReportsScreenCache.reports != null) {
+            loading = false
+            loadFailed = false
+            return@LaunchedEffect
+        }
         loading = true; loadFailed = false
         try {
         val reportItems = coroutineScope {
@@ -147,6 +166,8 @@ fun ReportsScreen(
             val subprojectPartCode = ancestry.getOrNull(2)?.siteNumber
             ReportRow(attachedProject.id, projectName, subprojectName, subprojectNameEn, subprojectCode, subprojectPartCode, item.report)
         }.sortedByDescending { it.report.inspectionDate }
+        InspectionReportsScreenCache.reports = reports
+        InspectionReportsScreenCache.analytics = analytics
         } catch (failure: Exception) {
             if (failure is kotlinx.coroutines.CancellationException) throw failure
             loadFailed = true
@@ -270,7 +291,10 @@ fun ReportsScreen(
                         }
                         if (canCreateReports) TableActionIconButton(LocalizationManager.t("delete_report"), Icons.Default.Delete) {
                             deletion.show(row.title()) { scope.launch {
-                                if (OmsApiClient.deleteInspectionReport(row.report.uuid)) reports = reports.filterNot { it.report.uuid == row.report.uuid }
+                                if (OmsApiClient.deleteInspectionReport(row.report.uuid)) {
+                                    reports = reports.filterNot { it.report.uuid == row.report.uuid }
+                                    InspectionReportsScreenCache.reports = reports
+                                }
                                 else errorMessage = LocalizationManager.t("error_delete_report")
                             } }
                         } else Spacer(Modifier.width(48.dp))
@@ -321,6 +345,7 @@ fun ReportsScreen(
                                     )
                                 }
                             }
+                            InspectionReportsScreenCache.reports = reports
                             reportToEdit = null
                         }
                         .onFailure {
@@ -340,6 +365,7 @@ fun ReportsScreen(
                     runCatching { OmsApiClient.reviewInspectionReport(report.report.uuid, action, reason) }
                         .onSuccess { reviewed ->
                             reports = reports.map { if (it.report.uuid == reviewed.uuid) it.copy(report = reviewed) else it }
+                            InspectionReportsScreenCache.reports = reports
                             reportToReview = null
                         }
                         .onFailure { errorMessage = LocalizationManager.t("error_review_report").replace("{message}", it.message ?: LocalizationManager.t("unknown_error")) }
