@@ -50,6 +50,11 @@ internal fun RepeatablePurchasedMaterials(
                 }
             }
         }
-        if (values.size < 3) TableActionIconButton(LocalizationManager.t("sir_add_material"), Icons.Default.Add) { onChange(values + PurchasedMaterialInput()) }
+        // Materials are an open-ended report table.  Keep the add control
+        // available in edit mode as well, even when imported data already
+        // contains three or more rows.
+        TableActionIconButton(LocalizationManager.t("sir_add_material"), Icons.Default.Add) {
+            onChange(values + PurchasedMaterialInput())
+        }
     }
 }
