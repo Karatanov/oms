@@ -197,7 +197,7 @@ fun Project.toResponse(parentProjectUuid: String? = null, monitoring: oms.ufsi.d
  * Перетворює доменну модель
  * інспекції у DTO.
  */
-fun InspectionReport.toResponse():
+fun InspectionReport.toResponse(subprojectCode: String? = null):
         InspectionReportResponse {
 
     return InspectionReportResponse(
@@ -228,7 +228,8 @@ fun InspectionReport.toResponse():
         latitude = latitude,
 
         longitude = longitude,
-        authorUsername = authorUsername
+        authorUsername = authorUsername,
+        subprojectCode = subprojectCode
     )
 }
 

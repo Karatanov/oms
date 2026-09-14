@@ -24,7 +24,7 @@ fun Route.dashboardRoutes() {
         val overview = AppContainer.dashboardService.getOverview(allowedProjectIds, trancheNumber)
         call.respond(
             DashboardOverviewResponse(
-                recentInspections = overview.recentInspections.map { it.toResponse() },
+                recentInspections = overview.recentInspections.map { it.report.toResponse(it.subprojectCode) },
                 monthlyActPayments = overview.monthlyActPayments.map { MonthlyActPaymentResponse(it.month, it.amountEurCents) },
                 subprojectFunding = overview.subprojectFunding.map { SubprojectFundingResponse(it.projectUuid, it.name, it.region, it.amountUah, it.amountEur) },
                 subprojectProgress = overview.subprojectProgress.map { SubprojectProgressResponse(it.projectUuid, it.code, it.name, it.nameEn, it.region, it.completionPct) },

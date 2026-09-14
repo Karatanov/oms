@@ -150,7 +150,7 @@ fun DashboardScreen(
                         second = { MonthlyActPaymentsChart(MaterialTheme.colorScheme.primary, dashboard?.monthlyActPayments.orEmpty(), onOpenFinancial, chartOrientation) }
                     )
                 }
-                item { DashboardPhotoSlider(latest?.inspectionDate, latestPhotos) }
+                item { DashboardPhotoSlider(latest?.inspectionDate, latest?.subprojectCode, latestPhotos) }
             }
         }
         Column(Modifier.align(Alignment.CenterEnd).padding(end = 8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {

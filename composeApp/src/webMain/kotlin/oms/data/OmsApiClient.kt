@@ -800,7 +800,8 @@ data class ApiInspectionReport(
     val rejectionReason: String? = null,
     val latitude: Double? = null,
     val longitude: Double? = null,
-    val authorUsername: String? = null
+    val authorUsername: String? = null,
+    val subprojectCode: String? = null
 )
 
 @Serializable

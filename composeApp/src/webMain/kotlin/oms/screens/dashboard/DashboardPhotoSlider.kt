@@ -13,16 +13,16 @@ import androidx.compose.ui.unit.dp
 import oms.components.NativePaneAnchor
 
 @JsName("showDashboardPhotoSlider")
-external fun showDashboardPhotoSlider(inspectionDate: String?, photosJson: String)
+external fun showDashboardPhotoSlider(inspectionDate: String?, subprojectCode: String?, photosJson: String)
 
 @JsName("hideDashboardPhotoSlider")
 external fun hideDashboardPhotoSlider()
 
 /** Browser-native image element is used here so remote thumbnails work in both JS and Wasm builds. */
 @Composable
-fun DashboardPhotoSlider(inspectionDate: String?, photos: List<ApiInspectionPhoto>?) {
+fun DashboardPhotoSlider(inspectionDate: String?, subprojectCode: String?, photos: List<ApiInspectionPhoto>?) {
     NativePaneAnchor("dashboard-photo-slider", Modifier.fillMaxWidth().height(232.dp))
-    DisposableEffect(inspectionDate, photos, oms.localization.LocalizationManager.currentLanguage) {
+    DisposableEffect(inspectionDate, subprojectCode, photos, oms.localization.LocalizationManager.currentLanguage) {
         val sliderPhotos = photos.orEmpty()
             .sortedByDescending { it.isMain }
             .take(7)
@@ -32,7 +32,7 @@ fun DashboardPhotoSlider(inspectionDate: String?, photos: List<ApiInspectionPhot
                     thumbnailUrl = photo.thumbnailUrl.toOmsUrl()
                 )
             }
-        showDashboardPhotoSlider(inspectionDate, Json.encodeToString(sliderPhotos))
+        showDashboardPhotoSlider(inspectionDate, subprojectCode, Json.encodeToString(sliderPhotos))
         onDispose(::hideDashboardPhotoSlider)
     }
 }
