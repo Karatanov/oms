@@ -200,6 +200,7 @@ fun CreateInspectionScreen(
             // organisation and is used when an older report has no value.
             projectName = manual.projectName.orEmpty()
                 .takeUnless { it.equals("Ukrainian Social Investment Fund (USIF)", ignoreCase = true) }
+                .orEmpty()
                 .ifBlank { "UNDP" }
             contractor = manual.contractor.orEmpty()
             contractorRepresentative = manual.contractorRepresentative.orEmpty()
