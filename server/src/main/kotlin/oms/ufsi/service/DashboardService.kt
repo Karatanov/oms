@@ -24,8 +24,9 @@ data class DashboardSubprojectFunding(
 )
 data class DashboardSubprojectProgress(val projectUuid: String, val code: String, val name: String, val nameEn: String?, val region: String, val completionPct: Double)
 data class DashboardMetric(val label: String, val value: Long)
+data class DashboardRecentInspection(val report: InspectionReport, val subprojectCode: String?)
 data class DashboardOverviewData(
-    val recentInspections: List<InspectionReport>,
+    val recentInspections: List<DashboardRecentInspection>,
     val monthlyActPayments: List<MonthlyActPayment>,
     val subprojectFunding: List<DashboardSubprojectFunding>,
     val subprojectProgress: List<DashboardSubprojectProgress>,
@@ -78,6 +79,10 @@ class DashboardService(
         val projectIds = projects.map { it[ProjectTable.id].value }.toSet()
         val reports = InspectionReportTable.selectAll().toList()
             .filter { it[InspectionReportTable.projectId].value in projectIds }
+        val actRecords = FinancialRecordTable.selectAll().toList().filter {
+            it[FinancialRecordTable.projectId].value in projectIds &&
+                it[FinancialRecordTable.recordType] == "act"
+        }
         val paymentRecords = FinancialRecordTable.selectAll().toList().filter {
             it[FinancialRecordTable.projectId].value in projectIds &&
                 it[FinancialRecordTable.recordType] in setOf("payment", "advance")
@@ -147,7 +152,13 @@ class DashboardService(
             row[InspectionReportTable.rejectionReason], row[InspectionReportTable.latitude]?.toDouble(), row[InspectionReportTable.longitude]?.toDouble(), row[InspectionReportTable.createdBy].value
         )
         DashboardOverviewData(
-            reports.sortedByDescending { it[InspectionReportTable.inspectionDate] }.take(5).map(::report),
+            reports.sortedByDescending { it[InspectionReportTable.inspectionDate] }.take(5).map { row ->
+                val inspection = report(row)
+                DashboardRecentInspection(
+                    inspection,
+                    subprojectFor(inspection.projectId)?.let { projectsById[it]?.get(ProjectTable.siteNumber) }
+                )
+            },
             monthlyActPayments, subprojectFunding, subprojectProgress, procurementStatusCounts
         )
     }
