@@ -20,7 +20,10 @@ private fun synchronizeManualHseFindings(reportId: Long, observations: List<Manu
         .filter { it.category == AUTO_HSE_FINDING_CATEGORY }
         .forEach { findings.deleteFinding(reportId, it.uuid.toString()) }
     observations
-        .filter { it.answer.equals("no", ignoreCase = true) }
+        // A checked standard observation means compliance.  An unchecked
+        // answer and a custom free-text observation both describe an actual
+        // issue and therefore must contribute to the ESHS violation chart.
+        .filter { !it.answer.equals("yes", ignoreCase = true) }
         .forEach { observation ->
             findings.createFinding(
                 reportId,
