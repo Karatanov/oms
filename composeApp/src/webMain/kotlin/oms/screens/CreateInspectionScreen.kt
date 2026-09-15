@@ -258,8 +258,12 @@ fun CreateInspectionScreen(
     // Photos are evidence attached to the report rather than cells in its
     // workbook, so load them independently from the manual-report payload.
     // This keeps them viewable even when the original SIR was imported.
-    LaunchedEffect(editingReportUuid) {
+    // Opening a large imported XLSX already parses the workbook.  Do not ask
+    // the server to extract and hydrate all embedded images at the same time:
+    // render the report first, then let photos arrive independently.
+    LaunchedEffect(editingReportUuid, loadingManualReport) {
         val reportUuid = editingReportUuid ?: return@LaunchedEffect
+        if (loadingManualReport) return@LaunchedEffect
         reportPhotos = runCatching {
             OmsApiClient.inspectionPhotos(reportUuid)
         }.getOrDefault(emptyList())
@@ -403,7 +407,9 @@ fun CreateInspectionScreen(
             }
         }
 
-        if (entryMode == "manual") {
+        // Avoid composing a full report full of temporary default controls
+        // while an imported workbook is still being parsed.
+        if (!loadingManualReport && entryMode == "manual") {
             if (readOnly) ReadOnlySirReport(
                 oms.data.ManualInspectionReportRequest(
                     inspectionDate = date,
