@@ -409,7 +409,7 @@ private fun ProcurementFilters(
                     )
                     8 -> InlineOptionPicker(
                         records.mapNotNull { it.sourceContractType?.takeIf(String::isNotBlank) }.distinct().sorted(),
-                        contractTypeFilter, LocalizationManager.t("proc_contract_type"), onContractTypeChange,
+                        contractTypeFilter, LocalizationManager.t("proc_source_contract_type"), onContractTypeChange,
                         LocalizationManager::procurementValue,
                         clearLabel = LocalizationManager.t("all"), onClear = { onContractTypeChange(null) }
                     )
@@ -549,7 +549,7 @@ private fun procurementHeaderLabels(): List<String> = if (LocalizationManager.cu
     "Вартість субпроєкту, грн", "Фінансування ЄІБ, грн", "Місцеве фінансування, грн", "Оціночна сума, EUR", "Метод закупівлі", "Тип ТД", "Опубліковано в OJEU",
     "План. публікація PROZORRO", "План. подання пропозицій", "План. підписання договору", "План. завершення договору", "Статус закупівлі", "Місцеве співфінансування", "Коментарі"
 )
-private val columnWidths = listOf(55, 75, 160, 90, 230, 340, 135, 110, 160, 70, 150, 170, 170, 180, 160, 250, 180, 150, 145, 145, 145, 145, 230, 155, 260)
+private val columnWidths = listOf(55, 132, 160, 90, 230, 340, 135, 110, 160, 70, 150, 170, 170, 180, 160, 250, 180, 150, 145, 145, 145, 145, 230, 155, 260)
 private val procurementStatuses = listOf(
     "Не розпочато / Not Started",
     "Закупівля триває / Tender Ongoing",
