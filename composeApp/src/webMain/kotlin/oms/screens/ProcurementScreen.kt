@@ -192,6 +192,19 @@ fun ProcurementScreen(
         val pageCount = if (visibleRecords.isEmpty() || pageSize == Int.MAX_VALUE) 1 else (visibleRecords.size + pageSize - 1) / pageSize
         if (currentPage >= pageCount) currentPage = (pageCount - 1).coerceAtLeast(0)
         val pageRecords = if (pageSize == Int.MAX_VALUE) visibleRecords else visibleRecords.drop(currentPage * pageSize).take(pageSize)
+        val hasActiveFilters = search.isNotBlank() || trancheFilter != null || oblastFilter != null ||
+            subprojectFilter != null || contractTypeFilter != null || procurementMethodFilter != null ||
+            statusFilter != null || signedContractMonthFilter != null
+        fun resetFilters() {
+            search = ""
+            trancheFilter = null
+            oblastFilter = null
+            subprojectFilter = null
+            contractTypeFilter = null
+            procurementMethodFilter = null
+            statusFilter = null
+            signedContractMonthFilter = null
+        }
         if (records != null && visibleRecords.isEmpty()) oms.components.ContentState(LocalizationManager.t("no_search_results"))
         when {
             loadError != null -> oms.components.ContentState(loadError!!, error = true, onRetry = { reloadKey++ })
@@ -231,6 +244,7 @@ fun ProcurementScreen(
                     ProcurementTable(
                         pageRecords, records.orEmpty(), trancheFilter, { trancheFilter = it }, oblastFilter, { oblastFilter = it }, subprojectFilter, { subprojectFilter = it },
                         contractTypeFilter, { contractTypeFilter = it }, procurementMethodFilter, { procurementMethodFilter = it }, statusFilter, { statusFilter = it },
+                        hasActiveFilters, ::resetFilters,
                         canManageProcurements, { error = null; editorRecord = it }, { error = null; recordPendingDeletion = it },
                         contentScrollState, sortColumnIndex, sortAscending, ::selectSort
                     )
@@ -341,6 +355,8 @@ private fun ProcurementTable(
     onProcurementMethodChange: (String?) -> Unit,
     statusFilter: String?,
     onStatusChange: (String?) -> Unit,
+    canResetFilters: Boolean,
+    onResetFilters: () -> Unit,
     canManage: Boolean,
     onEdit: (ApiProcurementRecord) -> Unit,
     onDelete: (ApiProcurementRecord) -> Unit,
@@ -352,7 +368,8 @@ private fun ProcurementTable(
     Column(Modifier.fillMaxWidth()) {
         oms.components.ScrollableTable(pageScrollState = pageScrollState, header = {
                 ProcurementFilters(allRecords, trancheFilter, onTrancheChange, oblastFilter, onOblastChange, subprojectFilter, onSubprojectChange,
-                    contractTypeFilter, onContractTypeChange, procurementMethodFilter, onProcurementMethodChange, statusFilter, onStatusChange, canManage)
+                    contractTypeFilter, onContractTypeChange, procurementMethodFilter, onProcurementMethodChange, statusFilter, onStatusChange,
+                    canResetFilters, onResetFilters, canManage)
                 ProcurementRow(procurementHeaderLabels(), showActions = canManage, isHeader = true,
                     sortColumnIndex = sortColumnIndex, sortAscending = sortAscending, onSort = onSort)
                 HorizontalDivider()
@@ -381,16 +398,21 @@ private fun ProcurementFilters(
     onProcurementMethodChange: (String?) -> Unit,
     statusFilter: String?,
     onStatusChange: (String?) -> Unit,
+    canResetFilters: Boolean,
+    onResetFilters: () -> Unit,
     showActions: Boolean
 ) {
     Row(
         Modifier.width((columnWidths.sum() + if (showActions) 96 else 0).dp).padding(vertical = 2.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        if (showActions) Spacer(Modifier.width(96.dp))
+        if (showActions) Box(Modifier.width(96.dp), contentAlignment = Alignment.CenterStart) {
+            ProcurementResetFiltersButton(canResetFilters, onResetFilters)
+        }
         columnWidths.forEachIndexed { index, width ->
             Box(Modifier.width(width.dp).padding(horizontal = 6.dp)) {
                 when (index) {
+                    0 -> if (!showActions) ProcurementResetFiltersButton(canResetFilters, onResetFilters)
                     1 -> InlineOptionPicker(
                         records.map { it.batchId }.distinct().sorted(), trancheFilter,
                         LocalizationManager.t("tranche"), onTrancheChange,
@@ -428,6 +450,17 @@ private fun ProcurementFilters(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun ProcurementResetFiltersButton(enabled: Boolean, onClick: () -> Unit) {
+    TextButton(
+        onClick = onClick,
+        enabled = enabled,
+        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp)
+    ) {
+        Text(LocalizationManager.t("reset_filters"), maxLines = 1, style = MaterialTheme.typography.labelSmall)
     }
 }
 
