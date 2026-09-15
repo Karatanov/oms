@@ -22,17 +22,11 @@ body {
     z-index: 2;
 }
 
-/* Compose/Wasm renders controls into a single canvas-like interaction layer.
-   Its text-selection container otherwise leaves the I-beam cursor over every
-   navigation item and action.  Make the application surface consistently
-   indicate clickability; native text-entry controls retain the text cursor. */
-#compose-host, #compose-host * {
-    cursor: pointer !important;
-}
-/* Compose/Wasm dispatches button hit-testing through this canvas. Target it
-   directly because a browser does not always inherit cursor from its parent. */
-#compose-host canvas {
-    cursor: pointer !important;
+/* Compose/Wasm renders much of the application on a shared canvas.  Its
+   neutral surface must retain the normal arrow; individual Compose controls
+   use pointerHoverIcon(Hand), while text inputs retain the I-beam. */
+#compose-host, #compose-host canvas {
+    cursor: default;
 }
 #compose-host input, #compose-host textarea, #compose-host [contenteditable="true"] {
     cursor: text !important;
