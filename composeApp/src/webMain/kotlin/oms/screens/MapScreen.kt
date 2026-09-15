@@ -53,44 +53,36 @@ fun MapScreen(onOpenProject: (Project) -> Unit = {}) {
     Column(Modifier.fillMaxSize().padding(24.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         PageHeading(LocalizationManager.t("projects_map"), Icons.Default.Map)
         Text(LocalizationManager.t("map_scope"), style = MaterialTheme.typography.labelLarge)
-        SingleChoiceSegmentedButtonRow(Modifier.widthIn(max = 520.dp).fillMaxWidth()) {
-            MapScope.entries.forEachIndexed { index, option ->
-                SegmentedButton(
-                    selected = mapScope == option,
-                    onClick = { mapScope = option },
-                    shape = SegmentedButtonDefaults.itemShape(index, MapScope.entries.size),
-                    colors = SegmentedButtonDefaults.colors(
-                        activeContainerColor = MaterialTheme.colorScheme.primary,
-                        activeContentColor = Color.White,
-                        inactiveContainerColor = MaterialTheme.colorScheme.surface,
-                        inactiveContentColor = MaterialTheme.colorScheme.onSurface
-                    ),
-                    icon = {},
-                    label = { Text(LocalizationManager.t(option.labelKey)) }
-                )
+        Row(Modifier.widthIn(max = 680.dp).fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            SingleChoiceSegmentedButtonRow(Modifier.weight(1f)) {
+                MapScope.entries.forEachIndexed { index, option ->
+                    SegmentedButton(
+                        selected = mapScope == option,
+                        onClick = { mapScope = option },
+                        shape = SegmentedButtonDefaults.itemShape(index, MapScope.entries.size),
+                        colors = mapSegmentedColors(),
+                        icon = {},
+                        label = { Text(LocalizationManager.t(option.labelKey)) }
+                    )
+                }
             }
-        }
-        SingleChoiceSegmentedButtonRow(Modifier.widthIn(max = 520.dp).fillMaxWidth()) {
-            listOf<Int?>(null, 1, 2).forEachIndexed { index, option ->
-                SegmentedButton(
-                    selected = trancheNumber == option,
-                    onClick = { trancheNumber = option },
-                    shape = SegmentedButtonDefaults.itemShape(index, 3),
-                    colors = SegmentedButtonDefaults.colors(
-                        activeContainerColor = MaterialTheme.colorScheme.primary,
-                        activeContentColor = Color.White,
-                        inactiveContainerColor = MaterialTheme.colorScheme.surface,
-                        inactiveContentColor = MaterialTheme.colorScheme.onSurface
-                    ),
-                    icon = {},
-                    label = {
-                        Text(LocalizationManager.t(when (option) {
-                            null -> "all_tranches"
-                            1 -> "tranche_a"
-                            else -> "tranche_b"
-                        }))
-                    }
-                )
+            SingleChoiceSegmentedButtonRow(Modifier.weight(1f)) {
+                listOf<Int?>(null, 1, 2).forEachIndexed { index, option ->
+                    SegmentedButton(
+                        selected = trancheNumber == option,
+                        onClick = { trancheNumber = option },
+                        shape = SegmentedButtonDefaults.itemShape(index, 3),
+                        colors = mapSegmentedColors(),
+                        icon = {},
+                        label = {
+                            Text(LocalizationManager.t(when (option) {
+                                null -> "all_tranches"
+                                1 -> "tranche_a"
+                                else -> "tranche_b"
+                            }))
+                        }
+                    )
+                }
             }
         }
         BoxWithConstraints(Modifier.fillMaxWidth()) {
@@ -140,3 +132,11 @@ fun MapScreen(onOpenProject: (Project) -> Unit = {}) {
         }
     }
 }
+
+@Composable
+private fun mapSegmentedColors() = SegmentedButtonDefaults.colors(
+    activeContainerColor = MaterialTheme.colorScheme.primary,
+    activeContentColor = Color.White,
+    inactiveContainerColor = MaterialTheme.colorScheme.surface,
+    inactiveContentColor = MaterialTheme.colorScheme.onSurface
+)
