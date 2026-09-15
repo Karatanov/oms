@@ -487,7 +487,6 @@ data class FinancialRecordRequest(
     val amount: Double,
     val currency: String = "EUR",
     val recordDate: String,
-    val paymentDate: String? = null,
     val description: String? = null,
     val milestone: String? = null,
     val paymentPurpose: String = "works"
@@ -500,7 +499,6 @@ data class FinancialRecordUpdateRequest(
     val amount: Double,
     val currency: String,
     val recordDate: String,
-    val paymentDate: String? = null,
     val description: String? = null,
     val milestone: String? = null,
     val paymentPurpose: String = "works",
@@ -508,7 +506,7 @@ data class FinancialRecordUpdateRequest(
 ) {
     constructor(request: FinancialRecordRequest, targetProjectUuid: String) : this(
         request.recordType, request.referenceNumber, request.amount, request.currency, request.recordDate,
-        request.paymentDate, request.description, request.milestone, request.paymentPurpose, targetProjectUuid
+        request.description, request.milestone, request.paymentPurpose, targetProjectUuid
     )
 }
 

@@ -28,17 +28,19 @@ class FinancialRecordService(
     fun get(projectId: Long, uuid: String) = repository.findByUuid(projectId, uuid.trim())
     fun create(projectId: Long, type: String, reference: String, amount: Double, currency: String, date: String, paymentDate: String?, description: String?, milestone: String?, paymentPurpose: String = "works"): FinancialRecord {
         val normalizedCurrency = currency(currency)
-        val normalizedDate = date(date)
+        // A legacy payment_date means the same business date. Prefer it while
+        // importing old API clients, but persist the normalized value once.
+        val normalizedDate = optionalDate(paymentDate) ?: date(date)
         val normalizedAmount = positive(amount)
         val conversion = exchangeRateService.convertToEur(normalizedAmount, normalizedCurrency, java.time.LocalDate.parse(normalizedDate))
-        return repository.create(projectId, validatedType(type), required(reference, "Reference number"), normalizedAmount, normalizedCurrency, normalizedDate, optionalDate(paymentDate), optional(description) ?: optional(milestone), null, paymentPurpose(paymentPurpose), conversion.rate, conversion.effectiveDate.toString(), conversion.amountEurCents, 1L)
+        return repository.create(projectId, validatedType(type), required(reference, "Reference number"), normalizedAmount, normalizedCurrency, normalizedDate, null, optional(description) ?: optional(milestone), null, paymentPurpose(paymentPurpose), conversion.rate, conversion.effectiveDate.toString(), conversion.amountEurCents, 1L)
     }
     fun update(projectId: Long, uuid: String, type: String, reference: String, amount: Double, currency: String, date: String, paymentDate: String?, description: String?, milestone: String?, paymentPurpose: String = "works"): FinancialRecord? {
         val normalizedCurrency = currency(currency)
-        val normalizedDate = date(date)
+        val normalizedDate = optionalDate(paymentDate) ?: date(date)
         val normalizedAmount = positive(amount)
         val conversion = exchangeRateService.convertToEur(normalizedAmount, normalizedCurrency, java.time.LocalDate.parse(normalizedDate))
-        return repository.update(projectId, uuid.trim(), validatedType(type), required(reference, "Reference number"), normalizedAmount, normalizedCurrency, normalizedDate, optionalDate(paymentDate), optional(description) ?: optional(milestone), null, paymentPurpose(paymentPurpose), conversion.rate, conversion.effectiveDate.toString(), conversion.amountEurCents)
+        return repository.update(projectId, uuid.trim(), validatedType(type), required(reference, "Reference number"), normalizedAmount, normalizedCurrency, normalizedDate, null, optional(description) ?: optional(milestone), null, paymentPurpose(paymentPurpose), conversion.rate, conversion.effectiveDate.toString(), conversion.amountEurCents)
     }
     fun move(projectId: Long, uuid: String, targetProjectId: Long) = repository.move(projectId, uuid.trim(), targetProjectId)
     /** One-time safe upgrade for existing UAH rows created before EUR storage existed. */
@@ -83,7 +85,7 @@ class FinancialRecordService(
     fun exportXlsx(projectId: Long, output: OutputStream) {
         XSSFWorkbook().use { workbook ->
             val sheet = workbook.createSheet("financials")
-            val headers = listOf("record_type", "reference_number", "amount", "currency", "record_date", "payment_date", "description", "milestone", "payment_purpose", "eur_exchange_rate", "eur_exchange_date", "amount_eur")
+            val headers = listOf("record_type", "reference_number", "amount", "currency", "record_date", "description", "milestone", "payment_purpose", "eur_exchange_rate", "eur_exchange_date", "amount_eur")
             sheet.createRow(0).apply { headers.forEachIndexed { index, header -> createCell(index).setCellValue(header) } }
             getAll(projectId).forEachIndexed { index, record ->
                 sheet.createRow(index + 1).apply {
@@ -92,13 +94,12 @@ class FinancialRecordService(
                     createCell(2).setCellValue(record.amount)
                     createCell(3).setCellValue(record.currency)
                     createCell(4).setCellValue(record.recordDate.toString())
-                    createCell(5).setCellValue(record.paymentDate?.toString().orEmpty())
-                    createCell(6).setCellValue(record.description.orEmpty())
-                    createCell(7).setCellValue(record.milestone.orEmpty())
-                    createCell(8).setCellValue(record.paymentPurpose)
-                    createCell(9).setCellValue(record.eurExchangeRate ?: 0.0)
-                    createCell(10).setCellValue(record.eurExchangeDate?.toString().orEmpty())
-                    createCell(11).setCellValue(record.amountEurCents?.div(100.0) ?: 0.0)
+                    createCell(5).setCellValue(record.description.orEmpty())
+                    createCell(6).setCellValue(record.milestone.orEmpty())
+                    createCell(7).setCellValue(record.paymentPurpose)
+                    createCell(8).setCellValue(record.eurExchangeRate ?: 0.0)
+                    createCell(9).setCellValue(record.eurExchangeDate?.toString().orEmpty())
+                    createCell(10).setCellValue(record.amountEurCents?.div(100.0) ?: 0.0)
                 }
             }
             headers.indices.forEach(sheet::autoSizeColumn)

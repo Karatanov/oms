@@ -56,7 +56,7 @@ private data class ProjectActRow(
     val act: ApiFinancialRecord
 )
 
-private enum class FinancialSort { Number, Type, Purpose, Tranche, Subproject, SubprojectCode, ActDate, PaymentDate, Amount, Currency, Description, Author }
+private enum class FinancialSort { Number, Type, Purpose, Tranche, Subproject, SubprojectCode, ActDate, Amount, Currency, Description, Author }
 
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
@@ -144,7 +144,6 @@ fun FinancialScreen(
             FinancialSort.Subproject -> it.subprojectName
             FinancialSort.SubprojectCode -> it.subprojectCode.orEmpty()
             FinancialSort.ActDate -> it.act.recordDate
-            FinancialSort.PaymentDate -> it.act.paymentDate.orEmpty()
             FinancialSort.Amount -> it.act.amount.toString().padStart(20, '0')
             FinancialSort.Currency -> it.act.currency
             FinancialSort.Description -> (it.act.description ?: it.act.milestone).orEmpty()
@@ -251,7 +250,7 @@ fun FinancialScreen(
         ) {
                     if (!loading && !loadFailed && visibleActs.isEmpty()) Text(LocalizationManager.t(emptyRecordsMessage))
                     visibleActs.forEach { row ->
-                        Row(Modifier.width(1_716.dp).padding(vertical = 8.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                        Row(Modifier.width(1_611.dp).padding(vertical = 8.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                             Text(row.act.referenceNumber, Modifier.width(130.dp))
                             Text(LocalizationManager.t("record_type_${row.act.recordType}"), Modifier.width(95.dp))
                             Box(Modifier.width(210.dp)) { FinancialPaymentPurposeBadge(row.act.recordType, row.act.paymentPurpose) }
@@ -259,7 +258,6 @@ fun FinancialScreen(
                             ExpandableTableText(row.subprojectName, Modifier.width(200.dp))
                             Text(row.subprojectCode ?: "—", Modifier.width(160.dp))
                             Text(row.act.recordDate.toOmsDate(), Modifier.width(105.dp))
-                            Text(row.act.paymentDate.toOmsDate(), Modifier.width(105.dp))
                             Text(row.act.amount.toMoney("").trim(), Modifier.width(130.dp).padding(horizontal = 8.dp), textAlign = androidx.compose.ui.text.style.TextAlign.End)
                             Text(row.act.currency, Modifier.width(65.dp))
                             Text(row.act.description ?: row.act.milestone ?: "—", Modifier.width(250.dp))
@@ -585,15 +583,14 @@ private fun FinancialProjectLevelDropdown(
 
 @Composable
 private fun FinancialTableHeader(sort: FinancialSort, ascending: Boolean, onSort: (FinancialSort) -> Unit) {
-    Row(Modifier.width(1_716.dp).padding(vertical = 6.dp)) {
+    Row(Modifier.width(1_611.dp).padding(vertical = 6.dp)) {
         SortableTableHeader(LocalizationManager.t("reference_number"), sort == FinancialSort.Number, ascending, { onSort(FinancialSort.Number) }, Modifier.width(130.dp))
         SortableTableHeader(LocalizationManager.t("type"), sort == FinancialSort.Type, ascending, { onSort(FinancialSort.Type) }, Modifier.width(95.dp))
         SortableTableHeader(LocalizationManager.t("payment_purpose"), sort == FinancialSort.Purpose, ascending, { onSort(FinancialSort.Purpose) }, Modifier.width(210.dp))
         SortableTableHeader(LocalizationManager.t("tranche"), sort == FinancialSort.Tranche, ascending, { onSort(FinancialSort.Tranche) }, Modifier.width(95.dp))
         SortableTableHeader(LocalizationManager.t("subproject"), sort == FinancialSort.Subproject, ascending, { onSort(FinancialSort.Subproject) }, Modifier.width(200.dp))
         SortableTableHeader(LocalizationManager.t("subproject_code"), sort == FinancialSort.SubprojectCode, ascending, { onSort(FinancialSort.SubprojectCode) }, Modifier.width(160.dp))
-        SortableTableHeader(LocalizationManager.t("act_date"), sort == FinancialSort.ActDate, ascending, { onSort(FinancialSort.ActDate) }, Modifier.width(105.dp))
-        SortableTableHeader(LocalizationManager.t("payment_date"), sort == FinancialSort.PaymentDate, ascending, { onSort(FinancialSort.PaymentDate) }, Modifier.width(105.dp))
+        SortableTableHeader(LocalizationManager.t("date"), sort == FinancialSort.ActDate, ascending, { onSort(FinancialSort.ActDate) }, Modifier.width(105.dp))
         SortableTableHeader(LocalizationManager.t("amount"), sort == FinancialSort.Amount, ascending, { onSort(FinancialSort.Amount) }, Modifier.width(130.dp), numeric = true)
         SortableTableHeader(LocalizationManager.t("currency_short"), sort == FinancialSort.Currency, ascending, { onSort(FinancialSort.Currency) }, Modifier.width(65.dp))
         SortableTableHeader(LocalizationManager.t("description"), sort == FinancialSort.Description, ascending, { onSort(FinancialSort.Description) }, Modifier.width(250.dp))

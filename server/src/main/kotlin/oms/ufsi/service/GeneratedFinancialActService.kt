@@ -44,7 +44,7 @@ class GeneratedFinancialActService(
                         row[FinancialRecordTable.projectId].value,
                         row[FinancialRecordTable.referenceNumber],
                         row[FinancialRecordTable.milestone].orEmpty(),
-                        row[FinancialRecordTable.paymentDate] ?: row[FinancialRecordTable.recordDate],
+                        row[FinancialRecordTable.recordDate],
                         row[FinancialRecordTable.amount].toDouble(),
                         row[FinancialRecordTable.amountEurCents]?.toDouble()?.div(100)
                     )

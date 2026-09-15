@@ -116,7 +116,7 @@ class DashboardService(
         }
         fun month(date: java.time.LocalDate) = date.toString().take(7)
         val monthlyActPayments = paymentRecords.filter { it[FinancialRecordTable.amountEurCents] != null }
-            .groupBy { month(it[FinancialRecordTable.paymentDate] ?: it[FinancialRecordTable.recordDate]) }
+            .groupBy { month(it[FinancialRecordTable.recordDate]) }
             .map { (label, rows) -> MonthlyActPayment(label, rows.sumOf { it[FinancialRecordTable.amountEurCents] ?: 0L }) }
             .sortedBy { it.month }
         val projectsById = projects.associateBy { it[ProjectTable.id].value }
@@ -195,7 +195,7 @@ class DashboardService(
         }
         val spent = actRecords.sumOf { it[FinancialRecordTable.amount] }.toDouble()
         val monthlyActPayments = paymentRecords.filter { it[FinancialRecordTable.amountEurCents] != null }
-            .groupBy { (it[FinancialRecordTable.paymentDate] ?: it[FinancialRecordTable.recordDate]).toString().take(7) }
+            .groupBy { it[FinancialRecordTable.recordDate].toString().take(7) }
             .map { (month, records) -> MonthlyActPayment(month, records.sumOf { it[FinancialRecordTable.amountEurCents] ?: 0L }) }
             .sortedBy { it.month }
         val projectsById = projects.associateBy { it[ProjectTable.id].value }
@@ -247,7 +247,7 @@ class DashboardService(
         val monthlyEquipmentPayments = FinancialRecordTable.selectAll().toList()
             .filter { it[FinancialRecordTable.projectId].value in projectIds && it[FinancialRecordTable.paymentPurpose] == "equipment" && it[FinancialRecordTable.recordType] in setOf("payment", "advance") }
             .filter { it[FinancialRecordTable.amountEurCents] != null }
-            .groupBy { month(it[FinancialRecordTable.paymentDate] ?: it[FinancialRecordTable.recordDate]) }
+            .groupBy { month(it[FinancialRecordTable.recordDate]) }
             .map { MonthlyActPayment(it.key, it.value.sumOf { row -> row[FinancialRecordTable.amountEurCents] ?: 0L }) }.sortedBy { it.month }
         // Procurement reference rows do not carry a project foreign key. Do not
         // expose their global aggregate to a manager whose dashboard is scoped.
