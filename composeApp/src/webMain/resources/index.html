@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>UMITAF</title>
-    <link type="text/css" rel="stylesheet" href="styles.css?v=20260909-force-hand-cursor">
+    <link type="text/css" rel="stylesheet" href="styles.css?v=20260915-force-hand-cursor-all">
     <link
             rel="stylesheet"
             href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
@@ -14,10 +14,10 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
     <script>
-        // Compose/Wasm sometimes overwrites a canvas cursor inline after it
-        // mounts. Apply the hand cursor directly to the interaction canvas as
-        // well as through CSS, so every Compose button consistently signals a
-        // clickable action.
+        // Compose/Wasm may overwrite the canvas cursor after it mounts or while
+        // it processes a hover event. Reapply the hand cursor both on DOM
+        // changes and on pointer movement: labels nested in any app button must
+        // never expose the text-selection (I-beam) cursor.
         function enforceComposeHandCursor() {
             document.querySelectorAll("#compose-host canvas").forEach(canvas => {
                 canvas.style.setProperty("cursor", "pointer", "important");
@@ -26,6 +26,11 @@
         document.addEventListener("DOMContentLoaded", () => {
             enforceComposeHandCursor();
             new MutationObserver(enforceComposeHandCursor).observe(document.body, { childList: true, subtree: true });
+            document.addEventListener("pointermove", event => {
+                if (event.target instanceof HTMLCanvasElement && event.target.closest("#compose-host")) {
+                    event.target.style.setProperty("cursor", "pointer", "important");
+                }
+            }, true);
         });
         function omsApiUrl(path) {
             const local = ["localhost", "127.0.0.1"].includes(window.location.hostname);
