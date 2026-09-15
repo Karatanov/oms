@@ -508,6 +508,10 @@ private fun ProcurementRow(
             }
             if (!isHeader && index == 22) Box(Modifier.width(width.dp).padding(horizontal = 6.dp)) {
                 oms.components.OmsBadge(value, procurementStatusColor(record?.purchaseStatus ?: value))
+            } else if (!isHeader && index == 8 && value.isNotBlank()) Box(Modifier.width(width.dp).padding(horizontal = 6.dp)) {
+                oms.components.OmsBadge(value, procurementContractTypeColor(record?.sourceContractType ?: value))
+            } else if (!isHeader && index == 15 && value.isNotBlank()) Box(Modifier.width(width.dp).padding(horizontal = 6.dp)) {
+                oms.components.OmsBadge(value, procurementMethodColor(record?.procurementMethod ?: value))
             } else if (!isHeader && index == 10 && value.isNotBlank()) {
                 Text(
                     value,
@@ -556,6 +560,23 @@ private fun procurementStatusColor(status: String) = when {
         status.contains("розірвано", ignoreCase = true) ||
         status.contains("cancelled", ignoreCase = true) ||
         status.contains("terminated", ignoreCase = true) -> oms.theme.OmsColors.Danger
+    else -> oms.theme.OmsColors.Neutral
+}
+
+/** Contract classifications and methods are attributes, not controls.  Use the
+ * same quiet badge treatment as statuses while retaining a stable semantic hue. */
+private fun procurementContractTypeColor(type: String) = when {
+    type.contains("works", ignoreCase = true) || type.contains("робот", ignoreCase = true) -> oms.theme.OmsColors.Information
+    type.contains("supply", ignoreCase = true) || type.contains("постач", ignoreCase = true) || type.contains("equipment", ignoreCase = true) -> oms.theme.OmsColors.Purple
+    type.contains("service", ignoreCase = true) || type.contains("послуг", ignoreCase = true) || type.contains("consult", ignoreCase = true) -> oms.theme.OmsColors.Success
+    else -> oms.theme.OmsColors.Neutral
+}
+
+private fun procurementMethodColor(method: String) = when {
+    method.contains("open", ignoreCase = true) || method.contains("відкрит", ignoreCase = true) -> oms.theme.OmsColors.Information
+    method.contains("direct", ignoreCase = true) || method.contains("прям", ignoreCase = true) -> oms.theme.OmsColors.Warning
+    method.contains("negoti", ignoreCase = true) || method.contains("переговор", ignoreCase = true) -> oms.theme.OmsColors.Purple
+    method.contains("single", ignoreCase = true) || method.contains("один", ignoreCase = true) -> oms.theme.OmsColors.Success
     else -> oms.theme.OmsColors.Neutral
 }
 
