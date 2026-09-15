@@ -141,7 +141,7 @@ fun ProjectsScreen(
                 project.localizedCity().contains(searchText, true)) &&
                 (regionFilter == null || project.region == regionFilter) &&
                 (statusFilter == null || project.status == statusFilter) &&
-                (trancheFilter == null || project.trancheNumber == trancheFilter) &&
+                project.matchesTranche(trancheFilter) &&
                 (constructionTypeFilter == null || project.constructionType.equals(constructionTypeFilter, ignoreCase = true)) &&
                 (sectorFilter == null || project.sector.equals(sectorFilter, ignoreCase = true))
         val matchingProjects = projects.filter(::matches).filterNot(Project::isProgrammeRoot)
@@ -216,30 +216,6 @@ fun ProjectsScreen(
             }
         }
 
-        Spacer(Modifier.height(12.dp))
-        SingleChoiceSegmentedButtonRow(Modifier.widthIn(max = 520.dp).fillMaxWidth()) {
-            listOf<Int?>(null, 1, 2).forEachIndexed { index, option ->
-                SegmentedButton(
-                    selected = trancheFilter == option,
-                    onClick = { trancheFilter = option },
-                    shape = SegmentedButtonDefaults.itemShape(index, 3),
-                    colors = SegmentedButtonDefaults.colors(
-                        activeContainerColor = MaterialTheme.colorScheme.primary,
-                        activeContentColor = Color.White,
-                        inactiveContainerColor = MaterialTheme.colorScheme.surface,
-                        inactiveContentColor = MaterialTheme.colorScheme.onSurface
-                    ),
-                    icon = {},
-                    label = {
-                        Text(LocalizationManager.t(when (option) {
-                            null -> "all_tranches"
-                            1 -> "tranche_a"
-                            else -> "tranche_b"
-                        }))
-                    }
-                )
-            }
-        }
         Spacer(Modifier.height(8.dp))
         if (ProjectRepository.loading) oms.components.ContentState(LocalizationManager.t("loading_records"), loading = true)
         ProjectRepository.errorMessage?.let { oms.components.ContentState(it, error = true, onRetry = { scope.launch { ProjectRepository.refresh(force = true) } }) }
@@ -282,6 +258,7 @@ fun ProjectsScreen(
             pageScrollState = pageScrollState,
             filters = {
                 ProjectsFilters(regionFilter, { regionFilter = it }, statusFilter, { statusFilter = it },
+                    trancheFilter, { trancheFilter = it },
                     constructionTypeFilter, { constructionTypeFilter = it }, sectorFilter, { sectorFilter = it },
                     canReset = searchText.isNotBlank() || regionFilter != null || statusFilter != null || trancheFilter != null || constructionTypeFilter != null || sectorFilter != null,
                     onReset = { searchText = ""; regionFilter = null; statusFilter = null; trancheFilter = null; constructionTypeFilter = null; sectorFilter = null })
@@ -524,6 +501,8 @@ private fun ProjectsFilters(
     onRegionChange: (String?) -> Unit,
     statusFilter: ProjectStatus?,
     onStatusChange: (ProjectStatus?) -> Unit,
+    trancheFilter: Int?,
+    onTrancheChange: (Int?) -> Unit,
     constructionTypeFilter: String?,
     onConstructionTypeChange: (String?) -> Unit,
     sectorFilter: String?,
@@ -545,7 +524,9 @@ private fun ProjectsFilters(
                         LocalizationManager.t("region"),
                         ProjectRepository.projects.map { it.region }.filter { it.isNotBlank() }.distinct().sorted(),
                         regionFilter, onRegionChange, ::localizedUkraineRegion)
-                    SortColumn.TRANCHE -> Unit
+                    SortColumn.TRANCHE -> ProjectFilterDropdown(
+                        LocalizationManager.t("tranche"), listOf(1, 2), trancheFilter, onTrancheChange,
+                        { LocalizationManager.t(if (it == 1) "tranche_a" else "tranche_b") })
                     SortColumn.SECTOR -> ProjectFilterDropdown(
                         LocalizationManager.t("sector"), sectors, sectorFilter, onSectorChange, String::sectorLabel)
                     SortColumn.CONSTRUCTION_TYPE -> ProjectFilterDropdown(
@@ -807,6 +788,13 @@ private fun Int.trancheLabel(): String = when (this) {
     1, 8 -> "A"
     2, 9 -> "B"
     else -> toString()
+}
+
+private fun Project.matchesTranche(filter: Int?): Boolean = when (filter) {
+    null -> true
+    1 -> trancheNumber == 1 || trancheNumber == 8
+    2 -> trancheNumber == 2 || trancheNumber == 9
+    else -> trancheNumber == filter
 }
 
 private fun Project.matchesProjectSearch(query: String): Boolean =

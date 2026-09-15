@@ -14,6 +14,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.input.key.*
 import kotlinx.coroutines.CancellationException
@@ -96,6 +97,8 @@ fun DashboardScreen(
                                 selected = trancheNumber == option,
                                 onClick = { trancheNumber = option },
                                 shape = SegmentedButtonDefaults.itemShape(index, 3),
+                                colors = dashboardSegmentedColors(),
+                                icon = {},
                                 label = {
                                     Text(LocalizationManager.t(when (option) {
                                         null -> "all_tranches"
@@ -160,6 +163,14 @@ fun DashboardScreen(
         }
     }
 }
+
+@Composable
+private fun dashboardSegmentedColors() = SegmentedButtonDefaults.colors(
+    activeContainerColor = MaterialTheme.colorScheme.primary,
+    activeContentColor = Color.White,
+    inactiveContainerColor = MaterialTheme.colorScheme.surface,
+    inactiveContentColor = MaterialTheme.colorScheme.onSurface
+)
 
 @Composable
 private fun DashboardUpdatingChart() {
