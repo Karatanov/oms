@@ -21,6 +21,7 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.type
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 import oms.data.OmsApiClient
 import oms.data.ProjectRepository
 import oms.data.ApiInspectionPhoto
@@ -180,7 +181,11 @@ fun CreateInspectionScreen(
         val reportUuid = editingReportUuid ?: return@LaunchedEffect
         loadingManualReport = true
         runCatching {
-            ProjectRepository.refresh()
+            // Reports are opened from the register, which already has the
+            // shared project snapshot.  Refetch only after a hard reload;
+            // otherwise previewing a report needlessly waits for a second
+            // large project-list request before its own SIR can render.
+            if (ProjectRepository.projects.isEmpty()) ProjectRepository.refresh()
             OmsApiClient.manualInspectionReport(reportUuid)
         }.onSuccess { editor ->
             val manual = editor.manual
@@ -264,6 +269,10 @@ fun CreateInspectionScreen(
     LaunchedEffect(editingReportUuid, loadingManualReport) {
         val reportUuid = editingReportUuid ?: return@LaunchedEffect
         if (loadingManualReport) return@LaunchedEffect
+        // Give the read-only form one paint frame before the optional,
+        // potentially expensive embedded-photo hydration starts. This keeps
+        // the report navigable even when an older XLSX contains many images.
+        delay(250)
         reportPhotos = runCatching {
             OmsApiClient.inspectionPhotos(reportUuid)
         }.getOrDefault(emptyList())
@@ -272,11 +281,11 @@ fun CreateInspectionScreen(
     // The SIR workbook stores the code and address in a single cell.  Keep
     // them separate in the form and load the address from the selected
     // subproject whenever it is available.
-    LaunchedEffect(selectedSubprojectUuid) {
+    LaunchedEffect(selectedSubprojectUuid, loadingManualReport) {
         val subprojectUuid = selectedSubprojectUuid
         if (subprojectUuid == null) {
             siteAddress = ""
-        } else {
+        } else if (!loadingManualReport) {
             runCatching { OmsApiClient.projectDetails(subprojectUuid).data.address }
                 .onSuccess { address -> siteAddress = address }
         }
