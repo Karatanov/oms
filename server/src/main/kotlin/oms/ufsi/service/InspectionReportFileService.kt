@@ -1068,6 +1068,11 @@ class InspectionReportFileService(
 
     private fun extractHealthSafetyObservations(workbook: Workbook): List<HealthSafetyObservation> {
         val formatter = DataFormatter()
+        fun cellText(row: org.apache.poi.ss.usermodel.Row, column: Int): String =
+            row.getCell(column - 1)?.let(formatter::formatCellValue)?.trim().orEmpty()
+        fun isChecklistAnswer(value: String): Boolean = value.trim().lowercase() in setOf(
+            "yes", "no", "y", "n", "так", "ні", "true", "false", "1", "0"
+        )
         workbook.forEach { sheet ->
             val sectionRow = sheet.firstOrNull { row ->
                 row.any { cell -> formatter.formatCellValue(cell).contains("OBSERVANCES ON HEALTH & SAFETY", ignoreCase = true) }
@@ -1076,14 +1081,32 @@ class InspectionReportFileService(
             val observations = buildList {
                 for (index in (sectionRow.rowNum + 2)..sheet.lastRowNum) {
                     val row = sheet.getRow(index) ?: continue
-                    val values = row.map { formatter.formatCellValue(it).trim() }
-                    val observation = values.firstOrNull { it.isNotBlank() } ?: continue
+                    val observation = cellText(row, 1)
+                    if (observation.isBlank()) continue
                     if (isNextSectionHeading(observation)) break
+                    // The official template keeps the checklist values in
+                    // H (YES/NO) and J (COMMENTS); compact legacy SIRs use
+                    // B and C instead. Iterating Row cells is unsafe here:
+                    // styled blank cells make their collection indices differ
+                    // from their spreadsheet columns and can turn "yes" into
+                    // a red free-text comment.
+                    val candidate = listOf(8, 7, 2).asSequence()
+                        .map { column -> cellText(row, column) }
+                        .firstOrNull(String::isNotBlank).orEmpty()
+                    val answer = candidate.takeIf(::isChecklistAnswer)
+                    val comment = buildList {
+                        if (candidate.isNotBlank() && answer == null) add(candidate)
+                        listOf(10, 9, 4, 3).asSequence()
+                            .map { column -> cellText(row, column) }
+                            .firstOrNull(String::isNotBlank)
+                            ?.takeIf { it != candidate }
+                            ?.let(::add)
+                    }.joinToString(" ").takeIf(String::isNotBlank)
                     add(
                         HealthSafetyObservation(
                             observation = observation,
-                            answer = values.getOrNull(1)?.takeIf { it.isNotBlank() },
-                            comment = values.drop(2).filter { it.isNotBlank() }.joinToString(" ").takeIf { it.isNotBlank() }
+                            answer = answer,
+                            comment = comment
                         )
                     )
                 }

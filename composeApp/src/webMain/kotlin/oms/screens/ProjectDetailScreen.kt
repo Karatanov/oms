@@ -321,6 +321,14 @@ private fun ProjectHealthSafetyTab(data: ApiHealthSafetyObservations?) {
                     ) {
                         Text("${LocalizationManager.t("inspection_date_prefix")} ${date.toOmsDate()}", style = MaterialTheme.typography.labelLarge)
                         observations.forEach { item ->
+                            // Older workbooks may have placed a checklist
+                            // answer in the comment cell. Treat a standalone
+                            // yes/no there exactly as an answer, never as a
+                            // warning-coloured comment.
+                            val answer = item.answer.takeIf { it.isHseChecklistAnswer() }
+                                ?: item.comment?.takeIf { it.isHseChecklistAnswer() }
+                            val comment = item.comment?.takeUnless { it.isHseChecklistAnswer() }
+                                ?: item.answer?.takeUnless { it.isHseChecklistAnswer() }
                             HorizontalDivider()
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
@@ -328,17 +336,17 @@ private fun ProjectHealthSafetyTab(data: ApiHealthSafetyObservations?) {
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(LocalizationManager.hseObservation(item.observation), modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
-                                HseAnswerIndicator(item.answer)
+                                HseAnswerIndicator(answer)
                             }
-                            item.comment?.let { comment ->
+                            comment?.let { comment ->
                                 val backgroundColor = when {
-                                    item.answer.isNegativeHseAnswer() -> MaterialTheme.colorScheme.errorContainer
-                                    item.answer.isPositiveHseAnswer() -> Color(0xFFE8F5E9)
+                                    answer.isNegativeHseAnswer() -> MaterialTheme.colorScheme.errorContainer
+                                    answer.isPositiveHseAnswer() -> Color(0xFFE8F5E9)
                                     else -> Color(0xFFFFF3E0)
                                 }
                                 val textColor = when {
-                                    item.answer.isNegativeHseAnswer() -> MaterialTheme.colorScheme.onErrorContainer
-                                    item.answer.isPositiveHseAnswer() -> Color(0xFF1B5E20)
+                                    answer.isNegativeHseAnswer() -> MaterialTheme.colorScheme.onErrorContainer
+                                    answer.isPositiveHseAnswer() -> Color(0xFF1B5E20)
                                     else -> Color(0xFFE65100)
                                 }
                                 Card(
@@ -410,6 +418,7 @@ private fun String?.isPositiveHseAnswer() = this?.trim()?.lowercase()?.let {
 private fun String?.isNegativeHseAnswer() = this?.trim()?.lowercase()?.let {
     it == "ні" || it == "false" || it == "0" || Regex("\\bno\\b").containsMatchIn(it)
 } == true
+private fun String?.isHseChecklistAnswer() = isPositiveHseAnswer() || isNegativeHseAnswer()
 
 @Composable
 private fun EmptyProjectTab(title: String, description: String) {
