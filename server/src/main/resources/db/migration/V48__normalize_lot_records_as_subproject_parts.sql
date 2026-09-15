@@ -4,7 +4,41 @@
 -- title in the part description and keep every dependent record on the same
 -- project row by converting that row in place.
 
-CREATE TEMPORARY TABLE lot_project_parts AS
+-- TiDB does not implement CREATE TABLE ... SELECT, including for temporary
+-- tables.  Declare the transient staging table explicitly and populate it in
+-- a separate statement, which is supported by both TiDB and MySQL.
+CREATE TEMPORARY TABLE lot_project_parts (
+    id BIGINT NOT NULL,
+    subproject_code VARCHAR(50) NOT NULL,
+    lot_name VARCHAR(50) NOT NULL,
+    original_name VARCHAR(255) NULL,
+    tranche_number INT NULL,
+    parent_project_id BIGINT NULL,
+    site_name VARCHAR(100) NULL,
+    address VARCHAR(500) NULL,
+    region VARCHAR(100) NULL,
+    city VARCHAR(100) NULL,
+    latitude DECIMAL(10, 7) NULL,
+    longitude DECIMAL(10, 7) NULL,
+    status VARCHAR(32) NULL,
+    sector VARCHAR(100) NULL,
+    construction_type VARCHAR(100) NULL,
+    budget_planned DECIMAL(18, 2) NULL,
+    engineer_consultant_contract_amount DECIMAL(18, 2) NULL,
+    technical_supervision_amount DECIMAL(18, 2) NULL,
+    subproject_contract_amount DECIMAL(18, 2) NULL,
+    currency VARCHAR(16) NULL,
+    manager_id BIGINT NULL,
+    created_by BIGINT NULL
+);
+
+INSERT INTO lot_project_parts (
+    id, subproject_code, lot_name, original_name, tranche_number,
+    parent_project_id, site_name, address, region, city, latitude, longitude,
+    status, sector, construction_type, budget_planned,
+    engineer_consultant_contract_amount, technical_supervision_amount,
+    subproject_contract_amount, currency, manager_id, created_by
+)
 SELECT
     id,
     SUBSTRING_INDEX(site_number, '#', 1) AS subproject_code,
