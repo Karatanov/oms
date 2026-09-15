@@ -93,11 +93,9 @@
         }
 
         // Compose/Wasm receives the complete ClipboardEvent before individual
-        // Kotlin field limits run. Rich clipboard payloads (HTML/images) and very
-        // large text can therefore lock the UI even when onValueChange truncates
-        // the resulting String. Normalise the event to bounded plain text first.
+        // Kotlin field limits run. Extremely large text can lock the UI before
+        // an onValueChange handler has a chance to limit it.
         const omsMaximumPasteLength = 12_000;
-        const omsSanitisedPasteEvents = new WeakSet();
         let omsPasteNoticeTimer = null;
 
         function showOmsPasteNotice() {
@@ -139,41 +137,16 @@
         }, true);
 
         window.addEventListener("paste", event => {
-            if (omsSanitisedPasteEvents.has(event) || !event.clipboardData) return;
+            const text = event.clipboardData?.getData("text/plain") || "";
 
-            const original = event.clipboardData.getData("text/plain") || "";
-            const normalised = original.replace(/\u0000/g, "").replace(/\r\n?/g, "\n");
-            const types = Array.from(event.clipboardData.types || []);
-            const containsRichPayload = types.some(type => type !== "text/plain" && type !== "text");
-            const truncated = normalised.length > omsMaximumPasteLength;
-
-            // Small, already plain-text pastes remain native. This preserves the
-            // browser/Compose caret and selection behaviour for ordinary input.
-            if (!containsRichPayload && !truncated && normalised === original) return;
-
-            try {
-                const transfer = new DataTransfer();
-                transfer.setData("text/plain", normalised.slice(0, omsMaximumPasteLength));
-                const safeEvent = new ClipboardEvent("paste", {
-                    clipboardData: transfer,
-                    bubbles: true,
-                    cancelable: true,
-                    composed: true
-                });
-                omsSanitisedPasteEvents.add(safeEvent);
-                event.preventDefault();
-                event.stopImmediatePropagation();
-                event.target.dispatchEvent(safeEvent);
-                if (truncated) showOmsPasteNotice();
-            } catch (error) {
-                // Blocking an unsafe oversized paste is preferable to freezing
-                // the entire application if a legacy browser cannot rebuild it.
-                if (truncated) {
-                    event.preventDefault();
-                    event.stopImmediatePropagation();
-                    showOmsPasteNotice();
-                }
-            }
+            // Let the browser and Compose handle every normal paste natively.
+            // Re-dispatching a synthetic ClipboardEvent into Compose/Wasm is
+            // unsafe: a context-menu paste can enter its event loop twice and
+            // freeze the entire form. Only reject an actually oversized paste.
+            if (text.length <= omsMaximumPasteLength) return;
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            showOmsPasteNotice();
         }, true);
 
         function formatDateForInput(epochMillis) {
