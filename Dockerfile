@@ -5,7 +5,7 @@ COPY gradlew gradlew.bat gradle.properties settings.gradle.kts build.gradle.kts 
 COPY server server
 COPY composeApp composeApp
 COPY shared shared
-RUN gradle -PrenderJsOnly :composeApp:jsBrowserProductionWebpack :server:installDist --no-daemon --max-workers=2 \
+RUN gradle -PrenderJsOnly :composeApp:jsBrowserProductionWebpack :server:installDist --no-daemon --max-workers=1 \
     && test -f /workspace/composeApp/build/processedResources/js/main/index.html \
     && test -f /workspace/composeApp/build/kotlin-webpack/js/productionExecutable/composeApp.js \
     && mkdir -p /workspace/server/build/render-web \
