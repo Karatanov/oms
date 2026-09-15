@@ -38,9 +38,11 @@ fun MapScreen(onOpenProject: (Project) -> Unit = {}) {
     var region by remember { mutableStateOf<String?>(null) }
     var status by remember { mutableStateOf<ProjectStatus?>(null) }
     var mapScope by remember { mutableStateOf(MapScope.SUBPROJECTS) }
+    var trancheNumber by remember { mutableStateOf<Int?>(null) }
     // Show exactly one child level, never portfolio-level projects.
     val located = projects.filter {
         it.projectType == mapScope.projectType &&
+            (trancheNumber == null || it.trancheNumber == trancheNumber) &&
             it.latitude in -90.0..90.0 && it.longitude in -180.0..180.0 &&
             (it.latitude != 0.0 || it.longitude != 0.0)
     }
@@ -68,6 +70,29 @@ fun MapScreen(onOpenProject: (Project) -> Unit = {}) {
                 )
             }
         }
+        SingleChoiceSegmentedButtonRow(Modifier.widthIn(max = 520.dp).fillMaxWidth()) {
+            listOf<Int?>(null, 1, 2).forEachIndexed { index, option ->
+                SegmentedButton(
+                    selected = trancheNumber == option,
+                    onClick = { trancheNumber = option },
+                    shape = SegmentedButtonDefaults.itemShape(index, 3),
+                    colors = SegmentedButtonDefaults.colors(
+                        activeContainerColor = MaterialTheme.colorScheme.primary,
+                        activeContentColor = Color.White,
+                        inactiveContainerColor = MaterialTheme.colorScheme.surface,
+                        inactiveContentColor = MaterialTheme.colorScheme.onSurface
+                    ),
+                    icon = {},
+                    label = {
+                        Text(LocalizationManager.t(when (option) {
+                            null -> "all_tranches"
+                            1 -> "tranche_a"
+                            else -> "tranche_b"
+                        }))
+                    }
+                )
+            }
+        }
         BoxWithConstraints(Modifier.fillMaxWidth()) {
             val controls: @Composable (Modifier) -> Unit = { modifier ->
                 OutlinedTextField(search, { search = it }, singleLine = true,
@@ -84,7 +109,7 @@ fun MapScreen(onOpenProject: (Project) -> Unit = {}) {
                     clearLabel = LocalizationManager.t("all"), onClear = { status = null })
             }
             val reset: @Composable () -> Unit = {
-                TextButton(onClick = { search = ""; region = null; status = null }) { Text(LocalizationManager.t("reset_filters")) }
+                TextButton(onClick = { search = ""; region = null; status = null; trancheNumber = null }) { Text(LocalizationManager.t("reset_filters")) }
             }
             if (maxWidth >= 900.dp) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
