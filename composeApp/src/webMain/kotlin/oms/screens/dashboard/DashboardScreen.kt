@@ -86,31 +86,32 @@ fun DashboardScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)) {
             item {
                 PageHeading(LocalizationManager.t("dashboard"), Icons.Default.Dashboard,
-                    LocalizationManager.t("portfolio_overview")) {
+                    LocalizationManager.t("portfolio_overview"))
+            }
+            item {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                    SingleChoiceSegmentedButtonRow(Modifier.widthIn(max = 500.dp).weight(1f)) {
+                        listOf<Int?>(null, 1, 2).forEachIndexed { index, option ->
+                            SegmentedButton(
+                                selected = trancheNumber == option,
+                                onClick = { trancheNumber = option },
+                                shape = SegmentedButtonDefaults.itemShape(index, 3),
+                                label = {
+                                    Text(LocalizationManager.t(when (option) {
+                                        null -> "all_tranches"
+                                        1 -> "tranche_a"
+                                        else -> "tranche_b"
+                                    }))
+                                }
+                            )
+                        }
+                    }
                     OutlinedButton(onClick = {
                         chartOrientation = if (chartOrientation == BarChartOrientation.Vertical) BarChartOrientation.Horizontal else BarChartOrientation.Vertical
                     }) {
                         Icon(Icons.Default.SwapHoriz, null)
                         Spacer(Modifier.width(6.dp))
                         Text(LocalizationManager.t(if (chartOrientation == BarChartOrientation.Vertical) "horizontal_charts" else "vertical_charts"))
-                    }
-                }
-            }
-            item {
-                SingleChoiceSegmentedButtonRow {
-                    listOf<Int?>(null, 1, 2).forEachIndexed { index, option ->
-                        SegmentedButton(
-                            selected = trancheNumber == option,
-                            onClick = { trancheNumber = option },
-                            shape = SegmentedButtonDefaults.itemShape(index, 3),
-                            label = {
-                                Text(LocalizationManager.t(when (option) {
-                                    null -> "all_tranches"
-                                    1 -> "tranche_a"
-                                    else -> "tranche_b"
-                                }))
-                            }
-                        )
                     }
                 }
             }
