@@ -42,7 +42,7 @@ fun MapScreen(onOpenProject: (Project) -> Unit = {}) {
     // Show exactly one child level, never portfolio-level projects.
     val located = projects.filter {
         it.projectType == mapScope.projectType &&
-            (trancheNumber == null || it.trancheNumber == trancheNumber) &&
+            it.matchesMapTranche(trancheNumber) &&
             it.latitude in -90.0..90.0 && it.longitude in -180.0..180.0 &&
             (it.latitude != 0.0 || it.longitude != 0.0)
     }
@@ -140,3 +140,11 @@ private fun mapSegmentedColors() = SegmentedButtonDefaults.colors(
     inactiveContainerColor = MaterialTheme.colorScheme.surface,
     inactiveContentColor = MaterialTheme.colorScheme.onSurface
 )
+
+/** Batch IDs 8/9 are the imported representations of tranches A/B. */
+private fun Project.matchesMapTranche(filter: Int?): Boolean = when (filter) {
+    null -> true
+    1 -> trancheNumber == 1 || trancheNumber == 8
+    2 -> trancheNumber == 2 || trancheNumber == 9
+    else -> trancheNumber == filter
+}
