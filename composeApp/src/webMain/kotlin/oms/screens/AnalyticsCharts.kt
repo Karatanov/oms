@@ -127,13 +127,18 @@ private data class AnalyticsListRow(
 )
 
 @Composable
-private fun AnalyticsListCard(titleKey: String, rows: List<AnalyticsListRow>, hintKey: String? = null) {
+private fun AnalyticsListCard(
+    titleKey: String,
+    rows: List<AnalyticsListRow>,
+    hintKey: String? = null,
+    compact: Boolean = false
+) {
     var page by remember(rows) { mutableStateOf(0) }
     val pageSize = 6
     val pageCount = ((rows.size + pageSize - 1) / pageSize).coerceAtLeast(1)
     if (page >= pageCount) page = pageCount - 1
     Card(
-        Modifier.fillMaxWidth().height(420.dp),
+        Modifier.fillMaxWidth().heightIn(min = if (compact) 300.dp else 420.dp),
         shape = RoundedCornerShape(12.dp),
         colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
@@ -207,10 +212,11 @@ fun MetricsChart(
 }
 
 @Composable
-fun MetricsListChart(titleKey: String, metrics: List<ApiDashboardMetric>) {
+fun MetricsListChart(titleKey: String, metrics: List<ApiDashboardMetric>, compact: Boolean = false) {
     AnalyticsListCard(
         titleKey,
-        metrics.map { AnalyticsListRow(LocalizationManager.procurementStatus(it.label), it.value.toString()) }
+        metrics.map { AnalyticsListRow(LocalizationManager.procurementStatus(it.label), it.value.toString()) },
+        compact = compact
     )
 }
 

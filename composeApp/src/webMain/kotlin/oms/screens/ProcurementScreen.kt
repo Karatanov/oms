@@ -157,18 +157,19 @@ fun ProcurementScreen(
         Text(LocalizationManager.t("procurement_subtitle"), style = MaterialTheme.typography.bodyMedium)
         Spacer(Modifier.height(16.dp))
         oms.components.AdaptiveChartRow(
-            first = { MetricsListChart("procurement_status_chart", procurementStatusMetrics) },
+            first = { MetricsListChart("procurement_status_chart", procurementStatusMetrics, compact = true) },
             second = {
                 MetricsChart(
                     "signed_construction_contracts",
                     "signed_construction_contracts_hint",
                     signedContractMetrics,
                     centerYearLabels = true,
+                    compact = true,
                     onItemClick = ::applySignedContractMonthFilter
                 )
             }
         )
-        Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(4.dp))
         val visibleRecords = records.orEmpty().filter { record ->
             (trancheFilter == null || record.batchId == trancheFilter) &&
             (oblastFilter == null || record.oblastName == oblastFilter) &&
