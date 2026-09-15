@@ -56,7 +56,7 @@ private data class ProjectActRow(
     val act: ApiFinancialRecord
 )
 
-private enum class FinancialSort { Number, Type, Purpose, Tranche, Subproject, SubprojectCode, ActDate, Amount, Currency, Description, Author }
+private enum class FinancialSort { Type, Purpose, Tranche, Subproject, SubprojectCode, ActDate, Amount, Currency, Description, Author }
 
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
@@ -137,7 +137,6 @@ fun FinancialScreen(
             (subprojectFilter == null || it.subprojectUuid == subprojectFilter)
     }.sortedWith(compareBy<ProjectActRow> {
         when (sort) {
-            FinancialSort.Number -> it.act.referenceNumber
             FinancialSort.Type -> it.act.recordType
             FinancialSort.Purpose -> it.act.paymentPurpose
             FinancialSort.Tranche -> it.trancheNumber.toString()
@@ -233,7 +232,7 @@ fun FinancialScreen(
                 options = listOf(1, 2),
                 selected = trancheFilter,
                 onSelect = { trancheFilter = it },
-                itemLabel = { it.financialTrancheLabel() }
+                itemLabel = { it.financialTrancheCode() }
             )
             OutlinedButton(onClick = {
                 recordTypeFilter = null
@@ -250,11 +249,10 @@ fun FinancialScreen(
         ) {
                     if (!loading && !loadFailed && visibleActs.isEmpty()) Text(LocalizationManager.t(emptyRecordsMessage))
                     visibleActs.forEach { row ->
-                        Row(Modifier.width(1_611.dp).padding(vertical = 8.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                            Text(row.act.referenceNumber, Modifier.width(130.dp))
+                        Row(Modifier.width(1_481.dp).padding(vertical = 8.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                             Text(LocalizationManager.t("record_type_${row.act.recordType}"), Modifier.width(95.dp))
                             Box(Modifier.width(210.dp)) { FinancialPaymentPurposeBadge(row.act.recordType, row.act.paymentPurpose) }
-                            Text(row.trancheNumber.financialTrancheLabel(), Modifier.width(95.dp))
+                            Text(row.trancheNumber.financialTrancheCode(), Modifier.width(95.dp))
                             ExpandableTableText(row.subprojectName, Modifier.width(200.dp))
                             Text(row.subprojectCode ?: "—", Modifier.width(160.dp))
                             Text(row.act.recordDate.toOmsDate(), Modifier.width(105.dp))
@@ -583,8 +581,7 @@ private fun FinancialProjectLevelDropdown(
 
 @Composable
 private fun FinancialTableHeader(sort: FinancialSort, ascending: Boolean, onSort: (FinancialSort) -> Unit) {
-    Row(Modifier.width(1_611.dp).padding(vertical = 6.dp)) {
-        SortableTableHeader(LocalizationManager.t("reference_number"), sort == FinancialSort.Number, ascending, { onSort(FinancialSort.Number) }, Modifier.width(130.dp))
+    Row(Modifier.width(1_481.dp).padding(vertical = 6.dp)) {
         SortableTableHeader(LocalizationManager.t("type"), sort == FinancialSort.Type, ascending, { onSort(FinancialSort.Type) }, Modifier.width(95.dp))
         SortableTableHeader(LocalizationManager.t("payment_purpose"), sort == FinancialSort.Purpose, ascending, { onSort(FinancialSort.Purpose) }, Modifier.width(210.dp))
         SortableTableHeader(LocalizationManager.t("tranche"), sort == FinancialSort.Tranche, ascending, { onSort(FinancialSort.Tranche) }, Modifier.width(95.dp))
@@ -605,8 +602,8 @@ private fun Int.isFinancialTranche(filter: Int): Boolean = when (filter) {
     else -> this == filter
 }
 
-private fun Int.financialTrancheLabel(): String =
-    "${LocalizationManager.t("tranche")} ${if (this == 2 || this == 9) "B" else "A"}"
+/** The database stores the tranche as a number; the register deliberately exposes only its A/B code. */
+private fun Int.financialTrancheCode(): String = if (this == 2 || this == 9) "B" else "A"
 
 @Composable
 private fun FinancialPaymentPurposeBadge(recordType: String, purpose: String) {
