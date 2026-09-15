@@ -116,15 +116,15 @@ fun CreateInspectionScreen(
     var siteManagement by remember { mutableStateOf("") }
     var weatherCondition by remember { mutableStateOf<WeatherCondition?>(null) }
     var temperatureCelsius by remember { mutableStateOf("") }
-    var activities by remember { mutableStateOf(listOf(ManualActivityInput())) }
+    var activities by remember { mutableStateOf(listOf(ManualActivityInput(photoKey = "activity-0"))) }
     // Materials are optional. A row is created only when the user explicitly
     // asks to add one, so a new SIR starts without an empty materials record.
     var purchasedMaterials by remember { mutableStateOf(emptyList<PurchasedMaterialInput>()) }
     var projectName by remember { mutableStateOf("UNDP") }
     var siteAddress by remember { mutableStateOf("") }
-    var ongoingObservations by remember { mutableStateOf(listOf(OngoingObservationInput())) }
+    var ongoingObservations by remember { mutableStateOf(listOf(OngoingObservationInput(photoKey = "observation-0"))) }
     var hseObservations by remember { mutableStateOf(defaultHseObservations) }
-    var qualityRemarks by remember { mutableStateOf(listOf(QualityRemarkInput())) }
+    var qualityRemarks by remember { mutableStateOf(listOf(QualityRemarkInput(photoKey = "quality-0"))) }
     var progressComment by remember { mutableStateOf("") }
     var scheduleRemark by remember { mutableStateOf("") }
     var inspectorTitle by remember { mutableStateOf("") }
@@ -211,20 +211,21 @@ fun CreateInspectionScreen(
             siteManagement = manual.siteManagement.orEmpty()
             weatherCondition = WeatherCondition.fromWorkbookValue(manual.weather)
             temperatureCelsius = manual.weather.workbookTemperature()
-            activities = manual.activities.map {
+            activities = manual.activities.mapIndexed { index, item ->
                 ManualActivityInput(
-                    location = it.location,
-                    description = it.description,
-                    onSchedule = it.onSchedule.lowercase().ifBlank { "no" },
-                    remarks = it.remarks.orEmpty()
+                    photoKey = "activity-$index",
+                    location = item.location,
+                    description = item.description,
+                    onSchedule = item.onSchedule.lowercase().ifBlank { "no" },
+                    remarks = item.remarks.orEmpty()
                 )
-            }.ifEmpty { listOf(ManualActivityInput()) }
+            }.ifEmpty { listOf(ManualActivityInput(photoKey = "activity-0")) }
             purchasedMaterials = manual.purchasedMaterials.map {
                 PurchasedMaterialInput(it.materialsAndEquipment, it.characteristics.orEmpty(), it.perDed.orEmpty().ifBlank { "no" }, it.notes.orEmpty())
             }
             ongoingObservations = manual.ongoingObservations
-                .map(::OngoingObservationInput)
-                .ifEmpty { listOf(OngoingObservationInput()) }
+                .mapIndexed { index, description -> OngoingObservationInput(description, "observation-$index") }
+                .ifEmpty { listOf(OngoingObservationInput(photoKey = "observation-0")) }
             hseObservations = manual.hseObservations.map {
                 HseObservationInput(
                     observation = it.observation,
@@ -233,9 +234,9 @@ fun CreateInspectionScreen(
                     isCustom = it.answer.isNullOrBlank() || !it.answer.equals("yes", true) && !it.answer.equals("no", true)
                 )
             }.ifEmpty { defaultHseObservations }
-            qualityRemarks = manual.qualityRemarks.map { remark ->
-                QualityRemarkInput(work = remark.work, comment = remark.comment, rectification = remark.rectification.orEmpty(), status = remark.status.orEmpty())
-            }.ifEmpty { listOf(QualityRemarkInput()) }
+            qualityRemarks = manual.qualityRemarks.mapIndexed { index, remark ->
+                QualityRemarkInput(photoKey = "quality-$index", work = remark.work, comment = remark.comment, rectification = remark.rectification.orEmpty(), status = remark.status.orEmpty())
+            }.ifEmpty { listOf(QualityRemarkInput(photoKey = "quality-0")) }
             progressComment = manual.progressComment.orEmpty()
             scheduleRemark = manual.scheduleRemark.orEmpty()
             // `NAME` in the workbook is the person signing this revision.
@@ -941,7 +942,7 @@ private fun RepeatableOngoingObservations(
         }
     }
     TableActionIconButton(LocalizationManager.t("add"), Icons.Default.Add) {
-        onChange(values + OngoingObservationInput())
+        onChange(values + OngoingObservationInput(photoKey = "observation-${values.size}"))
     }
 }
 
@@ -1117,7 +1118,9 @@ private fun RepeatableManualActivities(
             }
         }
     }
-    TableActionIconButton(LocalizationManager.t("sir_add_activity"), Icons.Default.Add) { onChange(values + ManualActivityInput()) }
+    TableActionIconButton(LocalizationManager.t("sir_add_activity"), Icons.Default.Add) {
+        onChange(values + ManualActivityInput(photoKey = "activity-${values.size}"))
+    }
 }
 
 @Composable

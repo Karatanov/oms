@@ -689,10 +689,10 @@ private fun ReadOnlyQualityAssessmentTable(remarks: List<oms.data.ManualRemarkRe
                 Text(remark.comment.ifBlank { "—" }, Modifier.weight(1.4f), style = MaterialTheme.typography.bodyMedium)
                 Text(remark.rectification?.takeIf(String::isNotBlank) ?: "—", Modifier.weight(1.4f), style = MaterialTheme.typography.bodyMedium)
                 Text(remark.status?.takeIf(String::isNotBlank) ?: "—", Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
-                val remarkPhotos = photos.forDescription(remark.work)
+                val remarkPhotos = photos.forAssociation("quality-$index")
                 if (remarkPhotos.isEmpty()) Text("—", Modifier.weight(.8f), style = MaterialTheme.typography.bodyMedium)
                 else InspectionActivityPhotoGallery(
-                    activityKey = "quality-${remark.work.toInspectionPhotoNamePrefix()}-$index",
+                    activityKey = "quality-$index",
                     photos = remarkPhotos,
                     modifier = Modifier.weight(.8f)
                 )
@@ -753,7 +753,7 @@ private fun ReadOnlyActivitiesTable(
     // silently hiding it simply because a historical filename cannot match.
     val unassignedPhotos = photos.filter { photo ->
         val baseName = photo.fileName.substringBeforeLast('.', photo.fileName)
-        knownPhotoPrefixes.none { prefix -> baseName.startsWith(prefix, ignoreCase = true) }
+        photo.associationKey() == null && knownPhotoPrefixes.none { prefix -> baseName.startsWith(prefix, ignoreCase = true) }
     }
     Column(
         Modifier.fillMaxWidth().border(1.dp, MaterialTheme.colorScheme.outlineVariant),
@@ -771,10 +771,10 @@ private fun ReadOnlyActivitiesTable(
                 Text(activity.location.ifBlank { "—" }, Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
                 Text(activity.description.ifBlank { "—" }, Modifier.weight(2f), style = MaterialTheme.typography.bodyMedium)
                 Text(activity.remarks?.takeIf(String::isNotBlank) ?: "—", Modifier.weight(1.5f), style = MaterialTheme.typography.bodyMedium)
-                val activityPhotos = photos.forDescription(activity.description) + if (index == 0) unassignedPhotos else emptyList()
+                val activityPhotos = photos.forAssociation("activity-$index") + if (index == 0) unassignedPhotos else emptyList()
                 if (activityPhotos.isEmpty()) Text("—", Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
                 else InspectionActivityPhotoGallery(
-                    activityKey = "${activity.description.toInspectionPhotoNamePrefix()}-$index",
+                    activityKey = "activity-$index",
                     photos = activityPhotos,
                     modifier = Modifier.weight(1f)
                 )
@@ -783,15 +783,18 @@ private fun ReadOnlyActivitiesTable(
     }
 }
 
-/** Photo upload names are derived from the ongoing-work description. */
-private fun List<ApiInspectionPhoto>.forDescription(description: String): List<ApiInspectionPhoto> {
-    val prefix = description.toInspectionPhotoNamePrefix()
-    if (prefix.isBlank()) return emptyList()
-    return filter { photo ->
-        photo.fileName.substringBeforeLast('.', photo.fileName)
-            .startsWith(prefix, ignoreCase = true)
-    }
-}
+/**
+ * New uploads carry a stable, row-specific association marker.  Descriptions
+ * are deliberately not used: the same text may appear in several SIR blocks.
+ */
+private fun List<ApiInspectionPhoto>.forAssociation(key: String): List<ApiInspectionPhoto> =
+    filter { it.associationKey() == key }
+
+private fun ApiInspectionPhoto.associationKey(): String? =
+    Regex("\\[oms:([^]]+)]", RegexOption.IGNORE_CASE)
+        .find(fileName.substringBeforeLast('.', fileName))
+        ?.groupValues
+        ?.getOrNull(1)
 
 /** Photos are captioned with the matching OBSERVANCES ON ONGOING ACTIVITIES row. */
 @Composable
@@ -809,10 +812,10 @@ private fun ReadOnlyOngoingObservationsTable(observations: List<String>, photos:
             if (index > 0) HorizontalDivider()
             Row(Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 10.dp), verticalAlignment = Alignment.Top) {
                 Text(observation, Modifier.weight(3f), style = MaterialTheme.typography.bodyMedium)
-                val observationPhotos = photos.forDescription(observation)
+                val observationPhotos = photos.forAssociation("observation-$index")
                 if (observationPhotos.isEmpty()) Text("—", Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
                 else InspectionActivityPhotoGallery(
-                    activityKey = "${observation.toInspectionPhotoNamePrefix()}-observation-$index",
+                    activityKey = "observation-$index",
                     photos = observationPhotos,
                     modifier = Modifier.weight(1f)
                 )

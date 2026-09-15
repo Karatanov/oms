@@ -61,7 +61,7 @@ internal fun RepeatableQualityRemarks(
             }
         }
         TableActionIconButton(LocalizationManager.t("add"), Icons.Default.Add) {
-            onChange(values + QualityRemarkInput())
+            onChange(values + QualityRemarkInput(photoKey = "quality-${values.size}"))
         }
     }
 }

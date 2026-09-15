@@ -610,13 +610,17 @@
                 for (const [activityKey, photos] of ufsiPendingInspectionPhotos.entries()) {
                     const description = ufsiPendingInspectionPhotoDescriptions.get(activityKey) || "photo";
                     const baseName = description.replace(/[\\/:*?"<>|\u0000-\u001f]+/g, " ").replace(/\s+/g, " ").trim().slice(0, 220) || "photo";
+                    // The visible caption can legitimately repeat in different SIR
+                    // sections. Persist the row key in the filename as invisible
+                    // metadata for the UI; the server removes it from XLS captions.
+                    const association = ` [oms:${activityKey}]`;
                     for (let index = 0; index < photos.length; index += 1) {
                         const file = photos[index];
                         const extension = (file.name.split(".").pop() || "jpg").toLowerCase();
                         // The server uses this durable caption to group photos
                         // beside the matching ongoing work in both the web
                         // preview and the generated XLSX evidence sheet.
-                        const fileName = `${baseName}${photos.length > 1 ? ` [photo ${index + 1}]` : ""}.${extension}`;
+                        const fileName = `${baseName}${association}${photos.length > 1 ? ` [photo ${index + 1}]` : ""}.${extension}`;
                         formData.append("file", file, fileName);
                     }
                 }

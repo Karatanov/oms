@@ -221,6 +221,7 @@ class InspectionReportFileService(
      */
     private fun inspectionPhotoCaption(fileName: String): String =
         fileName.substringBeforeLast('.', fileName)
+            .replace(Regex("\\s*\\[oms:[^]]+]", RegexOption.IGNORE_CASE), "")
             .replace(Regex("\\s*\\[photo\\s+\\d+]$", RegexOption.IGNORE_CASE), "")
             .trim()
             .ifBlank { "Photo" }
