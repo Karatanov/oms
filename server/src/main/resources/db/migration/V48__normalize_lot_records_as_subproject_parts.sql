@@ -11,7 +11,7 @@ CREATE TEMPORARY TABLE lot_project_parts (
     id BIGINT NOT NULL,
     subproject_code VARCHAR(50) NOT NULL,
     lot_name VARCHAR(50) NOT NULL,
-    original_name VARCHAR(255) NULL,
+    original_name TEXT NULL,
     tranche_number INT NULL,
     parent_project_id BIGINT NULL,
     site_name VARCHAR(100) NULL,
