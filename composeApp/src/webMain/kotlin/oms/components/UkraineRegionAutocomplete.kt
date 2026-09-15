@@ -62,11 +62,16 @@ private fun normalizedRegionName(value: String): String = value
     .replace(Regex("\\s+"), " ")
     .trim()
 
-fun localizedUkraineRegion(value: String): String {
+/** One canonical Ukrainian key for filters, imported workbooks and UI labels. */
+fun canonicalUkraineRegion(value: String): String {
     val normalized = normalizedRegionName(value)
-    val knownRegion = ukraineRegions.firstOrNull {
+    return ukraineRegions.firstOrNull {
         normalizedRegionName(it.ukrainianName) == normalized || normalizedRegionName(it.englishName) == normalized
-    }
+    }?.ukrainianName ?: value.replace(Regex("\\s+"), " ").trim()
+}
+
+fun localizedUkraineRegion(value: String): String {
+    val knownRegion = ukraineRegions.firstOrNull { it.ukrainianName == canonicalUkraineRegion(value) }
     return knownRegion?.displayName()
         ?: if (LocalizationManager.currentLanguage == Language.EN) {
             value.replace(Regex("\\boblast\\b", RegexOption.IGNORE_CASE), "Region")

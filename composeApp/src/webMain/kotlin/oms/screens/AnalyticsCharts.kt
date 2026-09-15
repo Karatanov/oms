@@ -43,6 +43,7 @@ import oms.localization.LocalizationManager
 import oms.screens.dashboard.toMonthName
 import oms.components.FilterDropdown
 import oms.components.localizedUkraineRegion
+import oms.components.canonicalUkraineRegion
 import kotlin.math.roundToLong
 
 @Composable
@@ -85,9 +86,9 @@ fun FundingByOblastChart(items: List<ApiSubprojectFunding>, onOpenRegion: (Strin
 @Composable
 fun SubprojectProgressChart(items: List<ApiSubprojectProgress>, onOpenFinancial: (String) -> Unit, orientation: BarChartOrientation = BarChartOrientation.Vertical) {
     var regionFilter by remember(items) { mutableStateOf<String?>(null) }
-    val regions = items.map { it.region }.filter(String::isNotBlank).distinct().sorted()
+    val regions = items.map { it.region }.filter(String::isNotBlank).map(::canonicalUkraineRegion).distinct().sorted()
     val data = items
-        .filter { regionFilter == null || it.region == regionFilter }
+        .filter { regionFilter == null || canonicalUkraineRegion(it.region) == regionFilter }
         .sortedBy { it.name }
         .map {
             BarData(

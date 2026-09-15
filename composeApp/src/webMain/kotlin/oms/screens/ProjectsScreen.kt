@@ -56,6 +56,7 @@ import oms.model.ProjectStatus
 import oms.model.localizedName
 import oms.model.localizedCity
 import oms.components.localizedUkraineRegion
+import oms.components.canonicalUkraineRegion
 import oms.theme.Primary
 import oms.components.toOmsDate
 import oms.components.ConstructionTypeChip
@@ -107,7 +108,7 @@ fun ProjectsScreen(
 
     LaunchedEffect(requestedRegionFilter) {
         requestedRegionFilter?.let {
-            regionFilter = it
+            regionFilter = canonicalUkraineRegion(it)
             onRequestedRegionFilterConsumed()
         }
     }
@@ -139,7 +140,7 @@ fun ProjectsScreen(
                 project.siteNumber.contains(searchText, true) ||
                 localizedUkraineRegion(project.region).contains(searchText, true) ||
                 project.localizedCity().contains(searchText, true)) &&
-                (regionFilter == null || project.region == regionFilter) &&
+                (regionFilter == null || canonicalUkraineRegion(project.region) == regionFilter) &&
                 (statusFilter == null || project.status == statusFilter) &&
                 project.matchesTranche(trancheFilter) &&
                 (constructionTypeFilter == null || project.constructionType.equals(constructionTypeFilter, ignoreCase = true)) &&
@@ -522,7 +523,7 @@ private fun ProjectsFilters(
                     )
                     SortColumn.REGION -> ProjectFilterDropdown(
                         LocalizationManager.t("region"),
-                        ProjectRepository.projects.map { it.region }.filter { it.isNotBlank() }.distinct().sorted(),
+                        ProjectRepository.projects.map { it.region }.filter { it.isNotBlank() }.map(::canonicalUkraineRegion).distinct().sorted(),
                         regionFilter, onRegionChange, ::localizedUkraineRegion)
                     SortColumn.TRANCHE -> ProjectFilterDropdown(
                         LocalizationManager.t("tranche"), listOf(1, 2), trancheFilter, onTrancheChange,
