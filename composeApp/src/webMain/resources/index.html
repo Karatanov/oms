@@ -110,26 +110,16 @@
             return isOmsNativeTextField(event.target) || isOmsNativeTextField(document.activeElement);
         }
 
-        // Compose/Wasm edits fields through its canvas surface.  Its own
-        // context-menu listener must not also process the browser's native
-        // right-click menu: the subsequent Paste event can otherwise be
-        // delivered through two input paths and lock a form (notably the
-        // procurement editor).  Stopping propagation does not cancel the
-        // browser's context menu, so Copy/Paste remains available to users.
-        function isOmsComposeSurface(element) {
-            return Boolean(element && element.closest && element.closest("#compose-host"));
-        }
-
         window.addEventListener("contextmenu", event => {
-            if (hasOmsNativeTextFieldFocus(event) || isOmsComposeSurface(event.target)) event.stopImmediatePropagation();
+            if (hasOmsNativeTextFieldFocus(event)) event.stopImmediatePropagation();
         }, true);
 
         window.addEventListener("copy", event => {
-            if (hasOmsNativeTextFieldFocus(event) || isOmsComposeSurface(event.target)) event.stopImmediatePropagation();
+            if (hasOmsNativeTextFieldFocus(event)) event.stopImmediatePropagation();
         }, true);
 
         window.addEventListener("cut", event => {
-            if (hasOmsNativeTextFieldFocus(event) || isOmsComposeSurface(event.target)) event.stopImmediatePropagation();
+            if (hasOmsNativeTextFieldFocus(event)) event.stopImmediatePropagation();
         }, true);
 
         window.addEventListener("paste", event => {
