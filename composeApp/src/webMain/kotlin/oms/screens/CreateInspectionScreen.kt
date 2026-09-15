@@ -258,9 +258,9 @@ fun CreateInspectionScreen(
     // Photos are evidence attached to the report rather than cells in its
     // workbook, so load them independently from the manual-report payload.
     // This keeps them viewable even when the original SIR was imported.
-    LaunchedEffect(readOnly, editingReportUuid) {
+    LaunchedEffect(editingReportUuid) {
         val reportUuid = editingReportUuid ?: return@LaunchedEffect
-        if (readOnly) reportPhotos = runCatching {
+        reportPhotos = runCatching {
             OmsApiClient.inspectionPhotos(reportUuid)
         }.getOrDefault(emptyList())
     }
@@ -442,7 +442,8 @@ fun CreateInspectionScreen(
             hseObservations = hseObservations, onHseObservationsChange = { hseObservations = it }, qualityRemarks = qualityRemarks, onQualityRemarksChange = { qualityRemarks = it },
             progress = progressComment, onProgressChange = { progressComment = it }, schedule = scheduleRemark, onScheduleChange = { scheduleRemark = it },
             inspectorName = inspectorName, onInspectorNameChange = { inspectorName = it },
-            inspectorTitle = inspectorTitle, onInspectorTitleChange = { inspectorTitle = it }
+            inspectorTitle = inspectorTitle, onInspectorTitleChange = { inspectorTitle = it },
+            attachedPhotos = reportPhotos.orEmpty()
             )
         }
 
@@ -750,7 +751,8 @@ private fun ManualSirForm(
     progress: String, onProgressChange: (String) -> Unit,
     schedule: String, onScheduleChange: (String) -> Unit,
     inspectorName: String, onInspectorNameChange: (String) -> Unit,
-    inspectorTitle: String, onInspectorTitleChange: (String) -> Unit
+    inspectorTitle: String, onInspectorTitleChange: (String) -> Unit,
+    attachedPhotos: List<ApiInspectionPhoto>
 ) {
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         SirFormSection(LocalizationManager.t("sir_report_header"), Icons.Default.Description) {
@@ -795,7 +797,7 @@ private fun ManualSirForm(
         }
 
         SirFormSection(LocalizationManager.t("sir_ongoing_activities"), Icons.Default.Engineering) {
-            RepeatableManualActivities(activities, onActivitiesChange)
+            RepeatableManualActivities(activities, onActivitiesChange, attachedPhotos)
         }
 
         SirFormSection(LocalizationManager.t("sir_ongoing_observations"), Icons.Default.FactCheck) {
@@ -1051,12 +1053,20 @@ private data class ManualActivityInput(
 @Composable
 private fun RepeatableManualActivities(
     values: List<ManualActivityInput>,
-    onChange: (List<ManualActivityInput>) -> Unit
+    onChange: (List<ManualActivityInput>) -> Unit,
+    attachedPhotos: List<ApiInspectionPhoto>
 ) {
     fun update(index: Int, transform: (ManualActivityInput) -> ManualActivityInput) {
         onChange(values.mapIndexed { current, item -> if (current == index) transform(item) else item })
     }
     values.forEachIndexed { index, activity ->
+        // Imported workbooks predate the row marker.  Put those historic
+        // photos beside the first current-work item rather than hiding them;
+        // new uploads retain their exact activity association.
+        val persistedPhotos = attachedPhotos.filter { photo ->
+            photo.editorAssociationKey() == activity.photoKey ||
+                (index == 0 && photo.editorAssociationKey() == null)
+        }
         LaunchedEffect(activity.photoKey, activity.description) {
             setPendingInspectionPhotoDescription(activity.photoKey, activity.description)
         }
@@ -1110,6 +1120,13 @@ private fun RepeatableManualActivities(
                         update(index) { it.copy(photoCount = count, photoRevision = it.photoRevision + 1) }
                     }
                 }
+                if (persistedPhotos.isNotEmpty()) {
+                    InspectionActivityPhotoGallery(
+                        activityKey = "saved-${activity.photoKey}",
+                        photos = persistedPhotos,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
                 Text(
                     LocalizationManager.t("photo_upload_requirements"),
                     style = MaterialTheme.typography.bodySmall,
@@ -1122,6 +1139,12 @@ private fun RepeatableManualActivities(
         onChange(values + ManualActivityInput(photoKey = "activity-${values.size}"))
     }
 }
+
+private fun ApiInspectionPhoto.editorAssociationKey(): String? =
+    Regex("\\[oms:([^]]+)]", RegexOption.IGNORE_CASE)
+        .find(fileName.substringBeforeLast('.', fileName))
+        ?.groupValues
+        ?.getOrNull(1)
 
 @Composable
 private fun ScheduleChoice(selected: String, onSelect: (String) -> Unit) {
