@@ -29,6 +29,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalClipboardManager
@@ -37,6 +38,7 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.input.pointer.pointerHoverIcon
 import oms.components.StatusChip
+import oms.components.ScrollableTable
 import oms.components.constructionTypeLabel
 import oms.components.sectorLabel
 import oms.data.ApiProjectDetails
@@ -111,9 +113,6 @@ fun ProjectDetailScreen(
             ProjectDetailTab.Financials -> {
                 load(ProjectDetailResource.Financials) {
                     financials.value = OmsApiClient.financials(project.id)
-                }
-                load(ProjectDetailResource.Documents) {
-                    documents.value = OmsApiClient.projectDocuments(project.id)
                 }
             }
             ProjectDetailTab.Documents -> load(ProjectDetailResource.Documents) {
@@ -619,15 +618,50 @@ private fun ProjectReportsTab(reports: List<ApiInspectionReport>) {
 
 @Composable
 private fun ProjectFinancialsTab(financials: ApiFinancialRecords?) {
-    val acts = financials?.data.orEmpty().filter { it.recordType == "act" }
+    val records = financials?.data.orEmpty()
     Card(Modifier.fillMaxSize()) {
-        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            if (acts.isEmpty()) Text(LocalizationManager.t("no_acts"))
+        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(LocalizationManager.t("financial_records"), style = MaterialTheme.typography.titleMedium)
+            if (records.isEmpty()) Text(LocalizationManager.t("no_financial_records"))
             else {
-                Text(LocalizationManager.t("acts_of_completed_works"), style = MaterialTheme.typography.titleMedium)
-                acts.forEach { act ->
-                    Text("${act.referenceNumber} • ${act.recordDate.toOmsDate()} • ${act.amount.toMoney()}")
-                    HorizontalDivider()
+                // Financial acts belong to the financial register, not the document list.
+                // Keep this read-only view aligned with Financial Monitoring and scoped to this subproject.
+                ScrollableTable(
+                    modifier = Modifier.fillMaxWidth(),
+                    header = {
+                        Row(Modifier.width(910.dp).padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                            FinancialDetailHeader("reference_number", 150.dp)
+                            FinancialDetailHeader("type", 110.dp)
+                            FinancialDetailHeader("payment_purpose", 220.dp)
+                            FinancialDetailHeader("date", 120.dp)
+                            FinancialDetailHeader("amount", 150.dp, numeric = true)
+                            FinancialDetailHeader("currency_short", 80.dp)
+                            FinancialDetailHeader("description", 280.dp)
+                        }
+                        HorizontalDivider()
+                    }
+                ) {
+                    records.forEach { record ->
+                        Row(Modifier.width(910.dp).padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Text(record.referenceNumber, Modifier.width(150.dp))
+                            Text(LocalizationManager.t("record_type_${record.recordType}"), Modifier.width(110.dp))
+                            Text(
+                                if (record.recordType in setOf("payment", "advance")) {
+                                    LocalizationManager.t("payment_purpose_${record.paymentPurpose}")
+                                } else "—",
+                                Modifier.width(220.dp)
+                            )
+                            Text(record.recordDate.toOmsDate(), Modifier.width(120.dp))
+                            Text(
+                                record.amount.formatUiAmount(),
+                                Modifier.width(150.dp).padding(horizontal = 8.dp),
+                                textAlign = TextAlign.End
+                            )
+                            Text(record.currency, Modifier.width(80.dp))
+                            Text(record.description ?: record.milestone ?: "—", Modifier.width(280.dp))
+                        }
+                        HorizontalDivider()
+                    }
                 }
             }
         }
@@ -635,12 +669,28 @@ private fun ProjectFinancialsTab(financials: ApiFinancialRecords?) {
 }
 
 @Composable
+private fun FinancialDetailHeader(key: String, width: androidx.compose.ui.unit.Dp, numeric: Boolean = false) {
+    Text(
+        LocalizationManager.t(key),
+        modifier = Modifier.width(width).padding(horizontal = if (numeric) 8.dp else 0.dp),
+        style = MaterialTheme.typography.labelLarge,
+        fontWeight = FontWeight.SemiBold,
+        textAlign = if (numeric) TextAlign.End else TextAlign.Start
+    )
+}
+
+@Composable
 private fun ProjectDocumentsTab(projectUuid: String, documents: List<ApiProjectDocument>) {
     val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
+    // An act is a financial record (and may have an auxiliary generated PDF),
+    // so it must not be duplicated in the project document register.
+    val projectDocuments = documents.filterNot {
+        it.relatedEntity == "financial_record" || it.docType == "financial_doc"
+    }
     Card(Modifier.fillMaxSize()) {
         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            if (documents.isEmpty()) Text(LocalizationManager.t("no_project_documents"))
-            documents.forEach { document ->
+            if (projectDocuments.isEmpty()) Text(LocalizationManager.t("no_project_documents"))
+            projectDocuments.forEach { document ->
                 Text(document.fileName, style = MaterialTheme.typography.titleMedium)
                 Text("${document.docType} • ${document.fileSizeBytes} ${LocalizationManager.t("bytes")}")
                 Button(
