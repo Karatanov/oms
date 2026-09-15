@@ -96,14 +96,14 @@ fun SubprojectProgressChart(items: List<ApiSubprojectProgress>, onOpenFinancial:
                 value = it.completionPct.toFloat(),
                 id = it.projectUuid,
                 tooltip = if (LocalizationManager.currentLanguage == oms.localization.Language.EN) it.nameEn?.takeIf(String::isNotBlank) ?: it.name else it.name,
-                formattedValue = "${it.completionPct.toInt()}%"
+                formattedValue = completionPercentLabel(it.completionPct)
             )
         }
     AnalyticsCard(
         titleKey = "subproject_completion",
         hintKey = "subproject_completion_hint",
         data = data,
-        valueLabel = { "${it.toInt()}%" },
+        valueLabel = { completionPercentLabel(it.toDouble()) },
         onItemClick = { bar -> bar.id?.let(onOpenFinancial) },
         labelMaxLines = 2,
         filterContent = {
@@ -117,6 +117,12 @@ fun SubprojectProgressChart(items: List<ApiSubprojectProgress>, onOpenFinancial:
         },
         orientation = orientation
     )
+}
+
+/** Retain small non-zero completion values instead of truncating 0.8% to 0%. */
+private fun completionPercentLabel(value: Double): String {
+    val tenths = (value.coerceAtLeast(0.0) * 10).roundToLong()
+    return if (tenths % 10L == 0L) "${tenths / 10}%" else "${tenths / 10}.${tenths % 10}%"
 }
 
 private data class AnalyticsListRow(
