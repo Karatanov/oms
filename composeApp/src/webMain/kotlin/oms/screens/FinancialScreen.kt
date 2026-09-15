@@ -33,6 +33,7 @@ import oms.localization.LocalizationManager
 import oms.components.OmsDateField
 import oms.components.toOmsDate
 import oms.components.InlineOptionPicker
+import oms.components.FilterDropdown
 import oms.components.SearchableOptionPicker
 import oms.components.currentIsoDate
 import oms.components.WasmSafeOverlay
@@ -51,10 +52,11 @@ private data class ProjectActRow(
     val subprojectUuid: String?,
     val subprojectName: String,
     val subprojectCode: String?,
+    val trancheNumber: Int,
     val act: ApiFinancialRecord
 )
 
-private enum class FinancialSort { Number, Type, Purpose, Subproject, SubprojectCode, ActDate, PaymentDate, Amount, Currency, Description, Author }
+private enum class FinancialSort { Number, Type, Purpose, Tranche, Subproject, SubprojectCode, ActDate, PaymentDate, Amount, Currency, Description, Author }
 
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
@@ -71,6 +73,8 @@ fun FinancialScreen(
 
     var acts by remember { mutableStateOf<List<ProjectActRow>>(emptyList()) }
     var recordTypeFilter by remember { mutableStateOf<String?>(null) }
+    var paymentPurposeFilter by remember { mutableStateOf<String?>(null) }
+    var trancheFilter by remember { mutableStateOf<Int?>(null) }
     var subprojectFilter by remember { mutableStateOf<String?>(null) }
     var sort by remember { mutableStateOf(FinancialSort.ActDate) }
     var ascending by remember { mutableStateOf(false) }
@@ -111,6 +115,7 @@ fun FinancialScreen(
                     subproject?.id,
                     subproject?.name ?: project.name,
                     subproject?.siteNumber ?: project.siteNumber,
+                    subproject?.trancheNumber ?: project.trancheNumber,
                     item.record
                 )
             }
@@ -127,12 +132,15 @@ fun FinancialScreen(
         .mapValues { (_, rows) -> rows.sumOf { it.act.amount } }
     val visibleActs = acts.filter {
         (recordTypeFilter == null || it.act.recordType == recordTypeFilter) &&
+            (paymentPurposeFilter == null || it.act.paymentPurpose == paymentPurposeFilter) &&
+            (trancheFilter == null || it.trancheNumber.isFinancialTranche(trancheFilter!!)) &&
             (subprojectFilter == null || it.subprojectUuid == subprojectFilter)
     }.sortedWith(compareBy<ProjectActRow> {
         when (sort) {
             FinancialSort.Number -> it.act.referenceNumber
             FinancialSort.Type -> it.act.recordType
             FinancialSort.Purpose -> it.act.paymentPurpose
+            FinancialSort.Tranche -> it.trancheNumber.toString()
             FinancialSort.Subproject -> it.subprojectName
             FinancialSort.SubprojectCode -> it.subprojectCode.orEmpty()
             FinancialSort.ActDate -> it.act.recordDate
@@ -206,10 +214,34 @@ fun FinancialScreen(
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
             Text(LocalizationManager.t("financial_records"), style = MaterialTheme.typography.titleLarge)
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            listOf(null, "invoice", "act", "payment", "advance").forEach { type ->
-                FilterChip(selected = recordTypeFilter == type, onClick = { selectRecordType(type) }, label = { Text(type?.let { LocalizationManager.t("record_type_$it") } ?: LocalizationManager.t("all")) })
-            }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+            FilterDropdown(
+                label = LocalizationManager.t("type"),
+                options = listOf("invoice", "act", "payment", "advance"),
+                selected = recordTypeFilter,
+                onSelect = ::selectRecordType,
+                itemLabel = { LocalizationManager.t("record_type_$it") }
+            )
+            FilterDropdown(
+                label = LocalizationManager.t("payment_purpose"),
+                options = listOf("works", "equipment", "technical_supervision", "engineer_consultant"),
+                selected = paymentPurposeFilter,
+                onSelect = { paymentPurposeFilter = it },
+                itemLabel = { LocalizationManager.t("payment_purpose_$it") }
+            )
+            FilterDropdown(
+                label = LocalizationManager.t("tranche"),
+                options = listOf(1, 2),
+                selected = trancheFilter,
+                onSelect = { trancheFilter = it },
+                itemLabel = { it.financialTrancheLabel() }
+            )
+            OutlinedButton(onClick = {
+                recordTypeFilter = null
+                paymentPurposeFilter = null
+                trancheFilter = null
+                subprojectFilter = null
+            }) { Text(LocalizationManager.t("reset_filters")) }
         }
         oms.components.ScrollableTable(
             Modifier.fillMaxWidth()
@@ -219,10 +251,11 @@ fun FinancialScreen(
         ) {
                     if (!loading && !loadFailed && visibleActs.isEmpty()) Text(LocalizationManager.t(emptyRecordsMessage))
                     visibleActs.forEach { row ->
-                        Row(Modifier.width(1_621.dp).padding(vertical = 8.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                        Row(Modifier.width(1_716.dp).padding(vertical = 8.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                             Text(row.act.referenceNumber, Modifier.width(130.dp))
                             Text(LocalizationManager.t("record_type_${row.act.recordType}"), Modifier.width(95.dp))
                             Box(Modifier.width(210.dp)) { FinancialPaymentPurposeBadge(row.act.recordType, row.act.paymentPurpose) }
+                            Text(row.trancheNumber.financialTrancheLabel(), Modifier.width(95.dp))
                             ExpandableTableText(row.subprojectName, Modifier.width(200.dp))
                             Text(row.subprojectCode ?: "—", Modifier.width(160.dp))
                             Text(row.act.recordDate.toOmsDate(), Modifier.width(105.dp))
@@ -552,10 +585,11 @@ private fun FinancialProjectLevelDropdown(
 
 @Composable
 private fun FinancialTableHeader(sort: FinancialSort, ascending: Boolean, onSort: (FinancialSort) -> Unit) {
-    Row(Modifier.width(1_621.dp).padding(vertical = 6.dp)) {
+    Row(Modifier.width(1_716.dp).padding(vertical = 6.dp)) {
         SortableTableHeader(LocalizationManager.t("reference_number"), sort == FinancialSort.Number, ascending, { onSort(FinancialSort.Number) }, Modifier.width(130.dp))
         SortableTableHeader(LocalizationManager.t("type"), sort == FinancialSort.Type, ascending, { onSort(FinancialSort.Type) }, Modifier.width(95.dp))
         SortableTableHeader(LocalizationManager.t("payment_purpose"), sort == FinancialSort.Purpose, ascending, { onSort(FinancialSort.Purpose) }, Modifier.width(210.dp))
+        SortableTableHeader(LocalizationManager.t("tranche"), sort == FinancialSort.Tranche, ascending, { onSort(FinancialSort.Tranche) }, Modifier.width(95.dp))
         SortableTableHeader(LocalizationManager.t("subproject"), sort == FinancialSort.Subproject, ascending, { onSort(FinancialSort.Subproject) }, Modifier.width(200.dp))
         SortableTableHeader(LocalizationManager.t("subproject_code"), sort == FinancialSort.SubprojectCode, ascending, { onSort(FinancialSort.SubprojectCode) }, Modifier.width(160.dp))
         SortableTableHeader(LocalizationManager.t("act_date"), sort == FinancialSort.ActDate, ascending, { onSort(FinancialSort.ActDate) }, Modifier.width(105.dp))
@@ -567,6 +601,15 @@ private fun FinancialTableHeader(sort: FinancialSort, ascending: Boolean, onSort
         Box(Modifier.width(96.dp).height(52.dp), contentAlignment = androidx.compose.ui.Alignment.Center) { Text(LocalizationManager.t("actions"), style = MaterialTheme.typography.labelMedium) }
     }
 }
+
+private fun Int.isFinancialTranche(filter: Int): Boolean = when (filter) {
+    1 -> this == 1 || this == 8
+    2 -> this == 2 || this == 9
+    else -> this == filter
+}
+
+private fun Int.financialTrancheLabel(): String =
+    "${LocalizationManager.t("tranche")} ${if (this == 2 || this == 9) "B" else "A"}"
 
 @Composable
 private fun FinancialPaymentPurposeBadge(recordType: String, purpose: String) {
