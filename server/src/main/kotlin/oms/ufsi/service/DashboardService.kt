@@ -42,6 +42,33 @@ private val procurementStatusOrder = listOf(
     "Договір розірвано / Contract terminated"
 )
 
+/**
+ * Source procurement spreadsheets contain a few technical values (for example
+ * a batch id) in otherwise free-text cells.  A dashboard category must only
+ * ever be one of the six statuses agreed for the UI, so normalize bilingual
+ * values and ignore anything else rather than rendering a phantom bar.
+ */
+private fun canonicalProcurementStatus(value: String?): String? {
+    val status = value?.trim()?.lowercase().orEmpty()
+    return when {
+        status.contains("не розпочато") || status.contains("not started") -> procurementStatusOrder[0]
+        status.contains("закупівля триває") || status.contains("tender ongoing") -> procurementStatusOrder[1]
+        status.contains("повідомлення про намір") || status.contains("contract award notice") -> procurementStatusOrder[2]
+        status.contains("договір укладено") || status.contains("contract signed") -> procurementStatusOrder[3]
+        status.contains("відмінено") || status.contains("cancelled") -> procurementStatusOrder[4]
+        status.contains("договір розірвано") || status.contains("contract terminated") -> procurementStatusOrder[5]
+        else -> null
+    }
+}
+
+private fun procurementStatusMetrics(procurementRecords: List<org.jetbrains.exposed.v1.core.ResultRow>): List<DashboardMetric> {
+    val countByStatus = procurementRecords
+        .mapNotNull { row -> canonicalProcurementStatus(row[ProcurementRecordTable.purchaseStatus])?.let { it to row[ProcurementRecordTable.subProjectId] } }
+        .groupBy({ it.first }, { it.second })
+        .mapValues { (_, subprojectIds) -> subprojectIds.distinct().size.toLong() }
+    return procurementStatusOrder.map { status -> DashboardMetric(status, countByStatus[status] ?: 0L) }
+}
+
 private fun isConstructionContractSigned(status: String?) =
     status?.let { it.contains("Договір укладено", ignoreCase = true) || it.contains("Contract signed", ignoreCase = true) } == true
 
@@ -131,12 +158,7 @@ class DashboardService(
                 if (contract > 0) (actualBySubproject[id] ?: 0.0) * 100.0 / contract else 0.0
             )
         }.sortedBy { it.name }
-        val procurementCountByStatus = procurementRecords.groupBy { it[ProcurementRecordTable.purchaseStatus] }
-            .mapValues { (_, rows) -> rows.map { it[ProcurementRecordTable.subProjectId] }.distinct().size.toLong() }
-        val procurementStatusCounts = procurementStatusOrder.map { status -> DashboardMetric(status, procurementCountByStatus[status] ?: 0L) } +
-            procurementCountByStatus.filterKeys { it != null && it !in procurementStatusOrder }
-                .mapNotNull { (status, count) -> status?.let { DashboardMetric(it, count) } }
-                .sortedBy { it.label }
+        val procurementStatusCounts = procurementStatusMetrics(procurementRecords)
         fun report(row: org.jetbrains.exposed.v1.core.ResultRow) = InspectionReport(
             row[InspectionReportTable.id].value, UUID.fromString(row[InspectionReportTable.uuid]), row[InspectionReportTable.projectId].value,
             row[InspectionReportTable.reportCode], row[InspectionReportTable.inspectionType], row[InspectionReportTable.inspectionDate],
@@ -229,14 +251,7 @@ class DashboardService(
             .map { MonthlyActPayment(it.key, it.value.sumOf { row -> row[FinancialRecordTable.amountEurCents] ?: 0L }) }.sortedBy { it.month }
         // Procurement reference rows do not carry a project foreign key. Do not
         // expose their global aggregate to a manager whose dashboard is scoped.
-        val procurementCountByStatus = procurementRecords.groupBy { it[ProcurementRecordTable.purchaseStatus] }
-            .mapValues { (_, rows) -> rows.map { it[ProcurementRecordTable.subProjectId] }.distinct().size.toLong() }
-        val procurementStatusCounts = procurementStatusOrder.map { status ->
-            DashboardMetric(status, procurementCountByStatus[status] ?: 0L)
-        } + procurementCountByStatus
-            .filterKeys { it != null && it !in procurementStatusOrder }
-            .mapNotNull { (status, count) -> status?.let { DashboardMetric(it, count) } }
-            .sortedBy { it.label }
+        val procurementStatusCounts = procurementStatusMetrics(procurementRecords)
         val monthlySignedConstructionContracts = procurementRecords
             .filter { isConstructionContractSigned(it[ProcurementRecordTable.purchaseStatus]) }
             .mapNotNull { row -> (row[ProcurementRecordTable.contractDate] ?: row[ProcurementRecordTable.estimatedContractDate])?.let(::month) }
