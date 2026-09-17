@@ -283,6 +283,10 @@ button {
     justify-content: center;
     background: rgba(18, 45, 56, 0.22);
     backdrop-filter: blur(2px);
+    /* A request may outlive the screen that initiated it (for example, a
+       dashboard refresh).  It must never prevent the user from navigating
+       away or make the application look frozen. */
+    pointer-events: none;
 }
 
 #oms-loading-overlay.visible { display: flex; }
