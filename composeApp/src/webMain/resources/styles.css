@@ -193,9 +193,9 @@ canvas {
     display: block;
 }
 
-/* Compose puts selectable text inside controls on the same canvas. The
-   selection cursor must never win over an explicitly clickable surface. */
-a, button, [role="button"], [role="link"], [role="tab"], [role="menuitem"] {
+/* Native HTML buttons (photo tools and map controls) are actions.  Do not
+   promote generic links, table cells or selectable text to the hand cursor. */
+button {
     cursor: pointer !important;
 }
 

@@ -656,7 +656,6 @@ fun ProjectRow(
             .clickable {
                 onOpen(project)
             }
-            .pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true)
 
             .background(
                 when {

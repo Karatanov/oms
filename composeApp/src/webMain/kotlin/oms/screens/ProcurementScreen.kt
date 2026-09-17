@@ -33,8 +33,6 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalUriHandler
-import androidx.compose.ui.input.pointer.PointerIcon
-import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import oms.data.ApiProcurementRecord
@@ -519,8 +517,7 @@ private fun ProcurementRow(
                 Text(
                     value,
                     Modifier.width(width.dp).padding(horizontal = 6.dp)
-                        .clickable { uriHandler.openUri(value.toProzorroTenderUrl()) }
-                        .pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true),
+                        .clickable { uriHandler.openUri(value.toProzorroTenderUrl()) },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.primary,
                     textDecoration = TextDecoration.Underline

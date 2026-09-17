@@ -5,8 +5,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.pointer.PointerIcon
-import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.foundation.text.selection.SelectionContainer
 import oms.layout.AppLayout
@@ -42,11 +40,10 @@ fun App() {
         oms.components.OptionOverlayHost {
         oms.components.ConfirmationHost {
         oms.components.TableScrollOverlayHost {
-        // Compose/Wasm gives selectable child text an I-beam cursor by default.
-        // The app surface is action-led, so force the hand icon through button
-        // labels, icons and other descendants. Native HTML editors are outside
-        // this canvas subtree and retain their normal text-entry cursor.
-        SelectionContainer(Modifier.pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true)) {
+        // Keep the canvas neutral: a hand icon is assigned only to an actual
+        // button or an explicitly clickable chart bar.  This preserves the
+        // normal arrow over read-only text, rows and data cells.
+        SelectionContainer {
             if (restoringSession) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
             } else if (!appState.isAuthenticated && !activationToken.isNullOrBlank()) {
