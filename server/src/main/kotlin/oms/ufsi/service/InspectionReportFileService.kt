@@ -281,8 +281,19 @@ class InspectionReportFileService(
         fun date(row: Int, column: Int): String = runCatching {
             sheet.getRow(row - 1).getCell(column - 1).localDateTimeCellValue.toLocalDate().toString()
         }.getOrDefault(report.inspectionDate.toString())
+        // Do not scan `lastRowNum` repeatedly. Excel can retain formatting far
+        // below a visible SIR, making that value unexpectedly huge. SIR section
+        // titles live in column A and within the first 1,000 physical rows; one
+        // compact index keeps both preview and edit responsive for imported
+        // workbooks.
+        val firstColumnRows = sheet.rowIterator().asSequence()
+            .takeWhile { it.rowNum < 1_000 }
+            .map { row ->
+                (row.rowNum + 1) to row.getCell(0)?.let(formatter::formatCellValue).orEmpty().trim()
+            }
+            .toList()
         fun firstRow(predicate: (String) -> Boolean): Int? =
-            (1..(sheet.lastRowNum + 1)).firstOrNull { predicate(text(it, 1)) }
+            firstColumnRows.firstOrNull { (_, value) -> predicate(value) }?.first
         val purchasedMaterialsTitleRow = firstRow {
             it.equals("PURCHASED MATERIALS", ignoreCase = true)
         }

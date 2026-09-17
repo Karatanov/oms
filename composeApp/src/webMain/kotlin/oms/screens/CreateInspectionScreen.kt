@@ -192,7 +192,12 @@ fun CreateInspectionScreen(
             val projectsById = ProjectRepository.projects.associateBy { it.id }
             val target = projectsById[editor.projectUuid]
             val ancestry = target?.let {
+                // A report target can have at most project → subproject →
+                // subproject part.  Cap traversal explicitly: a malformed
+                // historical parent reference must never turn opening a
+                // read-only report into an infinite Compose coroutine.
                 generateSequence(it) { current -> current.parentProjectUuid?.let(projectsById::get) }
+                    .take(3)
                     .toList().asReversed()
             }.orEmpty()
             selectedProjectUuid = ancestry.getOrNull(0)?.id
