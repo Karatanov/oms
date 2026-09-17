@@ -35,7 +35,7 @@
                 photoDrop: "Перетягніть фотографії сюди або натисніть для вибору", done: "Готово", remove: "Видалити",
                 invalidPhoto: "дозволені лише JPEG/PNG-файли розміром до 10 МБ.", maxPhotos: "Можна прикріпити максимум 30 фотографій.",
                 lastInspection: "Остання інспекція", inspectionCode: "Код інспекції", subprojectCode: "Код субпроєкту", noReports: "Інспекційних звітів ще немає", noPhotos: "В останній інспекції немає фотографій.",
-                open: "Відкрити", closeFullscreenPhoto: "Закрити повноекранне фото", details: "Деталі",
+                open: "Відкрити", previewReport: "Переглянути звіт", closeFullscreenPhoto: "Закрити повноекранне фото", details: "Деталі",
                 loading: "Завантаження даних…", uploadingFile: "Завантаження файлу…", importingInspection: "Імпорт інспекційного звіту…", importingFinancial: "Імпорт фінансових записів…",
                 pasteTruncated: "Вставлено перші {limit} символів. Надлишковий текст відкинуто, щоб форма не зависла."
             },
@@ -47,7 +47,7 @@
                 photoDrop: "Drag photos here or click to select", done: "Done", remove: "Remove",
                 invalidPhoto: "only JPEG/PNG files up to 10 MB are allowed.", maxPhotos: "You can attach up to 30 photos.",
                 lastInspection: "Latest inspection", inspectionCode: "Inspection code", subprojectCode: "Subproject code", noReports: "No Inspection Reports yet", noPhotos: "No photos in the latest inspection.",
-                open: "Open", closeFullscreenPhoto: "Close full-screen photo", details: "Details",
+                open: "Open", previewReport: "Preview report", closeFullscreenPhoto: "Close full-screen photo", details: "Details",
                 loading: "Loading data…", uploadingFile: "Uploading file…", importingInspection: "Importing inspection report…", importingFinancial: "Importing financial records…",
                 pasteTruncated: "The first {limit} characters were pasted. Extra text was discarded to keep the form responsive."
             }
@@ -630,15 +630,25 @@
             if (pane) pane.classList.remove("visible");
         }
 
-        function showDashboardPhotoSlider(inspectionDate, subprojectCode, photosJson) {
+        let omsDashboardInspectionPreviewHandler = () => {};
+        function setDashboardInspectionPreviewHandler(handler) {
+            omsDashboardInspectionPreviewHandler = typeof handler === "function" ? handler : () => {};
+        }
+
+        function showDashboardPhotoSlider(reportUuid, inspectionDate, subprojectCode, photosJson) {
             const pane = document.getElementById("dashboard-photo-slider");
             if (!pane) return;
             const photos = JSON.parse(photosJson);
             pane.replaceChildren();
             pane.classList.add("visible");
 
-            const title = document.createElement("div");
+            const title = document.createElement(reportUuid ? "button" : "div");
             title.className = "photo-slider-title";
+            if (reportUuid) {
+                title.type = "button";
+                title.setAttribute("aria-label", omsText("previewReport"));
+                title.onclick = () => omsDashboardInspectionPreviewHandler(reportUuid);
+            }
             title.textContent = inspectionDate
                 ? `${omsText("lastInspection")}: ${formatOmsDate(inspectionDate)}${subprojectCode ? ` · ${omsText("subprojectCode")}: ${subprojectCode}` : ""}`
                 : omsText("noReports");

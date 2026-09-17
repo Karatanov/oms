@@ -13,16 +13,25 @@ import androidx.compose.ui.unit.dp
 import oms.components.NativePaneAnchor
 
 @JsName("showDashboardPhotoSlider")
-external fun showDashboardPhotoSlider(inspectionDate: String?, subprojectCode: String?, photosJson: String)
+external fun showDashboardPhotoSlider(reportUuid: String?, inspectionDate: String?, subprojectCode: String?, photosJson: String)
 
 @JsName("hideDashboardPhotoSlider")
 external fun hideDashboardPhotoSlider()
 
+@JsName("setDashboardInspectionPreviewHandler")
+private external fun setDashboardInspectionPreviewHandler(handler: (String) -> Unit)
+
 /** Browser-native image element is used here so remote thumbnails work in both JS and Wasm builds. */
 @Composable
-fun DashboardPhotoSlider(inspectionDate: String?, subprojectCode: String?, photos: List<ApiInspectionPhoto>?) {
+fun DashboardPhotoSlider(
+    reportUuid: String?,
+    inspectionDate: String?,
+    subprojectCode: String?,
+    photos: List<ApiInspectionPhoto>?,
+    onOpenReport: (String) -> Unit = {}
+) {
     NativePaneAnchor("dashboard-photo-slider", Modifier.fillMaxWidth().height(232.dp))
-    DisposableEffect(inspectionDate, subprojectCode, photos, oms.localization.LocalizationManager.currentLanguage) {
+    DisposableEffect(reportUuid, inspectionDate, subprojectCode, photos, oms.localization.LocalizationManager.currentLanguage) {
         val sliderPhotos = photos.orEmpty()
             .sortedByDescending { it.isMain }
             .take(7)
@@ -32,8 +41,12 @@ fun DashboardPhotoSlider(inspectionDate: String?, subprojectCode: String?, photo
                     thumbnailUrl = photo.thumbnailUrl.toOmsUrl()
                 )
             }
-        showDashboardPhotoSlider(inspectionDate, subprojectCode, Json.encodeToString(sliderPhotos))
-        onDispose(::hideDashboardPhotoSlider)
+        setDashboardInspectionPreviewHandler(onOpenReport)
+        showDashboardPhotoSlider(reportUuid, inspectionDate, subprojectCode, Json.encodeToString(sliderPhotos))
+        onDispose {
+            setDashboardInspectionPreviewHandler { _ -> }
+            hideDashboardPhotoSlider()
+        }
     }
 }
 

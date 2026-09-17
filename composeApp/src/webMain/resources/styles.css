@@ -95,7 +95,8 @@ body {
 .inspection-report-photo-gallery-item:focus-visible { outline: 2px solid #278dad; outline-offset: 2px; }
 .inspection-report-photo-gallery-item.unavailable, .inspection-report-photo-gallery-empty { display: grid; min-height: 140px; place-items: center; padding: 12px; color: #64748b; font: inherit; text-align: center; }
 
-.photo-slider-title { margin-bottom: 12px; color: #1e293b; font-size: 16px; font-weight: 700; }
+.photo-slider-title { display: block; margin: 0 0 12px; padding: 0; border: 0; color: #1e293b; background: transparent; font: inherit; font-size: 16px; font-weight: 700; text-align: left; }
+.photo-slider-title[type="button"]:hover, .photo-slider-title[type="button"]:focus-visible { color: #278dad; text-decoration: underline; }
 .photo-slider-empty { display: grid; min-height: 150px; place-items: center; color: #64748b; }
 .photo-slider-track { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 4px; scrollbar-color: #94a3b8 transparent; }
 .photo-slider-item { flex: 0 0 180px; height: 145px; padding: 0; overflow: hidden; border: 0; border-radius: 10px; background: #e2e8f0; cursor: pointer; }

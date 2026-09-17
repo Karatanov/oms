@@ -58,7 +58,8 @@ fun AppLayout(appState: AppState) {
                     onOpenFinancial = { if (appState.roleCode in setOf("ADMIN", "PROJECT_MANAGER")) appState.navigate(Screen.Financial) },
                     onOpenProjectsByRegion = appState::openProjectsByRegion,
                     onOpenFinancialBySubproject = appState::openFinancialBySubproject,
-                    onOpenProcurementsByStatus = appState::openProcurementsByStatus
+                    onOpenProcurementsByStatus = appState::openProcurementsByStatus,
+                    onOpenInspectionPreview = appState::openInspectionPreview
                 )
 
                 is Screen.Projects -> ProjectsScreen(

@@ -33,7 +33,8 @@ fun DashboardScreen(
     onOpenFinancial: () -> Unit = {},
     onOpenProjectsByRegion: (String) -> Unit = {},
     onOpenFinancialBySubproject: (String) -> Unit = {},
-    onOpenProcurementsByStatus: (String) -> Unit = {}
+    onOpenProcurementsByStatus: (String) -> Unit = {},
+    onOpenInspectionPreview: (String) -> Unit = {}
 ) {
     var dashboard by remember { mutableStateOf<ApiDashboardOverview?>(null) }
     var loading by remember { mutableStateOf(true) }
@@ -154,7 +155,7 @@ fun DashboardScreen(
                         second = { MonthlyActPaymentsChart(MaterialTheme.colorScheme.primary, dashboard?.monthlyActPayments.orEmpty(), onOpenFinancial, chartOrientation) }
                     )
                 }
-                item { DashboardPhotoSlider(latest?.inspectionDate, latest?.subprojectCode, latestPhotos) }
+                item { DashboardPhotoSlider(latest?.uuid, latest?.inspectionDate, latest?.subprojectCode, latestPhotos, onOpenInspectionPreview) }
             }
         }
         Column(Modifier.align(Alignment.CenterEnd).padding(end = 8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
