@@ -15,12 +15,12 @@ RUN gradle -PrenderJsOnly :server:dependencies :composeApp:dependencies --no-dae
 COPY server/src server/src
 COPY composeApp/src composeApp/src
 COPY shared/src shared/src
-RUN gradle -PrenderJsOnly :composeApp:jsBrowserProductionWebpack :server:installDist --no-daemon --max-workers=1 \
+RUN gradle -PrenderJsOnly :composeApp:jsBrowserDevelopmentWebpack :server:installDist --no-daemon --max-workers=1 \
     && test -f /workspace/composeApp/build/processedResources/js/main/index.html \
-    && test -f /workspace/composeApp/build/kotlin-webpack/js/productionExecutable/composeApp.js \
+    && test -f /workspace/composeApp/build/kotlin-webpack/js/developmentExecutable/composeApp.js \
     && mkdir -p /workspace/server/build/render-web \
     && cp -a /workspace/composeApp/build/processedResources/js/main/. /workspace/server/build/render-web/ \
-    && cp -a /workspace/composeApp/build/kotlin-webpack/js/productionExecutable/. /workspace/server/build/render-web/
+    && cp -a /workspace/composeApp/build/kotlin-webpack/js/developmentExecutable/. /workspace/server/build/render-web/
 
 FROM eclipse-temurin:21-jre
 WORKDIR /opt/oms
