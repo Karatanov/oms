@@ -2,9 +2,9 @@ FROM gradle:8.14-jdk21 AS build
 WORKDIR /workspace
 COPY gradle gradle
 COPY gradlew gradlew.bat gradle.properties settings.gradle.kts build.gradle.kts ./
-# Keep the dependency graph in its own Docker layer. Render preserves
-# intermediate BuildKit layers, so an ordinary Kotlin/UI change below does not
-# redownload Gradle plugins and Maven/NPM dependencies on every deployment.
+# Keep the dependency graph in its own Docker layer. BuildKit cache backends
+# (including GitHub Actions) preserve it, so an ordinary Kotlin/UI change below
+# does not redownload Gradle plugins and Maven/NPM dependencies on every build.
 COPY server/build.gradle.kts server/build.gradle.kts
 COPY composeApp/build.gradle.kts composeApp/build.gradle.kts
 COPY shared/build.gradle.kts shared/build.gradle.kts

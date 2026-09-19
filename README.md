@@ -82,6 +82,12 @@ Health endpoints are unauthenticated. All business endpoints are under `/api/v1`
 
 For deployment, smoke testing, rollback and recovery use the D11 report and Administrator Guide linked from [the documentation index](documentation/README.md).
 
+### Fast Render deployment via GHCR
+
+Every push to `master` runs [Publish OMS container](.github/workflows/publish-ghcr.yml). It builds the production `linux/amd64` image on GitHub Actions, publishes `ghcr.io/karatanov/oms:latest` and an immutable SHA tag, and uses the GitHub Actions cache for Docker/Gradle layers. This moves Kotlin and Webpack compilation off Render.
+
+The current `render.yaml` remains Git/Docker-backed until the deployment owner switches the service. To create the image-backed replacement, use [render.image.yaml.example](render.image.yaml.example): in Render Workspace Settings add the registry credential named `ghcr-oms` with GitHub username `Karatanov` and a GitHub PAT that has `read:packages`, then create the image-backed service. Preserve the existing runtime environment variables and health check. Image-backed Render services do not redeploy automatically when `latest` changes, by design; after a successful GitHub Actions run use **Manual Deploy → Deploy latest reference**. This repository deliberately contains no Render deploy hook, so publishing an image never spends Render minutes without an explicit manual deploy.
+
 ## Documentation
 
 Start with [documentation/README.md](documentation/README.md). It identifies the authoritative architecture, database/ERD, API, UAT, manuals, deployment and handover artifacts.

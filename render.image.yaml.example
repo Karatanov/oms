@@ -1,0 +1,19 @@
+# Image-backed alternative for Render.  Keep the current Git-backed
+# render.yaml while this file is prepared: switching an existing service to
+# runtime:image can require creating a new Render service.
+#
+# Before applying this blueprint, create the `ghcr-oms` registry credential in
+# Render Workspace Settings.  It must use the GitHub account name `Karatanov`
+# and a GitHub fine-grained/classic PAT with read:packages.  Do not put the PAT
+# in this repository.
+services:
+  - type: web
+    name: oms-ghcr
+    runtime: image
+    plan: free
+    healthCheckPath: /health
+    image:
+      url: ghcr.io/karatanov/oms:latest
+      creds:
+        fromRegistryCreds:
+          name: ghcr-oms

@@ -15,6 +15,12 @@ The release packages the Compose Web/Wasm UI and Ktor API in one Docker image, w
 4. Flyway initializes an empty MySQL database and applies all ordered migrations. Do not modify applied migrations.
 5. Run the release smoke checks: login, dashboard, projects, project details, SIR, financials, documents and administration. Validate each representative role at the API layer.
 
+## Image-backed Render deployment
+
+For the Render free-tier service, use the repository's GitHub Actions workflow `.github/workflows/publish-ghcr.yml` to build the same multi-stage production image outside Render. A successful `master` run publishes `ghcr.io/karatanov/oms:latest` and an immutable commit-SHA tag for `linux/amd64`, with GitHub Actions layer caching enabled.
+
+Use `render.image.yaml.example` when creating an image-backed replacement service. Add a Render workspace registry credential named `ghcr-oms` with GitHub username `Karatanov` and a token restricted to `read:packages`; no registry token is stored in GitHub Actions, Render YAML or application configuration. Copy the current service's environment variables, health-check path and any disk configuration. Render image-backed services do not detect a changed `latest` tag automatically, so an operator performs **Manual Deploy → Deploy latest reference** after CI is green. This is intentional: publishing a container never consumes Render minutes or restarts the live service without an explicit deploy decision.
+
 ## Validation evidence
 
 - A fresh Java 21 distribution was built from source, packaged into an isolated Docker image, and started with MySQL 8.4 as the integrated OMS UI/API.
