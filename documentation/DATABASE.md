@@ -18,6 +18,8 @@ Migration V36 adds the two full contract-information groups to `projects`: techn
 
 Migration V42 changes `financial_records.amount` to `DECIMAL(18,2)`. Financial invoices, acts, payments and advances preserve the exact amount in their selected currency, including cents; API clients may submit a JSON decimal number with no more than two fractional digits. The frozen `amount_eur_cents` field remains the deterministic EUR equivalent used by charts.
 
+Migration V51 simplifies `procurement_records` to one authoritative subproject code. The former import-only duplicates `sp_id`, `source_type` and `procurement_id` are removed from the physical schema; a selected subproject part is retained as `sub_project_lot_id`. Region, tranche and project relation are derived from the selected OMS subproject rather than trusted from a write request. Existing `prozorro_tender_id` URLs are retained, while legacy tender numbers are normalized to the canonical PROZORRO tender URL. The migration also clears the documents table and its durable mirrors: financial records remain ledger entries and are never regenerated as document records.
+
 ```mermaid
 erDiagram
     ROLES ||--o{ USERS : assigns

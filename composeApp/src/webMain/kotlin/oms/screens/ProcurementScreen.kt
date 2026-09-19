@@ -45,7 +45,6 @@ import oms.components.OmsDateField
 import oms.components.TableActionIconButton
 import oms.components.SortableTableHeader
 import oms.components.InlineOptionPicker
-import oms.components.UkraineRegionAutocomplete
 import oms.components.currentIsoDate
 import oms.components.WasmSafeOverlay
 import oms.components.toOmsDate
@@ -179,7 +178,7 @@ fun ProcurementScreen(
             (procurementMethodFilter == null || record.procurementMethod == procurementMethodFilter) &&
             (statusFilter?.let { sameProcurementStatus(record.purchaseStatus, it) } ?: true) &&
             (signedContractMonthFilter == null || (record.contractDate ?: record.estimatedContractDate)?.take(7) == signedContractMonthFilter) &&
-            (search.isBlank() || listOf(record.subProjectId, record.subProjectLotId.orEmpty(), record.oblastName, record.promotorName.orEmpty(), record.subprojectNameUk.orEmpty(), record.subprojectNameEn.orEmpty(), record.procurementId.orEmpty()).any { it.contains(search, true) })
+            (search.isBlank() || listOf(record.subProjectId, record.subProjectLotId.orEmpty(), record.oblastName, record.promotorName.orEmpty(), record.subprojectNameUk.orEmpty(), record.subprojectNameEn.orEmpty(), record.tenderId.orEmpty()).any { it.contains(search, true) })
         }.sortedWith(compareBy<ApiProcurementRecord> { it.sortKey(sortColumnIndex) }
             .let { comparator -> if (sortAscending) comparator else comparator.reversed() })
         fun selectSort(columnIndex: Int) {
@@ -426,24 +425,24 @@ private fun ProcurementFilters(
                         ::localizedUkraineRegion,
                         clearLabel = LocalizationManager.t("all"), onClear = { onOblastChange(null) }
                     )
-                    6 -> InlineOptionPicker(
+                    5 -> InlineOptionPicker(
                         records.map { it.subProjectId }.filter(String::isNotBlank).distinct().sorted(), subprojectFilter,
                         LocalizationManager.t("proc_subproject_id"), onSubprojectChange,
                         clearLabel = LocalizationManager.t("all"), onClear = { onSubprojectChange(null) }
                     )
-                    8 -> InlineOptionPicker(
+                    7 -> InlineOptionPicker(
                         records.mapNotNull { it.sourceContractType?.takeIf(String::isNotBlank) }.distinct().sorted(),
                         contractTypeFilter, LocalizationManager.t("proc_source_contract_type"), onContractTypeChange,
                         LocalizationManager::procurementValue,
                         clearLabel = LocalizationManager.t("all"), onClear = { onContractTypeChange(null) }
                     )
-                    15 -> InlineOptionPicker(
+                    12 -> InlineOptionPicker(
                         records.mapNotNull { it.procurementMethod?.takeIf(String::isNotBlank) }.distinct().sorted(),
                         procurementMethodFilter, LocalizationManager.t("proc_method"), onProcurementMethodChange,
                         LocalizationManager::procurementValue,
                         clearLabel = LocalizationManager.t("all"), onClear = { onProcurementMethodChange(null) }
                     )
-                    22 -> InlineOptionPicker(
+                    20 -> InlineOptionPicker(
                         procurementStatuses, statusFilter, LocalizationManager.t("procurement_status"), onStatusChange,
                         LocalizationManager::procurementStatus,
                         clearLabel = LocalizationManager.t("all"), onClear = { onStatusChange(null) }
@@ -507,17 +506,17 @@ private fun ProcurementRow(
                 SortableTableHeader(value, index == sortColumnIndex, sortAscending, { onSort(index) }, Modifier.width(width.dp))
                 return@forEachIndexed
             }
-            if (!isHeader && index == 22) Box(Modifier.width(width.dp).padding(horizontal = 6.dp)) {
+            if (!isHeader && index == 20) Box(Modifier.width(width.dp).padding(horizontal = 6.dp)) {
                 oms.components.OmsBadge(value, procurementStatusColor(record?.purchaseStatus ?: value))
-            } else if (!isHeader && index == 8 && value.isNotBlank()) Box(Modifier.width(width.dp).padding(horizontal = 6.dp)) {
+            } else if (!isHeader && index == 7 && value.isNotBlank()) Box(Modifier.width(width.dp).padding(horizontal = 6.dp)) {
                 oms.components.OmsBadge(value, procurementContractTypeColor(record?.sourceContractType ?: value))
-            } else if (!isHeader && index == 15 && value.isNotBlank()) Box(Modifier.width(width.dp).padding(horizontal = 6.dp)) {
+            } else if (!isHeader && index == 12 && value.isNotBlank()) Box(Modifier.width(width.dp).padding(horizontal = 6.dp)) {
                 oms.components.OmsBadge(value, procurementMethodColor(record?.procurementMethod ?: value))
-            } else if (!isHeader && index == 10 && value.isNotBlank()) {
+            } else if (!isHeader && index == 15 && value.isNotBlank()) {
                 Text(
                     value,
                     Modifier.width(width.dp).padding(horizontal = 6.dp)
-                        .clickable { uriHandler.openUri(value.toProzorroTenderUrl()) },
+                        .clickable { uriHandler.openUri(record?.prozorroTenderId?.toProzorroTenderUrl() ?: value.toProzorroTenderUrl()) },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.primary,
                     textDecoration = TextDecoration.Underline
@@ -536,14 +535,13 @@ private fun ProcurementRow(
 
 /** Keeps cell rendering and sorting aligned with every displayed procurement column. */
 private fun ApiProcurementRecord.displayValues(): List<String> = listOf(
-    recordNumber.toString(), if (batchId == 8) "A" else if (batchId == 9) "B" else batchId.toString(), localizedUkraineRegion(oblastName), oblastId,
+    recordNumber.toString(), if (batchId == 8) "A" else if (batchId == 9) "B" else batchId.toString(), localizedUkraineRegion(oblastName),
     promotorName.orEmpty(), if (LocalizationManager.currentLanguage == Language.EN) subprojectNameEn ?: subprojectNameUk.orEmpty() else subprojectNameUk ?: subprojectNameEn.orEmpty(),
-    subProjectId, spId.orEmpty(), sourceContractType.orEmpty().let(LocalizationManager::procurementValue),
-    sourceType.orEmpty().let(LocalizationManager::procurementValue), procurementId.orEmpty(),
+    subProjectId, subProjectLotId.orEmpty(), sourceContractType.orEmpty().let(LocalizationManager::procurementValue),
     subprojectTotalCostUah.format(0), subprojectEibFinancingUah.format(0), subprojectLocalFinancingUah.format(0), estimatedTotalEur.format(2),
     procurementMethod.orEmpty().let(LocalizationManager::procurementValue),
     tenderDocumentType.orEmpty().let(LocalizationManager::procurementValue),
-    publishedInOjeu.orEmpty().let(LocalizationManager::procurementValue), estimatedProzorroDate.toOmsDate(), estimatedBidSubmissionDate.toOmsDate(),
+    publishedInOjeu.orEmpty().let(LocalizationManager::procurementValue), tenderId.orEmpty(), estimatedProzorroDate.toOmsDate(), estimatedBidSubmissionDate.toOmsDate(),
     estimatedContractDate.toOmsDate(), estimatedContractEndDate.toOmsDate(), LocalizationManager.procurementStatus(purchaseStatus.orEmpty()),
     localFinancingPct?.let { "${it.format(2)}%" }.orEmpty(), comments.orEmpty()
 )
@@ -583,11 +581,11 @@ private fun procurementMethodColor(method: String) = when {
 private fun ApiProcurementRecord.sortKey(columnIndex: Int): String = when (columnIndex) {
     0 -> recordNumber.toString().padStart(12, '0')
     1 -> batchId.toString().padStart(12, '0')
-    11 -> subprojectTotalCostUah.sortKey()
-    12 -> subprojectEibFinancingUah.sortKey()
-    13 -> subprojectLocalFinancingUah.sortKey()
-    14 -> estimatedTotalEur.sortKey()
-    23 -> localFinancingPct.sortKey()
+    8 -> subprojectTotalCostUah.sortKey()
+    9 -> subprojectEibFinancingUah.sortKey()
+    10 -> subprojectLocalFinancingUah.sortKey()
+    11 -> estimatedTotalEur.sortKey()
+    21 -> localFinancingPct.sortKey()
     else -> displayValues().getOrElse(columnIndex) { "" }.lowercase()
 }
 
@@ -596,15 +594,15 @@ private fun Double?.sortKey(): String = this?.let { value ->
 } ?: ""
 
 private fun procurementHeaderLabels(): List<String> = if (LocalizationManager.currentLanguage == Language.EN) listOf(
-    "No.", "Tranche", "Region", "Region ID", "Promotor", "Subproject name", "Subproject ID", "SP ID", "Contract type", "Type", "Procurement ID",
-    "Subproject cost, UAH", "EIB financing, UAH", "Local financing, UAH", "Estimated total, EUR", "Procurement method", "TD type", "Published in OJEU",
+    "No.", "Tranche", "Region", "Promotor", "Subproject name", "Subproject code", "Subproject part", "Contract type",
+    "Subproject cost, UAH", "EIB financing, UAH", "Local financing, UAH", "Estimated total, EUR", "Procurement method", "TD type", "Published in OJEU", "PROZORRO tender",
     "Est. PROZORRO publication", "Est. bid submission", "Est. contract signing", "Est. contract end", "Procurement status", "Local co-financing", "Comments"
 ) else listOf(
-    "№", "Транш", "Область", "Код області", "Бенефіціар", "Назва субпроєкту", "Код субпроєкту", "SP ID", "Тип контракту", "Тип", "ID закупівлі",
-    "Вартість субпроєкту, грн", "Фінансування ЄІБ, грн", "Місцеве фінансування, грн", "Оціночна сума, EUR", "Метод закупівлі", "Тип ТД", "Опубліковано в OJEU",
+    "№", "Транш", "Область", "Бенефіціар", "Назва субпроєкту", "Код субпроєкту", "Частина субпроєкту", "Тип контракту",
+    "Вартість субпроєкту, грн", "Фінансування ЄІБ, грн", "Місцеве фінансування, грн", "Оціночна сума, EUR", "Метод закупівлі", "Тип ТД", "Опубліковано в OJEU", "Тендер PROZORRO",
     "План. публікація PROZORRO", "План. подання пропозицій", "План. підписання договору", "План. завершення договору", "Статус закупівлі", "Місцеве співфінансування", "Коментарі"
 )
-private val columnWidths = listOf(55, 132, 160, 90, 230, 340, 135, 110, 160, 70, 150, 170, 170, 180, 160, 250, 180, 150, 145, 145, 145, 145, 230, 155, 260)
+private val columnWidths = listOf(55, 132, 160, 230, 340, 135, 145, 160, 170, 170, 180, 160, 250, 180, 150, 190, 145, 145, 145, 145, 230, 155, 260)
 private val procurementStatuses = listOf(
     "Не розпочато / Not Started",
     "Закупівля триває / Tender Ongoing",
@@ -636,7 +634,7 @@ private fun sameProcurementStatus(first: String?, second: String?): Boolean =
 
 private fun String.toProzorroTenderUrl(): String =
     if (startsWith("https://", ignoreCase = true) || startsWith("http://", ignoreCase = true)) this
-    else "https://prozorro.gov.ua/tender/$this"
+    else "https://prozorro.gov.ua/uk/tender/$this"
 
 private fun Double?.format(decimals: Int): String = this?.let { value ->
     val multiplier = if (decimals == 0) 1.0 else 100.0
@@ -651,17 +649,10 @@ private fun ProcurementEditorDialog(
     onSave: (ProcurementRecordRequest) -> Unit
 ) {
     var number by remember(existing?.id) { mutableStateOf(existing?.recordNumber?.toString().orEmpty()) }
-    var batch by remember(existing?.id) { mutableStateOf(existing?.batchId?.toString().orEmpty()) }
-    var oblastName by remember(existing?.id) { mutableStateOf(existing?.oblastName.orEmpty()) }
-    var oblastId by remember(existing?.id) { mutableStateOf(existing?.oblastId.orEmpty()) }
     var subprojectId by remember(existing?.id) { mutableStateOf(existing?.subProjectId.orEmpty()) }
+    var subprojectPartId by remember(existing?.id) { mutableStateOf(existing?.subProjectLotId.orEmpty()) }
     var promotorName by remember(existing?.id) { mutableStateOf(existing?.promotorName.orEmpty()) }
-    var subprojectNameUk by remember(existing?.id) { mutableStateOf(existing?.subprojectNameUk.orEmpty()) }
-    var subprojectNameEn by remember(existing?.id) { mutableStateOf(existing?.subprojectNameEn.orEmpty()) }
-    var spId by remember(existing?.id) { mutableStateOf(existing?.spId.orEmpty()) }
     var contractType by remember(existing?.id) { mutableStateOf(existing?.sourceContractType.orEmpty()) }
-    var sourceType by remember(existing?.id) { mutableStateOf(existing?.sourceType.orEmpty()) }
-    var procurementId by remember(existing?.id) { mutableStateOf(existing?.procurementId.orEmpty()) }
     var totalCostUah by remember(existing?.id) { mutableStateOf(existing?.subprojectTotalCostUah?.toString().orEmpty()) }
     var eibFinancingUah by remember(existing?.id) { mutableStateOf(existing?.subprojectEibFinancingUah?.toString().orEmpty()) }
     var localFinancingUah by remember(existing?.id) { mutableStateOf(existing?.subprojectLocalFinancingUah?.toString().orEmpty()) }
@@ -678,11 +669,13 @@ private fun ProcurementEditorDialog(
     var comments by remember(existing?.id) { mutableStateOf(existing?.comments.orEmpty()) }
     val availableSubprojects = ProjectRepository.projects.filter { it.projectType == "subproject" }
     LaunchedEffect(existing?.id) { ProjectRepository.refresh() }
+    val selectedSubproject = availableSubprojects.firstOrNull { it.siteNumber.equals(subprojectId, ignoreCase = true) }
+    val availableParts = selectedSubproject?.let { subproject ->
+        ProjectRepository.projects.filter { it.projectType == "subproject_part" && it.parentProjectUuid == subproject.id }
+    }.orEmpty()
     val numberValid = number.toIntOrNull()?.let { it > 0 } == true
-    val batchValid = batch.toIntOrNull()?.let { it == 8 || it == 9 } == true
-    val regionValid = oblastName.isNotBlank()
-    val subprojectValid = subprojectId.isNotBlank() && availableSubprojects.any { it.siteNumber == subprojectId }
-    val valid = numberValid && batchValid && regionValid && subprojectValid
+    val subprojectValid = selectedSubproject != null
+    val valid = numberValid && subprojectValid
     fun numeric(value: String, decimals: Boolean = false, update: (String) -> Unit) {
         update(value.filter { it.isDigit() || (decimals && (it == '.' || it == ',')) }.replace(',', '.').let { text -> if (decimals && text.count { it == '.' } > 1) text.dropLast(1) else text })
     }
@@ -693,42 +686,39 @@ private fun ProcurementEditorDialog(
         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(LocalizationManager.t(if (existing == null) "add_procurement_record" else "edit_procurement_record"), style = MaterialTheme.typography.titleLarge)
             Column(Modifier.fillMaxWidth().heightIn(max = 520.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(number, { numeric(it, update = { value -> number = value }) }, label = { Text("№ *") }, isError = !numberValid, supportingText = { if (!numberValid) Text(LocalizationManager.t("field_required")) }, modifier = Modifier.weight(1f), singleLine = true)
-                    InlineOptionPicker(listOf("8", "9"), batch.takeIf { it in listOf("8", "9") }, "${LocalizationManager.t("tranche")} *", { batch = it }, { if (it == "8") LocalizationManager.t("tranche_a") else LocalizationManager.t("tranche_b") }, Modifier.weight(1f))
-                }
-                UkraineRegionAutocomplete(oblastName, { oblastName = it }, LocalizationManager.t("proc_oblast_name"), required = true)
-                if (!regionValid) Text(LocalizationManager.t("field_required"), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
-                OutlinedTextField(promotorName, { promotorName = it }, label = { Text(procurementHeaderLabels()[4]) }, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(subprojectNameUk, { subprojectNameUk = it }, label = { Text("${procurementHeaderLabels()[5]} (UA)") }, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(subprojectNameEn, { subprojectNameEn = it }, label = { Text("${procurementHeaderLabels()[5]} (EN)") }, modifier = Modifier.fillMaxWidth())
                 AutocompleteField(subprojectId, { entered ->
                     subprojectId = entered
-                    availableSubprojects.firstOrNull { it.siteNumber == entered }?.let { project ->
-                        subprojectNameUk = project.name
-                        subprojectNameEn = project.nameEn.orEmpty()
-                        oblastName = project.region
-                        oblastId = project.siteNumber.take(2).uppercase()
-                        batch = if (project.trancheNumber == 2 || project.trancheNumber == 9) "9" else "8"
-                    }
+                    if (availableSubprojects.any { it.siteNumber.equals(entered, ignoreCase = true) }) subprojectPartId = ""
                 }, "${LocalizationManager.t("proc_subproject_id")} *",
                     availableSubprojects.map { it.siteNumber to "${it.siteNumber} — ${it.localizedName()}" })
                 if (!subprojectValid) Text(LocalizationManager.t("field_required"), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
-                OutlinedTextField(spId, { spId = it }, label = { Text(procurementHeaderLabels()[7]) }, modifier = Modifier.fillMaxWidth())
-                InlineOptionPicker(procurementContractTypes, contractType.takeIf { it.isNotBlank() }, procurementHeaderLabels()[8], { contractType = it }, LocalizationManager::procurementValue)
-                OutlinedTextField(sourceType, { sourceType = it }, label = { Text(procurementHeaderLabels()[9]) }, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(procurementId, { procurementId = it }, label = { Text(procurementHeaderLabels()[10]) }, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(totalCostUah, { numeric(it, true) { value -> totalCostUah = value } }, label = { Text(procurementHeaderLabels()[11]) }, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(eibFinancingUah, { numeric(it, true) { value -> eibFinancingUah = value } }, label = { Text(procurementHeaderLabels()[12]) }, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(localFinancingUah, { numeric(it, true) { value -> localFinancingUah = value } }, label = { Text(procurementHeaderLabels()[13]) }, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(estimatedTotalEur, { numeric(it, true) { value -> estimatedTotalEur = value } }, label = { Text(procurementHeaderLabels()[14]) }, modifier = Modifier.fillMaxWidth())
-                InlineOptionPicker(procurementMethods, procurementMethod.takeIf { it.isNotBlank() }, procurementHeaderLabels()[15], { procurementMethod = it }, LocalizationManager::procurementValue)
-                OutlinedTextField(tenderDocumentType, { tenderDocumentType = it }, label = { Text(procurementHeaderLabels()[16]) }, modifier = Modifier.fillMaxWidth())
-                InlineOptionPicker(ojeuPublicationOptions, publishedInOjeu.takeIf { it.isNotBlank() }, procurementHeaderLabels()[17], { publishedInOjeu = it }, LocalizationManager::procurementValue)
-                OmsDateField(estimatedProzorroDate, { estimatedProzorroDate = it }, procurementHeaderLabels()[18], Modifier.fillMaxWidth())
-                OmsDateField(estimatedBidSubmissionDate, { estimatedBidSubmissionDate = it }, procurementHeaderLabels()[19], Modifier.fillMaxWidth())
-                OmsDateField(estimatedContractDate, { estimatedContractDate = it }, procurementHeaderLabels()[20], Modifier.fillMaxWidth())
-                OmsDateField(estimatedContractEndDate, { estimatedContractEndDate = it }, procurementHeaderLabels()[21], Modifier.fillMaxWidth())
+                selectedSubproject?.let { project ->
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                        OutlinedTextField(project.localizedName(), {}, label = { Text(procurementHeaderLabels()[4]) }, modifier = Modifier.weight(1f), enabled = false, singleLine = true)
+                        OutlinedTextField(localizedUkraineRegion(project.region), {}, label = { Text(procurementHeaderLabels()[2]) }, modifier = Modifier.weight(1f), enabled = false, singleLine = true)
+                        OutlinedTextField(if (project.trancheNumber == 2 || project.trancheNumber == 9) "B" else "A", {}, label = { Text(LocalizationManager.t("tranche")) }, modifier = Modifier.width(100.dp), enabled = false, singleLine = true)
+                    }
+                }
+                if (availableParts.isNotEmpty() || subprojectPartId.isNotBlank()) {
+                    AutocompleteField(subprojectPartId, { subprojectPartId = it }, LocalizationManager.t("subproject_part"),
+                        availableParts.map { it.siteNumber to "${it.siteNumber} — ${it.localizedName()}" })
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(number, { numeric(it, update = { value -> number = value }) }, label = { Text("№ *") }, isError = !numberValid, supportingText = { if (!numberValid) Text(LocalizationManager.t("field_required")) }, modifier = Modifier.weight(1f), singleLine = true)
+                }
+                OutlinedTextField(promotorName, { promotorName = it }, label = { Text(procurementHeaderLabels()[3]) }, modifier = Modifier.fillMaxWidth())
+                InlineOptionPicker(procurementContractTypes, contractType.takeIf { it.isNotBlank() }, procurementHeaderLabels()[7], { contractType = it }, LocalizationManager::procurementValue)
+                OutlinedTextField(totalCostUah, { numeric(it, true) { value -> totalCostUah = value } }, label = { Text(procurementHeaderLabels()[8]) }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(eibFinancingUah, { numeric(it, true) { value -> eibFinancingUah = value } }, label = { Text(procurementHeaderLabels()[9]) }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(localFinancingUah, { numeric(it, true) { value -> localFinancingUah = value } }, label = { Text(procurementHeaderLabels()[10]) }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(estimatedTotalEur, { numeric(it, true) { value -> estimatedTotalEur = value } }, label = { Text(procurementHeaderLabels()[11]) }, modifier = Modifier.fillMaxWidth())
+                InlineOptionPicker(procurementMethods, procurementMethod.takeIf { it.isNotBlank() }, procurementHeaderLabels()[12], { procurementMethod = it }, LocalizationManager::procurementValue)
+                OutlinedTextField(tenderDocumentType, { tenderDocumentType = it }, label = { Text(procurementHeaderLabels()[13]) }, modifier = Modifier.fillMaxWidth())
+                InlineOptionPicker(ojeuPublicationOptions, publishedInOjeu.takeIf { it.isNotBlank() }, procurementHeaderLabels()[14], { publishedInOjeu = it }, LocalizationManager::procurementValue)
+                OmsDateField(estimatedProzorroDate, { estimatedProzorroDate = it }, procurementHeaderLabels()[16], Modifier.fillMaxWidth())
+                OmsDateField(estimatedBidSubmissionDate, { estimatedBidSubmissionDate = it }, procurementHeaderLabels()[17], Modifier.fillMaxWidth())
+                OmsDateField(estimatedContractDate, { estimatedContractDate = it }, procurementHeaderLabels()[18], Modifier.fillMaxWidth())
+                OmsDateField(estimatedContractEndDate, { estimatedContractEndDate = it }, procurementHeaderLabels()[19], Modifier.fillMaxWidth())
                 InlineOptionPicker(
                     options = procurementStatuses,
                     selected = status.takeIf { it in procurementStatuses },
@@ -736,29 +726,22 @@ private fun ProcurementEditorDialog(
                     onSelect = { status = it },
                     itemLabel = LocalizationManager::procurementStatus
                 )
-                OutlinedTextField(localFinancingPct, { numeric(it, true) { value -> localFinancingPct = value } }, label = { Text(procurementHeaderLabels()[23]) }, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(comments, { comments = it }, label = { Text(procurementHeaderLabels()[24]) }, modifier = Modifier.fillMaxWidth(), minLines = 3)
+                OutlinedTextField(localFinancingPct, { numeric(it, true) { value -> localFinancingPct = value } }, label = { Text(procurementHeaderLabels()[21]) }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(comments, { comments = it }, label = { Text(procurementHeaderLabels()[22]) }, modifier = Modifier.fillMaxWidth(), minLines = 3)
             }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
                 OutlinedButton(onClick = onDismiss) { Text(LocalizationManager.t("cancel")) }
                 Button(onClick = {
-                    // Region IDs originate from the selected subproject.  They
-                    // are not editable business data and therefore cannot get
-                    // out of sync with the region displayed in the form.
-                    val derivedOblastId = availableSubprojects.firstOrNull { it.region == oblastName }
-                        ?.siteNumber?.take(2)?.uppercase()
-                        ?: oblastId
+                    val selected = selectedSubproject ?: return@Button
+                    val selectedBatch = if (selected.trancheNumber == 2 || selected.trancheNumber == 9) 9 else 8
                     onSave(ProcurementRecordRequest(
-                        recordNumber = number.toInt(), batchId = batch.toInt(), oblastName = oblastName, oblastId = derivedOblastId, subProjectId = subprojectId,
-                        // Legacy import-only columns are no longer edited, but an
-                        // edit must not erase them from records that already have
-                        // these historical values.
-                        subProjectLotId = existing?.subProjectLotId, tenderId = existing?.tenderId, prozorroTenderId = existing?.prozorroTenderId,
+                        recordNumber = number.toInt(), batchId = selectedBatch, oblastName = selected.region, oblastId = selected.siteNumber.take(2).uppercase(), subProjectId = selected.siteNumber,
+                        subProjectLotId = subprojectPartId.ifBlank { null }, tenderId = existing?.tenderId, prozorroTenderId = existing?.prozorroTenderId,
                         contractorNameUkr = existing?.contractorNameUkr, contractorNameEng = existing?.contractorNameEng, contractorId = existing?.contractorId,
                         contractDate = existing?.contractDate, contractEndDate = existing?.contractEndDate, contractDurationMonths = existing?.contractDurationMonths,
                         contractAmountUah = existing?.contractAmountUah, contractAmountEur = existing?.contractAmountEur, financingContractDifferencePct = existing?.financingContractDifferencePct,
-                        promotorName = promotorName.ifBlank { null }, subprojectNameUk = subprojectNameUk.ifBlank { null }, subprojectNameEn = subprojectNameEn.ifBlank { null }, spId = spId.ifBlank { null },
-                        sourceContractType = contractType.ifBlank { null }, sourceType = sourceType.ifBlank { null }, procurementId = procurementId.ifBlank { null },
+                        promotorName = promotorName.ifBlank { null }, subprojectNameUk = selected.name, subprojectNameEn = selected.nameEn,
+                        sourceContractType = contractType.ifBlank { null },
                         subprojectTotalCostUah = totalCostUah.toDoubleOrNull(), subprojectEibFinancingUah = eibFinancingUah.toDoubleOrNull(), subprojectLocalFinancingUah = localFinancingUah.toDoubleOrNull(), estimatedTotalEur = estimatedTotalEur.toDoubleOrNull(),
                         procurementMethod = procurementMethod.ifBlank { null }, tenderDocumentType = tenderDocumentType.ifBlank { null }, publishedInOjeu = publishedInOjeu.ifBlank { null },
                         estimatedProzorroDate = estimatedProzorroDate.ifBlank { null }, estimatedBidSubmissionDate = estimatedBidSubmissionDate.ifBlank { null }, estimatedContractDate = estimatedContractDate.ifBlank { null }, estimatedContractEndDate = estimatedContractEndDate.ifBlank { null },

@@ -90,8 +90,5 @@ fun Application.configureDatabase() {
      */
     Database.connect(dataSource)
 
-    val generatedActs = AppContainer.generatedFinancialActService.ensureGeneratedActs()
-    if (generatedActs > 0) log.info("Generated $generatedActs financial payment act(s).")
-
     log.info("База даних успішно ініціалізована.")
 }
