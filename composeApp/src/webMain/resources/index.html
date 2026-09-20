@@ -16,8 +16,15 @@
     <script>
         function omsApiUrl(path) {
             const local = ["localhost", "127.0.0.1"].includes(window.location.hostname);
-            const base = local && window.location.port === "8081"
-                ? `${window.location.protocol}//${window.location.hostname}:8080/api/v1` : "/api/v1";
+            // The published SPA lives on GitHub Pages while the API remains
+            // on Render. Native upload/download helpers use this function,
+            // so it must follow the same cross-origin rule as Kotlin code.
+            const pages = window.location.hostname === "karatanov.github.io";
+            const base = pages
+                ? "https://oms-3j46.onrender.com/api/v1"
+                : local && window.location.port === "8081"
+                    ? `${window.location.protocol}//${window.location.hostname}:8080/api/v1`
+                    : "/api/v1";
             return `${base}${path}`;
         }
 

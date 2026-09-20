@@ -20,6 +20,10 @@ fun Application.configureCors() {
         allowHost("127.0.0.1:8081", schemes = listOf("http"))
         allowHost("localhost:8082", schemes = listOf("http"))
         allowHost("127.0.0.1:8082", schemes = listOf("http"))
+        // The production SPA is published by the repository's GitHub Pages
+        // workflow. Cookie-backed login requires an explicit credentialed
+        // CORS origin; keep custom deployments configurable below as well.
+        allowHost("karatanov.github.io", schemes = listOf("https"))
         allowHeader(HttpHeaders.ContentType)
         allowMethod(HttpMethod.Post)
         allowMethod(HttpMethod.Delete)

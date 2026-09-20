@@ -88,6 +88,12 @@ Every push to `master` runs [Publish OMS container](.github/workflows/publish-gh
 
 The current `render.yaml` remains Git/Docker-backed until the deployment owner switches the service. To create the image-backed replacement, use [render.image.yaml.example](render.image.yaml.example): in Render Workspace Settings add the registry credential named `ghcr-oms` with GitHub username `Karatanov` and a GitHub PAT that has `read:packages`, then create the image-backed service. Preserve the existing runtime environment variables and health check. Image-backed Render services do not redeploy automatically when `latest` changes, by design; after a successful GitHub Actions run use **Manual Deploy → Deploy latest reference**. This repository deliberately contains no Render deploy hook, so publishing an image never spends Render minutes without an explicit manual deploy.
 
+### Frontend on GitHub Pages
+
+[Publish OMS frontend to GitHub Pages](.github/workflows/publish-pages.yml) builds the browser bundle on GitHub Actions and publishes it at `https://karatanov.github.io/oms/`. The SPA calls the Render API at `https://oms-3j46.onrender.com`; its cookie-enabled CORS origin is explicitly allowed by the server. Enable **Settings → Pages → Build and deployment → Source: GitHub Actions** once for the repository if Pages has not yet been activated.
+
+After that setup, frontend-only commits need no Render deployment: GitHub Pages publishes them automatically. Backend changes, Flyway migrations and server-side file handling still require a Render deployment. A mixed change updates Pages automatically and requires one explicit Render deployment for its backend portion.
+
 ## Documentation
 
 Start with [documentation/README.md](documentation/README.md). It identifies the authoritative architecture, database/ERD, API, UAT, manuals, deployment and handover artifacts.
