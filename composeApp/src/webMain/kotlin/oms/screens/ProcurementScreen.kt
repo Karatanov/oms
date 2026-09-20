@@ -700,6 +700,7 @@ private fun ProcurementEditorDialog(
                         availableParts.map { it.siteNumber to "${it.siteNumber} — ${it.localizedName()}" })
                 }
                 OutlinedTextField(promotorName, { promotorName = it }, label = { Text(procurementHeaderLabels()[2]) }, modifier = Modifier.fillMaxWidth())
+                Text(procurementHeaderLabels()[6], style = MaterialTheme.typography.labelMedium)
                 InlineOptionPicker(procurementContractTypes, contractType.takeIf { it.isNotBlank() }, procurementHeaderLabels()[6], { contractType = it }, LocalizationManager::procurementValue)
                 OutlinedTextField(totalCostUah, { numeric(it, true) { value -> totalCostUah = value } }, label = { Text(procurementHeaderLabels()[7]) }, modifier = Modifier.fillMaxWidth())
                 OutlinedTextField(eibFinancingUah, { numeric(it, true) { value -> eibFinancingUah = value } }, label = { Text(procurementHeaderLabels()[8]) }, modifier = Modifier.fillMaxWidth())
