@@ -694,7 +694,8 @@ private fun ReadOnlyQualityAssessmentTable(remarks: List<oms.data.ManualRemarkRe
                 else InspectionActivityPhotoGallery(
                     activityKey = "quality-$index",
                     photos = remarkPhotos,
-                    modifier = Modifier.weight(.8f)
+                    modifier = Modifier.weight(.8f),
+                    nativeGallery = false
                 )
             }
         }
@@ -776,7 +777,8 @@ private fun ReadOnlyActivitiesTable(
                 else InspectionActivityPhotoGallery(
                     activityKey = "activity-$index",
                     photos = activityPhotos,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
+                    nativeGallery = false
                 )
             }
         }
@@ -817,7 +819,8 @@ private fun ReadOnlyOngoingObservationsTable(observations: List<String>, photos:
                 else InspectionActivityPhotoGallery(
                     activityKey = "observation-$index",
                     photos = observationPhotos,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
+                    nativeGallery = false
                 )
             }
         }

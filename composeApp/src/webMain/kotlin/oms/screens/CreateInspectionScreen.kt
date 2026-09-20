@@ -80,6 +80,9 @@ external fun showInspectionActivityPhotoGallery(activityKey: String, photosJson:
 @JsName("hideInspectionActivityPhotoGallery")
 external fun hideInspectionActivityPhotoGallery(activityKey: String)
 
+@JsName("openInspectionPhotoLightbox")
+external fun openInspectionPhotoLightbox(photosJson: String)
+
 @Composable
 fun CreateInspectionScreen(
     isEditMode: Boolean = false,
@@ -732,16 +735,33 @@ internal fun PendingInspectionPhotoPreviews(activityKey: String, revision: Int, 
 
 /** Compact evidence gallery anchored next to one current-work row. */
 @Composable
-internal fun InspectionActivityPhotoGallery(activityKey: String, photos: List<ApiInspectionPhoto>, modifier: Modifier = Modifier) {
+internal fun InspectionActivityPhotoGallery(
+    activityKey: String,
+    photos: List<ApiInspectionPhoto>,
+    modifier: Modifier = Modifier,
+    nativeGallery: Boolean = true
+) {
+    val publicPhotos = photos.map { photo ->
+        photo.copy(
+            downloadUrl = photo.downloadUrl.toInspectionPhotoUrl(),
+            thumbnailUrl = photo.thumbnailUrl.toInspectionPhotoUrl()
+        )
+    }
+    // A native gallery is useful inside the editor, but it is an absolutely
+    // positioned DOM element.  Never mount it in the read-only report: it can
+    // end up above the Compose canvas after a relayout and swallow all clicks.
+    if (!nativeGallery) {
+        OutlinedButton(
+            onClick = { openInspectionPhotoLightbox(Json.encodeToString(publicPhotos)) },
+            modifier = modifier.heightIn(min = 40.dp)
+        ) {
+            Text("${LocalizationManager.t("photos")} (${photos.size})")
+        }
+        return
+    }
     val paneId = "inspection-activity-photo-gallery-$activityKey"
     NativePaneAnchor(paneId, modifier.height(88.dp))
     DisposableEffect(activityKey, photos, LocalizationManager.currentLanguage) {
-        val publicPhotos = photos.map { photo ->
-            photo.copy(
-                downloadUrl = photo.downloadUrl.toInspectionPhotoUrl(),
-                thumbnailUrl = photo.thumbnailUrl.toInspectionPhotoUrl()
-            )
-        }
         showInspectionActivityPhotoGallery(activityKey, Json.encodeToString(publicPhotos))
         onDispose { hideInspectionActivityPhotoGallery(activityKey) }
     }

@@ -731,6 +731,15 @@
             render();
         }
 
+        // Read-only SIR screens deliberately use a normal Compose button for
+        // evidence.  Opening the lightbox on demand avoids a fixed native DOM
+        // gallery being placed above the application and swallowing navigation
+        // clicks after a report has finished rendering.
+        function openInspectionPhotoLightbox(photosJson) {
+            const photos = JSON.parse(photosJson || "[]");
+            if (photos.length) openPhotoLightbox(photos, photos[0].uuid);
+        }
+
         const ufsiNativePhotoGalleryRequests = new Map();
 
         function hideNativePhotoGallery(paneId) {
@@ -943,6 +952,6 @@
     </div>
 </div>
 <!--suppress HtmlUnknownTarget -->
-<script type="application/javascript" src="composeApp.js?v=20260921-nonblocking-report-preview"></script>
+<script type="application/javascript" src="composeApp.js?v=20260921-readonly-report-gallery"></script>
 </body>
 </html>
