@@ -7,6 +7,8 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.utils.io.readRemaining
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.io.readByteArray
 import oms.ufsi.config.AppContainer
 import oms.ufsi.domain.InspectionReport
@@ -18,7 +20,14 @@ import java.nio.file.Files
 fun Route.photoRoutes() = route("/api/v1/inspection-reports/{reportUuid}/photos") {
     get {
         val report = call.photoReport() ?: return@get
-        call.respond(hydrateEmbeddedSirPhotos(report).map { it.toResponse(report.uuid.toString()) })
+        // An imported workbook may contain many high-resolution images. Its
+        // first photo request materialises thumbnails and files, which is
+        // deliberately slow IO/CPU work. Do it on the IO pool so opening a
+        // report remains responsive while the evidence is prepared.
+        val photos = withContext(Dispatchers.IO) {
+            hydrateEmbeddedSirPhotos(report)
+        }
+        call.respond(photos.map { it.toResponse(report.uuid.toString()) })
     }
 
     post {

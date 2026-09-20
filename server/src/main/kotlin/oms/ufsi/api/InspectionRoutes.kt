@@ -7,6 +7,8 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.utils.io.readRemaining
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.io.readByteArray
 import oms.ufsi.config.AppContainer
 import oms.ufsi.dto.*
@@ -142,7 +144,14 @@ fun Route.inspectionRoutes() {
     get("/api/v1/inspection-reports/{reportUuid}/preview") {
         val report = call.findReport() ?: return@get
         try {
-            call.respond(AppContainer.inspectionReportFileService.preview(report))
+            // Apache POI opens the complete XLSX package and can spend seconds
+            // reading embedded images. Never run that blocking work on Ktor's
+            // request dispatcher: otherwise one report preview stalls the
+            // entire web application, including navigation requests.
+            val preview = withContext(Dispatchers.IO) {
+                AppContainer.inspectionReportFileService.preview(report)
+            }
+            call.respond(preview)
         } catch (exception: IllegalArgumentException) {
             call.validationError(exception)
         }
@@ -263,10 +272,16 @@ fun Route.inspectionRoutes() {
             try {
                 val project = AppContainer.projectService.getAllProjects().firstOrNull { it.id == report.projectId }
                     ?: return@get call.notFound("Project not found.")
+                // Imported reports are parsed from their source workbook on
+                // first access. Keep this disk/POI operation off the request
+                // dispatcher so that opening a report cannot freeze the SPA.
+                val manual = withContext(Dispatchers.IO) {
+                    AppContainer.inspectionReportFileService.readManual(report)
+                }
                 call.respond(
                     ManualInspectionReportEditorResponse(
                         project.uuid.toString(), report.status.name.lowercase(),
-                        AppContainer.inspectionReportFileService.readManual(report)
+                        manual
                     )
                 )
             } catch (exception: IllegalArgumentException) {
