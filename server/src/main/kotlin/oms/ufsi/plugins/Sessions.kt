@@ -9,7 +9,8 @@ fun Application.configureSessions() {
         cookie<UserSession>("oms_session") {
             cookie.path = "/"
             cookie.httpOnly = true
-            cookie.sameSite = "none"\n            cookie.secure = true
+            cookie.sameSite = "none"
+            cookie.secure = true
         }
     }
 }
