@@ -1,17 +1,15 @@
 package oms.ufsi.plugins
 
 import io.ktor.server.application.*
-import io.ktor.server.http.content.*
 import io.ktor.server.routing.*
-import io.ktor.http.CacheControl
+import io.ktor.server.response.respondRedirect
 import oms.ufsi.api.*
-import java.io.File
 
 /**
  * Реєструє всі HTTP-маршрути застосунку.
  *
- * API routes are registered before the packaged Web static resources so that
- * the UI fallback can never shadow an API or health endpoint.
+ * The production browser application is hosted by GitHub Pages. Render runs
+ * the API and file services only; its root redirects users to that UI.
  */
 fun Application.configureRouting() {
 
@@ -44,13 +42,9 @@ fun Application.configureRouting() {
         photoRoutes()
         dashboardRoutes()
 
-        // The Render image copies the Compose Web distribution to this folder.
-        // Register this last so API and health routes always take precedence.
-        staticFiles("/", File("static"), index = "index.html") {
-            // The Compose bundle keeps a stable filename. Revalidate it on
-            // every request so a browser cannot retain an older UI after a
-            // Render deployment and show a different table layout.
-            cacheControl { listOf(CacheControl.NoCache(null)) }
+        // Keep old Render bookmarks useful after the UI moved to GitHub Pages.
+        get("/") {
+            call.respondRedirect("https://karatanov.github.io/oms/", permanent = false)
         }
     }
 }

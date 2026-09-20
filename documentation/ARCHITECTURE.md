@@ -4,7 +4,7 @@
 
 ```mermaid
 flowchart LR
-    Browser[Browser / Compose Web Wasm] -->|same-origin HTTP| Ktor[Ktor API + static Web assets]
+    Browser[Browser / Compose Web JS on GitHub Pages] -->|credentialed HTTPS| Ktor[Render Ktor API]
     ApiClient[API client] -->|Bearer JWT| Ktor
     Ktor --> Services[Domain services and RBAC]
     Services --> Repositories[Exposed repositories]
@@ -13,7 +13,7 @@ flowchart LR
     Flyway[Flyway V1-V29] --> MySQL
 ```
 
-The production package is one Ktor process: it serves the compiled Compose Web distribution at `/` and JSON/file endpoints under `/api/v1`. The same-origin layout avoids production CORS unless a frontend is deployed separately.
+The production browser bundle is published by GitHub Pages at `https://karatanov.github.io/oms/`. Render runs the Ktor JSON/file API at `https://oms-3j46.onrender.com/api/v1`; it allows the GitHub Pages origin with credentials for cookie-backed sessions. The Render root redirects legacy bookmarks to the Pages UI.
 
 ## Source modules
 

@@ -1,4 +1,4 @@
-# One public service: Ktor serves both the Compose Web/Wasm UI and the API.
+# Public API service. The Compose Web UI is published by GitHub Pages.
 # Add DATABASE_URL, DATABASE_USER, DATABASE_PASSWORD and OMS_JWT_SECRET as
 # secret environment variables in Render after choosing a MySQL/TiDB provider.
 # Set DATABASE_DIALECT=tidb only for TiDB. The free filesystem is ephemeral;

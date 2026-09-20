@@ -5,7 +5,7 @@
 
 ## Scope and release components
 
-The release packages the Compose Web/Wasm UI and Ktor API in one Docker image, with MySQL 8.4, Flyway migrations and filesystem-backed MVP upload storage. Mobile distribution is not packaged by this repository deployment.
+The release publishes the Compose Web UI through GitHub Pages and packages the Ktor API in a lean Render Docker image, with MySQL 8.4, Flyway migrations and filesystem-backed MVP upload storage. Mobile distribution is not packaged by this repository deployment.
 
 ## Production-like deployment procedure
 
@@ -33,7 +33,7 @@ Use `render.image.yaml.example` when creating an image-backed replacement servic
 
 ## Security and configuration
 
-All secrets are external environment values. The repository contains only placeholders. `OMS_JWT_SECRET` must be configured for persistent deployments; otherwise tokens are invalidated on process restart. The one-service public deployment uses same-origin UI/API; configure `CORS_ALLOWED_HOST` only for a separately hosted frontend.
+All secrets are external environment values. The repository contains only placeholders. `OMS_JWT_SECRET` must be configured for persistent deployments; otherwise tokens are invalidated on process restart. The public UI is hosted at `https://karatanov.github.io/oms/`; that credentialed CORS origin is part of the server configuration. Configure `CORS_ALLOWED_HOST` only for an additional custom frontend origin.
 
 ## Storage, backup and recovery
 

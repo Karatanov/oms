@@ -10,7 +10,7 @@ This handover transfers the Phase 1 source code, MySQL migrations, Compose/Rende
 
 ## 2. Source code and technology
 
-`composeApp` is the Compose Multiplatform Web/Wasm UI. `server` is the Java 21 Ktor application containing routes, DTOs, domain services, Exposed repositories, Flyway and the packaged Web distribution. `shared` is the KMP JVM/JS/Wasm extension module. MySQL 8 is the primary database. Runtime uploads use filesystem-backed MVP storage with a durable database mirror for ephemeral hosting environments.
+`composeApp` is the Compose Multiplatform Web UI published through GitHub Pages. `server` is the Java 21 Ktor API application containing routes, DTOs, domain services, Exposed repositories and Flyway. `shared` is the KMP JVM/JS/Wasm extension module. MySQL 8 is the primary database. Runtime uploads use filesystem-backed MVP storage with a durable database mirror for ephemeral hosting environments.
 
 The repository has no Android/iOS application target. Mobile distribution is a Phase 2 extension, not a missing Phase 1 build artifact.
 
