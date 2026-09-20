@@ -5,7 +5,6 @@ import org.jetbrains.exposed.v1.core.ReferenceOption
 import org.jetbrains.exposed.v1.javatime.date
 
 object ProcurementRecordTable : LongIdTable("procurement_records") {
-    val recordNumber = integer("record_number")
     val batchId = integer("batch_id")
     val oblastName = varchar("oblast_name", 255)
     val oblastId = varchar("oblast_id", 32)

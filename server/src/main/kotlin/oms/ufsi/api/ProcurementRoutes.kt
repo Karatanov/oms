@@ -61,7 +61,7 @@ private suspend fun io.ktor.server.application.ApplicationCall.respondSafely(
 }
 
 private fun ProcurementRecord.toResponse() = ProcurementRecordResponse(
-    id = id, recordNumber = recordNumber, batchId = batchId, oblastName = oblastName, oblastId = oblastId,
+    id = id, batchId = batchId, oblastName = oblastName, oblastId = oblastId,
     subProjectId = subProjectId, subProjectLotId = subProjectLotId, purchaseStatus = purchaseStatus,
     tenderId = tenderId, prozorroTenderId = prozorroTenderId, contractorNameUkr = contractorNameUkr,
     contractorNameEng = contractorNameEng, contractorId = contractorId, contractDate = contractDate?.toString(),

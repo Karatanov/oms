@@ -4,7 +4,6 @@ import java.time.LocalDate
 
 data class ProcurementRecord(
     val id: Long,
-    val recordNumber: Int,
     val batchId: Int,
     val oblastName: String,
     val oblastId: String,

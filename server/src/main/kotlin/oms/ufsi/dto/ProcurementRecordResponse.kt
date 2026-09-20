@@ -5,7 +5,6 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class ProcurementRecordResponse(
     val id: Long,
-    val recordNumber: Int,
     val batchId: Int,
     val oblastName: String,
     val oblastId: String,
@@ -52,7 +51,6 @@ data class ProcurementRecordResponse(
 /** Writable procurement payload. Dates use the API format YYYY-MM-DD. */
 @Serializable
 data class ProcurementRecordRequest(
-    val recordNumber: Int,
     val batchId: Int,
     val oblastName: String,
     val oblastId: String,

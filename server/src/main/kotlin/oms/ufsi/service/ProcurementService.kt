@@ -17,7 +17,6 @@ class ProcurementService(
     fun delete(id: Long) = repository.delete(id)
 
     private fun ProcurementRecordRequest.toRecord(): ProcurementRecord {
-        require(recordNumber > 0) { "Record number must be positive." }
         val subproject = projectService.getAllProjects().firstOrNull {
             it.projectType == ProjectType.SUBPROJECT && it.siteNumber.equals(subProjectId.trim(), ignoreCase = true)
         } ?: throw IllegalArgumentException("Select a valid subproject code.")
@@ -34,7 +33,7 @@ class ProcurementService(
         require(contractDurationMonths == null || contractDurationMonths >= 0) { "Contract duration cannot be negative." }
         require(contractAmountUah == null || contractAmountUah >= 0) { "Contract amount cannot be negative." }
         require(contractAmountEur == null || contractAmountEur >= 0) { "Contract amount cannot be negative." }
-        return ProcurementRecord(0, recordNumber, derivedBatch, derivedRegion, subproject.siteNumber.take(2).uppercase(), subproject.siteNumber, part?.siteNumber, purchaseStatus.clean(),
+        return ProcurementRecord(0, derivedBatch, derivedRegion, subproject.siteNumber.take(2).uppercase(), subproject.siteNumber, part?.siteNumber, purchaseStatus.clean(),
             tenderId.clean(), prozorroTenderId.clean(), contractorNameUkr.clean(), contractorNameEng.clean(), contractorId.clean(),
             contractDate.toDate(), contractEndDate.toDate(), contractDurationMonths, contractAmountUah, contractAmountEur, financingContractDifferencePct,
             promotorName.clean(), subproject.name, subprojectNameEn.clean(), sourceContractType.clean(),

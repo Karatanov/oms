@@ -758,7 +758,7 @@ data class ApiActivity(
 
 @Serializable
 data class ApiProcurementRecord(
-    val id: Long, val recordNumber: Int, val batchId: Int,
+    val id: Long, val batchId: Int,
     val oblastName: String, val oblastId: String, val subProjectId: String, val subProjectLotId: String? = null,
     val purchaseStatus: String? = null, val tenderId: String? = null, val prozorroTenderId: String? = null,
     val contractorNameUkr: String? = null, val contractorNameEng: String? = null, val contractorId: String? = null,
@@ -777,7 +777,7 @@ data class ApiProcurementRecord(
 
 @Serializable
 data class ProcurementRecordRequest(
-    val recordNumber: Int, val batchId: Int, val oblastName: String, val oblastId: String,
+    val batchId: Int, val oblastName: String, val oblastId: String,
     val subProjectId: String, val subProjectLotId: String? = null, val purchaseStatus: String? = null,
     val tenderId: String? = null, val prozorroTenderId: String? = null,
     val contractorNameUkr: String? = null, val contractorNameEng: String? = null, val contractorId: String? = null,

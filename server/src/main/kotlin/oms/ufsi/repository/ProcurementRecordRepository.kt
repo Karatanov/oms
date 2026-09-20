@@ -43,7 +43,6 @@ class ExposedProcurementRecordRepository : ProcurementRecordRepository {
     override fun delete(id: Long): Boolean = transaction { ProcurementRecordTable.deleteWhere { ProcurementRecordTable.id eq id } > 0 }
 
     private fun UpdateBuilder<*>.applyRecord(record: ProcurementRecord) {
-        this[ProcurementRecordTable.recordNumber] = record.recordNumber
         this[ProcurementRecordTable.batchId] = record.batchId
         this[ProcurementRecordTable.oblastName] = record.oblastName
         this[ProcurementRecordTable.oblastId] = record.oblastId
@@ -89,7 +88,7 @@ class ExposedProcurementRecordRepository : ProcurementRecordRepository {
 
     private fun map(row: org.jetbrains.exposed.v1.core.ResultRow) = ProcurementRecord(
         id = row[ProcurementRecordTable.id].value,
-        recordNumber = row[ProcurementRecordTable.recordNumber], batchId = row[ProcurementRecordTable.batchId],
+        batchId = row[ProcurementRecordTable.batchId],
         oblastName = row[ProcurementRecordTable.oblastName], oblastId = row[ProcurementRecordTable.oblastId],
         subProjectId = row[ProcurementRecordTable.subProjectId], subProjectLotId = row[ProcurementRecordTable.subProjectLotId],
         purchaseStatus = row[ProcurementRecordTable.purchaseStatus], tenderId = row[ProcurementRecordTable.tenderId],
