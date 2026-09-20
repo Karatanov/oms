@@ -234,7 +234,10 @@ object OmsApiClient {
         client.get("$baseUrl/projects/$projectUuid/health-safety-observations").body()
 
     suspend fun inspectionPhotos(reportUuid: String): List<ApiInspectionPhoto> =
-        client.get("$baseUrl/inspection-reports/$reportUuid/photos").body()
+        // An imported SIR can need a one-time extraction of embedded photos.
+        // The report form has its own inline state, so do not cover the whole
+        // SPA with the global loading overlay while evidence is prepared.
+        client.get("$baseUrl/inspection-reports/$reportUuid/photos?background=true").body()
 
     suspend fun createAndSubmitInspectionReport(
         projectUuid: String,
@@ -302,7 +305,10 @@ object OmsApiClient {
     }
 
     suspend fun manualInspectionReport(reportUuid: String): ApiManualInspectionEditor =
-        client.get("$baseUrl/inspection-reports/$reportUuid/manual").body()
+        // Parsing an XLSX belongs to the report screen's inline loader. A
+        // global blocking overlay here made every navigation button appear
+        // frozen until Apache POI had finished reading an imported report.
+        client.get("$baseUrl/inspection-reports/$reportUuid/manual?background=true").body()
 
     suspend fun updateManualInspectionReport(
         reportUuid: String,
