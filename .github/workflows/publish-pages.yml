@@ -31,7 +31,7 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
 
       - name: Build production web frontend
-        run: ./gradlew -PrenderJsOnly :composeApp:jsBrowserProductionWebpack --no-daemon --max-workers=1
+        run: gradle -PrenderJsOnly :composeApp:jsBrowserProductionWebpack --no-daemon --max-workers=1
 
       - name: Assemble Pages site
         run: |
