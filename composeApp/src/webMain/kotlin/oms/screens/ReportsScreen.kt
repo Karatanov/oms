@@ -793,7 +793,7 @@ private fun List<ApiInspectionPhoto>.forAssociation(key: String): List<ApiInspec
     filter { it.associationKey() == key }
 
 private fun ApiInspectionPhoto.associationKey(): String? =
-    Regex("\\[oms:([^]]+)]", RegexOption.IGNORE_CASE)
+    Regex("\\[oms:([^\\]]+)\\]", RegexOption.IGNORE_CASE)
         .find(fileName.substringBeforeLast('.', fileName))
         ?.groupValues
         ?.getOrNull(1)

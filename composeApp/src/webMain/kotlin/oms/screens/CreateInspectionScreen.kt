@@ -1192,7 +1192,7 @@ private fun RepeatableManualActivities(
 }
 
 private fun ApiInspectionPhoto.editorAssociationKey(): String? =
-    Regex("\\[oms:([^]]+)]", RegexOption.IGNORE_CASE)
+    Regex("\\[oms:([^\\]]+)\\]", RegexOption.IGNORE_CASE)
         .find(fileName.substringBeforeLast('.', fileName))
         ?.groupValues
         ?.getOrNull(1)
