@@ -683,8 +683,8 @@ private fun ProcurementEditorDialog(
             Text(LocalizationManager.t(if (existing == null) "add_procurement_record" else "edit_procurement_record"), style = MaterialTheme.typography.titleLarge)
             Column(Modifier.fillMaxWidth().heightIn(max = 520.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 AutocompleteField(subprojectId, { entered ->
-                    subprojectId = entered
-                    if (availableSubprojects.any { it.siteNumber.equals(entered, ignoreCase = true) }) subprojectPartId = ""
+                    subprojectId = entered.procurementText(100)
+                    if (availableSubprojects.any { it.siteNumber.equals(subprojectId, ignoreCase = true) }) subprojectPartId = ""
                 }, "${LocalizationManager.t("proc_subproject_id")} *",
                     availableSubprojects.map { it.siteNumber to "${it.siteNumber} — ${it.localizedName()}" })
                 if (!subprojectValid) Text(LocalizationManager.t("field_required"), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
@@ -696,10 +696,10 @@ private fun ProcurementEditorDialog(
                     }
                 }
                 if (availableParts.isNotEmpty() || subprojectPartId.isNotBlank()) {
-                    AutocompleteField(subprojectPartId, { subprojectPartId = it }, LocalizationManager.t("subproject_part"),
+                    AutocompleteField(subprojectPartId, { subprojectPartId = it.procurementText(100) }, LocalizationManager.t("subproject_part"),
                         availableParts.map { it.siteNumber to "${it.siteNumber} — ${it.localizedName()}" })
                 }
-                OutlinedTextField(promotorName, { promotorName = it }, label = { Text(procurementHeaderLabels()[2]) }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(promotorName, { promotorName = it.procurementText(500) }, label = { Text(procurementHeaderLabels()[2]) }, modifier = Modifier.fillMaxWidth())
                 Text(procurementHeaderLabels()[6], style = MaterialTheme.typography.labelMedium)
                 InlineOptionPicker(procurementContractTypes, contractType.takeIf { it.isNotBlank() }, procurementHeaderLabels()[6], { contractType = it }, LocalizationManager::procurementValue)
                 OutlinedTextField(totalCostUah, { numeric(it, true) { value -> totalCostUah = value } }, label = { Text(procurementHeaderLabels()[7]) }, modifier = Modifier.fillMaxWidth())
@@ -707,7 +707,7 @@ private fun ProcurementEditorDialog(
                 OutlinedTextField(localFinancingUah, { numeric(it, true) { value -> localFinancingUah = value } }, label = { Text(procurementHeaderLabels()[9]) }, modifier = Modifier.fillMaxWidth())
                 OutlinedTextField(estimatedTotalEur, { numeric(it, true) { value -> estimatedTotalEur = value } }, label = { Text(procurementHeaderLabels()[10]) }, modifier = Modifier.fillMaxWidth())
                 InlineOptionPicker(procurementMethods, procurementMethod.takeIf { it.isNotBlank() }, procurementHeaderLabels()[11], { procurementMethod = it }, LocalizationManager::procurementValue)
-                OutlinedTextField(tenderDocumentType, { tenderDocumentType = it }, label = { Text(procurementHeaderLabels()[12]) }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(tenderDocumentType, { tenderDocumentType = it.procurementText(500) }, label = { Text(procurementHeaderLabels()[12]) }, modifier = Modifier.fillMaxWidth())
                 InlineOptionPicker(ojeuPublicationOptions, publishedInOjeu.takeIf { it.isNotBlank() }, procurementHeaderLabels()[13], { publishedInOjeu = it }, LocalizationManager::procurementValue)
                 OmsDateField(estimatedProzorroDate, { estimatedProzorroDate = it }, procurementHeaderLabels()[15], Modifier.fillMaxWidth())
                 OmsDateField(estimatedBidSubmissionDate, { estimatedBidSubmissionDate = it }, procurementHeaderLabels()[16], Modifier.fillMaxWidth())
@@ -721,7 +721,7 @@ private fun ProcurementEditorDialog(
                     itemLabel = LocalizationManager::procurementStatus
                 )
                 OutlinedTextField(localFinancingPct, { numeric(it, true) { value -> localFinancingPct = value } }, label = { Text(procurementHeaderLabels()[20]) }, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(comments, { comments = it }, label = { Text(procurementHeaderLabels()[21]) }, modifier = Modifier.fillMaxWidth(), minLines = 3)
+                OutlinedTextField(comments, { comments = it.procurementText(4_000) }, label = { Text(procurementHeaderLabels()[21]) }, modifier = Modifier.fillMaxWidth(), minLines = 3)
             }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
                 OutlinedButton(onClick = onDismiss) { Text(LocalizationManager.t("cancel")) }
@@ -746,3 +746,6 @@ private fun ProcurementEditorDialog(
         }
     }
 }
+
+/** Bounds a clipboard payload before the Wasm field has to lay it out. */
+private fun String.procurementText(maxLength: Int): String = replace("\u0000", "").take(maxLength)

@@ -132,6 +132,18 @@
         window.addEventListener("paste", event => {
             const text = event.clipboardData?.getData("text/plain") || "";
 
+            // Compose/Wasm keeps a native, contenteditable input above its
+            // canvas while a text field is focused. A context-menu paste then
+            // reaches both the native input and Compose's canvas listener.
+            // The duplicate processing is what leaves editor forms frozen.
+            // Keep the browser's default insertion, but stop the event before
+            // the second listener. The ordinary input event still updates
+            // Compose state.
+            if (hasOmsNativeTextFieldFocus(event) && text.length <= omsMaximumPasteLength) {
+                event.stopImmediatePropagation();
+                return;
+            }
+
             // Let the browser and Compose handle every normal paste natively.
             // Re-dispatching a synthetic ClipboardEvent into Compose/Wasm is
             // unsafe: a context-menu paste can enter its event loop twice and
@@ -960,6 +972,6 @@
     </div>
 </div>
 <!--suppress HtmlUnknownTarget -->
-<script type="application/javascript" src="composeApp.js?v=20260921-inspection-pane-cleanup"></script>
+<script type="application/javascript" src="composeApp.js?v=20260921-context-paste-safety"></script>
 </body>
 </html>
