@@ -83,6 +83,9 @@ external fun hideInspectionActivityPhotoGallery(activityKey: String)
 @JsName("openInspectionPhotoLightbox")
 external fun openInspectionPhotoLightbox(photosJson: String)
 
+@JsName("hideAllInspectionNativePanes")
+external fun hideAllInspectionNativePanes()
+
 @Composable
 fun CreateInspectionScreen(
     isEditMode: Boolean = false,
@@ -138,6 +141,14 @@ fun CreateInspectionScreen(
     val scope = rememberCoroutineScope()
     val pageScrollState = rememberScrollState()
     fun scrollBy(delta: Float) = scope.launch { pageScrollState.animateScrollBy(delta) }
+
+    // Native photo panes belong to the document body, not Compose's tree. A
+    // stale pane from an earlier form must never survive navigation and cover
+    // this screen. Read-only and editing forms now use on-demand lightboxes.
+    DisposableEffect(Unit) {
+        hideAllInspectionNativePanes()
+        onDispose { hideAllInspectionNativePanes() }
+    }
 
     // The report's QA staff is normally the person creating it.  Preserve a
     // manually selected value, but recover the default if the user context
@@ -739,7 +750,7 @@ internal fun InspectionActivityPhotoGallery(
     activityKey: String,
     photos: List<ApiInspectionPhoto>,
     modifier: Modifier = Modifier,
-    nativeGallery: Boolean = true
+    nativeGallery: Boolean = false
 ) {
     val publicPhotos = photos.map { photo ->
         photo.copy(

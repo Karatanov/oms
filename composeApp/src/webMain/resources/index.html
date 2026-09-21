@@ -751,6 +751,14 @@
             }
         }
 
+        // Compose disposes a screen asynchronously. Clear all body-level photo
+        // panes on a screen transition so an old absolute element cannot ever
+        // sit above the next screen and absorb pointer events.
+        function hideAllInspectionNativePanes() {
+            document.querySelectorAll('[id^="inspection-photo-preview-pane-"], [id^="inspection-report-photo-gallery-"], [id^="inspection-activity-photo-gallery-"]')
+                .forEach(pane => hideNativePhotoGallery(pane.id));
+        }
+
         function showNativePhotoGallery(paneId, photosJson) {
             const requestId = (ufsiNativePhotoGalleryRequests.get(paneId) || 0) + 1;
             ufsiNativePhotoGalleryRequests.set(paneId, requestId);
@@ -952,6 +960,6 @@
     </div>
 </div>
 <!--suppress HtmlUnknownTarget -->
-<script type="application/javascript" src="composeApp.js?v=20260921-readonly-report-gallery"></script>
+<script type="application/javascript" src="composeApp.js?v=20260921-inspection-pane-cleanup"></script>
 </body>
 </html>

@@ -26,6 +26,11 @@ import kotlin.js.JsName
 // 🔹 Відповідає spec 7.2 (Sidebar layout) :contentReference[oaicite:0]{index=0}
 @Composable
 fun AppLayout(appState: AppState) {
+    // A select menu is hosted above the entire Compose tree.  If navigation
+    // happens while one is open, its transparent dismiss layer would otherwise
+    // remain over the new screen and make every control appear unresponsive.
+    val optionOverlay = oms.components.LocalOptionOverlay.current
+    LaunchedEffect(appState.currentScreen) { optionOverlay.menu = null }
 
     BoxWithConstraints(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
     var compact by remember(maxWidth < 1100.dp) { mutableStateOf(maxWidth < 1100.dp) }
