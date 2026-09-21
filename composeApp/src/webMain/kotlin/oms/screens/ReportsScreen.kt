@@ -197,6 +197,14 @@ fun ReportsScreen(
     }
     fun selectSort(column: ReportSort) { if (sort == column) ascending = !ascending else { sort = column; ascending = true } }
     fun scrollBy(delta: Float) = scope.launch { contentScrollState.animateScrollBy(delta) }
+    /** Keep the two report charts in sync without reloading the full registry. */
+    fun refreshAnalytics() = scope.launch {
+        runCatching { OmsApiClient.inspectionAnalytics() }
+            .onSuccess { refreshed ->
+                analytics = refreshed
+                InspectionReportsScreenCache.analytics = refreshed
+            }
+    }
 
     MaterialTheme(colorScheme = MaterialTheme.colorScheme.copy(onPrimary = Color.White)) {
     Box(Modifier.fillMaxSize()) {
@@ -294,6 +302,7 @@ fun ReportsScreen(
                                 if (OmsApiClient.deleteInspectionReport(row.report.uuid)) {
                                     reports = reports.filterNot { it.report.uuid == row.report.uuid }
                                     InspectionReportsScreenCache.reports = reports
+                                    refreshAnalytics()
                                 }
                                 else errorMessage = LocalizationManager.t("error_delete_report")
                             } }

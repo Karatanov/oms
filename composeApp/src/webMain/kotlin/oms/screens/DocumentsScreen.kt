@@ -205,6 +205,10 @@ fun DocumentsScreen(canManageDocuments: Boolean = true) {
                                 else OmsApiClient.deleteProjectDocument(row.projectUuid, row.uuid)
                                 if (deleted) {
                                     documents = documents.filterNot { it.uuid == row.uuid && it.isSirSource == row.isSirSource }
+                                    // A SIR source deletion also removes its report.  Do not
+                                    // retain its old report count/ESHS metrics when returning
+                                    // to the inspection registry.
+                                    if (row.isSirSource) invalidateInspectionReportsScreenCache()
                                 } else errorMessage = LocalizationManager.t("delete_document_error")
                             } }
                         }
