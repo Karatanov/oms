@@ -516,6 +516,7 @@ private fun ReportWorkbookGrid(rows: List<oms.data.ApiInspectionReportPreviewRow
 /** The SIR template rendered in the same section order as the editable form. */
 @Composable
 internal fun ReadOnlySirReport(manual: ManualInspectionReportRequest, photos: List<ApiInspectionPhoto> = emptyList()) {
+    val photoCaptionCandidates = manual.photoCaptionCandidates()
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         ReadOnlySirSection(LocalizationManager.t("sir_header_site"), Icons.Default.Description) {
             ReadOnlyFieldsTable(
@@ -542,11 +543,11 @@ internal fun ReadOnlySirReport(manual: ManualInspectionReportRequest, photos: Li
             )
         }
         ReadOnlySirSection(LocalizationManager.t("sir_ongoing_activities"), Icons.Default.Engineering) {
-            ReadOnlyActivitiesTable(manual.activities, photos, manual.ongoingObservations)
+            ReadOnlyActivitiesTable(manual.activities, photos, photoCaptionCandidates)
         }
         ReadOnlySirSection(LocalizationManager.t("sir_ongoing_observations"), Icons.Default.FactCheck) {
             if (manual.ongoingObservations.isEmpty()) PreviewEmpty()
-            else ReadOnlyOngoingObservationsTable(manual.ongoingObservations, photos)
+            else ReadOnlyOngoingObservationsTable(manual.ongoingObservations, photos, photoCaptionCandidates)
         }
         ReadOnlySirSection(LocalizationManager.t("sir_hse_observations"), Icons.Default.FactCheck) {
             if (manual.hseObservations.isEmpty()) PreviewEmpty()
@@ -554,7 +555,7 @@ internal fun ReadOnlySirReport(manual: ManualInspectionReportRequest, photos: Li
         }
         ReadOnlySirSection(LocalizationManager.t("sir_quality_assessment"), Icons.Default.FactCheck) {
             if (manual.qualityRemarks.isEmpty()) PreviewEmpty()
-            else ReadOnlyQualityAssessmentTable(manual.qualityRemarks, photos)
+            else ReadOnlyQualityAssessmentTable(manual.qualityRemarks, photos, photoCaptionCandidates)
         }
         ReadOnlySirSection(LocalizationManager.t("sir_progress_assessment"), Icons.Default.FactCheck) {
             if (manual.progressComment.isNullOrBlank() && manual.scheduleRemark.isNullOrBlank()) PreviewEmpty()
@@ -669,7 +670,11 @@ private fun ReadOnlyHealthSafetyTable(observations: List<oms.data.ManualHseObser
 
 /** Quality assessment mirrors its four-column XLS block: one header, many rows. */
 @Composable
-private fun ReadOnlyQualityAssessmentTable(remarks: List<oms.data.ManualRemarkRequest>, photos: List<ApiInspectionPhoto>) {
+private fun ReadOnlyQualityAssessmentTable(
+    remarks: List<oms.data.ManualRemarkRequest>,
+    photos: List<ApiInspectionPhoto>,
+    photoCaptionCandidates: List<String>
+) {
     val headerColor = MaterialTheme.colorScheme.surfaceVariant
     Column(
         Modifier.fillMaxWidth().border(1.dp, MaterialTheme.colorScheme.outlineVariant),
@@ -689,7 +694,13 @@ private fun ReadOnlyQualityAssessmentTable(remarks: List<oms.data.ManualRemarkRe
                 Text(remark.comment.ifBlank { "—" }, Modifier.weight(1.4f), style = MaterialTheme.typography.bodyMedium)
                 Text(remark.rectification?.takeIf(String::isNotBlank) ?: "—", Modifier.weight(1.4f), style = MaterialTheme.typography.bodyMedium)
                 Text(remark.status?.takeIf(String::isNotBlank) ?: "—", Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
-                val remarkPhotos = photos.forAssociation("quality-$index")
+                val remarkPhotos = (
+                    photos.forAssociation("quality-$index") +
+                        photos.forImportedCaptions(
+                            listOf(remark.work, remark.comment, remark.rectification, remark.status),
+                            photoCaptionCandidates
+                        )
+                    ).distinctBy { it.uuid }
                 if (remarkPhotos.isEmpty()) Text("—", Modifier.weight(.8f), style = MaterialTheme.typography.bodyMedium)
                 else InspectionActivityPhotoGallery(
                     activityKey = "quality-$index",
@@ -739,23 +750,13 @@ private fun ReadOnlyPurchasedMaterialsTable(materials: List<oms.data.ManualPurch
 private fun ReadOnlyActivitiesTable(
     activities: List<oms.data.ManualActivityRequest>,
     photos: List<ApiInspectionPhoto>,
-    ongoingObservations: List<String>
+    photoCaptionCandidates: List<String>
 ) {
     if (activities.isEmpty()) {
         PreviewEmpty()
         return
     }
     val headerColor = MaterialTheme.colorScheme.surfaceVariant
-    val knownPhotoPrefixes = (activities.map { it.description } + ongoingObservations)
-        .map(String::toInspectionPhotoNamePrefix)
-        .filter(String::isNotBlank)
-    // Older reports may contain photos uploaded before activity-based names
-    // existed. Keep that evidence visible beside the first work rather than
-    // silently hiding it simply because a historical filename cannot match.
-    val unassignedPhotos = photos.filter { photo ->
-        val baseName = photo.fileName.substringBeforeLast('.', photo.fileName)
-        photo.associationKey() == null && knownPhotoPrefixes.none { prefix -> baseName.startsWith(prefix, ignoreCase = true) }
-    }
     Column(
         Modifier.fillMaxWidth().border(1.dp, MaterialTheme.colorScheme.outlineVariant),
         verticalArrangement = Arrangement.spacedBy(0.dp)
@@ -772,7 +773,10 @@ private fun ReadOnlyActivitiesTable(
                 Text(activity.location.ifBlank { "—" }, Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
                 Text(activity.description.ifBlank { "—" }, Modifier.weight(2f), style = MaterialTheme.typography.bodyMedium)
                 Text(activity.remarks?.takeIf(String::isNotBlank) ?: "—", Modifier.weight(1.5f), style = MaterialTheme.typography.bodyMedium)
-                val activityPhotos = photos.forAssociation("activity-$index") + if (index == 0) unassignedPhotos else emptyList()
+                val activityPhotos = (
+                    photos.forAssociation("activity-$index") +
+                        photos.forImportedCaptions(listOf(activity.description), photoCaptionCandidates)
+                    ).distinctBy { it.uuid }
                 if (activityPhotos.isEmpty()) Text("—", Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
                 else InspectionActivityPhotoGallery(
                     activityKey = "activity-$index",
@@ -798,9 +802,51 @@ private fun ApiInspectionPhoto.associationKey(): String? =
         ?.groupValues
         ?.getOrNull(1)
 
+/**
+ * Historical XLSX uploads have captions but no OMS row marker.  Match an
+ * unmarked photo only when that caption occurs in exactly one SIR row; this
+ * prevents identical text in two sections from leaking evidence to the wrong
+ * work or remark.
+ */
+private fun List<ApiInspectionPhoto>.forImportedCaptions(
+    captions: List<String?>,
+    allCandidates: List<String>
+): List<ApiInspectionPhoto> {
+    val normalizedCaptions = captions.mapNotNull { it?.normalizedInspectionPhotoCaption() }
+        .filter(String::isNotBlank)
+        .filter { caption -> allCandidates.count { it.normalizedInspectionPhotoCaption() == caption } == 1 }
+        .toSet()
+    if (normalizedCaptions.isEmpty()) return emptyList()
+    return filter { photo ->
+        photo.associationKey() == null &&
+            photo.fileName.normalizedInspectionPhotoCaption() in normalizedCaptions
+    }
+}
+
+private fun String.normalizedInspectionPhotoCaption(): String =
+    substringBeforeLast('.', this)
+        .replace(Regex("\\s*\\[oms:[^\\]]+\\]", RegexOption.IGNORE_CASE), "")
+        .replace(Regex("\\s*\\[photo\\s+\\d+\\]", RegexOption.IGNORE_CASE), "")
+        .replace(Regex("\\s*\\(\\d+\\s*/\\s*\\d+\\)\\s*$"), "")
+        .toInspectionPhotoNamePrefix()
+        .lowercase()
+
+private fun oms.data.ManualInspectionReportRequest.photoCaptionCandidates(): List<String> = buildList {
+    activities.map { it.description }.filter(String::isNotBlank).forEach(::add)
+    ongoingObservations.filter(String::isNotBlank).forEach(::add)
+    qualityRemarks.forEach { remark ->
+        listOf(remark.work, remark.comment, remark.rectification, remark.status)
+            .filterNotNull().filter(String::isNotBlank).forEach(::add)
+    }
+}
+
 /** Photos are captioned with the matching OBSERVANCES ON ONGOING ACTIVITIES row. */
 @Composable
-private fun ReadOnlyOngoingObservationsTable(observations: List<String>, photos: List<ApiInspectionPhoto>) {
+private fun ReadOnlyOngoingObservationsTable(
+    observations: List<String>,
+    photos: List<ApiInspectionPhoto>,
+    photoCaptionCandidates: List<String>
+) {
     val headerColor = MaterialTheme.colorScheme.surfaceVariant
     Column(
         Modifier.fillMaxWidth().border(1.dp, MaterialTheme.colorScheme.outlineVariant),
@@ -814,7 +860,10 @@ private fun ReadOnlyOngoingObservationsTable(observations: List<String>, photos:
             if (index > 0) HorizontalDivider()
             Row(Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 10.dp), verticalAlignment = Alignment.Top) {
                 Text(observation, Modifier.weight(3f), style = MaterialTheme.typography.bodyMedium)
-                val observationPhotos = photos.forAssociation("observation-$index")
+                val observationPhotos = (
+                    photos.forAssociation("observation-$index") +
+                        photos.forImportedCaptions(listOf(observation), photoCaptionCandidates)
+                    ).distinctBy { it.uuid }
                 if (observationPhotos.isEmpty()) Text("—", Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
                 else InspectionActivityPhotoGallery(
                     activityKey = "observation-$index",

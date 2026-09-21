@@ -27,6 +27,9 @@ jobs:
       - name: Check clipboard event handling
         run: node tools/check-clipboard-events.cjs
 
+      - name: Check SIR photo association handling
+        run: node tools/check-sir-photo-associations.cjs
+
       - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:

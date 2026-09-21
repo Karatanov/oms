@@ -921,6 +921,12 @@ class InspectionReportFileService(
                     val xlsx = workbook as? XSSFWorkbook ?: return emptyList()
                     val sheet = xlsx.getSheet("Photo Attachment") ?: xlsx.getSheet("Photos") ?: return emptyList()
                     val formatter = DataFormatter()
+                    // Imported workbooks do not contain OMS's association
+                    // markers.  Build them from the SIR data while the same
+                    // workbook is open, so each materialised photo belongs to
+                    // its actual work, observation or quality remark rather
+                    // than falling back to the first current-work row.
+                    val associationIndex = photoAssociationIndex(readSirWorkbook(workbook, report))
                     val occurrences = mutableMapOf<String, Int>()
                     sheet.drawingPatriarch.shapes
                         .filterIsInstance<XSSFPicture>()
@@ -938,8 +944,11 @@ class InspectionReportFileService(
                                 .trim()
                                 .take(220)
                                 .ifBlank { "Photo" }
+                            val marker = associationIndex[normalizedPhotoCaption(caption)]
+                                ?.let { " [oms:$it]" }
+                                .orEmpty()
                             EmbeddedInspectionPhoto(
-                                originalName = "$safeCaption [photo $sequence].$extension",
+                                originalName = "$safeCaption$marker [photo $sequence].$extension",
                                 contentType = if (extension == "png") "image/png" else "image/jpeg",
                                 bytes = picture.pictureData.data
                             )
@@ -948,6 +957,43 @@ class InspectionReportFileService(
             }
         }.getOrDefault(emptyList())
     }
+
+    /**
+     * Captions are the only relation available in historical `Photo Attachment`
+     * sheets.  A caption is mapped only when it identifies one and only one
+     * SIR row; an ambiguous repeated caption is intentionally left unmarked
+     * rather than being attached to an arbitrary first row.
+     */
+    private fun photoAssociationIndex(request: CreateManualInspectionReportRequest): Map<String, String> {
+        val candidates = buildList {
+            request.activities.forEachIndexed { index, activity ->
+                activity.description.takeIf(String::isNotBlank)?.let { add(it to "activity-$index") }
+            }
+            request.ongoingObservations.forEachIndexed { index, observation ->
+                observation.takeIf(String::isNotBlank)?.let { add(it to "observation-$index") }
+            }
+            request.qualityRemarks.forEachIndexed { index, remark ->
+                listOf(remark.work, remark.comment, remark.rectification, remark.status)
+                    .filterNotNull()
+                    .filter(String::isNotBlank)
+                    .forEach { add(it to "quality-$index") }
+            }
+        }
+        return candidates
+            .groupBy { normalizedPhotoCaption(it.first) }
+            .mapNotNull { (caption, rows) ->
+                rows.map { it.second }.distinct().singleOrNull()?.let { caption to it }
+            }
+            .toMap()
+    }
+
+    private fun normalizedPhotoCaption(value: String): String = value
+        .replace(Regex("\\s*\\[oms:[^]]+]", RegexOption.IGNORE_CASE), "")
+        .replace(Regex("\\s*\\[photo\\s+\\d+]", RegexOption.IGNORE_CASE), "")
+        .replace(Regex("\\s*\\(\\d+\\s*/\\s*\\d+\\)\\s*$"), "")
+        .replace(Regex("\\s+"), " ")
+        .trim()
+        .lowercase()
 
     private fun embeddedPhotoCaption(
         sheet: org.apache.poi.ss.usermodel.Sheet,
