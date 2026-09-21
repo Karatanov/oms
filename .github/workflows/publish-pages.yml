@@ -24,6 +24,9 @@ jobs:
       - name: Check browser regex compatibility
         run: node tools/check-web-regex.cjs
 
+      - name: Check clipboard event handling
+        run: node tools/check-clipboard-events.cjs
+
       - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:

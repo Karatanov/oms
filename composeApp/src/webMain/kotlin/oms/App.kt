@@ -36,6 +36,7 @@ fun App() {
     }
 
     OMSTheme {
+        oms.components.TextContextMenuHost {
         oms.components.TooltipOverlayHost {
         oms.components.OptionOverlayHost {
         oms.components.ConfirmationHost {
@@ -62,6 +63,7 @@ fun App() {
         }
         }
         }
+    }
     }
     }
 }

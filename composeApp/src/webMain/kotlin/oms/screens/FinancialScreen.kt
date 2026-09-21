@@ -13,6 +13,8 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -20,6 +22,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.focus.focusable
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.zIndex
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -85,6 +93,8 @@ fun FinancialScreen(
     var loading by remember { mutableStateOf(true) }
     var loadFailed by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    var pageSize by remember { mutableStateOf(20) }
+    var currentPage by remember { mutableStateOf(0) }
     var tableTopInRootPx by remember { mutableStateOf(0f) }
     val deletion = oms.components.LocalDeleteConfirmation.current
     val scope = rememberCoroutineScope()
@@ -149,6 +159,10 @@ fun FinancialScreen(
             FinancialSort.Author -> ""
         }
     }.let { if (ascending) it else it.reversed() })
+    val pageCount = if (visibleActs.isEmpty() || pageSize == Int.MAX_VALUE) 1
+    else (visibleActs.size + pageSize - 1) / pageSize
+    LaunchedEffect(visibleActs.size, pageSize) { currentPage = currentPage.coerceIn(0, pageCount - 1) }
+    val pageRows = if (pageSize == Int.MAX_VALUE) visibleActs else visibleActs.drop(currentPage * pageSize).take(pageSize)
     val emptyRecordsMessage = when (recordTypeFilter) {
         "invoice" -> "no_invoices"
         "act" -> "no_acts"
@@ -167,9 +181,24 @@ fun FinancialScreen(
             pageScrollState.animateScrollTo(target)
         }
     }
+    fun scrollBy(delta: Float) = scope.launch { pageScrollState.animateScrollBy(delta) }
     Box(Modifier.fillMaxSize()) {
     Column(
-        modifier = Modifier.fillMaxSize().verticalScroll(pageScrollState).padding(24.dp),
+        modifier = Modifier.fillMaxSize()
+            .focusable()
+            .onKeyEvent { event ->
+                if (event.type != KeyEventType.KeyDown) return@onKeyEvent false
+                when (event.key) {
+                    Key.DirectionUp -> { scrollBy(-420f); true }
+                    Key.DirectionDown -> { scrollBy(420f); true }
+                    Key.PageUp -> { scrollBy(-720f); true }
+                    Key.PageDown -> { scrollBy(720f); true }
+                    Key.MoveHome -> { scope.launch { pageScrollState.animateScrollTo(0) }; true }
+                    Key.MoveEnd -> { scope.launch { pageScrollState.animateScrollTo(pageScrollState.maxValue) }; true }
+                    else -> false
+                }
+            }
+            .verticalScroll(pageScrollState).padding(start = 24.dp, top = 24.dp, end = 76.dp, bottom = 24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         oms.components.PageHeading(LocalizationManager.t("financial_monitoring"), Icons.Default.AccountBalance) {
@@ -248,7 +277,7 @@ fun FinancialScreen(
             header = { FinancialTableHeader(sort, ascending, ::selectSort); HorizontalDivider() }
         ) {
                     if (!loading && !loadFailed && visibleActs.isEmpty()) Text(LocalizationManager.t(emptyRecordsMessage))
-                    visibleActs.forEach { row ->
+                    pageRows.forEach { row ->
                         Row(Modifier.width(1_481.dp).padding(vertical = 8.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                             Text(LocalizationManager.t("record_type_${row.act.recordType}"), Modifier.width(95.dp))
                             Box(Modifier.width(210.dp)) { FinancialPaymentPurposeBadge(row.act.recordType, row.act.paymentPurpose) }
@@ -274,7 +303,29 @@ fun FinancialScreen(
                     }
         }
 
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+            FinancialPagination(pageSize, currentPage, pageCount, visibleActs.size, { pageSize = it }) {
+                currentPage = it.coerceIn(0, pageCount - 1)
+            }
+        }
+
         errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+    }
+    Surface(
+        modifier = Modifier.align(Alignment.CenterEnd).padding(end = 16.dp).zIndex(10f),
+        shape = MaterialTheme.shapes.large,
+        color = MaterialTheme.colorScheme.surface,
+        tonalElevation = 6.dp,
+        shadowElevation = 6.dp
+    ) {
+        Column(
+            modifier = Modifier.padding(4.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            oms.components.HoldToScrollButton(LocalizationManager.t("dashboard_scroll_up"), Icons.Default.KeyboardArrowUp, pageScrollState, -1)
+            oms.components.HoldToScrollButton(LocalizationManager.t("dashboard_scroll_down"), Icons.Default.KeyboardArrowDown, pageScrollState, 1)
+        }
     }
     if (addAct || editAct != null) { WasmSafeOverlay(onDismiss = { addAct = false; editAct = null }, errorMessage = errorMessage) {
             ActEditorDialog(editAct, ProjectRepository.projects, {
@@ -373,7 +424,7 @@ private fun ActEditorDialog(
     LaunchedEffect(recordType, projectUuid, availableProjects) {
         val subprojectUuid = selectedSubprojectUuid(projectUuid)
         basisProjectUuid = subprojectUuid
-        if (recordType != "payment" || subprojectUuid == null) {
+        if (recordType !in setOf("payment", "advance") || subprojectUuid == null) {
             basisActs = emptyList()
             loadingBasisActs = false
             return@LaunchedEffect
@@ -399,7 +450,7 @@ private fun ActEditorDialog(
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 listOf("invoice", "act", "payment", "advance").forEach { type -> FilterChip(selected = recordType == type, onClick = { recordType = type }, label = { Text(LocalizationManager.t("record_type_$type")) }) }
             }
-            if (recordType in setOf("payment", "advance")) {
+            if (recordType in setOf("act", "payment", "advance")) {
                 Text(LocalizationManager.t("payment_purpose"), style = MaterialTheme.typography.labelLarge)
                 InlineOptionPicker(options = listOf("works", "equipment", "technical_supervision", "engineer_consultant"),
                     selected = paymentPurpose, prompt = LocalizationManager.t("payment_purpose"), onSelect = { paymentPurpose = it },
@@ -428,7 +479,7 @@ private fun ActEditorDialog(
                 }
             }
             OmsDateField(date, { date = it }, LocalizationManager.t("date"), Modifier.fillMaxWidth(), true)
-            if (recordType == "payment" && basisProjectUuid != null && basisActs.isNotEmpty()) {
+            if (recordType in setOf("payment", "advance") && basisProjectUuid != null && basisActs.isNotEmpty()) {
                 val selectedBasis = basisActs.firstOrNull { it.referenceNumber == description }
                 InlineOptionPicker(
                     options = basisActs,
@@ -441,13 +492,13 @@ private fun ActEditorDialog(
                 OutlinedTextField(
                     value = description,
                     onValueChange = { description = it },
-                    label = { Text(LocalizationManager.t(if (recordType == "payment") "payment_basis" else "description")) },
-                    placeholder = if (recordType == "payment") { { Text(LocalizationManager.t("payment_basis_hint")) } } else null,
-                    supportingText = if (recordType == "payment" && loadingBasisActs) {
+                    label = { Text(LocalizationManager.t(if (recordType in setOf("payment", "advance")) "payment_basis" else "description")) },
+                    placeholder = if (recordType in setOf("payment", "advance")) { { Text(LocalizationManager.t("payment_basis_hint")) } } else null,
+                    supportingText = if (recordType in setOf("payment", "advance") && loadingBasisActs) {
                         { Text(LocalizationManager.t("loading_records")) }
                     } else null,
                     modifier = Modifier.fillMaxWidth(),
-                    minLines = if (recordType == "payment") 2 else 1
+                    minLines = if (recordType in setOf("payment", "advance")) 2 else 1
                 )
             }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, androidx.compose.ui.Alignment.End)) {
@@ -596,6 +647,39 @@ private fun FinancialTableHeader(sort: FinancialSort, ascending: Boolean, onSort
     }
 }
 
+@Composable
+private fun FinancialPagination(
+    pageSize: Int,
+    currentPage: Int,
+    pageCount: Int,
+    total: Int,
+    onPageSize: (Int) -> Unit,
+    onPage: (Int) -> Unit
+) {
+    Row(horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
+        Text(LocalizationManager.t("rows_per_page"), style = MaterialTheme.typography.bodySmall)
+        Spacer(Modifier.width(8.dp))
+        InlineOptionPicker(
+            options = listOf(20, 50, 100, Int.MAX_VALUE),
+            selected = pageSize,
+            prompt = LocalizationManager.t("rows_per_page"),
+            onSelect = onPageSize,
+            itemLabel = { if (it == Int.MAX_VALUE) LocalizationManager.t("all") else it.toString() },
+            fillWidth = false
+        )
+        Spacer(Modifier.width(12.dp))
+        Text(
+            LocalizationManager.t("page_of")
+                .replace("{page}", (currentPage + 1).toString())
+                .replace("{pages}", pageCount.toString())
+                .replace("{total}", total.toString()),
+            style = MaterialTheme.typography.bodySmall
+        )
+        TableActionIconButton(LocalizationManager.t("previous_page"), Icons.Default.KeyboardArrowLeft) { onPage(currentPage - 1) }
+        TableActionIconButton(LocalizationManager.t("next_page"), Icons.Default.KeyboardArrowRight) { onPage(currentPage + 1) }
+    }
+}
+
 private fun Int.isFinancialTranche(filter: Int): Boolean = when (filter) {
     1 -> this == 1 || this == 8
     2 -> this == 2 || this == 9
@@ -607,7 +691,7 @@ private fun Int.financialTrancheCode(): String = if (this == 2 || this == 9) "B"
 
 @Composable
 private fun FinancialPaymentPurposeBadge(recordType: String, purpose: String) {
-    if (recordType !in setOf("payment", "advance")) {
+    if (recordType == "invoice") {
         Text("—", color = MaterialTheme.colorScheme.onSurfaceVariant)
         return
     }

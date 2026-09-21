@@ -44,7 +44,7 @@
                 lastInspection: "Остання інспекція", inspectionCode: "Код інспекції", subprojectCode: "Код субпроєкту", noReports: "Інспекційних звітів ще немає", noPhotos: "В останній інспекції немає фотографій.",
                 open: "Відкрити", previewReport: "Переглянути звіт", closeFullscreenPhoto: "Закрити повноекранне фото", details: "Деталі",
                 loading: "Завантаження даних…", uploadingFile: "Завантаження файлу…", importingInspection: "Імпорт інспекційного звіту…", importingFinancial: "Імпорт фінансових записів…",
-                pasteTruncated: "Вставлено перші {limit} символів. Надлишковий текст відкинуто, щоб форма не зависла."
+                pasteTruncated: "Текст не вставлено: максимум {limit} символів за раз. Вставте менший фрагмент."
             },
             en: {
                 importReportError: "Could not import inspection report", uploadFileError: "Could not upload file",
@@ -56,7 +56,7 @@
                 lastInspection: "Latest inspection", inspectionCode: "Inspection code", subprojectCode: "Subproject code", noReports: "No Inspection Reports yet", noPhotos: "No photos in the latest inspection.",
                 open: "Open", previewReport: "Preview report", closeFullscreenPhoto: "Close full-screen photo", details: "Details",
                 loading: "Loading data…", uploadingFile: "Uploading file…", importingInspection: "Importing inspection report…", importingFinancial: "Importing financial records…",
-                pasteTruncated: "The first {limit} characters were pasted. Extra text was discarded to keep the form responsive."
+                pasteTruncated: "Text was not pasted: maximum {limit} characters at a time. Paste a smaller fragment."
             }
         };
         function setOmsLanguage(language) { omsLanguage = language === "en" ? "en" : "uk"; }
@@ -102,47 +102,8 @@
             omsPasteNoticeTimer = setTimeout(() => notice.classList.remove("visible"), 4500);
         }
 
-        // Compose/Wasm may also subscribe to clipboard and context-menu events
-        // for its canvas layer. Native HTML inputs already implement these
-        // operations in the browser; forwarding them to both paths can leave a
-        // field stuck after Copy from the right-click menu. Keep the native
-        // default action, but do not let Compose handle it a second time.
-        function isOmsNativeTextField(element) {
-            return element instanceof HTMLInputElement ||
-                element instanceof HTMLTextAreaElement ||
-                Boolean(element && element.isContentEditable);
-        }
-
-        function hasOmsNativeTextFieldFocus(event) {
-            return isOmsNativeTextField(event.target) || isOmsNativeTextField(document.activeElement);
-        }
-
-        window.addEventListener("contextmenu", event => {
-            if (hasOmsNativeTextFieldFocus(event)) event.stopImmediatePropagation();
-        }, true);
-
-        window.addEventListener("copy", event => {
-            if (hasOmsNativeTextFieldFocus(event)) event.stopImmediatePropagation();
-        }, true);
-
-        window.addEventListener("cut", event => {
-            if (hasOmsNativeTextFieldFocus(event)) event.stopImmediatePropagation();
-        }, true);
-
         window.addEventListener("paste", event => {
             const text = event.clipboardData?.getData("text/plain") || "";
-
-            // Compose/Wasm keeps a native, contenteditable input above its
-            // canvas while a text field is focused. A context-menu paste then
-            // reaches both the native input and Compose's canvas listener.
-            // The duplicate processing is what leaves editor forms frozen.
-            // Keep the browser's default insertion, but stop the event before
-            // the second listener. The ordinary input event still updates
-            // Compose state.
-            if (hasOmsNativeTextFieldFocus(event) && text.length <= omsMaximumPasteLength) {
-                event.stopImmediatePropagation();
-                return;
-            }
 
             // Let the browser and Compose handle every normal paste natively.
             // Re-dispatching a synthetic ClipboardEvent into Compose/Wasm is
@@ -972,6 +933,6 @@
     </div>
 </div>
 <!--suppress HtmlUnknownTarget -->
-<script type="application/javascript" src="composeApp.js?v=20260921-sir-photo-regex"></script>
+<script type="application/javascript" src="composeApp.js?v=20260921-text-context-menu"></script>
 </body>
 </html>

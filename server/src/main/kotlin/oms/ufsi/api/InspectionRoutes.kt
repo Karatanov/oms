@@ -121,6 +121,15 @@ fun Route.inspectionRoutes() {
                 part.dispose()
             }
             val report = imported ?: throw IllegalArgumentException("Multipart field 'file' is required.")
+            // Imported workbooks do not have user-created findings. Extract the
+            // H&S checklist once at import time and mirror only non-compliant
+            // rows into the analytics finding set.  This keeps the ESHS chart
+            // consistent with manually created reports without making every
+            // dashboard read reopen XLSX files.
+            val importedHse = AppContainer.inspectionReportFileService
+                .healthSafetyObservations(report.id)
+                .map { ManualHseObservation(it.observation, it.answer, it.comment) }
+            synchronizeManualHseFindings(report.id, importedHse)
             AppContainer.auditLogService.record(session.userId, "inspection_imported", "inspection_report", report.id)
             call.respond(HttpStatusCode.Created, report.toResponse())
         } catch (exception: IllegalArgumentException) {
@@ -178,6 +187,10 @@ fun Route.inspectionRoutes() {
                 part.dispose()
             }
             replacement ?: throw IllegalArgumentException("Multipart field 'file' is required.")
+            val replacementHse = AppContainer.inspectionReportFileService
+                .healthSafetyObservations(report.id)
+                .map { ManualHseObservation(it.observation, it.answer, it.comment) }
+            synchronizeManualHseFindings(report.id, replacementHse)
             AppContainer.auditLogService.record(session.userId, "inspection_source_file_replaced", "inspection_report", report.id)
             call.respond(HttpStatusCode.NoContent)
         } catch (exception: IllegalArgumentException) {
