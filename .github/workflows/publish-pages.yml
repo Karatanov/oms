@@ -26,6 +26,8 @@ jobs:
 
       - name: Check clipboard event handling
         run: node tools/check-clipboard-events.cjs
+      - name: Check button cursor policy
+        run: node tools/check-button-cursors.cjs
 
       - name: Check SIR photo association handling
         run: node tools/check-sir-photo-associations.cjs

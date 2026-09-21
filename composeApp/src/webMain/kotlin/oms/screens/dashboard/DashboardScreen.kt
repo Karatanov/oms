@@ -97,6 +97,7 @@ fun DashboardScreen(
                             SegmentedButton(
                                 selected = trancheNumber == option,
                                 onClick = { trancheNumber = option },
+                                modifier = Modifier.buttonHandCursor(),
                                 shape = SegmentedButtonDefaults.itemShape(index, 3),
                                 colors = dashboardSegmentedColors(),
                                 icon = {},
@@ -110,9 +111,9 @@ fun DashboardScreen(
                             )
                         }
                     }
-                    OutlinedButton(onClick = {
+                    androidx.compose.material3.OutlinedButton(onClick = {
                         chartOrientation = if (chartOrientation == BarChartOrientation.Vertical) BarChartOrientation.Horizontal else BarChartOrientation.Vertical
-                    }) {
+                    }, modifier = Modifier.buttonHandCursor()) {
                         Icon(Icons.Default.SwapHoriz, null)
                         Spacer(Modifier.width(6.dp))
                         Text(LocalizationManager.t(if (chartOrientation == BarChartOrientation.Vertical) "horizontal_charts" else "vertical_charts"))

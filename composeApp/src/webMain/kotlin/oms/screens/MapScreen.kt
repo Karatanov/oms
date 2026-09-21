@@ -59,6 +59,7 @@ fun MapScreen(onOpenProject: (Project) -> Unit = {}) {
                     SegmentedButton(
                         selected = mapScope == option,
                         onClick = { mapScope = option },
+                        modifier = Modifier.buttonHandCursor(),
                         shape = SegmentedButtonDefaults.itemShape(index, MapScope.entries.size),
                         colors = mapSegmentedColors(),
                         icon = {},
@@ -71,6 +72,7 @@ fun MapScreen(onOpenProject: (Project) -> Unit = {}) {
                     SegmentedButton(
                         selected = trancheNumber == option,
                         onClick = { trancheNumber = option },
+                        modifier = Modifier.buttonHandCursor(),
                         shape = SegmentedButtonDefaults.itemShape(index, 3),
                         colors = mapSegmentedColors(),
                         icon = {},

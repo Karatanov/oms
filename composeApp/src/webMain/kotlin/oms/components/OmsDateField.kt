@@ -63,7 +63,7 @@ fun OmsDateField(
         trailingIcon = {
             IconButton(
                 onClick = { openNativeDatePicker(value, anchorLeft, anchorTop, onValueChange) },
-                modifier = Modifier.onGloballyPositioned { coordinates ->
+                modifier = Modifier.buttonHandCursor().onGloballyPositioned { coordinates ->
                     val position = coordinates.positionInWindow()
                     anchorLeft = position.x
                     anchorTop = position.y + coordinates.size.height

@@ -31,6 +31,7 @@ import oms.components.OmsDateField
 import oms.components.InlineOptionPicker
 import oms.components.SearchableOptionPicker
 import oms.components.currentIsoDate
+import oms.components.buttonHandCursor
 import oms.model.Project
 import kotlin.js.JsName
 import androidx.compose.material.icons.Icons
@@ -1204,6 +1205,7 @@ private fun ScheduleChoice(selected: String, onSelect: (String) -> Unit) {
             SegmentedButton(
                 selected = selected.equals(option, ignoreCase = true),
                 onClick = { onSelect(option) },
+                modifier = Modifier.buttonHandCursor(),
                 shape = SegmentedButtonDefaults.itemShape(optionIndex, 2),
                 colors = SegmentedButtonDefaults.colors(
                     activeContainerColor = MaterialTheme.colorScheme.primary,

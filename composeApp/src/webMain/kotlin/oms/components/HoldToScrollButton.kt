@@ -40,7 +40,7 @@ fun HoldToScrollButton(
 
     OmsTooltipBox(tooltip = { Text(tooltip) }) {
         FilledIconButton(
-            modifier = if (enabled) modifier.pointerInput(scrollState, sign) {
+            modifier = if (enabled) modifier.buttonHandCursor().pointerInput(scrollState, sign) {
                 awaitEachGesture {
                     awaitFirstDown(requireUnconsumed = false)
                     suppressClick = false
@@ -60,7 +60,7 @@ fun HoldToScrollButton(
                         scope.launch { delay(120); suppressClick = false }
                     }
                 }
-            } else modifier,
+            } else modifier.buttonHandCursor(),
             onClick = {
                 if (suppressClick) {
                     suppressClick = false

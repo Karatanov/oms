@@ -21,6 +21,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SortByAlpha
 import oms.components.toOmsDateTime
+import oms.components.buttonHandCursor
 import oms.localization.LocalizationManager
 import oms.data.ApiActivity
 import oms.data.ApiUser
@@ -86,7 +87,7 @@ fun ActivitySection(activities: List<ApiActivity>, users: List<ApiUser>) {
                 )
                 OutlinedButton(
                     onClick = { userSortAscending = userSortAscending?.not() ?: true },
-                    modifier = Modifier.height(56.dp)
+                    modifier = Modifier.height(56.dp).buttonHandCursor()
                 ) {
                     Icon(Icons.Default.SortByAlpha, contentDescription = null)
                     Spacer(Modifier.width(8.dp))
