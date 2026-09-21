@@ -450,7 +450,7 @@ private fun ActEditorDialog(
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 listOf("invoice", "act", "payment", "advance").forEach { type -> FilterChip(selected = recordType == type, onClick = { recordType = type }, label = { Text(LocalizationManager.t("record_type_$type")) }) }
             }
-            if (recordType in setOf("act", "payment", "advance")) {
+            if (recordType in setOf("payment", "advance")) {
                 Text(LocalizationManager.t("payment_purpose"), style = MaterialTheme.typography.labelLarge)
                 InlineOptionPicker(options = listOf("works", "equipment", "technical_supervision", "engineer_consultant"),
                     selected = paymentPurpose, prompt = LocalizationManager.t("payment_purpose"), onSelect = { paymentPurpose = it },
@@ -481,10 +481,10 @@ private fun ActEditorDialog(
             OmsDateField(date, { date = it }, LocalizationManager.t("date"), Modifier.fillMaxWidth(), true)
             if (recordType in setOf("payment", "advance") && basisProjectUuid != null && basisActs.isNotEmpty()) {
                 val selectedBasis = basisActs.firstOrNull { it.referenceNumber == description }
-                InlineOptionPicker(
+                SearchableOptionPicker(
                     options = basisActs,
                     selected = selectedBasis,
-                    prompt = LocalizationManager.t("payment_basis"),
+                    label = LocalizationManager.t("payment_basis"),
                     onSelect = { act -> description = act.referenceNumber },
                     itemLabel = { act -> "${act.referenceNumber} · ${act.recordDate.toOmsDate()} · ${act.amount.toMoney(act.currency)}" }
                 )
@@ -691,7 +691,7 @@ private fun Int.financialTrancheCode(): String = if (this == 2 || this == 9) "B"
 
 @Composable
 private fun FinancialPaymentPurposeBadge(recordType: String, purpose: String) {
-    if (recordType == "invoice") {
+    if (recordType !in setOf("payment", "advance")) {
         Text("—", color = MaterialTheme.colorScheme.onSurfaceVariant)
         return
     }
