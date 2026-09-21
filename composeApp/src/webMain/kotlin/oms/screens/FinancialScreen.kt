@@ -161,6 +161,11 @@ fun FinancialScreen(
     }.let { if (ascending) it else it.reversed() })
     val pageCount = if (visibleActs.isEmpty() || pageSize == Int.MAX_VALUE) 1
     else (visibleActs.size + pageSize - 1) / pageSize
+    // Filters change the data set just like on the Subprojects screen: start
+    // from page one so the pagination status always describes visible rows.
+    LaunchedEffect(recordTypeFilter, paymentPurposeFilter, trancheFilter, subprojectFilter, pageSize) {
+        currentPage = 0
+    }
     LaunchedEffect(visibleActs.size, pageSize) { currentPage = currentPage.coerceIn(0, pageCount - 1) }
     val pageRows = if (pageSize == Int.MAX_VALUE) visibleActs else visibleActs.drop(currentPage * pageSize).take(pageSize)
     val emptyRecordsMessage = when (recordTypeFilter) {
@@ -238,8 +243,14 @@ fun FinancialScreen(
             second = { MonthlyEngineerConsultantPaymentsChart(financialChartRecords) }
         )
 
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
             Text(LocalizationManager.t("financial_records"), style = MaterialTheme.typography.titleLarge)
+            Spacer(Modifier.weight(1f))
+            // Keep page controls immediately visible, like the Subprojects
+            // registry. A second copy remains below the table for long lists.
+            FinancialPagination(pageSize, currentPage, pageCount, visibleActs.size, { pageSize = it }) {
+                currentPage = it.coerceIn(0, pageCount - 1)
+            }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
             FilterDropdown(
