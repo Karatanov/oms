@@ -24,6 +24,8 @@ Migration V53 classifies every OMS project code containing `#Lot` as a `subproje
 
 Migration V54 adds **177 Tranche B** subprojects from `DB_Screening results.xlsx`, under the existing `Ukraine Recovery Programme III` parent. Only source identifiers formatted `XX09_NN` are imported; the three `0_REL` reference rows are explicitly excluded. Each imported subproject keeps its Ukrainian and English title, municipality/settlement and priority-area metadata, the source UAH and EUR budget snapshot, source-row provenance and screening submission state. It does not overwrite an already existing subproject code. The source workbook is represented by the reviewed UTF-8 snapshot `urp3_screening_tranche_b.json`; `tools/generate_urp3_screening_tranche_b.py` produces that snapshot and the forward-only migration. The 22 represented regions use the agreed regional-centre map fallback and each record is marked `oblast_center` in monitoring metadata until an exact address geocode is available.
 
+Migration V55 reconciles procurement data with the **Tranche B** sheet of `Tranche A + B selected (2).xlsx`. It covers 53 source rows for 26 subprojects (26 works contracts, 26 technical-supervision contracts and one engineer-consultant contract). A record is matched by the stable subproject code plus source contract type. The migration restores missing project relations and missing source values only; non-empty OMS values, including administrator edits, are never overwritten. The reviewed `tranche_b_procurement_backfill.json` snapshot and `tools/generate_tranche_b_procurement_backfill.py` make this forward-only repair reproducible without accessing a local Excel path at runtime.
+
 ```mermaid
 erDiagram
     ROLES ||--o{ USERS : assigns
