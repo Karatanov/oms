@@ -125,7 +125,7 @@ INSERT INTO procurement_records (
     estimated_contract_date, estimated_contract_end_date, purchase_status, local_financing_pct,
     comments, source_status_code, project_id
 )
-SELECT 9, subproject.region, source.oblast_id, source.promotor_name, source.subproject_name_uk,
+SELECT 9, subproject.region, COALESCE(source.oblast_id, works_source.oblast_id), source.promotor_name, source.subproject_name_uk,
     source.subproject_name_en, source.subproject_code, source.source_contract_type,
     source.subproject_total_cost_uah, source.subproject_eib_financing_uah, source.subproject_local_financing_uah,
     source.estimated_total_eur, source.estimated_total_uah, source.estimated_eib_eur,
@@ -141,6 +141,9 @@ FROM procurement_tranche_b_source source
 INNER JOIN projects subproject
     ON subproject.project_type = 'subproject'
    AND subproject.site_number = source.subproject_code
+LEFT JOIN procurement_tranche_b_source works_source
+    ON works_source.subproject_code = source.subproject_code
+   AND works_source.type_code = 'W'
 WHERE NOT EXISTS (
     SELECT 1 FROM procurement_records record
     WHERE record.sub_project_id = source.subproject_code
