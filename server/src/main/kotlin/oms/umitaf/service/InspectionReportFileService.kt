@@ -477,6 +477,10 @@ class InspectionReportFileService(
         // Rebuild this optional block from the form state so removing its last
         // row removes the block from the workbook as well.
         firstRow(sheet, "PURCHASED MATERIALS")?.let { removePurchasedMaterialsLayout(sheet, it) }
+        // Older imported SIR workbooks occasionally omit the progress table.
+        // It is editable data, not a prerequisite for saving a report, so
+        // restore the approved two-column block instead of rejecting the edit.
+        ensureProgressAssessmentLayout(sheet)
         if (materials.isNotEmpty()) ensurePurchasedMaterialsLayout(sheet)
         // The supplied workbook reserves only a handful of H&S rows.  Unlike
         // the other compact sections, this block is explicitly extendable in
@@ -682,6 +686,50 @@ class InspectionReportFileService(
         }
     }
 
+    /**
+     * Restores the progress-assessment section for older imported workbooks
+     * that were based on an abbreviated SIR template.  It is inserted directly
+     * above the signature so subsequent optional sections can retain their
+     * normal position and no user-entered data is overwritten.
+     */
+    private fun ensureProgressAssessmentLayout(sheet: org.apache.poi.ss.usermodel.Sheet) {
+        if (firstRow(sheet, "NARRATIVE ASSESSMENT - COMMENTS ON PROGRESS") != null) return
+        val signatureTitleRow = signatureSectionRow(sheet)
+        val qualityTitleRow = firstRow(sheet, "NARRATIVE ASSESSMENT - COMMENTS ON QUALITY")
+        val titleStyle = qualityTitleRow?.let { row -> sheet.getRow(row - 1)?.getCell(0)?.cellStyle }
+        val leftDataStyle = qualityTitleRow?.let { row -> sheet.getRow(row)?.getCell(0)?.cellStyle }
+        val rightDataStyle = qualityTitleRow?.let { row -> sheet.getRow(row)?.getCell(9)?.cellStyle }
+
+        // Apache POI row arguments are zero-based. Reserve a title and one
+        // data row just before the signature block.
+        sheet.shiftRows(signatureTitleRow - 1, sheet.lastRowNum, 2, true, false)
+        fun cell(row: Int, column: Int) = (sheet.getRow(row - 1) ?: sheet.createRow(row - 1))
+            .getCell(column - 1) ?: (sheet.getRow(row - 1) ?: sheet.createRow(row - 1)).createCell(column - 1)
+        fun merge(row: Int, columns: IntRange, border: BorderStyle) {
+            val region = CellRangeAddress(row - 1, row - 1, columns.first, columns.last)
+            sheet.addMergedRegion(region)
+            RegionUtil.setBorderTop(border, region, sheet)
+            RegionUtil.setBorderBottom(border, region, sheet)
+            RegionUtil.setBorderLeft(border, region, sheet)
+            RegionUtil.setBorderRight(border, region, sheet)
+        }
+
+        merge(signatureTitleRow, 0..8, BorderStyle.MEDIUM)
+        merge(signatureTitleRow, 9..11, BorderStyle.MEDIUM)
+        cell(signatureTitleRow, 1).apply {
+            if (titleStyle != null) cellStyle = titleStyle
+            setCellValue("NARRATIVE ASSESSMENT - COMMENTS ON PROGRESS")
+        }
+        cell(signatureTitleRow, 10).apply {
+            if (titleStyle != null) cellStyle = titleStyle
+            setCellValue("SCHEDULE REVISION REMARKS")
+        }
+        merge(signatureTitleRow + 1, 0..8, BorderStyle.THIN)
+        merge(signatureTitleRow + 1, 9..11, BorderStyle.THIN)
+        cell(signatureTitleRow + 1, 1).apply { if (leftDataStyle != null) cellStyle = leftDataStyle }
+        cell(signatureTitleRow + 1, 10).apply { if (rightDataStyle != null) cellStyle = rightDataStyle }
+    }
+
     /** Inserts the optional materials table immediately before the signature. */
     private fun ensurePurchasedMaterialsLayout(sheet: org.apache.poi.ss.usermodel.Sheet) {
         val existingTitleRow = firstRow(sheet, "PURCHASED MATERIALS")
@@ -743,11 +791,23 @@ class InspectionReportFileService(
 
     private fun firstRow(sheet: org.apache.poi.ss.usermodel.Sheet, value: String): Int? =
         (1..(sheet.lastRowNum + 1)).firstOrNull { row ->
-            sheet.getRow(row - 1)?.getCell(0)?.let { DataFormatter().formatCellValue(it).trim() }?.let { cell ->
-                if (value == SIGNATURE_SECTION_TITLE) isSignatureSectionTitle(cell)
-                else cell.equals(value, ignoreCase = true)
-            } == true
+            sheet.getRow(row - 1)?.getCell(0)
+                ?.let { DataFormatter().formatCellValue(it).trim() }
+                ?.let { cell -> sectionTitleMatches(cell, value) } == true
         }
+
+    private fun sectionTitleMatches(cell: String, expected: String): Boolean {
+        if (expected == SIGNATURE_SECTION_TITLE) return isSignatureSectionTitle(cell)
+        if (cell.equals(expected, ignoreCase = true)) return true
+        // Excel authors often introduce repeated spaces and hard line breaks
+        // in long section headings. Treat these as the same semantic heading.
+        val normalized = cell.replace(Regex("\\s+"), " ").trim()
+        return when (expected) {
+            "NARRATIVE ASSESSMENT - COMMENTS ON PROGRESS" ->
+                normalized.contains("NARRATIVE ASSESSMENT", true) && normalized.contains("PROGRESS", true)
+            else -> false
+        }
+    }
 
     private fun sectionRow(sheet: org.apache.poi.ss.usermodel.Sheet, title: String): Int =
         requireNotNull(firstRow(sheet, title)) { "SIR template is missing the '$title' section." }
