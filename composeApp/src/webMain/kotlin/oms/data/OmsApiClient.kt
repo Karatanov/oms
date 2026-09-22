@@ -13,6 +13,7 @@ import io.ktor.client.request.patch
 import io.ktor.client.request.put
 import io.ktor.client.request.parameter
 import io.ktor.client.request.setBody
+import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
@@ -308,18 +309,35 @@ object OmsApiClient {
         // Parsing an XLSX belongs to the report screen's inline loader. A
         // global blocking overlay here made every navigation button appear
         // frozen until Apache POI had finished reading an imported report.
-        client.get("$baseUrl/inspection-reports/$reportUuid/manual?background=true").body()
+        client.get("$baseUrl/inspection-reports/$reportUuid/manual?background=true").let { response ->
+            if (!response.status.isSuccess()) throw response.asApiException()
+            response.body()
+        }
 
     suspend fun updateManualInspectionReport(
         reportUuid: String,
         projectUuid: String,
         status: String?,
         manual: ManualInspectionReportRequest
-    ): ApiInspectionReport =
-        client.put("$baseUrl/inspection-reports/$reportUuid/manual") {
+    ): ApiInspectionReport {
+        val response = client.put("$baseUrl/inspection-reports/$reportUuid/manual") {
             contentType(ContentType.Application.Json)
             setBody(UpdateManualInspectionReportRequest(projectUuid, status, manual))
-        }.body()
+        }
+        // Error responses have a different JSON shape ({ error, message }).
+        // Do not try to deserialize one as an inspection report: doing so hid
+        // the useful server-side validation message behind a misleading
+        // "uuid, inspectionDate, status are required" serialization error.
+        if (!response.status.isSuccess()) throw response.asApiException()
+        // Some older backend instances acknowledged this update with an
+        // empty/legacy response body.  The update has already succeeded in
+        // that case, so refresh the saved report rather than leaving the form
+        // with a false error.
+        return runCatching { response.body<ApiInspectionReport>() }.getOrElse {
+            projectReports(projectUuid).firstOrNull { it.uuid == reportUuid }
+                ?: throw IllegalStateException("Inspection report was saved but could not be refreshed.")
+        }
+    }
 
     suspend fun reviewInspectionReport(
         reportUuid: String,
@@ -415,6 +433,15 @@ data class LoginPayload(val user: ApiUser)
 
 @Serializable
 private data class ApiErrorPayload(val error: String? = null, val message: String? = null)
+
+/** Extract the server's actual error instead of attempting to decode it as a success DTO. */
+private suspend fun HttpResponse.asApiException(): IllegalStateException {
+    val body = bodyAsText()
+    val message = runCatching {
+        Json { ignoreUnknownKeys = true }.decodeFromString<ApiErrorPayload>(body).message
+    }.getOrNull()
+    return IllegalStateException(message?.takeIf { it.isNotBlank() } ?: body.ifBlank { "Request failed (${status.value})." })
+}
 
 // Server JSON intentionally omits default-valued cells from Excel templates.
 // Defaults here keep imported/older SIR files readable and editable even when
