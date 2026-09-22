@@ -423,25 +423,18 @@ private fun ActEditorDialog(
     var paymentPurpose by remember { mutableStateOf(existing?.act?.paymentPurpose ?: "works") }
     var basisActs by remember { mutableStateOf<List<ApiFinancialRecord>>(emptyList()) }
     var loadingBasisActs by remember { mutableStateOf(false) }
-    var basisProjectUuid by remember { mutableStateOf<String?>(null) }
-    fun selectedSubprojectUuid(targetUuid: String?): String? {
-        val byId = availableProjects.associateBy { it.id }
-        return byId[targetUuid]?.let { target ->
-            generateSequence(target) { current -> current.parentProjectUuid?.let(byId::get) }
-                .firstOrNull { it.projectType.equals("subproject", true) }
-                ?.id
-        }
-    }
     LaunchedEffect(recordType, projectUuid, availableProjects) {
-        val subprojectUuid = selectedSubprojectUuid(projectUuid)
-        basisProjectUuid = subprojectUuid
-        if (recordType !in setOf("payment", "advance") || subprojectUuid == null) {
+        val selectedTargetUuid = projectUuid
+        if (recordType !in setOf("payment", "advance") || selectedTargetUuid == null) {
             basisActs = emptyList()
             loadingBasisActs = false
             return@LaunchedEffect
         }
         loadingBasisActs = true
-        basisActs = runCatching { OmsApiClient.financials(subprojectUuid).data }
+        // Payment and advance bases are scoped to the selected subproject or
+        // subproject part, so records from a neighbouring hierarchy node can
+        // never be chosen accidentally.
+        basisActs = runCatching { OmsApiClient.financials(selectedTargetUuid).data }
             .getOrDefault(emptyList())
             .filter { it.recordType.equals("act", true) }
         loadingBasisActs = false
@@ -467,6 +460,30 @@ private fun ActEditorDialog(
                     selected = paymentPurpose, prompt = LocalizationManager.t("payment_purpose"), onSelect = { paymentPurpose = it },
                     itemLabel = { LocalizationManager.t("payment_purpose_$it") })
             }
+            if (recordType in setOf("payment", "advance") && basisActs.isNotEmpty()) {
+                val selectedBasis = basisActs.firstOrNull { it.referenceNumber == description }
+                SearchableOptionPicker(
+                    options = basisActs,
+                    selected = selectedBasis,
+                    label = LocalizationManager.t("payment_basis"),
+                    onSelect = { act ->
+                        description = act.referenceNumber
+                        amount = act.amount.toString()
+                        currency = act.currency
+                    },
+                    itemLabel = { act -> "${act.referenceNumber} · ${act.recordDate.toOmsDate()} · ${act.amount.toMoney(act.currency)}" }
+                )
+            } else if (recordType in setOf("payment", "advance")) {
+                OutlinedTextField(
+                    value = description,
+                    onValueChange = { description = it },
+                    label = { Text(LocalizationManager.t("payment_basis")) },
+                    placeholder = { Text(LocalizationManager.t("payment_basis_hint")) },
+                    supportingText = if (loadingBasisActs) { { Text(LocalizationManager.t("loading_records")) } } else null,
+                    modifier = Modifier.fillMaxWidth(),
+                    minLines = 2
+                )
+            }
             OutlinedTextField(
                 value = amount,
                 onValueChange = { entered ->
@@ -490,26 +507,13 @@ private fun ActEditorDialog(
                 }
             }
             OmsDateField(date, { date = it }, LocalizationManager.t("date"), Modifier.fillMaxWidth(), true)
-            if (recordType in setOf("payment", "advance") && basisProjectUuid != null && basisActs.isNotEmpty()) {
-                val selectedBasis = basisActs.firstOrNull { it.referenceNumber == description }
-                SearchableOptionPicker(
-                    options = basisActs,
-                    selected = selectedBasis,
-                    label = LocalizationManager.t("payment_basis"),
-                    onSelect = { act -> description = act.referenceNumber },
-                    itemLabel = { act -> "${act.referenceNumber} · ${act.recordDate.toOmsDate()} · ${act.amount.toMoney(act.currency)}" }
-                )
-            } else {
+            if (recordType !in setOf("payment", "advance")) {
                 OutlinedTextField(
                     value = description,
                     onValueChange = { description = it },
-                    label = { Text(LocalizationManager.t(if (recordType in setOf("payment", "advance")) "payment_basis" else "description")) },
-                    placeholder = if (recordType in setOf("payment", "advance")) { { Text(LocalizationManager.t("payment_basis_hint")) } } else null,
-                    supportingText = if (recordType in setOf("payment", "advance") && loadingBasisActs) {
-                        { Text(LocalizationManager.t("loading_records")) }
-                    } else null,
+                    label = { Text(LocalizationManager.t("description")) },
                     modifier = Modifier.fillMaxWidth(),
-                    minLines = if (recordType in setOf("payment", "advance")) 2 else 1
+                    minLines = 1
                 )
             }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, androidx.compose.ui.Alignment.End)) {

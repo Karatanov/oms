@@ -43,8 +43,11 @@ internal fun RepeatableQualityRemarks(
             Spacer(Modifier.width(40.dp))
         }
         values.forEachIndexed { index, remark ->
-            androidx.compose.runtime.LaunchedEffect(remark.photoKey, remark.work) {
-                setPendingInspectionPhotoDescription(remark.photoKey, remark.work)
+            // Evidence in this section is captioned from the quality comment,
+            // not the work name: it is the field that describes the issue
+            // depicted by the photo.
+            androidx.compose.runtime.LaunchedEffect(remark.photoKey, remark.comment) {
+                setPendingInspectionPhotoDescription(remark.photoKey, remark.comment)
             }
             Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {

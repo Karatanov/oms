@@ -706,7 +706,7 @@ private fun ReadOnlyQualityAssessmentTable(
                 val remarkPhotos = (
                     photos.forAssociation("quality-$index") +
                         photos.forImportedCaptions(
-                            listOf(remark.work, remark.comment, remark.rectification, remark.status),
+                            listOf(remark.comment),
                             photoCaptionCandidates
                         )
                     ).distinctBy { it.uuid }
@@ -860,8 +860,7 @@ private fun oms.data.ManualInspectionReportRequest.photoCaptionCandidates(): Lis
     activities.map { it.description }.filter(String::isNotBlank).forEach(::add)
     ongoingObservations.filter(String::isNotBlank).forEach(::add)
     qualityRemarks.forEach { remark ->
-        listOf(remark.work, remark.comment, remark.rectification, remark.status)
-            .filterNotNull().filter(String::isNotBlank).forEach(::add)
+        remark.comment.takeIf(String::isNotBlank)?.let(::add)
     }
     purchasedMaterials.map { it.materialsAndEquipment }.filter(String::isNotBlank).forEach(::add)
 }
