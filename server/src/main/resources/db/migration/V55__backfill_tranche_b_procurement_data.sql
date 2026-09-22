@@ -6,7 +6,7 @@
 
 CREATE TEMPORARY TABLE procurement_tranche_b_source (
     subproject_code VARCHAR(64) NOT NULL, source_contract_type VARCHAR(255) NOT NULL,
-    type_code VARCHAR(8) NOT NULL, source_procurement_id VARCHAR(128) NULL, oblast_id VARCHAR(32) NOT NULL,
+    type_code VARCHAR(8) NOT NULL, source_procurement_id VARCHAR(128) NULL, oblast_id VARCHAR(32) NULL,
     promotor_name VARCHAR(500) NULL, subproject_name_uk TEXT NULL, subproject_name_en TEXT NULL,
     subproject_total_cost_uah DECIMAL(18,2) NULL, subproject_eib_financing_uah DECIMAL(18,2) NULL,
     subproject_local_financing_uah DECIMAL(18,2) NULL, estimated_total_eur DECIMAL(18,4) NULL,
