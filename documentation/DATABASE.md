@@ -22,6 +22,8 @@ Migration V51 simplifies `procurement_records` to one authoritative subproject c
 
 Migration V53 classifies every OMS project code containing `#Lot` as a `subproject_part`. It creates a missing parent subproject from the base code when needed, keeps the original row and its linked reports, payments, photos and monitoring data intact, and corrects procurement relations to store the parent code in `sub_project_id` and the full lot code in `sub_project_lot_id`. A lot budget is not copied to the newly created parent, preventing double counting in totals and charts.
 
+Migration V54 adds **177 Tranche B** subprojects from `DB_Screening results.xlsx`, under the existing `Ukraine Recovery Programme III` parent. Only source identifiers formatted `XX09_NN` are imported; the three `0_REL` reference rows are explicitly excluded. Each imported subproject keeps its Ukrainian and English title, municipality/settlement and priority-area metadata, the source UAH and EUR budget snapshot, source-row provenance and screening submission state. It does not overwrite an already existing subproject code. The source workbook is represented by the reviewed UTF-8 snapshot `urp3_screening_tranche_b.json`; `tools/generate_urp3_screening_tranche_b.py` produces that snapshot and the forward-only migration. The 22 represented regions use the agreed regional-centre map fallback and each record is marked `oblast_center` in monitoring metadata until an exact address geocode is available.
+
 ```mermaid
 erDiagram
     ROLES ||--o{ USERS : assigns
