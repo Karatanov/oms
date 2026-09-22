@@ -94,7 +94,7 @@ fun FilterChip(
     shape: Shape = FilterChipDefaults.shape,
     colors: SelectableChipColors = FilterChipDefaults.filterChipColors(),
     elevation: SelectableChipElevation? = FilterChipDefaults.filterChipElevation(),
-    border: SelectableChipBorder? = FilterChipDefaults.filterChipBorder(enabled, selected),
+    border: BorderStroke? = FilterChipDefaults.filterChipBorder(enabled, selected),
     interactionSource: MutableInteractionSource? = null
 ) = androidx.compose.material3.FilterChip(
     selected = selected, onClick = onClick, label = label, modifier = modifier.buttonHandCursor(), enabled = enabled,
