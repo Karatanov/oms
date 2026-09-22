@@ -8,7 +8,7 @@ from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-TESTS = ROOT / 'build/wasm/packages/ufsi-composeApp-test/kotlin'
+TESTS = ROOT / 'build/wasm/packages/umitaf-composeApp-test/kotlin'
 
 
 class TestHandler(SimpleHTTPRequestHandler):
@@ -29,7 +29,7 @@ class TestHandler(SimpleHTTPRequestHandler):
 
 
 if __name__ == '__main__':
-    if not (TESTS / 'ufsi-composeApp-test.mjs').is_file():
+    if not (TESTS / 'umitaf-composeApp-test.mjs').is_file():
         raise SystemExit('Compile and sync the Kotlin/Wasm test executable first.')
     print('OMS Kotlin/Wasm tests: http://127.0.0.1:18087/ui-tests.html', flush=True)
     ThreadingHTTPServer(('127.0.0.1', 18087), TestHandler).serve_forever()

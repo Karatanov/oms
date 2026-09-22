@@ -16,7 +16,7 @@ The repository has no Android/iOS application target. Mobile distribution is a P
 
 ## 3. Architecture and repository navigation
 
-Read `ARCHITECTURE.md` for component/data/security flows, `DATABASE.md` for the ERD and migrations, and `API.md` for HTTP conventions and endpoint groups. The code-level sources of truth are `server/src/main/kotlin/oms/ufsi`, `server/src/main/resources/db/migration`, and `composeApp/src/webMain`.
+Read `ARCHITECTURE.md` for component/data/security flows, `DATABASE.md` for the ERD and migrations, and `API.md` for HTTP conventions and endpoint groups. The code-level sources of truth are `server/src/main/kotlin/oms/umitaf`, `server/src/main/resources/db/migration`, and `composeApp/src/webMain`.
 
 ## 4. Development environment and configuration
 

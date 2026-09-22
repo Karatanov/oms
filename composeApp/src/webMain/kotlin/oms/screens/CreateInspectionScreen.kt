@@ -118,7 +118,7 @@ fun CreateInspectionScreen(
     var inspectorName by remember { mutableStateOf(currentUserName) }
     var contractorRepresentative by remember { mutableStateOf("") }
     var qaStaff by remember { mutableStateOf(currentUserName) }
-    var usifRepresentative by remember { mutableStateOf("") }
+    var mctdRepresentative by remember { mutableStateOf("") }
     var skilledLabor by remember { mutableStateOf("") }
     var unskilledLabor by remember { mutableStateOf("") }
     var siteManagement by remember { mutableStateOf("") }
@@ -221,16 +221,13 @@ fun CreateInspectionScreen(
             date = manual.inspectionDate
             reportStatus = editor.status
             inspectionType = InspectionType.entries.firstOrNull { it.name.equals(manual.inspectionType, true) } ?: InspectionType.PLANNED
-            // USIF was a legacy template default. UNDP is the current
-            // organisation and is used when an older report has no value.
-            projectName = manual.projectName.orEmpty()
-                .takeUnless { it.equals("Ukrainian Social Investment Fund (USIF)", ignoreCase = true) }
-                .orEmpty()
-                .ifBlank { "UNDP" }
+            // UNDP is the current organisation and is used when an older
+            // report has no organisation value.
+            projectName = manual.projectName.orEmpty().ifBlank { "UNDP" }
             contractor = manual.contractor.orEmpty()
             contractorRepresentative = manual.contractorRepresentative.orEmpty()
             qaStaff = manual.qaStaff.orEmpty()
-            usifRepresentative = manual.usifRepresentative.orEmpty()
+            mctdRepresentative = manual.mctdRepresentative.orEmpty()
             skilledLabor = manual.skilledLabor.orEmpty()
             unskilledLabor = manual.unskilledLabor.orEmpty()
             siteManagement = manual.siteManagement.orEmpty()
@@ -448,7 +445,7 @@ fun CreateInspectionScreen(
                     projectName = projectName.ifBlank { null },
                     siteReference = siteReference.ifBlank { null },
                     qaStaff = qaStaff.ifBlank { null },
-                    usifRepresentative = usifRepresentative.ifBlank { null },
+                    mctdRepresentative = mctdRepresentative.ifBlank { null },
                     skilledLabor = skilledLabor.ifBlank { null },
                     unskilledLabor = unskilledLabor.ifBlank { null },
                     siteManagement = siteManagement.ifBlank { null },
@@ -469,7 +466,7 @@ fun CreateInspectionScreen(
             date = date, onDateChange = { date = it }, projectName = projectName, onProjectNameChange = { projectName = it },
             contractor = contractor, onContractorChange = { contractor = it },
             contractorRepresentative = contractorRepresentative, onContractorRepresentativeChange = { contractorRepresentative = it },
-            qaStaff = qaStaff, onQaStaffChange = { qaStaff = it }, usifRepresentative = usifRepresentative, onUsifRepresentativeChange = { usifRepresentative = it },
+            qaStaff = qaStaff, onQaStaffChange = { qaStaff = it }, mctdRepresentative = mctdRepresentative, onMctdRepresentativeChange = { mctdRepresentative = it },
             skilledLabor = skilledLabor, onSkilledLaborChange = { skilledLabor = it }, unskilledLabor = unskilledLabor, onUnskilledLaborChange = { unskilledLabor = it },
             siteManagement = siteManagement, onSiteManagementChange = { siteManagement = it }, weatherCondition = weatherCondition, onWeatherConditionChange = { weatherCondition = it }, temperatureCelsius = temperatureCelsius, onTemperatureCelsiusChange = { temperatureCelsius = it },
             activities = activities, onActivitiesChange = { activities = it }, ongoingObservations = ongoingObservations, onOngoingObservationsChange = { ongoingObservations = it },
@@ -560,7 +557,7 @@ fun CreateInspectionScreen(
                                             contractor = contractor,
                                             contractorRepresentative = contractorRepresentative.ifBlank { null },
                                             qaStaff = qaStaff.trim().ifBlank { inspectorName.trim() }.ifBlank { null },
-                                            usifRepresentative = usifRepresentative.ifBlank { null },
+                                            mctdRepresentative = mctdRepresentative.ifBlank { null },
                                             skilledLabor = skilledLabor.ifBlank { null },
                                             unskilledLabor = unskilledLabor.ifBlank { null },
                                             siteManagement = siteManagement.ifBlank { null },
@@ -789,7 +786,7 @@ private fun ManualSirForm(
     contractor: String, onContractorChange: (String) -> Unit,
     contractorRepresentative: String, onContractorRepresentativeChange: (String) -> Unit,
     qaStaff: String, onQaStaffChange: (String) -> Unit,
-    usifRepresentative: String, onUsifRepresentativeChange: (String) -> Unit,
+    mctdRepresentative: String, onMctdRepresentativeChange: (String) -> Unit,
     skilledLabor: String, onSkilledLaborChange: (String) -> Unit,
     unskilledLabor: String, onUnskilledLaborChange: (String) -> Unit,
     siteManagement: String, onSiteManagementChange: (String) -> Unit,
@@ -814,8 +811,7 @@ private fun ManualSirForm(
                 onValueChange = { onProjectNameChange(it.inspectionText(500)) },
                 label = LocalizationManager.t("sir_inspection_organisation"),
                 options = listOf(
-                    "UNDP" to "UNDP",
-                    "Ukrainian Social Investment Fund (USIF)" to "Ukrainian Social Investment Fund (USIF)"
+                    "UNDP" to "UNDP"
                 ),
                 modifier = Modifier.fillMaxWidth()
             )
@@ -830,11 +826,11 @@ private fun ManualSirForm(
                 if (maxWidth >= 900.dp) Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     OutlinedTextField(contractorRepresentative, { onContractorRepresentativeChange(it.inspectionText(300)) }, label = { Text(LocalizationManager.t("sir_contractor_representative")) }, modifier = Modifier.weight(1f), singleLine = true)
                     OutlinedTextField(qaStaff, { onQaStaffChange(it.inspectionText(300)) }, label = { Text(LocalizationManager.t("sir_qa_staff")) }, modifier = Modifier.weight(1f), singleLine = true)
-                    OutlinedTextField(usifRepresentative, { onUsifRepresentativeChange(it.inspectionText(300)) }, label = { Text(LocalizationManager.t("sir_usif_representative")) }, modifier = Modifier.weight(1f), singleLine = true)
+                    OutlinedTextField(mctdRepresentative, { onMctdRepresentativeChange(it.inspectionText(300)) }, label = { Text(LocalizationManager.t("sir_mctd_representative")) }, modifier = Modifier.weight(1f), singleLine = true)
                 } else Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     OutlinedTextField(contractorRepresentative, { onContractorRepresentativeChange(it.inspectionText(300)) }, label = { Text(LocalizationManager.t("sir_contractor_representative")) }, modifier = Modifier.fillMaxWidth(), singleLine = true)
                     OutlinedTextField(qaStaff, { onQaStaffChange(it.inspectionText(300)) }, label = { Text(LocalizationManager.t("sir_qa_staff")) }, modifier = Modifier.fillMaxWidth(), singleLine = true)
-                    OutlinedTextField(usifRepresentative, { onUsifRepresentativeChange(it.inspectionText(300)) }, label = { Text(LocalizationManager.t("sir_usif_representative")) }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                    OutlinedTextField(mctdRepresentative, { onMctdRepresentativeChange(it.inspectionText(300)) }, label = { Text(LocalizationManager.t("sir_mctd_representative")) }, modifier = Modifier.fillMaxWidth(), singleLine = true)
                 }
             }
         }

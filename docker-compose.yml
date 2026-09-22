@@ -4,7 +4,7 @@ services:
     restart: unless-stopped
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?set in .env}
-      MYSQL_DATABASE: ${MYSQL_DATABASE:-usif}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-umitaf}
       MYSQL_USER: ${DATABASE_USER:?set in .env}
       MYSQL_PASSWORD: ${DATABASE_PASSWORD:?set in .env}
     volumes:
@@ -24,7 +24,7 @@ services:
     ports:
       - "${OMS_PORT:-8080}:8080"
     environment:
-      DATABASE_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE:-usif}
+      DATABASE_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE:-umitaf}
       DATABASE_USER: ${DATABASE_USER:?set in .env}
       DATABASE_PASSWORD: ${DATABASE_PASSWORD:?set in .env}
       OMS_JWT_SECRET: ${OMS_JWT_SECRET:?set in .env}

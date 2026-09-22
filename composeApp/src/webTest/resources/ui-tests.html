@@ -17,7 +17,7 @@ globalThis.it = (name, run) => {
 };
 globalThis.xdescribe = globalThis.xit = () => {};
 try {
-  const tests = await import('./ufsi-composeApp-test.mjs');
+  const tests = await import('./umitaf-composeApp-test.mjs');
   tests.startUnitTests();
   output.textContent += `\nRESULT: ${passed} passed, ${failed} failed`;
 } catch (error) {

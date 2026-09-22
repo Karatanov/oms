@@ -2,7 +2,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const root = path.resolve(__dirname, '..');
-const service = fs.readFileSync(path.join(root, 'server/src/main/kotlin/oms/ufsi/service/InspectionReportFileService.kt'), 'utf8');
+const service = fs.readFileSync(path.join(root, 'server/src/main/kotlin/oms/umitaf/service/InspectionReportFileService.kt'), 'utf8');
 const screen = fs.readFileSync(path.join(root, 'composeApp/src/webMain/kotlin/oms/screens/ReportsScreen.kt'), 'utf8');
 
 assert.match(service, /photoAssociationIndex\(readSirWorkbook\(workbook, report\)\)/,

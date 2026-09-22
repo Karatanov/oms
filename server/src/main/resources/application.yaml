@@ -14,16 +14,16 @@ ktor:
     # Список модулів, які Ktor повинен викликати
     # після запуску HTTP-сервера.
     modules:
-      - oms.ufsi.ApplicationKt.module
+      - oms.umitaf.ApplicationKt.module
 
 database:
 
   # JDBC-рядок підключення до локальної MySQL.
-  url: "${DATABASE_URL:jdbc:mysql://localhost:3306/usif}"
+  url: "${DATABASE_URL:jdbc:mysql://localhost:3306/umitaf}"
   # JDBC-драйвер MySQL.
   driver: "com.mysql.cj.jdbc.Driver"
   # Облікові дані робочого користувача застосунку.
-  user: "${DATABASE_USER:usif_user}"
+  user: "${DATABASE_USER:umitaf_user}"
   # Required for every database-backed startup; no password is stored in source.
   password: "${DATABASE_PASSWORD:}"
   # mysql keeps the existing local Flyway migration set. Set to `tidb` on

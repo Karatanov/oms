@@ -35,13 +35,13 @@ tasks.named<ProcessResources>("processResources") {
     from(layout.buildDirectory.dir("generated/tidb-migrations"))
 }
 
-group = "oms.usif.ua.ufsi"
+group = "oms.umitaf.ua.umitaf"
 version = "1.0.0"
 kotlin {
     jvmToolchain(21)
 }
 application {
-    mainClass.set("oms.ufsi.ApplicationKt")
+    mainClass.set("oms.umitaf.ApplicationKt")
 
     val isDevelopment: Boolean = project.ext.has("development")
     applicationDefaultJvmArgs = listOf("-Dio.ktor.development=$isDevelopment")

@@ -1,6 +1,6 @@
 # API Handover Reference
 
-The API base is `/api/v1`; JSON is the default representation. `server/requests.http` contains development examples. There is no generated OpenAPI endpoint in Phase 1, so routes and DTOs in `server/src/main/kotlin/oms/ufsi` are the code-level source of truth.
+The API base is `/api/v1`; JSON is the default representation. `server/requests.http` contains development examples. There is no generated OpenAPI endpoint in Phase 1, so routes and DTOs in `server/src/main/kotlin/oms/umitaf` are the code-level source of truth.
 
 ## Authentication and errors
 

@@ -540,7 +540,7 @@ internal fun ReadOnlySirReport(manual: ManualInspectionReportRequest, photos: Li
             ReadOnlyFieldsTable(
                 LocalizationManager.t("sir_contractor_representative") to manual.contractorRepresentative,
                 LocalizationManager.t("sir_qa_staff") to manual.qaStaff,
-                LocalizationManager.t("sir_usif_representative") to manual.usifRepresentative
+                LocalizationManager.t("sir_mctd_representative") to manual.mctdRepresentative
             )
         }
         ReadOnlySirSection(LocalizationManager.t("sir_personnel_weather"), Icons.Default.WbSunny) {

@@ -1,4 +1,4 @@
-rootProject.name = "ufsi"
+rootProject.name = "umitaf"
 enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 
 pluginManagement {

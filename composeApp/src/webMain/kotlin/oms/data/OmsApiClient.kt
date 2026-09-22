@@ -430,7 +430,7 @@ data class ManualActivityRequest(val location: String = "", val description: Str
     val status: String? = null
 )
 @Serializable data class ManualInspectionReportRequest(
-    val inspectionDate: String = "", val inspectionType: String = "planned", val contractor: String = "", val contractorRepresentative: String? = null, val projectName: String? = null, val siteReference: String? = null, val qaStaff: String? = null, val usifRepresentative: String? = null,
+    val inspectionDate: String = "", val inspectionType: String = "planned", val contractor: String = "", val contractorRepresentative: String? = null, val projectName: String? = null, val siteReference: String? = null, val qaStaff: String? = null, val mctdRepresentative: String? = null,
     val skilledLabor: String? = null, val unskilledLabor: String? = null, val siteManagement: String? = null, val weather: String? = null,
     val activities: List<ManualActivityRequest> = emptyList(), val purchasedMaterials: List<ManualPurchasedMaterialRequest> = emptyList(), val ongoingObservations: List<String> = emptyList(), val hseObservations: List<ManualHseObservationRequest> = emptyList(),
     val qualityRemarks: List<ManualRemarkRequest> = emptyList(), val progressComment: String? = null, val scheduleRemark: String? = null, val inspectorName: String = "", val inspectorTitle: String? = null,

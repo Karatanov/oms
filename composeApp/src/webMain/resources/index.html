@@ -28,9 +28,9 @@
             return `${base}${path}`;
         }
 
-        let ufsiLeafletMap = null;
-        let ufsiMarkersLayer = null;
-        let ufsiOnProjectClick = null;
+        let umitafLeafletMap = null;
+        let umitafMarkersLayer = null;
+        let umitafOnProjectClick = null;
         let omsLanguage = "uk";
         const omsBrowserStrings = {
             uk: {
@@ -195,16 +195,16 @@
         // initialisation can calculate a zoom for a zero-sized element.  Always reset
         // the overview after the host becomes visible and has been measured.
         function fitUkraineOverview() {
-            if (!ufsiLeafletMap) return;
-            ufsiLeafletMap.invalidateSize();
-            ufsiLeafletMap.fitBounds(ukraineBounds, { padding: [24, 24] });
+            if (!umitafLeafletMap) return;
+            umitafLeafletMap.invalidateSize();
+            umitafLeafletMap.fitBounds(ukraineBounds, { padding: [24, 24] });
         }
 
         function initLeafletMap() {
             const mapHost = document.getElementById("map-host");
-            if (!mapHost || ufsiLeafletMap) return;
+            if (!mapHost || umitafLeafletMap) return;
 
-            ufsiLeafletMap = L.map("map-host", {
+            umitafLeafletMap = L.map("map-host", {
                 zoomControl: true,
                 minZoom: 5,
                 maxZoom: 18,
@@ -217,9 +217,9 @@
                 {
                     attribution: "&copy; OpenStreetMap contributors"
                 }
-            ).addTo(ufsiLeafletMap);
+            ).addTo(umitafLeafletMap);
 
-            ufsiMarkersLayer = L.markerClusterGroup({
+            umitafMarkersLayer = L.markerClusterGroup({
                 showCoverageOnHover: false,
                 spiderfyOnMaxZoom: true,
                 zoomToBoundsOnClick: true,
@@ -230,7 +230,7 @@
                     iconSize: L.point(52, 52),
                     iconAnchor: L.point(26, 26)
                 })
-            }).addTo(ufsiLeafletMap);
+            }).addTo(umitafLeafletMap);
             fitUkraineOverview();
         }
 
@@ -248,7 +248,7 @@
             if (!pane) return;
             pane.classList.toggle("oms-pane-clipped", height <= 0 || width <= 0);
             Object.assign(pane.style, { left: x + "px", top: y + "px", width: width + "px", height: height + "px", right: "auto", bottom: "auto" });
-            if (id === "map-pane" && ufsiLeafletMap) ufsiLeafletMap.invalidateSize({pan: false});
+            if (id === "map-pane" && umitafLeafletMap) umitafLeafletMap.invalidateSize({pan: false});
         }
 
         function setOmsCanvasOverlay(active) {
@@ -269,7 +269,7 @@
         }
 
         function setLeafletProjectClickHandler(handler) {
-            ufsiOnProjectClick = handler;
+            umitafOnProjectClick = handler;
         }
 
         function openSirImportDialog(projectUuid, onComplete) {
@@ -373,18 +373,18 @@
             window.location.assign(omsApiUrl(`/projects/${projectUuid}/financials/export`));
         }
 
-        const ufsiPendingInspectionPhotos = new Map();
-        const ufsiPendingInspectionPhotoDescriptions = new Map();
-        let ufsiPendingInspectionPhotoUrls = new WeakMap();
-        const ufsiPendingInspectionPreviewRequests = new Map();
+        const umitafPendingInspectionPhotos = new Map();
+        const umitafPendingInspectionPhotoDescriptions = new Map();
+        let umitafPendingInspectionPhotoUrls = new WeakMap();
+        const umitafPendingInspectionPreviewRequests = new Map();
 
         function pendingInspectionPhotos(activityKey) {
-            if (!ufsiPendingInspectionPhotos.has(activityKey)) ufsiPendingInspectionPhotos.set(activityKey, []);
-            return ufsiPendingInspectionPhotos.get(activityKey);
+            if (!umitafPendingInspectionPhotos.has(activityKey)) umitafPendingInspectionPhotos.set(activityKey, []);
+            return umitafPendingInspectionPhotos.get(activityKey);
         }
 
         function pendingInspectionPhotoTotal() {
-            return Array.from(ufsiPendingInspectionPhotos.values()).reduce((total, files) => total + files.length, 0);
+            return Array.from(umitafPendingInspectionPhotos.values()).reduce((total, files) => total + files.length, 0);
         }
 
         function pendingInspectionPhotoPane(activityKey) {
@@ -392,28 +392,28 @@
         }
 
         function setPendingInspectionPhotoDescription(activityKey, description) {
-            ufsiPendingInspectionPhotoDescriptions.set(activityKey, String(description || "").trim());
+            umitafPendingInspectionPhotoDescriptions.set(activityKey, String(description || "").trim());
         }
 
         function pendingInspectionPhotoUrl(file) {
-            let url = ufsiPendingInspectionPhotoUrls.get(file);
+            let url = umitafPendingInspectionPhotoUrls.get(file);
             if (!url) {
                 url = URL.createObjectURL(file);
-                ufsiPendingInspectionPhotoUrls.set(file, url);
+                umitafPendingInspectionPhotoUrls.set(file, url);
             }
             return url;
         }
 
         function releasePendingInspectionPhoto(file) {
-            const url = ufsiPendingInspectionPhotoUrls.get(file);
+            const url = umitafPendingInspectionPhotoUrls.get(file);
             if (url) URL.revokeObjectURL(url);
-            ufsiPendingInspectionPhotoUrls.delete(file);
+            umitafPendingInspectionPhotoUrls.delete(file);
         }
 
         function hidePendingInspectionPhotoPreviews(activityKey) {
             // Invalidate a queued layout-frame render before the native pane
             // disappears with its Compose anchor.
-            ufsiPendingInspectionPreviewRequests.set(activityKey, (ufsiPendingInspectionPreviewRequests.get(activityKey) || 0) + 1);
+            umitafPendingInspectionPreviewRequests.set(activityKey, (umitafPendingInspectionPreviewRequests.get(activityKey) || 0) + 1);
             const pane = pendingInspectionPhotoPane(activityKey);
             if (pane) {
                 pane.classList.remove("visible");
@@ -422,14 +422,14 @@
         }
 
         function showPendingInspectionPhotoPreviews(activityKey, onSelectionChanged) {
-            const requestId = (ufsiPendingInspectionPreviewRequests.get(activityKey) || 0) + 1;
-            ufsiPendingInspectionPreviewRequests.set(activityKey, requestId);
+            const requestId = (umitafPendingInspectionPreviewRequests.get(activityKey) || 0) + 1;
+            umitafPendingInspectionPreviewRequests.set(activityKey, requestId);
             // The DOM pane is created by NativePaneAnchor after Compose has
             // laid out this frame. Render on the next frame so a newly picked
             // photo is visible immediately, rather than requiring reopening
             // the activity section.
             const render = (attempt = 0) => {
-                if (ufsiPendingInspectionPreviewRequests.get(activityKey) !== requestId) return;
+                if (umitafPendingInspectionPreviewRequests.get(activityKey) !== requestId) return;
                 const pane = pendingInspectionPhotoPane(activityKey);
                 if (!pane) {
                     if (attempt < 3) requestAnimationFrame(() => render(attempt + 1));
@@ -573,8 +573,8 @@
                 // and a complete XLSX rebuild, making a 10–30-photo report
                 // appear to save indefinitely on a remote deployment.
                 const formData = new FormData();
-                for (const [activityKey, photos] of ufsiPendingInspectionPhotos.entries()) {
-                    const description = ufsiPendingInspectionPhotoDescriptions.get(activityKey) || "photo";
+                for (const [activityKey, photos] of umitafPendingInspectionPhotos.entries()) {
+                    const description = umitafPendingInspectionPhotoDescriptions.get(activityKey) || "photo";
                     const baseName = description.replace(/[\\/:*?"<>|\u0000-\u001f]+/g, " ").replace(/\s+/g, " ").trim().slice(0, 220) || "photo";
                     // The visible caption can legitimately repeat in different SIR
                     // sections. Persist the row key in the filename as invisible
@@ -594,9 +594,9 @@
                     const response = await fetch(omsApiUrl(`/inspection-reports/${reportUuid}/photos`), { method: "POST", body: formData, credentials: "include" });
                     if (!response.ok) throw new Error(await response.text());
                 }
-                ufsiPendingInspectionPhotos.forEach(files => files.forEach(releasePendingInspectionPhoto));
-                ufsiPendingInspectionPhotos.clear();
-                ufsiPendingInspectionPhotoDescriptions.clear();
+                umitafPendingInspectionPhotos.forEach(files => files.forEach(releasePendingInspectionPhoto));
+                umitafPendingInspectionPhotos.clear();
+                umitafPendingInspectionPhotoDescriptions.clear();
                 onComplete("");
             } catch (error) {
                 onComplete(error.message || String(error));
@@ -713,10 +713,10 @@
             if (photos.length) openPhotoLightbox(photos, photos[0].uuid);
         }
 
-        const ufsiNativePhotoGalleryRequests = new Map();
+        const umitafNativePhotoGalleryRequests = new Map();
 
         function hideNativePhotoGallery(paneId) {
-            ufsiNativePhotoGalleryRequests.set(paneId, (ufsiNativePhotoGalleryRequests.get(paneId) || 0) + 1);
+            umitafNativePhotoGalleryRequests.set(paneId, (umitafNativePhotoGalleryRequests.get(paneId) || 0) + 1);
             const pane = document.getElementById(paneId);
             if (pane) {
                 pane.classList.remove("visible");
@@ -733,14 +733,14 @@
         }
 
         function showNativePhotoGallery(paneId, photosJson) {
-            const requestId = (ufsiNativePhotoGalleryRequests.get(paneId) || 0) + 1;
-            ufsiNativePhotoGalleryRequests.set(paneId, requestId);
+            const requestId = (umitafNativePhotoGalleryRequests.get(paneId) || 0) + 1;
+            umitafNativePhotoGalleryRequests.set(paneId, requestId);
             const photos = JSON.parse(photosJson || "[]");
             // NativePaneAnchor creates its target after the Compose layout pass.
             // Retrying in the next frame prevents an empty report preview on
             // the first visit to a screen.
             const render = (attempt = 0) => {
-                if (ufsiNativePhotoGalleryRequests.get(paneId) !== requestId) return;
+                if (umitafNativePhotoGalleryRequests.get(paneId) !== requestId) return;
                 const pane = document.getElementById(paneId);
                 if (!pane) {
                     if (attempt < 3) requestAnimationFrame(() => render(attempt + 1));
@@ -815,17 +815,17 @@
         }
 
         function fitLeafletResults() {
-            if (ufsiLeafletMap && ufsiMarkersLayer && ufsiMarkersLayer.getLayers().length) {
-                ufsiLeafletMap.fitBounds(ufsiMarkersLayer.getBounds(), { padding: [40, 40], maxZoom: 13 });
+            if (umitafLeafletMap && umitafMarkersLayer && umitafMarkersLayer.getLayers().length) {
+                umitafLeafletMap.fitBounds(umitafMarkersLayer.getBounds(), { padding: [40, 40], maxZoom: 13 });
             }
         }
 
         function setLeafletProjects(projectsJson) {
             initLeafletMap();
 
-            if (!ufsiLeafletMap || !ufsiMarkersLayer) return;
+            if (!umitafLeafletMap || !umitafMarkersLayer) return;
 
-            ufsiMarkersLayer.clearLayers();
+            umitafMarkersLayer.clearLayers();
 
             const projects = JSON.parse(projectsJson);
 
@@ -868,7 +868,7 @@
                 const open = document.createElement("button");
                 open.type = "button";
                 open.textContent = omsText("details");
-                open.onclick = () => ufsiOnProjectClick && ufsiOnProjectClick(project.id);
+                open.onclick = () => umitafOnProjectClick && umitafOnProjectClick(project.id);
                 popupHtml.append(name, subprojectCode, region, status, open);
 
                 // Several facilities may share one postal address. Spread only
@@ -898,7 +898,7 @@
                         maxWidth: 340,
                         minWidth: 220
                     })
-                    .addTo(ufsiMarkersLayer);
+                    .addTo(umitafMarkersLayer);
             });
 
             // The map is an overview: opening it and changing filters must not
