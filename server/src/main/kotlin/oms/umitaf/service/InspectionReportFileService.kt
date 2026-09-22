@@ -503,7 +503,9 @@ class InspectionReportFileService(
         val ongoingObservationsTitleRow = sectionRow(sheet, "OBSERVANCES ON ONGOING ACTIVITIES")
         val hseTitleRow = sectionRow(sheet, "OBSERVANCES ON HEALTH & SAFETY")
         val qualityTitleRow = sectionRow(sheet, "NARRATIVE ASSESSMENT - COMMENTS ON QUALITY")
-        val progressTitleRow = sectionRow(sheet, "NARRATIVE ASSESSMENT - COMMENTS ON PROGRESS")
+        // Do not route an optional/legacy Progress section through the strict
+        // template validator. Some historical workbooks lack it entirely.
+        val progressTitleRow = ensureProgressAssessmentLayout(sheet)
         val signatureTitleRow = signatureSectionRow(sheet)
         val signatureDataRow = signatureTitleRow + 3
         val materialsTitleRow = firstRow(sheet, "PURCHASED MATERIALS")
@@ -648,10 +650,8 @@ class InspectionReportFileService(
         // of a merged heading's border in Excel. Locate their final rows and
         // repaint the full medium-weight contour from the approved template.
         firstRow(sheet, "PURCHASED MATERIALS")?.let { reinforcePurchasedMaterialsBorders(sheet, it) }
-        reinforceProgressAssessmentBorders(
-            sheet,
-            sectionRow(sheet, "NARRATIVE ASSESSMENT - COMMENTS ON PROGRESS")
-        )
+        firstRow(sheet, "NARRATIVE ASSESSMENT - COMMENTS ON PROGRESS")
+            ?.let { reinforceProgressAssessmentBorders(sheet, it) }
         // The old M4H wording was part of the supplied sample, not the
         // current report template. Preserve the layout, but publish UNDP.
         sheet.getRow(signatureSectionRow(sheet) - 1)?.getCell(0)?.setCellValue(SIGNATURE_SECTION_TITLE)
@@ -701,8 +701,8 @@ class InspectionReportFileService(
      * above the signature so subsequent optional sections can retain their
      * normal position and no user-entered data is overwritten.
      */
-    private fun ensureProgressAssessmentLayout(sheet: org.apache.poi.ss.usermodel.Sheet) {
-        if (firstRow(sheet, "NARRATIVE ASSESSMENT - COMMENTS ON PROGRESS") != null) return
+    private fun ensureProgressAssessmentLayout(sheet: org.apache.poi.ss.usermodel.Sheet): Int {
+        firstRow(sheet, "NARRATIVE ASSESSMENT - COMMENTS ON PROGRESS")?.let { return it }
         val signatureTitleRow = signatureSectionRow(sheet)
         val qualityTitleRow = firstRow(sheet, "NARRATIVE ASSESSMENT - COMMENTS ON QUALITY")
         val titleStyle = qualityTitleRow?.let { row -> sheet.getRow(row - 1)?.getCell(0)?.cellStyle }
@@ -737,6 +737,7 @@ class InspectionReportFileService(
         merge(signatureTitleRow + 1, 9..11, BorderStyle.THIN)
         cell(signatureTitleRow + 1, 1).apply { if (leftDataStyle != null) cellStyle = leftDataStyle }
         cell(signatureTitleRow + 1, 10).apply { if (rightDataStyle != null) cellStyle = rightDataStyle }
+        return signatureTitleRow
     }
 
     /** Inserts the optional materials table immediately before the signature. */
