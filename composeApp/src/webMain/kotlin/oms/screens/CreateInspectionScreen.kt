@@ -242,8 +242,14 @@ fun CreateInspectionScreen(
                     remarks = item.remarks.orEmpty()
                 )
             }.ifEmpty { listOf(ManualActivityInput(photoKey = "activity-0")) }
-            purchasedMaterials = manual.purchasedMaterials.map {
-                PurchasedMaterialInput(it.materialsAndEquipment, it.characteristics.orEmpty(), it.perDed.orEmpty().ifBlank { "no" }, it.notes.orEmpty())
+            purchasedMaterials = manual.purchasedMaterials.mapIndexed { index, item ->
+                PurchasedMaterialInput(
+                    photoKey = "material-$index",
+                    materialsAndEquipment = item.materialsAndEquipment,
+                    characteristics = item.characteristics.orEmpty(),
+                    perDed = item.perDed.orEmpty().ifBlank { "no" },
+                    notes = item.notes.orEmpty()
+                )
             }
             ongoingObservations = manual.ongoingObservations
                 .mapIndexed { index, description -> OngoingObservationInput(description, "observation-$index") }
@@ -893,7 +899,7 @@ private fun ManualSirForm(
         }
 
         SirFormSection(LocalizationManager.t("sir_purchased_materials"), Icons.Default.Description) {
-            RepeatablePurchasedMaterials(purchasedMaterials, onPurchasedMaterialsChange)
+            RepeatablePurchasedMaterials(purchasedMaterials, onPurchasedMaterialsChange, attachedPhotos)
         }
 
         SirFormSection(LocalizationManager.t("sir_inspector_section"), Icons.Default.Description) {
@@ -1188,7 +1194,7 @@ private fun RepeatableManualActivities(
     }
 }
 
-private fun ApiInspectionPhoto.editorAssociationKey(): String? =
+internal fun ApiInspectionPhoto.editorAssociationKey(): String? =
     Regex("\\[oms:([^\\]]+)\\]", RegexOption.IGNORE_CASE)
         .find(fileName.substringBeforeLast('.', fileName))
         ?.groupValues

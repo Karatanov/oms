@@ -571,7 +571,7 @@ internal fun ReadOnlySirReport(manual: ManualInspectionReportRequest, photos: Li
             else ReadOnlyProgressAssessmentTable(manual.progressComment, manual.scheduleRemark)
         }
         if (manual.purchasedMaterials.isNotEmpty()) ReadOnlySirSection(LocalizationManager.t("sir_purchased_materials"), Icons.Default.Description) {
-            ReadOnlyPurchasedMaterialsTable(manual.purchasedMaterials)
+            ReadOnlyPurchasedMaterialsTable(manual.purchasedMaterials, photos, photoCaptionCandidates)
         }
         ReadOnlySirSection(LocalizationManager.t("sir_inspector_section"), Icons.Default.Description) {
             ReadOnlyFieldsTable(
@@ -724,7 +724,11 @@ private fun ReadOnlyQualityAssessmentTable(
 
 /** Purchased materials mirror their four-column XLS block: one header, many rows. */
 @Composable
-private fun ReadOnlyPurchasedMaterialsTable(materials: List<oms.data.ManualPurchasedMaterialRequest>) {
+private fun ReadOnlyPurchasedMaterialsTable(
+    materials: List<oms.data.ManualPurchasedMaterialRequest>,
+    photos: List<ApiInspectionPhoto>,
+    photoCaptionCandidates: List<String>
+) {
     val headerColor = MaterialTheme.colorScheme.surfaceVariant
     Column(
         Modifier.fillMaxWidth().border(1.dp, MaterialTheme.colorScheme.outlineVariant),
@@ -735,6 +739,7 @@ private fun ReadOnlyPurchasedMaterialsTable(materials: List<oms.data.ManualPurch
             Text(LocalizationManager.t("sir_material_characteristics"), Modifier.weight(1f), style = MaterialTheme.typography.labelMedium)
             Text(LocalizationManager.t("sir_material_per_ded"), Modifier.weight(.7f), style = MaterialTheme.typography.labelMedium)
             Text(LocalizationManager.t("sir_material_notes"), Modifier.weight(1.25f), style = MaterialTheme.typography.labelMedium)
+            Text(LocalizationManager.t("photos"), Modifier.weight(.8f), style = MaterialTheme.typography.labelMedium)
         }
         materials.forEachIndexed { index, material ->
             if (index > 0) HorizontalDivider()
@@ -749,6 +754,17 @@ private fun ReadOnlyPurchasedMaterialsTable(materials: List<oms.data.ManualPurch
                     }
                 }
                 Text(material.notes?.takeIf(String::isNotBlank) ?: "—", Modifier.weight(1.25f), style = MaterialTheme.typography.bodyMedium)
+                val materialPhotos = (
+                    photos.forAssociation("material-$index") +
+                        photos.forImportedCaptions(listOf(material.materialsAndEquipment), photoCaptionCandidates)
+                    ).distinctBy { it.uuid }
+                if (materialPhotos.isEmpty()) Text("—", Modifier.weight(.8f), style = MaterialTheme.typography.bodyMedium)
+                else InspectionActivityPhotoGallery(
+                    activityKey = "material-$index",
+                    photos = materialPhotos,
+                    modifier = Modifier.weight(.8f),
+                    nativeGallery = false
+                )
             }
         }
     }
@@ -847,6 +863,7 @@ private fun oms.data.ManualInspectionReportRequest.photoCaptionCandidates(): Lis
         listOf(remark.work, remark.comment, remark.rectification, remark.status)
             .filterNotNull().filter(String::isNotBlank).forEach(::add)
     }
+    purchasedMaterials.map { it.materialsAndEquipment }.filter(String::isNotBlank).forEach(::add)
 }
 
 /** Photos are captioned with the matching OBSERVANCES ON ONGOING ACTIVITIES row. */

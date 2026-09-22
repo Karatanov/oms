@@ -4,6 +4,7 @@ const path = require('node:path');
 const root = path.resolve(__dirname, '..');
 const service = fs.readFileSync(path.join(root, 'server/src/main/kotlin/oms/umitaf/service/InspectionReportFileService.kt'), 'utf8');
 const screen = fs.readFileSync(path.join(root, 'composeApp/src/webMain/kotlin/oms/screens/ReportsScreen.kt'), 'utf8');
+const materials = fs.readFileSync(path.join(root, 'composeApp/src/webMain/kotlin/oms/screens/RepeatablePurchasedMaterials.kt'), 'utf8');
 
 assert.match(service, /photoAssociationIndex\(readSirWorkbook\(workbook, report\)\)/,
   'import must index SIR rows before materialising photos');
@@ -15,4 +16,8 @@ assert.match(screen, /forImportedCaptions/,
   'already materialised imported photos need caption fallback');
 assert.doesNotMatch(screen, /index == 0\) unassignedPhotos/,
   'unassigned evidence must never be forced onto the first activity');
+assert.match(materials, /openInspectionPhotoPicker\(material\.photoKey\)/,
+  'each purchased-material row must allow evidence selection');
+assert.match(screen, /photos\.forAssociation\("material-\$index"\)/,
+  'purchased-material evidence must remain bound to its own row in the preview');
 console.log('SIR imported-photo association checks passed.');
