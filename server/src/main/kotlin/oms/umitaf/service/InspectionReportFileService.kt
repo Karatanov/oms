@@ -54,6 +54,7 @@ data class EmbeddedInspectionPhoto(
 )
 
 private const val SIGNATURE_SECTION_TITLE = "UNDP QUALITY ASSURANCE STAFF"
+private const val MCTD_REPRESENTATIVE_TITLE = "MCTD REPRESENTATIVE"
 
 private fun isSignatureSectionTitle(value: String): Boolean =
     value.equals(SIGNATURE_SECTION_TITLE, ignoreCase = true) ||
@@ -530,6 +531,12 @@ class InspectionReportFileService(
         materialsTitleRow?.let { clear((it + 2) until checkNotNull(materialsDataEndExclusive)) }
         clear((progressTitleRow + 1) until progressDataEndExclusive)
         text(1, 1, request.projectName?.trim().orEmpty())
+        // Imported legacy SIR files retain their original headings.  Every
+        // manual save is also a harmless template upgrade, so an existing
+        // report receives the current UNDP/MCTD wording without changing its
+        // layout or the entered representative names below.
+        text(6, 5, SIGNATURE_SECTION_TITLE)
+        text(6, 9, MCTD_REPRESENTATIVE_TITLE)
         text(5, 1, request.contractor)
         text(5, 5, request.siteReference?.trim().takeIf { !it.isNullOrBlank() }
             ?: listOf(project.siteNumber, project.address ?: project.name).filter(String::isNotBlank).joinToString(", "))
