@@ -20,6 +20,7 @@ import org.apache.poi.ss.usermodel.WorkbookFactory
 import org.apache.poi.ss.usermodel.HorizontalAlignment
 import org.apache.poi.ss.usermodel.PrintSetup
 import org.apache.poi.ss.usermodel.VerticalAlignment
+import org.apache.poi.ss.util.CellAddress
 import org.apache.poi.ss.util.CellRangeAddress
 import org.apache.poi.ss.util.RegionUtil
 import org.apache.poi.xssf.usermodel.XSSFPicture
@@ -654,6 +655,14 @@ class InspectionReportFileService(
         // The old M4H wording was part of the supplied sample, not the
         // current report template. Preserve the layout, but publish UNDP.
         sheet.getRow(signatureSectionRow(sheet) - 1)?.getCell(0)?.setCellValue(SIGNATURE_SECTION_TITLE)
+        focusWorkbookAtReportStart(workbook, sheet)
+    }
+
+    /** Open generated SIR workbooks at their meaningful beginning, not at a last edited row. */
+    private fun focusWorkbookAtReportStart(workbook: XSSFWorkbook, sheet: org.apache.poi.ss.usermodel.Sheet) {
+        workbook.setActiveSheet(workbook.getSheetIndex(sheet))
+        workbook.setFirstVisibleTab(workbook.getSheetIndex(sheet))
+        sheet.setActiveCell(CellAddress(0, 0))
     }
 
     private fun applyMediumOutline(
