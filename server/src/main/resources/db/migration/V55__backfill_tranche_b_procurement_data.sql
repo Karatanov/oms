@@ -14,8 +14,10 @@ CREATE TEMPORARY TABLE procurement_tranche_b_source (
     estimated_eib_uah DECIMAL(18,2) NULL, estimated_local_eur DECIMAL(18,4) NULL,
     estimated_local_uah DECIMAL(18,2) NULL, procurement_method VARCHAR(255) NULL,
     tender_document_type VARCHAR(255) NULL, published_in_ojeu VARCHAR(64) NULL,
-    estimated_prozorro_date DATE NULL, estimated_bid_submission_date DATE NULL, estimated_contract_date DATE NULL,
-    estimated_contract_end_date DATE NULL, purchase_status VARCHAR(255) NULL, local_financing_pct DECIMAL(14,10) NULL,
+    -- The source workbook contains both ISO dates and display-only values
+    -- such as "Not applicable" and "12.2025". Keep staging values as text.
+    estimated_prozorro_date VARCHAR(32) NULL, estimated_bid_submission_date VARCHAR(32) NULL, estimated_contract_date VARCHAR(32) NULL,
+    estimated_contract_end_date VARCHAR(32) NULL, purchase_status VARCHAR(255) NULL, local_financing_pct DECIMAL(14,10) NULL,
     comments TEXT NULL, source_status_code VARCHAR(64) NULL,
     PRIMARY KEY (subproject_code, type_code)
 );
@@ -103,10 +105,10 @@ SET record.project_id = COALESCE(record.project_id, subproject.id),
     record.procurement_method = COALESCE(NULLIF(TRIM(record.procurement_method), ''), source.procurement_method),
     record.tender_document_type = COALESCE(NULLIF(TRIM(record.tender_document_type), ''), source.tender_document_type),
     record.published_in_ojeu = COALESCE(NULLIF(TRIM(record.published_in_ojeu), ''), source.published_in_ojeu),
-    record.estimated_prozorro_date = COALESCE(record.estimated_prozorro_date, source.estimated_prozorro_date),
-    record.estimated_bid_submission_date = COALESCE(record.estimated_bid_submission_date, source.estimated_bid_submission_date),
-    record.estimated_contract_date = COALESCE(record.estimated_contract_date, source.estimated_contract_date),
-    record.estimated_contract_end_date = COALESCE(record.estimated_contract_end_date, source.estimated_contract_end_date),
+    record.estimated_prozorro_date = COALESCE(record.estimated_prozorro_date, CASE WHEN source.estimated_prozorro_date REGEXP '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' THEN DATE(source.estimated_prozorro_date) END),
+    record.estimated_bid_submission_date = COALESCE(record.estimated_bid_submission_date, CASE WHEN source.estimated_bid_submission_date REGEXP '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' THEN DATE(source.estimated_bid_submission_date) END),
+    record.estimated_contract_date = COALESCE(record.estimated_contract_date, CASE WHEN source.estimated_contract_date REGEXP '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' THEN DATE(source.estimated_contract_date) END),
+    record.estimated_contract_end_date = COALESCE(record.estimated_contract_end_date, CASE WHEN source.estimated_contract_end_date REGEXP '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' THEN DATE(source.estimated_contract_end_date) END),
     record.purchase_status = COALESCE(NULLIF(TRIM(record.purchase_status), ''), source.purchase_status),
     record.local_financing_pct = COALESCE(record.local_financing_pct, source.local_financing_pct),
     record.comments = COALESCE(NULLIF(TRIM(record.comments), ''), source.comments),
@@ -129,8 +131,11 @@ SELECT 9, subproject.region, source.oblast_id, source.promotor_name, source.subp
     source.estimated_total_eur, source.estimated_total_uah, source.estimated_eib_eur,
     source.estimated_eib_uah, source.estimated_local_eur, source.estimated_local_uah,
     source.procurement_method, source.tender_document_type, source.published_in_ojeu,
-    source.estimated_prozorro_date, source.estimated_bid_submission_date, source.estimated_contract_date,
-    source.estimated_contract_end_date, source.purchase_status, source.local_financing_pct,
+    CASE WHEN source.estimated_prozorro_date REGEXP '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' THEN DATE(source.estimated_prozorro_date) END,
+    CASE WHEN source.estimated_bid_submission_date REGEXP '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' THEN DATE(source.estimated_bid_submission_date) END,
+    CASE WHEN source.estimated_contract_date REGEXP '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' THEN DATE(source.estimated_contract_date) END,
+    CASE WHEN source.estimated_contract_end_date REGEXP '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' THEN DATE(source.estimated_contract_end_date) END,
+    source.purchase_status, source.local_financing_pct,
     source.comments, source.source_status_code, subproject.id
 FROM procurement_tranche_b_source source
 INNER JOIN projects subproject
