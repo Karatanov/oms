@@ -26,6 +26,8 @@ Migration V54 adds **177 Tranche B** subprojects from `DB_Screening results.xlsx
 
 Migration V55 reconciles procurement data with the **Tranche B** sheet of `Tranche A + B selected (2).xlsx`. It covers 53 source rows for 26 subprojects (26 works contracts, 26 technical-supervision contracts and one engineer-consultant contract). A record is matched by the stable subproject code plus source contract type. The migration restores missing project relations and missing source values only; non-empty OMS values, including administrator edits, are never overwritten. The reviewed `tranche_b_procurement_backfill.json` snapshot and `tools/generate_tranche_b_procurement_backfill.py` make this forward-only repair reproducible without accessing a local Excel path at runtime.
 
+Migration V56 makes an aggregate subproject address complete where possible. For a subproject with child parts and a blank `address`, it takes the address from its first persisted part with a non-empty address (the same stable ordering used by V53); an existing subproject address is never changed.
+
 ```mermaid
 erDiagram
     ROLES ||--o{ USERS : assigns
