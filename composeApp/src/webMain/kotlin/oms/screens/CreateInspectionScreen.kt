@@ -263,7 +263,16 @@ fun CreateInspectionScreen(
                 )
             }.ifEmpty { defaultHseObservations }
             qualityRemarks = manual.qualityRemarks.mapIndexed { index, remark ->
-                QualityRemarkInput(photoKey = "quality-$index", work = remark.work, comment = remark.comment, rectification = remark.rectification.orEmpty(), status = remark.status.orEmpty())
+                QualityRemarkInput(
+                    photoKey = "quality-$index",
+                    work = remark.work,
+                    comment = remark.comment,
+                    rectification = remark.rectification.orEmpty(),
+                    // Imported legacy rows can have an empty status.  Present
+                    // and save the requested default instead of an unselected
+                    // dropdown when the report is edited.
+                    status = remark.status.orEmpty().ifBlank { "У процесі усунення" }
+                )
             }.ifEmpty { listOf(QualityRemarkInput(photoKey = "quality-0")) }
             progressComment = manual.progressComment.orEmpty()
             scheduleRemark = manual.scheduleRemark.orEmpty()
@@ -1233,7 +1242,7 @@ internal data class QualityRemarkInput(
     val work: String = "",
     val comment: String = "",
     val rectification: String = "",
-    val status: String = "",
+    val status: String = "У процесі усунення",
     val photoCount: Int = 0,
     val photoRevision: Int = 0
 )
