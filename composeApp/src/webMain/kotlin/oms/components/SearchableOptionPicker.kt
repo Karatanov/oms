@@ -18,6 +18,7 @@ import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
 import kotlinx.coroutines.launch
@@ -47,7 +48,11 @@ fun <T> SearchableOptionPicker(
 
     fun showMatches(entered: String, source: List<T>) {
         val matches = source.asSequence()
-            .filter { entered.isNotBlank() && itemLabel(it).contains(entered, ignoreCase = true) }
+            // Opening an autocomplete should show its available choices even
+            // before the first character is typed.  Requiring a keystroke
+            // made a populated selector look empty, especially for payment
+            // bases where a user naturally clicks the field first.
+            .filter { entered.isBlank() || itemLabel(it).contains(entered, ignoreCase = true) }
             .take(maxSuggestions)
             .toList()
         if (matches.isEmpty()) {
@@ -89,6 +94,15 @@ fun <T> SearchableOptionPicker(
         enabled = enabled,
         modifier = modifier.fillMaxWidth()
             .onGloballyPositioned { anchor = it.boundsInRoot() }
+            .onFocusChanged { focusState ->
+                if (focusState.isFocused) {
+                    scope.launch {
+                        val source = loadOptionsOnInput?.invoke() ?: availableOptions
+                        availableOptions = source
+                        showMatches("", source)
+                    }
+                }
+            }
             .onPreviewKeyEvent { event ->
                 when {
                     event.type == KeyEventType.KeyDown && event.key == Key.DirectionDown && host.menu?.id === id -> {

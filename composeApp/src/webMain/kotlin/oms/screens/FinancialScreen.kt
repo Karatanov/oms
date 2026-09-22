@@ -339,7 +339,7 @@ fun FinancialScreen(
         }
     }
     if (addAct || editAct != null) { WasmSafeOverlay(onDismiss = { addAct = false; editAct = null }, errorMessage = errorMessage) {
-            ActEditorDialog(editAct, ProjectRepository.projects, {
+            ActEditorDialog(editAct, ProjectRepository.projects, acts, {
                 ProjectRepository.refresh(force = ProjectRepository.projects.isEmpty())
                 ProjectRepository.projects
             }, { addAct = false; editAct = null }) { projectUuid, request ->
@@ -408,6 +408,7 @@ private fun FinancialTransferDialog(
 private fun ActEditorDialog(
     existing: ProjectActRow?,
     projects: List<oms.model.Project>,
+    knownFinancialRows: List<ProjectActRow>,
     loadProjectsOnOpen: suspend () -> List<oms.model.Project>,
     onDismiss: () -> Unit,
     onSave: (String, oms.data.FinancialRecordRequest) -> Unit
@@ -423,7 +424,7 @@ private fun ActEditorDialog(
     var paymentPurpose by remember { mutableStateOf(existing?.act?.paymentPurpose ?: "works") }
     var basisActs by remember { mutableStateOf<List<ApiFinancialRecord>>(emptyList()) }
     var loadingBasisActs by remember { mutableStateOf(false) }
-    LaunchedEffect(recordType, projectUuid, availableProjects) {
+    LaunchedEffect(recordType, projectUuid, availableProjects, knownFinancialRows) {
         val selectedTargetUuid = projectUuid
         if (recordType !in setOf("payment", "advance") || selectedTargetUuid == null) {
             basisActs = emptyList()
@@ -431,12 +432,27 @@ private fun ActEditorDialog(
             return@LaunchedEffect
         }
         loadingBasisActs = true
-        // Payment and advance bases are scoped to the selected subproject or
-        // subproject part, so records from a neighbouring hierarchy node can
-        // never be chosen accidentally.
-        basisActs = runCatching { OmsApiClient.financials(selectedTargetUuid).data }
-            .getOrDefault(emptyList())
-            .filter { it.recordType.equals("act", true) }
+        // A payment for a subproject part can be based on an act recorded on
+        // that part or directly on its parent subproject.  Read the register
+        // already loaded for this screen first (instant UI); fall back to the
+        // narrowly scoped API calls only when it has no matching act.
+        val selectedTarget = availableProjects.firstOrNull { it.id == selectedTargetUuid }
+        val basisTargetUuids = buildSet {
+            add(selectedTargetUuid)
+            selectedTarget?.takeIf { it.projectType.equals("subproject_part", true) }
+                ?.parentProjectUuid?.let(::add)
+        }
+        val localActs = knownFinancialRows.asSequence()
+            .filter { it.projectUuid in basisTargetUuids && it.act.recordType.equals("act", true) }
+            .map { it.act }
+            .toList()
+        basisActs = if (localActs.isNotEmpty()) {
+            localActs
+        } else {
+            basisTargetUuids.flatMap { targetUuid ->
+                runCatching { OmsApiClient.financials(targetUuid).data }.getOrDefault(emptyList())
+            }.filter { it.recordType.equals("act", true) }
+        }.distinctBy { it.uuid }
         loadingBasisActs = false
     }
     val parsedAmount = amount.replace(',', '.').toDoubleOrNull()
