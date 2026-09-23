@@ -27,13 +27,13 @@ class InspectionFindingReplacementTest {
     @Test fun `complete validated replacement is one repository operation`() {
         InspectionFindingService(repository).replaceCategory(7, " hse_sir_auto ", "medium",
             listOf(" Issue " to " Remedy "))
-        assertEquals(listOf(listOf(7L, "hse_sir_auto", FindingSeverity.MEDIUM,
+        assertEquals(listOf(listOf<Any?>(7L, "hse_sir_auto", FindingSeverity.MEDIUM,
             listOf("Issue" to "Remedy"))), calls)
     }
 
     @Test fun `empty replacement still clears automatic findings`() {
         InspectionFindingService(repository).replaceCategory(7, "hse_sir_auto", "medium", emptyList())
         assertEquals(1, calls.size)
-        assertEquals(emptyList<Pair<String, String?>>(), calls.single()[3])
+        assertEquals<Any?>(emptyList<Pair<String, String?>>(), calls.single()[3])
     }
 }
