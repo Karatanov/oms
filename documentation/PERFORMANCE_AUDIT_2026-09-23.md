@@ -25,6 +25,13 @@ compacted reports. Materials removal similarly always deleted nine rows. Both
 now use actual next-section boundaries. POI regression tests cover compact and
 full sections, repeated formatting, preserved merged headings and comments.
 
+Validation: the full `:server:test` task passed on Linux for commit `31e95f3`
+in GitHub Actions run `35914580148` (job `107362703507`). This includes the new
+HSE validation tests and POI section-boundary regressions. The initial test
+compilation failure caused by heterogeneous assertion types was corrected and
+the complete task rerun successfully. This is not a database integration or
+production load-test result.
+
 ## Architecture and measurement matrix
 
 The browser client is Compose/Kotlin JS, published through GitHub Pages. The
