@@ -28,12 +28,7 @@ class InspectionPhotoService(private val repository: InspectionPhotoRepository) 
         require(extension in setOf("jpg", "jpeg", "png")) { "Allowed photo formats: JPG, PNG." }
         require(matchesDeclaredFormat(bytes, extension)) { "Photo content does not match its declared format." }
         val normalizedBytes = normalizeJpegOrientation(bytes, extension)
-        val image = try {
-            ImageIO.read(ByteArrayInputStream(normalizedBytes))
-        } catch (_: Exception) {
-            null
-        } ?: throw IllegalArgumentException("Invalid image file.")
-        require(image.width > 0 && image.height > 0) { "Invalid image dimensions." }
+        val target = createPhotoThumbnail(normalizedBytes)
 
         val uuid = UUID.randomUUID()
         val directory = uploadDirectory("inspection-photos")
@@ -42,17 +37,6 @@ class InspectionPhotoService(private val repository: InspectionPhotoRepository) 
         val thumbnail = directory.resolve("$uuid-thumb.jpg")
         try {
             Files.write(original, normalizedBytes)
-            val ratio = minOf(1.0, 320.0 / image.width)
-            val width = (image.width * ratio).toInt()
-            val height = (image.height * ratio).toInt()
-            val target = BufferedImage(width, height, BufferedImage.TYPE_INT_RGB)
-            val graphics = target.createGraphics()
-            try {
-                graphics.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR)
-                graphics.drawImage(image, 0, 0, width, height, null)
-            } finally {
-                graphics.dispose()
-            }
             ImageIO.write(target, "jpg", thumbnail.toFile())
             DurableFileStorage.persist(original)
             DurableFileStorage.persist(thumbnail)
