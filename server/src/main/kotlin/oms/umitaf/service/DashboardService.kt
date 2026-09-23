@@ -5,6 +5,7 @@ import oms.umitaf.domain.InspectionReport
 import oms.umitaf.domain.InspectionReportStatus
 import oms.umitaf.domain.ProjectAmount
 import org.jetbrains.exposed.v1.jdbc.selectAll
+import org.jetbrains.exposed.v1.core.inList
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import java.util.UUID
 import java.time.LocalDate
@@ -106,13 +107,11 @@ class DashboardService(
         val projectIds = projects.map { it[ProjectTable.id].value }.toSet()
         val reports = InspectionReportTable.selectAll().toList()
             .filter { it[InspectionReportTable.projectId].value in projectIds }
-        val actRecords = FinancialRecordTable.selectAll().toList().filter {
-            it[FinancialRecordTable.projectId].value in projectIds &&
-                it[FinancialRecordTable.recordType] == "act"
-        }
-        val paymentRecords = FinancialRecordTable.selectAll().toList().filter {
-            it[FinancialRecordTable.projectId].value in projectIds &&
-                it[FinancialRecordTable.recordType] in setOf("payment", "advance")
+        val financialRecords = FinancialRecordTable.selectAll()
+            .where { FinancialRecordTable.projectId inList projectIds }.toList()
+        val actRecords = financialRecords.filter { it[FinancialRecordTable.recordType] == "act" }
+        val paymentRecords = financialRecords.filter {
+            it[FinancialRecordTable.recordType] in setOf("payment", "advance")
         }
         fun month(date: java.time.LocalDate) = date.toString().take(7)
         val monthlyActPayments = paymentRecords.filter { it[FinancialRecordTable.amountEurCents] != null }

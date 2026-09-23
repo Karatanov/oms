@@ -30,9 +30,7 @@ class ExposedInspectionFindingRepository :
 
         InspectionFindingTable
             .selectAll()
-            .filter { row ->
-                row[InspectionFindingTable.inspectionReportId].value == inspectionReportId
-            }
+            .where { InspectionFindingTable.inspectionReportId eq inspectionReportId }
             .map(::toFinding)
     }
 
@@ -42,10 +40,12 @@ class ExposedInspectionFindingRepository :
     ): InspectionFinding? = transaction {
         InspectionFindingTable
             .selectAll()
-            .firstOrNull {
-                it[InspectionFindingTable.inspectionReportId].value == inspectionReportId &&
-                    it[InspectionFindingTable.uuid] == uuid
+            .where {
+                (InspectionFindingTable.inspectionReportId eq inspectionReportId) and
+                    (InspectionFindingTable.uuid eq uuid)
             }
+            .limit(1)
+            .firstOrNull()
             ?.let(::toFinding)
     }
 

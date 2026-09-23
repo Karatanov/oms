@@ -7,8 +7,8 @@ import org.jetbrains.exposed.v1.jdbc.*
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import java.util.UUID
 class ExposedInspectionPhotoRepository:InspectionPhotoRepository {
- override fun list(reportId:Long)=transaction{InspectionPhotoTable.selectAll().filter{it[InspectionPhotoTable.reportId].value==reportId}.map(::map)}
- override fun get(reportId:Long,uuid:String)=transaction{InspectionPhotoTable.selectAll().firstOrNull{it[InspectionPhotoTable.reportId].value==reportId&&it[InspectionPhotoTable.uuid]==uuid}?.let(::map)}
+ override fun list(reportId:Long)=transaction{InspectionPhotoTable.selectAll().where{InspectionPhotoTable.reportId eq reportId}.map(::map)}
+ override fun get(reportId:Long,uuid:String)=transaction{InspectionPhotoTable.selectAll().where{(InspectionPhotoTable.reportId eq reportId) and (InspectionPhotoTable.uuid eq uuid)}.limit(1).firstOrNull()?.let(::map)}
  override fun create(photo:InspectionPhoto){transaction{InspectionPhotoTable.insert{it[uuid]=photo.uuid.toString();it[reportId]=photo.reportId;it[originalName]=photo.originalName;it[storagePath]=photo.storagePath;it[thumbnailPath]=photo.thumbnailPath;it[contentType]=photo.contentType;it[fileSizeBytes]=photo.fileSizeBytes;it[isMain]=photo.isMain}}}
  override fun setMain(reportId:Long,uuid:String)=transaction{if(get(reportId,uuid)==null) null else {InspectionPhotoTable.update({InspectionPhotoTable.reportId eq reportId}){it[isMain]=false};InspectionPhotoTable.update({(InspectionPhotoTable.reportId eq reportId) and (InspectionPhotoTable.uuid eq uuid)}){it[isMain]=true};get(reportId,uuid)}}
  override fun delete(reportId:Long,uuid:String)=transaction{InspectionPhotoTable.deleteWhere{(InspectionPhotoTable.reportId eq reportId) and (InspectionPhotoTable.uuid eq uuid)}>0}

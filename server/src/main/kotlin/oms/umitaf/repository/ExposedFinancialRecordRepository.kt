@@ -12,10 +12,10 @@ import java.util.UUID
 class ExposedFinancialRecordRepository : FinancialRecordRepository {
     override fun findAll() = transaction { FinancialRecordTable.selectAll().map(::map) }
     override fun findByProjectId(projectId: Long) = transaction {
-        FinancialRecordTable.selectAll().filter { it[FinancialRecordTable.projectId].value == projectId }.map(::map)
+        FinancialRecordTable.selectAll().where { FinancialRecordTable.projectId eq projectId }.map(::map)
     }
     override fun findByUuid(projectId: Long, uuid: String) = transaction {
-        FinancialRecordTable.selectAll().firstOrNull { it[FinancialRecordTable.projectId].value == projectId && it[FinancialRecordTable.uuid] == uuid }?.let(::map)
+        FinancialRecordTable.selectAll().where { (FinancialRecordTable.projectId eq projectId) and (FinancialRecordTable.uuid eq uuid) }.limit(1).firstOrNull()?.let(::map)
     }
     override fun create(projectId: Long, type: FinancialRecordType, reference: String, amount: Double, currency: String, recordDate: String, paymentDate: String?, description: String?, milestone: String?, paymentPurpose: String, eurExchangeRate: Double, eurExchangeDate: String, amountEurCents: Long, createdBy: Long) = transaction {
         val uuid = UUID.randomUUID()

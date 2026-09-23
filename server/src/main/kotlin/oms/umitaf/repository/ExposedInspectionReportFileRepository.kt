@@ -11,7 +11,7 @@ import org.jetbrains.exposed.v1.jdbc.update
 
 class ExposedInspectionReportFileRepository : InspectionReportFileRepository {
     override fun findByReportId(reportId: Long) = transaction {
-        InspectionReportFileTable.selectAll().firstOrNull { it[InspectionReportFileTable.inspectionReportId].value == reportId }?.let {
+        InspectionReportFileTable.selectAll().where { InspectionReportFileTable.inspectionReportId eq reportId }.limit(1).firstOrNull()?.let {
             InspectionReportFile(it[InspectionReportFileTable.inspectionReportId].value, it[InspectionReportFileTable.originalName], it[InspectionReportFileTable.storagePath], it[InspectionReportFileTable.contentType], it[InspectionReportFileTable.fileSizeBytes])
         }
     }
