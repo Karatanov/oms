@@ -32,12 +32,12 @@ class ExposedProcurementRecordRepository : ProcurementRecordRepository {
 
     override fun create(record: ProcurementRecord): ProcurementRecord = transaction {
         val id = ProcurementRecordTable.insertAndGetId { row -> row.applyRecord(record) }.value
-        ProcurementRecordTable.selectAll().first { it[ProcurementRecordTable.id].value == id }.let(::map)
+        ProcurementRecordTable.selectAll().where { ProcurementRecordTable.id eq id }.limit(1).first().let(::map)
     }
 
     override fun update(id: Long, record: ProcurementRecord): ProcurementRecord? = transaction {
         if (ProcurementRecordTable.update({ ProcurementRecordTable.id eq id }) { row -> row.applyRecord(record) } == 0) null
-        else ProcurementRecordTable.selectAll().first { it[ProcurementRecordTable.id].value == id }.let(::map)
+        else ProcurementRecordTable.selectAll().where { ProcurementRecordTable.id eq id }.limit(1).first().let(::map)
     }
 
     override fun delete(id: Long): Boolean = transaction { ProcurementRecordTable.deleteWhere { ProcurementRecordTable.id eq id } > 0 }

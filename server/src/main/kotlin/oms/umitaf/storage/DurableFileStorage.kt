@@ -9,6 +9,8 @@ import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import java.nio.file.Files
 import java.nio.file.Path
+import java.nio.file.StandardCopyOption
+import java.nio.file.AtomicMoveNotSupportedException
 import java.time.Clock
 import java.time.LocalDateTime
 
@@ -45,7 +47,19 @@ object DurableFileStorage {
                 ?.bytes
         } ?: return null
         Files.createDirectories(path.parent)
-        Files.write(path, bytes)
+        // Readers must not see a partly restored XLSX/image. Write to a
+        // sibling temporary file and publish the completed copy in one move.
+        val temporary = Files.createTempFile(path.parent, "restore-", ".tmp")
+        try {
+            Files.write(temporary, bytes)
+            try {
+                Files.move(temporary, path, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING)
+            } catch (_: AtomicMoveNotSupportedException) {
+                Files.move(temporary, path, StandardCopyOption.REPLACE_EXISTING)
+            }
+        } finally {
+            Files.deleteIfExists(temporary)
+        }
         return path.takeIf { Files.isRegularFile(it) }
     }
 

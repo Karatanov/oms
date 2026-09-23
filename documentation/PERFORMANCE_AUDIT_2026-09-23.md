@@ -33,6 +33,19 @@ findings (list/UUID), photos (list/UUID), documents (list/UUID), financial recor
 single-item queries also constrain UUID where applicable and use LIMIT 1.
 The owner constraint remains combined with UUID, preserving ownership checks.
 
+The second batch moves seven more reads into SQL: programme details, monitoring
+details (single and batch), authentication state, failed-login state lookup,
+and procurement create/update readback. String username/token matching is
+deliberately not altered without checking database collation semantics.
+
+File restoration previously wrote directly to the public local path. A second
+request could see that path before writing completed and attempt to parse a
+partial workbook/image. Restoration now writes a sibling temporary file and
+publishes it with an atomic replace, falling back to a regular move only when
+the filesystem does not support atomic moves. Concurrent delete/save/restore
+ordering still needs integration stress testing; this does not claim to solve
+all file lifecycle races.
+
 Dashboard overview previously loaded the whole financial table twice. It now
 fetches it once for the already-authorized project IDs and derives both record
 groups from the same result. There are no added caches or changed calculations.

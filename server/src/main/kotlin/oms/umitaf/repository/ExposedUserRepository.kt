@@ -213,7 +213,7 @@ class ExposedUserRepository : UserRepository {
     override fun delete(id: Long): Boolean = transaction { UserTable.deleteWhere { UserTable.id eq id } > 0 }
 
     override fun authenticationState(userId: Long): UserRepository.AuthenticationState? = transaction {
-        UserTable.selectAll().firstOrNull { it[UserTable.id].value == userId }?.let { row ->
+        UserTable.selectAll().where { UserTable.id eq userId }.limit(1).firstOrNull()?.let { row ->
             UserRepository.AuthenticationState(
                 status = row[UserTable.status],
                 failedLoginCount = row[UserTable.failedLoginCount],
@@ -223,7 +223,7 @@ class ExposedUserRepository : UserRepository {
     }
 
     override fun recordFailedLogin(userId: Long, lockedUntil: LocalDateTime?) = transaction {
-        val current = UserTable.selectAll().firstOrNull { it[UserTable.id].value == userId } ?: return@transaction
+        val current = UserTable.selectAll().where { UserTable.id eq userId }.limit(1).firstOrNull() ?: return@transaction
         UserTable.update({ UserTable.id eq userId }) {
             it[failedLoginCount] = current[UserTable.failedLoginCount] + 1
             it[UserTable.lockedUntil] = lockedUntil

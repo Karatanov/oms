@@ -27,7 +27,7 @@ import java.util.*
 
 class ExposedProjectRepository : ProjectRepository {
     override fun programmeDetails(projectId: Long) = transaction {
-        ProgrammeDetailTable.selectAll().firstOrNull { it[ProgrammeDetailTable.projectId].value == projectId }?.let { row ->
+        ProgrammeDetailTable.selectAll().where { ProgrammeDetailTable.projectId eq projectId }.limit(1).firstOrNull()?.let { row ->
             oms.umitaf.domain.ProgrammeDetails(
                 row[ProgrammeDetailTable.implementor], row[ProgrammeDetailTable.financingInstitution],
                 row[ProgrammeDetailTable.financeContractNumber], row[ProgrammeDetailTable.serapisNumber],
@@ -39,12 +39,12 @@ class ExposedProjectRepository : ProjectRepository {
     }
 
     override fun monitoringDetails(projectId: Long) = transaction {
-        ProjectMonitoringDetailTable.selectAll().firstOrNull { it[ProjectMonitoringDetailTable.projectId].value == projectId }?.toMonitoringDetails()
+        ProjectMonitoringDetailTable.selectAll().where { ProjectMonitoringDetailTable.projectId eq projectId }.limit(1).firstOrNull()?.toMonitoringDetails()
     }
 
     override fun monitoringDetailsByProjectIds(projectIds: Collection<Long>) = transaction {
         if (projectIds.isEmpty()) emptyMap() else ProjectMonitoringDetailTable.selectAll()
-            .filter { it[ProjectMonitoringDetailTable.projectId].value in projectIds }
+            .where { ProjectMonitoringDetailTable.projectId inList projectIds }
             .associate { it[ProjectMonitoringDetailTable.projectId].value to it.toMonitoringDetails() }
     }
 
