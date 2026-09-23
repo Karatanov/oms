@@ -1,5 +1,18 @@
 # Performance and reliability audit — 2026-09-23
 
+## JPEG metadata reliability follow-up
+
+The orientation parser trusted TIFF directory offsets before checking their
+bounds. Malformed EXIF could therefore throw during photo upload. It now checks
+JPEG segment lengths, the EXIF signature, TIFF byte order/magic, unsigned
+directory offsets, entry counts and the orientation field type/count/value.
+Reads are bounded by the APP1 segment, not merely the end of the whole file.
+Invalid orientation metadata is ignored; normal image decoding still validates
+the image. Tests cover both byte orders, all eight valid orientation values,
+every truncation before the segment end and corrupt offsets/fields.
+This does not add support for mirrored EXIF transformations (2, 4, 5, 7).
+The full backend test job passed in CI run `35923617751` for commit `95efbe4`.
+
 ## Photo thumbnail follow-up
 
 CI run `35921819912`, commit `ddb0d7c`: all 21 backend tests passed,
