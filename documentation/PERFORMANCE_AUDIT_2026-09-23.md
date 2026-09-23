@@ -1,5 +1,32 @@
 # Performance and reliability audit — 2026-09-23
 
+## Photo thumbnail follow-up
+
+CI run `35921819912`, commit `ddb0d7c`: all 21 backend tests passed,
+with no skipped tests or failures, including the disposable MySQL tests.
+Thumbnail generation now requests reader-level subsampling rather than decoding
+the full raster before shrinking it. Previews fit within 320 x 320 pixels,
+never upscale small sources, and retain at least one pixel on each axis.
+Original image bytes are not modified by this thumbnail helper.
+
+Synthetic 4000 x 3000 JPEG, three warm-ups and 20 measured samples in CI:
+
+| Thumbnail generation | Previous full decode | Subsampled decode |
+| --- | ---: | ---: |
+| Mean ms | 81.759 | 54.597 |
+| p50 ms | 81.259 | 54.498 |
+| p95 ms | 89.082 | 55.144 |
+| Maximum ms | 90.984 | 55.449 |
+
+Mean generation time fell by approximately 33% in this synthetic test, not
+an end-to-end upload or production benchmark. Artifact:
+`backend-test-results/reports/performance/photo-thumbnail.txt`.
+Tests cover JPEG/PNG, portrait/landscape, 10000 x 1 and 1 x 10000 images,
+small images, invalid input, unchanged source bytes and 50 repeated decodes.
+Heap usage was not measured; the existing EXIF normalization path still fully
+decodes rotated images and remains a separate profiling target.
+No Render deployment was triggered.
+
 ## MySQL integration and hierarchy follow-up
 
 CI run `35915898210`, commit `a97b806`: all 17 backend tests passed, with no
