@@ -4,7 +4,6 @@ import oms.umitaf.domain.InspectionPhoto
 import oms.umitaf.repository.InspectionPhotoRepository
 import oms.umitaf.storage.DurableFileStorage
 import oms.umitaf.storage.uploadDirectory
-import java.awt.RenderingHints
 import java.awt.geom.AffineTransform
 import java.awt.image.BufferedImage
 import java.io.ByteArrayInputStream
@@ -106,7 +105,7 @@ class InspectionPhotoService(private val repository: InspectionPhotoRepository) 
     }
 
     /** Minimal EXIF reader for JPEG orientation (tag 0x0112). */
-    private fun jpegExifOrientation(bytes: ByteArray): Int? {
+    internal fun jpegExifOrientation(bytes: ByteArray): Int? {
         if (bytes.size < 14 || (bytes[0].toInt() and 0xff) != 0xff || (bytes[1].toInt() and 0xff) != 0xd8) return null
         fun unsigned(index: Int) = bytes[index].toInt() and 0xff
         fun short(index: Int, little: Boolean) = if (little) unsigned(index) or (unsigned(index + 1) shl 8) else (unsigned(index) shl 8) or unsigned(index + 1)
@@ -116,18 +115,28 @@ class InspectionPhotoService(private val repository: InspectionPhotoRepository) 
             if (unsigned(index) != 0xff) { index++; continue }
             val marker = unsigned(index + 1)
             if (marker == 0xda || marker == 0xd9) break
+            if (marker == 0xff || marker == 0x01 || marker in 0xd0..0xd8) { index += if (marker == 0xff) 1 else 2; continue }
             val length = short(index + 2, false)
+            if (length < 2 || length > bytes.size - index - 2) return null
             val data = index + 4
-            if (marker == 0xe1 && length >= 10 && data + length - 2 <= bytes.size &&
-                String(bytes, data, 4, Charsets.US_ASCII) == "Exif") {
+            val segmentEnd = index + 2 + length
+            if (marker == 0xe1 && length >= 16 &&
+                String(bytes, data, 6, Charsets.US_ASCII) == "Exif\u0000\u0000") {
                 val tiff = data + 6
-                if (tiff + 8 > bytes.size) return null
                 val little = unsigned(tiff) == 0x49 && unsigned(tiff + 1) == 0x49
-                val count = short(tiff + int(tiff + 4, little), little)
+                val big = unsigned(tiff) == 0x4d && unsigned(tiff + 1) == 0x4d
+                if ((!little && !big) || short(tiff + 2, little) != 42) return null
+                val relative = int(tiff + 4, little).toLong() and 0xffffffffL
+                if (relative < 8 || relative > segmentEnd.toLong() - tiff - 2) return null
+                val directory = tiff + relative.toInt()
+                val count = short(directory, little)
+                if (count > (segmentEnd - directory - 2) / 12) return null
                 for (entry in 0 until count) {
-                    val offset = tiff + int(tiff + 4, little) + 2 + entry * 12
-                    if (offset + 12 > bytes.size) break
-                    if (short(offset, little) == 0x0112) return short(offset + 8, little)
+                    val offset = directory + 2 + entry * 12
+                    if (short(offset, little) == 0x0112) {
+                        if (short(offset + 2, little) != 3 || int(offset + 4, little) != 1) return null
+                        return short(offset + 8, little).takeIf { it in 1..8 }
+                    }
                 }
             }
             index += length + 2
