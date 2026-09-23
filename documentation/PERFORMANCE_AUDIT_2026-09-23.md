@@ -1,5 +1,40 @@
 # Performance and reliability audit — 2026-09-23
 
+## MySQL integration and hierarchy follow-up
+
+CI run `35915898210`, commit `a97b806`: all 17 backend tests passed, with no
+skips. A disposable MySQL 8.4 service contains 20,001 findings (20,000 belonging
+to another report). No application database credentials or data are used.
+
+After three warm-ups, 30 sequential measured runs produced:
+
+| Scoped findings read | Before (JDBC SELECT-all and filter) | After (actual Exposed repository) |
+| --- | ---: | ---: |
+| Mean ms | 16.568 | 5.386 |
+| p50 ms | 14.741 | 5.217 |
+| p95 ms | 25.681 | 6.937 |
+| p99 ms | 44.479 | 7.429 |
+
+This compares query shapes using a JDBC baseline and the actual optimized
+repository, including its transaction/mapping overhead. It is not an exact
+old-build versus new-build API comparison. With only 30 samples, p99 is the
+maximum observation; production tail-latency/throughput claims are unwarranted.
+EXPLAIN chooses `inspection_report_id` and estimates one row. The test asserts
+matching counts and cross-report UUID isolation. The timing artifact is
+`backend-test-results/reports/performance/mysql-scoped-reads.txt` in that run.
+
+Twenty-four replacements on eight worker threads left exactly one complete
+six-item automatic findings set; the manual finding and 20,000 unrelated rows
+survived. Invalid input left the previous set unchanged; empty input cleared
+only the automatic category. This validates repository replacement concurrency,
+not concurrent workbook and database saves as a whole.
+
+Project subtree traversal previously executed a SELECT-all per node. It now
+loads only ID/UUID/parent keys once and builds a child-first order in memory.
+Traversal is iterative and rejects cycles before any deletion. Tests cover
+unrelated branches, child-before-parent order, cycles, and a 20,000-node chain.
+Foreign-key deletion integration and concurrent hierarchy edits remain pending.
+
 Status: initial source audit and query-shape benchmark completed; end-to-end
 load/stress audit remains incomplete. No production load or production data
 mutations were performed. The supplied task file ends mid-pagination section.
