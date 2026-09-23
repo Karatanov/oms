@@ -15,7 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.semantics.*
 import androidx.compose.ui.unit.dp
@@ -59,13 +59,12 @@ fun ScrollableTable(
         Column(
             Modifier.fillMaxWidth()
                 .onGloballyPositioned { coordinates ->
-                    val bounds = coordinates.boundsInRoot()
-                    tableTopInRoot = bounds.top
-                    // Capture the document position once. Replacing it on
-                    // every browser-scroll frame cancels the sticky offset.
-                    if (tableTopInPage == null || (pageScrollState?.value ?: 0) == 0) {
-                        tableTopInPage = bounds.top + (pageScrollState?.value ?: 0)
-                    }
+                    // The unclipped origin retains negative Y coordinates
+                    // when the table scrolls above the viewport. Recalculate
+                    // after layout changes, including collapsing charts.
+                    val top = coordinates.positionInRoot().y
+                    tableTopInRoot = top
+                    tableTopInPage = top + (pageScrollState?.value ?: 0)
                     tableHeight = coordinates.size.height
                 }
         ) {

@@ -490,7 +490,7 @@ private fun ActEditorDialog(
                         amount = act.amount.toString()
                         currency = act.currency
                     },
-                    itemLabel = { act -> "${act.referenceNumber} · ${act.recordDate.toOmsDate()} · ${act.amount.toMoney(act.currency)}" }
+                    itemLabel = { act -> "${LocalizationManager.t("record_type_act")} ${act.referenceNumber} · ${act.recordDate.toOmsDate()} · ${act.amount.toMoney(act.currency)}" }
                 )
             } else if (recordType in setOf("payment", "advance")) {
                 OutlinedTextField(
