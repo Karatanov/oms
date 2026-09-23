@@ -40,3 +40,4 @@ jobs:
           path: |
             server/build/test-results/test/
             server/build/reports/tests/test/
+            server/build/reports/performance/

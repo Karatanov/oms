@@ -53,14 +53,17 @@ class FindingDatabaseIntegrationTest {
                 }
             }
             val after = timings { repository.findByInspectionReportId(1).size }
-            fun report(label: String, values: List<Double>) = println("MYSQL_SCOPED_READ $label mean=${values.average()} p50=${values[14]} p95=${values[28]} p99=${values[29]} ms")
+            val measurements = StringBuilder("MySQL 8.4; 20001 rows; 30 measured runs after 3 warm-ups; local CI, not Render.\n")
+            fun report(label: String, values: List<Double>) {
+                measurements.appendLine("MYSQL_SCOPED_READ $label mean=${values.average()} p50=${values[14]} p95=${values[28]} p99=${values[29]} ms")
+            }
             report("before", before)
             report("after", after)
             connection.createStatement().use { sql ->
                 sql.executeQuery("EXPLAIN SELECT * FROM inspection_findings WHERE inspection_report_id=1").use { plan ->
                     assertTrue(plan.next())
                     assertNotNull(plan.getString("key"))
-                    println("MYSQL_PLAN key=${plan.getString("key")} rows=${plan.getLong("rows")}")
+                    measurements.appendLine("MYSQL_PLAN key=${plan.getString("key")} rows=${plan.getLong("rows")}")
                 }
             }
 
@@ -84,6 +87,9 @@ class FindingDatabaseIntegrationTest {
             service.replaceCategory(1, "hse_sir_auto", "medium", emptyList())
             assertEquals(listOf(manual), repository.findByInspectionReportId(1))
             assertEquals(20_000, repository.findByInspectionReportId(2).size)
+            val output = java.io.File("build/reports/performance/mysql-scoped-reads.txt")
+            output.parentFile.mkdirs()
+            output.writeText(measurements.toString())
         }
     }
 }
