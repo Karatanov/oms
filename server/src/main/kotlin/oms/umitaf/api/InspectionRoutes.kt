@@ -17,24 +17,13 @@ private const val AUTO_HSE_FINDING_CATEGORY = "hse_sir_auto"
 
 /** Keeps the H&S chart in step with a manually edited SIR without touching user-created findings. */
 private fun synchronizeManualHseFindings(reportId: Long, observations: List<ManualHseObservation>) {
-    val findings = AppContainer.inspectionFindingService
-    findings.getFindings(reportId)
-        .filter { it.category == AUTO_HSE_FINDING_CATEGORY }
-        .forEach { findings.deleteFinding(reportId, it.uuid.toString()) }
-    observations
+    val entries = observations
         // A checked standard observation means compliance.  An unchecked
         // answer and a custom free-text observation both describe an actual
         // issue and therefore must contribute to the ESHS violation chart.
         .filter { !it.answer.equals("yes", ignoreCase = true) }
-        .forEach { observation ->
-            findings.createFinding(
-                reportId,
-                AUTO_HSE_FINDING_CATEGORY,
-                "medium",
-                observation.observation,
-                observation.comment
-            )
-        }
+        .map { it.observation to it.comment }
+    AppContainer.inspectionFindingService.replaceCategory(reportId, AUTO_HSE_FINDING_CATEGORY, "medium", entries)
 }
 
 /** REST endpoints for inspection findings. */

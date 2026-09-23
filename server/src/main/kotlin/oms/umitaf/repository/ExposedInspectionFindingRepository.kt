@@ -1,6 +1,8 @@
 package oms.umitaf.repository
 
 import oms.umitaf.database.tables.InspectionFindingTable
+import oms.umitaf.database.tables.InspectionReportTable
+import org.jetbrains.exposed.v1.jdbc.batchInsert
 import oms.umitaf.domain.FindingSeverity
 import oms.umitaf.domain.InspectionFinding
 import org.jetbrains.exposed.v1.jdbc.selectAll
@@ -19,6 +21,30 @@ import java.util.*
  */
 class ExposedInspectionFindingRepository :
     InspectionFindingRepository {
+
+    override fun replaceCategory(inspectionReportId: Long, category: String, severity: FindingSeverity,
+                                 entries: List<Pair<String, String?>>) {
+        transaction {
+            // Lock the parent even when no findings exist yet. Competing
+            // replacements cannot interleave their delete/insert operations.
+            require(InspectionReportTable.selectAll()
+                .where { InspectionReportTable.id eq inspectionReportId }
+                .forUpdate().firstOrNull() != null) { "Inspection report not found." }
+            InspectionFindingTable.deleteWhere {
+                (InspectionFindingTable.inspectionReportId eq inspectionReportId) and
+                    (InspectionFindingTable.category eq category)
+            }
+            InspectionFindingTable.batchInsert(entries, shouldReturnGeneratedValues = false) { entry ->
+                this[InspectionFindingTable.uuid] = UUID.randomUUID().toString()
+                this[InspectionFindingTable.inspectionReportId] = inspectionReportId
+                this[InspectionFindingTable.category] = category
+                this[InspectionFindingTable.severity] = severity.name.lowercase()
+                this[InspectionFindingTable.description] = entry.first
+                this[InspectionFindingTable.recommendation] = entry.second
+                this[InspectionFindingTable.isResolved] = false
+            }
+        }
+    }
 
     /**
      * Повертає всі зауваження

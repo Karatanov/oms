@@ -13,6 +13,17 @@ class InspectionFindingService(
     InspectionFindingRepository
 ) {
 
+    fun replaceCategory(inspectionReportId: Long, category: String, severity: String,
+                        entries: List<Pair<String, String?>>) {
+        val normalizedCategory = validateCategory(category)
+        val parsedSeverity = parseSeverity(severity)
+        // Validate the complete replacement before any existing data is touched.
+        val normalizedEntries = entries.map { (description, recommendation) ->
+            validateDescription(description) to normalizeRecommendation(recommendation)
+        }
+        repository.replaceCategory(inspectionReportId, normalizedCategory, parsedSeverity, normalizedEntries)
+    }
+
     /**
      * Повертає всі зауваження
      * конкретної інспекції.

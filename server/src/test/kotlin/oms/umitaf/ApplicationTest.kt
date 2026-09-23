@@ -14,8 +14,8 @@ class ApplicationTest {
         application {
             module(configureDatabase = false)
         }
-        val response = client.get("/")
-        assertEquals(HttpStatusCode.OK, response.status)
-        assertTrue(response.bodyAsText().contains("<div id=\"app-shell\">"))
+        val response = createClient { followRedirects = false }.get("/")
+        assertEquals(HttpStatusCode.Found, response.status)
+        assertEquals("https://karatanov.github.io/oms/", response.headers[HttpHeaders.Location])
     }
 }

@@ -8,6 +8,10 @@ import oms.umitaf.domain.InspectionFinding
  */
 interface InspectionFindingRepository {
 
+    /** Replace only the selected category, atomically and serialized per report. */
+    fun replaceCategory(inspectionReportId: Long, category: String, severity: FindingSeverity,
+                        entries: List<Pair<String, String?>>)
+
     /**
      * Повертає всі зауваження,
      * що належать певній інспекції.
