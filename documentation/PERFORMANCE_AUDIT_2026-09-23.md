@@ -4,6 +4,27 @@ Status: initial source audit and query-shape benchmark completed; end-to-end
 load/stress audit remains incomplete. No production load or production data
 mutations were performed. The supplied task file ends mid-pagination section.
 
+## Follow-up batch
+
+Both previous optimization commits compiled successfully in the GHCR workflow;
+Pages also succeeded. A separate backend-test workflow now runs the full JVM
+test task on Linux, avoiding the local loopback failure. The stale root test
+now verifies the intended redirect to Pages without following external URLs.
+
+Automatic HSE replacement previously used one read transaction plus a separate
+transaction for every old deletion and new insertion. It now validates all
+entries first, locks the parent report, deletes only the automatic category and
+batch-inserts replacements in one transaction. This avoids partially committed
+sets and serializes competing replacements. Unit tests cover validation before
+writes and empty replacement. Actual database concurrency testing is pending;
+the workbook save itself is still outside this database transaction.
+
+Workbook inspection exposed the cause of repeated missing Progress headings:
+quality formatting always cleared five rows, including later section titles in
+compacted reports. Materials removal similarly always deleted nine rows. Both
+now use actual next-section boundaries. POI regression tests cover compact and
+full sections, repeated formatting, preserved merged headings and comments.
+
 ## Architecture and measurement matrix
 
 The browser client is Compose/Kotlin JS, published through GitHub Pages. The

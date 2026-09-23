@@ -603,7 +603,7 @@ class InspectionReportFileService(
             )
         }
         normalizeQualityAssessmentTitle(sheet, qualityTitleRow)
-        configureQualityAssessmentColumns(sheet, qualityTitleRow + 1)
+        configureQualityAssessmentColumns(sheet, qualityTitleRow + 1, qualityDataEndExclusive)
         val qualityRows = (qualityTitleRow + 2) until qualityDataEndExclusive
         qualityRemarks.take(qualityRows.count()).forEachIndexed { index, remark ->
             val row = qualityRows.first + index
@@ -794,9 +794,16 @@ class InspectionReportFileService(
     }
 
     /** Restores the surrounding row geometry after removing an optional materials table. */
-    private fun removePurchasedMaterialsLayout(sheet: org.apache.poi.ss.usermodel.Sheet, titleRow: Int) {
-        removeMergedRows(sheet, titleRow..(titleRow + 8))
-        sheet.shiftRows(titleRow + 8, sheet.lastRowNum, -9, true, false)
+    internal fun removePurchasedMaterialsLayout(sheet: org.apache.poi.ss.usermodel.Sheet, titleRow: Int) {
+        // Already-saved workbooks have compacted tables, not nine reserved
+        // rows. Stop at the next section to preserve its title and contents.
+        val nextSectionRow = listOfNotNull(
+            firstRow(sheet, "NARRATIVE ASSESSMENT - COMMENTS ON PROGRESS"),
+            signatureSectionRow(sheet)
+        ).filter { it > titleRow }.minOrNull()
+            ?: error("Purchased materials has no following section.")
+        removeMergedRows(sheet, titleRow until nextSectionRow)
+        sheet.shiftRows(nextSectionRow - 1, sheet.lastRowNum, -(nextSectionRow - titleRow), true, false)
     }
 
     private fun firstRow(sheet: org.apache.poi.ss.usermodel.Sheet, value: String): Int? =
@@ -919,13 +926,13 @@ class InspectionReportFileService(
     }
 
     /** Uses the four SIR quality columns while preserving the template's row geometry and styles. */
-    private fun configureQualityAssessmentColumns(sheet: org.apache.poi.ss.usermodel.Sheet, headerRow: Int) {
-        val qualityRows = headerRow + 1..headerRow + 5
+    internal fun configureQualityAssessmentColumns(sheet: org.apache.poi.ss.usermodel.Sheet, headerRow: Int, nextSectionRow: Int) {
+        require(nextSectionRow > headerRow) { "Invalid quality section boundaries." }
         for (index in sheet.mergedRegions.size - 1 downTo 0) {
             val range = sheet.mergedRegions[index]
-            if (range.firstRow + 1 in headerRow..qualityRows.last) sheet.removeMergedRegion(index)
+            if (range.firstRow + 1 in headerRow until nextSectionRow) sheet.removeMergedRegion(index)
         }
-        (headerRow..qualityRows.last).forEach { row ->
+        (headerRow until nextSectionRow).forEach { row ->
             val zeroBasedRow = row - 1
             val currentRow = sheet.getRow(zeroBasedRow) ?: sheet.createRow(zeroBasedRow)
             (0..11).forEach { column -> (currentRow.getCell(column) ?: currentRow.createCell(column)).setBlank() }
