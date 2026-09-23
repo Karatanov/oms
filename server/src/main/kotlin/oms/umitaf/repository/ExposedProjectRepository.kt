@@ -25,6 +25,23 @@ import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import java.util.*
 
+/** Iterative child-first traversal; validate the complete subtree before deleting anything. */
+internal fun projectDeletionOrder(root: Long, children: Map<Long?, List<Long>>): List<Long> {
+    val pending = ArrayDeque<Pair<Long, Boolean>>()
+    val visited = mutableSetOf<Long>()
+    val result = mutableListOf<Long>()
+    pending.addLast(root to false)
+    while (pending.isNotEmpty()) {
+        val (id, expanded) = pending.removeLast()
+        if (expanded) result.add(id) else {
+            check(visited.add(id)) { "Project hierarchy contains a cycle." }
+            pending.addLast(id to true)
+            children[id].orEmpty().asReversed().forEach { pending.addLast(it to false) }
+        }
+    }
+    return result
+}
+
 class ExposedProjectRepository : ProjectRepository {
     override fun programmeDetails(projectId: Long) = transaction {
         ProgrammeDetailTable.selectAll().where { ProgrammeDetailTable.projectId eq projectId }.limit(1).firstOrNull()?.let { row ->
@@ -364,18 +381,15 @@ class ExposedProjectRepository : ProjectRepository {
     }
 
     override fun deleteByUuid(uuid: String): Boolean = transaction {
-        val project = ProjectTable.selectAll().firstOrNull { it[ProjectTable.uuid] == uuid } ?: return@transaction false
-        val projectIds = mutableListOf<Long>()
+        // Load only hierarchy keys once; the former recursion read every
+        // project column again for each node in the subtree.
+        val hierarchy = ProjectTable.select(ProjectTable.id, ProjectTable.uuid, ProjectTable.parentProjectId).toList()
+        val project = hierarchy.firstOrNull { it[ProjectTable.uuid] == uuid } ?: return@transaction false
+        val children = hierarchy.groupBy({ it[ProjectTable.parentProjectId]?.value }, { it[ProjectTable.id].value })
 
         // Children are collected before their parent, so self-referential FK restrictions
         // do not block removal of a complete project/subproject/part hierarchy.
-        fun collectSubtree(projectId: Long) {
-            ProjectTable.selectAll()
-                .filter { it[ProjectTable.parentProjectId]?.value == projectId }
-                .forEach { collectSubtree(it[ProjectTable.id].value) }
-            projectIds += projectId
-        }
-        collectSubtree(project[ProjectTable.id].value)
+        val projectIds = projectDeletionOrder(project[ProjectTable.id].value, children)
 
         projectIds.forEach { projectId ->
             ProjectDocumentTable.deleteWhere { ProjectDocumentTable.projectId eq projectId }
