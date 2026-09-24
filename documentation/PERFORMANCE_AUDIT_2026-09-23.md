@@ -1,5 +1,19 @@
 # Performance and reliability audit — 2026-09-23
 
+## Scoped account lookups
+
+Username lookup, username/email existence checks and activation/reset token
+lookup previously fetched all user rows for Kotlin filtering. SQL now narrows
+the candidates first. Exact Kotlin string checks remain to preserve existing
+case-sensitive semantics under case-insensitive database collations; no LIMIT
+is applied before that check. Role lookup during creation is scoped by ID with
+LIMIT 1. The integration fixture explicitly uses utf8mb4_0900_ai_ci and verifies
+correct-case matches and wrong-case/missing token rejection. No production
+latency improvement is quantified for this batch; token indexing and user
+update readback remain separate audit items.
+Validation: full backend test job passed in CI run `35996265661` for commit
+`912d8b5`, including the MySQL case-sensitivity regression checks.
+
 ## Main photo and deletion follow-up
 
 Photo deletion and main selection now acquire the same parent-report lock as
