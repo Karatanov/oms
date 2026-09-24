@@ -87,6 +87,28 @@ class FindingDatabaseIntegrationTest {
             service.replaceCategory(1, "hse_sir_auto", "medium", emptyList())
             assertEquals(listOf(manual), repository.findByInspectionReportId(1))
             assertEquals(20_000, repository.findByInspectionReportId(2).size)
+            // Concurrent uploads must not bypass the per-report cap or all become main.
+            connection.createStatement().use { sql ->
+                sql.execute("CREATE TABLE inspection_photos (id BIGINT AUTO_INCREMENT PRIMARY KEY, uuid VARCHAR(36) UNIQUE NOT NULL, inspection_report_id BIGINT NOT NULL, original_name VARCHAR(255), storage_path VARCHAR(500), thumbnail_path VARCHAR(500), content_type VARCHAR(100), file_size_bytes BIGINT, is_main BOOLEAN, FOREIGN KEY (inspection_report_id) REFERENCES inspection_reports(id))")
+            }
+            val photos = oms.umitaf.repository.ExposedInspectionPhotoRepository()
+            val uploadPool = Executors.newFixedThreadPool(8)
+            try {
+                val results = uploadPool.invokeAll((1..40).map { number -> Callable {
+                    try {
+                        photos.create(oms.umitaf.domain.InspectionPhoto(0, UUID.randomUUID(), 1,
+                            "$number.jpg", "test-original", "test-thumbnail", "image/jpeg", 100, true))
+                        true
+                    } catch (exception: IllegalArgumentException) {
+                        assertEquals("An inspection report can contain no more than 30 photos.", exception.message)
+                        false
+                    }
+                } }, 60, TimeUnit.SECONDS).map { it.get() }
+                assertEquals(30, results.count { it })
+                assertEquals(30, photos.list(1).size)
+                assertEquals(1, photos.list(1).count { it.isMain })
+                assertTrue(photos.list(2).isEmpty())
+            } finally { uploadPool.shutdownNow() }
             val output = java.io.File("build/reports/performance/mysql-scoped-reads.txt")
             output.parentFile.mkdirs()
             output.writeText(measurements.toString())

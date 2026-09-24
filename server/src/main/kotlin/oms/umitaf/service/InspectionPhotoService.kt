@@ -34,7 +34,7 @@ class InspectionPhotoService(private val repository: InspectionPhotoRepository) 
         Files.createDirectories(directory)
         val original = directory.resolve("$uuid.$extension")
         val thumbnail = directory.resolve("$uuid-thumb.jpg")
-        try {
+        val saved = try {
             Files.write(original, normalizedBytes)
             ImageIO.write(target, "jpg", thumbnail.toFile())
             DurableFileStorage.persist(original)
@@ -48,15 +48,17 @@ class InspectionPhotoService(private val repository: InspectionPhotoRepository) 
                 thumbnail.toString(),
                 contentType ?: "image/$extension",
                 normalizedBytes.size.toLong(),
-                repository.list(reportId).isEmpty()
+                false // The repository assigns the main photo under a report lock.
             )
             repository.create(photo)
-            return photo
+            photo
         } catch (exception: Exception) {
             runCatching { DurableFileStorage.delete(original.toString()) }
             runCatching { DurableFileStorage.delete(thumbnail.toString()) }
             throw exception
         }
+        // A readback failure must not delete files already referenced by a committed row.
+        return repository.get(reportId, uuid.toString()) ?: saved
     }
 
     fun resolveFile(photo: InspectionPhoto, thumbnail: Boolean): Path? =
