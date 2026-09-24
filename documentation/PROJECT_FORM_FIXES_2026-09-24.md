@@ -59,3 +59,35 @@ Desktop browser automation initialization failed with `failed to write kernel
 assets` / OS error 3. Real Safari UI and full Create/Edit browser flows remain
 unverified until an appropriate browser environment is available.
 Render deployment is not authorized by this task and was not triggered.
+
+### Recorded CI results
+
+Commit `3ecddc0`:
+- Backend regression tests: run `36020134110`, passed (including four geocoder tests).
+- Production frontend/Pages: run `36020134126`, passed.
+- Form regression tests: run `36020134225`, passed. All 12 Kotlin browser tests
+  passed in ChromeHeadless 153, with no failures or skips. Four new tests cover
+  valid serialized creation payload/manual GPS, simultaneous invalid fields,
+  visible contract date ordering, calendar validity and UA/EN messages.
+- Actual date bridge passed in Chromium and WebKit at device scales 1 and 2:
+  anchor coordinates, selection callback, viewport-edge bounds, no-showPicker
+  fallback, Escape and scroll cleanup. Native OS calendar chrome itself is not
+  observable in this headless bridge test.
+- Existing regex, clipboard and cursor static checks passed.
+
+Still unverified: authenticated end-to-end Create/Edit against the application
+database, rendered field highlighting/scroll in the complete Compose form,
+and real Safari on macOS/iOS. Successful payload/unit tests are not presented
+as successful production creation. No customer records were changed.
+
+## Changed files
+
+- `server/.../service/GeocodingService.kt`: normalization, deadlines, coordinate validation.
+- `server/.../api/ProjectRoutes.kt`: provider calls on the IO dispatcher.
+- `composeApp/.../components/AddressCoordinatesCalculator.kt`: distinct messages, late-result guard.
+- `composeApp/.../components/OmsDateField.kt` and `webMain/resources/index.html`: shared calendar bridge and date input.
+- `composeApp/.../screens/ProjectFormState.kt` and `ProjectForm.kt`: validation and field-level feedback.
+- `composeApp/.../screens/CreateProjectScreen.kt` and `EditProjectScreen.kt`: validation and safe save feedback.
+- `composeApp/.../data/OmsApiClient.kt` and `localization/Strings.kt`: geocode error classification and UA/EN text.
+- `GeocodingServiceTest.kt`, `ProjectFormValidationTest.kt`, `tools/test-date-picker.cjs`
+  and `.github/workflows/project-form-tests.yml`: regressions and browser-engine coverage.
