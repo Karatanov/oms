@@ -41,12 +41,12 @@ fun EditProjectScreen(project: Project, onCancel: () -> Unit = {}, onSaved: (Pro
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.End)) {
                     OutlinedButton(onClick = onCancel, enabled = !saving) { Text(L.t("cancel")) }
                     Button(enabled = !saving, onClick = {
-                        error = form.validationError(true)
+                        error = form.validate(true)
                         if (error == null) scope.launch {
                             saving = true
                             runCatching { OmsApiClient.updateProject(project.id, form.updateRequest()) }
-                                .onSuccess { ProjectRepository.refresh(force = true); onSaved(ProjectRepository.projects.firstOrNull { it.id == project.id } ?: project) }
-                                .onFailure { error = L.t("error_save_project").replace("{message}", it.message ?: L.t("unknown_error")) }
+                                .onSuccess { runCatching { ProjectRepository.refresh(force = true) }; onSaved(ProjectRepository.projects.firstOrNull { it.id == project.id } ?: project) }
+                                .onFailure { error = L.t("project_save_failed") }
                             saving = false
                         }
                     }) {

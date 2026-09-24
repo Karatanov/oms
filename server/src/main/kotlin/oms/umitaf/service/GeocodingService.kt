@@ -10,39 +10,37 @@ import java.net.http.HttpClient
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
 import java.nio.charset.StandardCharsets
+import java.time.Duration
 
 /**
  * Resolves an address only when a user explicitly asks for it. The provider URL
  * may be switched through GEOCODER_URL without changing the application code.
  */
-class GeocodingService {
-    private val client = HttpClient.newBuilder().build()
+class GeocodingService(
+    private val baseUrl: String = System.getenv("GEOCODER_URL")?.trim()?.takeIf(String::isNotEmpty)
+        ?: "https://nominatim.openstreetmap.org/search"
+) {
+    private val client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build()
     private val json = Json { ignoreUnknownKeys = true }
     private val cache = mutableMapOf<String, GeocodeAddressResponse?>()
     private var lastRequestAt = 0L
 
     @Synchronized
     fun geocode(address: String, city: String, region: String): GeocodeAddressResponse? {
-        val query = listOf(address, city, region, "Україна")
-            .map(String::trim)
-            .filter(String::isNotEmpty)
-            .joinToString(", ")
+        val query = composeGeocodingAddress(address, city, region)
         require(query != "Україна") { "Address, city, or region is required for coordinate lookup." }
         cache[query]?.let { return it }
 
         val elapsed = System.currentTimeMillis() - lastRequestAt
         if (elapsed < MIN_REQUEST_INTERVAL_MS) Thread.sleep(MIN_REQUEST_INTERVAL_MS - elapsed)
 
-        val baseUrl = System.getenv("GEOCODER_URL")
-            ?.trim()
-            ?.takeIf(String::isNotEmpty)
-            ?: "https://nominatim.openstreetmap.org/search"
         val encodedQuery = URLEncoder.encode(query, StandardCharsets.UTF_8)
         val separator = if ('?' in baseUrl) '&' else '?'
         val request = HttpRequest.newBuilder(
             URI.create("$baseUrl${separator}format=jsonv2&limit=1&countrycodes=ua&q=$encodedQuery")
         )
             .header("Accept", "application/json")
+            .timeout(Duration.ofSeconds(12))
             .header("User-Agent", "OMS-UMITAF/1.0 (manual address coordinate lookup)")
             .GET()
             .build()
@@ -57,7 +55,8 @@ class GeocodingService {
             ?.let { place ->
                 val latitude = place.lat.toDoubleOrNull()
                 val longitude = place.lon.toDoubleOrNull()
-                if (latitude != null && longitude != null) GeocodeAddressResponse(latitude, longitude) else null
+                if (latitude != null && longitude != null && latitude in -90.0..90.0 && longitude in -180.0..180.0)
+                    GeocodeAddressResponse(latitude, longitude) else null
             }
         cache[query] = result
         return result
@@ -69,4 +68,13 @@ class GeocodingService {
     private companion object {
         const val MIN_REQUEST_INTERVAL_MS = 1_000L
     }
+}
+
+internal fun composeGeocodingAddress(address: String, city: String, region: String): String {
+    fun clean(value: String) = value.replace('\u00a0', ' ').replace(Regex("\\s+"), " ").trim()
+        .replace(Regex("^(м\\.|місто|с\\.|село|смт\\.?)\\s*", RegexOption.IGNORE_CASE), "")
+    val parts = (address.split(',') + city + region).map(::clean).filter(String::isNotEmpty)
+        .filterNot { it.equals("Україна", true) || it.equals("Ukraine", true) }
+        .distinctBy { it.lowercase().replace(Regex("\\s+(область|обл\\.|region|oblast)$"), "") }
+    return (parts + "Україна").joinToString(", ")
 }

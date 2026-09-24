@@ -43,12 +43,12 @@ fun CreateProjectScreen(onCancel: () -> Unit = {}, onCreated: () -> Unit = {}) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.End)) {
                 OutlinedButton(onClick = onCancel, enabled = !saving) { Text(L.t("cancel")) }
                 Button(enabled = !saving, onClick = {
-                    error = state.validationError(false)
+                    error = state.validate(false)
                     if (error == null) scope.launch {
                         saving = true
                         runCatching { OmsApiClient.createProject(state.createRequest()) }
-                            .onSuccess { ProjectRepository.refresh(force = true); onCreated() }
-                            .onFailure { error = L.t("error_create_project").replace("{message}", it.message ?: L.t("unknown_error")) }
+                            .onSuccess { runCatching { ProjectRepository.refresh(force = true) }; onCreated() }
+                            .onFailure { error = L.t("project_save_failed") }
                         saving = false
                     }
                 }) {

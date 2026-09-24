@@ -11,7 +11,8 @@ import kotlin.math.roundToInt
 @JsName("daysBetweenIsoDates")
 private external fun browserDaysBetweenIsoDates(start: String, end: String): Int?
 
-internal class ProjectFormState(details: ApiProjectDetailsData? = null) {
+internal class ProjectFormState(details: ApiProjectDetailsData? = null, private val today: String = if (details == null) currentIsoDate() else "") {
+    private fun initialDate(details: ApiProjectDetailsData?, value: String?) = if (details == null) today else value.orEmpty()
     var projectType by mutableStateOf(details?.projectType ?: "project")
     var parentUuid by mutableStateOf(details?.parentProjectUuid)
     var fields by mutableStateOf(mapOf(
@@ -52,26 +53,46 @@ internal class ProjectFormState(details: ApiProjectDetailsData? = null) {
         "local_financing" to initialMoney(details, "local_financing", null)
     ))
     var currentRate by mutableStateOf<ProjectExchangeRate?>(null)
+    var validationAttempt by mutableStateOf(0)
+    var editingForm by mutableStateOf(false)
+    fun errors(): Map<String, String> = buildMap {
+        listOf("name", "code").forEach { if (this@ProjectFormState[it].isBlank()) put(it, L.t("field_required")) }
+        if (!editingForm && projectType != "project" && parentUuid.isNullOrBlank()) put("parent", L.t("select_parent_project"))
+        if (trancheNumber() == null) put("tranche", L.t("tranche_invalid"))
+        val limits = mapOf("code" to 50, "address" to 500, "region" to 100, "city" to 100,
+            "designerName" to 255, "contractorName" to 255, "technicalSupervisionName" to 255, "engineerConsultantName" to 255,
+            "designContractNumber" to 100, "constructionContractNumber" to 100,
+            "technicalSupervisionContractNumber" to 100, "engineerConsultantContractNumber" to 100)
+        limits.forEach { (key, limit) -> if (this@ProjectFormState[key].trim().length > limit)
+            put(key, L.t("field_max_length").replace("{max}", limit.toString())) }
+        money.forEach { (key, draft) ->
+            if (key == "budget" && draft.amount.isBlank()) put(key, L.t("field_required"))
+            else if (draft.amount.isNotBlank() && !draft.valid()) put(key, L.t("project_money_invalid"))
+            else if (key == "budget" && draft.valid() && draft.legacyUah() <= 0) put(key, L.t("error_positive_budget"))
+        }
+        if (this@ProjectFormState["latitude"].isNotBlank() && coordinate("latitude")?.let { it in -90.0..90.0 } != true)
+            put("latitude", L.t("error_latitude_range"))
+        if (this@ProjectFormState["longitude"].isNotBlank() && coordinate("longitude")?.let { it in -180.0..180.0 } != true)
+            put("longitude", L.t("error_longitude_range"))
+        fields.filterKeys { it.endsWith("Date") || it == "projectedCompletionTime" || it.endsWith("SigningDate") }
+            .forEach { (key, value) -> if (value.isNotBlank() && !oms.components.isValidIsoDate(value)) put(key, L.t("date_invalid")) }
+        listOf("constructionContractSigningDate" to "projectedCompletionTime", "constructionStartDate" to "projectedCompletionTime",
+            "designStartDate" to "designPlannedEndDate", "technicalSupervisionStartDate" to "technicalSupervisionPlannedEndDate",
+            "engineerConsultantStartDate" to "engineerConsultantPlannedEndDate").forEach { (start, end) ->
+            if (oms.components.isValidIsoDate(this@ProjectFormState[start]) && oms.components.isValidIsoDate(this@ProjectFormState[end]) &&
+                this@ProjectFormState[end] < this@ProjectFormState[start]) put(end, L.t("project_dates_invalid"))
+        }
+    }
+    fun validate(editing: Boolean): String? {
+        editingForm = editing
+        validationAttempt++
+        return if (errors().isEmpty()) null else L.t("project_validation_summary")
+    }
     operator fun get(key: String) = fields[key].orEmpty()
     operator fun set(key: String, value: String) { fields = fields + (key to value) }
     fun applyRate(rate: ProjectExchangeRate) {
         currentRate = rate
         money = money.mapValues { (_, value) -> if (value.rate.isBlank() && !value.edited) value.withRate(rate) else value }
-    }
-    fun validationError(editing: Boolean): String? = when {
-        this["name"].isBlank() || this["code"].isBlank() -> L.t("error_required_fields")
-        !editing && projectType != "project" && parentUuid == null -> L.t("select_parent_project")
-        trancheNumber() == null -> L.t("tranche_invalid")
-        money.getValue("budget").amount.isBlank() || money.values.any { it.amount.isNotBlank() && !it.valid() } -> L.t("project_money_invalid")
-        money.getValue("budget").legacyUah() <= 0 -> L.t("error_positive_budget")
-        this["latitude"].isNotBlank() && coordinate("latitude")?.let { it in -90.0..90.0 } != true -> L.t("error_latitude_range")
-        this["longitude"].isNotBlank() && coordinate("longitude")?.let { it in -180.0..180.0 } != true -> L.t("error_longitude_range")
-        this["plannedEndDate"].isNotBlank() && this["contractSignedDate"].isNotBlank() && this["plannedEndDate"] < this["contractSignedDate"] -> L.t("project_dates_invalid")
-        this["projectedCompletionTime"].isNotBlank() && this["constructionStartDate"].isNotBlank() && this["projectedCompletionTime"] < this["constructionStartDate"] -> L.t("project_dates_invalid")
-        this["designPlannedEndDate"].isNotBlank() && this["designStartDate"].isNotBlank() && this["designPlannedEndDate"] < this["designStartDate"] -> L.t("project_dates_invalid")
-        this["technicalSupervisionPlannedEndDate"].isNotBlank() && this["technicalSupervisionStartDate"].isNotBlank() && this["technicalSupervisionPlannedEndDate"] < this["technicalSupervisionStartDate"] -> L.t("project_dates_invalid")
-        this["engineerConsultantPlannedEndDate"].isNotBlank() && this["engineerConsultantStartDate"].isNotBlank() && this["engineerConsultantPlannedEndDate"] < this["engineerConsultantStartDate"] -> L.t("project_dates_invalid")
-        else -> null
     }
     fun designDurationLabel(): String = browserDaysBetweenIsoDates(this["designStartDate"], this["designPlannedEndDate"])
         ?.let(::durationMonthsLabel)
@@ -131,7 +152,6 @@ internal fun durationMonthsLabel(days: Long): String = L.t("duration_months")
 
 private fun durationMonthsLabel(days: Int): String = durationMonthsLabel(days.toLong())
 
-private fun initialDate(details: ApiProjectDetailsData?, value: String?) = if (details == null) currentIsoDate() else value.orEmpty()
 private fun initialMoney(details: ApiProjectDetailsData?, key: String, legacy: Long?): ProjectMoneyDraft {
     val saved = details?.amounts?.get(key)
     return if (saved != null) ProjectMoneyDraft(saved.amount, saved.currency, saved.convertedAmount, saved.uahPerEur, saved.rateDate, saved.conversionEdited)

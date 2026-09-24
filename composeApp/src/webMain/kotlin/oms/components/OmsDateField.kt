@@ -14,6 +14,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInWindow
+import androidx.compose.ui.platform.LocalDensity
 import oms.localization.LocalizationManager
 import kotlin.js.JsName
 
@@ -38,6 +39,7 @@ fun OmsDateField(
     modifier: Modifier = Modifier,
     required: Boolean = false
 ) {
+    val density = LocalDensity.current.density
     var anchorLeft by remember { mutableStateOf(16f) }
     var anchorTop by remember { mutableStateOf(16f) }
     // Native pickers are convenient, but dates also need to be usable with a
@@ -53,26 +55,37 @@ fun OmsDateField(
         onValueChange = { rawValue ->
             val sanitized = rawValue.filter { it.isDigit() || it == '.' || it == '-' }.take(10)
             displayValue = sanitized
-            sanitized.toIsoDateOrNull()?.let(onValueChange)
-            if (sanitized.isBlank()) onValueChange("")
+            onValueChange(sanitized.toIsoDateOrNull() ?: sanitized)
         },
         label = { Text(if (required) "$label *" else label) },
         modifier = modifier,
         readOnly = false,
         singleLine = true,
+        isError = displayValue.isNotBlank() && displayValue.toIsoDateOrNull()?.let(::isValidIsoDate) != true,
+        supportingText = { if (displayValue.isNotBlank() && displayValue.toIsoDateOrNull()?.let(::isValidIsoDate) != true)
+            Text(LocalizationManager.t("date_invalid")) },
         trailingIcon = {
             IconButton(
                 onClick = { openNativeDatePicker(value, anchorLeft, anchorTop, onValueChange) },
                 modifier = Modifier.buttonHandCursor().onGloballyPositioned { coordinates ->
                     val position = coordinates.positionInWindow()
-                    anchorLeft = position.x
-                    anchorTop = position.y + coordinates.size.height
+                    anchorLeft = position.x / density
+                    anchorTop = (position.y + coordinates.size.height) / density
                 }
             ) {
                 Icon(Icons.Default.CalendarMonth, contentDescription = LocalizationManager.t("choose_date"))
             }
         }
     )
+}
+
+fun isValidIsoDate(value: String): Boolean {
+    if (!Regex("\\d{4}-\\d{2}-\\d{2}").matches(value)) return false
+    val (year, month, day) = value.split('-').map { it.toInt() }
+    if (year !in 1..9999 || month !in 1..12) return false
+    val leap = year % 4 == 0 && (year % 100 != 0 || year % 400 == 0)
+    val days = listOf(31, if (leap) 29 else 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31)
+    return day in 1..days[month - 1]
 }
 
 private fun String.toIsoDateOrNull(): String? {

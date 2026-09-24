@@ -166,7 +166,8 @@ object OmsApiClient {
             contentType(ContentType.Application.Json)
             setBody(GeocodeAddressRequest(address, city, region))
         }
-        if (!response.status.isSuccess()) throw IllegalStateException(response.bodyAsText())
+        if (!response.status.isSuccess()) throw IllegalStateException(
+            if (response.status.value == 404) "GEOCODE_NOT_FOUND" else "GEOCODE_UNAVAILABLE")
         return response.body()
     }
 

@@ -1,6 +1,9 @@
 package oms.screens
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.border
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -29,8 +32,10 @@ internal fun ProjectForm(
                 it.name.equals("Ukraine Recovery Programme III", true)
         } ?: options.firstOrNull { it.projectType.equals("project", true) }
     fun field(key: String, label: String, modifier: Modifier = Modifier, lines: Int = 1) = @Composable {
-        OutlinedTextField(state[key], { state[key] = it }, label = { Text(L.t(label)) }, modifier = modifier,
-            singleLine = lines == 1, minLines = lines)
+        ProjectFieldValidation(state, key, modifier) {
+            OutlinedTextField(state[key], { state[key] = it }, label = { Text(L.t(label)) }, modifier = Modifier.fillMaxWidth(),
+                isError = state.validationAttempt > 0 && key in state.errors(), singleLine = lines == 1, minLines = lines)
+        }
     }
     Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -46,7 +51,8 @@ internal fun ProjectForm(
                             // the type never blocks the form.
                             if (type == "subproject") scope.launch {
                                 val options = loadParentsOnOpen?.invoke() ?: parents
-                                state.parentUuid = programmeParent(options)?.uuid
+                                if (state.projectType == "subproject" && state.parentUuid == null)
+                                    state.parentUuid = programmeParent(options)?.uuid
                             }
                         }, label = { Text(L.t(type)) })
                     }
@@ -54,12 +60,14 @@ internal fun ProjectForm(
                 if (state.projectType != "project") {
                     val parentType = if (state.projectType == "subproject") "project" else "subproject"
                     val choices = parents.filter { it.projectType == parentType }
+                    ProjectFieldValidation(state, "parent") {
                     InlineOptionPicker(choices, choices.firstOrNull { it.uuid == state.parentUuid },
                         L.t(if (parentType == "project") "select_parent_project" else "select_parent_subproject"),
                         { state.parentUuid = it.uuid }, { "${it.siteNumber} — ${it.name}" },
                         loadOptionsOnOpen = {
                             (loadParentsOnOpen?.invoke() ?: choices).filter { it.projectType == parentType }
                         })
+                    }
                 }
             }
             FormPair(
@@ -87,21 +95,33 @@ internal fun ProjectForm(
                 { ConstructionTypeSelector(state["constructionType"], { value -> state["constructionType"] = value }, it) }
             )
             FormSectionTitle(L.t("financial_parameters"), Icons.Default.AccountBalanceWallet)
+            ProjectFieldValidation(state, "budget") {
             ProjectMoneyField(L.t("total_project_cost"), state.money.getValue("budget"), state.currentRate) { state.money = state.money + ("budget" to it) }
+            }
+            ProjectFieldValidation(state, "eib_financing") {
             ProjectMoneyField(L.t("subproject_cost_eib_financing"), state.money.getValue("eib_financing"), state.currentRate) { state.money = state.money + ("eib_financing" to it) }
+            }
+            ProjectFieldValidation(state, "local_financing") {
             ProjectMoneyField(L.t("subproject_cost_local_financing"), state.money.getValue("local_financing"), state.currentRate) { state.money = state.money + ("local_financing" to it) }
+            }
+            ProjectFieldValidation(state, "supervision") {
             ProjectMoneyField(L.t("technical_supervision_contract_amount"), state.money.getValue("supervision"), state.currentRate) { state.money = state.money + ("supervision" to it) }
+            }
+            ProjectFieldValidation(state, "engineer") {
             ProjectMoneyField(L.t("engineer_consultant_contract_amount"), state.money.getValue("engineer"), state.currentRate) { state.money = state.money + ("engineer" to it) }
+            }
+            ProjectFieldValidation(state, "construction") {
             ProjectMoneyField(L.t("construction_contract_amount"), state.money.getValue("construction"), state.currentRate) { state.money = state.money + ("construction" to it) }
+            }
             FormSectionTitle(L.t("parameters_and_location"), Icons.Default.LocationOn)
             field("address", "address", Modifier.fillMaxWidth())()
             FormPair(
-                { UkraineRegionAutocomplete(state["region"], { value -> state["region"] = value }, L.t("region"), it, false) },
-                { UkraineCityAutocomplete(state["city"], { value -> state["city"] = value }, L.t("city"), it, false) }
+                { ProjectFieldValidation(state, "region", it) { UkraineRegionAutocomplete(state["region"], { value -> state["region"] = value }, L.t("region"), Modifier.fillMaxWidth(), false) } },
+                { ProjectFieldValidation(state, "city", it) { UkraineCityAutocomplete(state["city"], { value -> state["city"] = value }, L.t("city"), Modifier.fillMaxWidth(), false) } }
             )
             FormPair(
-                { modifier -> OutlinedTextField(state["latitude"], { value -> value.coordinateInputOrNull()?.let { state["latitude"] = it } }, label = { Text(L.t("latitude")) }, enabled = !geocoding, modifier = modifier) },
-                { modifier -> OutlinedTextField(state["longitude"], { value -> value.coordinateInputOrNull()?.let { state["longitude"] = it } }, label = { Text(L.t("longitude")) }, enabled = !geocoding, modifier = modifier) }
+                { modifier -> ProjectFieldValidation(state, "latitude", modifier) { OutlinedTextField(state["latitude"], { value -> value.coordinateInputOrNull()?.let { state["latitude"] = it } }, label = { Text(L.t("latitude")) }, enabled = !geocoding, modifier = Modifier.fillMaxWidth()) } },
+                { modifier -> ProjectFieldValidation(state, "longitude", modifier) { OutlinedTextField(state["longitude"], { value -> value.coordinateInputOrNull()?.let { state["longitude"] = it } }, label = { Text(L.t("longitude")) }, enabled = !geocoding, modifier = Modifier.fillMaxWidth()) } }
             )
             AddressCoordinatesCalculator(state["address"], state["city"], state["region"], geocoding, { geocoding = it },
                 { lat, lon -> state["latitude"] = lat; state["longitude"] = lon })
@@ -113,11 +133,11 @@ internal fun ProjectForm(
             field("designerName", "designer_name", Modifier.fillMaxWidth())()
             FormPair(
                 { field("designContractNumber", "contract_number", it)() },
-                { OmsDateField(state["designContractSigningDate"], { value -> state["designContractSigningDate"] = value }, L.t("contract_date"), it) }
+                { ProjectFieldValidation(state, "designContractSigningDate", it) { OmsDateField(state["designContractSigningDate"], { value -> state["designContractSigningDate"] = value }, L.t("contract_date"), Modifier.fillMaxWidth()) } }
             )
             FormTriplet(
-                { OmsDateField(state["designStartDate"], { value -> state["designStartDate"] = value }, L.t("design_start_date"), it) },
-                { OmsDateField(state["designPlannedEndDate"], { value -> state["designPlannedEndDate"] = value }, L.t("design_planned_end_date"), it) },
+                { ProjectFieldValidation(state, "designStartDate", it) { OmsDateField(state["designStartDate"], { value -> state["designStartDate"] = value }, L.t("design_start_date"), Modifier.fillMaxWidth()) } },
+                { ProjectFieldValidation(state, "designPlannedEndDate", it) { OmsDateField(state["designPlannedEndDate"], { value -> state["designPlannedEndDate"] = value }, L.t("design_planned_end_date"), Modifier.fillMaxWidth()) } },
                 { modifier -> OutlinedTextField(state.designDurationLabel(), {}, label = { Text(L.t("design_contract_term")) }, readOnly = true, singleLine = true, modifier = modifier) }
             )
         }
@@ -128,16 +148,17 @@ internal fun ProjectForm(
             field("contractorName", "contractor_name", Modifier.fillMaxWidth())()
             FormPair(
                 { field("constructionContractNumber", "contract_number", it)() },
-                { OmsDateField(state["constructionContractSigningDate"], { value -> state["constructionContractSigningDate"] = value }, L.t("contract_date"), it) }
+                { ProjectFieldValidation(state, "constructionContractSigningDate", it) { OmsDateField(state["constructionContractSigningDate"], { value -> state["constructionContractSigningDate"] = value }, L.t("contract_date"), Modifier.fillMaxWidth()) } }
             )
             FormEqualTriplet(
-                { OmsDateField(state["constructionStartDate"], { value -> state["constructionStartDate"] = value }, L.t("construction_start_date"), it) },
-                { OmsDateField(state["projectedCompletionTime"], { value -> state["projectedCompletionTime"] = value }, L.t("planned_end_date"), it) },
-                { OmsDateField(state["endDate"], { value -> state["endDate"] = value }, L.t("actual_end_date"), it) }
+                { ProjectFieldValidation(state, "constructionStartDate", it) { OmsDateField(state["constructionStartDate"], { value -> state["constructionStartDate"] = value }, L.t("construction_start_date"), Modifier.fillMaxWidth()) } },
+                { ProjectFieldValidation(state, "projectedCompletionTime", it) { OmsDateField(state["projectedCompletionTime"], { value -> state["projectedCompletionTime"] = value }, L.t("planned_end_date"), Modifier.fillMaxWidth()) } },
+                { ProjectFieldValidation(state, "endDate", it) { OmsDateField(state["endDate"], { value -> state["endDate"] = value }, L.t("actual_end_date"), Modifier.fillMaxWidth()) } }
             )
         }
     }
     ContractInformationCard(
+        state = state, prefix = "technicalSupervision",
         title = L.t("technical_supervision_information"), icon = Icons.Default.Visibility,
         name = state["technicalSupervisionName"], onNameChange = { state["technicalSupervisionName"] = it },
         contractNumber = state["technicalSupervisionContractNumber"], onContractNumberChange = { state["technicalSupervisionContractNumber"] = it },
@@ -147,6 +168,7 @@ internal fun ProjectForm(
         duration = state.durationLabel("technicalSupervisionStartDate", "technicalSupervisionPlannedEndDate")
     )
     ContractInformationCard(
+        state = state, prefix = "engineerConsultant",
         title = L.t("engineer_consultant_information"), icon = Icons.Default.SupportAgent,
         name = state["engineerConsultantName"], onNameChange = { state["engineerConsultantName"] = it },
         contractNumber = state["engineerConsultantContractNumber"], onContractNumberChange = { state["engineerConsultantContractNumber"] = it },
@@ -159,6 +181,7 @@ internal fun ProjectForm(
 
 @Composable
 private fun ContractInformationCard(
+    state: ProjectFormState, prefix: String,
     title: String, icon: androidx.compose.ui.graphics.vector.ImageVector,
     name: String, onNameChange: (String) -> Unit,
     contractNumber: String, onContractNumberChange: (String) -> Unit,
@@ -170,14 +193,14 @@ private fun ContractInformationCard(
     Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             FormSectionTitle(title, icon)
-            OutlinedTextField(name, onNameChange, label = { Text(L.t("organization_name")) }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+            ProjectFieldValidation(state, prefix + "Name") { OutlinedTextField(name, onNameChange, label = { Text(L.t("organization_name")) }, modifier = Modifier.fillMaxWidth(), singleLine = true) }
             FormPair(
-                { modifier -> OutlinedTextField(contractNumber, onContractNumberChange, label = { Text(L.t("contract_number")) }, modifier = modifier, singleLine = true) },
-                { modifier -> OmsDateField(contractDate, onContractDateChange, L.t("contract_date"), modifier) }
+                { modifier -> ProjectFieldValidation(state, prefix + "ContractNumber", modifier) { OutlinedTextField(contractNumber, onContractNumberChange, label = { Text(L.t("contract_number")) }, modifier = Modifier.fillMaxWidth(), singleLine = true) } },
+                { modifier -> ProjectFieldValidation(state, prefix + "ContractDate", modifier) { OmsDateField(contractDate, onContractDateChange, L.t("contract_date"), Modifier.fillMaxWidth()) } }
             )
             FormTriplet(
-                { modifier -> OmsDateField(startDate, onStartDateChange, L.t("design_start_date"), modifier) },
-                { modifier -> OmsDateField(plannedEndDate, onPlannedEndDateChange, L.t("design_planned_end_date"), modifier) },
+                { modifier -> ProjectFieldValidation(state, prefix + "StartDate", modifier) { OmsDateField(startDate, onStartDateChange, L.t("design_start_date"), Modifier.fillMaxWidth()) } },
+                { modifier -> ProjectFieldValidation(state, prefix + "PlannedEndDate", modifier) { OmsDateField(plannedEndDate, onPlannedEndDateChange, L.t("design_planned_end_date"), Modifier.fillMaxWidth()) } },
                 { modifier -> OutlinedTextField(duration, {}, label = { Text(L.t("contract_duration")) }, readOnly = true, singleLine = true, modifier = modifier) }
             )
         }
@@ -240,3 +263,18 @@ private fun FormEqualTriplet(
  */
 internal fun String.coordinateInputOrNull(): String? =
     takeIf { length <= 24 && matches(Regex("-?[0-9.,]*")) }
+
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
+@Composable
+private fun ProjectFieldValidation(state: ProjectFormState, key: String, modifier: Modifier = Modifier, content: @Composable () -> Unit) {
+    val message = if (state.validationAttempt > 0) state.errors()[key] else null
+    val requester = remember { BringIntoViewRequester() }
+    LaunchedEffect(state.validationAttempt) {
+        if (state.validationAttempt > 0 && state.errors().keys.firstOrNull() == key) requester.bringIntoView()
+    }
+    Column(modifier.bringIntoViewRequester(requester).then(if (message != null)
+        Modifier.border(1.dp, MaterialTheme.colorScheme.error, MaterialTheme.shapes.small).padding(6.dp) else Modifier)) {
+        content()
+        message?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
+    }
+}

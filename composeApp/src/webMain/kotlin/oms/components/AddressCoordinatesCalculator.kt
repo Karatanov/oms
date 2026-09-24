@@ -37,6 +37,7 @@ fun AddressCoordinatesCalculator(
     var successMessage by remember { mutableStateOf<String?>(null) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var isCalculating by remember { mutableStateOf(false) }
+    var requestVersion by remember { mutableStateOf(0) }
     fun calculate() {
         if (isCalculating) return
         successMessage = null
@@ -47,16 +48,20 @@ fun AddressCoordinatesCalculator(
             return
         }
         isCalculating = true
+        val version = ++requestVersion
         scope.launch {
             runCatching { OmsApiClient.geocodeAddress(address, city, region) }
                 .onSuccess { result ->
+                    if (version != requestVersion) return@onSuccess
                     isCalculating = false
                     onCoordinatesResolved(result.latitude.toString(), result.longitude.toString())
                     successMessage = LocalizationManager.t("geocode_address_success")
                 }
                 .onFailure {
+                    if (version != requestVersion) return@onFailure
                     isCalculating = false
-                    errorMessage = LocalizationManager.t("geocode_address_not_found")
+                    errorMessage = LocalizationManager.t(if (it.message == "GEOCODE_NOT_FOUND")
+                        "geocode_address_not_found" else "geocode_unavailable")
                 }
         }
     }
@@ -76,7 +81,13 @@ fun AddressCoordinatesCalculator(
                 if (checked) {
                     onCalculationRequestedChange(true)
                     calculate()
-                } else onCalculationRequestedChange(false)
+                } else {
+                    requestVersion++
+                    isCalculating = false
+                    successMessage = null
+                    errorMessage = null
+                    onCalculationRequestedChange(false)
+                }
             }
         )
         Text(LocalizationManager.t(if (isCalculating) "geocode_address_loading" else "geocode_address"))
