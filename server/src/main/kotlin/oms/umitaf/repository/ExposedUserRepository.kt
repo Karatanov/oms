@@ -68,6 +68,8 @@ class ExposedUserRepository : UserRepository {
         UserTable
             .innerJoin(RoleTable)
             .selectAll()
+            .where { UserTable.username eq username }
+            // Keep exact Kotlin matching even with a case-insensitive SQL collation.
             .firstOrNull { row ->
 
                 row[UserTable.username] == username
@@ -136,10 +138,7 @@ class ExposedUserRepository : UserRepository {
 
         val role = RoleTable
             .selectAll()
-            .first { row ->
-
-                row[RoleTable.id].value == roleId
-            }
+            .where { RoleTable.id eq roleId }.limit(1).first()
 
         User(
             id = userId.value,
@@ -169,6 +168,7 @@ class ExposedUserRepository : UserRepository {
 
         UserTable
             .selectAll()
+            .where { UserTable.username eq username }
             .any { row ->
 
                 row[UserTable.username] == username
@@ -185,6 +185,7 @@ class ExposedUserRepository : UserRepository {
 
         UserTable
             .selectAll()
+            .where { UserTable.email eq email }
             .any { row ->
 
                 row[UserTable.email] == email
@@ -258,7 +259,8 @@ class ExposedUserRepository : UserRepository {
     }
 
     override fun activationState(tokenHash: String): UserRepository.ActivationState? = transaction {
-        UserTable.selectAll().firstOrNull { it[UserTable.activationTokenHash] == tokenHash }?.let {
+        UserTable.selectAll().where { UserTable.activationTokenHash eq tokenHash }
+            .firstOrNull { it[UserTable.activationTokenHash] == tokenHash }?.let {
             UserRepository.ActivationState(it[UserTable.id].value, it[UserTable.activationTokenExpiresAt])
         }
     }

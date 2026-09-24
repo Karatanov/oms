@@ -127,6 +127,25 @@ class FindingDatabaseIntegrationTest {
                 assertFalse(photos.delete(1, main.uuid.toString()))
             } finally { uploadPool.shutdownNow() }
             val output = java.io.File("build/reports/performance/mysql-scoped-reads.txt")
+            org.jetbrains.exposed.v1.jdbc.transactions.transaction {
+                org.jetbrains.exposed.v1.jdbc.SchemaUtils.create(
+                    oms.umitaf.database.tables.RoleTable, oms.umitaf.database.tables.UserTable)
+            }
+            connection.createStatement().use { sql ->
+                sql.execute("ALTER TABLE users CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci")
+                sql.execute("INSERT INTO roles(id,code,name) VALUES(1,'inspector','Inspector')")
+                sql.execute("INSERT INTO users(uuid,first_name,last_name,username,email,password_hash,role_id,status,preferred_lang,failed_login_count,created_at,updated_at,activation_token_hash) VALUES('test-user','Test','User','CaseSensitive','Test@example.com','not-a-password',1,'active','en',0,NOW(),NOW(),'AbCd')")
+            }
+            val users = oms.umitaf.repository.ExposedUserRepository()
+            assertNotNull(users.findByUsername("CaseSensitive"))
+            assertNull(users.findByUsername("casesensitive"))
+            assertTrue(users.existsByUsername("CaseSensitive"))
+            assertFalse(users.existsByUsername("casesensitive"))
+            assertTrue(users.existsByEmail("Test@example.com"))
+            assertFalse(users.existsByEmail("test@example.com"))
+            assertNotNull(users.activationState("AbCd"))
+            assertNull(users.activationState("abcd"))
+            assertNull(users.activationState("missing"))
             output.parentFile.mkdirs()
             output.writeText(measurements.toString())
         }
