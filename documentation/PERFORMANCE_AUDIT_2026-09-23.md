@@ -1,5 +1,24 @@
 # Performance and reliability audit — 2026-09-23
 
+## Concurrent photo upload follow-up
+
+The service's preflight count was not an authoritative limit: concurrent
+uploads could all pass it before inserting rows. Repository creation now locks
+the parent report and performs a locking photo read, validates the 30-photo
+limit and assigns the first main photo inside the same transaction. Only the
+main flag is selected for this check, not all file metadata. The service reads
+back the actual saved main flag; readback failures cannot trigger deletion of
+files already referenced by a committed row.
+
+The disposable MySQL integration test attempts 40 inserts on eight threads and
+asserts 30 successes, exactly one main photo and no cross-report changes.
+This covers concurrent creation, not the complete upload/storage lifecycle or
+mixed create/delete/set-main operations. Rejected uploads still incur image and
+storage work before the authoritative database check; an upload reservation
+protocol would be a separate change.
+Validation: the full backend test job passed in CI run `35955162884` for
+commit `ac7e214`, including the concurrent MySQL photo insert assertions.
+
 ## JPEG metadata reliability follow-up
 
 The orientation parser trusted TIFF directory offsets before checking their
