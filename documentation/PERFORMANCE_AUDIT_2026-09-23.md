@@ -1,5 +1,19 @@
 # Performance and reliability audit — 2026-09-23
 
+## Main photo and deletion follow-up
+
+Photo deletion and main selection now acquire the same parent-report lock as
+creation. A deleted main photo is replaced by the remaining photo with the
+lowest database ID, in the same transaction. Selecting a missing or foreign
+photo does not clear the existing main selection. Selection returns the locked
+row with its updated flag instead of re-reading through a nested repository call.
+The MySQL test mixes main selection and deletion across eight workers, checks
+ownership isolation, replacement after main deletion and removal of the final
+photo. Filesystem/object-store deletion and concurrent report deletion still
+require separate lifecycle coverage.
+Validation: full backend test job passed in CI run `35981466338` for commit
+`b88602f`, including the mixed concurrent photo operations in MySQL.
+
 ## Concurrent photo upload follow-up
 
 The service's preflight count was not an authoritative limit: concurrent
