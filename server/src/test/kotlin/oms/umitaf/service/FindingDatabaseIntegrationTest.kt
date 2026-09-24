@@ -108,6 +108,23 @@ class FindingDatabaseIntegrationTest {
                 assertEquals(30, photos.list(1).size)
                 assertEquals(1, photos.list(1).count { it.isMain })
                 assertTrue(photos.list(2).isEmpty())
+                val initial = photos.list(1)
+                assertNull(photos.setMain(2, initial.first().uuid.toString()))
+                assertFalse(photos.delete(2, initial.first().uuid.toString()))
+                uploadPool.invokeAll(initial.map { photo -> Callable {
+                    photos.setMain(1, photo.uuid.toString())
+                    if (photo.id % 2L == 0L) photos.delete(1, photo.uuid.toString())
+                } }, 60, TimeUnit.SECONDS).forEach { it.get() }
+                val remaining = photos.list(1)
+                assertEquals(initial.count { it.id % 2L != 0L }, remaining.size)
+                assertEquals(1, remaining.count { it.isMain })
+                val main = remaining.single { it.isMain }
+                assertTrue(photos.delete(1, main.uuid.toString()))
+                assertEquals(1, photos.list(1).count { it.isMain })
+                photos.list(1).forEach { assertTrue(photos.delete(1, it.uuid.toString())) }
+                assertTrue(photos.list(1).isEmpty())
+                assertNull(photos.setMain(1, main.uuid.toString()))
+                assertFalse(photos.delete(1, main.uuid.toString()))
             } finally { uploadPool.shutdownNow() }
             val output = java.io.File("build/reports/performance/mysql-scoped-reads.txt")
             output.parentFile.mkdirs()
