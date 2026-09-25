@@ -67,7 +67,24 @@ backend restarts. No Safari tracking-protection setting needs to be disabled.
   flows in Chromium, WebKit and Firefox; downloads, images, reload, logout and
   prevention of token forwarding to another origin.
 
-## Limits
+## Verification results (commit 5d87f17)
+
+- Backend regression run [36098523883](https://github.com/Karatanov/oms/actions/runs/36098523883):
+  29 tests, zero failures/errors/skips. Includes real authenticated login with a
+  disposable MySQL user, cookie-free session restoration, guest JWT and CORS.
+- Browser run [36098523868](https://github.com/Karatanov/oms/actions/runs/36098523868):
+  successful Kotlin/JS tests; cookie-free user and guest fixtures passed in
+  Chromium, WebKit and Firefox (map, reload, image, download, origin isolation,
+  logout). Shared date-picker tests passed in Chromium and WebKit as well.
+- Pages run [36098523931](https://github.com/Karatanov/oms/actions/runs/36098523931)
+  and container run [36098523874](https://github.com/Karatanov/oms/actions/runs/36098523874)
+  succeeded. Published auth.js returned HTTP 200 and contains the new helper.
+- Local syntax, web-regex, clipboard, cursor and photo-association checks passed.
+- Render deployment is still required, followed by signing in again in Safari.
+  Browser fixture results are not a claim of a full authenticated production
+  Safari UI test against the newly deployed backend.
+
+## Remaining limits
 
 WebKit is engine coverage, not a claim that every Safari/macOS/iOS release was
 tested. Full production authenticated UI validation requires deploying the
