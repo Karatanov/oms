@@ -67,15 +67,7 @@ fun FundingByOblastChart(items: List<ApiSubprojectFunding>, onOpenRegion: (Strin
         onItemClick = { bar -> bar.id?.let(onOpenRegion) },
         labelMaxLines = 2,
         filterContent = {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                // The currency is declared above the bars; values stay compact.
-                Text(LocalizationManager.t("currency"), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
-                FilterChip(selected = currency == "EUR", onClick = { currency = "EUR" }, label = { Text("EUR") })
-                FilterChip(selected = currency == "UAH", onClick = { currency = "UAH" }, label = { Text("UAH") })
-            }
+            oms.components.CurrencySelector(currency) { currency = it }
         }, orientation = orientation
     )
 }
@@ -234,18 +226,35 @@ fun MonthlyAmountsChart(
     onExpandedChange: ((Boolean) -> Unit)? = null,
     orientation: BarChartOrientation = BarChartOrientation.Vertical
 ) {
+    MonthlyMoneyChart(titleKey, hintKey, payments.map { MonthlyMoneyAmount(it.month, it.amountEurCents) },
+        "EUR", tooltipByMonth, expanded, onExpandedChange, orientation)
+}
+
+data class MonthlyMoneyAmount(val month: String, val amountCents: Long)
+
+@Composable
+fun MonthlyMoneyChart(
+    titleKey: String,
+    hintKey: String?,
+    payments: List<MonthlyMoneyAmount>,
+    currency: String,
+    tooltipByMonth: Map<String, String> = emptyMap(),
+    expanded: Boolean = true,
+    onExpandedChange: ((Boolean) -> Unit)? = null,
+    orientation: BarChartOrientation = BarChartOrientation.Vertical
+) {
     val data = payments.sortedBy { it.month }.map {
         BarData(
             label = it.month.toMonthName(),
-            value = it.amountEurCents.toFloat(),
+            value = it.amountCents.toFloat(),
             groupLabel = it.month.take(4),
             tooltip = tooltipByMonth[it.month],
-            formattedValue = oms.components.formatEuroCents(it.amountEurCents)
+            formattedValue = "${formatChartAmount(it.amountCents / 100.0, "EUR")} $currency"
         )
     }
     AnalyticsCard(
-        titleKey, hintKey, data, { euro(it.toLong()) }, labelMaxLines = 1,
-        expanded = expanded, onExpandedChange = onExpandedChange
+        titleKey, hintKey, data, { "${formatChartAmount(it / 100.0, "EUR")} $currency" }, labelMaxLines = 1,
+        expanded = expanded, onExpandedChange = onExpandedChange, orientation = orientation
     )
 }
 

@@ -35,6 +35,12 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import oms.data.ApiFinancialRecord
+import oms.data.displayAmountCents
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import oms.data.OmsApiClient
 import oms.data.ProjectRepository
 import oms.components.SortableTableHeader
@@ -83,6 +89,32 @@ fun FinancialScreen(
     }
 
     var acts by remember { mutableStateOf<List<ProjectActRow>>(emptyList()) }
+    var displayCurrency by remember { mutableStateOf("EUR") }
+    var displayRates by remember { mutableStateOf<Map<String, Double>>(emptyMap()) }
+    var loadingRates by remember { mutableStateOf(false) }
+    var rateRetry by remember { mutableStateOf(0) }
+    LaunchedEffect(acts, displayCurrency, rateRetry) {
+        val dates = acts.filter { it.act.displayAmountCents(displayCurrency, displayRates[it.act.recordDate]) == null }
+            .map { it.act.recordDate }.distinct()
+        loadingRates = dates.isNotEmpty()
+        try {
+            val gate = Semaphore(4)
+            val fetched = coroutineScope {
+                dates.map { date -> async {
+                    gate.withPermit {
+                        try { date to OmsApiClient.projectExchangeRate(date).uahPerEur.toDouble() }
+                        catch (failure: Exception) {
+                            if (failure is kotlinx.coroutines.CancellationException) throw failure
+                            null
+                        }
+                    }
+                } }.awaitAll().filterNotNull().toMap()
+            }
+            displayRates = displayRates + fetched
+        } finally { loadingRates = false }
+    }
+    fun displayCents(record: ApiFinancialRecord) = record.displayAmountCents(displayCurrency, displayRates[record.recordDate])
+    val missingConversions = acts.count { displayCents(it.act) == null }
     var recordTypeFilter by remember { mutableStateOf<String?>(null) }
     var paymentPurposeFilter by remember { mutableStateOf<String?>(null) }
     var trancheFilter by remember { mutableStateOf<Int?>(null) }
@@ -139,10 +171,9 @@ fun FinancialScreen(
         } finally { loading = false }
     }
 
-    val completedWorksTotals = acts
+    val completedWorksTotal = acts
         .filter { it.act.recordType == "act" }
-        .groupBy { it.act.currency }
-        .mapValues { (_, rows) -> rows.sumOf { it.act.amount } }
+        .sumOf { displayCents(it.act) ?: 0L }
     val visibleActs = acts.filter {
         (recordTypeFilter == null || it.act.recordType == recordTypeFilter) &&
             (paymentPurposeFilter == null || it.act.paymentPurpose == paymentPurposeFilter) &&
@@ -156,8 +187,8 @@ fun FinancialScreen(
             FinancialSort.Subproject -> it.subprojectName
             FinancialSort.SubprojectCode -> it.subprojectCode.orEmpty()
             FinancialSort.ActDate -> it.act.recordDate
-            FinancialSort.Amount -> it.act.amount.toString().padStart(20, '0')
-            FinancialSort.Currency -> it.act.currency
+            FinancialSort.Amount -> (displayCents(it.act) ?: -1L).toString().padStart(20, '0')
+            FinancialSort.Currency -> displayCurrency
             FinancialSort.Description -> (it.act.description ?: it.act.milestone).orEmpty()
             FinancialSort.Author -> ""
         }
@@ -228,23 +259,30 @@ fun FinancialScreen(
         }
         if (loading) oms.components.ContentState(LocalizationManager.t("loading_records"), loading = true)
         if (loadFailed) oms.components.ContentState(LocalizationManager.t("load_records_error"), error = true, onRetry = { reloadKey++ })
+        oms.components.CurrencySelector(displayCurrency) { displayCurrency = it }
+        Text(LocalizationManager.t("financial_display_currency_hint"), style = MaterialTheme.typography.bodySmall)
+        if (loadingRates) oms.components.ContentState(LocalizationManager.t("financial_rates_loading"), loading = true)
+        else if (missingConversions > 0) oms.components.ContentState(
+            LocalizationManager.t("financial_rates_missing"), error = true, onRetry = { rateRetry++ })
 
         Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(LocalizationManager.t("completed_works_by_acts"), style = MaterialTheme.typography.titleMedium)
-                Text(completedWorksTotals.entries.joinToString(" • ") { (currency, amount) -> amount.toMoney(currency) }.ifBlank { "—" }, style = MaterialTheme.typography.headlineMedium)
+                Text(if (missingConversions > 0) "—" else (completedWorksTotal / 100.0).toMoney(displayCurrency), style = MaterialTheme.typography.headlineMedium)
             }
         }
 
-        val financialChartRecords = acts.map { FinancialChartRecord(it.act, it.subprojectName) }
+        val financialChartRecords = acts.map { FinancialChartRecord(it.act, it.subprojectCode.orEmpty()) }
+        if (missingConversions == 0) {
         oms.components.AdaptiveChartRow(
-            first = { MonthlyPaymentsChart(financialChartRecords) },
-            second = { MonthlyTechnicalSupervisionPaymentsChart(financialChartRecords) }
+            first = { MonthlyPaymentsChart(financialChartRecords, displayCurrency, displayRates) },
+            second = { MonthlyTechnicalSupervisionPaymentsChart(financialChartRecords, displayCurrency, displayRates) }
         )
         oms.components.AdaptiveChartRow(
-            first = { MonthlyEquipmentPaymentsChart(financialChartRecords) },
-            second = { MonthlyEngineerConsultantPaymentsChart(financialChartRecords) }
+            first = { MonthlyEquipmentPaymentsChart(financialChartRecords, displayCurrency, displayRates) },
+            second = { MonthlyEngineerConsultantPaymentsChart(financialChartRecords, displayCurrency, displayRates) }
         )
+        }
 
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
             Text(LocalizationManager.t("financial_records"), style = MaterialTheme.typography.titleLarge)
@@ -299,8 +337,8 @@ fun FinancialScreen(
                             ExpandableTableText(row.subprojectName, Modifier.width(200.dp))
                             Text(row.subprojectCode ?: "—", Modifier.width(160.dp))
                             Text(row.act.recordDate.toOmsDate(), Modifier.width(105.dp))
-                            Text(row.act.amount.toMoney("").trim(), Modifier.width(130.dp).padding(horizontal = 8.dp), textAlign = androidx.compose.ui.text.style.TextAlign.End)
-                            Text(row.act.currency, Modifier.width(65.dp))
+                            Text(displayCents(row.act)?.let { (it / 100.0).toMoney("").trim() } ?: "—", Modifier.width(130.dp).padding(horizontal = 8.dp), textAlign = androidx.compose.ui.text.style.TextAlign.End)
+                            Text(displayCurrency, Modifier.width(65.dp))
                             Text(row.act.description ?: row.act.milestone ?: "—", Modifier.width(250.dp))
                             Text("—", Modifier.width(75.dp))
                             if (canManageFinancials) {
@@ -515,7 +553,7 @@ private fun ActEditorDialog(
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
             )
-            Text(LocalizationManager.t("currency"), style = MaterialTheme.typography.labelLarge)
+            Text(LocalizationManager.t("original_record_currency"), style = MaterialTheme.typography.labelLarge)
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 listOf("EUR", "UAH").forEach { code ->
                     FilterChip(

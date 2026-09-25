@@ -169,7 +169,13 @@ object OmsApiClient {
         }.body()
 
     /** A currency rate enriches a form; it must not block navigation to that form. */
-    suspend fun projectExchangeRate(): ProjectExchangeRate = client.get("$baseUrl/exchange-rates/eur?background=true").body()
+    suspend fun projectExchangeRate(date: String? = null): ProjectExchangeRate = client.get("$baseUrl/exchange-rates/eur?background=true") {
+        date?.let { parameter("date", it) }
+    }.body<ProjectExchangeRate>().also { rate ->
+        // An older API ignores date and returns today's rate. Never silently
+        // substitute it for a historical record during a rolling deployment.
+        require(date == null || rate.date <= date) { "Historical exchange rate unavailable." }
+    }
 
     suspend fun geocodeAddress(address: String, city: String, region: String): GeocodeAddressResponse {
         val response = client.post("$baseUrl/geocode/address") {

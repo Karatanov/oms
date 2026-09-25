@@ -119,12 +119,13 @@ internal fun ProjectForm(
                 { ProjectFieldValidation(state, "region", it) { UkraineRegionAutocomplete(state["region"], { value -> state["region"] = value }, L.t("region"), Modifier.fillMaxWidth(), false) } },
                 { ProjectFieldValidation(state, "city", it) { UkraineCityAutocomplete(state["city"], { value -> state["city"] = value }, L.t("city"), Modifier.fillMaxWidth(), false) } }
             )
+            AddressCoordinatesCalculator(state["address"], state["city"], state["region"], geocoding, { geocoding = it },
+                { lat, lon -> state["latitude"] = lat; state["longitude"] = lon })
+            Text(L.t(if (geocoding) "gps_automatic_hint" else "gps_manual_hint"), style = MaterialTheme.typography.bodySmall)
             FormPair(
                 { modifier -> ProjectFieldValidation(state, "latitude", modifier) { OutlinedTextField(state["latitude"], { value -> value.coordinateInputOrNull()?.let { state["latitude"] = it } }, label = { Text(L.t("latitude")) }, enabled = !geocoding, modifier = Modifier.fillMaxWidth()) } },
                 { modifier -> ProjectFieldValidation(state, "longitude", modifier) { OutlinedTextField(state["longitude"], { value -> value.coordinateInputOrNull()?.let { state["longitude"] = it } }, label = { Text(L.t("longitude")) }, enabled = !geocoding, modifier = Modifier.fillMaxWidth()) } }
             )
-            AddressCoordinatesCalculator(state["address"], state["city"], state["region"], geocoding, { geocoding = it },
-                { lat, lon -> state["latitude"] = lat; state["longitude"] = lon })
         }
     }
     Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {

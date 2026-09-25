@@ -9,6 +9,7 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -65,30 +66,28 @@ fun AddressCoordinatesCalculator(
                 }
         }
     }
+    fun changeMode(automatic: Boolean) {
+        if (automatic) {
+            onCalculationRequestedChange(true)
+            calculate()
+        } else {
+            requestVersion++
+            isCalculating = false
+            successMessage = null
+            errorMessage = null
+            onCalculationRequestedChange(false)
+        }
+    }
     Row(
-        modifier = Modifier.clickable(enabled = !isCalculating) {
-            if (!calculationRequested) {
-                onCalculationRequestedChange(true)
-                calculate()
-            }
+        modifier = Modifier.clickable {
+            changeMode(!calculationRequested)
         }.pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         Checkbox(
             checked = calculationRequested,
-            onCheckedChange = { checked ->
-                if (checked) {
-                    onCalculationRequestedChange(true)
-                    calculate()
-                } else {
-                    requestVersion++
-                    isCalculating = false
-                    successMessage = null
-                    errorMessage = null
-                    onCalculationRequestedChange(false)
-                }
-            }
+            onCheckedChange = ::changeMode
         )
         Text(LocalizationManager.t(if (isCalculating) "geocode_address_loading" else "geocode_address"))
         if (isCalculating) {
@@ -102,5 +101,8 @@ fun AddressCoordinatesCalculator(
         color = MaterialTheme.colorScheme.onSurfaceVariant
     )
     errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+    if (calculationRequested && !isCalculating) {
+        TextButton(onClick = ::calculate, modifier = Modifier.buttonHandCursor()) { Text(LocalizationManager.t("retry")) }
+    }
     successMessage?.let { Text(it, color = MaterialTheme.colorScheme.primary) }
 }

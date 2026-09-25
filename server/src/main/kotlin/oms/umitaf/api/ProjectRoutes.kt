@@ -21,9 +21,15 @@ fun Route.projectRoutes() {
 
     get("/api/v1/exchange-rates/eur") {
         call.requireRole("ADMIN", "PROJECT_MANAGER") ?: return@get
+        val requestedDate = try {
+            call.request.queryParameters["date"]?.let(java.time.LocalDate::parse)
+                ?: java.time.LocalDate.now(java.time.ZoneId.of("Europe/Kyiv"))
+        } catch (_: java.time.format.DateTimeParseException) {
+            return@get call.respond(HttpStatusCode.BadRequest, ErrorResponse("VALIDATION_ERROR", "Use a valid date in YYYY-MM-DD format."))
+        }
         try {
             val (date, rate) = withContext(Dispatchers.IO) {
-                AppContainer.nbuExchangeRateService.eurRate(java.time.LocalDate.now(java.time.ZoneId.of("Europe/Kyiv")))
+                AppContainer.nbuExchangeRateService.eurRate(requestedDate)
             }
             call.respond(ProjectExchangeRateResponse(java.math.BigDecimal.valueOf(rate).stripTrailingZeros().toPlainString(), date.toString()))
         } catch (_: Exception) {

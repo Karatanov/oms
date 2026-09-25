@@ -6,7 +6,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import oms.data.ApiFinancialRecord
-import oms.data.ApiMonthlyActPayment
+import oms.data.displayAmountCents
 import oms.localization.LocalizationManager
 
 data class FinancialChartRecord(
@@ -14,18 +14,19 @@ data class FinancialChartRecord(
     val subprojectCode: String
 )
 
-private data class MonthlyFinancialAggregation(
-    val payments: List<ApiMonthlyActPayment>,
+internal data class MonthlyFinancialAggregation(
+    val payments: List<MonthlyMoneyAmount>,
     val tooltipByMonth: Map<String, String>
 )
 
 @Composable
-fun MonthlyPaymentsChart(records: List<FinancialChartRecord>) {
-    val aggregation = aggregateMonthlyPayments(records, "works")
+fun MonthlyPaymentsChart(records: List<FinancialChartRecord>, currency: String = "EUR", rates: Map<String, Double> = emptyMap()) {
+    val aggregation = aggregateMonthlyPayments(records, "works", currency, rates)
     var expanded by remember { mutableStateOf(true) }
-    MonthlyAmountsChart(
+    MonthlyMoneyChart(
         titleKey = "monthly_project_payments",
         hintKey = null,
+        currency = currency,
         payments = aggregation.payments,
         tooltipByMonth = aggregation.tooltipByMonth,
         expanded = expanded,
@@ -34,9 +35,10 @@ fun MonthlyPaymentsChart(records: List<FinancialChartRecord>) {
 }
 
 @Composable
-fun MonthlyEquipmentPaymentsChart(records: List<FinancialChartRecord>) {
+fun MonthlyEquipmentPaymentsChart(records: List<FinancialChartRecord>, currency: String = "EUR", rates: Map<String, Double> = emptyMap()) {
     MonthlyPurposePaymentsChart(
         records = records,
+        currency = currency, rates = rates,
         purpose = "equipment",
         titleKey = "monthly_equipment_payments",
         hintKey = "monthly_equipment_payments_hint"
@@ -44,10 +46,11 @@ fun MonthlyEquipmentPaymentsChart(records: List<FinancialChartRecord>) {
 }
 
 @Composable
-fun MonthlyTechnicalSupervisionPaymentsChart(records: List<FinancialChartRecord>) {
+fun MonthlyTechnicalSupervisionPaymentsChart(records: List<FinancialChartRecord>, currency: String = "EUR", rates: Map<String, Double> = emptyMap()) {
     var expanded by remember { mutableStateOf(true) }
     MonthlyPurposePaymentsChart(
         records = records,
+        currency = currency, rates = rates,
         purpose = "technical_supervision",
         titleKey = "monthly_technical_supervision_payments",
         hintKey = "monthly_technical_supervision_payments_hint",
@@ -57,9 +60,10 @@ fun MonthlyTechnicalSupervisionPaymentsChart(records: List<FinancialChartRecord>
 }
 
 @Composable
-fun MonthlyEngineerConsultantPaymentsChart(records: List<FinancialChartRecord>) {
+fun MonthlyEngineerConsultantPaymentsChart(records: List<FinancialChartRecord>, currency: String = "EUR", rates: Map<String, Double> = emptyMap()) {
     MonthlyPurposePaymentsChart(
         records = records,
+        currency = currency, rates = rates,
         purpose = "engineer_consultant",
         titleKey = "monthly_engineer_consultant_payments",
         hintKey = "monthly_engineer_consultant_payments_hint"
@@ -72,22 +76,26 @@ private fun MonthlyPurposePaymentsChart(
     purpose: String,
     titleKey: String,
     hintKey: String,
+    currency: String,
+    rates: Map<String, Double>,
     expanded: Boolean = true,
     onExpandedChange: ((Boolean) -> Unit)? = null
 ) {
-    val aggregation = aggregateMonthlyPayments(records, purpose)
+    val aggregation = aggregateMonthlyPayments(records, purpose, currency, rates)
     if (aggregation.payments.isEmpty()) return
-    MonthlyAmountsChart(titleKey, hintKey, aggregation.payments, aggregation.tooltipByMonth, expanded, onExpandedChange)
+    MonthlyMoneyChart(titleKey, hintKey, aggregation.payments, currency, aggregation.tooltipByMonth, expanded, onExpandedChange)
 }
 
-private fun aggregateMonthlyPayments(
+internal fun aggregateMonthlyPayments(
     records: List<FinancialChartRecord>,
-    purpose: String? = null
+    purpose: String? = null,
+    currency: String = "EUR",
+    rates: Map<String, Double> = emptyMap()
 ): MonthlyFinancialAggregation {
     val monthlyRecords = records
         .filter { it.record.recordType in setOf("payment", "advance") && (purpose == null || it.record.paymentPurpose == purpose) }
         .mapNotNull { chartRecord ->
-            chartRecord.record.amountEurCents?.let { cents ->
+            chartRecord.record.displayAmountCents(currency, rates[chartRecord.record.recordDate])?.let { cents ->
                 (chartRecord.record.paymentDate ?: chartRecord.record.recordDate)
                     .takeIf { it.matches(Regex("\\d{4}-\\d{2}-\\d{2}")) }
                     ?.take(7)
@@ -97,7 +105,7 @@ private fun aggregateMonthlyPayments(
         .groupBy({ it.first }, { it.second })
     val payments = monthlyRecords.entries
         .sortedBy { it.key }
-        .map { (month, entries) -> ApiMonthlyActPayment(month, entries.sumOf { it.second }) }
+        .map { (month, entries) -> MonthlyMoneyAmount(month, entries.sumOf { it.second }) }
     val tooltipByMonth = monthlyRecords.mapValues { (_, entries) ->
         val codes = entries.map { it.first.subprojectCode }.filter { it.isNotBlank() }.distinct().sorted()
         "${LocalizationManager.t("subproject_codes")}: ${codes.joinToString(", ").ifBlank { "—" }}"

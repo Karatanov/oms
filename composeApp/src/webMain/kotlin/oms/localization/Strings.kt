@@ -3,6 +3,12 @@ package oms.localization
 object Strings {
 
     val uk = mapOf(
+        "gps_manual_hint" to "Ручне введення: введіть широту та довготу нижче. Для розрахунку за адресою увімкніть опцію вище. Перемикання не стирає координати.",
+        "gps_automatic_hint" to "Координати за адресою. Щоб змінити їх вручну, вимкніть опцію вище.",
+        "financial_display_currency_hint" to "Валюта відображення для підсумків, діаграм і таблиці. Використовуються збережені конвертації або курс НБУ на дату запису. Редагування та експорт зберігають вихідну валюту.",
+        "financial_rates_loading" to "Завантаження курсів НБУ для перерахунку…",
+        "financial_rates_missing" to "Не для всіх записів доступний курс. Підсумки та діаграми приховано, відсутні суми позначено «—». Повторіть спробу.",
+        "original_record_currency" to "Вихідна сума та валюта запису (не валюта відображення)",
         "add" to "Додати",
         "role_viewer" to "Спостерігач",
         "role_contractor" to "Підрядник",
@@ -774,6 +780,12 @@ object Strings {
     )
 
     val en = mapOf(
+        "gps_manual_hint" to "Manual entry: enter latitude and longitude below. Enable the option above to calculate from the address. Switching modes preserves coordinates.",
+        "gps_automatic_hint" to "Coordinates from the address. Disable the option above to edit them manually.",
+        "financial_display_currency_hint" to "Display currency for totals, charts and the table. Uses stored conversions or the NBU rate on the record date. Editing and export retain the original currency.",
+        "financial_rates_loading" to "Loading NBU rates for conversion…",
+        "financial_rates_missing" to "Some records have no available rate. Totals and charts are hidden; missing amounts show “—”. Please retry.",
+        "original_record_currency" to "Original record amount and currency (not the display currency)",
         "add" to "Add",
         "role_viewer" to "Viewer",
         "role_contractor" to "Contractor",

@@ -74,6 +74,10 @@ internal class ProjectFormState(details: ApiProjectDetailsData? = null, private 
             put("latitude", L.t("error_latitude_range"))
         if (this@ProjectFormState["longitude"].isNotBlank() && coordinate("longitude")?.let { it in -180.0..180.0 } != true)
             put("longitude", L.t("error_longitude_range"))
+        if (this@ProjectFormState["latitude"].isBlank() != this@ProjectFormState["longitude"].isBlank()) {
+            val missing = if (this@ProjectFormState["latitude"].isBlank()) "latitude" else "longitude"
+            put(missing, L.t("field_required"))
+        }
         fields.filterKeys { it.endsWith("Date") || it == "projectedCompletionTime" || it.endsWith("SigningDate") }
             .forEach { (key, value) -> if (value.isNotBlank() && !oms.components.isValidIsoDate(value)) put(key, L.t("date_invalid")) }
         listOf("constructionContractSigningDate" to "projectedCompletionTime", "constructionStartDate" to "projectedCompletionTime",

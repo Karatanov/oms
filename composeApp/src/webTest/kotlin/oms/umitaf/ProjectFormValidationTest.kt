@@ -38,6 +38,14 @@ class ProjectFormValidationTest {
         assertNotNull(state.validate(false))
         assertTrue(state.errors().keys.containsAll(listOf("name", "code", "latitude", "longitude", "parent", "budget", "constructionContractSigningDate")))
     }
+    @Test fun halfEnteredCoordinatesCannotSilentlyBecomeZero() {
+        val state = valid()
+        state["latitude"] = "50.0"
+        assertTrue("longitude" in state.errors())
+        state["longitude"] = "36.0"
+        assertTrue(state.errors().isEmpty())
+        assertEquals(36.0, state.createRequest().longitude)
+    }
     @Test fun visibleContractDateOrderIsValidated() {
         val state = valid()
         state["constructionContractSigningDate"] = "2027-01-01"
