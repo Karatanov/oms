@@ -64,3 +64,19 @@ are Chromium/WebKit, not real Safari on macOS/iOS. Full authenticated creation,
 financial screen interaction and native OS picker appearance still require a
 test account and a suitable Safari environment. CI results will be recorded below.
 Render is not deployed automatically.
+
+## Verified results — commit 87830ec
+
+- Live geocoder recheck: `Sumska 74, Kharkiv, Україна` returned
+  `50.0058253, 36.2367038`, identifying building 74 on Sumska street.
+- [Backend regression tests](https://github.com/Karatanov/oms/actions/runs/36170019390): passed.
+- [Kotlin/JS and browser regressions](https://github.com/Karatanov/oms/actions/runs/36170019287): passed,
+  including the new financial conversion/aggregation and coordinate-pair tests.
+  Actual date bridge passed in Chromium/WebKit at scales 1 and 2 (position,
+  bounds, selection, fallback and closing). Authentication checks remained green
+  in Chromium/WebKit/Firefox.
+- [Pages build/deployment](https://github.com/Karatanov/oms/actions/runs/36170019281)
+  and [container build](https://github.com/Karatanov/oms/actions/runs/36170019410): passed.
+- Static regex, cursor, clipboard and photo-association checks passed.
+- These unit/engine checks do not remove the full authenticated UI/real Safari
+  verification limitations listed above. No production data was modified.
