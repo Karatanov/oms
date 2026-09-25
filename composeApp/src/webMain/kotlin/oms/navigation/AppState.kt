@@ -9,6 +9,7 @@ import kotlin.js.JsName
 
 @JsName("pushOmsRoute") private external fun pushOmsRoute(route: String)
 @JsName("replaceOmsRoute") private external fun replaceOmsRoute(route: String)
+@JsName("clearOmsAuthentication") private external fun clearOmsAuthentication()
 
 // 🔹 Центральний стан усього додатку
 // 🔹 Зберігає:
@@ -33,8 +34,7 @@ class AppState {
     // 🔹 Чи авторизований користувач
     var isAuthenticated by mutableStateOf(false)
 
-    // Browser authentication is held by the HttpOnly server session cookie.
-    // This marker is UI state only; bearer credentials are deliberately not persisted.
+    // UI marker only; auth.js owns the tab-scoped bearer and cookie compatibility.
     var token: String? by mutableStateOf(null)
     var username by mutableStateOf("")
     var roleCode by mutableStateOf("")
@@ -149,6 +149,7 @@ class AppState {
 
     // 🔹 Logout
     fun logout() {
+        clearOmsAuthentication()
         ProjectRepository.clear()
         token = null
         username = ""

@@ -13,6 +13,7 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+    <script src="auth.js?v=20260925-safari"></script>
     <script>
         function omsApiUrl(path) {
             const local = ["localhost", "127.0.0.1"].includes(window.location.hostname);
@@ -304,7 +305,7 @@
                 formData.append("file", file, file.name);
                 showOmsLoading(omsText("importingInspection"));
                 try {
-                    const response = await fetch(omsApiUrl(`/projects/${projectUuid}/inspection-reports/import`), {
+                    const response = await omsAuthenticatedFetch(omsApiUrl(`/projects/${projectUuid}/inspection-reports/import`), {
                         method: "POST",
                         body: formData,
                         credentials: "include"
@@ -338,7 +339,7 @@
                 formData.append("file", file, file.name);
                 showOmsLoading(loadingMessage);
                 try {
-                    const response = await fetch(url, { method, body: formData, credentials: "include" });
+                    const response = await omsAuthenticatedFetch(url, { method, body: formData, credentials: "include" });
                     if (!response.ok) throw new Error(await response.text());
                     window.alert(successMessage);
                     if (onComplete) onComplete("");
@@ -386,7 +387,7 @@
         }
 
         function downloadFinancialExport(projectUuid) {
-            window.location.assign(omsApiUrl(`/projects/${projectUuid}/financials/export`));
+            openOmsDownload(omsApiUrl(`/projects/${projectUuid}/financials/export`));
         }
 
         const umitafPendingInspectionPhotos = new Map();
@@ -607,7 +608,7 @@
                     }
                 }
                 if (formData.getAll("file").length > 0) {
-                    const response = await fetch(omsApiUrl(`/inspection-reports/${reportUuid}/photos`), { method: "POST", body: formData, credentials: "include" });
+                    const response = await omsAuthenticatedFetch(omsApiUrl(`/inspection-reports/${reportUuid}/photos`), { method: "POST", body: formData, credentials: "include" });
                     if (!response.ok) throw new Error(await response.text());
                 }
                 umitafPendingInspectionPhotos.forEach(files => files.forEach(releasePendingInspectionPhoto));
@@ -672,14 +673,14 @@
                 image.addEventListener("error", () => {
                     if (image.dataset.originalAttempted !== "true") {
                         image.dataset.originalAttempted = "true";
-                        image.src = photo.downloadUrl;
+                        omsSetImageSource(image, photo.downloadUrl);
                     } else {
                         image.remove();
                         button.classList.add("photo-slider-item-unavailable");
                         button.textContent = omsText("noPhotos");
                     }
                 });
-                image.src = photo.thumbnailUrl;
+                omsSetImageSource(image, photo.thumbnailUrl);
                 button.append(image);
                 button.addEventListener("click", () => openPhotoLightbox(photos, photo.uuid));
                 track.append(button);
@@ -712,7 +713,7 @@
                 image.alt = omsText("noPhotos");
                 caption.textContent = omsText("noPhotos");
             };
-            const render = () => { image.src = photos[index].downloadUrl; image.alt = photos[index].fileName; caption.textContent = `${photos[index].fileName} (${index + 1}/${photos.length})`; };
+            const render = () => { omsSetImageSource(image, photos[index].downloadUrl); image.alt = photos[index].fileName; caption.textContent = `${photos[index].fileName} (${index + 1}/${photos.length})`; };
             previous.onclick = () => { index = (index - 1 + photos.length) % photos.length; render(); };
             next.onclick = () => { index = (index + 1) % photos.length; render(); };
             overlay.append(close, previous, image, next, caption);
@@ -784,14 +785,14 @@
                     image.addEventListener("error", () => {
                         if (image.dataset.originalAttempted !== "true") {
                             image.dataset.originalAttempted = "true";
-                            image.src = photo.downloadUrl;
+                            omsSetImageSource(image, photo.downloadUrl);
                         } else {
                             button.classList.add("unavailable");
                             button.textContent = omsText("noPhotos");
                             image.remove();
                         }
                     });
-                    image.src = photo.thumbnailUrl;
+                    omsSetImageSource(image, photo.thumbnailUrl);
                     button.append(image);
                     button.addEventListener("click", () => openPhotoLightbox(photos, photo.uuid));
                     track.append(button);

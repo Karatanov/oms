@@ -6,6 +6,7 @@ on:
     paths:
       - 'composeApp/**'
       - 'tools/test-date-picker.cjs'
+      - 'tools/test-browser-auth.cjs'
       - '.github/workflows/project-form-tests.yml'
 permissions:
   contents: read
@@ -25,9 +26,11 @@ jobs:
       - name: Install isolated browser test tools
         run: |
           npm install --prefix build/date-picker-test playwright
-          build/date-picker-test/node_modules/.bin/playwright install --with-deps chromium webkit
+          build/date-picker-test/node_modules/.bin/playwright install --with-deps chromium webkit firefox
       - name: Date overlay in Chromium and WebKit
         run: node tools/test-date-picker.cjs
+      - name: Cookie-free authentication in Chromium, WebKit and Firefox
+        run: node tools/test-browser-auth.cjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:

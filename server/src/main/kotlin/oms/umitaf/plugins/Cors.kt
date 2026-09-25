@@ -25,6 +25,8 @@ fun Application.configureCors() {
         // CORS origin; keep custom deployments configurable below as well.
         allowHost("karatanov.github.io", schemes = listOf("https"))
         allowHeader(HttpHeaders.ContentType)
+        allowHeader(HttpHeaders.Authorization)
+        exposeHeader(HttpHeaders.ContentDisposition)
         allowMethod(HttpMethod.Post)
         allowMethod(HttpMethod.Delete)
         allowMethod(HttpMethod.Put)

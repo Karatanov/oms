@@ -611,7 +611,7 @@ private fun ProjectReportsTab(reports: List<ApiInspectionReport>) {
             reports.forEach { report ->
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
                     Button(
-                        onClick = { uriHandler.openUri(oms.data.omsApiUrl("/inspection-reports/${report.uuid}/source-file")) },
+                        onClick = { oms.data.openOmsDownload(oms.data.omsApiUrl("/inspection-reports/${report.uuid}/source-file")) },
                         modifier = Modifier.pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true)
                     ) {
                         Text(LocalizationManager.t("upload_xls"))
@@ -703,7 +703,7 @@ private fun ProjectDocumentsTab(projectUuid: String, documents: List<ApiProjectD
                 Text(document.fileName, style = MaterialTheme.typography.titleMedium)
                 Text("${document.docType} • ${document.fileSizeBytes} ${LocalizationManager.t("bytes")}")
                 Button(
-                    onClick = { uriHandler.openUri(oms.data.omsApiUrl("/projects/$projectUuid/documents/${document.uuid}/download")) },
+                    onClick = { oms.data.openOmsDownload(oms.data.omsApiUrl("/projects/$projectUuid/documents/${document.uuid}/download")) },
                     modifier = Modifier.pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true)
                 ) { Text(LocalizationManager.t("open_document")) }
                 HorizontalDivider()

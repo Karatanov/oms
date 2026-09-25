@@ -23,13 +23,12 @@ fun Route.authRoutes() {
 
     val authService = AppContainer.authService
 
-    /** Restores the browser's HttpOnly session after a page refresh. */
+    /** Restores a validated bearer or browser cookie session after a page refresh. */
     get("/api/v1/auth/session") {
-        val session = call.sessions.get<UserSession>()
-            ?: return@get call.respond(HttpStatusCode.Unauthorized)
+        val session = call.requireRole("ADMIN", "PROJECT_MANAGER", "INSPECTOR", "VIEWER", "GUEST") ?: return@get
         if (session.roleCode.equals("GUEST", ignoreCase = true)) {
             return@get call.respond(
-                mapOf("guest" to true, "username" to "Guest", "roleCode" to "GUEST")
+                GuestSessionResponse(guest = true)
             )
         }
         val user = AppContainer.userService.getAllUsers().firstOrNull { it.id == session.userId }
@@ -57,7 +56,8 @@ fun Route.authRoutes() {
             call.respond(
                 LoginResponse(
                     user = user.toResponse(),
-                    accessToken = JwtTokenService.issue(user.id, user.role.code)
+                    accessToken = JwtTokenService.issue(user.id, user.role.code),
+                    browserBearerSupported = true
                 )
             )
 
@@ -87,7 +87,7 @@ fun Route.authRoutes() {
 
     post("/api/v1/auth/guest") {
         call.sessions.set(UserSession(0L, "GUEST"))
-        call.respond(HttpStatusCode.NoContent)
+        call.respond(GuestSessionResponse(guest = true, accessToken = JwtTokenService.issue(0L, "GUEST")))
     }
 
     post("/api/v1/auth/password-reset") {
@@ -112,3 +112,9 @@ fun Route.authRoutes() {
         }
     }
 }
+
+@kotlinx.serialization.Serializable
+private data class GuestSessionResponse(
+    val guest: Boolean, val username: String = "Guest", val roleCode: String = "GUEST",
+    val accessToken: String? = null
+)

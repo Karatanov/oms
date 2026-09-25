@@ -230,7 +230,7 @@ fun ProjectsScreen(
                 ) {
                     Text(LocalizationManager.t("selected_projects").replace("{count}", selectedProjectIds.size.toString()), modifier = Modifier.weight(1f))
                     OutlinedButton(onClick = { selectedProjectIds = emptySet() }) { Text(LocalizationManager.t("clear_selection")) }
-                    OutlinedButton(onClick = { window.open(oms.data.OmsApiClient.projectExportUrl(selectedProjectIds), "_blank") }) { Text("XLSX") }
+                    OutlinedButton(onClick = { oms.data.openOmsDownload(oms.data.OmsApiClient.projectExportUrl(selectedProjectIds)) }) { Text("XLSX") }
                     if (canBulkReassign) Button(onClick = { showReassign = true }) { Text(LocalizationManager.t("reassign")) }
                     Button(onClick = {
                         scope.launch {

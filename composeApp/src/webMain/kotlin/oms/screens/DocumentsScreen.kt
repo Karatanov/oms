@@ -197,7 +197,7 @@ fun DocumentsScreen(canManageDocuments: Boolean = true) {
                         Text("—", Modifier.width(85.dp))
                         TableActionIconButton(if (row.isSirSource) LocalizationManager.t("open_source_file") else LocalizationManager.t("open_document"), Icons.AutoMirrored.Filled.OpenInNew) {
                             val path = if (row.isSirSource) "/inspection-reports/${row.uuid}/source-file" else "/projects/${row.projectUuid}/documents/${row.uuid}/download"
-                            uriHandler.openUri(oms.data.omsApiUrl(path))
+                            oms.data.openOmsDownload(oms.data.omsApiUrl(path))
                         }
                         if (canManageDocuments) TableActionIconButton(LocalizationManager.t("delete"), Icons.Default.Delete) {
                             deletion.show(row.fileName + if (row.isSirSource) "\n" + LocalizationManager.t("sir_delete_warning") else "") { scope.launch {

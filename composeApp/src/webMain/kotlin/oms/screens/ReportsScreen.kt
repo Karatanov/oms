@@ -295,7 +295,7 @@ fun ReportsScreen(
                             Spacer(Modifier.width(48.dp))
                         }
                         TableActionIconButton(LocalizationManager.t("open_source_file"), Icons.Default.FileDownload) {
-                            uriHandler.openUri(oms.data.omsApiUrl("/inspection-reports/${row.report.uuid}/source-file"))
+                            oms.data.openOmsDownload(oms.data.omsApiUrl("/inspection-reports/${row.report.uuid}/source-file"))
                         }
                         if (canCreateReports) TableActionIconButton(LocalizationManager.t("delete_report"), Icons.Default.Delete) {
                             deletion.show(row.title()) { scope.launch {

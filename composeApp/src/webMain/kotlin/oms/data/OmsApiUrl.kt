@@ -1,6 +1,10 @@
 package oms.data
 
 import kotlinx.browser.window
+import kotlin.js.JsName
+
+@JsName("openOmsDownload")
+external fun openOmsDownload(url: String)
 
 /**
  * Development uses the standalone Ktor server.  The Render image serves the

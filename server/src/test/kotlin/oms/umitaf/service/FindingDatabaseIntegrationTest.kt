@@ -9,6 +9,11 @@ import kotlin.test.*
 import org.junit.Assume.assumeTrue
 import org.jetbrains.exposed.v1.jdbc.Database
 import oms.umitaf.repository.ExposedInspectionFindingRepository
+import io.ktor.client.request.*
+import io.ktor.client.statement.*
+import io.ktor.http.*
+import io.ktor.server.testing.testApplication
+import oms.umitaf.module
 
 /** Real MySQL coverage using a disposable CI database, never application credentials. */
 class FindingDatabaseIntegrationTest {
@@ -146,6 +151,25 @@ class FindingDatabaseIntegrationTest {
             assertNotNull(users.activationState("AbCd"))
             assertNull(users.activationState("abcd"))
             assertNull(users.activationState("missing"))
+            // Real authenticated login/session restoration without a cookie jar.
+            connection.prepareStatement("UPDATE users SET password_hash=? WHERE username='CaseSensitive'").use {
+                it.setString(1, oms.umitaf.security.PasswordHasher.hash("Fixture-password-123"))
+                it.executeUpdate()
+            }
+            testApplication {
+                application { module(configureDatabase = false) }
+                val login = client.post("/api/v1/auth/login") {
+                    contentType(ContentType.Application.Json)
+                    setBody("""{"username":"CaseSensitive","password":"Fixture-password-123"}""")
+                }
+                assertEquals(HttpStatusCode.OK, login.status)
+                val json = kotlinx.serialization.json.Json.parseToJsonElement(login.bodyAsText()) as kotlinx.serialization.json.JsonObject
+                val token = (json.getValue("accessToken") as kotlinx.serialization.json.JsonPrimitive).content
+                assertEquals(HttpStatusCode.Unauthorized, client.get("/api/v1/auth/session").status)
+                val restored = client.get("/api/v1/auth/session") { bearerAuth(token) }
+                assertEquals(HttpStatusCode.OK, restored.status)
+                assertTrue(restored.bodyAsText().contains("CaseSensitive"))
+            }
             output.parentFile.mkdirs()
             output.writeText(measurements.toString())
         }

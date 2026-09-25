@@ -15,5 +15,7 @@ data class LoginResponse(
      * Інформація про поточного користувача.
      */
     val user: UserResponse,
-    val accessToken: String
+    val accessToken: String,
+    // Explicit capability for independently deployed Pages/API versions.
+    val browserBearerSupported: Boolean
 )

@@ -35,6 +35,11 @@ private external fun showOmsLoading(message: String)
 @JsName("hideOmsLoading")
 private external fun hideOmsLoading()
 
+@JsName("setOmsAccessToken")
+private external fun setOmsAccessToken(value: String)
+@JsName("omsAuthorizationFor")
+private external fun omsAuthorizationFor(url: String): String
+
 @OptIn(ExperimentalWasmJsInterop::class)
 object OmsApiClient {
     private val baseUrl = omsApiBaseUrl
@@ -52,6 +57,8 @@ object OmsApiClient {
 
     init {
         client.plugin(HttpSend).intercept { request ->
+            val authorization = omsAuthorizationFor(request.url.build().toString())
+            if (authorization.isNotEmpty()) request.headers.append("Authorization", authorization)
             val isBackgroundRequest = request.url.parameters["background"] == "true"
             if (!isBackgroundRequest) showOmsLoading(request.url.build().encodedPath.toOmsLoadingMessage())
             try {
@@ -74,24 +81,27 @@ object OmsApiClient {
             }.getOrNull()
             throw IllegalStateException(message?.takeIf { it.isNotBlank() } ?: body.ifBlank { "Authentication failed." })
         }
-        return response.body<LoginPayload>().user
+        val payload = response.body<LoginPayload>()
+        // Older Render builds return a JWT but do not allow its CORS header yet.
+        setOmsAccessToken(if (payload.browserBearerSupported) payload.accessToken.orEmpty() else "")
+        return payload.user
     }
 
     /** Returns the active server session without showing the global loader. */
     suspend fun currentSessionUser(): ApiUser? {
         val response = client.get("$baseUrl/auth/session?background=true")
-        if (response.status.value == 401) return null
+        if (response.status.value == 401) { setOmsAccessToken(""); return null }
         if (!response.status.isSuccess()) throw IllegalStateException(response.bodyAsText())
-        // Guest sessions are restored through their own lightweight marker;
-        // authenticated users use the normal user payload.
+        // The verified guest marker is a UI identity, never a persisted user record.
         val body = response.bodyAsText()
-        if (body.contains("\"guest\":true")) return null
+        if (body.contains("\"guest\":true")) return ApiUser(0L, "Guest", "", role = ApiRole(0L, "GUEST", "Guest"))
         return Json { ignoreUnknownKeys = true }.decodeFromString(body)
     }
 
     suspend fun startGuestSession() {
         val response = client.post("$baseUrl/auth/guest")
         if (!response.status.isSuccess()) throw IllegalStateException(response.bodyAsText())
+        setOmsAccessToken(if (response.status.value == 204) "" else response.body<GuestTokenPayload>().accessToken.orEmpty())
     }
 
     suspend fun activate(token: String, password: String) {
@@ -430,7 +440,9 @@ data class LoginRequest(val username: String, val password: String)
 @Serializable data class PasswordResetRequest(val identifier: String)
 
 @Serializable
-data class LoginPayload(val user: ApiUser)
+data class LoginPayload(val user: ApiUser, val accessToken: String? = null, val browserBearerSupported: Boolean = false)
+@Serializable
+private data class GuestTokenPayload(val accessToken: String? = null)
 
 @Serializable
 private data class ApiErrorPayload(val error: String? = null, val message: String? = null)
