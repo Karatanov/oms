@@ -3,6 +3,7 @@ package oms.umitaf.database.tables
 import org.jetbrains.exposed.v1.core.ReferenceOption
 import org.jetbrains.exposed.v1.core.dao.id.LongIdTable
 import org.jetbrains.exposed.v1.javatime.date
+import org.jetbrains.exposed.v1.javatime.datetime
 
 /**
  * Опис таблиці проєктів для Exposed.
@@ -198,6 +199,6 @@ object ProjectTable : LongIdTable("projects") {
             onDelete = ReferenceOption.RESTRICT
         )
     val isArchived = bool("is_archived").default(false)
-    val archivedAt = org.jetbrains.exposed.v1.javatime.datetime("archived_at").nullable()
+    val archivedAt = datetime("archived_at").nullable()
     val archivedBy = optReference("archived_by", UserTable, onDelete = ReferenceOption.RESTRICT)
 }
