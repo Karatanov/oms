@@ -35,8 +35,9 @@ fun Route.userRoutes() {
     get("/api/v1/users") {
         call.requireRole("ADMIN") ?: return@get
 
-        val response = userService
-            .getAllUsers()
+        val archive = call.request.queryParameters["archive"]?.lowercase()
+        val response = userService.getAllUsers()
+            .filter { when (archive) { "archived" -> it.isArchived; "all" -> true; else -> !it.isArchived } }
             .map { user ->
 
                 user.toResponse()
@@ -134,17 +135,49 @@ fun Route.userRoutes() {
         }
     }
 
-    delete("/api/v1/users/{id}") {
+    post("/api/v1/users/{id}/archive") {
+        val session = call.requireRole("ADMIN") ?: return@post
+        val id = call.parameters["id"]?.toLongOrNull()
+            ?: return@post call.respond(HttpStatusCode.BadRequest, ErrorResponse("VALIDATION_ERROR", "User ID is required."))
+        if (id == session.userId) return@post call.respond(HttpStatusCode.BadRequest, ErrorResponse("VALIDATION_ERROR", "You cannot archive your own account."))
+        val target = userService.getAllUsers().firstOrNull { it.id == id }
+            ?: return@post call.respond(HttpStatusCode.NotFound, ErrorResponse("NOT_FOUND", "User not found."))
+        if (!userService.archiveUser(id, session.userId)) return@post call.respond(HttpStatusCode.NotFound, ErrorResponse("NOT_FOUND", "User not found."))
+        AppContainer.auditLogService.record(session.userId, "user_archived", "user", id, oldValues = "{\"username\":\"${target.username}\"}")
+        call.respond(HttpStatusCode.NoContent)
+    }
+
+    post("/api/v1/users/{id}/restore") {
+        val session = call.requireRole("ADMIN") ?: return@post
+        val id = call.parameters["id"]?.toLongOrNull()
+            ?: return@post call.respond(HttpStatusCode.BadRequest, ErrorResponse("VALIDATION_ERROR", "User ID is required."))
+        val target = userService.getAllUsers().firstOrNull { it.id == id }
+            ?: return@post call.respond(HttpStatusCode.NotFound, ErrorResponse("NOT_FOUND", "User not found."))
+        if (!userService.restoreUser(id)) return@post call.respond(HttpStatusCode.NotFound, ErrorResponse("NOT_FOUND", "User not found."))
+        AppContainer.auditLogService.record(session.userId, "user_restored", "user", id, oldValues = "{\"username\":\"${target.username}\"}")
+        call.respond(HttpStatusCode.NoContent)
+    }
+
+    get("/api/v1/users/{id}/permanent-delete-dependencies") {
+        call.requireRole("ADMIN") ?: return@get
+        val id = call.parameters["id"]?.toLongOrNull()
+            ?: return@get call.respond(HttpStatusCode.BadRequest, ErrorResponse("VALIDATION_ERROR", "User ID is required."))
+        call.respond(userService.userDependencies(id))
+    }
+
+    delete("/api/v1/users/{id}/permanent") {
         val session = call.requireRole("ADMIN") ?: return@delete
         val id = call.parameters["id"]?.toLongOrNull()
             ?: return@delete call.respond(HttpStatusCode.BadRequest, ErrorResponse("VALIDATION_ERROR", "User ID is required."))
         if (id == session.userId) return@delete call.respond(HttpStatusCode.BadRequest, ErrorResponse("VALIDATION_ERROR", "You cannot delete your own account."))
         val target = userService.getAllUsers().firstOrNull { it.id == id }
             ?: return@delete call.respond(HttpStatusCode.NotFound, ErrorResponse("NOT_FOUND", "User not found."))
-        if (!userService.deleteUser(id)) return@delete call.respond(HttpStatusCode.NotFound, ErrorResponse("NOT_FOUND", "User not found."))
+        val dependencies = userService.userDependencies(id)
+        if (dependencies.isNotEmpty()) return@delete call.respond(HttpStatusCode.Conflict, ErrorResponse("HAS_DEPENDENCIES", dependencies.entries.joinToString("; ") { "${it.value} ${it.key}" }))
+        if (!userService.permanentlyDeleteUser(id)) return@delete call.respond(HttpStatusCode.NotFound, ErrorResponse("NOT_FOUND", "User not found."))
         AppContainer.auditLogService.record(
-            session.userId, "user_deleted", "user", id,
-            oldValues = "{\"role\":\"${target.role.code}\",\"status\":\"${target.status}\"}"
+            session.userId, "permanent_delete", "user", id,
+            oldValues = "{\"username\":\"${target.username}\",\"role\":\"${target.role.code}\"}"
         )
         call.respond(HttpStatusCode.NoContent)
     }

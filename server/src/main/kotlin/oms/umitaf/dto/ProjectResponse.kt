@@ -77,6 +77,9 @@ data class ProjectResponse(
      * Поточний статус.
      */
     val status: String,
+    val isArchived: Boolean = false,
+    val archivedAt: String? = null,
+    val archivedBy: Long? = null,
 
     /**
      * Галузь.

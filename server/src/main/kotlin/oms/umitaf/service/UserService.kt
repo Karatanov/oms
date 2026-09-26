@@ -140,7 +140,13 @@ class UserService(
         )
     }
 
-    fun deleteUser(id: Long): Boolean = userRepository.delete(id)
+    fun archiveUser(id: Long, archivedBy: Long): Boolean = userRepository.archive(id, archivedBy)
+    fun restoreUser(id: Long): Boolean = userRepository.restore(id)
+    fun permanentlyDeleteUser(id: Long): Boolean {
+        require(userRepository.dependencyCounts(id).isEmpty()) { "The user still has historical references." }
+        return userRepository.delete(id)
+    }
+    fun userDependencies(id: Long): Map<String, Long> = userRepository.dependencyCounts(id)
 
     private fun normalizeStatus(value: String): String {
         val status = value.trim().lowercase()

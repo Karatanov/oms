@@ -138,7 +138,10 @@ data class Project(
     val engineerConsultantContractNumber: String? = null,
     val engineerConsultantContractDate: LocalDate? = null,
     val engineerConsultantStartDate: LocalDate? = null,
-    val engineerConsultantPlannedEndDate: LocalDate? = null
+    val engineerConsultantPlannedEndDate: LocalDate? = null,
+    val isArchived: Boolean = false,
+    val archivedAt: java.time.LocalDateTime? = null,
+    val archivedBy: Long? = null
 ) {
     /** Duration from contract signing to the planned end date, in days. */
     val contractDurationDays: Long?

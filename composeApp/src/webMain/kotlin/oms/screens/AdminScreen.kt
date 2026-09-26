@@ -14,6 +14,8 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AdminPanelSettings
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.DeleteForever
+import androidx.compose.material.icons.filled.Unarchive
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -86,10 +88,13 @@ fun AdminScreen() {
     var search by remember { mutableStateOf("") }
     var loading by remember { mutableStateOf(true) }
     var users by remember { mutableStateOf<List<ApiUser>>(emptyList()) }
+    var archiveFilter by remember { mutableStateOf("active") }
     var roles by remember { mutableStateOf<List<ApiRole>>(emptyList()) }
     var activities by remember { mutableStateOf<List<ApiActivity>>(emptyList()) }
     var selectedUser by remember { mutableStateOf<ApiUser?>(null) }
     var userPendingDeletion by remember { mutableStateOf<ApiUser?>(null) }
+    var userPendingPermanentDeletion by remember { mutableStateOf<ApiUser?>(null) }
+    var permanentDeleteDependencies by remember { mutableStateOf<Map<String, Long>?>(null) }
     var createUser by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var editUserError by remember { mutableStateOf<String?>(null) }
@@ -103,9 +108,9 @@ fun AdminScreen() {
             activities = runCatching { OmsApiClient.dashboard().activities }.getOrDefault(activities)
         }
     }
-    LaunchedEffect(Unit) {
+    LaunchedEffect(archiveFilter) {
         val (loadedUsers, loadedRoles, loadedActivities) = coroutineScope {
-            val usersRequest = async { runCatching { OmsApiClient.users() } }
+            val usersRequest = async { runCatching { OmsApiClient.users(archiveFilter) } }
             val rolesRequest = async { runCatching { OmsApiClient.roles() } }
             val activitiesRequest = async { runCatching { OmsApiClient.dashboard().activities } }
             Triple(usersRequest.await(), rolesRequest.await(), activitiesRequest.await())
@@ -148,6 +153,11 @@ fun AdminScreen() {
             }
         }
         OutlinedTextField(search, { search = it }, singleLine = true, label = { Text(LocalizationManager.t("admin_search")) }, leadingIcon = { Icon(Icons.Default.Search, null) }, modifier = Modifier.fillMaxWidth())
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            listOf("active", "archived", "all").forEach { filter ->
+                oms.screens.FilterChip(archiveFilter == filter, { archiveFilter = filter }, { Text(LocalizationManager.t("archive_filter_$filter")) })
+            }
+        }
         if (loading) oms.components.ContentState(LocalizationManager.t("loading_records"), loading = true)
         if (!loading && sortedUsers.isEmpty()) oms.components.ContentState(LocalizationManager.t("no_search_results"))
         // Unlike Card, a background does not clip the sticky table header.
@@ -183,7 +193,17 @@ fun AdminScreen() {
                             savingUser = false
                             selectedUser = user
                         }
-                        TableActionIconButton(LocalizationManager.t("delete_user"), Icons.Default.Delete) { userPendingDeletion = user }
+                        if (user.isArchived) TableActionIconButton(LocalizationManager.t("restore"), Icons.Default.Unarchive) {
+                            scope.launch { if (OmsApiClient.restoreUser(user.id)) { users = users.filterNot { it.id == user.id }; refreshActivities() } }
+                        } else TableActionIconButton(LocalizationManager.t("archive"), Icons.Default.Delete) { userPendingDeletion = user }
+                        if (user.isArchived) TableActionIconButton(LocalizationManager.t("permanently_delete"), Icons.Default.DeleteForever) {
+                            userPendingPermanentDeletion = user
+                            permanentDeleteDependencies = null
+                            scope.launch {
+                                permanentDeleteDependencies = runCatching { OmsApiClient.userPermanentDeleteDependencies(user.id) }
+                                    .getOrDefault(mapOf("unable to verify dependencies" to 1L))
+                            }
+                        }
                         Text(listOf(user.firstName, user.lastName).filter { it.isNotBlank() }.joinToString(" ").ifBlank { "—" }, Modifier.width(180.dp))
                         Text(user.email, Modifier.width(220.dp))
                         Box(Modifier.width(150.dp)) { RoleChip(user.role.code) }
@@ -250,14 +270,14 @@ fun AdminScreen() {
     userPendingDeletion?.let { user -> WasmSafeOverlay(onDismiss = { userPendingDeletion = null }, errorMessage = errorMessage) {
             Card(Modifier.widthIn(max = 520.dp).fillMaxWidth()) {
                 Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                    Text(LocalizationManager.t("delete_user_title"), style = MaterialTheme.typography.titleLarge)
-                    Text(LocalizationManager.t("delete_user_confirmation").replace("{username}", user.username))
+                    Text(LocalizationManager.t("archive"), style = MaterialTheme.typography.titleLarge)
+                    Text(LocalizationManager.t("archive_confirmation"))
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
                     OutlinedButton(onClick = { userPendingDeletion = null }) { Text(LocalizationManager.t("cancel")) }
                     Button(
                         onClick = {
                             scope.launch {
-                                if (OmsApiClient.deleteUser(user.id)) {
+                                if (OmsApiClient.archiveUser(user.id)) {
                                     users = users.filterNot { it.id == user.id }
                                     userPendingDeletion = null
                                     refreshActivities()
@@ -267,11 +287,43 @@ fun AdminScreen() {
                             }
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
-                    ) { Text(LocalizationManager.t("delete")) }
+                    ) { Text(LocalizationManager.t("archive")) }
                     }
                 }
             }
         }
+        }
+    userPendingPermanentDeletion?.let { user -> WasmSafeOverlay(onDismiss = { userPendingPermanentDeletion = null }, errorMessage = errorMessage) {
+            Card(Modifier.widthIn(max = 520.dp).fillMaxWidth()) {
+                Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Text(LocalizationManager.t("permanently_delete"), style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.error)
+                    Text(LocalizationManager.t("permanent_delete_warning"))
+                    when (val dependencies = permanentDeleteDependencies) {
+                        null -> CircularProgressIndicator()
+                        else -> if (dependencies.isEmpty()) Text(LocalizationManager.t("no_delete_dependencies"))
+                        else Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text(LocalizationManager.t("delete_dependencies_found"), fontWeight = FontWeight.SemiBold)
+                            dependencies.forEach { (name, count) -> Text("• $count $name") }
+                        }
+                    }
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
+                        OutlinedButton(onClick = { userPendingPermanentDeletion = null }) { Text(LocalizationManager.t("cancel")) }
+                        Button(
+                            enabled = permanentDeleteDependencies?.isEmpty() == true,
+                            onClick = {
+                                scope.launch {
+                                    if (OmsApiClient.permanentlyDeleteUser(user.id)) {
+                                        users = users.filterNot { it.id == user.id }
+                                        userPendingPermanentDeletion = null
+                                        refreshActivities()
+                                    } else errorMessage = LocalizationManager.t("permanent_delete_failed")
+                                }
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                        ) { Text(LocalizationManager.t("permanently_delete")) }
+                    }
+                }
+            }
         }
     }
 }

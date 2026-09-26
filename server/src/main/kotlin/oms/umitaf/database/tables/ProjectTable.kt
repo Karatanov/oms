@@ -197,4 +197,7 @@ object ProjectTable : LongIdTable("projects") {
             foreign = UserTable,
             onDelete = ReferenceOption.RESTRICT
         )
+    val isArchived = bool("is_archived").default(false)
+    val archivedAt = org.jetbrains.exposed.v1.javatime.datetime("archived_at").nullable()
+    val archivedBy = optReference("archived_by", UserTable, onDelete = ReferenceOption.RESTRICT)
 }

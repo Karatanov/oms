@@ -11,6 +11,7 @@ import oms.umitaf.database.tables.ProjectDocumentTable
 import oms.umitaf.database.tables.FinancialRecordTable
 import oms.umitaf.database.tables.IncidentTable
 import oms.umitaf.database.tables.InspectionReportTable
+import oms.umitaf.database.tables.ProcurementRecordTable
 import oms.umitaf.domain.Project
 import oms.umitaf.domain.ProjectStatus
 import oms.umitaf.domain.ProjectType
@@ -23,6 +24,8 @@ import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.update
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
+import org.jetbrains.exposed.v1.jdbc.count
+import java.time.LocalDateTime
 import java.util.*
 
 /** Iterative child-first traversal; validate the complete subtree before deleting anything. */
@@ -41,6 +44,19 @@ internal fun projectDeletionOrder(root: Long, children: Map<Long?, List<Long>>):
     }
     return result
 }
+
+/** Counts only retained records. The caller refuses destructive deletion when any exist. */
+private fun projectDependencies(projectId: Long): Map<String, Long> = linkedMapOf(
+    "subprojects or parts" to ProjectTable.selectAll().where { ProjectTable.parentProjectId eq projectId }.count(),
+    "financial records" to FinancialRecordTable.selectAll().where { FinancialRecordTable.projectId eq projectId }.count(),
+    "inspection reports" to InspectionReportTable.selectAll().where { InspectionReportTable.projectId eq projectId }.count(),
+    "documents" to ProjectDocumentTable.selectAll().where { ProjectDocumentTable.projectId eq projectId }.count(),
+    "incidents" to IncidentTable.selectAll().where { IncidentTable.projectId eq projectId }.count(),
+    "project amounts" to ProjectAmountTable.selectAll().where { ProjectAmountTable.projectId eq projectId }.count(),
+    "monitoring details" to ProjectMonitoringDetailTable.selectAll().where { ProjectMonitoringDetailTable.projectId eq projectId }.count(),
+    "procurement records" to ProcurementRecordTable.selectAll().where { ProcurementRecordTable.projectId eq projectId }.count(),
+    "programme details" to ProgrammeDetailTable.selectAll().where { ProgrammeDetailTable.projectId eq projectId }.count()
+).filterValues { it > 0 }
 
 class ExposedProjectRepository : ProjectRepository {
     override fun programmeDetails(projectId: Long) = transaction {
@@ -149,7 +165,8 @@ class ExposedProjectRepository : ProjectRepository {
                     engineerConsultantContractDate = row[ProjectTable.engineerConsultantContractDate],
                     engineerConsultantStartDate = row[ProjectTable.engineerConsultantStartDate],
                     engineerConsultantPlannedEndDate = row[ProjectTable.engineerConsultantPlannedEndDate],
-                    amounts = amountsByProject[row[ProjectTable.id].value].orEmpty().toAmounts()
+                    amounts = amountsByProject[row[ProjectTable.id].value].orEmpty().toAmounts(),
+                    isArchived = row[ProjectTable.isArchived], archivedAt = row[ProjectTable.archivedAt], archivedBy = row[ProjectTable.archivedBy]?.value
                 )
             }
     }
@@ -282,7 +299,8 @@ class ExposedProjectRepository : ProjectRepository {
                     engineerConsultantContractDate = row[ProjectTable.engineerConsultantContractDate],
                     engineerConsultantStartDate = row[ProjectTable.engineerConsultantStartDate],
                     engineerConsultantPlannedEndDate = row[ProjectTable.engineerConsultantPlannedEndDate],
-                    amounts = ProjectAmountTable.selectAll().where { ProjectAmountTable.projectId eq row[ProjectTable.id] }.toList().toAmounts()
+                    amounts = ProjectAmountTable.selectAll().where { ProjectAmountTable.projectId eq row[ProjectTable.id] }.toList().toAmounts(),
+                    isArchived = row[ProjectTable.isArchived], archivedAt = row[ProjectTable.archivedAt], archivedBy = row[ProjectTable.archivedBy]?.value
                 )
             }
     }
@@ -381,25 +399,38 @@ class ExposedProjectRepository : ProjectRepository {
     }
 
     override fun deleteByUuid(uuid: String): Boolean = transaction {
-        // Load only hierarchy keys once; the former recursion read every
-        // project column again for each node in the subtree.
-        val hierarchy = ProjectTable.select(ProjectTable.id, ProjectTable.uuid, ProjectTable.parentProjectId).toList()
-        val project = hierarchy.firstOrNull { it[ProjectTable.uuid] == uuid } ?: return@transaction false
+        // Never trigger legacy database cascades. A record can be physically
+        // deleted only when it has no retained historical relationship.
+        val project = ProjectTable.selectAll().where { ProjectTable.uuid eq uuid }.firstOrNull() ?: return@transaction false
+        val id = project[ProjectTable.id].value
+        val dependencies = projectDependencies(id)
+        require(dependencies.isEmpty()) { "Project still has dependencies: ${dependencies.keys.joinToString()}." }
+        ProjectTable.deleteWhere { ProjectTable.id eq id } > 0
+    }
+
+    override fun archiveByUuid(uuid: String, archivedBy: Long): Boolean = transaction {
+        val root = ProjectTable.selectAll().where { ProjectTable.uuid eq uuid }.firstOrNull() ?: return@transaction false
+        val hierarchy = ProjectTable.select(ProjectTable.id, ProjectTable.parentProjectId).toList()
         val children = hierarchy.groupBy({ it[ProjectTable.parentProjectId]?.value }, { it[ProjectTable.id].value })
+        val ids = projectDeletionOrder(root[ProjectTable.id].value, children)
+        ProjectTable.update({ ProjectTable.id inList ids }) {
+            it[isArchived] = true; it[archivedAt] = LocalDateTime.now(); it[ProjectTable.archivedBy] = archivedBy
+        } > 0
+    }
 
-        // Children are collected before their parent, so self-referential FK restrictions
-        // do not block removal of a complete project/subproject/part hierarchy.
-        val projectIds = projectDeletionOrder(project[ProjectTable.id].value, children)
+    override fun restoreByUuid(uuid: String): Boolean = transaction {
+        val root = ProjectTable.selectAll().where { ProjectTable.uuid eq uuid }.firstOrNull() ?: return@transaction false
+        val hierarchy = ProjectTable.select(ProjectTable.id, ProjectTable.parentProjectId).toList()
+        val children = hierarchy.groupBy({ it[ProjectTable.parentProjectId]?.value }, { it[ProjectTable.id].value })
+        val ids = projectDeletionOrder(root[ProjectTable.id].value, children)
+        ProjectTable.update({ ProjectTable.id inList ids }) {
+            it[isArchived] = false; it[archivedAt] = null; it[ProjectTable.archivedBy] = null
+        } > 0
+    }
 
-        projectIds.forEach { projectId ->
-            ProjectDocumentTable.deleteWhere { ProjectDocumentTable.projectId eq projectId }
-            FinancialRecordTable.deleteWhere { FinancialRecordTable.projectId eq projectId }
-            IncidentTable.deleteWhere { IncidentTable.projectId eq projectId }
-            // Report descendants (source files, photos and findings) use DB cascades.
-            InspectionReportTable.deleteWhere { InspectionReportTable.projectId eq projectId }
-            ProjectTable.deleteWhere { ProjectTable.id eq projectId }
-        }
-        true
+    override fun dependencyCounts(uuid: String): Map<String, Long> = transaction {
+        val project = ProjectTable.selectAll().where { ProjectTable.uuid eq uuid }.firstOrNull() ?: return@transaction emptyMap()
+        projectDependencies(project[ProjectTable.id].value)
     }
 
     override fun updateByUuid(uuid: String, patch: ProjectPatch): Project? {

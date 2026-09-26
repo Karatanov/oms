@@ -12,7 +12,7 @@ fun Route.mapRoutes() {
         val managedProjectIds = if (session.roleCode.equals("PROJECT_MANAGER", ignoreCase = true)) {
             AppContainer.projectService.managedProjectIds(session.userId)
         } else null
-        call.respond(AppContainer.projectService.getAllProjects().filter {
+        call.respond(AppContainer.projectService.getAllProjects(includeArchived = false).filter {
             it.projectType != ProjectType.PROJECT &&
                 it.latitude != null && it.longitude != null &&
                 (it.latitude != 0.0 || it.longitude != 0.0) &&

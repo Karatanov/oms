@@ -120,7 +120,7 @@ object OmsApiClient {
         if (!response.status.isSuccess()) throw IllegalStateException(response.bodyAsText())
     }
 
-    suspend fun projects(): List<ApiProject> {
+    suspend fun projects(archive: String = "active"): List<ApiProject> {
         // The complete project tree is a shared in-memory client snapshot.
         // A single moderately sized response avoids serial round-trips once
         // the registry exceeds the former 100-row page size.
@@ -128,7 +128,7 @@ object OmsApiClient {
         val projects = mutableListOf<ApiProject>()
         var page = 1
         do {
-            val batch = client.get("$baseUrl/projects?page=$page&pageSize=$pageSize")
+            val batch = client.get("$baseUrl/projects?page=$page&pageSize=$pageSize") { parameter("archive", archive) }
                 .body<ProjectListPayload>()
                 .data
             projects += batch
@@ -137,7 +137,7 @@ object OmsApiClient {
         return projects
     }
 
-    suspend fun users(): List<ApiUser> = client.get("$baseUrl/users").body()
+    suspend fun users(archive: String = "active"): List<ApiUser> = client.get("$baseUrl/users") { parameter("archive", archive) }.body()
 
     suspend fun roles(): List<ApiRole> = client.get("$baseUrl/roles").body()
 
@@ -393,10 +393,20 @@ object OmsApiClient {
     suspend fun deleteFinancialRecord(projectUuid: String, recordUuid: String): Boolean =
         client.delete("$baseUrl/projects/$projectUuid/financials/$recordUuid").status.isSuccess()
 
-    suspend fun deleteProject(projectUuid: String): Boolean =
-        client.delete("$baseUrl/projects/$projectUuid").status.isSuccess()
+    suspend fun archiveProject(projectUuid: String): Boolean =
+        client.post("$baseUrl/projects/$projectUuid/archive").status.isSuccess()
+    suspend fun restoreProject(projectUuid: String): Boolean =
+        client.post("$baseUrl/projects/$projectUuid/restore").status.isSuccess()
+    suspend fun projectPermanentDeleteDependencies(projectUuid: String): Map<String, Long> =
+        client.get("$baseUrl/projects/$projectUuid/permanent-delete-dependencies").body()
+    suspend fun permanentlyDeleteProject(projectUuid: String): Boolean =
+        client.delete("$baseUrl/projects/$projectUuid/permanent").status.isSuccess()
 
-    suspend fun deleteUser(id: Long): Boolean = client.delete("$baseUrl/users/$id").status.isSuccess()
+    suspend fun archiveUser(id: Long): Boolean = client.post("$baseUrl/users/$id/archive").status.isSuccess()
+    suspend fun restoreUser(id: Long): Boolean = client.post("$baseUrl/users/$id/restore").status.isSuccess()
+    suspend fun userPermanentDeleteDependencies(id: Long): Map<String, Long> =
+        client.get("$baseUrl/users/$id/permanent-delete-dependencies").body()
+    suspend fun permanentlyDeleteUser(id: Long): Boolean = client.delete("$baseUrl/users/$id/permanent").status.isSuccess()
 
     suspend fun deleteInspectionReport(reportUuid: String): Boolean =
         client.delete("$baseUrl/inspection-reports/$reportUuid").status.isSuccess()
@@ -718,6 +728,9 @@ data class ApiProject(
     val contractorName: String? = null,
     val startDate: String? = null,
     val status: String,
+    val isArchived: Boolean = false,
+    val archivedAt: String? = null,
+    val archivedBy: Long? = null,
     val latitude: Double,
     val longitude: Double
 )
@@ -738,6 +751,9 @@ data class ApiUser(
     val lockedUntil: String? = null,
     val createdAt: String? = null,
     val updatedAt: String? = null,
+    val isArchived: Boolean = false,
+    val archivedAt: String? = null,
+    val archivedBy: Long? = null,
     val role: ApiRole
 )
 

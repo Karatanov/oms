@@ -23,6 +23,7 @@ import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Layers
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.Unarchive
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -97,6 +98,7 @@ fun ProjectsScreen(
     var trancheFilter by remember { mutableStateOf<Int?>(null) }
     var constructionTypeFilter by remember { mutableStateOf<String?>(null) }
     var sectorFilter by remember { mutableStateOf<String?>(null) }
+    var archiveFilter by remember { mutableStateOf("active") }
     val scope = rememberCoroutineScope()
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var selectedProjectIds by remember { mutableStateOf<Set<String>>(emptySet()) }
@@ -127,8 +129,8 @@ fun ProjectsScreen(
         }
     }
 
-    LaunchedEffect(Unit) {
-        ProjectRepository.refresh()
+    LaunchedEffect(archiveFilter) {
+        ProjectRepository.refresh(archive = archiveFilter)
     }
     val projects = ProjectRepository.projects
     val programme = projects.firstOrNull(Project::isProgrammeRoot)
@@ -218,6 +220,16 @@ fun ProjectsScreen(
         }
 
         Spacer(Modifier.height(8.dp))
+        if (canManageProjects) {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                listOf("active", "archived", "all").forEach { filter ->
+                    FilterChip(archiveFilter == filter, { archiveFilter = filter }) {
+                        Text(LocalizationManager.t("archive_filter_$filter"))
+                    }
+                }
+            }
+            Spacer(Modifier.height(8.dp))
+        }
         if (ProjectRepository.loading) oms.components.ContentState(LocalizationManager.t("loading_records"), loading = true)
         ProjectRepository.errorMessage?.let { oms.components.ContentState(it, error = true, onRetry = { scope.launch { ProjectRepository.refresh(force = true) } }) }
 
@@ -267,8 +279,9 @@ fun ProjectsScreen(
             onOpenProject = onOpenProject,
             onEditProject = onEditProject,
             onDeleteProject = { project ->
-                deletion.show(project.localizedName()) { scope.launch {
-                    if (oms.data.OmsApiClient.deleteProject(project.id)) ProjectRepository.refresh(force = true)
+                deletion.showArchive(project.localizedName()) { scope.launch {
+                    val completed = if (project.isArchived) oms.data.OmsApiClient.restoreProject(project.id) else oms.data.OmsApiClient.archiveProject(project.id)
+                    if (completed) ProjectRepository.refresh(force = true, archive = archiveFilter)
                     else errorMessage = LocalizationManager.t("error_delete_project")
                 } }
             },
@@ -772,7 +785,7 @@ fun ProjectRow(
             TableActionIconButton(LocalizationManager.t("view"), Icons.Default.Visibility) { onOpen(project) }
             if (canManageProjects) {
                 TableActionIconButton(LocalizationManager.t("edit"), Icons.Default.Edit) { onEdit(project) }
-                TableActionIconButton(LocalizationManager.t("delete_project"), Icons.Default.Delete) { onDelete(project) }
+                TableActionIconButton(LocalizationManager.t(if (project.isArchived) "restore" else "archive"), if (project.isArchived) Icons.Default.Unarchive else Icons.Default.Delete) { onDelete(project) }
             }
         }
     }

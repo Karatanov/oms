@@ -63,6 +63,9 @@ interface UserRepository {
     fun update(id: Long, username: String, email: String, passwordHash: String, roleId: Long, firstName: String, lastName: String, status: String, region: String?, department: String?, preferredLang: String): User?
 
     fun delete(id: Long): Boolean
+    fun archive(id: Long, archivedBy: Long): Boolean
+    fun restore(id: Long): Boolean
+    fun dependencyCounts(id: Long): Map<String, Long>
 
     fun authenticationState(userId: Long): AuthenticationState?
 

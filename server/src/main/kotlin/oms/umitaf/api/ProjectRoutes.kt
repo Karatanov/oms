@@ -73,7 +73,8 @@ fun Route.projectRoutes() {
         val projects = projectService.searchProjects(
             status = call.request.queryParameters["status"],
             region = call.request.queryParameters["region"],
-            search = call.request.queryParameters["search"]
+            search = call.request.queryParameters["search"],
+            archiveFilter = call.request.queryParameters["archive"]
         ).filter { project ->
             managedProjectIds == null || project.id in managedProjectIds
         }
@@ -390,13 +391,40 @@ fun Route.projectRoutes() {
         }
     }
 
-    delete("/api/v1/projects/{uuid}") {
-        val session = call.requireRole("ADMIN", "PROJECT_MANAGER") ?: return@delete
+    post("/api/v1/projects/{uuid}/archive") {
+        val session = call.requireRole("ADMIN", "PROJECT_MANAGER") ?: return@post
+        val uuid = call.parameters["uuid"] ?: return@post call.respond(HttpStatusCode.BadRequest, ErrorResponse("VALIDATION_ERROR", "Project UUID is required."))
+        val project = projectService.getProjectByUuid(uuid) ?: return@post call.respond(HttpStatusCode.NotFound, ErrorResponse("NOT_FOUND", "Project not found."))
+        if (!call.requireProjectAccess(session, uuid)) return@post
+        if (!projectService.archiveProject(uuid, session.userId)) return@post call.respond(HttpStatusCode.NotFound, ErrorResponse("NOT_FOUND", "Project not found."))
+        AppContainer.auditLogService.record(session.userId, "project_archived", project.projectType.name.lowercase(), project.id, oldValues = "{\"name\":\"${project.name}\"}")
+        call.respond(HttpStatusCode.NoContent)
+    }
+
+    post("/api/v1/projects/{uuid}/restore") {
+        val session = call.requireRole("ADMIN", "PROJECT_MANAGER") ?: return@post
+        val uuid = call.parameters["uuid"] ?: return@post call.respond(HttpStatusCode.BadRequest, ErrorResponse("VALIDATION_ERROR", "Project UUID is required."))
+        val project = projectService.getProjectByUuid(uuid) ?: return@post call.respond(HttpStatusCode.NotFound, ErrorResponse("NOT_FOUND", "Project not found."))
+        if (!call.requireProjectAccess(session, uuid)) return@post
+        if (!projectService.restoreProject(uuid)) return@post call.respond(HttpStatusCode.NotFound, ErrorResponse("NOT_FOUND", "Project not found."))
+        AppContainer.auditLogService.record(session.userId, "project_restored", project.projectType.name.lowercase(), project.id)
+        call.respond(HttpStatusCode.NoContent)
+    }
+
+    get("/api/v1/projects/{uuid}/permanent-delete-dependencies") {
+        call.requireRole("ADMIN") ?: return@get
+        val uuid = call.parameters["uuid"] ?: return@get call.respond(HttpStatusCode.BadRequest, ErrorResponse("VALIDATION_ERROR", "Project UUID is required."))
+        call.respond(projectService.projectDependencies(uuid))
+    }
+
+    delete("/api/v1/projects/{uuid}/permanent") {
+        val session = call.requireRole("ADMIN") ?: return@delete
         val uuid = call.parameters["uuid"] ?: return@delete call.respond(HttpStatusCode.BadRequest, ErrorResponse("VALIDATION_ERROR", "Project UUID is required."))
         val project = projectService.getProjectByUuid(uuid) ?: return@delete call.respond(HttpStatusCode.NotFound, ErrorResponse("NOT_FOUND", "Project not found."))
-        if (!call.requireProjectAccess(session, uuid)) return@delete
-        if (!projectService.deleteProject(uuid)) return@delete call.respond(HttpStatusCode.NotFound, ErrorResponse("NOT_FOUND", "Project not found."))
-        AppContainer.auditLogService.record(session.userId, "project_deleted", project.projectType.name.lowercase(), project.id)
+        val dependencies = projectService.projectDependencies(uuid)
+        if (dependencies.isNotEmpty()) return@delete call.respond(HttpStatusCode.Conflict, ErrorResponse("HAS_DEPENDENCIES", dependencies.entries.joinToString("; ") { "${it.value} ${it.key}" }))
+        if (!projectService.permanentlyDeleteProject(uuid)) return@delete call.respond(HttpStatusCode.NotFound, ErrorResponse("NOT_FOUND", "Project not found."))
+        AppContainer.auditLogService.record(session.userId, "permanent_delete", project.projectType.name.lowercase(), project.id, oldValues = "{\"name\":\"${project.name}\"}")
         call.respond(HttpStatusCode.NoContent)
     }
 

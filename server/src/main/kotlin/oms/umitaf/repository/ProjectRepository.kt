@@ -65,4 +65,7 @@ interface ProjectRepository {
     fun updateManagerByUuids(uuids: List<String>, managerId: Long): Int
 
     fun deleteByUuid(uuid: String): Boolean
+    fun archiveByUuid(uuid: String, archivedBy: Long): Boolean
+    fun restoreByUuid(uuid: String): Boolean
+    fun dependencyCounts(uuid: String): Map<String, Long>
 }

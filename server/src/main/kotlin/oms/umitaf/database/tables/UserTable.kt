@@ -62,4 +62,7 @@ object UserTable : LongIdTable("users") {
     val activatedAt = datetime("activated_at").nullable()
     val createdAt = datetime("created_at")
     val updatedAt = datetime("updated_at")
+    val isArchived = bool("is_archived").default(false)
+    val archivedAt = datetime("archived_at").nullable()
+    val archivedBy = optReference("archived_by", this, onDelete = ReferenceOption.RESTRICT)
 }

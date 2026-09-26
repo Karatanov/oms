@@ -10,6 +10,7 @@ import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.jetbrains.exposed.v1.jdbc.update
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
+import org.jetbrains.exposed.v1.jdbc.count
 import java.time.LocalDateTime
 import java.util.UUID
 
@@ -53,7 +54,8 @@ class ExposedUserRepository : UserRepository {
                     failedLoginCount = row[UserTable.failedLoginCount],
                     lockedUntil = row[UserTable.lockedUntil],
                     createdAt = row[UserTable.createdAt],
-                    updatedAt = row[UserTable.updatedAt]
+                    updatedAt = row[UserTable.updatedAt],
+                    isArchived = row[UserTable.isArchived], archivedAt = row[UserTable.archivedAt], archivedBy = row[UserTable.archivedBy]?.value
                 )
             }
     }
@@ -100,7 +102,8 @@ class ExposedUserRepository : UserRepository {
                     failedLoginCount = row[UserTable.failedLoginCount],
                     lockedUntil = row[UserTable.lockedUntil],
                     createdAt = row[UserTable.createdAt],
-                    updatedAt = row[UserTable.updatedAt]
+                    updatedAt = row[UserTable.updatedAt],
+                    isArchived = row[UserTable.isArchived], archivedAt = row[UserTable.archivedAt], archivedBy = row[UserTable.archivedBy]?.value
                 )
             }
     }
@@ -212,6 +215,30 @@ class ExposedUserRepository : UserRepository {
     }
 
     override fun delete(id: Long): Boolean = transaction { UserTable.deleteWhere { UserTable.id eq id } > 0 }
+
+    override fun archive(id: Long, archivedBy: Long): Boolean = transaction {
+        UserTable.update({ (UserTable.id eq id) and (UserTable.isArchived eq false) }) {
+            it[isArchived] = true; it[archivedAt] = LocalDateTime.now(); it[UserTable.archivedBy] = archivedBy
+            it[status] = "disabled"; it[updatedAt] = LocalDateTime.now()
+        } > 0
+    }
+
+    override fun restore(id: Long): Boolean = transaction {
+        UserTable.update({ (UserTable.id eq id) and (UserTable.isArchived eq true) }) {
+            it[isArchived] = false; it[archivedAt] = null; it[UserTable.archivedBy] = null
+            it[status] = "active"; it[updatedAt] = LocalDateTime.now()
+        } > 0
+    }
+
+    override fun dependencyCounts(id: Long): Map<String, Long> = transaction {
+        linkedMapOf(
+            "projects as manager" to oms.umitaf.database.tables.ProjectTable.selectAll().where { oms.umitaf.database.tables.ProjectTable.managerId eq id }.count(),
+            "projects as creator" to oms.umitaf.database.tables.ProjectTable.selectAll().where { oms.umitaf.database.tables.ProjectTable.createdBy eq id }.count(),
+            "documents" to oms.umitaf.database.tables.ProjectDocumentTable.selectAll().where { oms.umitaf.database.tables.ProjectDocumentTable.createdBy eq id }.count(),
+            "inspection reports" to oms.umitaf.database.tables.InspectionReportTable.selectAll().where { oms.umitaf.database.tables.InspectionReportTable.createdBy eq id }.count(),
+            "audit records" to oms.umitaf.database.tables.AuditLogTable.selectAll().where { oms.umitaf.database.tables.AuditLogTable.userId eq id }.count()
+        ).filterValues { it > 0 }
+    }
 
     override fun authenticationState(userId: Long): UserRepository.AuthenticationState? = transaction {
         UserTable.selectAll().where { UserTable.id eq userId }.limit(1).firstOrNull()?.let { row ->

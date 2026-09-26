@@ -231,8 +231,8 @@ fun ProjectDetailScreen(
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
             ) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text(LocalizationManager.t("delete_project"), style = MaterialTheme.typography.titleMedium)
-                    Text(LocalizationManager.t("delete_project_confirmation").replace("{name}", project.name))
+                    Text(LocalizationManager.t("archive"), style = MaterialTheme.typography.titleMedium)
+                    Text(LocalizationManager.t("archive_confirmation"))
                     deleteError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
                         OutlinedButton(
@@ -242,7 +242,7 @@ fun ProjectDetailScreen(
                         Button(
                             onClick = {
                                 scope.launch {
-                                    if (OmsApiClient.deleteProject(project.id)) {
+                                    if (OmsApiClient.archiveProject(project.id)) {
                                         ProjectRepository.refresh(force = true)
                                         onBackToProjects()
                                     } else deleteError = LocalizationManager.t("error_delete_project")
@@ -250,7 +250,7 @@ fun ProjectDetailScreen(
                             },
                             modifier = Modifier.pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true),
                             colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
-                        ) { Text(LocalizationManager.t("delete")) }
+                        ) { Text(LocalizationManager.t("archive")) }
                     }
                 }
             }

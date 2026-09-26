@@ -54,6 +54,9 @@ fun User.toResponse(): UserResponse {
         lockedUntil = lockedUntil?.toUtcIsoString(),
         createdAt = createdAt?.toUtcIsoString(),
         updatedAt = updatedAt?.toUtcIsoString(),
+        isArchived = isArchived,
+        archivedAt = archivedAt?.toUtcIsoString(),
+        archivedBy = archivedBy,
         role = role.toResponse()
     )
 }
@@ -114,6 +117,10 @@ fun Project.toResponse(parentProjectUuid: String? = null, monitoring: oms.umitaf
 
         status =
             status.name.lowercase(),
+
+        isArchived = isArchived,
+        archivedAt = archivedAt?.toUtcIsoString(),
+        archivedBy = archivedBy,
 
         sector =
             sector.orEmpty(),

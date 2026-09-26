@@ -38,6 +38,9 @@ data class UserResponse(
     val lockedUntil: String?,
     val createdAt: String?,
     val updatedAt: String?,
+    val isArchived: Boolean = false,
+    val archivedAt: String? = null,
+    val archivedBy: Long? = null,
 
     /**
      * Інформація про роль користувача.

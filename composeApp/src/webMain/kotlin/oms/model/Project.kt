@@ -47,7 +47,10 @@ data class Project(
     // Географічні координати проєкту для відображення на карті.
     val latitude: Double,
 
-    val longitude: Double
+    val longitude: Double,
+
+    /** Archived records are retained for historical references but hidden by default. */
+    val isArchived: Boolean = false
 )
 
 fun Project.localizedName(): String =

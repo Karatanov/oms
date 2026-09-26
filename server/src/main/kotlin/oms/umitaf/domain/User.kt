@@ -53,5 +53,8 @@ data class User(
     val failedLoginCount: Int = 0,
     @Contextual val lockedUntil: java.time.LocalDateTime? = null,
     @Contextual val createdAt: java.time.LocalDateTime? = null,
-    @Contextual val updatedAt: java.time.LocalDateTime? = null
+    @Contextual val updatedAt: java.time.LocalDateTime? = null,
+    val isArchived: Boolean = false,
+    @Contextual val archivedAt: java.time.LocalDateTime? = null,
+    val archivedBy: Long? = null
 )
