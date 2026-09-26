@@ -22,6 +22,9 @@ val copyTiDbMigrations by tasks.registering(Copy::class) {
         // TiDB does not support CREATE TEMPORARY TABLE ... AS SELECT.
         exclude("V53__classify_lot_records_as_subproject_parts.sql")
         exclude("V56__inherit_missing_subproject_addresses_from_first_lot.sql")
+        // TiDB cannot add a foreign key in the same ALTER TABLE statement
+        // that adds its local column.
+        exclude("V58__add_entity_archiving.sql")
     }
     // A few TiDB limitations need a full SQL replacement, not a line rewrite.
     from(layout.projectDirectory.dir("src/main/resources/db/tidb-overrides"))
