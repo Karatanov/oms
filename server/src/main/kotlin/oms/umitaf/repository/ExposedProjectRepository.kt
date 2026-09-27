@@ -44,14 +44,17 @@ internal fun projectDeletionOrder(root: Long, children: Map<Long?, List<Long>>):
     return result
 }
 
-/** Counts only retained records. The caller refuses destructive deletion when any exist. */
+/**
+ * Counts retained records that prevent a physical project deletion.
+ * Project amounts are owned by the project and deleted by their database
+ * cascade, so they must not make an otherwise empty project undeletable.
+ */
 private fun projectDependencies(projectId: Long): Map<String, Long> = linkedMapOf(
     "subprojects or parts" to ProjectTable.selectAll().where { ProjectTable.parentProjectId eq projectId }.count(),
     "financial records" to FinancialRecordTable.selectAll().where { FinancialRecordTable.projectId eq projectId }.count(),
     "inspection reports" to InspectionReportTable.selectAll().where { InspectionReportTable.projectId eq projectId }.count(),
     "documents" to ProjectDocumentTable.selectAll().where { ProjectDocumentTable.projectId eq projectId }.count(),
     "incidents" to IncidentTable.selectAll().where { IncidentTable.projectId eq projectId }.count(),
-    "project amounts" to ProjectAmountTable.selectAll().where { ProjectAmountTable.projectId eq projectId }.count(),
     "monitoring details" to ProjectMonitoringDetailTable.selectAll().where { ProjectMonitoringDetailTable.projectId eq projectId }.count(),
     "procurement records" to ProcurementRecordTable.selectAll().where { ProcurementRecordTable.projectId eq projectId }.count(),
     "programme details" to ProgrammeDetailTable.selectAll().where { ProgrammeDetailTable.projectId eq projectId }.count()
@@ -398,8 +401,8 @@ class ExposedProjectRepository : ProjectRepository {
     }
 
     override fun deleteByUuid(uuid: String): Boolean = transaction {
-        // Never trigger legacy database cascades. A record can be physically
-        // deleted only when it has no retained historical relationship.
+        // A record can be physically deleted only when it has no retained
+        // historical relationship. Owned amount rows are removed by cascade.
         val project = ProjectTable.selectAll().where { ProjectTable.uuid eq uuid }.firstOrNull() ?: return@transaction false
         val id = project[ProjectTable.id].value
         val dependencies = projectDependencies(id)
