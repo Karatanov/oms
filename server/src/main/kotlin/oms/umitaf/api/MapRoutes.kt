@@ -5,6 +5,7 @@ import io.ktor.server.routing.*
 import oms.umitaf.config.AppContainer
 import oms.umitaf.dto.ProjectMapPointResponse
 import oms.umitaf.domain.ProjectType
+import oms.umitaf.domain.ProjectStatus
 
 fun Route.mapRoutes() {
     get("/api/v1/projects/map") {
@@ -12,8 +13,9 @@ fun Route.mapRoutes() {
         val managedProjectIds = if (session.roleCode.equals("PROJECT_MANAGER", ignoreCase = true)) {
             AppContainer.projectService.managedProjectIds(session.userId)
         } else null
-        call.respond(AppContainer.projectService.getAllProjects(includeArchived = false).filter {
+        call.respond(AppContainer.projectService.getAllProjects().filter {
             it.projectType != ProjectType.PROJECT &&
+                it.status != ProjectStatus.ARCHIVED &&
                 it.latitude != null && it.longitude != null &&
                 (it.latitude != 0.0 || it.longitude != 0.0) &&
                 (managedProjectIds == null || it.id in managedProjectIds)

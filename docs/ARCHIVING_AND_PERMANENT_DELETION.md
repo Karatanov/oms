@@ -6,24 +6,26 @@ This policy applies to user accounts and the project hierarchy (projects,
 subprojects and subproject parts). These are the long-lived records that own
 or are referenced by operational history.
 
-## Archive
+## Project status
 
-Archiving is the normal removal operation. It sets `is_archived`,
-`archived_at`, and `archived_by` without deleting the row. Project hierarchy
-archiving and restore include descendants so that a subproject part is not
-left active below an archived parent.
+For projects, subprojects and subproject parts, **Archived** is a value of the
+existing `projects.status` field. OMS does not use a separate project archive
+flag or a second archive filter. The registry opens with the Status filter set
+to **Active**; users choose **Archived** through that same status filter when
+they need to review archived records. Archived hierarchy entries are excluded
+from the map.
 
-Active records are the default for project and user lists, selectors, and the
-map. Administrators can switch user and project registries between Active,
-Archived, and All, and restore archived entries. An archived user is disabled
-and cannot authenticate. Existing reports, financial records, documents,
-audit events, and other historical links remain readable.
+User accounts continue to use their separate archival metadata because user
+status is not the project lifecycle status and an archived account must not be
+able to authenticate. Existing reports, financial records, documents, audit
+events, and other historical links remain readable.
 
 ## Permanent deletion
 
-Permanent deletion is an administrator-only API operation. Before it is
-enabled, OMS returns a dependency summary. The server repeats that check at
-deletion time and returns `409 HAS_DEPENDENCIES` when related records exist.
+Permanent deletion is an administrator-only operation, exposed as **Delete
+permanently** in the project registry and project details. The server repeats
+its dependency check at deletion time and returns `409 HAS_DEPENDENCIES` when
+related records exist.
 It never relies on legacy database `CASCADE` constraints to erase history.
 
 Project dependency checks include descendants, financial records, inspection
@@ -35,9 +37,8 @@ operational records.
 
 ## Audit
 
-`user_archived`, `user_restored`, `project_archived`, `project_restored`, and
-`permanent_delete` are written to the audit log. The actor and affected entity
-are retained for archive and restore operations.
+`user_archived`, `user_restored`, project lifecycle status changes, and
+`permanent_delete` are written to the audit log.
 
 ## Related record deletion review
 
@@ -51,6 +52,6 @@ removed through a project delete.
 
 ## Database migration
 
-`V58__add_entity_archiving.sql` adds archival metadata and indexes for
-`users` and `projects`. Existing rows are active by default. The archive actor
-is protected by a restrictive foreign key to preserve accountability.
+`V59__migrate_project_archive_to_status.sql` maps any temporary project
+archive flags written by the earlier implementation to `projects.status =
+'archived'`. Application code then uses the lifecycle status exclusively.

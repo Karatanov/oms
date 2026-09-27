@@ -73,8 +73,7 @@ fun Route.projectRoutes() {
         val projects = projectService.searchProjects(
             status = call.request.queryParameters["status"],
             region = call.request.queryParameters["region"],
-            search = call.request.queryParameters["search"],
-            archiveFilter = call.request.queryParameters["archive"]
+            search = call.request.queryParameters["search"]
         ).filter { project ->
             managedProjectIds == null || project.id in managedProjectIds
         }

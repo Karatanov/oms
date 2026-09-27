@@ -72,6 +72,7 @@ fun AppLayout(appState: AppState) {
                     onCreateProject = { appState.openCreateProject() },
                     onEditProject = { appState.openEditProject(it) },
                     canManageProjects = appState.roleCode in setOf("ADMIN", "PROJECT_MANAGER"),
+                    canPermanentlyDeleteProjects = appState.roleCode == "ADMIN",
                     canBulkReassign = appState.roleCode == "ADMIN",
                     requestedRegionFilter = appState.requestedProjectRegion,
                     onRequestedRegionFilterConsumed = { appState.requestedProjectRegion = null }
@@ -99,7 +100,7 @@ fun AppLayout(appState: AppState) {
                             },
                             onEdit = { appState.openEditProject(it) },
                             canEditProject = appState.roleCode in setOf("ADMIN", "PROJECT_MANAGER"),
-                            canDeleteProject = appState.roleCode in setOf("ADMIN", "PROJECT_MANAGER"),
+                            canDeleteProject = appState.roleCode == "ADMIN",
                             isGuest = appState.roleCode == "GUEST",
                             canAccessFinancials = appState.roleCode in setOf("ADMIN", "PROJECT_MANAGER")
                         )

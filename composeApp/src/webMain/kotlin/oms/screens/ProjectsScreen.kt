@@ -13,7 +13,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.KeyboardArrowDown
@@ -23,7 +22,7 @@ import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Layers
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.filled.Unarchive
+import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -86,6 +85,7 @@ fun ProjectsScreen(
     onCreateProject: () -> Unit = {},
     onEditProject: (Project) -> Unit = {},
     canManageProjects: Boolean = false,
+    canPermanentlyDeleteProjects: Boolean = false,
     canBulkReassign: Boolean = false,
     requestedRegionFilter: String? = null,
     onRequestedRegionFilterConsumed: () -> Unit = {}
@@ -94,11 +94,12 @@ fun ProjectsScreen(
     val deletion = oms.components.LocalDeleteConfirmation.current
     var searchText by remember { mutableStateOf("") }
     var regionFilter by remember { mutableStateOf<String?>(null) }
-    var statusFilter by remember { mutableStateOf<ProjectStatus?>(null) }
+    // The registry opens on active subprojects. "Archived" is the ordinary
+    // project status, not a second technical archive state.
+    var statusFilter by remember { mutableStateOf<ProjectStatus?>(ProjectStatus.ACTIVE) }
     var trancheFilter by remember { mutableStateOf<Int?>(null) }
     var constructionTypeFilter by remember { mutableStateOf<String?>(null) }
     var sectorFilter by remember { mutableStateOf<String?>(null) }
-    var archiveFilter by remember { mutableStateOf("active") }
     val scope = rememberCoroutineScope()
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var selectedProjectIds by remember { mutableStateOf<Set<String>>(emptySet()) }
@@ -129,9 +130,7 @@ fun ProjectsScreen(
         }
     }
 
-    LaunchedEffect(archiveFilter) {
-        ProjectRepository.refresh(archive = archiveFilter)
-    }
+    LaunchedEffect(Unit) { ProjectRepository.refresh() }
     val projects = ProjectRepository.projects
     val programme = projects.firstOrNull(Project::isProgrammeRoot)
 
@@ -220,18 +219,6 @@ fun ProjectsScreen(
         }
 
         Spacer(Modifier.height(8.dp))
-        if (canManageProjects) {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                listOf("active", "archived", "all").forEach { filter ->
-                    FilterChip(
-                        selected = archiveFilter == filter,
-                        onClick = { archiveFilter = filter },
-                        label = { Text(LocalizationManager.t("archive_filter_$filter")) }
-                    )
-                }
-            }
-            Spacer(Modifier.height(8.dp))
-        }
         if (ProjectRepository.loading) oms.components.ContentState(LocalizationManager.t("loading_records"), loading = true)
         ProjectRepository.errorMessage?.let { oms.components.ContentState(it, error = true, onRetry = { scope.launch { ProjectRepository.refresh(force = true) } }) }
 
@@ -275,19 +262,20 @@ fun ProjectsScreen(
                 ProjectsFilters(regionFilter, { regionFilter = it }, statusFilter, { statusFilter = it },
                     trancheFilter, { trancheFilter = it },
                     constructionTypeFilter, { constructionTypeFilter = it }, sectorFilter, { sectorFilter = it },
-                    canReset = searchText.isNotBlank() || regionFilter != null || statusFilter != null || trancheFilter != null || constructionTypeFilter != null || sectorFilter != null,
-                    onReset = { searchText = ""; regionFilter = null; statusFilter = null; trancheFilter = null; constructionTypeFilter = null; sectorFilter = null })
+                    canReset = searchText.isNotBlank() || regionFilter != null || statusFilter != ProjectStatus.ACTIVE || trancheFilter != null || constructionTypeFilter != null || sectorFilter != null,
+                    onReset = { searchText = ""; regionFilter = null; statusFilter = ProjectStatus.ACTIVE; trancheFilter = null; constructionTypeFilter = null; sectorFilter = null })
             },
             onOpenProject = onOpenProject,
             onEditProject = onEditProject,
             onDeleteProject = { project ->
-                deletion.showArchive(project.localizedName()) { scope.launch {
-                    val completed = if (project.isArchived) oms.data.OmsApiClient.restoreProject(project.id) else oms.data.OmsApiClient.archiveProject(project.id)
-                    if (completed) ProjectRepository.refresh(force = true, archive = archiveFilter)
-                    else errorMessage = LocalizationManager.t("error_delete_project")
+                deletion.show(project.localizedName()) { scope.launch {
+                    val completed = oms.data.OmsApiClient.permanentlyDeleteProject(project.id)
+                    if (completed) ProjectRepository.refresh(force = true)
+                    else errorMessage = LocalizationManager.t("permanent_delete_failed")
                 } }
             },
             canManageProjects = canManageProjects,
+            canPermanentlyDeleteProjects = canPermanentlyDeleteProjects,
             onExpandRow = { rowTop -> scope.launch { pageScrollState.animateScrollTo((pageScrollState.value + rowTop - 16f).toInt().coerceAtLeast(0)) } },
             selectedProjectIds = selectedProjectIds,
             onSelectionChange = { id, selected -> selectedProjectIds = if (selected) selectedProjectIds + id else selectedProjectIds - id }
@@ -363,6 +351,7 @@ fun ProjectsTable(
     onEditProject: (Project) -> Unit,
     onDeleteProject: (Project) -> Unit,
     canManageProjects: Boolean,
+    canPermanentlyDeleteProjects: Boolean,
     onExpandRow: (Float) -> Unit,
     selectedProjectIds: Set<String>,
     onSelectionChange: (String, Boolean) -> Unit
@@ -467,6 +456,7 @@ fun ProjectsTable(
                     onEdit = onEditProject,
                     onDelete = onDeleteProject,
                     canManageProjects = canManageProjects,
+                    canPermanentlyDeleteProjects = canPermanentlyDeleteProjects,
                     isSelected = row.project.id in selectedProjectIds,
                     onSelectedChange = { onSelectionChange(row.project.id, it) }
                 ) }
@@ -640,6 +630,7 @@ fun ProjectRow(
     onEdit: (Project) -> Unit = {},
     onDelete: (Project) -> Unit = {},
     canManageProjects: Boolean = false,
+    canPermanentlyDeleteProjects: Boolean = false,
     highlightSearchMatch: Boolean = false,
     isSelected: Boolean = false,
     onSelectedChange: (Boolean) -> Unit = {}
@@ -787,7 +778,9 @@ fun ProjectRow(
             TableActionIconButton(LocalizationManager.t("view"), Icons.Default.Visibility) { onOpen(project) }
             if (canManageProjects) {
                 TableActionIconButton(LocalizationManager.t("edit"), Icons.Default.Edit) { onEdit(project) }
-                TableActionIconButton(LocalizationManager.t(if (project.isArchived) "restore" else "archive"), if (project.isArchived) Icons.Default.Unarchive else Icons.Default.Delete) { onDelete(project) }
+                if (canPermanentlyDeleteProjects) {
+                    TableActionIconButton(LocalizationManager.t("permanently_delete"), Icons.Default.DeleteForever) { onDelete(project) }
+                }
             }
         }
     }

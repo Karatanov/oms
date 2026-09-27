@@ -120,7 +120,7 @@ object OmsApiClient {
         if (!response.status.isSuccess()) throw IllegalStateException(response.bodyAsText())
     }
 
-    suspend fun projects(archive: String = "active"): List<ApiProject> {
+    suspend fun projects(): List<ApiProject> {
         // The complete project tree is a shared in-memory client snapshot.
         // A single moderately sized response avoids serial round-trips once
         // the registry exceeds the former 100-row page size.
@@ -128,7 +128,7 @@ object OmsApiClient {
         val projects = mutableListOf<ApiProject>()
         var page = 1
         do {
-            val batch = client.get("$baseUrl/projects?page=$page&pageSize=$pageSize") { parameter("archive", archive) }
+            val batch = client.get("$baseUrl/projects?page=$page&pageSize=$pageSize")
                 .body<ProjectListPayload>()
                 .data
             projects += batch

@@ -39,26 +39,24 @@ class ProjectService(
      * На поточному етапі повертаються
      * всі записи без обмежень.
      */
-    fun getAllProjects(includeArchived: Boolean = true): List<Project> {
+    fun getAllProjects(): List<Project> {
         val now = System.currentTimeMillis()
-        cachedProjects?.takeIf { now < projectCacheExpiresAt }?.let { return if (includeArchived) it else it.filterNot(Project::isArchived) }
+        cachedProjects?.takeIf { now < projectCacheExpiresAt }?.let { return it }
         return synchronized(projectCacheLock) {
             val current = System.currentTimeMillis()
             val all = cachedProjects?.takeIf { current < projectCacheExpiresAt } ?: projectRepository.findAll().also {
                 cachedProjects = it
                 projectCacheExpiresAt = current + 30_000L
             }
-            if (includeArchived) all else all.filterNot(Project::isArchived)
+            all
         }
     }
 
     fun searchProjects(
         status: String?,
         region: String?,
-        search: String?,
-        archiveFilter: String? = null
+        search: String?
     ): List<Project> = getAllProjects().filter { project ->
-        when (archiveFilter?.lowercase()) { "archived" -> project.isArchived; "all" -> true; else -> !project.isArchived } &&
         (status.isNullOrBlank() || project.status.name.equals(status.trim(), true)) &&
             (region.isNullOrBlank() || project.region.equals(region.trim(), true)) &&
             (search.isNullOrBlank() || listOf(project.name, project.address.orEmpty(), project.city.orEmpty(), project.contractorName.orEmpty()).any { it.contains(search.trim(), true) })
@@ -360,10 +358,17 @@ class ProjectService(
         return projectRepository.findByUuid(normalizedUuid)
     }
 
-    fun archiveProject(uuid: String, archivedBy: Long): Boolean = projectRepository.archiveByUuid(uuid.trim(), archivedBy).also {
-        if (it) invalidateProjectCache()
+    fun archiveProject(uuid: String, archivedBy: Long): Boolean {
+        val updated = projectRepository.updateStatusByUuids(listOf(uuid.trim()), ProjectStatus.ARCHIVED)
+        if (updated > 0) invalidateProjectCache()
+        return updated > 0
     }
-    fun restoreProject(uuid: String): Boolean = projectRepository.restoreByUuid(uuid.trim()).also { if (it) invalidateProjectCache() }
+
+    fun restoreProject(uuid: String): Boolean {
+        val updated = projectRepository.updateStatusByUuids(listOf(uuid.trim()), ProjectStatus.ACTIVE)
+        if (updated > 0) invalidateProjectCache()
+        return updated > 0
+    }
     fun permanentlyDeleteProject(uuid: String): Boolean = projectRepository.deleteByUuid(uuid.trim()).also { if (it) invalidateProjectCache() }
     fun projectDependencies(uuid: String): Map<String, Long> = projectRepository.dependencyCounts(uuid.trim())
 
