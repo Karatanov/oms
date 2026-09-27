@@ -29,7 +29,7 @@ private fun synchronizeManualHseFindings(reportId: Long, observations: List<Manu
 /** REST endpoints for inspection findings. */
 fun Route.inspectionRoutes() {
     get("/api/v1/inspection-reports") {
-        val session = call.requireRole("ADMIN", "PROJECT_MANAGER", "INSPECTOR", "VIEWER") ?: return@get
+        call.requireRole("ADMIN", "PROJECT_MANAGER", "INSPECTOR", "VIEWER") ?: return@get
         val reports = AppContainer.inspectionReportService.getAllReports()
         // The registry is often empty on a new deployment.  Avoid a full
         // project lookup when there are no rows that need access filtering.
@@ -37,12 +37,7 @@ fun Route.inspectionRoutes() {
             call.respond(emptyList<InspectionReportListItemResponse>())
             return@get
         }
-        val managedProjectIds = if (session.roleCode.equals("PROJECT_MANAGER", ignoreCase = true)) {
-            AppContainer.projectService.managedProjectIds(session.userId)
-        } else null
-        val projects = AppContainer.projectService.getAllProjects().filter { project ->
-            managedProjectIds == null || project.id in managedProjectIds
-        }
+        val projects = AppContainer.projectService.getAllProjects()
         val projectUuidsById = projects.associate { it.id to it.uuid.toString() }
         call.respond(
             reports.mapNotNull { report ->
@@ -54,11 +49,8 @@ fun Route.inspectionRoutes() {
     }
 
     get("/api/v1/inspection-reports/analytics") {
-        val session = call.requireRole("ADMIN", "PROJECT_MANAGER", "INSPECTOR", "VIEWER") ?: return@get
-        val allowedProjectIds = if (session.roleCode.equals("PROJECT_MANAGER", ignoreCase = true)) {
-            AppContainer.projectService.managedProjectIds(session.userId)
-        } else null
-        val analytics = AppContainer.inspectionAnalyticsService.get(allowedProjectIds)
+        call.requireRole("ADMIN", "PROJECT_MANAGER", "INSPECTOR", "VIEWER") ?: return@get
+        val analytics = AppContainer.inspectionAnalyticsService.get(null)
         call.respond(
             InspectionAnalyticsResponse(
                 monthlyInspectionCounts = analytics.monthlyInspectionCounts.map { DashboardMetricResponse(it.label, it.value) },

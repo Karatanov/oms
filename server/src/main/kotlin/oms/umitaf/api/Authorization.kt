@@ -41,12 +41,9 @@ private fun ApplicationCall.bearerSession(): UserSession? =
         ?.takeIf { it.isNotEmpty() }
         ?.let(JwtTokenService::verify)
 
-/** Project managers are confined to assigned projects; administrators are unrestricted. */
-internal suspend fun ApplicationCall.requireProjectAccess(session: UserSession, projectUuid: String): Boolean {
-    if (session.roleCode.equals("ADMIN", ignoreCase = true) ||
-        !session.roleCode.equals("PROJECT_MANAGER", ignoreCase = true)
-    ) return true
-    if (AppContainer.projectService.isManagedBy(projectUuid, session.userId)) return true
-    respond(HttpStatusCode.Forbidden, ErrorResponse("FORBIDDEN", "You can access only projects assigned to you."))
-    return false
-}
+/**
+ * Project managers have the same operational access to projects as administrators.
+ * Route-level role checks still reserve permanent deletion and administration for ADMIN.
+ */
+@Suppress("UNUSED_PARAMETER")
+internal suspend fun ApplicationCall.requireProjectAccess(session: UserSession, projectUuid: String): Boolean = true

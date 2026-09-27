@@ -12,7 +12,7 @@ import oms.umitaf.dto.*
 
 fun Route.financialRoutes() {
     get("/api/v1/financials") {
-        val session = call.requireRole("ADMIN", "PROJECT_MANAGER") ?: return@get
+        call.requireRole("ADMIN", "PROJECT_MANAGER") ?: return@get
         val records = AppContainer.financialRecordService.getAll()
         // An empty registry needs no project lookup.  This is common in a new
         // deployment and avoids loading the full project tree just to return [].
@@ -20,12 +20,7 @@ fun Route.financialRoutes() {
             call.respond(emptyList<FinancialRecordListItemResponse>())
             return@get
         }
-        val managedProjectIds = if (session.roleCode.equals("PROJECT_MANAGER", ignoreCase = true)) {
-            AppContainer.projectService.managedProjectIds(session.userId)
-        } else null
-        val accessibleProjects = AppContainer.projectService.getAllProjects().filter { project ->
-            managedProjectIds == null || project.id in managedProjectIds
-        }
+        val accessibleProjects = AppContainer.projectService.getAllProjects()
         val projectUuidsById = accessibleProjects.associate { it.id to it.uuid.toString() }
         call.respond(
             records.mapNotNull { record ->

@@ -9,16 +9,12 @@ import oms.umitaf.domain.ProjectStatus
 
 fun Route.mapRoutes() {
     get("/api/v1/projects/map") {
-        val session = call.requireRole("ADMIN", "PROJECT_MANAGER", "INSPECTOR", "VIEWER", "GUEST") ?: return@get
-        val managedProjectIds = if (session.roleCode.equals("PROJECT_MANAGER", ignoreCase = true)) {
-            AppContainer.projectService.managedProjectIds(session.userId)
-        } else null
+        call.requireRole("ADMIN", "PROJECT_MANAGER", "INSPECTOR", "VIEWER", "GUEST") ?: return@get
         call.respond(AppContainer.projectService.getAllProjects().filter {
             it.projectType != ProjectType.PROJECT &&
                 it.status != ProjectStatus.ARCHIVED &&
                 it.latitude != null && it.longitude != null &&
-                (it.latitude != 0.0 || it.longitude != 0.0) &&
-                (managedProjectIds == null || it.id in managedProjectIds)
+                (it.latitude != 0.0 || it.longitude != 0.0)
         }.map {
             ProjectMapPointResponse(
                 uuid = it.uuid.toString(),

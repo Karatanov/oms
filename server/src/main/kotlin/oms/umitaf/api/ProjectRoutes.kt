@@ -67,16 +67,11 @@ fun Route.projectRoutes() {
         if (page < 1 || pageSize !in 1..250) {
             return@get call.respond(HttpStatusCode.BadRequest, ErrorResponse("VALIDATION_ERROR", "page must be positive and pageSize must be between 1 and 250."))
         }
-        val managedProjectIds = if (session.roleCode.equals("PROJECT_MANAGER", ignoreCase = true)) {
-            projectService.managedProjectIds(session.userId)
-        } else null
         val projects = projectService.searchProjects(
             status = call.request.queryParameters["status"],
             region = call.request.queryParameters["region"],
             search = call.request.queryParameters["search"]
-        ).filter { project ->
-            managedProjectIds == null || project.id in managedProjectIds
-        }
+        )
         val total = projects.size.toLong()
         val pagedProjects = projects.drop((page - 1) * pageSize).take(pageSize)
 
@@ -119,10 +114,6 @@ fun Route.projectRoutes() {
         val session = call.requireRole("ADMIN", "PROJECT_MANAGER") ?: return@post
 
         val request = call.receive<CreateProjectRequest>()
-        if (session.roleCode.equals("PROJECT_MANAGER", ignoreCase = true) &&
-            request.parentProjectUuid != null && !call.requireProjectAccess(session, request.parentProjectUuid)
-        ) return@post
-
         try {
 
             val result = transaction {
@@ -317,9 +308,6 @@ fun Route.projectRoutes() {
         val session = call.requireRole("ADMIN", "PROJECT_MANAGER") ?: return@patch
         try {
             val request = call.receive<BulkProjectUpdateRequest>()
-            if (session.roleCode.equals("PROJECT_MANAGER", ignoreCase = true) &&
-                request.projectUuids.any { !projectService.isManagedBy(it, session.userId) }
-            ) return@patch call.respond(HttpStatusCode.Forbidden, ErrorResponse("FORBIDDEN", "You can update only projects assigned to you."))
             val updated = projectService.bulkUpdateStatus(request.projectUuids, request.status)
             AppContainer.auditLogService.record(session.userId, "projects_bulk_status_updated", "project", 0)
             call.respond(BulkProjectUpdateResponse(updated))
@@ -349,8 +337,7 @@ fun Route.projectRoutes() {
         val session = call.requireRole("ADMIN", "PROJECT_MANAGER") ?: return@get
         val requestedUuids = call.request.queryParameters.getAll("uuid")?.map(String::trim)?.filter(String::isNotEmpty).orEmpty()
         val projects = projectService.getAllProjects().filter { project ->
-            (requestedUuids.isEmpty() || project.uuid.toString() in requestedUuids) &&
-                (session.roleCode.equals("ADMIN", ignoreCase = true) || projectService.isManagedBy(project.uuid.toString(), session.userId))
+            requestedUuids.isEmpty() || project.uuid.toString() in requestedUuids
         }
         call.response.header(HttpHeaders.ContentDisposition, "attachment; filename=oms-projects.xlsx")
         call.respondOutputStream(ContentType.parse("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")) {

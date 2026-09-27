@@ -18,10 +18,7 @@ fun Route.dashboardRoutes() {
     get("/api/v1/dashboard/overview") {
         val session = call.requireRole("ADMIN", "PROJECT_MANAGER", "INSPECTOR", "VIEWER") ?: return@get
         val trancheNumber = call.request.queryParameters["tranche"]?.toIntOrNull()?.takeIf { it in 1..2 }
-        val allowedProjectIds = if (session.roleCode.equals("PROJECT_MANAGER", ignoreCase = true)) {
-            AppContainer.projectService.managedProjectIds(session.userId)
-        } else null
-        val overview = AppContainer.dashboardService.getOverview(allowedProjectIds, trancheNumber)
+        val overview = AppContainer.dashboardService.getOverview(null, trancheNumber)
         call.respond(
             DashboardOverviewResponse(
                 recentInspections = overview.recentInspections.map { it.report.toResponse(it.subprojectCode) },
@@ -36,10 +33,7 @@ fun Route.dashboardRoutes() {
     get("/api/v1/dashboard") {
         val session = call.requireRole("ADMIN", "PROJECT_MANAGER", "INSPECTOR", "VIEWER") ?: return@get
         val trancheNumber = call.request.queryParameters["tranche"]?.toIntOrNull()?.takeIf { it in 1..2 }
-        val allowedProjectIds = if (session.roleCode.equals("PROJECT_MANAGER", ignoreCase = true)) {
-            AppContainer.projectService.managedProjectIds(session.userId)
-        } else null
-        val d = AppContainer.dashboardService.get(allowedProjectIds, trancheNumber)
+        val d = AppContainer.dashboardService.get(null, trancheNumber)
         val activities = if (session.roleCode.equals("ADMIN", ignoreCase = true)) {
             d.activities.map {
                 ActivityResponse(
