@@ -223,9 +223,11 @@ fun ProjectsScreen(
         if (canManageProjects) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 listOf("active", "archived", "all").forEach { filter ->
-                    FilterChip(archiveFilter == filter, { archiveFilter = filter }) {
-                        Text(LocalizationManager.t("archive_filter_$filter"))
-                    }
+                    FilterChip(
+                        selected = archiveFilter == filter,
+                        onClick = { archiveFilter = filter },
+                        label = { Text(LocalizationManager.t("archive_filter_$filter")) }
+                    )
                 }
             }
             Spacer(Modifier.height(8.dp))

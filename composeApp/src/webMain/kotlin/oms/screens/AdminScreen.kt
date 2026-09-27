@@ -327,6 +327,7 @@ fun AdminScreen() {
         }
     }
 }
+}
 
 @Composable
 private fun AdminStaticHeader(text: String, width: androidx.compose.ui.unit.Dp) {
