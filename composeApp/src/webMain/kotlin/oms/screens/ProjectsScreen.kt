@@ -268,11 +268,22 @@ fun ProjectsScreen(
             onOpenProject = onOpenProject,
             onEditProject = onEditProject,
             onDeleteProject = { project ->
-                deletion.show(project.localizedName()) { scope.launch {
-                    val completed = oms.data.OmsApiClient.permanentlyDeleteProject(project.id)
-                    if (completed) ProjectRepository.refresh(force = true)
-                    else errorMessage = LocalizationManager.t("permanent_delete_failed")
-                } }
+                deletion.showWithArchive(
+                    name = project.localizedName(),
+                    deleteAction = {
+                        scope.launch {
+                            val completed = oms.data.OmsApiClient.permanentlyDeleteProject(project.id)
+                            if (completed) ProjectRepository.refresh(force = true)
+                            else errorMessage = LocalizationManager.t("permanent_delete_failed")
+                        }
+                    },
+                    archiveAction = {
+                        scope.launch {
+                            if (oms.data.OmsApiClient.archiveProject(project.id)) ProjectRepository.refresh(force = true)
+                            else errorMessage = LocalizationManager.t("error_archive_projects")
+                        }
+                    }
+                )
             },
             canManageProjects = canManageProjects,
             canPermanentlyDeleteProjects = canPermanentlyDeleteProjects,

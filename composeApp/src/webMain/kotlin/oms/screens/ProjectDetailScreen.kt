@@ -239,6 +239,17 @@ fun ProjectDetailScreen(
                             onClick = { confirmDeletion = false },
                             modifier = Modifier.pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true)
                         ) { Text(LocalizationManager.t("cancel")) }
+                        OutlinedButton(
+                            onClick = {
+                                scope.launch {
+                                    if (OmsApiClient.archiveProject(project.id)) {
+                                        ProjectRepository.refresh(force = true)
+                                        onBackToProjects()
+                                    } else deleteError = LocalizationManager.t("error_archive_projects")
+                                }
+                            },
+                            modifier = Modifier.pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true)
+                        ) { Text(LocalizationManager.t("archive")) }
                         Button(
                             onClick = {
                                 scope.launch {
