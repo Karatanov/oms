@@ -407,6 +407,7 @@ fun Route.projectRoutes() {
         val session = call.requireRole("ADMIN") ?: return@delete
         val uuid = call.parameters["uuid"] ?: return@delete call.respond(HttpStatusCode.BadRequest, ErrorResponse("VALIDATION_ERROR", "Project UUID is required."))
         val project = projectService.getProjectByUuid(uuid) ?: return@delete call.respond(HttpStatusCode.NotFound, ErrorResponse("NOT_FOUND", "Project not found."))
+        if (!project.isArchived) return@delete call.respond(HttpStatusCode.Conflict, ErrorResponse("NOT_ARCHIVED", "Archive the project before permanently deleting it."))
         val dependencies = projectService.projectDependencies(uuid)
         if (dependencies.isNotEmpty()) return@delete call.respond(HttpStatusCode.Conflict, ErrorResponse("HAS_DEPENDENCIES", dependencies.entries.joinToString("; ") { "${it.value} ${it.key}" }))
         if (!projectService.permanentlyDeleteProject(uuid)) return@delete call.respond(HttpStatusCode.NotFound, ErrorResponse("NOT_FOUND", "Project not found."))

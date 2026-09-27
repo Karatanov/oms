@@ -417,6 +417,7 @@ class ExposedProjectRepository : ProjectRepository {
         val ids = projectDeletionOrder(root[ProjectTable.id].value, children)
         ProjectTable.update({ ProjectTable.id inList ids }) {
             it[isArchived] = true; it[archivedAt] = LocalDateTime.now(); it[ProjectTable.archivedBy] = archivedBy
+            it[status] = ProjectStatus.ARCHIVED.name.lowercase()
         } > 0
     }
 
@@ -427,6 +428,7 @@ class ExposedProjectRepository : ProjectRepository {
         val ids = projectDeletionOrder(root[ProjectTable.id].value, children)
         ProjectTable.update({ ProjectTable.id inList ids }) {
             it[isArchived] = false; it[archivedAt] = null; it[ProjectTable.archivedBy] = null
+            it[status] = ProjectStatus.ACTIVE.name.lowercase()
         } > 0
     }
 

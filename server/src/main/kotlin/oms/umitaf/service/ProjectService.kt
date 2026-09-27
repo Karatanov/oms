@@ -359,15 +359,15 @@ class ProjectService(
     }
 
     fun archiveProject(uuid: String, archivedBy: Long): Boolean {
-        val updated = projectRepository.updateStatusByUuids(listOf(uuid.trim()), ProjectStatus.ARCHIVED)
-        if (updated > 0) invalidateProjectCache()
-        return updated > 0
+        val updated = projectRepository.archiveByUuid(uuid.trim(), archivedBy)
+        if (updated) invalidateProjectCache()
+        return updated
     }
 
     fun restoreProject(uuid: String): Boolean {
-        val updated = projectRepository.updateStatusByUuids(listOf(uuid.trim()), ProjectStatus.ACTIVE)
-        if (updated > 0) invalidateProjectCache()
-        return updated > 0
+        val updated = projectRepository.restoreByUuid(uuid.trim())
+        if (updated) invalidateProjectCache()
+        return updated
     }
     fun permanentlyDeleteProject(uuid: String): Boolean = projectRepository.deleteByUuid(uuid.trim()).also { if (it) invalidateProjectCache() }
     fun projectDependencies(uuid: String): Map<String, Long> = projectRepository.dependencyCounts(uuid.trim())

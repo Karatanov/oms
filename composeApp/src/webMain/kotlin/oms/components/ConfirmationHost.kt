@@ -14,12 +14,13 @@ class DeleteConfirmation internal constructor() {
         val name: String,
         val archive: Boolean,
         val action: () -> Unit,
-        val archiveAlternative: (() -> Unit)? = null
+        val archiveAlternative: (() -> Unit)? = null,
+        val permanentlyDelete: Boolean = false
     )
     internal var request by mutableStateOf<Request?>(null)
     fun show(name: String, action: () -> Unit) { request = Request(name, false, action) }
     fun showWithArchive(name: String, deleteAction: () -> Unit, archiveAction: () -> Unit) {
-        request = Request(name, false, deleteAction, archiveAction)
+        request = Request(name, false, deleteAction, archiveAction, permanentlyDelete = true)
     }
     fun showArchive(name: String, action: () -> Unit) { request = Request(name, true, action) }
 }
@@ -36,8 +37,11 @@ fun ConfirmationHost(content: @Composable () -> Unit) {
                     Card(Modifier.widthIn(max = 480.dp).fillMaxWidth()) {
                         Column(Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                             Icon(Icons.Outlined.Delete, null, tint = if (request.archive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error)
-                            Text(LocalizationManager.t(if (request.archive) "archive" else "confirm_delete_title"), style = MaterialTheme.typography.titleLarge)
-                            Text(if (request.archive) LocalizationManager.t("archive_confirmation") else LocalizationManager.t("confirm_delete_message").replace("{name}", request.name))
+                            Text(LocalizationManager.t(if (request.archive) "archive" else if (request.permanentlyDelete) "confirm_permanent_delete_title" else "confirm_delete_title"), style = MaterialTheme.typography.titleLarge)
+                            Text(
+                                if (request.archive) LocalizationManager.t("archive_confirmation")
+                                else LocalizationManager.t(if (request.permanentlyDelete) "confirm_permanent_delete_message" else "confirm_delete_message").replace("{name}", request.name)
+                            )
                             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, androidx.compose.ui.Alignment.End)) {
                                 OutlinedButton(onClick = { state.request = null }) { Text(LocalizationManager.t("cancel")) }
                                 request.archiveAlternative?.let { archiveAction ->
@@ -46,7 +50,7 @@ fun ConfirmationHost(content: @Composable () -> Unit) {
                                     }
                                 }
                                 Button(onClick = { state.request = null; request.action() },
-                                    colors = ButtonDefaults.buttonColors(containerColor = if (request.archive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error)) { Text(LocalizationManager.t(if (request.archive) "archive" else "delete")) }
+                                    colors = ButtonDefaults.buttonColors(containerColor = if (request.archive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error)) { Text(LocalizationManager.t(if (request.archive) "archive" else if (request.permanentlyDelete) "permanently_delete" else "delete")) }
                             }
                         }
                     }

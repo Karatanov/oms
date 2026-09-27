@@ -215,9 +215,9 @@ fun ProjectDetailScreen(
                                 modifier = Modifier.pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true),
                                 colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)
                             ) {
-                                Icon(Icons.Default.Delete, contentDescription = LocalizationManager.t("delete_project"))
+                                Icon(Icons.Default.DeleteForever, contentDescription = LocalizationManager.t("permanently_delete"))
                                 Spacer(Modifier.width(8.dp))
-                                Text(LocalizationManager.t("delete"))
+                                Text(LocalizationManager.t("permanently_delete"))
                             }
                         }
                     }
@@ -231,8 +231,8 @@ fun ProjectDetailScreen(
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
             ) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text(LocalizationManager.t("confirm_delete_title"), style = MaterialTheme.typography.titleMedium)
-                    Text(LocalizationManager.t("confirm_delete_message").replace("{name}", project.localizedName()))
+                    Text(LocalizationManager.t("confirm_permanent_delete_title"), style = MaterialTheme.typography.titleMedium)
+                    Text(LocalizationManager.t("confirm_permanent_delete_message").replace("{name}", project.localizedName()))
                     deleteError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
                         OutlinedButton(
@@ -261,7 +261,7 @@ fun ProjectDetailScreen(
                             },
                             modifier = Modifier.pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true),
                             colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
-                        ) { Text(LocalizationManager.t("delete")) }
+                        ) { Text(LocalizationManager.t("permanently_delete")) }
                     }
                 }
             }
