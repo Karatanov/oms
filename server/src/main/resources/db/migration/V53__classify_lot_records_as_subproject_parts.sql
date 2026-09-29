@@ -22,7 +22,7 @@ INSERT INTO projects (
 )
 SELECT
     UUID(), 'subproject', lot.tranche_number, lot.parent_project_id,
-    lot.parent_site_number, lot.parent_site_number, lot.parent_site_number,
+    SUBSTRING_INDEX(lot.site_number, '#', 1), SUBSTRING_INDEX(lot.site_number, '#', 1), SUBSTRING_INDEX(lot.site_number, '#', 1),
     lot.address, lot.region, lot.city, lot.latitude, lot.longitude, lot.status,
     lot.sector, lot.construction_type, 0, lot.currency, NULL,
     lot.manager_id, lot.created_by
