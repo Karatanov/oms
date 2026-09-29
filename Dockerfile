@@ -18,13 +18,17 @@ COPY server/src server/src
 # The VPS serves the browser bundle and API from one origin.  The bundle is
 # built once in CI and copied into the runtime image; the server never compiles
 # Kotlin at startup.
-RUN gradle -PrenderJsOnly :composeApp:jsBrowserProductionWebpack :server:installDist --no-daemon --max-workers=1
+# The production Webpack minifier stalls for more than twenty minutes on the
+# hosted Linux builder. Source maps are disabled in composeApp, so the
+# development bundle is compact enough for this internal OMS deployment and
+# gives us a reliable, quickly repeatable image build.
+RUN gradle -PrenderJsOnly :composeApp:jsBrowserDevelopmentWebpack :server:installDist --no-daemon --max-workers=1
 
 FROM eclipse-temurin:21-jre
 WORKDIR /opt/oms
 COPY --from=build /workspace/server/build/install/server/ ./
 COPY --from=build /workspace/composeApp/build/processedResources/js/main/ ./web/
-COPY --from=build /workspace/composeApp/build/kotlin-webpack/js/productionExecutable/ ./web/
+COPY --from=build /workspace/composeApp/build/kotlin-webpack/js/developmentExecutable/ ./web/
 ENV JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=70.0"
 EXPOSE 8080
 CMD ["bin/server"]
