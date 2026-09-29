@@ -54,4 +54,7 @@ jobs:
           tags: ${{ steps.metadata.outputs.tags }}
           labels: ${{ steps.metadata.outputs.labels }}
           cache-from: type=gha
-          cache-to: type=gha,mode=max
+          # Kotlin/JS production artifacts make a full BuildKit cache very
+          # large and can leave the registry job stuck while uploading it.
+          # Keep only the final reusable cache layers for reliable releases.
+          cache-to: type=gha,mode=min
