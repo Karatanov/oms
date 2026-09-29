@@ -1,0 +1,64 @@
+services:
+  mysql:
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?set in .env}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-umitaf}
+      MYSQL_USER: ${DATABASE_USER:?set in .env}
+      MYSQL_PASSWORD: ${DATABASE_PASSWORD:?set in .env}
+    volumes:
+      - oms-mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    networks:
+      - oms-internal
+
+  oms:
+    image: ghcr.io/karatanov/oms:${OMS_IMAGE_TAG:-latest}
+    pull_policy: always
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      PORT: "8080"
+      DATABASE_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE:-umitaf}
+      DATABASE_DIALECT: mysql
+      DATABASE_USER: ${DATABASE_USER:?set in .env}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD:?set in .env}
+      OMS_JWT_SECRET: ${OMS_JWT_SECRET:?set in .env}
+      OMS_PUBLIC_BASE_URL: https://ua-oms.com
+      OMS_UPLOAD_DIR: /var/lib/oms/uploads
+      OMS_WEB_DIR: /opt/oms/web
+      DATABASE_POOL_MAX_SIZE: ${DATABASE_POOL_MAX_SIZE:-10}
+      DATABASE_POOL_MIN_IDLE: ${DATABASE_POOL_MIN_IDLE:-2}
+      OMS_LOG_LEVEL: ${OMS_LOG_LEVEL:-INFO}
+    volumes:
+      - oms-uploads:/var/lib/oms/uploads
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=oms-internal
+      - traefik.http.routers.oms.rule=Host(`ua-oms.com`)
+      - traefik.http.routers.oms.entrypoints=websecure
+      - traefik.http.routers.oms.tls=true
+      - traefik.http.routers.oms.tls.certresolver=letsencrypt
+      - traefik.http.services.oms.loadbalancer.server.port=8080
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/health >/dev/null"]
+      interval: 15s
+      timeout: 5s
+      retries: 8
+    networks:
+      - oms-internal
+
+volumes:
+  oms-mysql-data:
+  oms-uploads:
+
+networks:
+  oms-internal:
+    name: oms-internal
