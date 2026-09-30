@@ -18,7 +18,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.input.key.*
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.yield
 import oms.components.*
@@ -50,21 +49,15 @@ fun DashboardScreen(
         // Yield a frame first: the authenticated workspace and its navigation
         // become interactive before the remote overview begins loading.
         yield()
-        // A free Render service may still be waking up when the first request
-        // is made.  Do not turn the dashboard into an empty error screen after
-        // that transient failure: keep the chart placeholders visible and retry.
+        // Production runs on an always-on VPS. Retrying a slow dashboard request
+        // serially can multiply a backend/database delay and make login appear frozen.
+        // Fail once and let the user retry explicitly instead.
         try {
-            repeat(4) { attempt ->
-                try {
-                    dashboard = OmsApiClient.dashboardOverview(trancheNumber)
-                    return@LaunchedEffect
-                } catch (cancelled: CancellationException) {
-                    // Leaving Dashboard cancels this effect and aborts the pending fetch.
-                    throw cancelled
-                } catch (_: Exception) {
-                    if (attempt < 3) delay((attempt + 1) * 2_000L) else error = true
-                }
-            }
+            dashboard = OmsApiClient.dashboardOverview(trancheNumber)
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (_: Exception) {
+            error = true
         } finally {
             loading = false
         }
