@@ -9,6 +9,7 @@ on:
       - 'composeApp/**'
       - 'tools/test-date-picker.cjs'
       - 'tools/test-browser-auth.cjs'
+      - 'tools/test-login-entrypoint.cjs'
       - '.github/workflows/project-form-tests.yml'
 permissions:
   contents: read
@@ -33,6 +34,8 @@ jobs:
         run: node tools/test-date-picker.cjs
       - name: Cookie-free authentication in Chromium, WebKit and Firefox
         run: node tools/test-browser-auth.cjs
+      - name: Lightweight login routing for VPS and Pages
+        run: node tools/test-login-entrypoint.cjs
       - name: Authenticated startup shell in Chromium
         run: node tools/test-startup-shell.cjs
       - uses: actions/upload-artifact@v4

@@ -40,6 +40,14 @@ file could start the transfer earlier but could not remove this critical path.
 Three Leaflet stylesheets were also render-blocking in `app.html` even though
 Leaflet JavaScript was correctly deferred until the map screen.
 
+A follow-up comparison with GitHub Pages found a second deployment-wide
+regression. `composeApp/webpack.config.d/render-no-minify.js`, added for an old
+Render memory limit, disabled Terser for every production Webpack build. The
+Pages CI log therefore reported a 20.5 MiB `composeApp.js` without the
+`[minimized]` marker. Render now redirects its frontend to those same Pages
+assets, so the mistake affected both URLs. Pages also continued serving the
+Compose application as its root page instead of the lightweight login page.
+
 `material-icons-extended` exposes a large dependency graph, but production
 Kotlin/JS dead-code elimination retains the used icons. Replacing roughly 70
 used icons before fixing the development artifact would add substantial risk
@@ -61,6 +69,11 @@ for a much smaller expected gain, so it is not part of this change.
 6. Add Performance API marks (`oms-shell-visible`, `oms-shell-useful`) and a
    cold-cache measurement script so network/startup regressions are separable
    from API latency.
+7. Remove the global no-minify override. It was named for Render but silently
+   affected GitHub Pages as well.
+8. Publish `login.html` as the Pages entry point and the Compose application as
+   `app.html`. The login page does not preload Compose and sends authentication
+   directly to the Render API when hosted on `karatanov.github.io`.
 
 ## Validation
 
