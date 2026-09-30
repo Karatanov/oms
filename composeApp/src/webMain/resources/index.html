@@ -967,8 +967,18 @@
             if (omsRouteHandler) omsRouteHandler(window.location.hash.replace(/^#/, ""));
         });
     </script>
+    <style>
+        /* Visible before the large Kotlin/JS bundle is parsed. The runtime
+           reuses this element and dismisses it after its first API response. */
+        #oms-loading-overlay { position: fixed; inset: 0; z-index: 2147483647; display: grid; place-items: center; background: #f7fafc; color: #1b4f61; transition: opacity .18s ease; }
+        #oms-loading-overlay:not(.visible) { opacity: 0; pointer-events: none; }
+        .oms-loading-card { display: flex; align-items: center; gap: 12px; padding: 18px 22px; border-radius: 12px; background: #fff; box-shadow: 0 10px 30px #1a47561c; font: 600 15px Inter, Arial, sans-serif; }
+        .oms-loading-spinner { width: 22px; height: 22px; border: 3px solid #17728a33; border-top-color: #17728a; border-radius: 50%; animation: oms-spin .7s linear infinite; }
+        @keyframes oms-spin { to { transform: rotate(360deg); } }
+    </style>
 </head>
 <body>
+<div id="oms-loading-overlay" class="visible" role="status" aria-live="polite"><div class="oms-loading-card"><span class="oms-loading-spinner"></span><span class="oms-loading-message">Завантаження OMS…</span></div></div>
 <div id="app-shell">
     <div id="compose-host"></div>
     <section id="dashboard-photo-slider" aria-live="polite"></section>
