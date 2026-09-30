@@ -3,6 +3,8 @@ name: Publish OMS frontend to GitHub Pages
 on:
   push:
     branches: [master]
+  pull_request:
+    branches: [master]
   workflow_dispatch:
 
 permissions:
@@ -49,9 +51,14 @@ jobs:
           mkdir -p build/pages
           cp -a composeApp/build/processedResources/js/main/. build/pages/
           cp -a composeApp/build/kotlin-webpack/js/productionExecutable/. build/pages/
+          cp build/pages/index.html build/pages/app.html
+          cp composeApp/src/webMain/resources/login.html build/pages/index.html
           touch build/pages/.nojekyll
           test -f build/pages/index.html
+          test -f build/pages/app.html
           test -f build/pages/composeApp.js
+          grep -q 'id="login-form"' build/pages/index.html
+          grep -q 'composeApp.js' build/pages/app.html
 
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
@@ -64,6 +71,7 @@ jobs:
           path: build/pages
 
   deploy:
+    if: github.event_name != 'pull_request'
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

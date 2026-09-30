@@ -39,6 +39,8 @@ private external fun hideOmsLoading()
 private external fun setOmsAccessToken(value: String)
 @JsName("omsAuthorizationFor")
 private external fun omsAuthorizationFor(url: String): String
+@JsName("takeOmsBootstrappedDashboard")
+private external fun takeOmsBootstrappedDashboard(): String
 
 @OptIn(ExperimentalWasmJsInterop::class)
 object OmsApiClient {
@@ -212,15 +214,25 @@ object OmsApiClient {
         trancheNumber?.let { parameter("tranche", it) }
     }.body()
 
-    suspend fun dashboardOverview(trancheNumber: Int? = null): ApiDashboardOverview = try {
-        client.get("$baseUrl/dashboard/overview") {
-            trancheNumber?.let { parameter("tranche", it) }
-        }.body()
-    } catch (_: Exception) {
-        // Keep the dashboard useful while an older database or a partially
-        // migrated Render instance cannot serve the lightweight endpoint.
-        // The established endpoint carries the same chart data.
-        dashboard(trancheNumber).toOverview()
+    suspend fun dashboardOverview(trancheNumber: Int? = null): ApiDashboardOverview {
+        // app.html fetches the initial overview immediately, while the large
+        // Compose bundle is still downloading. Reuse that response instead of
+        // issuing the same query again when Compose finally starts.
+        val bootstrapped = if (trancheNumber == null) {
+            runCatching { takeOmsBootstrappedDashboard() }.getOrDefault("")
+        } else ""
+        if (bootstrapped.isNotBlank()) {
+            return Json { ignoreUnknownKeys = true }.decodeFromString(bootstrapped)
+        }
+        return try {
+            client.get("$baseUrl/dashboard/overview") {
+                trancheNumber?.let { parameter("tranche", it) }
+            }.body()
+        } catch (_: Exception) {
+            // Keep the dashboard useful while an older database or a partially
+            // migrated instance cannot serve the lightweight endpoint.
+            dashboard(trancheNumber).toOverview()
+        }
     }
 
     suspend fun inspectionAnalytics(): ApiInspectionAnalytics =

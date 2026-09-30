@@ -5,12 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>UMITAF</title>
     <link type="text/css" rel="stylesheet" href="styles.css?v=20260921-report-preview-hit-test">
-    <link
-            rel="stylesheet"
-            href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-    />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
     <script src="auth.js?v=20260925-safari"></script>
     <script>
         function omsApiUrl(path) {
@@ -219,12 +213,28 @@
             });
         }
 
+        function loadStyle(url) {
+            return new Promise((resolve, reject) => {
+                if (document.querySelector(`link[href="${url}"]`)) { resolve(); return; }
+                const link = document.createElement("link");
+                link.rel = "stylesheet";
+                link.href = url;
+                link.onload = resolve;
+                link.onerror = reject;
+                document.head.appendChild(link);
+            });
+        }
+
         function ensureLeafletLoaded() {
             if (window.L && typeof L.map === "function" && typeof L.markerClusterGroup === "function") {
                 return Promise.resolve(true);
             }
             if (umitafLeafletLoading) return umitafLeafletLoading;
-            umitafLeafletLoading = loadScript("https://unpkg.com/leaflet@1.9.4/dist/leaflet.js")
+            umitafLeafletLoading = Promise.all([
+                loadStyle("https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"),
+                loadStyle("https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"),
+                loadStyle("https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css")
+            ]).then(() => loadScript("https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"))
                 .then(() => loadScript("https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"))
                 .then(() => true)
                 .catch(() => false);
@@ -970,15 +980,26 @@
     <style>
         /* Visible before the large Kotlin/JS bundle is parsed. The runtime
            reuses this element and dismisses it after its first API response. */
-        #oms-loading-overlay { position: fixed; inset: 0; z-index: 2147483647; display: grid; place-items: center; background: #f7fafc; color: #1b4f61; transition: opacity .18s ease; }
+        #oms-loading-overlay { position: fixed; inset: 0; z-index: 2147483647; overflow: auto; background: #f4f7f9; color: #20313c; transition: opacity .18s ease; }
         #oms-loading-overlay:not(.visible) { opacity: 0; pointer-events: none; }
-        .oms-loading-card { display: flex; align-items: center; gap: 12px; padding: 18px 22px; border-radius: 12px; background: #fff; box-shadow: 0 10px 30px #1a47561c; font: 600 15px Inter, Arial, sans-serif; }
+        .oms-startup-header { display: flex; align-items: center; justify-content: space-between; min-height: 66px; padding: 0 28px; background: #fff; border-bottom: 1px solid #dce5ea; font: 700 18px Inter, Arial, sans-serif; }
+        .oms-loading-card { display: flex; align-items: center; gap: 10px; color: #536571; font: 500 13px Inter, Arial, sans-serif; }
         .oms-loading-spinner { width: 22px; height: 22px; border: 3px solid #17728a33; border-top-color: #17728a; border-radius: 50%; animation: oms-spin .7s linear infinite; }
+        .oms-startup-main { width: min(1180px, calc(100% - 40px)); margin: 0 auto; padding: 34px 0; font-family: Inter, Arial, sans-serif; }
+        .oms-startup-main h1 { margin: 0 0 6px; font-size: 28px; } .oms-startup-main > p { margin: 0 0 26px; color: #536571; }
+        .oms-startup-cards { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+        .oms-startup-card { min-height: 116px; padding: 20px; border: 1px solid #dce5ea; border-radius: 12px; background: #fff; box-shadow: 0 4px 14px #1a475608; }
+        .oms-startup-label { color: #536571; font-size: 13px; } .oms-startup-value { margin-top: 12px; color: #16566c; font-size: 28px; font-weight: 700; }
+        .oms-startup-error { padding: 18px; border-radius: 10px; background: #fcebec; color: #81252c; }
+        @media (max-width: 760px) { .oms-startup-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); } .oms-startup-header { padding: 0 18px; } }
         @keyframes oms-spin { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
-<div id="oms-loading-overlay" class="visible" role="status" aria-live="polite"><div class="oms-loading-card"><span class="oms-loading-spinner"></span><span class="oms-loading-message">Завантаження OMS…</span></div></div>
+<div id="oms-loading-overlay" class="visible" role="status" aria-live="polite">
+    <header class="oms-startup-header"><span>UMITAF OMS</span><div class="oms-loading-card"><span class="oms-loading-spinner"></span><span class="oms-loading-message">Завантаження повної системи…</span></div></header>
+    <main class="oms-startup-main"><h1>Головна панель</h1><p>Актуальні дані доступні, повний інтерфейс завантажується у фоні.</p><div id="oms-startup-cards" class="oms-startup-cards"><div class="oms-startup-card"><div class="oms-startup-label">Завантаження даних…</div></div></div></main>
+</div>
 <div id="app-shell">
     <div id="compose-host"></div>
     <section id="dashboard-photo-slider" aria-live="polite"></section>
@@ -988,6 +1009,37 @@
     </div>
 </div>
 <!--suppress HtmlUnknownTarget -->
+<script>
+    window.omsBootstrappedDashboard = "";
+    window.takeOmsBootstrappedDashboard = () => {
+        const value = window.omsBootstrappedDashboard;
+        window.omsBootstrappedDashboard = "";
+        return value;
+    };
+    performance.mark("oms-shell-visible");
+    (async () => {
+        const cards = document.getElementById("oms-startup-cards");
+        try {
+            const response = await omsAuthenticatedFetch(omsApiUrl("/dashboard/overview?background=true"));
+            if (response.status === 401) { location.replace("/"); return; }
+            if (!response.ok) throw new Error(`Dashboard ${response.status}`);
+            const text = await response.text();
+            const data = JSON.parse(text);
+            window.omsBootstrappedDashboard = text;
+            const subprojects = new Set([...(data.subprojectFunding || []), ...(data.subprojectProgress || [])].map(item => item.projectUuid)).size;
+            const progress = data.subprojectProgress || [];
+            const averageProgress = progress.length ? Math.round(progress.reduce((sum, item) => sum + Number(item.completionPct || 0), 0) / progress.length) : 0;
+            const procurements = (data.procurementStatusCounts || []).reduce((sum, item) => sum + Number(item.value || 0), 0);
+            const inspections = (data.recentInspections || []).length;
+            const values = [["Субпроєкти", subprojects], ["Середнє виконання", `${averageProgress}%`], ["Закупівлі", procurements], ["Останні інспекції", inspections]];
+            cards.innerHTML = values.map(([label, value]) => `<section class="oms-startup-card"><div class="oms-startup-label">${label}</div><div class="oms-startup-value">${value}</div></section>`).join("");
+            performance.mark("oms-shell-useful");
+            performance.measure("oms-shell-to-useful", "oms-shell-visible", "oms-shell-useful");
+        } catch (error) {
+            cards.innerHTML = '<div class="oms-startup-error">Не вдалося завантажити огляд. Повний інтерфейс продовжує завантаження.</div>';
+        }
+    })();
+</script>
 <script type="application/javascript" src="composeApp.js?v=20260927-nonblocking-map"></script>
 </body>
 </html>
