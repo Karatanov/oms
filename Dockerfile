@@ -33,7 +33,9 @@ RUN mkdir -p /workspace/web \
     && sed -i -E "s#composeApp\\.js(\\?[^\"']*)?#composeApp.${asset_hash}.js#g" /workspace/web/index.html /workspace/web/login.html \
     && cp /workspace/web/index.html /workspace/web/app.html \
     && find /workspace/web -type f \( -name '*.js' -o -name '*.css' -o -name '*.wasm' \) -exec gzip -9 -k {} + \
-    && find /workspace/web -type f \( -name '*.js' -o -name '*.css' -o -name '*.wasm' \) -exec brotli -q 9 -f -k {} +
+    && find /workspace/web -type f \( -name '*.js' -o -name '*.css' -o -name '*.wasm' \) -exec brotli -q 9 -f -k {} + \
+    && echo 'Optimized browser asset sizes:' \
+    && find /workspace/web -maxdepth 1 -type f \( -name 'composeApp.*' -o -name '*.wasm*' \) -printf '%f %s bytes\n' | sort
 
 FROM eclipse-temurin:21-jre
 WORKDIR /opt/oms
