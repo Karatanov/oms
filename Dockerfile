@@ -1,5 +1,6 @@
 FROM gradle:8.14-jdk21 AS build
 WORKDIR /workspace
+RUN apt-get update && apt-get install -y --no-install-recommends brotli && rm -rf /var/lib/apt/lists/*
 COPY gradle gradle
 COPY gradlew gradlew.bat gradle.properties settings.gradle.kts build.gradle.kts ./
 # Keep the JVM dependency graph in its own reusable Docker layer.
@@ -18,25 +19,26 @@ COPY server/src server/src
 # The VPS serves the browser bundle and API from one origin.  The bundle is
 # built once in CI and copied into the runtime image; the server never compiles
 # Kotlin at startup.
-# The production Webpack minifier stalls for more than twenty minutes on the
-# hosted Linux builder. Source maps are disabled in composeApp, so the
-# development bundle is compact enough for this internal OMS deployment and
-# gives us a reliable, quickly repeatable image build.
-RUN gradle -PrenderJsOnly :composeApp:jsBrowserDevelopmentWebpack :server:installDist --no-daemon --max-workers=1
+# The development artifact is tens of megabytes and dominates cold startup.
+# Production Webpack is deliberately allowed to finish; CI has a bounded job
+# timeout and publishes only after the optimized artifact is complete.
+RUN gradle -PrenderJsOnly :composeApp:jsBrowserProductionWebpack :server:installDist --no-daemon --max-workers=1
+
+RUN mkdir -p /workspace/web \
+    && cp -a /workspace/composeApp/build/processedResources/js/main/. /workspace/web/ \
+    && cp -a /workspace/composeApp/build/kotlin-webpack/js/productionExecutable/. /workspace/web/ \
+    && cp /workspace/composeApp/src/webMain/resources/login.html /workspace/web/login.html \
+    && asset_hash=$(sha256sum /workspace/web/composeApp.js | cut -c1-12) \
+    && mv /workspace/web/composeApp.js "/workspace/web/composeApp.${asset_hash}.js" \
+    && sed -i -E "s#composeApp\\.js(\\?[^\"']*)?#composeApp.${asset_hash}.js#g" /workspace/web/index.html /workspace/web/login.html \
+    && cp /workspace/web/index.html /workspace/web/app.html \
+    && find /workspace/web -type f \( -name '*.js' -o -name '*.css' -o -name '*.wasm' \) -exec gzip -9 -k {} + \
+    && find /workspace/web -type f \( -name '*.js' -o -name '*.css' -o -name '*.wasm' \) -exec brotli -q 9 -f -k {} +
 
 FROM eclipse-temurin:21-jre
 WORKDIR /opt/oms
 COPY --from=build /workspace/server/build/install/server/ ./
-COPY --from=build /workspace/composeApp/build/processedResources/js/main/ ./web/
-COPY --from=build /workspace/composeApp/build/kotlin-webpack/js/developmentExecutable/ ./web/
-# Kotlin's JS resource task does not include webMain resources in this build
-# variant, so keep the standalone entry page explicit and deterministic.
-COPY composeApp/src/webMain/resources/login.html ./web/login.html
-# The Kotlin/JS application stays available after the lightweight login page.
-RUN cp web/index.html web/app.html
-# Serve the large Kotlin/JS bundle as a pre-compressed asset. This avoids
-# spending a Ktor worker on gzip for every first page load on the VPS.
-RUN find web -type f \( -name '*.js' -o -name '*.css' \) -exec gzip -9 -k {} +
+COPY --from=build /workspace/web/ ./web/
 ENV JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=70.0"
 EXPOSE 8080
 CMD ["bin/server"]

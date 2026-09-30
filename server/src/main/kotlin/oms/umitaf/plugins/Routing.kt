@@ -1,5 +1,6 @@
 package oms.umitaf.plugins
 
+import io.ktor.http.CacheControl
 import io.ktor.server.application.*
 import io.ktor.server.http.content.*
 import io.ktor.server.routing.*
@@ -56,9 +57,20 @@ fun Application.configureRouting() {
             get("/") {
                 call.respondFile(File(frontendDirectory, "login.html"))
             }
-        staticFiles("/", frontendDirectory, index = "index.html") {
-            preCompressed(CompressedFileType.GZIP)
-        }
+            staticFiles("/", frontendDirectory, index = "index.html") {
+                preCompressed(CompressedFileType.BROTLI, CompressedFileType.GZIP)
+                cacheControl { file ->
+                    val fingerprinted = Regex("""composeApp\.[0-9a-f]{12}\.js|[0-9a-f]{20}\.wasm""")
+                        .matches(file.name)
+                    if (fingerprinted) {
+                        listOf(CacheControl.MaxAge(maxAgeSeconds = 31_536_000, visibility = CacheControl.Visibility.Public))
+                    } else {
+                        // HTML and non-fingerprinted assets must revalidate so a
+                        // release never strands browsers on stale entry points.
+                        listOf(CacheControl.NoCache(CacheControl.Visibility.Public))
+                    }
+                }
+            }
         } else {
             // Keep old Render bookmarks useful until that temporary fallback
             // is retired. Production VPS Compose always sets OMS_WEB_DIR.
