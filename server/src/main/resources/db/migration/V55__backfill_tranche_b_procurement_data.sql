@@ -4,7 +4,9 @@
 -- Existing non-empty OMS values are preserved.  Only absent data and missing
 -- relations to the new Tranche B subprojects are restored.
 
-CREATE TEMPORARY TABLE procurement_tranche_b_source (
+-- MySQL cannot read the same TEMPORARY table twice in the INSERT below.
+-- This staging table exists only for this migration and is dropped at the end.
+CREATE TABLE procurement_tranche_b_source (
     subproject_code VARCHAR(64) NOT NULL, source_contract_type VARCHAR(255) NOT NULL,
     type_code VARCHAR(8) NOT NULL, source_procurement_id VARCHAR(128) NULL, oblast_id VARCHAR(32) NULL,
     promotor_name VARCHAR(500) NULL, subproject_name_uk TEXT NULL, subproject_name_en TEXT NULL,
