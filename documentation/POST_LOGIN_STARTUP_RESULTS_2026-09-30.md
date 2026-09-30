@@ -66,12 +66,45 @@ for a much smaller expected gain, so it is not part of this change.
 
 The isolated Chromium regression test renders useful authenticated dashboard
 cards and verifies one-time bootstrap consumption in 1.23 seconds total on the
-local test host, below the two-second shell target. The full Linux production
-image and Kotlin/JVM tests run in pull-request CI before merge.
+local test host, below the two-second shell target.
+
+All pull-request workflows passed, including backend regression tests, project
+form/browser authentication tests, and a complete Linux production image build.
+Production Webpack emitted a 6,103,878-byte fingerprinted JavaScript asset. The
+image build produced these exact transfer variants:
+
+| Asset | Uncompressed | Gzip | Brotli |
+|---|---:|---:|---:|
+| `composeApp.3a9dc4fde1c5.js` | 6,103,878 B | 1,583,397 B | 1,249,379 B |
+| Skiko WASM | 8,641,646 B | 3,280,102 B | 2,971,443 B |
+
+The immutable PR image was extracted in CI and served from an isolated,
+loopback-only staging container on the production VPS. The same fresh-profile
+Chrome CDP script, with cache disabled, measured:
+
+| Event | Baseline production | Optimized staging |
+|---|---:|---:|
+| JavaScript complete | 39,117 ms | 24,279 ms |
+| WASM complete | 59,614 ms | 42,147 ms |
+| JS + WASM compressed bytes | 8,269,898 B | 4,220,822 B |
+
+That is a 49% reduction in mandatory compressed asset bytes and a 29% reduction
+in the complete Compose asset path on this client route. The staging path used
+an SSH tunnel and HTTP/1.1, adding 1.5–2.8 seconds even to tiny HTML/API
+requests; it is therefore a conservative transport comparison, not a claim
+about direct production HTTPS latency.
+
+With a deterministic dashboard fixture, the staged shell was visible at
+6,671 ms and populated at 9,457 ms from guest authentication. Those absolute
+values are dominated by the SSH tunnel (the fixture itself took 2,786 ms across
+the tunnel and about 1 ms on the VPS). The isolated browser regression is the
+valid shell-render measurement: 1.23 seconds. A direct authenticated production
+measurement should be repeated after an approved deployment.
 
 Production is intentionally unchanged by this branch. Final cold-cache asset
-sizes and full-app timing should be captured from the built PR image in staging
-before merge, using the same measurement script.
+sizes and the full Compose asset path were captured from the built PR image in
+staging using the same measurement script. The temporary staging container,
+files, and SSH tunnel were removed after measurement.
 
 ## Remaining bottleneck and next step
 
