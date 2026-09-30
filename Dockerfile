@@ -29,6 +29,9 @@ WORKDIR /opt/oms
 COPY --from=build /workspace/server/build/install/server/ ./
 COPY --from=build /workspace/composeApp/build/processedResources/js/main/ ./web/
 COPY --from=build /workspace/composeApp/build/kotlin-webpack/js/developmentExecutable/ ./web/
+# Kotlin's JS resource task does not include webMain resources in this build
+# variant, so keep the standalone entry page explicit and deterministic.
+COPY composeApp/src/webMain/resources/login.html ./web/login.html
 # The Kotlin/JS application stays available after the lightweight login page.
 RUN cp web/index.html web/app.html
 # Serve the large Kotlin/JS bundle as a pre-compressed asset. This avoids
