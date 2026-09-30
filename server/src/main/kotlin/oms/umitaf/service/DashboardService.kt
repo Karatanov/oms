@@ -105,8 +105,8 @@ class DashboardService(
                     it[ProjectTable.trancheNumber].matchesTrancheFilter(trancheNumber)
             }
         val projectIds = projects.map { it[ProjectTable.id].value }.toSet()
-        val reports = InspectionReportTable.selectAll().toList()
-            .filter { it[InspectionReportTable.projectId].value in projectIds }
+        val reports = if (projectIds.isEmpty()) emptyList() else InspectionReportTable.selectAll()
+            .where { InspectionReportTable.projectId inList projectIds }.toList()
         val financialRecords = FinancialRecordTable.selectAll()
             .where { FinancialRecordTable.projectId inList projectIds }.toList()
         val actRecords = financialRecords.filter { it[FinancialRecordTable.recordType] == "act" }
@@ -119,11 +119,13 @@ class DashboardService(
             .map { (label, rows) -> MonthlyActPayment(label, rows.sumOf { it[FinancialRecordTable.amountEurCents] ?: 0L }) }
             .sortedBy { it.month }
         val projectsById = projects.associateBy { it[ProjectTable.id].value }
-        val nameEnByProjectId = ProjectMonitoringDetailTable.selectAll().associate {
-            it[ProjectMonitoringDetailTable.projectId].value to it[ProjectMonitoringDetailTable.nameEn]
-        }
+        val nameEnByProjectId = if (projectIds.isEmpty()) emptyMap() else ProjectMonitoringDetailTable.selectAll()
+            .where { ProjectMonitoringDetailTable.projectId inList projectIds }.associate {
+                it[ProjectMonitoringDetailTable.projectId].value to it[ProjectMonitoringDetailTable.nameEn]
+            }
         val subprojects = projects.filter { it[ProjectTable.projectType] == "subproject" }
-        val amountsByProject = ProjectAmountTable.selectAll()
+        val amountsByProject = if (projectIds.isEmpty()) emptyMap() else ProjectAmountTable.selectAll()
+            .where { ProjectAmountTable.projectId inList projectIds }
             .groupBy { it[ProjectAmountTable.projectId].value }
             .mapValues { (_, rows) -> rows.associate { it[ProjectAmountTable.kind] to ProjectAmount(
                 it[ProjectAmountTable.amount], it[ProjectAmountTable.currency], it[ProjectAmountTable.convertedAmount],
