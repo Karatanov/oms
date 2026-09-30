@@ -29,6 +29,8 @@ WORKDIR /opt/oms
 COPY --from=build /workspace/server/build/install/server/ ./
 COPY --from=build /workspace/composeApp/build/processedResources/js/main/ ./web/
 COPY --from=build /workspace/composeApp/build/kotlin-webpack/js/developmentExecutable/ ./web/
+# The Kotlin/JS application stays available after the lightweight login page.
+RUN cp web/index.html web/app.html
 # Serve the large Kotlin/JS bundle as a pre-compressed asset. This avoids
 # spending a Ktor worker on gzip for every first page load on the VPS.
 RUN find web -type f \( -name '*.js' -o -name '*.css' \) -exec gzip -9 -k {} +

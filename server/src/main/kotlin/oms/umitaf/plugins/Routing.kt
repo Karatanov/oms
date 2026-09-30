@@ -3,6 +3,7 @@ package oms.umitaf.plugins
 import io.ktor.server.application.*
 import io.ktor.server.http.content.*
 import io.ktor.server.routing.*
+import io.ktor.server.response.respondFile
 import io.ktor.server.response.respondRedirect
 import oms.umitaf.api.*
 import java.io.File
@@ -49,7 +50,12 @@ fun Application.configureRouting() {
             ?.trim()
             ?.takeIf(String::isNotEmpty)
             ?.let(::File)
-    if (frontendDirectory?.isDirectory == true) {
+        if (frontendDirectory?.isDirectory == true) {
+            // Keep the initial page independent from the large Kotlin/JS
+            // application bundle. The bundle is requested only after login.
+            get("/") {
+                call.respondFile(File(frontendDirectory, "login.html"))
+            }
         staticFiles("/", frontendDirectory, index = "index.html") {
             preCompressed(CompressedFileType.GZIP)
         }
