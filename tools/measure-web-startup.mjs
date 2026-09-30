@@ -70,16 +70,24 @@ try {
 
   let canvasAt = null;
   let overlayHiddenAt = null;
+  let shellVisibleAt = null;
+  let shellUsefulAt = null;
+  let shellToUsefulMs = null;
   while (Date.now() - wallStart < timeoutMs) {
     await delay(250);
     try {
       const state = await send("Runtime.evaluate", {
-        expression: `JSON.stringify({canvas:!!document.querySelector('canvas'),overlayHidden:!document.querySelector('#oms-loading-overlay.visible')})`,
+        expression: `JSON.stringify((()=>{const visible=performance.getEntriesByName('oms-shell-visible')[0];const useful=performance.getEntriesByName('oms-shell-useful')[0];const measure=performance.getEntriesByName('oms-shell-to-useful')[0];return {canvas:!!document.querySelector('canvas'),overlayHidden:!document.querySelector('#oms-loading-overlay.visible'),visibleEpoch:visible?performance.timeOrigin+visible.startTime:null,usefulEpoch:useful?performance.timeOrigin+useful.startTime:null,shellToUseful:measure?.duration??null}})())`,
         returnByValue: true
       });
       const parsed = JSON.parse(state.result.value || "{}");
+      if (parsed.visibleEpoch != null && shellVisibleAt == null) shellVisibleAt = Math.round(parsed.visibleEpoch - wallStart);
+      if (parsed.usefulEpoch != null && shellUsefulAt == null) shellUsefulAt = Math.round(parsed.usefulEpoch - wallStart);
+      if (parsed.shellToUseful != null && shellToUsefulMs == null) shellToUsefulMs = Math.round(parsed.shellToUseful);
       if (parsed.canvas && canvasAt == null) canvasAt = Date.now() - wallStart;
       if (parsed.overlayHidden && canvasAt != null) { overlayHiddenAt = Date.now() - wallStart; break; }
+      const sessionResponded = events.some(item => item.method === "Network.responseReceived" && /\/auth\/session/.test(item.params.response.url));
+      if (sessionResponded && shellUsefulAt != null) { await delay(1_000); break; }
     } catch { /* Navigation replaces the execution context briefly. */ }
   }
 
@@ -99,7 +107,7 @@ try {
     endMs: item.end == null ? null : Math.round((item.end - firstTimestamp) * 1000),
     encodedBytes: item.encoded
   }));
-  console.log(JSON.stringify({ origin, coldCache: true, canvasAtMs: canvasAt, overlayHiddenAtMs: overlayHiddenAt, requests: summary }, null, 2));
+  console.log(JSON.stringify({ origin, coldCache: true, shellVisibleAtMs: shellVisibleAt, shellUsefulAtMs: shellUsefulAt, shellToUsefulMs, canvasAtMs: canvasAt, overlayHiddenAtMs: overlayHiddenAt, requests: summary }, null, 2));
 } finally {
   try { socket?.close(); } catch {}
   browser.kill();
