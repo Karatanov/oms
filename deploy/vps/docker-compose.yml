@@ -32,6 +32,9 @@ services:
       DATABASE_PASSWORD: ${DATABASE_PASSWORD:?set in .env}
       OMS_JWT_SECRET: ${OMS_JWT_SECRET:?set in .env}
       OMS_PUBLIC_BASE_URL: https://ua-oms.com
+      # The lightweight login form is served from this same public origin and
+      # uses fetch(), which sends an Origin header that Ktor validates.
+      CORS_ALLOWED_HOST: https://ua-oms.com
       OMS_UPLOAD_DIR: /var/lib/oms/uploads
       OMS_WEB_DIR: /opt/oms/web
       DATABASE_POOL_MAX_SIZE: ${DATABASE_POOL_MAX_SIZE:-10}
