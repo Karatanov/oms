@@ -152,4 +152,4 @@ WHERE NOT EXISTS (
       AND record.source_contract_type = source.source_contract_type
 );
 
-DROP TEMPORARY TABLE procurement_tranche_b_source;
+DROP TABLE procurement_tranche_b_source;
