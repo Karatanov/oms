@@ -29,6 +29,9 @@ WORKDIR /opt/oms
 COPY --from=build /workspace/server/build/install/server/ ./
 COPY --from=build /workspace/composeApp/build/processedResources/js/main/ ./web/
 COPY --from=build /workspace/composeApp/build/kotlin-webpack/js/developmentExecutable/ ./web/
+# Serve the large Kotlin/JS bundle as a pre-compressed asset. This avoids
+# spending a Ktor worker on gzip for every first page load on the VPS.
+RUN find web -type f \( -name '*.js' -o -name '*.css' \) -exec gzip -9 -k {} +
 ENV JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=70.0"
 EXPOSE 8080
 CMD ["bin/server"]

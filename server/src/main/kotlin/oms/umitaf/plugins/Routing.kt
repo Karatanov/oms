@@ -49,8 +49,10 @@ fun Application.configureRouting() {
             ?.trim()
             ?.takeIf(String::isNotEmpty)
             ?.let(::File)
-        if (frontendDirectory?.isDirectory == true) {
-            staticFiles("/", frontendDirectory, index = "index.html")
+    if (frontendDirectory?.isDirectory == true) {
+        staticFiles("/", frontendDirectory, index = "index.html") {
+            preCompressed(CompressedFileType.GZIP)
+        }
         } else {
             // Keep old Render bookmarks useful until that temporary fallback
             // is retired. Production VPS Compose always sets OMS_WEB_DIR.
