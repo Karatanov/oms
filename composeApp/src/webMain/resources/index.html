@@ -328,6 +328,7 @@
                 document.body.appendChild(pane);
             }
             if (!pane) return;
+            if (id !== "oms-route-transition") pane.inert = !document.getElementById("oms-route-transition")?.hidden;
             pane.classList.toggle("oms-pane-clipped", height <= 0 || width <= 0);
             Object.assign(pane.style, { left: x + "px", top: y + "px", width: width + "px", height: height + "px", right: "auto", bottom: "auto" });
             if (id === "map-pane" && umitafLeafletMap) umitafLeafletMap.invalidateSize({pan: false});

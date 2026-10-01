@@ -10,6 +10,7 @@ const origin = 'http://127.0.0.1:18088';
   server.stderr.pipe(process.stderr);
   let browser;
   let page;
+  const pendingResponses = [];
   try {
     await new Promise((resolve, reject) => {
       server.stdout.once('data', resolve);
@@ -19,10 +20,10 @@ const origin = 'http://127.0.0.1:18088';
     page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
     const errors = [];
     page.on('pageerror', error => { errors.push(String(error)); console.error('Browser:', String(error)); });
-    let procurementDelay = 0, procurementFailure = false;
+    let holdProcurement = false, procurementFailure = false;
     await page.route('**/api/v1/procurements', async route => {
       const fail = procurementFailure;
-      await new Promise(resolve => setTimeout(resolve, procurementDelay));
+      if (holdProcurement) await new Promise(resolve => pendingResponses.push(resolve));
       try { await route.fulfill({ status: fail ? 503 : 200, contentType: 'application/json', body: fail ? '{}' : '[]' }); }
       catch { /* A superseded Compose request can be cancelled. */ }
     });
@@ -42,7 +43,9 @@ const origin = 'http://127.0.0.1:18088';
     await page.mouse.click(230, 10); // Real user activation enables browser Back/Forward events.
 
     // Slow transition: retain the old composition, bound the overlay to content.
-    procurementDelay = 1400;
+    const contentClip = { x: 240, y: 0, width: 1200, height: 800 };
+    const previousPixels = await page.screenshot({ clip: contentClip });
+    holdProcurement = true;
     await navigate('procurement');
     await page.waitForSelector('#oms-route-transition.indicating:not([hidden])');
     const state = await page.locator('#oms-route-transition').evaluate(el => ({
@@ -53,11 +56,17 @@ const origin = 'http://127.0.0.1:18088';
     assert.equal(state.requested, 'Procurement');
     assert.ok(state.left >= 70 && state.right <= 1441, 'Sidebar must not be covered');
     assert.ok(await canvas.evaluate(el => el.isConnected), 'Root canvas must remain mounted');
+    await page.locator('#oms-route-transition').evaluate(el => { el.style.visibility = 'hidden'; });
+    const retainedPixels = await page.screenshot({ clip: contentClip });
+    await page.locator('#oms-route-transition').evaluate(el => { el.style.visibility = ''; });
+    assert.ok(previousPixels.equals(retainedPixels), 'Previous content must remain painted without replacement or layout shifts');
+    pendingResponses.splice(0).forEach(resolve => resolve());
+    holdProcurement = false;
     await ready('Procurement');
 
     // Error keeps the preceding section; Retry starts a new attempt.
     await navigate('projects'); await ready('Projects');
-    procurementDelay = 100; procurementFailure = true;
+    procurementFailure = true;
     await navigate('procurement');
     const retry = page.locator('#oms-route-transition button');
     await retry.waitFor({ state: 'visible' });
@@ -68,16 +77,17 @@ const origin = 'http://127.0.0.1:18088';
 
     // Superseded responses must neither promote a screen nor dismiss another loader.
     await navigate('projects'); await ready('Projects');
-    procurementDelay = 1800;
+    holdProcurement = true;
     await navigate('procurement');
     await page.waitForSelector('#oms-route-transition.indicating:not([hidden])');
     await navigate('documents'); await ready('Documents');
-    await page.waitForTimeout(2100);
+    pendingResponses.splice(0).forEach(resolve => resolve());
+    holdProcurement = false;
+    await page.waitForTimeout(300);
     await ready('Documents');
     assert.equal(await page.locator('#oms-loading-overlay.visible').count(), 0);
 
     // Browser history uses the same transaction path.
-    procurementDelay = 0;
     await page.goBack(); await ready('Procurement');
     await page.goForward(); await ready('Documents');
 
@@ -96,6 +106,32 @@ const origin = 'http://127.0.0.1:18088';
     await page.evaluate(() => { showOmsLoading('Photo upload'); hideOmsLoading(); });
     assert.equal(await page.locator('#oms-loading-overlay.visible').count(), 0);
     await ready('Create Project');
+
+    // A deliberately unfinished analytics widget must not gate its registry.
+    let releaseAnalytics;
+    await page.route('**/api/v1/inspection-reports/analytics', async route => {
+      await new Promise(resolve => { releaseAnalytics = resolve; pendingResponses.push(resolve); });
+      await route.fulfill({ contentType: 'application/json', body: '{"monthlyInspectionCounts":[],"monthlyEshsViolations":[]}' }).catch(() => {});
+    });
+    await navigate('inspections'); await ready('Inspection Reports');
+    assert.ok(releaseAnalytics, 'Analytics request should still be pending when the registry is ready');
+    releaseAnalytics();
+
+    let releasePhotos;
+    await page.evaluate(() => { window.omsBootstrappedDashboard = ''; });
+    await page.route('**/api/v1/dashboard/overview**', route => route.fulfill({
+      contentType: 'application/json', body: JSON.stringify({ recentInspections: [
+        { uuid: 'pending-photo', inspectionCode: 'PHOTO-TEST', inspectionDate: '2026-09-01', status: 'draft' }
+      ] })
+    }));
+    await page.route('**/api/v1/inspection-reports/pending-photo/photos**', async route => {
+      await new Promise(resolve => { releasePhotos = resolve; pendingResponses.push(resolve); });
+      await route.fulfill({ contentType: 'application/json', body: '[]' }).catch(() => {});
+    });
+    await navigate('dashboard'); await ready('Dashboard');
+    assert.ok(releasePhotos, 'Dashboard must render without waiting for photos');
+    assert.equal(await page.locator('#oms-loading-overlay.visible').count(), 0);
+    releasePhotos();
     assert.deepEqual(errors, []);
     console.log('PASS actual Compose routes: slow/error/retry/race/history/fast/local loading');
   } catch (error) {
@@ -109,6 +145,7 @@ const origin = 'http://127.0.0.1:18088';
     }
     throw error;
   } finally {
+    pendingResponses.splice(0).forEach(resolve => resolve());
     await browser?.close();
     server.kill();
   }

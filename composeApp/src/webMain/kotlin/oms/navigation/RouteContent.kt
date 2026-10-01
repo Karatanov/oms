@@ -57,8 +57,12 @@ fun ReportRouteReadiness(loading: Boolean, failed: Boolean = false) {
 @Composable
 fun RouteContentHost(request: RouteContent, revision: Int, content: @Composable (RouteContent) -> Unit) {
     var retry by remember(revision) { mutableStateOf(0) }
-    val candidate = remember(revision, retry) { RouteEntry(request) }
     var displayed by remember { mutableStateOf<RouteEntry?>(null) }
+    val candidate = remember(revision, retry) {
+        // Returning to the still-visible route abandons the pending transition
+        // without throwing away that route's form inputs or scroll position.
+        displayed?.takeIf { retry == 0 && it.route == request } ?: RouteEntry(request)
+    }
     val transitioning = displayed !== candidate
     val failed = transitioning && candidate.outcome == false
     var showIndicator by remember(candidate) { mutableStateOf(false) }
