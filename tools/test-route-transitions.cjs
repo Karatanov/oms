@@ -9,15 +9,16 @@ const origin = 'http://127.0.0.1:18088';
   const server = spawn(process.execPath, ['tools/serve-dashboard-smoke.mjs'], { env: process.env });
   server.stderr.pipe(process.stderr);
   let browser;
+  let page;
   try {
     await new Promise((resolve, reject) => {
       server.stdout.once('data', resolve);
       server.once('exit', code => reject(new Error(`Fixture exited: ${code}`)));
     });
     browser = await chromium.launch();
-    const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
+    page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
     const errors = [];
-    page.on('pageerror', error => errors.push(String(error)));
+    page.on('pageerror', error => { errors.push(String(error)); console.error('Browser:', String(error)); });
     let procurementDelay = 0, procurementFailure = false;
     await page.route('**/api/v1/procurements', async route => {
       const fail = procurementFailure;
@@ -30,11 +31,15 @@ const origin = 'http://127.0.0.1:18088';
       const pane = document.querySelector('#oms-route-transition');
       return pane?.hidden && pane.dataset.displayedSection === section;
     }, section, { timeout: 120000 });
-    const navigate = route => page.evaluate(route => { location.hash = route; }, route);
+    const navigate = route => page.evaluate(route => {
+      pushOmsRoute(route);
+      window.dispatchEvent(new PopStateEvent('popstate'));
+    }, route);
     await page.goto(`${origin}/app.html#projects`);
     await ready('Projects');
     assert.equal(await page.locator('#oms-loading-overlay.visible').count(), 0);
     const canvas = await page.locator('#compose-host canvas').first().elementHandle();
+    await page.mouse.click(230, 10); // Real user activation enables browser Back/Forward events.
 
     // Slow transition: retain the old composition, bound the overlay to content.
     procurementDelay = 1400;
@@ -93,6 +98,16 @@ const origin = 'http://127.0.0.1:18088';
     await ready('Create Project');
     assert.deepEqual(errors, []);
     console.log('PASS actual Compose routes: slow/error/retry/race/history/fast/local loading');
+  } catch (error) {
+    if (page) {
+      console.error('Route state:', await page.locator('#oms-route-transition').evaluate(el => ({
+        html: el.outerHTML, bounds: el.getBoundingClientRect().toJSON(),
+        style: { display: getComputedStyle(el).display, visibility: getComputedStyle(el).visibility },
+        hash: location.hash
+      })).catch(() => null));
+      await page.screenshot({ path: 'build/route-transition-failure.png' }).catch(() => {});
+    }
+    throw error;
   } finally {
     await browser?.close();
     server.kill();

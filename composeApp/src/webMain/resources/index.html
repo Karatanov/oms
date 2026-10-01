@@ -1006,8 +1006,8 @@
         });
     </script>
     <style>
-        /* Visible before the large Kotlin/JS bundle is parsed. The runtime
-           reuses this element and dismisses it after its first API response. */
+        /* Startup only: Compose dismisses this after painting its real shell.
+           Requests and section transitions must never reuse this element. */
         #oms-loading-overlay { position: fixed; inset: 0; z-index: 2147483647; overflow: auto; background: #f4f7f9; color: #20313c; transition: opacity .18s ease; }
         #oms-loading-overlay:not(.visible) { opacity: 0; pointer-events: none; }
         .oms-startup-header { display: flex; align-items: center; justify-content: space-between; min-height: 66px; padding: 0 28px; background: #fff; border-bottom: 1px solid #dce5ea; font: 700 18px Inter, Arial, sans-serif; }
