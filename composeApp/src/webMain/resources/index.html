@@ -1014,6 +1014,12 @@
     window.takeOmsBootstrappedDashboard = () => {
         const value = window.omsBootstrappedDashboard;
         window.omsBootstrappedDashboard = "";
+        // The Compose dashboard has started. Its cached response bypasses
+        // HttpSend, so there is no request completion to dismiss this screen.
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+            hideOmsLoading();
+            performance.mark("oms-dashboard-handoff");
+        }));
         return value;
     };
     performance.mark("oms-shell-visible");

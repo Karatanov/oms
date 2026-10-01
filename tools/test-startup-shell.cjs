@@ -39,6 +39,8 @@ const overview = {
     assert.equal(await page.evaluate(() => performance.getEntriesByName('oms-shell-to-useful').length), 1);
     assert.ok((await page.evaluate(() => window.takeOmsBootstrappedDashboard())).includes('inspection-1'));
     assert.equal(await page.evaluate(() => window.takeOmsBootstrappedDashboard()), '');
+    await page.waitForFunction(() => !document.querySelector('#oms-loading-overlay.visible'));
+    assert.ok(await page.evaluate(() => performance.getEntriesByName('oms-dashboard-handoff').length > 0));
     console.log('PASS authenticated startup shell: useful dashboard visible and bootstrap consumed once');
   } finally {
     await browser.close();
