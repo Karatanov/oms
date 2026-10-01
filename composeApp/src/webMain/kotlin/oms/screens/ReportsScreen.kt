@@ -123,6 +123,7 @@ fun ReportsScreen(
     var authorFilter by remember { mutableStateOf<String?>(null) }
     var loading by remember { mutableStateOf(InspectionReportsScreenCache.reports == null) }
     var loadFailed by remember { mutableStateOf(false) }
+    oms.navigation.ReportRouteReadiness(loading, loadFailed)
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var reportToEdit by remember { mutableStateOf<ReportRow?>(null) }
     var reportToReview by remember { mutableStateOf<ReportRow?>(null) }
@@ -143,15 +144,13 @@ fun ReportsScreen(
         }
         loading = true; loadFailed = false
         try {
-        val reportItems = coroutineScope {
-            val loadReports = async { OmsApiClient.inspectionReports() }
-            val loadAnalytics = async { runCatching { OmsApiClient.inspectionAnalytics() }.getOrNull() }
-            analytics = loadAnalytics.await()
-            loadReports.await()
-        }
+        val reportItems = OmsApiClient.inspectionReports()
         // No project context is required for an empty registry.  This keeps the
         // first Reports visit lightweight on a fresh deployment.
-        if (reportItems.isNotEmpty()) ProjectRepository.refresh()
+        if (reportItems.isNotEmpty()) {
+            ProjectRepository.refresh()
+            check(ProjectRepository.errorMessage == null) { "Could not load project context" }
+        }
         val projectsById = ProjectRepository.projects.associateBy { it.id }
         reports = reportItems.mapNotNull { item ->
             val attachedProject = projectsById[item.projectUuid] ?: return@mapNotNull null
@@ -174,6 +173,14 @@ fun ReportsScreen(
         } finally { loading = false }
     }
     val language = LocalizationManager.currentLanguage
+    LaunchedEffect(reloadKey) {
+        try {
+            analytics = OmsApiClient.inspectionAnalytics()
+            InspectionReportsScreenCache.analytics = analytics
+        } catch (failure: Exception) {
+            if (failure is kotlinx.coroutines.CancellationException) throw failure
+        }
+    }
     val visible = remember(reports, search, status, subprojectFilter, subprojectCodeFilter, subprojectPartCodeFilter, authorFilter, sort, ascending, language) {
         reports.asSequence().filter {
                 (search.isBlank() || it.report.inspectionCode.contains(search, true) || it.title().contains(search, true) || it.subprojectCode.orEmpty().contains(search, true)) &&

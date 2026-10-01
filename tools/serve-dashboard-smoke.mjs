@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const assets = [
+  ...(process.env.OMS_SMOKE_ASSETS ? [resolve(process.env.OMS_SMOKE_ASSETS)] : []),
   resolve(root, 'composeApp/build/kotlin-webpack/js/productionExecutable'),
   resolve(root, 'composeApp/build/processedResources/js/main'),
 ];

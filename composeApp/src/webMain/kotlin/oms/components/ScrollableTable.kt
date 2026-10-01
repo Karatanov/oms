@@ -50,8 +50,9 @@ fun ScrollableTable(
         .coerceAtMost((tableHeight - headerHeight).coerceAtLeast(0).toFloat())
     val surface = MaterialTheme.colorScheme.surface
 
-    DisposableEffect(navigatorId, showScrollControls) {
-        if (showScrollControls) navigatorOverlay.show(navigatorId, scroll)
+    val interactive = oms.navigation.LocalRouteInteractive.current
+    DisposableEffect(navigatorId, showScrollControls, interactive) {
+        if (showScrollControls && interactive) navigatorOverlay.show(navigatorId, scroll)
         onDispose { navigatorOverlay.dismiss(navigatorId) }
     }
 

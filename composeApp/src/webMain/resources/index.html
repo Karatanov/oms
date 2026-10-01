@@ -57,11 +57,13 @@
         function omsText(key) { return omsBrowserStrings[omsLanguage][key] || omsBrowserStrings.uk[key] || key; }
 
         let omsLoadingRequests = 0;
+        // Explicit native uploads/imports have non-blocking operation feedback.
+        // This counter is never used for startup or route readiness.
         function showOmsLoading(message) {
-            let overlay = document.getElementById("oms-loading-overlay");
+            let overlay = document.getElementById("oms-operation-progress");
             if (!overlay) {
                 overlay = document.createElement("div");
-                overlay.id = "oms-loading-overlay";
+                overlay.id = "oms-operation-progress";
                 overlay.innerHTML = '<div class="oms-loading-card"><span class="oms-loading-spinner"></span><span class="oms-loading-message"></span></div>';
                 document.body.appendChild(overlay);
             }
@@ -72,7 +74,33 @@
 
         function hideOmsLoading() {
             omsLoadingRequests = Math.max(0, omsLoadingRequests - 1);
-            if (omsLoadingRequests === 0) document.getElementById("oms-loading-overlay")?.classList.remove("visible");
+            if (omsLoadingRequests === 0) document.getElementById("oms-operation-progress")?.classList.remove("visible");
+        }
+
+        function finishOmsStartup() {
+            document.getElementById("oms-loading-overlay")?.classList.remove("visible");
+            performance.mark("oms-dashboard-handoff");
+        }
+
+        function setOmsRouteTransition(busy, indicator, failed, english, requested, displayed, retry) {
+            const pane = document.getElementById("oms-route-transition");
+            if (!pane) return;
+            pane.hidden = !busy;
+            pane.dataset.requestedSection = requested;
+            pane.dataset.displayedSection = displayed;
+            pane.classList.toggle("indicating", busy && (indicator || failed));
+            pane.setAttribute("aria-busy", String(busy && !failed));
+            pane.querySelector(".oms-route-card").hidden = !busy || (!indicator && !failed);
+            pane.querySelector(".oms-loading-spinner").hidden = failed;
+            pane.querySelector(".oms-route-message").textContent = failed
+                ? (english ? "Could not load this section. Please try again." : "Не вдалося завантажити розділ. Спробуйте ще раз.")
+                : (english ? "Loading section…" : "Завантаження розділу…");
+            const button = pane.querySelector("button");
+            button.hidden = !failed;
+            button.textContent = english ? "Retry" : "Повторити";
+            button.onclick = retry;
+            document.querySelectorAll("#map-pane, #dashboard-photo-slider, .inspection-photo-preview-pane")
+                .forEach(element => { element.inert = busy; });
         }
 
         // Compose/Wasm receives the complete ClipboardEvent before individual
@@ -1007,6 +1035,13 @@
     <div id="map-pane">
         <div id="map-host"></div>
     </div>
+    <div id="oms-route-transition" hidden>
+        <div class="oms-route-card" hidden>
+            <span class="oms-loading-spinner"></span>
+            <span class="oms-route-message" role="status" aria-live="polite"></span>
+            <button type="button" hidden></button>
+        </div>
+    </div>
 </div>
 <!--suppress HtmlUnknownTarget -->
 <script>
@@ -1014,12 +1049,7 @@
     window.takeOmsBootstrappedDashboard = () => {
         const value = window.omsBootstrappedDashboard;
         window.omsBootstrappedDashboard = "";
-        // The Compose dashboard has started. Its cached response bypasses
-        // HttpSend, so there is no request completion to dismiss this screen.
-        requestAnimationFrame(() => requestAnimationFrame(() => {
-            hideOmsLoading();
-            performance.mark("oms-dashboard-handoff");
-        }));
+        // Consuming cached data says nothing about whether the app is painted.
         return value;
     };
     performance.mark("oms-shell-visible");

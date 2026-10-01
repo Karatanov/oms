@@ -61,9 +61,18 @@ jobs:
           grep -q 'composeApp.js' build/pages/app.html
 
       - name: Configure GitHub Pages
+        # The same production bundle is tested before upload/deployment.
         uses: actions/configure-pages@v5
         with:
           enablement: true
+
+      - name: Test real application navigation
+        env:
+          OMS_SMOKE_ASSETS: build/pages
+        run: |
+          npm install --prefix build/date-picker-test playwright
+          build/date-picker-test/node_modules/.bin/playwright install --with-deps chromium
+          node tools/test-route-transitions.cjs
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3

@@ -31,6 +31,7 @@ fun DashboardPhotoSlider(
     onOpenReport: (String) -> Unit = {}
 ) {
     NativePaneAnchor("dashboard-photo-slider", Modifier.fillMaxWidth().height(232.dp))
+    if (!oms.navigation.LocalRouteVisible.current) return
     DisposableEffect(reportUuid, inspectionDate, subprojectCode, photos, oms.localization.LocalizationManager.currentLanguage) {
         val sliderPhotos = photos.orEmpty()
             .sortedByDescending { it.isMain }

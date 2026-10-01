@@ -130,7 +130,9 @@ fun ProjectsScreen(
         }
     }
 
-    LaunchedEffect(Unit) { ProjectRepository.refresh() }
+    var initialLoad by remember { mutableStateOf(true) }
+    LaunchedEffect(Unit) { ProjectRepository.refresh(); initialLoad = false }
+    oms.navigation.ReportRouteReadiness(initialLoad, ProjectRepository.errorMessage != null)
     val projects = ProjectRepository.projects
     val programme = projects.firstOrNull(Project::isProgrammeRoot)
 

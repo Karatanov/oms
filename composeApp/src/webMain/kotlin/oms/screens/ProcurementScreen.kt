@@ -72,6 +72,7 @@ fun ProcurementScreen(
     var records by remember { mutableStateOf<List<ApiProcurementRecord>?>(null) }
     var error by remember { mutableStateOf<String?>(null) }
     var loadError by remember { mutableStateOf<String?>(null) }
+    oms.navigation.ReportRouteReadiness(records == null && loadError == null, loadError != null)
     var reloadKey by remember { mutableStateOf(0) }
     var editorRecord by remember { mutableStateOf<ApiProcurementRecord?>(null) }
     var creating by remember { mutableStateOf(false) }

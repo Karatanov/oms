@@ -17,7 +17,9 @@ internal external fun setOmsCanvasOverlay(active: Boolean)
 @Composable
 fun NativePaneAnchor(id: String, modifier: Modifier) {
     val density = LocalDensity.current.density
+    val visible = oms.navigation.LocalRouteVisible.current
     Box(modifier.onGloballyPositioned {
+        if (!visible) return@onGloballyPositioned
         val rect = it.boundsInRoot()
         setOmsPaneBounds(id, rect.left / density, rect.top / density, rect.width / density, rect.height / density)
     })

@@ -31,7 +31,9 @@ private enum class MapScope(val projectType: String, val labelKey: String) {
 @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun MapScreen(onOpenProject: (Project) -> Unit = {}) {
-    LaunchedEffect(Unit) { ProjectRepository.refresh() }
+    var initialLoad by remember { mutableStateOf(true) }
+    LaunchedEffect(Unit) { ProjectRepository.refresh(); initialLoad = false }
+    oms.navigation.ReportRouteReadiness(initialLoad, ProjectRepository.errorMessage != null)
     val scope = rememberCoroutineScope()
     val projects = ProjectRepository.projects
     var search by remember { mutableStateOf("") }

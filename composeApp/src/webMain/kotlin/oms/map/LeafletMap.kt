@@ -31,6 +31,7 @@ fun LeafletMapView(
     onProjectClick: (String) -> Unit = {}
 ) {
     NativePaneAnchor("map-pane", Modifier.fillMaxSize())
+    if (!oms.navigation.LocalRouteVisible.current) return
     val language = LocalizationManager.currentLanguage
     DisposableEffect(projects, allProjects, language) {
         showLeafletMapPane()

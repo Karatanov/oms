@@ -17,6 +17,7 @@ import oms.localization.LocalizationManager as L
 
 @Composable
 fun CreateProjectScreen(onCancel: () -> Unit = {}, onCreated: () -> Unit = {}) {
+    oms.navigation.ReportRouteReadiness(loading = false)
     val state = remember { ProjectFormState() }
     var parents by remember { mutableStateOf<List<ApiProject>>(emptyList()) }
     var error by remember { mutableStateOf<String?>(null) }

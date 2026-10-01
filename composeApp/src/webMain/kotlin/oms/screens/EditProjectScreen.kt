@@ -20,6 +20,7 @@ import oms.model.Project
 fun EditProjectScreen(project: Project, onCancel: () -> Unit = {}, onSaved: (Project) -> Unit = {}) {
     var state by remember(project.id) { mutableStateOf<ProjectFormState?>(null) }
     var error by remember { mutableStateOf<String?>(null) }
+    oms.navigation.ReportRouteReadiness(state == null && error == null, error != null)
     var saving by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     LaunchedEffect(project.id) {

@@ -39,6 +39,9 @@ const overview = {
     assert.equal(await page.evaluate(() => performance.getEntriesByName('oms-shell-to-useful').length), 1);
     assert.ok((await page.evaluate(() => window.takeOmsBootstrappedDashboard())).includes('inspection-1'));
     assert.equal(await page.evaluate(() => window.takeOmsBootstrappedDashboard()), '');
+    assert.ok(await page.locator('#oms-loading-overlay').evaluate(el => el.classList.contains('visible')),
+      'Consuming a response must not dismiss startup before Compose paints');
+    await page.evaluate(() => finishOmsStartup());
     await page.waitForFunction(() => !document.querySelector('#oms-loading-overlay.visible'));
     assert.ok(await page.evaluate(() => performance.getEntriesByName('oms-dashboard-handoff').length > 0));
     console.log('PASS authenticated startup shell: useful dashboard visible and bootstrap consumed once');
