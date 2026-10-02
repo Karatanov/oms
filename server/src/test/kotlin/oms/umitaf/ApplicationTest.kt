@@ -36,6 +36,6 @@ class ApplicationTest {
         }
         val response = createClient { followRedirects = false }.get("/")
         assertEquals(HttpStatusCode.Found, response.status)
-        assertEquals("https://karatanov.github.io/oms/", response.headers[HttpHeaders.Location])
+        assertEquals("https://ua-oms.com/", response.headers[HttpHeaders.Location])
     }
 }
