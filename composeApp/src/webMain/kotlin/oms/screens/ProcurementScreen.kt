@@ -97,6 +97,10 @@ fun ProcurementScreen(
             .onSuccess { records = it.sortedWith(compareBy({ record -> record.batchId }, { record -> record.id })) }
             .onFailure { loadError = LocalizationManager.t("procurement_load_error") }
     }
+    // The Subproject code is a map link, so retain the shared project snapshot
+    // while the procurement registry is open. Refresh() is a no-op when it is
+    // already present and therefore does not add another API request on return.
+    LaunchedEffect(Unit) { ProjectRepository.refresh() }
     fun applySignedContractMonthFilter(month: String) {
         signedContractMonthFilter = month
         statusFilter = procurementStatuses[3]
@@ -477,6 +481,16 @@ private fun ProcurementRow(
     onSort: (Int) -> Unit = {}
 ) {
     val uriHandler = LocalUriHandler.current
+    val subprojectMapUrl = record?.let { procurement ->
+        ProjectRepository.projects.firstOrNull {
+            it.projectType == "subproject" && it.siteNumber.equals(procurement.subProjectId, ignoreCase = true)
+        }?.takeIf { project ->
+            project.latitude in -90.0..90.0 && project.longitude in -180.0..180.0 &&
+                (project.latitude != 0.0 || project.longitude != 0.0)
+        }?.let { project ->
+            "https://www.openstreetmap.org/?mlat=${project.latitude}&mlon=${project.longitude}#map=16/${project.latitude}/${project.longitude}"
+        }
+    }
     Row(
         Modifier.width((columnWidths.sum() + if (showActions) 96 else 0).dp)
             .padding(vertical = if (isHeader) 2.dp else 6.dp),
@@ -517,6 +531,17 @@ private fun ProcurementRow(
                     value,
                     Modifier.width(width.dp).padding(horizontal = 6.dp)
                         .clickable { uriHandler.openUri(record?.prozorroTenderId?.toProzorroTenderUrl() ?: value.toProzorroTenderUrl()) },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    textDecoration = TextDecoration.Underline
+                )
+            } else if (!isHeader && index == 4 && subprojectMapUrl != null) {
+                Text(
+                    value,
+                    Modifier.width(width.dp).padding(horizontal = 6.dp)
+                        .clickable { uriHandler.openUri(subprojectMapUrl) },
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.primary,
                     textDecoration = TextDecoration.Underline
