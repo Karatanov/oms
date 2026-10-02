@@ -61,15 +61,22 @@ fun PageHeading(
 /** Local loading/error/empty feedback, never a silent blank region. */
 @Composable
 fun ContentState(message: String, loading: Boolean = false, error: Boolean = false, onRetry: (() -> Unit)? = null) {
-    Row(Modifier.fillMaxWidth().background(
-        if (error) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.surfaceContainerLow,
-        MaterialTheme.shapes.medium).padding(OmsDimensions.SpaceMedium),
-        horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-        if (loading) CircularProgressIndicator(Modifier.size(22.dp), strokeWidth = 2.dp)
-        else Icon(if (error) Icons.Outlined.ErrorOutline else Icons.Outlined.Info, null,
-            tint = if (error) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(message, Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
-        onRetry?.let { TextButton(onClick = it) { Text(LocalizationManager.t("retry")) } }
+    val background = if (error) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.surfaceContainerLow
+    val iconTint = if (error) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+    BoxWithConstraints(Modifier.fillMaxWidth().background(background, MaterialTheme.shapes.medium).padding(OmsDimensions.SpaceMedium)) {
+        if (maxWidth >= 440.dp) Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+            if (loading) CircularProgressIndicator(Modifier.size(22.dp), strokeWidth = 2.dp, color = iconTint)
+            else Icon(if (error) Icons.Outlined.ErrorOutline else Icons.Outlined.Info, null, tint = iconTint)
+            Text(message, Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
+            onRetry?.let { TextButton(onClick = it) { Text(LocalizationManager.t("retry")) } }
+        } else Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                if (loading) CircularProgressIndicator(Modifier.size(22.dp), strokeWidth = 2.dp, color = iconTint)
+                else Icon(if (error) Icons.Outlined.ErrorOutline else Icons.Outlined.Info, null, tint = iconTint)
+                Text(message, Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
+            }
+            onRetry?.let { Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) { TextButton(onClick = it) { Text(LocalizationManager.t("retry")) } } }
+        }
     }
 }
 
@@ -86,9 +93,17 @@ fun AdaptiveChartRow(first: @Composable () -> Unit, second: @Composable () -> Un
 
 @Composable
 fun FormSectionTitle(text: String, icon: ImageVector) {
-    HorizontalDivider(Modifier.padding(top = 8.dp, bottom = 4.dp))
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Icon(icon, null, Modifier.size(OmsDimensions.IconSize), tint = MaterialTheme.colorScheme.primary)
-        Text(text, style = MaterialTheme.typography.titleMedium)
+    HorizontalDivider(Modifier.padding(top = 12.dp, bottom = 10.dp), color = MaterialTheme.colorScheme.outlineVariant)
+    Row(
+        modifier = Modifier.fillMaxWidth()
+            .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = .45f), MaterialTheme.shapes.small)
+            .padding(horizontal = 10.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Box(Modifier.size(28.dp).background(MaterialTheme.colorScheme.surface, MaterialTheme.shapes.small), contentAlignment = Alignment.Center) {
+            Icon(icon, null, Modifier.size(OmsDimensions.IconSize), tint = MaterialTheme.colorScheme.primary)
+        }
+        Text(text, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onPrimaryContainer)
     }
 }
