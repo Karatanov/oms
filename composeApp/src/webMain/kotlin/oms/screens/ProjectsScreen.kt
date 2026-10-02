@@ -149,6 +149,11 @@ fun ProjectsScreen(
                 (constructionTypeFilter == null || project.constructionType.equals(constructionTypeFilter, ignoreCase = true)) &&
                 (sectorFilter == null || project.sector.equals(sectorFilter, ignoreCase = true))
         val matchingProjects = projects.filter(::matches).filterNot(Project::isProgrammeRoot)
+        // A lifecycle filter must be exact.  Previously we reinserted every
+        // parent solely to preserve the visual tree, so choosing “Active”
+        // still showed planned parents.  With an explicit status selected,
+        // matching children become visible roots instead.
+        if (statusFilter != null) return@remember matchingProjects
         val projectsById = projects.associateBy { it.id }
         val visibleIds = matchingProjects
             .flatMap { project ->
