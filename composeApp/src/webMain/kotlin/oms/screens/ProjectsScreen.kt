@@ -216,11 +216,13 @@ fun ProjectsScreen(
                     Text(LocalizationManager.t("create_project"))
                 }
             } else oms.components.PageHeading(LocalizationManager.t("projects_title"), Icons.Default.FolderOpen) {
-                programme?.let { root -> Text(root.localizedName(), maxLines = 1, modifier = Modifier.widthIn(max = 260.dp)) }
-                if (canManageProjects) Button(onClick = onCreateProject) {
-                    Icon(Icons.Default.Add, null)
-                    Spacer(Modifier.width(8.dp))
-                    Text(LocalizationManager.t("create_project"))
+                Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    programme?.let { root -> Text(root.localizedName(), maxLines = 2, modifier = Modifier.widthIn(max = 260.dp)) }
+                    if (canManageProjects) Button(onClick = onCreateProject) {
+                        Icon(Icons.Default.Add, null)
+                        Spacer(Modifier.width(8.dp))
+                        Text(LocalizationManager.t("create_project"))
+                    }
                 }
             }
         }
@@ -231,12 +233,12 @@ fun ProjectsScreen(
 
         if (canManageProjects && selectedProjectIds.isNotEmpty()) {
             Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)) {
-                Row(
+                FlowRow(
                     modifier = Modifier.fillMaxWidth().padding(12.dp),
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Text(LocalizationManager.t("selected_projects").replace("{count}", selectedProjectIds.size.toString()), modifier = Modifier.weight(1f))
+                    Text(LocalizationManager.t("selected_projects").replace("{count}", selectedProjectIds.size.toString()))
                     OutlinedButton(onClick = { selectedProjectIds = emptySet() }) { Text(LocalizationManager.t("clear_selection")) }
                     OutlinedButton(onClick = { oms.data.openOmsDownload(oms.data.OmsApiClient.projectExportUrl(selectedProjectIds)) }) { Text("XLSX") }
                     if (canBulkReassign) Button(onClick = { showReassign = true }) { Text(LocalizationManager.t("reassign")) }
@@ -432,21 +434,19 @@ fun ProjectsTable(
     else sortedProjects.drop(currentPage * pageSize).take(pageSize)
 
     Column(Modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            OutlinedTextField(
-                value = searchText,
-                onValueChange = onSearchTextChange,
-                label = { Text(LocalizationManager.t("search_project")) },
-                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                singleLine = true,
-                modifier = Modifier.weight(1f).widthIn(min = 280.dp)
-            )
-            ProjectPagination(pageSize, currentPage, pageCount, sortedProjects.size, { pageSize = it }) {
-                currentPage = it.coerceIn(0, pageCount - 1)
+        BoxWithConstraints(Modifier.fillMaxWidth()) {
+            if (maxWidth >= 620.dp) Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                OutlinedTextField(value = searchText, onValueChange = onSearchTextChange, label = { Text(LocalizationManager.t("search_project")) }, leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) }, singleLine = true, modifier = Modifier.weight(1f).widthIn(min = 280.dp))
+                ProjectPagination(pageSize, currentPage, pageCount, sortedProjects.size, { pageSize = it }) { currentPage = it.coerceIn(0, pageCount - 1) }
+            } else Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(value = searchText, onValueChange = onSearchTextChange, label = { Text(LocalizationManager.t("search_project")) }, leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                    ProjectPagination(pageSize, currentPage, pageCount, sortedProjects.size, { pageSize = it }) { currentPage = it.coerceIn(0, pageCount - 1) }
+                }
             }
         }
         Spacer(Modifier.height(8.dp))

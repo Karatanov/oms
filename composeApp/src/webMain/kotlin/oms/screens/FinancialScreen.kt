@@ -253,7 +253,7 @@ fun FinancialScreen(
     ) {
         oms.components.PageHeading(LocalizationManager.t("financial_monitoring"), Icons.Default.AccountBalance, iconText = "€ ₴") {
             if (canManageFinancials) {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedButton(onClick = { showTransferDialog = true }) {
                         Text(LocalizationManager.t("import_export_xlsx"))
                     }
@@ -295,13 +295,16 @@ fun FinancialScreen(
         )
         }
 
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-            Text(LocalizationManager.t("financial_records"), style = MaterialTheme.typography.titleLarge)
-            Spacer(Modifier.weight(1f))
-            // Keep page controls immediately visible, like the Subprojects
-            // registry. A second copy remains below the table for long lists.
-            FinancialPagination(pageSize, currentPage, pageCount, visibleActs.size, { pageSize = it }) {
-                currentPage = it.coerceIn(0, pageCount - 1)
+        BoxWithConstraints(Modifier.fillMaxWidth()) {
+            if (maxWidth >= 620.dp) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                Text(LocalizationManager.t("financial_records"), style = MaterialTheme.typography.titleLarge)
+                Spacer(Modifier.weight(1f))
+                FinancialPagination(pageSize, currentPage, pageCount, visibleActs.size, { pageSize = it }) { currentPage = it.coerceIn(0, pageCount - 1) }
+            } else Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(LocalizationManager.t("financial_records"), style = MaterialTheme.typography.titleLarge)
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                    FinancialPagination(pageSize, currentPage, pageCount, visibleActs.size, { pageSize = it }) { currentPage = it.coerceIn(0, pageCount - 1) }
+                }
             }
         }
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {

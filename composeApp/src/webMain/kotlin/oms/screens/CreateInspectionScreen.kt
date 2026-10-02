@@ -368,7 +368,7 @@ fun CreateInspectionScreen(
             oms.components.ContentState(LocalizationManager.t("loading_records"), loading = true)
         }
 
-        if (!isManualEdit) Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        if (!isManualEdit) FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             FilterChip(entryMode == "manual", { entryMode = "manual"; errorMessage = null }, label = { Text(LocalizationManager.t("manual_sir_entry")) })
             FilterChip(entryMode == "import", { entryMode = "import"; errorMessage = null }, label = { Text(LocalizationManager.t("import_sir_xlsx")) })
         }
@@ -499,9 +499,10 @@ fun CreateInspectionScreen(
             )
         }
 
-        if (!readOnly) Row(
+        if (!readOnly) FlowRow(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.End)
+            horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.End),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             OutlinedButton(
                 enabled = !isSubmitting && !loadingManualReport,

@@ -155,7 +155,7 @@ fun AdminScreen() {
             }
         }
         OutlinedTextField(search, { search = it }, singleLine = true, label = { Text(LocalizationManager.t("admin_search")) }, leadingIcon = { Icon(Icons.Default.Search, null) }, modifier = Modifier.fillMaxWidth())
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             listOf("active", "archived", "all").forEach { filter ->
                 oms.screens.FilterChip(archiveFilter == filter, { archiveFilter = filter }, { Text(LocalizationManager.t("archive_filter_$filter")) })
             }

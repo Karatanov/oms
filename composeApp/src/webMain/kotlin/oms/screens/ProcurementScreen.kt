@@ -215,27 +215,19 @@ fun ProcurementScreen(
             loadError != null -> oms.components.ContentState(loadError!!, error = true, onRetry = { reloadKey++ })
             records == null -> CircularProgressIndicator()
             else -> {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    OutlinedTextField(
-                        value = search,
-                        onValueChange = { search = it },
-                        singleLine = true,
+                BoxWithConstraints(Modifier.fillMaxWidth()) {
+                    @Composable fun SearchField(modifier: Modifier) = OutlinedTextField(
+                        value = search, onValueChange = { search = it }, singleLine = true,
                         label = { Text(LocalizationManager.t("procurement_search")) },
-                        leadingIcon = { Icon(Icons.Default.Search, null) },
-                        modifier = Modifier.weight(1f).widthIn(min = 280.dp)
+                        leadingIcon = { Icon(Icons.Default.Search, null) }, modifier = modifier
                     )
-                    ProcurementPagination(
-                        pageSize = pageSize,
-                        currentPage = currentPage,
-                        pageCount = pageCount,
-                        total = visibleRecords.size,
-                        onPageSize = { pageSize = it },
-                        onPage = { currentPage = it.coerceIn(0, pageCount - 1) }
-                    )
+                    @Composable fun Pagination() = ProcurementPagination(pageSize, currentPage, pageCount, visibleRecords.size, { pageSize = it }) { currentPage = it.coerceIn(0, pageCount - 1) }
+                    if (maxWidth >= 620.dp) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                        SearchField(Modifier.weight(1f).widthIn(min = 280.dp)); Pagination()
+                    } else Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        SearchField(Modifier.fillMaxWidth())
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) { Pagination() }
+                    }
                 }
                 signedContractMonthFilter?.let { month ->
                     FilterChip(

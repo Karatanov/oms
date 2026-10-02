@@ -169,7 +169,8 @@ fun ProjectDetailScreen(
                 modifier = Modifier.padding(20.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Row(
+                BoxWithConstraints(Modifier.fillMaxWidth()) {
+                if (maxWidth >= 680.dp) Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -238,6 +239,21 @@ fun ProjectDetailScreen(
                             )
                         }
                     }
+                } else Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(text = project.localizedName(), style = MaterialTheme.typography.headlineMedium)
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            StatusChip(project.status)
+                            if (!project.projectType.equals("project", ignoreCase = true)) Text(text = "${LocalizationManager.t("address")}: ${details.value?.let(::localizedProjectAddress) ?: localizedUkraineRegion(project.region)}", style = MaterialTheme.typography.bodyMedium)
+                        }
+                        Text(text = "${LocalizationManager.t("sector")}: ${details.value?.data?.sector?.sectorLabel() ?: "—"} • ${LocalizationManager.t("construction_type")}: ${details.value?.data?.constructionType?.constructionTypeLabel() ?: "—"}", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        if (canEditProject) Button(onClick = { onEdit(project) }, modifier = Modifier.pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true)) { Icon(Icons.Default.Edit, LocalizationManager.t("edit")); Spacer(Modifier.width(8.dp)); Text(LocalizationManager.t("edit")) }
+                        if (canDeleteProject) OutlinedButton(onClick = { confirmDeletion = true }, modifier = Modifier.pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true), colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)) { Icon(Icons.Default.DeleteForever, LocalizationManager.t("permanently_delete")); Spacer(Modifier.width(8.dp)); Text(LocalizationManager.t("permanently_delete")) }
+                        if (project.projectType.equals("subproject", ignoreCase = true)) IconButton(onClick = { openOmsDownload(omsApiUrl("/projects/${project.id}/export-pdf")) }, modifier = Modifier.pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true)) { Icon(Icons.Default.PictureAsPdf, LocalizationManager.t("download_subproject_pdf"), tint = MaterialTheme.colorScheme.primary) }
+                    }
+                }
                 }
             }
         }
@@ -251,7 +267,7 @@ fun ProjectDetailScreen(
                     Text(LocalizationManager.t("confirm_permanent_delete_title"), style = MaterialTheme.typography.titleMedium)
                     Text(LocalizationManager.t("confirm_permanent_delete_message").replace("{name}", project.localizedName()))
                     deleteError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
+                    FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         OutlinedButton(
                             onClick = { confirmDeletion = false },
                             modifier = Modifier.pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true)
