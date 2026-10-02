@@ -7,6 +7,9 @@ sealed class Screen(val title: String) {
     // 🔹 Екран логіну (без sidebar)
     object Login : Screen("Login")
 
+    /** Public landing page for the explicitly limited guest session. */
+    object GuestInfo : Screen("Guest information")
+
     // 🔹 Головна панель
     object Dashboard : Screen("Dashboard")
 

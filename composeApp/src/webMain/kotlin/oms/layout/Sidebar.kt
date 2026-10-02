@@ -45,9 +45,13 @@ fun Sidebar(currentScreen: Screen, onNavigate: (Screen) -> Unit, onLogout: () ->
             }
             HorizontalDivider(Modifier.padding(vertical = 8.dp))
             Column(Modifier.weight(1f).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                if (!isGuest) SidebarItem(LocalizationManager.t("dashboard"), Icons.Default.Dashboard, Screen.Dashboard, currentScreen, onNavigate, compact)
-                SidebarItem(LocalizationManager.t("projects"), Icons.AutoMirrored.Filled.ListAlt, Screen.Projects, currentScreen, onNavigate, compact)
-                SidebarItem(LocalizationManager.t("map"), Icons.Default.Map, Screen.Map, currentScreen, onNavigate, compact)
+                if (isGuest) {
+                    SidebarItem(LocalizationManager.t("guest_information"), Icons.Default.Info, Screen.GuestInfo, currentScreen, onNavigate, compact)
+                } else {
+                    SidebarItem(LocalizationManager.t("dashboard"), Icons.Default.Dashboard, Screen.Dashboard, currentScreen, onNavigate, compact)
+                    SidebarItem(LocalizationManager.t("projects"), Icons.AutoMirrored.Filled.ListAlt, Screen.Projects, currentScreen, onNavigate, compact)
+                    SidebarItem(LocalizationManager.t("map"), Icons.Default.Map, Screen.Map, currentScreen, onNavigate, compact)
+                }
                 if (!isGuest) {
                     SidebarItem(LocalizationManager.t("inspection_reports"), Icons.Default.FactCheck, Screen.Inspections, currentScreen, onNavigate, compact)
                     if (canAccessFinancials) SidebarItem(LocalizationManager.t("financial_monitoring"), Icons.Default.AccountBalance, Screen.Financial, currentScreen, onNavigate, compact, iconText = "€ ₴")

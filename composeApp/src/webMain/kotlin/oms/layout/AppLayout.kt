@@ -69,7 +69,8 @@ fun AppLayout(appState: AppState) {
                 Screen.Admin -> appState.roleCode == "ADMIN"
                 Screen.CreateProject, Screen.EditProject, Screen.Financial -> appState.roleCode in setOf("ADMIN", "PROJECT_MANAGER")
                 Screen.CreateInspection -> appState.roleCode in setOf("ADMIN", "PROJECT_MANAGER", "INSPECTOR") || target.viewingInspection
-                Screen.Dashboard, Screen.Inspections, Screen.Procurement, Screen.Documents -> appState.roleCode != "GUEST"
+                Screen.Dashboard, Screen.Projects, Screen.ProjectDetail, Screen.Map, Screen.Inspections, Screen.Procurement, Screen.Documents -> appState.roleCode != "GUEST"
+                Screen.GuestInfo -> appState.roleCode == "GUEST"
                 else -> true
             }
             if (!allowed) {
@@ -79,6 +80,8 @@ fun AppLayout(appState: AppState) {
                 return@RouteContentHost
             }
             when (target.screen) {
+
+                is Screen.GuestInfo -> GuestInfoScreen()
 
                 is Screen.Dashboard -> if (appState.roleCode != "GUEST") DashboardScreen(
                     onOpenProject = appState::openProjectDetail,
