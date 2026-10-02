@@ -93,7 +93,7 @@
                     <button class="eye" id="eye" type="button" aria-label="Показати пароль">◉</button>
                 </div>
                 <div class="options">
-                    <label class="remember"><input type="checkbox"><span id="remember-label">Запам’ятати мене</span></label>
+                    <label class="remember"><input id="remember" type="checkbox"><span id="remember-label">Запам’ятати мене</span></label>
                     <button class="link" type="button" id="forgot">Забули пароль?</button>
                 </div>
                 <div id="error" role="alert"></div>
@@ -112,6 +112,20 @@
     if (location.search) { location.replace(appUrl() + location.search); return; }
 
     const byId = id => document.getElementById(id);
+    const savedUsernameKey = "oms.saved.username";
+    const savedPasswordKey = "oms.saved.password";
+    const recentUsernamesKey = "oms.recent.usernames";
+    const remember = byId("remember");
+    // The lightweight login page is shown before Compose starts.  Keep its
+    // explicit opt-in storage compatible with BrowserCredentialStorage so the
+    // checkbox, prefilled fields and full login screen never disagree.
+    try {
+        const savedUsername = localStorage.getItem(savedUsernameKey) || "";
+        const savedPassword = localStorage.getItem(savedPasswordKey) || "";
+        byId("username").value = savedUsername;
+        byId("password").value = savedPassword;
+        remember.checked = Boolean(savedUsername && savedPassword);
+    } catch (_) { /* Storage may be disabled by browser privacy settings. */ }
     let english = false;
     const uk = ["З поверненням", "Будь ласка, увійдіть до свого облікового запису.", "Логін або електронна пошта", "Пароль", "Запам’ятати мене", "Забули пароль?", "Увійти", "Продовжити як гість"];
     const en = ["Welcome back", "Please sign in to your account.", "Username or email", "Password", "Remember me", "Forgot password?", "Sign in", "Continue as guest"];
@@ -129,6 +143,24 @@
     const saveToken = data => {
         if (data.browserBearerSupported && data.accessToken) sessionStorage.setItem("oms.accessToken", data.accessToken);
     };
+    const persistCredentials = () => {
+        try {
+            const username = byId("username").value.trim();
+            if (remember.checked) {
+                localStorage.setItem(savedUsernameKey, username);
+                localStorage.setItem(savedPasswordKey, byId("password").value);
+            } else {
+                localStorage.removeItem(savedUsernameKey);
+                localStorage.removeItem(savedPasswordKey);
+            }
+            if (username) {
+                const recent = (localStorage.getItem(recentUsernamesKey) || "").split("\n")
+                    .map(value => value.trim()).filter(Boolean)
+                    .filter(value => value.toLowerCase() !== username.toLowerCase());
+                localStorage.setItem(recentUsernamesKey, [username, ...recent].slice(0, 8).join("\n"));
+            }
+        } catch (_) { /* Login itself must work even when storage is blocked. */ }
+    };
     byId("login-form").onsubmit = async event => {
         event.preventDefault();
         const button = byId("submit");
@@ -145,6 +177,7 @@
             const data = await response.json().catch(() => ({}));
             if (!response.ok) throw Error(data.message || "Не вдалося увійти. Перевірте логін і пароль.");
             saveToken(data);
+            persistCredentials();
             await window.beginOmsStartup?.(english ? "en" : "uk");
             location.replace(appUrl());
         } catch (error) {
