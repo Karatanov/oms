@@ -5,6 +5,7 @@ import oms.data.ApiFinancialRecord
 import oms.data.displayAmountCents
 import oms.screens.FinancialChartRecord
 import oms.screens.aggregateMonthlyPayments
+import oms.screens.completeFinancialMonths
 import oms.localization.*
 
 class FinancialDisplayCurrencyTest {
@@ -25,8 +26,9 @@ class FinancialDisplayCurrencyTest {
         val rows = listOf(uah, eur).map { FinancialChartRecord(it, "KH08_07") }
         for (currency in listOf("EUR", "UAH")) {
             val chart = aggregateMonthlyPayments(rows, "works", currency, mapOf("2026-09-01" to 45.0))
-            assertEquals(rows.sumOf { it.record.displayAmountCents(currency, 45.0)!! }, chart.payments.single().amountCents)
-            assertEquals("2026-09", chart.payments.single().month)
+            val september = chart.payments.first { it.month == "2026-09" }
+            assertEquals(rows.sumOf { it.record.displayAmountCents(currency, 45.0)!! }, september.amountCents)
+            assertEquals("2026-01", chart.payments.first().month)
             assertTrue(chart.tooltipByMonth.values.single().contains("KH08_07"))
         }
         assertTrue(aggregateMonthlyPayments(rows, "equipment").payments.isEmpty())
@@ -35,6 +37,14 @@ class FinancialDisplayCurrencyTest {
         assertNull(eur.displayAmountCents("UAH", 0.0))
         assertEquals(10001L, uah.copy(amountEurCents = null).displayAmountCents("EUR"))
         assertNull(uah.copy(amountEurCents = null, eurExchangeRate = null).displayAmountCents("EUR"))
+    }
+    @Test fun monthlyChartsIncludeJanuaryAndCalendarGapsAsZero() {
+        val completed = completeFinancialMonths(listOf(
+            oms.screens.MonthlyMoneyAmount("2026-02", 1250),
+            oms.screens.MonthlyMoneyAmount("2026-04", 3750)
+        ))
+        assertEquals(listOf("2026-01", "2026-02", "2026-03", "2026-04"), completed.map { it.month })
+        assertEquals(listOf(0L, 1250L, 0L, 3750L), completed.map { it.amountCents })
     }
     @Test fun messagesExistInBothLanguages() {
         val previous = LocalizationManager.currentLanguage

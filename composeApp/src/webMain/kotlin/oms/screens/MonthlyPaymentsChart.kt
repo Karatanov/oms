@@ -103,12 +103,36 @@ internal fun aggregateMonthlyPayments(
             }
         }
         .groupBy({ it.first }, { it.second })
-    val payments = monthlyRecords.entries
+    val paymentsWithData = monthlyRecords.entries
         .sortedBy { it.key }
         .map { (month, entries) -> MonthlyMoneyAmount(month, entries.sumOf { it.second }) }
+    // A monthly chart must not silently skip calendar gaps. Start from January
+    // of the first represented year so that, for example, January 2026 is
+    // shown as 0 when the first payment is in February.
+    val payments = completeFinancialMonths(paymentsWithData)
     val tooltipByMonth = monthlyRecords.mapValues { (_, entries) ->
         val codes = entries.map { it.first.subprojectCode }.filter { it.isNotBlank() }.distinct().sorted()
         "${LocalizationManager.t("subproject_codes")}: ${codes.joinToString(", ").ifBlank { "—" }}"
     }
     return MonthlyFinancialAggregation(payments, tooltipByMonth)
+}
+
+internal fun completeFinancialMonths(payments: List<MonthlyMoneyAmount>): List<MonthlyMoneyAmount> {
+    if (payments.isEmpty()) return emptyList()
+    val amounts = payments.associate { it.month to it.amountCents }
+    val first = payments.minOf { it.month }
+    val last = payments.maxOf { it.month }
+    val firstYear = first.substringBefore('-').toIntOrNull() ?: return payments.sortedBy { it.month }
+    val lastYear = last.substringBefore('-').toIntOrNull() ?: return payments.sortedBy { it.month }
+    val lastMonth = last.substringAfter('-', "0").toIntOrNull()?.takeIf { it in 1..12 }
+        ?: return payments.sortedBy { it.month }
+    return buildList {
+        for (year in firstYear..lastYear) {
+            val finalMonth = if (year == lastYear) lastMonth else 12
+            for (month in 1..finalMonth) {
+                val key = "$year-${month.toString().padStart(2, '0')}"
+                add(MonthlyMoneyAmount(key, amounts[key] ?: 0L))
+            }
+        }
+    }
 }
