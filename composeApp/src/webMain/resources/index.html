@@ -1024,7 +1024,9 @@
         .oms-startup-login { min-height: 100vh; display: grid; grid-template-columns: 1fr 1fr; }
         .oms-startup-brand { display: flex; align-items: center; padding: clamp(38px, 7vw, 108px); color: #fff; background: linear-gradient(130deg, #278dad, #16566c); }
         .oms-startup-brand > div { max-width: 510px; }
-        .oms-startup-badge { display: inline-block; padding: 7px 13px; border: 1px solid #ffffff38; border-radius: 999px; background: #ffffff18; font-size: 12px; font-weight: 700; letter-spacing: .09em; }
+        .oms-startup-badge { display: inline-flex; flex-direction: column; gap: 3px; padding: 7px 13px; border: 1px solid #ffffff38; border-radius: 14px; background: #ffffff18; }
+        .oms-startup-badge strong { letter-spacing: .09em; font-size: 12px; }
+        .oms-startup-badge small { font-size: 11px; line-height: 1.25; color: #ffffffdf; }
         .oms-startup-brand h1 { margin: 28px 0 15px; font-size: clamp(35px, 4vw, 44px); line-height: 1.18; letter-spacing: -.03em; }
         .oms-startup-brand p { font-size: 20px; line-height: 1.5; color: #ffffffdf; }
         .oms-startup-features { display: grid; gap: 12px; margin: 40px 0 0; padding: 0; list-style: none; font-size: 16px; }
@@ -1053,7 +1055,7 @@
 <div id="oms-loading-overlay" class="visible" role="status" aria-live="polite">
     <main class="oms-startup-login">
         <section class="oms-startup-brand">
-            <div><span class="oms-startup-badge">UMITAF</span><h1>Система онлайн-моніторингу.</h1><p>Єдина система для відстеження проєктів, інспекцій і фінансового контролю.</p><ul class="oms-startup-features"><li>Моніторинг проєктів у реальному часі</li><li>Інспекційні звіти та контроль робіт</li><li>Фінансовий моніторинг</li></ul></div>
+            <div><span class="oms-startup-badge"><strong>UMITAF</strong><small>TA to the implementation of UR III Programme</small></span><h1>Система онлайн-моніторингу.</h1><p>Єдина система для відстеження проєктів, інспекцій і фінансового контролю.</p><ul class="oms-startup-features"><li>Моніторинг проєктів у реальному часі</li><li>Інспекційні звіти та контроль робіт</li><li>Фінансовий моніторинг</li></ul></div>
             <span class="oms-startup-language">EN</span>
         </section>
         <section class="oms-startup-form">
@@ -1105,6 +1107,6 @@
     })();
 </script>
 <script>window.reportOmsStartupProgress?.(93, "interface");</script>
-<script type="application/javascript" src="composeApp.js?v=20261002-content-navigation"></script>
+<script type="application/javascript" src="composeApp.js?v=20261003-umitaf-programme-brand"></script>
 </body>
 </html>

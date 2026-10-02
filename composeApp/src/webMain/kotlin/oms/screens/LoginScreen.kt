@@ -126,12 +126,18 @@ fun LoginScreen(
                     color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.1f),
                     shape = MaterialTheme.shapes.small
                 ) {
-                    Text(
-                        text = "UMITAF",
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                        color = androidx.compose.ui.graphics.Color.White,
-                        style = MaterialTheme.typography.labelMedium
-                    )
+                    Column(Modifier.padding(horizontal = 12.dp, vertical = 6.dp)) {
+                        Text(
+                            text = "UMITAF",
+                            color = androidx.compose.ui.graphics.Color.White,
+                            style = MaterialTheme.typography.labelMedium
+                        )
+                        Text(
+                            text = "TA to the implementation of UR III Programme",
+                            color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.88f),
+                            style = MaterialTheme.typography.labelSmall
+                        )
+                    }
                 }
 
                 // 🔥 ГОЛОВНИЙ АКЦЕНТ (hero text)

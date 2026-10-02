@@ -11,7 +11,9 @@
         .page { min-height: 100vh; display: grid; grid-template-columns: 1fr 1fr; }
         .brand { display: flex; align-items: center; padding: clamp(38px, 7vw, 108px); color: white; background: linear-gradient(130deg, #278dad, #16566c); }
         .brand > * { max-width: 510px; }
-        .badge { display: inline-block; padding: 7px 13px; border: 1px solid #ffffff38; border-radius: 999px; background: #ffffff18; font-weight: 700; letter-spacing: .09em; font-size: 12px; }
+        .badge { display: inline-flex; flex-direction: column; gap: 3px; padding: 7px 13px; border: 1px solid #ffffff38; border-radius: 14px; background: #ffffff18; }
+        .badge strong { font-weight: 700; letter-spacing: .09em; font-size: 12px; }
+        .badge small { font-size: 11px; line-height: 1.25; color: #ffffffdf; }
         .brand h1 { margin: 28px 0 15px; font-size: clamp(35px, 4vw, 44px); line-height: 1.18; letter-spacing: -.03em; }
         .brand p { font-size: 20px; line-height: 1.5; color: #ffffffdf; }
         .features { display: grid; gap: 12px; margin: 40px 0 0; padding: 0; list-style: none; font-size: 16px; }
@@ -61,7 +63,7 @@
 <main class="page">
     <section class="brand">
         <div>
-            <span class="badge">UMITAF</span>
+            <span class="badge"><strong>UMITAF</strong><small>TA to the implementation of UR III Programme</small></span>
             <h1>Система онлайн-моніторингу.</h1>
             <p>Єдина система для відстеження проєктів, інспекцій і фінансового контролю.</p>
             <ul class="features">

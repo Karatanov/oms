@@ -29,7 +29,16 @@ fun Sidebar(currentScreen: Screen, onNavigate: (Screen) -> Unit, onLogout: () ->
             Row(Modifier.fillMaxWidth().height(52.dp), verticalAlignment = Alignment.CenterVertically) {
                 if (!compact) {
                     Icon(Icons.Default.AccountBalance, null, tint = MaterialTheme.colorScheme.primary)
-                    Text("UMITAF", Modifier.weight(1f).padding(start = 10.dp), style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.primary)
+                    Column(Modifier.weight(1f).padding(start = 10.dp)) {
+                        Text("UMITAF", style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.primary)
+                        Text(
+                            "TA to the implementation of UR III Programme",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
                 }
                 TableActionIconButton(LocalizationManager.t(if (compact) "expand_navigation" else "collapse_navigation"),
                     if (compact) Icons.Default.Menu else Icons.Default.MenuOpen, onToggle)
