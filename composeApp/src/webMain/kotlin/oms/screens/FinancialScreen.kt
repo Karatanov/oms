@@ -77,7 +77,7 @@ private data class ProjectActRow(
 private enum class FinancialSort { Type, Purpose, Tranche, Subproject, SubprojectCode, SubprojectPart, ActDate, Amount, Currency, Description, Author }
 
 @Composable
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 fun FinancialScreen(
     canAccessFinancials: Boolean = true,
     canManageFinancials: Boolean = true,
@@ -181,6 +181,9 @@ fun FinancialScreen(
     val completedWorksTotal = acts
         .filter { it.act.recordType == "act" }
         .sumOf { displayCents(it.act) ?: 0L }
+    val subprojectFilterOptions = acts.mapNotNull { row ->
+        row.subprojectUuid?.takeIf { row.subprojectCode != null }?.let { uuid -> uuid to row.subprojectCode!! }
+    }.distinctBy { (uuid, _) -> uuid }.sortedBy { (_, code) -> code }
     val visibleActs = acts.filter {
         (recordTypeFilter == null || it.act.recordType == recordTypeFilter) &&
             (paymentPurposeFilter == null || it.act.paymentPurpose == paymentPurposeFilter) &&
@@ -301,7 +304,7 @@ fun FinancialScreen(
                 currentPage = it.coerceIn(0, pageCount - 1)
             }
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             FilterDropdown(
                 label = LocalizationManager.t("type"),
                 options = listOf("invoice", "act", "payment", "advance"),
@@ -322,6 +325,13 @@ fun FinancialScreen(
                 selected = trancheFilter,
                 onSelect = { trancheFilter = it },
                 itemLabel = { it.financialTrancheCode() }
+            )
+            FilterDropdown(
+                label = LocalizationManager.t("subproject_code"),
+                options = subprojectFilterOptions.map { it.first },
+                selected = subprojectFilter,
+                onSelect = { subprojectFilter = it },
+                itemLabel = { uuid -> subprojectFilterOptions.firstOrNull { it.first == uuid }?.second.orEmpty() }
             )
             OutlinedButton(onClick = {
                 recordTypeFilter = null
