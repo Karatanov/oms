@@ -66,6 +66,9 @@ fun RouteContentHost(request: RouteContent, revision: Int, content: @Composable 
     val transitioning = displayed !== candidate
     val failed = transitioning && candidate.outcome == false
     var showIndicator by remember(candidate) { mutableStateOf(false) }
+    // Read during composition, not only inside SideEffect, so the delayed
+    // change invalidates this scope and updates the native overlay.
+    val indicatorVisible = showIndicator
     val focus = LocalFocusManager.current
     val english = LocalizationManager.currentLanguage == Language.EN
     LaunchedEffect(candidate) {
@@ -76,7 +79,7 @@ fun RouteContentHost(request: RouteContent, revision: Int, content: @Composable 
     }
     SideEffect {
         if (candidate.outcome == true) displayed = candidate
-        setOmsRouteTransition(transitioning, showIndicator, failed,
+        setOmsRouteTransition(transitioning, indicatorVisible, failed,
             english, candidate.route.screen.title, displayed?.route?.screen?.title.orEmpty()) { retry++ }
     }
     DisposableEffect(Unit) {
