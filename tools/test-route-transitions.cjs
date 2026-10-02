@@ -38,6 +38,11 @@ const origin = 'http://127.0.0.1:18088';
     }, route);
     await page.goto(`${origin}/app.html#projects`);
     await ready('Projects');
+    // Route readiness and the startup-overlay fade are intentionally separate:
+    // Compose can publish the first screen before the short handoff animation
+    // has finished. Wait for that handoff so a faster CI runner cannot turn
+    // the assertion below into a timing race.
+    await page.waitForFunction(() => !document.querySelector('#oms-loading-overlay.visible'));
     assert.equal(await page.locator('#oms-loading-overlay.visible').count(), 0);
     const canvas = await page.locator('#compose-host canvas').first().elementHandle();
     await page.mouse.click(230, 10); // Real user activation enables browser Back/Forward events.
