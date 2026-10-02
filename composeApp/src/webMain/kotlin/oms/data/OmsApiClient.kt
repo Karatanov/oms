@@ -72,7 +72,7 @@ object OmsApiClient {
             throw IllegalStateException(message?.takeIf { it.isNotBlank() } ?: body.ifBlank { "Authentication failed." })
         }
         val payload = response.body<LoginPayload>()
-        // Older Render builds return a JWT but do not allow its CORS header yet.
+        // Older deployments can return a JWT without the browser-bearer marker.
         setOmsAccessToken(if (payload.browserBearerSupported) payload.accessToken.orEmpty() else "")
         return payload.user
     }

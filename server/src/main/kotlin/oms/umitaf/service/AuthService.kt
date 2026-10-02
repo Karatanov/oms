@@ -42,7 +42,7 @@ class AuthService(
 
         val state = userRepository.authenticationState(user.id)
             ?: throw IllegalArgumentException("Invalid username or password.")
-        // Authentication timestamps are persisted as UTC.  Render runs in UTC while
+        // Authentication timestamps are persisted as UTC while
         // local development may not, so relying on the host default timezone makes
         // the same account appear to move backwards or forwards between deployments.
         val now = LocalDateTime.now(Clock.systemUTC())

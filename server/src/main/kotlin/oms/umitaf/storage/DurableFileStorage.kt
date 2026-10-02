@@ -16,7 +16,7 @@ import java.time.LocalDateTime
 
 /**
  * Keeps the filesystem as the primary upload store and mirrors every file to
- * the application database.  The mirror is required by free Render services,
+ * the application database. The mirror is required by ephemeral hosting,
  * whose local filesystem is replaced on every deployment.
  */
 object DurableFileStorage {

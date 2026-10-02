@@ -107,7 +107,7 @@
 <script>
 (() => {
     const pages = location.hostname === "karatanov.github.io";
-    const apiUrl = path => `${pages ? "https://oms-3j46.onrender.com/api/v1" : "/api/v1"}${path}`;
+    const apiUrl = path => `${pages ? "https://ua-oms.com/api/v1" : "/api/v1"}${path}`;
     const appUrl = () => pages ? "/oms/app.html" : "/app.html";
     if (location.search) { location.replace(appUrl() + location.search); return; }
 

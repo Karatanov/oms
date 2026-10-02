@@ -13,8 +13,8 @@ import java.io.File
  * Реєструє всі HTTP-маршрути застосунку.
  *
  * A VPS deployment provides OMS_WEB_DIR so the browser application and API
- * share one origin.  The redirect preserves the legacy Render fallback when
- * that directory is not configured.
+ * share one origin. The redirect preserves the public-host fallback when that
+ * directory is not configured.
  */
 fun Application.configureRouting() {
 
@@ -72,10 +72,10 @@ fun Application.configureRouting() {
                 }
             }
         } else {
-            // Keep old Render bookmarks useful until that temporary fallback
-            // is retired. Production VPS Compose always sets OMS_WEB_DIR.
+            // Production VPS Compose always sets OMS_WEB_DIR. Keep a safe
+            // public-host fallback for incomplete server configuration.
             get("/") {
-                call.respondRedirect("https://karatanov.github.io/oms/", permanent = false)
+                call.respondRedirect("https://ua-oms.com/", permanent = false)
             }
         }
     }

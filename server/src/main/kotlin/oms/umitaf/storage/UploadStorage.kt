@@ -2,7 +2,7 @@ package oms.umitaf.storage
 
 import java.nio.file.Path
 
-/** Location for runtime uploads; Render can point this at a paid persistent disk. */
+/** Location for runtime uploads; production hosting may point this at persistent storage. */
 fun uploadDirectory(vararg parts: String): Path {
     val root = System.getenv("OMS_UPLOAD_DIR")
         ?.trim()
