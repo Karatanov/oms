@@ -266,7 +266,14 @@ fun ProjectsScreen(
             onSearchTextChange = { searchText = it },
             pageScrollState = pageScrollState,
             filters = {
-                ProjectsFilters(regionFilter, { regionFilter = it }, statusFilter, { statusFilter = it },
+                ProjectsFilters(regionFilter, {
+                    regionFilter = it
+                    // The default Active state concealed entire regions whose
+                    // subprojects are currently planned.  Selecting a region
+                    // therefore deliberately broadens the lifecycle filter;
+                    // the user can immediately choose a specific status again.
+                    if (it != null) statusFilter = null
+                }, statusFilter, { statusFilter = it },
                     trancheFilter, { trancheFilter = it },
                     constructionTypeFilter, { constructionTypeFilter = it }, sectorFilter, { sectorFilter = it },
                     canReset = searchText.isNotBlank() || regionFilter != null || statusFilter != ProjectStatus.ACTIVE || trancheFilter != null || constructionTypeFilter != null || sectorFilter != null,
