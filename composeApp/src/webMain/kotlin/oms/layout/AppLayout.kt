@@ -59,6 +59,12 @@ fun AppLayout(appState: AppState) {
         // ---------------- CONTENT ----------------
         Box(modifier = Modifier.weight(1f)) {
           RouteContentHost(route, appState.navigationRevision) { target ->
+            val actionRevision = appState.navigationRevision
+            // A save/delete started before navigation may finish while its old
+            // screen is retained. Its completion must not redirect the new route.
+            fun ifCurrent(action: () -> Unit) {
+                if (appState.isAuthenticated && appState.navigationRevision == actionRevision) action()
+            }
             val allowed = when (target.screen) {
                 Screen.Admin -> appState.roleCode == "ADMIN"
                 Screen.CreateProject, Screen.EditProject, Screen.Financial -> appState.roleCode in setOf("ADMIN", "PROJECT_MANAGER")
@@ -96,14 +102,14 @@ fun AppLayout(appState: AppState) {
 
                 is Screen.CreateProject -> if (appState.roleCode in setOf("ADMIN", "PROJECT_MANAGER")) CreateProjectScreen(
                     onCancel = { appState.navigate(Screen.Projects) },
-                    onCreated = { appState.navigate(Screen.Projects) }
+                    onCreated = { ifCurrent { appState.navigate(Screen.Projects) } }
                 )
 
                 is Screen.EditProject -> if (appState.roleCode in setOf("ADMIN", "PROJECT_MANAGER")) target.project?.let { project ->
                     EditProjectScreen(
                         project = project,
                         onCancel = { appState.openProjectDetail(project) },
-                        onSaved = { appState.openProjectDetail(it) }
+                        onSaved = { saved -> ifCurrent { appState.openProjectDetail(saved) } }
                     )
                 }
 
@@ -112,7 +118,7 @@ fun AppLayout(appState: AppState) {
                         ProjectDetailScreen(
                             project = project,
                             onBackToProjects = {
-                                appState.navigate(Screen.Projects)
+                                ifCurrent { appState.navigate(Screen.Projects) }
                             },
                             onEdit = { appState.openEditProject(it) },
                             canEditProject = appState.roleCode in setOf("ADMIN", "PROJECT_MANAGER"),
@@ -124,9 +130,9 @@ fun AppLayout(appState: AppState) {
                 }
 
                 is Screen.CreateInspection -> if (appState.roleCode in setOf("ADMIN", "PROJECT_MANAGER", "INSPECTOR") || target.viewingInspection) CreateInspectionScreen(
-                    onSaveDraft = { invalidateInspectionReportsScreenCache(); appState.navigate(Screen.Inspections) },
-                    onSubmit = { invalidateInspectionReportsScreenCache(); appState.navigate(Screen.Inspections) },
-                    onImportXls = { invalidateInspectionReportsScreenCache(); appState.navigate(Screen.Inspections) },
+                    onSaveDraft = { invalidateInspectionReportsScreenCache(); ifCurrent { appState.navigate(Screen.Inspections) } },
+                    onSubmit = { invalidateInspectionReportsScreenCache(); ifCurrent { appState.navigate(Screen.Inspections) } },
+                    onImportXls = { invalidateInspectionReportsScreenCache(); ifCurrent { appState.navigate(Screen.Inspections) } },
                     onCancel = { appState.navigate(Screen.Inspections) },
                     currentUserName = appState.username,
                     isAdmin = appState.roleCode == "ADMIN",
