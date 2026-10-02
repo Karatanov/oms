@@ -6,6 +6,7 @@ const { chromium } = require(path.resolve(process.env.OMS_PLAYWRIGHT_PATH || 'bu
 const auth = fs.readFileSync('composeApp/src/webMain/resources/auth.js', 'utf8');
 const source = fs.readFileSync('composeApp/src/webMain/resources/index.html', 'utf8')
   .replace(/<script src="auth\.js[^>]*><\/script>/, `<script>${auth}</script>`)
+  .replace(/<script src="startup\.js[^>]*><\/script>/, `<script>${fs.readFileSync('composeApp/src/webMain/resources/startup.js', 'utf8')}</script>`)
   .replace(/<script type="application\/javascript" src="composeApp[^>]*><\/script>/, '');
 const origin = 'https://app.oms.test';
 const overview = {
@@ -32,9 +33,8 @@ const overview = {
     });
     const started = Date.now();
     await page.goto(`${origin}/app.html`);
-    await page.getByText('Середнє виконання').waitFor();
-    assert.equal(await page.getByText('50%').textContent(), '50%');
-    assert.equal(await page.getByText('7').textContent(), '7');
+    await page.locator('#oms-startup-status').waitFor();
+    await page.waitForFunction(() => Number(document.querySelector('#oms-startup-percent').textContent.replace('%', '')) >= 91);
     assert.ok(Date.now() - started < 2_000, 'Authenticated shell should render within two seconds');
     assert.equal(await page.evaluate(() => performance.getEntriesByName('oms-shell-to-useful').length), 1);
     assert.ok((await page.evaluate(() => window.takeOmsBootstrappedDashboard())).includes('inspection-1'));
@@ -44,7 +44,7 @@ const overview = {
     await page.evaluate(() => finishOmsStartup());
     await page.waitForFunction(() => !document.querySelector('#oms-loading-overlay.visible'));
     assert.ok(await page.evaluate(() => performance.getEntriesByName('oms-dashboard-handoff').length > 0));
-    console.log('PASS authenticated startup shell: useful dashboard visible and bootstrap consumed once');
+    console.log('PASS authenticated startup shell: login backdrop, measured progress and bootstrap consumption');
   } finally {
     await browser.close();
   }

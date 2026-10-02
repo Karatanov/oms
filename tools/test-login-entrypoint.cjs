@@ -4,6 +4,7 @@ const assert = require('node:assert/strict');
 const { chromium } = require(path.resolve(process.env.OMS_PLAYWRIGHT_PATH || 'build/date-picker-test/node_modules/playwright'));
 
 const login = fs.readFileSync('composeApp/src/webMain/resources/login.html', 'utf8');
+const startup = fs.readFileSync('composeApp/src/webMain/resources/startup.js', 'utf8');
 
 (async () => {
   const browser = await chromium.launch();
@@ -19,8 +20,10 @@ const login = fs.readFileSync('composeApp/src/webMain/resources/login.html', 'ut
       page.on('request', request => requests.push(request.url()));
       await context.route(`${deployment.origin}/**`, route => {
         const pathname = new URL(route.request().url()).pathname;
-        if (pathname === '/' || pathname === '/oms/') return route.fulfill({ contentType: 'text/html', body: login });
+        if (pathname === '/' || pathname === '/oms/') return route.fulfill({ contentType: 'text/html', body: login.replace(/<script src="startup\.js[^>]*><\/script>/, `<script>${startup}</script>`) });
         if (pathname.endsWith('/app.html')) return route.fulfill({ contentType: 'text/html', body: '<title>App fixture</title>' });
+        if (pathname.endsWith('/assets-manifest.json')) return route.fulfill({ contentType: 'application/json', body: JSON.stringify({ assets: [{ url: 'composeApp.fixture.js', bytes: 8 }, { url: 'fixture.wasm', bytes: 8 }] }) });
+        if (pathname.endsWith('/composeApp.fixture.js') || pathname.endsWith('/fixture.wasm')) return route.fulfill({ body: '12345678' });
         return route.fulfill({ status: 404 });
       });
       await context.route(`${deployment.api}/auth/login`, route => route.fulfill({
@@ -29,7 +32,8 @@ const login = fs.readFileSync('composeApp/src/webMain/resources/login.html', 'ut
         body: JSON.stringify({ browserBearerSupported: true, accessToken: 'fixture-token' })
       }));
       await page.goto(entry);
-      assert.equal(requests.some(url => /composeApp.*\.js/.test(url)), false, 'login must not preload Compose');
+      await page.waitForFunction(() => performance.getEntriesByName(new URL('assets-manifest.json', document.baseURI)).length > 0);
+      assert.equal(requests.some(url => /composeApp.*\.js/.test(url)), true, 'login should warm the application cache without blocking the form');
       await page.locator('#username').fill('fixture');
       await page.locator('#password').fill('fixture');
       await Promise.all([page.waitForURL(deployment.app), page.locator('#submit').click()]);

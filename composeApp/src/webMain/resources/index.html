@@ -6,6 +6,7 @@
     <title>UMITAF</title>
     <link type="text/css" rel="stylesheet" href="styles.css?v=20261002-content-navigation">
     <script src="auth.js?v=20260925-safari"></script>
+    <script src="startup.js?v=20261002-startup-progress"></script>
     <script>
         function omsApiUrl(path) {
             const local = ["localhost", "127.0.0.1"].includes(window.location.hostname);
@@ -78,8 +79,11 @@
         }
 
         function finishOmsStartup() {
-            document.getElementById("oms-loading-overlay")?.classList.remove("visible");
-            performance.mark("oms-dashboard-handoff");
+            if (window.completeOmsStartup) window.completeOmsStartup();
+            else {
+                document.getElementById("oms-loading-overlay")?.classList.remove("visible");
+                performance.mark("oms-dashboard-handoff");
+            }
         }
 
         function setOmsRouteTransition(busy, indicator, failed, english, requested, displayed, retry) {
@@ -1013,25 +1017,55 @@
     <style>
         /* Startup only: Compose dismisses this after painting its real shell.
            Requests and section transitions must never reuse this element. */
-        #oms-loading-overlay { position: fixed; inset: 0; z-index: 2147483647; overflow: auto; background: #f4f7f9; color: #20313c; transition: opacity .18s ease; }
+        #oms-loading-overlay { position: fixed; inset: 0; z-index: 2147483647; overflow: auto; background: #fff; color: #20313c; transition: opacity .18s ease; font-family: Inter, "Segoe UI", Arial, sans-serif; }
         #oms-loading-overlay:not(.visible) { opacity: 0; pointer-events: none; }
-        .oms-startup-header { display: flex; align-items: center; justify-content: space-between; min-height: 66px; padding: 0 28px; background: #fff; border-bottom: 1px solid #dce5ea; font: 700 18px Inter, Arial, sans-serif; }
         .oms-loading-card { display: flex; align-items: center; gap: 10px; color: #536571; font: 500 13px Inter, Arial, sans-serif; }
         .oms-loading-spinner { width: 22px; height: 22px; border: 3px solid #17728a33; border-top-color: #17728a; border-radius: 50%; animation: oms-spin .7s linear infinite; }
-        .oms-startup-main { width: min(1180px, calc(100% - 40px)); margin: 0 auto; padding: 34px 0; font-family: Inter, Arial, sans-serif; }
-        .oms-startup-main h1 { margin: 0 0 6px; font-size: 28px; } .oms-startup-main > p { margin: 0 0 26px; color: #536571; }
-        .oms-startup-cards { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
-        .oms-startup-card { min-height: 116px; padding: 20px; border: 1px solid #dce5ea; border-radius: 12px; background: #fff; box-shadow: 0 4px 14px #1a475608; }
-        .oms-startup-label { color: #536571; font-size: 13px; } .oms-startup-value { margin-top: 12px; color: #16566c; font-size: 28px; font-weight: 700; }
-        .oms-startup-error { padding: 18px; border-radius: 10px; background: #fcebec; color: #81252c; }
-        @media (max-width: 760px) { .oms-startup-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); } .oms-startup-header { padding: 0 18px; } }
+        .oms-startup-login { min-height: 100vh; display: grid; grid-template-columns: 1fr 1fr; }
+        .oms-startup-brand { display: flex; align-items: center; padding: clamp(38px, 7vw, 108px); color: #fff; background: linear-gradient(130deg, #278dad, #16566c); }
+        .oms-startup-brand > div { max-width: 510px; }
+        .oms-startup-badge { display: inline-block; padding: 7px 13px; border: 1px solid #ffffff38; border-radius: 999px; background: #ffffff18; font-size: 12px; font-weight: 700; letter-spacing: .09em; }
+        .oms-startup-brand h1 { margin: 28px 0 15px; font-size: clamp(35px, 4vw, 44px); line-height: 1.18; letter-spacing: -.03em; }
+        .oms-startup-brand p { font-size: 20px; line-height: 1.5; color: #ffffffdf; }
+        .oms-startup-features { display: grid; gap: 12px; margin: 40px 0 0; padding: 0; list-style: none; font-size: 16px; }
+        .oms-startup-features li::before { content: "✓"; display: inline-grid; place-items: center; width: 22px; height: 22px; margin-right: 11px; border-radius: 50%; background: #ffffff24; font-size: 13px; font-weight: 800; }
+        .oms-startup-form { position: relative; display: grid; place-items: center; min-height: 100vh; padding: 48px 24px 88px; background: #fff; }
+        .oms-startup-auth-ghost { width: min(440px, 100%); opacity: .19; filter: blur(.7px); }
+        .oms-startup-auth-ghost h2 { margin: 0 0 8px; font-size: 29px; } .oms-startup-auth-ghost p { margin: 0 0 30px; color: #536571; }
+        .oms-startup-label { display: block; margin: 17px 0 7px; color: #32465a; font-size: 14px; font-weight: 650; }
+        .oms-startup-field { height: 50px; border: 1px solid #c9d4df; border-radius: 999px; }
+        .oms-startup-options { display: flex; justify-content: space-between; margin: 18px 0 9px; color: #526579; font-size: 14px; }
+        .oms-startup-button { display: grid; place-items: center; height: 52px; margin-top: 17px; border-radius: 999px; background: #278dad; color: #fff; font-weight: 700; }
+        .oms-startup-button.secondary { margin-top: 12px; background: #496574; }
+        .oms-startup-language { position: fixed; z-index: 2; left: 24px; bottom: 24px; padding: 8px 13px; border: 1px solid #ffffff55; border-radius: 999px; background: #ffffff20; color: #fff; font-weight: 700; }
+        .oms-startup-status { position: absolute; z-index: 2; width: min(390px, calc(100% - 48px)); padding: 24px; border: 1px solid #d7e3e9; border-radius: 20px; background: #fffffff2; box-shadow: 0 18px 55px #153e4d24; backdrop-filter: blur(9px); }
+        .oms-startup-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin-bottom: 11px; }
+        .oms-startup-heading strong { font-size: 17px; } #oms-startup-percent { color: #278dad; font-size: 19px; font-weight: 800; }
+        .oms-progress-track { height: 9px; overflow: hidden; border-radius: 999px; background: #dfe9ee; }
+        #oms-startup-progress-bar { width: 0; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #278dad, #41b8cf); transition: width .2s ease; }
+        #oms-startup-message { margin: 14px 0 5px; color: #32465a; font-weight: 650; }
+        #oms-startup-timer { color: #6a7b87; font-size: 13px; font-variant-numeric: tabular-nums; }
+        @media (max-width: 900px) { .oms-startup-login { display: block; } .oms-startup-brand { min-height: 285px; padding: 40px 32px; } .oms-startup-brand h1 { margin: 18px 0 10px; font-size: 34px; } .oms-startup-brand p { font-size: 16px; } .oms-startup-features { display: none; } .oms-startup-form { min-height: calc(100vh - 285px); } .oms-startup-language { border-color: #dce5ea; background: #fff; color: #386073; } }
         @keyframes oms-spin { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
 <div id="oms-loading-overlay" class="visible" role="status" aria-live="polite">
-    <header class="oms-startup-header"><span>UMITAF OMS</span><div class="oms-loading-card"><span class="oms-loading-spinner"></span><span class="oms-loading-message">Завантаження повної системи…</span></div></header>
-    <main class="oms-startup-main"><h1>Головна панель</h1><p>Актуальні дані доступні, повний інтерфейс завантажується у фоні.</p><div id="oms-startup-cards" class="oms-startup-cards"><div class="oms-startup-card"><div class="oms-startup-label">Завантаження даних…</div></div></div></main>
+    <main class="oms-startup-login">
+        <section class="oms-startup-brand">
+            <div><span class="oms-startup-badge">UMITAF</span><h1>Система онлайн-моніторингу.</h1><p>Єдина система для відстеження проєктів, інспекцій і фінансового контролю.</p><ul class="oms-startup-features"><li>Моніторинг проєктів у реальному часі</li><li>Інспекційні звіти та контроль робіт</li><li>Фінансовий моніторинг</li></ul></div>
+            <span class="oms-startup-language">EN</span>
+        </section>
+        <section class="oms-startup-form">
+            <div class="oms-startup-auth-ghost" aria-hidden="true"><h2>З поверненням</h2><p>Будь ласка, увійдіть до свого облікового запису.</p><span class="oms-startup-label">Логін або електронна пошта</span><div class="oms-startup-field"></div><span class="oms-startup-label">Пароль</span><div class="oms-startup-field"></div><div class="oms-startup-options"><span>□ Запам’ятати мене</span><span>Забули пароль?</span></div><div class="oms-startup-button">Увійти</div><div class="oms-startup-button secondary">Продовжити як гість</div></div>
+            <div class="oms-startup-status" id="oms-startup-status">
+                <div class="oms-startup-heading"><strong>UMITAF OMS</strong><span id="oms-startup-percent">0%</span></div>
+                <div class="oms-progress-track" role="progressbar" aria-label="Завантаження" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div id="oms-startup-progress-bar"></div></div>
+                <div id="oms-startup-message">Підготовка системи…</div>
+                <div id="oms-startup-timer">Час завантаження: 00:00</div>
+            </div>
+        </section>
+    </main>
 </div>
 <div id="app-shell">
     <div id="compose-host"></div>
@@ -1059,28 +1093,18 @@
     };
     performance.mark("oms-shell-visible");
     (async () => {
-        const cards = document.getElementById("oms-startup-cards");
         try {
             const response = await omsAuthenticatedFetch(omsApiUrl("/dashboard/overview?background=true"));
             if (response.status === 401) { location.replace("/"); return; }
             if (!response.ok) throw new Error(`Dashboard ${response.status}`);
             const text = await response.text();
-            const data = JSON.parse(text);
             window.omsBootstrappedDashboard = text;
-            const subprojects = new Set([...(data.subprojectFunding || []), ...(data.subprojectProgress || [])].map(item => item.projectUuid)).size;
-            const progress = data.subprojectProgress || [];
-            const averageProgress = progress.length ? Math.round(progress.reduce((sum, item) => sum + Number(item.completionPct || 0), 0) / progress.length) : 0;
-            const procurements = (data.procurementStatusCounts || []).reduce((sum, item) => sum + Number(item.value || 0), 0);
-            const inspections = (data.recentInspections || []).length;
-            const values = [["Субпроєкти", subprojects], ["Середнє виконання", `${averageProgress}%`], ["Закупівлі", procurements], ["Останні інспекції", inspections]];
-            cards.innerHTML = values.map(([label, value]) => `<section class="oms-startup-card"><div class="oms-startup-label">${label}</div><div class="oms-startup-value">${value}</div></section>`).join("");
             performance.mark("oms-shell-useful");
             performance.measure("oms-shell-to-useful", "oms-shell-visible", "oms-shell-useful");
-        } catch (error) {
-            cards.innerHTML = '<div class="oms-startup-error">Не вдалося завантажити огляд. Повний інтерфейс продовжує завантаження.</div>';
-        }
+        } catch (_) { /* Compose performs the authoritative screen load and retry. */ }
     })();
 </script>
+<script>window.reportOmsStartupProgress?.(93, "interface");</script>
 <script type="application/javascript" src="composeApp.js?v=20261002-content-navigation"></script>
 </body>
 </html>
