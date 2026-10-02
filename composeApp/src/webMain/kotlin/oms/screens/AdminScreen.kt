@@ -97,6 +97,7 @@ fun AdminScreen() {
     var permanentDeleteDependencies by remember { mutableStateOf<Map<String, Long>?>(null) }
     var createUser by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    oms.navigation.ReportRouteReadiness(loading, errorMessage != null)
     var editUserError by remember { mutableStateOf<String?>(null) }
     var savingUser by remember { mutableStateOf(false) }
     var sort by remember { mutableStateOf(UserSort.Username) }
@@ -109,16 +110,17 @@ fun AdminScreen() {
         }
     }
     LaunchedEffect(archiveFilter) {
-        val (loadedUsers, loadedRoles, loadedActivities) = coroutineScope {
+        val (loadedUsers, loadedRoles) = coroutineScope {
             val usersRequest = async { runCatching { OmsApiClient.users(archiveFilter) } }
             val rolesRequest = async { runCatching { OmsApiClient.roles() } }
-            val activitiesRequest = async { runCatching { OmsApiClient.dashboard().activities } }
-            Triple(usersRequest.await(), rolesRequest.await(), activitiesRequest.await())
+            usersRequest.await() to rolesRequest.await()
         }
         loadedUsers.onSuccess { users = it }.onFailure { errorMessage = LocalizationManager.t("error_load_users") }
         roles = loadedRoles.getOrDefault(emptyList())
-        activities = loadedActivities.getOrDefault(emptyList())
         loading = false
+    }
+    LaunchedEffect(Unit) {
+        activities = runCatching { OmsApiClient.dashboard().activities }.getOrDefault(emptyList())
     }
     val sortedUsers = users.filter { search.isBlank() || listOf(it.username, it.email, it.firstName, it.lastName).any { value -> value.contains(search, true) } }.sortedWith(compareBy<ApiUser> {
         when (sort) {

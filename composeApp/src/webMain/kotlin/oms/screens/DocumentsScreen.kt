@@ -77,6 +77,7 @@ fun DocumentsScreen(canManageDocuments: Boolean = true) {
     var typeFilter by remember { mutableStateOf(DocumentTypeFilter.ALL) }
     var loading by remember { mutableStateOf(true) }
     var loadFailed by remember { mutableStateOf(false) }
+    oms.navigation.ReportRouteReadiness(loading, loadFailed)
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var showUploadDialog by remember { mutableStateOf(false) }
     val pageScrollState = rememberScrollState()
@@ -93,7 +94,10 @@ fun DocumentsScreen(canManageDocuments: Boolean = true) {
         }
         // Project data is used only to decorate actual document/report rows.
         // An empty Documents register must not wait for the project hierarchy.
-        if (reports.isNotEmpty() || loadedDocuments.isNotEmpty()) ProjectRepository.refresh()
+        if (reports.isNotEmpty() || loadedDocuments.isNotEmpty()) {
+            ProjectRepository.refresh()
+            check(ProjectRepository.errorMessage == null) { "Could not load project context" }
+        }
         val projectsById = ProjectRepository.projects.associateBy { it.id }
         fun projectContext(project: oms.model.Project): Pair<String, String?> {
             val ancestry = generateSequence(project) { current -> current.parentProjectUuid?.let(projectsById::get) }.toList().asReversed()

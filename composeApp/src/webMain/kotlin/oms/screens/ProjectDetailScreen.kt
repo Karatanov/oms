@@ -81,6 +81,7 @@ fun ProjectDetailScreen(
     var loadedResources by remember(project.id) { mutableStateOf<Set<ProjectDetailResource>>(emptySet()) }
     var loadError by remember { mutableStateOf(false) }
     var loading by remember { mutableStateOf(true) }
+    oms.navigation.ReportRouteReadiness(details.value == null && !loadError, loadError)
     var retryKey by remember { mutableStateOf(0) }
     var confirmDeletion by remember { mutableStateOf(false) }
     var deleteError by remember { mutableStateOf<String?>(null) }

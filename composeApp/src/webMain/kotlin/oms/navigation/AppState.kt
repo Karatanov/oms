@@ -17,6 +17,8 @@ import kotlin.js.JsName
 //    - авторизацію
 //    - токен
 class AppState {
+    var navigationRevision by mutableStateOf(0)
+        private set
 
     // 🔹 Поточний екран
     var currentScreen by mutableStateOf<Screen>(Screen.Login)
@@ -45,6 +47,7 @@ class AppState {
     fun navigate(screen: Screen) {
         if (currentScreen != screen) pushOmsRoute(screen.route())
         currentScreen = screen
+        navigationRevision++
     }
 
     fun restoreRoute(route: String) {
@@ -65,6 +68,7 @@ class AppState {
         }
         if ((screen == Screen.ProjectDetail || screen == Screen.EditProject) && selectedProject == null) currentScreen = Screen.Projects
         else currentScreen = screen
+        navigationRevision++
     }
 
     // 🔹 Відкрити detail-екран конкретного проєкту

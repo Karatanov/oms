@@ -27,13 +27,6 @@ import kotlin.js.JsName
 import kotlin.js.unsafeCast
 import kotlin.js.toJsString
 import org.w3c.fetch.RequestCredentials
-import oms.localization.LocalizationManager
-
-@JsName("showOmsLoading")
-private external fun showOmsLoading(message: String)
-
-@JsName("hideOmsLoading")
-private external fun hideOmsLoading()
 
 @JsName("setOmsAccessToken")
 private external fun setOmsAccessToken(value: String)
@@ -61,13 +54,8 @@ object OmsApiClient {
         client.plugin(HttpSend).intercept { request ->
             val authorization = omsAuthorizationFor(request.url.build().toString())
             if (authorization.isNotEmpty()) request.headers.append("Authorization", authorization)
-            val isBackgroundRequest = request.url.parameters["background"] == "true"
-            if (!isBackgroundRequest) showOmsLoading(request.url.build().encodedPath.toOmsLoadingMessage())
-            try {
-                execute(request)
-            } finally {
-                if (!isBackgroundRequest) hideOmsLoading()
-            }
+            // Loading belongs to the requesting screen/component, not transport.
+            execute(request)
         }
     }
 
@@ -449,17 +437,6 @@ object OmsApiClient {
 
     suspend fun deleteProjectDocument(projectUuid: String, documentUuid: String): Boolean =
         client.delete("$baseUrl/projects/$projectUuid/documents/$documentUuid").status.isSuccess()
-}
-
-private fun String.toOmsLoadingMessage(): String = when {
-    contains("/dashboard") -> LocalizationManager.t("loading_dashboard")
-    contains("/inspection-reports") -> LocalizationManager.t("loading_reports")
-    contains("/financial") -> LocalizationManager.t("loading_financials")
-    contains("/documents") -> LocalizationManager.t("loading_documents")
-    contains("/photos") -> LocalizationManager.t("loading_photos")
-    contains("/users") -> LocalizationManager.t("loading_users")
-    contains("/projects") -> LocalizationManager.t("loading_projects")
-    else -> LocalizationManager.t("loading_data")
 }
 
 @Serializable

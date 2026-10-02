@@ -38,6 +38,19 @@ jobs:
         run: node tools/test-login-entrypoint.cjs
       - name: Authenticated startup shell in Chromium
         run: node tools/test-startup-shell.cjs
+      - name: Content-scoped native loading overlay in Chromium
+        run: node tools/test-route-overlay.cjs
+      - name: Build development bundle for early navigation regressions
+        run: |
+          bash gradlew -PrenderJsOnly :composeApp:jsBrowserDevelopmentWebpack --no-daemon --max-workers=1
+          mkdir -p build/navigation-fixture
+          cp -a composeApp/build/processedResources/js/main/. build/navigation-fixture/
+          cp -a composeApp/build/kotlin-webpack/js/developmentExecutable/. build/navigation-fixture/
+          cp build/navigation-fixture/index.html build/navigation-fixture/app.html
+      - name: Real Compose navigation regression tests
+        env:
+          OMS_SMOKE_ASSETS: build/navigation-fixture
+        run: node tools/test-route-transitions.cjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:

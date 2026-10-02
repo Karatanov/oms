@@ -138,6 +138,9 @@ fun CreateInspectionScreen(
     var inspectorTitle by remember { mutableStateOf("") }
     var reportStatus by remember { mutableStateOf("draft") }
     var loadingManualReport by remember(editingReportUuid) { mutableStateOf(isManualEdit) }
+    var loadingProjects by remember { mutableStateOf(true) }
+    oms.navigation.ReportRouteReadiness(loadingProjects || loadingManualReport,
+        errorMessage != null || ProjectRepository.errorMessage != null)
     var reportPhotos by remember(editingReportUuid) { mutableStateOf<List<ApiInspectionPhoto>?>(null) }
     val scope = rememberCoroutineScope()
     val pageScrollState = rememberScrollState()
@@ -146,9 +149,10 @@ fun CreateInspectionScreen(
     // Native photo panes belong to the document body, not Compose's tree. A
     // stale pane from an earlier form must never survive navigation and cover
     // this screen. Read-only and editing forms now use on-demand lightboxes.
-    DisposableEffect(Unit) {
-        hideAllInspectionNativePanes()
-        onDispose { hideAllInspectionNativePanes() }
+    val routeVisible = oms.navigation.LocalRouteVisible.current
+    DisposableEffect(routeVisible) {
+        if (routeVisible) hideAllInspectionNativePanes()
+        onDispose { if (routeVisible) hideAllInspectionNativePanes() }
     }
 
     // The report's QA staff is normally the person creating it.  Preserve a
@@ -166,7 +170,8 @@ fun CreateInspectionScreen(
     // the lightweight shared project snapshot is available, while preserving
     // the explicit separate choice of subproject and subproject part.
     LaunchedEffect(isManualEdit) {
-        if (!isManualEdit) ProjectRepository.refresh()
+        ProjectRepository.refresh()
+        loadingProjects = false
     }
     LaunchedEffect(isManualEdit, rootProjects) {
         if (!isManualEdit && selectedProjectUuid == null && rootProjects.size == 1) {
@@ -751,6 +756,7 @@ private fun ReadOnlyInspectionField(label: String, value: String, modifier: Modi
 internal fun PendingInspectionPhotoPreviews(activityKey: String, revision: Int, onSelectionChanged: (Int) -> Unit) {
     val paneId = "inspection-photo-preview-pane-$activityKey"
     NativePaneAnchor(paneId, Modifier.fillMaxWidth().height(210.dp))
+    if (!oms.navigation.LocalRouteVisible.current) return
     DisposableEffect(activityKey, revision, LocalizationManager.currentLanguage) {
         showPendingInspectionPhotoPreviews(activityKey, onSelectionChanged)
         onDispose { hidePendingInspectionPhotoPreviews(activityKey) }
@@ -785,6 +791,7 @@ internal fun InspectionActivityPhotoGallery(
     }
     val paneId = "inspection-activity-photo-gallery-$activityKey"
     NativePaneAnchor(paneId, modifier.height(88.dp))
+    if (!oms.navigation.LocalRouteVisible.current) return
     DisposableEffect(activityKey, photos, LocalizationManager.currentLanguage) {
         showInspectionActivityPhotoGallery(activityKey, Json.encodeToString(publicPhotos))
         onDispose { hideInspectionActivityPhotoGallery(activityKey) }
@@ -964,8 +971,9 @@ private fun RepeatableOngoingObservations(
         onChange(values.mapIndexed { current, item -> if (current == index) transform(item) else item })
     }
     values.forEachIndexed { index, observation ->
-        LaunchedEffect(observation.photoKey, observation.description) {
-            setPendingInspectionPhotoDescription(observation.photoKey, observation.description)
+        val routeVisible = oms.navigation.LocalRouteVisible.current
+        LaunchedEffect(observation.photoKey, observation.description, routeVisible) {
+            if (routeVisible) setPendingInspectionPhotoDescription(observation.photoKey, observation.description)
         }
         Card(colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FBFC))) {
             Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -1130,8 +1138,9 @@ private fun RepeatableManualActivities(
             photo.editorAssociationKey() == activity.photoKey ||
                 (index == 0 && photo.editorAssociationKey() == null)
         }
-        LaunchedEffect(activity.photoKey, activity.description) {
-            setPendingInspectionPhotoDescription(activity.photoKey, activity.description)
+        val routeVisible = oms.navigation.LocalRouteVisible.current
+        LaunchedEffect(activity.photoKey, activity.description, routeVisible) {
+            if (routeVisible) setPendingInspectionPhotoDescription(activity.photoKey, activity.description)
         }
         Card(colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FBFC))) {
             Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {

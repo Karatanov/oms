@@ -13,6 +13,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import oms.navigation.AppState
 import oms.navigation.Screen
+import oms.navigation.RouteContent
+import oms.navigation.RouteContentHost
 import oms.screens.*
 import oms.screens.dashboard.DashboardScreen
 import kotlin.js.JsName
@@ -30,7 +32,8 @@ fun AppLayout(appState: AppState) {
     // happens while one is open, its transparent dismiss layer would otherwise
     // remain over the new screen and make every control appear unresponsive.
     val optionOverlay = oms.components.LocalOptionOverlay.current
-    LaunchedEffect(appState.currentScreen) { optionOverlay.menu = null }
+    LaunchedEffect(appState.navigationRevision) { optionOverlay.menu = null }
+    val route = remember(appState.navigationRevision) { RouteContent.capture(appState) }
 
     BoxWithConstraints(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
     var compact by remember(maxWidth < 1100.dp) { mutableStateOf(maxWidth < 1100.dp) }
@@ -55,8 +58,27 @@ fun AppLayout(appState: AppState) {
         }
         // ---------------- CONTENT ----------------
         Box(modifier = Modifier.weight(1f)) {
-
-            when (appState.currentScreen) {
+          RouteContentHost(route, appState.navigationRevision) { target ->
+            val actionRevision = appState.navigationRevision
+            // A save/delete started before navigation may finish while its old
+            // screen is retained. Its completion must not redirect the new route.
+            fun ifCurrent(action: () -> Unit) {
+                if (appState.isAuthenticated && appState.navigationRevision == actionRevision) action()
+            }
+            val allowed = when (target.screen) {
+                Screen.Admin -> appState.roleCode == "ADMIN"
+                Screen.CreateProject, Screen.EditProject, Screen.Financial -> appState.roleCode in setOf("ADMIN", "PROJECT_MANAGER")
+                Screen.CreateInspection -> appState.roleCode in setOf("ADMIN", "PROJECT_MANAGER", "INSPECTOR") || target.viewingInspection
+                Screen.Dashboard, Screen.Inspections, Screen.Procurement, Screen.Documents -> appState.roleCode != "GUEST"
+                else -> true
+            }
+            if (!allowed) {
+                oms.navigation.ReportRouteReadiness(loading = false)
+                androidx.compose.material3.Text(if (oms.localization.LocalizationManager.currentLanguage == oms.localization.Language.EN)
+                    "You do not have access to this section." else "У вас немає доступу до цього розділу.")
+                return@RouteContentHost
+            }
+            when (target.screen) {
 
                 is Screen.Dashboard -> if (appState.roleCode != "GUEST") DashboardScreen(
                     onOpenProject = appState::openProjectDetail,
@@ -74,29 +96,29 @@ fun AppLayout(appState: AppState) {
                     canManageProjects = appState.roleCode in setOf("ADMIN", "PROJECT_MANAGER"),
                     canPermanentlyDeleteProjects = appState.roleCode == "ADMIN",
                     canBulkReassign = appState.roleCode == "ADMIN",
-                    requestedRegionFilter = appState.requestedProjectRegion,
+                    requestedRegionFilter = target.region,
                     onRequestedRegionFilterConsumed = { appState.requestedProjectRegion = null }
                 )
 
                 is Screen.CreateProject -> if (appState.roleCode in setOf("ADMIN", "PROJECT_MANAGER")) CreateProjectScreen(
                     onCancel = { appState.navigate(Screen.Projects) },
-                    onCreated = { appState.navigate(Screen.Projects) }
+                    onCreated = { ifCurrent { appState.navigate(Screen.Projects) } }
                 )
 
-                is Screen.EditProject -> if (appState.roleCode in setOf("ADMIN", "PROJECT_MANAGER")) appState.selectedProject?.let { project ->
+                is Screen.EditProject -> if (appState.roleCode in setOf("ADMIN", "PROJECT_MANAGER")) target.project?.let { project ->
                     EditProjectScreen(
                         project = project,
                         onCancel = { appState.openProjectDetail(project) },
-                        onSaved = { appState.openProjectDetail(it) }
+                        onSaved = { saved -> ifCurrent { appState.openProjectDetail(saved) } }
                     )
                 }
 
                 is Screen.ProjectDetail -> {
-                    appState.selectedProject?.let { project ->
+                    target.project?.let { project ->
                         ProjectDetailScreen(
                             project = project,
                             onBackToProjects = {
-                                appState.navigate(Screen.Projects)
+                                ifCurrent { appState.navigate(Screen.Projects) }
                             },
                             onEdit = { appState.openEditProject(it) },
                             canEditProject = appState.roleCode in setOf("ADMIN", "PROJECT_MANAGER"),
@@ -107,16 +129,16 @@ fun AppLayout(appState: AppState) {
                     }
                 }
 
-                is Screen.CreateInspection -> if (appState.roleCode in setOf("ADMIN", "PROJECT_MANAGER", "INSPECTOR") || appState.viewingInspection) CreateInspectionScreen(
-                    onSaveDraft = { invalidateInspectionReportsScreenCache(); appState.navigate(Screen.Inspections) },
-                    onSubmit = { invalidateInspectionReportsScreenCache(); appState.navigate(Screen.Inspections) },
-                    onImportXls = { invalidateInspectionReportsScreenCache(); appState.navigate(Screen.Inspections) },
+                is Screen.CreateInspection -> if (appState.roleCode in setOf("ADMIN", "PROJECT_MANAGER", "INSPECTOR") || target.viewingInspection) CreateInspectionScreen(
+                    onSaveDraft = { invalidateInspectionReportsScreenCache(); ifCurrent { appState.navigate(Screen.Inspections) } },
+                    onSubmit = { invalidateInspectionReportsScreenCache(); ifCurrent { appState.navigate(Screen.Inspections) } },
+                    onImportXls = { invalidateInspectionReportsScreenCache(); ifCurrent { appState.navigate(Screen.Inspections) } },
                     onCancel = { appState.navigate(Screen.Inspections) },
                     currentUserName = appState.username,
                     isAdmin = appState.roleCode == "ADMIN",
                     canChangeReportStatus = appState.roleCode in setOf("ADMIN", "PROJECT_MANAGER"),
-                    editingReportUuid = appState.editingInspectionUuid,
-                    readOnly = appState.viewingInspection
+                    editingReportUuid = target.inspectionUuid,
+                    readOnly = target.viewingInspection
                 )
 
                 is Screen.Map -> MapScreen(
@@ -137,13 +159,13 @@ fun AppLayout(appState: AppState) {
                 is Screen.Financial -> if (appState.roleCode in setOf("ADMIN", "PROJECT_MANAGER")) FinancialScreen(
                     canAccessFinancials = appState.roleCode in setOf("ADMIN", "PROJECT_MANAGER"),
                     canManageFinancials = appState.roleCode in setOf("ADMIN", "PROJECT_MANAGER"),
-                    requestedSubprojectUuid = appState.requestedFinancialSubprojectUuid,
+                    requestedSubprojectUuid = target.financialSubproject,
                     onRequestedSubprojectFilterConsumed = { appState.requestedFinancialSubprojectUuid = null }
                 )
 
                 is Screen.Procurement -> if (appState.roleCode != "GUEST") ProcurementScreen(
                     canManageProcurements = appState.roleCode in setOf("ADMIN", "PROJECT_MANAGER"),
-                    requestedStatusFilter = appState.requestedProcurementStatus,
+                    requestedStatusFilter = target.procurementStatus,
                     onRequestedStatusFilterConsumed = { appState.requestedProcurementStatus = null }
                 )
 
@@ -155,6 +177,7 @@ fun AppLayout(appState: AppState) {
 
                 else -> {}
             }
+          }
         }
     }
     }

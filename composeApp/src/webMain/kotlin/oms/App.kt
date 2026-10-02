@@ -18,11 +18,20 @@ import kotlinx.browser.window
 import kotlin.js.JsName
 
 @JsName("setOmsRouteHandler") private external fun setOmsRouteHandler(handler: (String) -> Unit)
+@JsName("finishOmsStartup") private external fun finishOmsStartup()
 
 @Composable
 fun App() {
     val appState = remember { AppState() }
     var restoringSession by remember { mutableStateOf(true) }
+    LaunchedEffect(restoringSession) {
+        if (!restoringSession) {
+            // Hand off once the real app shell/login is composed, even on a deep link.
+            withFrameNanos { }
+            withFrameNanos { }
+            finishOmsStartup()
+        }
+    }
     val activationToken = remember { window.location.search.removePrefix("?").split("&").firstOrNull { it.startsWith("token=") }?.removePrefix("token=") }
     DisposableEffect(appState) {
         setOmsRouteHandler { route -> if (appState.isAuthenticated) appState.restoreRoute(route) }

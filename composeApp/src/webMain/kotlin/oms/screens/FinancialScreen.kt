@@ -127,6 +127,7 @@ fun FinancialScreen(
     var showTransferDialog by remember { mutableStateOf(false) }
     var loading by remember { mutableStateOf(true) }
     var loadFailed by remember { mutableStateOf(false) }
+    oms.navigation.ReportRouteReadiness(loading, loadFailed)
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var pageSize by remember { mutableStateOf(20) }
     var currentPage by remember { mutableStateOf(0) }
@@ -149,7 +150,10 @@ fun FinancialScreen(
         val records = OmsApiClient.allFinancialRecords()
         // A project snapshot is necessary only to decorate actual rows.  On an
         // empty register do not wait for the much larger project hierarchy.
-        if (records.isNotEmpty()) ProjectRepository.refresh()
+        if (records.isNotEmpty()) {
+            ProjectRepository.refresh()
+            check(ProjectRepository.errorMessage == null) { "Could not load project context" }
+        }
         val projectsById = ProjectRepository.projects.associateBy { it.id }
         acts = records.mapNotNull { item ->
             projectsById[item.projectUuid]?.let { project ->

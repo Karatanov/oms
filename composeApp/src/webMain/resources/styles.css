@@ -6,6 +6,40 @@ html, body {
     overflow: hidden;
 }
 
+/* Only the content rectangle, measured by the real Compose layout. */
+#oms-route-transition {
+    position: fixed;
+    z-index: 5;
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+    pointer-events: auto;
+}
+#oms-route-transition[hidden], #oms-route-transition [hidden] { display: none !important; }
+#oms-route-transition.indicating { background: rgba(15, 23, 42, .08); }
+.oms-route-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    max-width: min(460px, 80%);
+    padding: 20px;
+    border-radius: 12px;
+    background: white;
+    color: #334155;
+    box-shadow: 0 3px 14px #0002;
+    font-size: 14px;
+}
+.oms-route-card button {
+    border: 0;
+    border-radius: 8px;
+    padding: 10px 16px;
+    background: #278dad;
+    color: white;
+    cursor: pointer;
+}
+#oms-operation-progress { display: none; position: fixed; right: 24px; bottom: 24px; z-index: 10001; pointer-events: none; }
+#oms-operation-progress.visible { display: block; }
+
 body {
     font-family: sans-serif;
 }
