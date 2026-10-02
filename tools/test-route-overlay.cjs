@@ -22,8 +22,11 @@ const source = fs.readFileSync('composeApp/src/webMain/resources/index.html', 'u
       finishOmsStartup();
       setOmsPaneBounds('oms-route-transition', 232, 0, 968, 800);
       window.retries = 0;
+      window.datePickerClosed = false;
+      window.omsCloseDatePicker = () => { window.datePickerClosed = true; };
       setOmsRouteTransition(true, false, false, false, 'B', 'A', () => window.retries++);
     });
+    assert.equal(await page.evaluate(() => window.datePickerClosed), true);
     assert.equal(await page.locator('.oms-route-card').isVisible(), false);
     assert.equal(await page.locator('#oms-route-transition').evaluate(el => el.getBoundingClientRect().left), 232);
     assert.equal(await page.locator('#map-pane').evaluate(el => el.inert), true);

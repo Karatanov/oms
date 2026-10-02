@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>UMITAF</title>
-    <link type="text/css" rel="stylesheet" href="styles.css?v=20260921-report-preview-hit-test">
+    <link type="text/css" rel="stylesheet" href="styles.css?v=20261002-content-navigation">
     <script src="auth.js?v=20260925-safari"></script>
     <script>
         function omsApiUrl(path) {
@@ -85,6 +85,10 @@
         function setOmsRouteTransition(busy, indicator, failed, english, requested, displayed, retry) {
             const pane = document.getElementById("oms-route-transition");
             if (!pane) return;
+            if (busy) {
+                window.omsCloseDatePicker?.();
+                document.querySelectorAll(".inspection-photo-picker, .photo-lightbox").forEach(element => element.remove());
+            }
             pane.hidden = !busy;
             pane.dataset.requestedSection = requested;
             pane.dataset.displayedSection = displayed;

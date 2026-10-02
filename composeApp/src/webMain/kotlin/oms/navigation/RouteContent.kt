@@ -68,7 +68,7 @@ fun RouteContentHost(request: RouteContent, revision: Int, content: @Composable 
     var showIndicator by remember(candidate) { mutableStateOf(false) }
     // Read during composition, not only inside SideEffect, so the delayed
     // change invalidates this scope and updates the native overlay.
-    val indicatorVisible = showIndicator
+    val indicatorVisible = showIndicator && candidate.outcome == null
     val focus = LocalFocusManager.current
     val english = LocalizationManager.currentLanguage == Language.EN
     LaunchedEffect(candidate) {
