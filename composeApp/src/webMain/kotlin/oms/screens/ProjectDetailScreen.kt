@@ -18,6 +18,7 @@ import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.OpenInNew
 import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -49,6 +50,8 @@ import oms.data.ApiProjectDocument
 import oms.data.ApiHealthSafetyObservations
 import oms.data.OmsApiClient
 import oms.data.ProjectRepository
+import oms.data.omsApiUrl
+import oms.data.openOmsDownload
 import oms.components.toOmsDate
 import oms.localization.LocalizationManager
 import oms.localization.Language
@@ -221,6 +224,18 @@ fun ProjectDetailScreen(
                                 Spacer(Modifier.width(8.dp))
                                 Text(LocalizationManager.t("permanently_delete"))
                             }
+                        }
+                    }
+                    if (project.projectType.equals("subproject", ignoreCase = true)) {
+                        IconButton(
+                            onClick = { openOmsDownload(omsApiUrl("/projects/${project.id}/export-pdf")) },
+                            modifier = Modifier.pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true)
+                        ) {
+                            Icon(
+                                Icons.Default.PictureAsPdf,
+                                contentDescription = LocalizationManager.t("download_subproject_pdf"),
+                                tint = MaterialTheme.colorScheme.primary
+                            )
                         }
                     }
                 }

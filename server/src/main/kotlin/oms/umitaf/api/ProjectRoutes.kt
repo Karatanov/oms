@@ -10,6 +10,8 @@ import oms.umitaf.dto.*
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import oms.umitaf.domain.ProjectType
+import oms.umitaf.service.ProjectPdfExportService
 
 /**
  * Маршрути роботи з проєктами.
@@ -18,6 +20,7 @@ fun Route.projectRoutes() {
 
     val projectService =
         AppContainer.projectService
+    val projectPdfExportService = ProjectPdfExportService()
 
     get("/api/v1/exchange-rates/eur") {
         call.requireRole("ADMIN", "PROJECT_MANAGER") ?: return@get
@@ -385,6 +388,25 @@ fun Route.projectRoutes() {
         if (!projectService.archiveProject(uuid, session.userId)) return@post call.respond(HttpStatusCode.NotFound, ErrorResponse("NOT_FOUND", "Project not found."))
         AppContainer.auditLogService.record(session.userId, "project_archived", project.projectType.name.lowercase(), project.id, oldValues = "{\"name\":\"${project.name}\"}")
         call.respond(HttpStatusCode.NoContent)
+    }
+
+    /** A self-contained brief for a subproject's general and financial tabs. */
+    get("/api/v1/projects/{uuid}/export-pdf") {
+        val session = call.requireRole("ADMIN", "PROJECT_MANAGER", "INSPECTOR", "VIEWER") ?: return@get
+        val uuid = call.parameters["uuid"]
+            ?: return@get call.respond(HttpStatusCode.BadRequest, ErrorResponse("VALIDATION_ERROR", "Project UUID is required."))
+        val project = projectService.getProjectByUuid(uuid)
+            ?: return@get call.respond(HttpStatusCode.NotFound, ErrorResponse("NOT_FOUND", "Project not found."))
+        if (!call.requireProjectAccess(session, uuid)) return@get
+        if (project.projectType != ProjectType.SUBPROJECT) {
+            return@get call.respond(HttpStatusCode.BadRequest, ErrorResponse("VALIDATION_ERROR", "PDF export is available for subprojects only."))
+        }
+        val safeCode = project.siteNumber.replace(Regex("[^A-Za-z0-9._-]"), "_").ifBlank { "subproject" }
+        val bytes = withContext(Dispatchers.IO) {
+            projectPdfExportService.export(project, AppContainer.financialRecordService.getAll(project.id))
+        }
+        call.response.header(HttpHeaders.ContentDisposition, "attachment; filename=\"$safeCode-general-info-and-financials.pdf\"")
+        call.respondBytes(bytes, ContentType.Application.Pdf)
     }
 
     post("/api/v1/projects/{uuid}/restore") {
