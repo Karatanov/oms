@@ -19,6 +19,7 @@ import kotlin.js.JsName
 
 @JsName("setOmsRouteHandler") private external fun setOmsRouteHandler(handler: (String) -> Unit)
 @JsName("finishOmsStartup") private external fun finishOmsStartup()
+@JsName("reportOmsStartupProgress") private external fun reportOmsStartupProgress(value: Int, messageKey: String)
 
 @Composable
 fun App() {
@@ -41,6 +42,7 @@ fun App() {
         runCatching { OmsApiClient.currentSessionUser() }
             .getOrNull()
             ?.let { user -> appState.restoreAuthenticatedSession(user.username, user.role.code, window.location.hash.removePrefix("#")) }
+        reportOmsStartupProgress(97, "interface")
         restoringSession = false
     }
 

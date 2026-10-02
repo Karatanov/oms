@@ -31,6 +31,11 @@ RUN mkdir -p /workspace/web \
     && asset_hash=$(sha256sum /workspace/web/composeApp.js | cut -c1-12) \
     && mv /workspace/web/composeApp.js "/workspace/web/composeApp.${asset_hash}.js" \
     && sed -i -E "s#composeApp\\.js(\\?[^\"']*)?#composeApp.${asset_hash}.js#g" /workspace/web/index.html /workspace/web/login.html \
+    && wasm_asset=$(find /workspace/web -maxdepth 1 -type f -name '*.wasm' -printf '%f\n' | grep -E '^[0-9a-f]{20}\.wasm$' | head -n 1) \
+    && test -n "$wasm_asset" \
+    && js_bytes=$(stat -c %s "/workspace/web/composeApp.${asset_hash}.js") \
+    && wasm_bytes=$(stat -c %s "/workspace/web/${wasm_asset}") \
+    && printf '{"version":"%s","assets":[{"url":"%s","bytes":%s},{"url":"%s","bytes":%s}]}\n' "$asset_hash" "composeApp.${asset_hash}.js" "$js_bytes" "$wasm_asset" "$wasm_bytes" > /workspace/web/assets-manifest.json \
     && cp /workspace/web/index.html /workspace/web/app.html \
     && find /workspace/web -type f \( -name '*.js' -o -name '*.css' -o -name '*.wasm' \) -exec gzip -9 -k {} + \
     && find /workspace/web -type f \( -name '*.js' -o -name '*.css' -o -name '*.wasm' \) -exec brotli -q 9 -f -k {} + \

@@ -10,6 +10,7 @@ on:
       - 'tools/test-date-picker.cjs'
       - 'tools/test-browser-auth.cjs'
       - 'tools/test-login-entrypoint.cjs'
+      - 'tools/test-startup-progress.cjs'
       - '.github/workflows/project-form-tests.yml'
 permissions:
   contents: read
@@ -38,6 +39,8 @@ jobs:
         run: node tools/test-login-entrypoint.cjs
       - name: Authenticated startup shell in Chromium
         run: node tools/test-startup-shell.cjs
+      - name: Post-login progress and handoff in Chromium
+        run: node tools/test-startup-progress.cjs
       - name: Content-scoped native loading overlay in Chromium
         run: node tools/test-route-overlay.cjs
       - name: Build development bundle for early navigation regressions
