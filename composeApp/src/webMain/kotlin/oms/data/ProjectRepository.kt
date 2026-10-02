@@ -26,7 +26,7 @@ object ProjectRepository {
      * reuse the same in-memory snapshot instead of requesting projects again.
      */
     suspend fun refresh(force: Boolean = false) = refreshMutex.withLock {
-        if (!force && loaded) return@withLock
+        if (canReuseProjectSnapshot(force, loaded, errorMessage != null)) return@withLock
         loading = true
         try {
             projects = OmsApiClient.projects().map { api ->
@@ -71,6 +71,10 @@ object ProjectRepository {
         errorMessage = null
     }
 }
+
+/** A failed forced refresh must not make a navigation retry reuse its error. */
+internal fun canReuseProjectSnapshot(force: Boolean, loaded: Boolean, failed: Boolean): Boolean =
+    !force && loaded && !failed
 
 private fun String.toProjectStatus(): ProjectStatus =
     runCatching { ProjectStatus.valueOf(uppercase()) }.getOrDefault(ProjectStatus.PLANNED)
