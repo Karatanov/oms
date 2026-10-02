@@ -244,7 +244,7 @@ fun FinancialScreen(
             .verticalScroll(pageScrollState).padding(start = 24.dp, top = 24.dp, end = 76.dp, bottom = 24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        oms.components.PageHeading(LocalizationManager.t("financial_monitoring"), Icons.Default.AccountBalance) {
+        oms.components.PageHeading(LocalizationManager.t("financial_monitoring"), Icons.Default.AccountBalance, iconText = "€ ₴") {
             if (canManageFinancials) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedButton(onClick = { showTransferDialog = true }) {

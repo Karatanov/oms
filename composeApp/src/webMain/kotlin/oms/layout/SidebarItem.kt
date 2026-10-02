@@ -13,7 +13,7 @@ import oms.navigation.Screen
 
 @Composable
 fun SidebarItem(title: String, icon: ImageVector, screen: Screen, current: Screen,
-    onNavigate: (Screen) -> Unit, compact: Boolean = false
+    onNavigate: (Screen) -> Unit, compact: Boolean = false, iconText: String? = null
 ) {
     val isSelected = current == screen ||
         (screen == Screen.Projects && current in listOf(Screen.CreateProject, Screen.EditProject, Screen.ProjectDetail)) ||
@@ -29,7 +29,8 @@ fun SidebarItem(title: String, icon: ImageVector, screen: Screen, current: Scree
             contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
         )
     ) {
-        Icon(icon, if (compact) title else null, Modifier.size(20.dp))
+        if (iconText == null) Icon(icon, if (compact) title else null, Modifier.size(20.dp))
+        else Text(iconText, style = MaterialTheme.typography.labelLarge)
         if (!compact) {
             Spacer(Modifier.width(12.dp))
             Text(title, modifier = Modifier.weight(1f), style = MaterialTheme.typography.labelLarge)

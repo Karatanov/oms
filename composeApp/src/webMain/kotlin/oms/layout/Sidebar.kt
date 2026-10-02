@@ -50,7 +50,7 @@ fun Sidebar(currentScreen: Screen, onNavigate: (Screen) -> Unit, onLogout: () ->
                 SidebarItem(LocalizationManager.t("map"), Icons.Default.Map, Screen.Map, currentScreen, onNavigate, compact)
                 if (!isGuest) {
                     SidebarItem(LocalizationManager.t("inspection_reports"), Icons.Default.FactCheck, Screen.Inspections, currentScreen, onNavigate, compact)
-                    if (canAccessFinancials) SidebarItem(LocalizationManager.t("financial_monitoring"), Icons.Default.AccountBalance, Screen.Financial, currentScreen, onNavigate, compact)
+                    if (canAccessFinancials) SidebarItem(LocalizationManager.t("financial_monitoring"), Icons.Default.AccountBalance, Screen.Financial, currentScreen, onNavigate, compact, iconText = "€ ₴")
                     SidebarItem(LocalizationManager.t("procurement_title"), Icons.Default.ShoppingCart, Screen.Procurement, currentScreen, onNavigate, compact)
                     SidebarItem(LocalizationManager.t("documents"), Icons.Default.FolderOpen, Screen.Documents, currentScreen, onNavigate, compact)
                 }

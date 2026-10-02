@@ -26,10 +26,17 @@ fun OmsBadge(text: String, color: Color, fontWeight: FontWeight = FontWeight.Med
 }
 
 @Composable
-fun PageHeading(title: String, icon: ImageVector, subtitle: String? = null, actions: @Composable RowScope.() -> Unit = {}) {
+fun PageHeading(
+    title: String,
+    icon: ImageVector,
+    subtitle: String? = null,
+    iconText: String? = null,
+    actions: @Composable RowScope.() -> Unit = {}
+) {
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
         Box(Modifier.size(42.dp).background(MaterialTheme.colorScheme.primaryContainer, MaterialTheme.shapes.medium), contentAlignment = Alignment.Center) {
-            Icon(icon, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(22.dp))
+            if (iconText == null) Icon(icon, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(22.dp))
+            else Text(iconText, color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
         }
         Column(Modifier.weight(1f)) {
             Text(title, style = MaterialTheme.typography.headlineMedium)
