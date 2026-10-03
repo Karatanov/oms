@@ -14,6 +14,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import oms.localization.LocalizationManager
 import oms.theme.OmsDimensions
 
@@ -37,7 +38,13 @@ fun PageHeading(
         @Composable fun HeadingText(textModifier: Modifier = Modifier) {
             Box(Modifier.size(42.dp).background(MaterialTheme.colorScheme.primaryContainer, MaterialTheme.shapes.medium), contentAlignment = Alignment.Center) {
                 if (iconText == null) Icon(icon, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(22.dp))
-                else Text(iconText, color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                else Text(
+                    iconText,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontSize = 28.sp,
+                    lineHeight = 28.sp,
+                    fontWeight = FontWeight.Bold
+                )
             }
             Column(textModifier) {
                 Text(title, style = MaterialTheme.typography.headlineMedium, maxLines = 2)

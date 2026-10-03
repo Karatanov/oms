@@ -9,6 +9,7 @@ import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.*
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import oms.navigation.Screen
 
 @Composable
@@ -29,8 +30,18 @@ fun SidebarItem(title: String, icon: ImageVector, screen: Screen, current: Scree
             contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
         )
     ) {
-        if (iconText == null) Icon(icon, if (compact) title else null, Modifier.size(20.dp))
-        else Text(iconText, style = MaterialTheme.typography.labelLarge)
+        val navigationIconColor = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+        if (iconText == null) {
+            Icon(icon, if (compact) title else null, Modifier.size(20.dp), tint = navigationIconColor)
+        } else {
+            Text(
+                iconText,
+                modifier = Modifier.width(22.dp),
+                color = navigationIconColor,
+                fontSize = 25.sp,
+                lineHeight = 25.sp
+            )
+        }
         if (!compact) {
             Spacer(Modifier.width(12.dp))
             Text(title, modifier = Modifier.weight(1f), style = MaterialTheme.typography.labelLarge)

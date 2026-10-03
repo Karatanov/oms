@@ -12,6 +12,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import oms.components.LanguageSwitcher
@@ -31,12 +32,23 @@ fun Sidebar(currentScreen: Screen, onNavigate: (Screen) -> Unit, onLogout: () ->
             Row(Modifier.fillMaxWidth().height(if (compact) 52.dp else 76.dp), verticalAlignment = Alignment.CenterVertically) {
                 if (!compact) {
                     Icon(Icons.Default.AccountBalance, null, tint = MaterialTheme.colorScheme.primary)
-                    Column(Modifier.weight(1f).padding(start = 10.dp)) {
-                        Text("UMITAF", style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.primary)
+                    Column(
+                        Modifier.weight(1f).padding(horizontal = 6.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            "UMITAF",
+                            modifier = Modifier.fillMaxWidth(),
+                            style = MaterialTheme.typography.headlineSmall,
+                            color = MaterialTheme.colorScheme.primary,
+                            textAlign = TextAlign.Center
+                        )
                         Text(
                             "TA to the implementation\nof UR III Programme",
+                            modifier = Modifier.fillMaxWidth(),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center,
                             maxLines = 3,
                             overflow = TextOverflow.Clip
                         )
