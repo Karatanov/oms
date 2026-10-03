@@ -19,5 +19,8 @@ data class HealthResponse(
      * - DEGRADED
      * - DOWN
      */
-    val status: String
+    val status: String,
+    /** Immutable build metadata injected by the production Docker build. */
+    val gitSha: String,
+    val buildTime: String
 )

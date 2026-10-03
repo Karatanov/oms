@@ -1,0 +1,205 @@
+name: Production deployment
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+# Entire release trains run in order. This intentionally never cancels an
+# in-progress deployment: an older image cannot be interrupted mid-update and
+# a newer commit can never be overwritten by a racing older deployment.
+concurrency:
+  group: oms-production-release
+  cancel-in-progress: false
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  release-guard:
+    name: Verify release branch
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require master
+        shell: bash
+        run: |
+          [[ "${GITHUB_REF}" == "refs/heads/master" ]] || {
+            echo "Production deployment may only run from master." >&2
+            exit 64
+          }
+
+  backend-tests:
+    name: Tests — backend
+    needs: release-guard
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
+          MYSQL_DATABASE: oms_production_test
+        ports: ['3306:3306']
+        options: >-
+          --health-cmd="mysqladmin ping --silent"
+          --health-interval=10s --health-timeout=5s --health-retries=12
+    env:
+      OMS_TEST_DATABASE_URL: jdbc:mysql://127.0.0.1:3306/oms_production_test?allowPublicKeyRetrieval=true&useSSL=false&rewriteBatchedStatements=true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: '21' }
+      - uses: gradle/actions/setup-gradle@v4
+      - run: bash gradlew :server:test --no-daemon --max-workers=2
+
+  frontend-tests:
+    name: Tests — frontend
+    needs: release-guard
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: '21' }
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Static browser safeguards
+        run: |
+          node tools/check-web-regex.cjs
+          node tools/check-clipboard-events.cjs
+          node tools/check-button-cursors.cjs
+          node tools/check-sir-photo-associations.cjs
+      - name: Kotlin frontend regression tests
+        run: bash gradlew -PrenderJsOnly :composeApp:jsBrowserTest --no-daemon --max-workers=1
+      - name: Install isolated browser test tools
+        run: |
+          npm install --prefix build/date-picker-test playwright
+          build/date-picker-test/node_modules/.bin/playwright install --with-deps chromium webkit firefox
+      - name: Browser regression checks
+        run: |
+          node tools/test-date-picker.cjs
+          node tools/test-browser-auth.cjs
+          node tools/test-login-entrypoint.cjs
+          node tools/test-startup-shell.cjs
+          node tools/test-startup-progress.cjs
+          node tools/test-route-overlay.cjs
+      - name: Build development bundle for navigation checks
+        run: |
+          bash gradlew -PrenderJsOnly :composeApp:jsBrowserDevelopmentWebpack --no-daemon --max-workers=1
+          mkdir -p build/navigation-fixture
+          cp -a composeApp/build/processedResources/js/main/. build/navigation-fixture/
+          cp -a composeApp/build/kotlin-webpack/js/developmentExecutable/. build/navigation-fixture/
+          cp build/navigation-fixture/index.html build/navigation-fixture/app.html
+      - name: Test real Compose navigation
+        env:
+          OMS_SMOKE_ASSETS: build/navigation-fixture
+        run: node tools/test-route-transitions.cjs
+
+  build-production:
+    name: Build production image
+    needs: [backend-tests, frontend-tests]
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    outputs:
+      image: ${{ steps.image.outputs.image }}
+      tag: ${{ steps.image.outputs.tag }}
+      build_time: ${{ steps.image.outputs.build_time }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: image
+        name: Define immutable image
+        shell: bash
+        run: |
+          echo "image=${REGISTRY}/${IMAGE_NAME}" >> "$GITHUB_OUTPUT"
+          echo "tag=sha-${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+          echo "build_time=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> "$GITHUB_OUTPUT"
+      - name: Build and push immutable production image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          platforms: linux/amd64
+          tags: |
+            ${{ steps.image.outputs.image }}:${{ steps.image.outputs.tag }}
+            ${{ steps.image.outputs.image }}:latest
+          labels: |
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.created=${{ steps.image.outputs.build_time }}
+          build-args: |
+            OMS_GIT_SHA=${{ github.sha }}
+            OMS_BUILD_TIME=${{ steps.image.outputs.build_time }}
+
+  deploy-hostinger:
+    name: Deploy Hostinger
+    needs: build-production
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: production
+      url: https://ua-oms.com
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure trusted SSH connection
+        shell: bash
+        env:
+          PROD_SSH_KEY: ${{ secrets.PROD_SSH_KEY }}
+          PROD_SSH_KNOWN_HOSTS: ${{ secrets.PROD_SSH_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$PROD_SSH_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          printf '%s\n' "$PROD_SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+      - name: Install deployment files and update OMS service
+        shell: bash
+        env:
+          PROD_HOST: ${{ secrets.PROD_HOST }}
+          PROD_USER: ${{ secrets.PROD_USER }}
+          PROD_SSH_PORT: ${{ secrets.PROD_SSH_PORT || '22' }}
+          PROD_DEPLOY_DIR: ${{ vars.PROD_DEPLOY_DIR || '/docker/oms' }}
+          OMS_IMAGE: ${{ needs.build-production.outputs.image }}
+          OMS_IMAGE_TAG: ${{ needs.build-production.outputs.tag }}
+        run: |
+          target="${PROD_USER}@${PROD_HOST}"
+          ssh_opts=(-i ~/.ssh/id_ed25519 -o BatchMode=yes -o StrictHostKeyChecking=yes -p "$PROD_SSH_PORT")
+          ssh "${ssh_opts[@]}" "$target" "mkdir -p '$PROD_DEPLOY_DIR/scripts'"
+          scp "${ssh_opts[@]}" deploy/vps/docker-compose.yml "$target:$PROD_DEPLOY_DIR/docker-compose.yml"
+          scp "${ssh_opts[@]}" scripts/deploy-production.sh "$target:$PROD_DEPLOY_DIR/scripts/deploy-production.sh"
+          ssh "${ssh_opts[@]}" "$target" "chmod 0755 '$PROD_DEPLOY_DIR/scripts/deploy-production.sh' && OMS_DEPLOY_DIR='$PROD_DEPLOY_DIR' OMS_IMAGE='$OMS_IMAGE' OMS_IMAGE_TAG='$OMS_IMAGE_TAG' '$PROD_DEPLOY_DIR/scripts/deploy-production.sh'"
+      - name: Verify production over HTTPS
+        id: verify
+        shell: bash
+        env:
+          EXPECTED_SHA: ${{ github.sha }}
+        run: |
+          for attempt in {1..24}; do
+            response="$(curl --fail --silent --show-error --max-time 15 https://ua-oms.com/health || true)"
+            if jq -e --arg sha "$EXPECTED_SHA" '.status == "UP" and .gitSha == $sha' <<<"$response" >/dev/null; then
+              echo "health=UP" >> "$GITHUB_OUTPUT"
+              echo "Production is healthy and serves $EXPECTED_SHA"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "Production health/version verification failed." >&2
+          exit 1
+      - name: Write deployment summary
+        shell: bash
+        run: |
+          {
+            echo "## UMITAF OMS production deployment"
+            echo "- URL: https://ua-oms.com"
+            echo "- Git SHA: \`${{ github.sha }}\`"
+            echo "- Image: \`${{ needs.build-production.outputs.image }}:${{ needs.build-production.outputs.tag }}\`"
+            echo "- External health/version verification: **${{ steps.verify.outputs.health }}**"
+          } >> "$GITHUB_STEP_SUMMARY"

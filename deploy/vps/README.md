@@ -8,5 +8,7 @@ inside the private `oms-internal` network.
 
 Before the first `docker compose up`, copy `.env.example` to `.env`, generate
 unique values for all secret placeholders, and restrict the file to mode 0600.
-The image must be pulled from GHCR after the corresponding GitHub Actions image
-workflow succeeds.
+The `Production deployment` workflow pulls an immutable SHA-tagged image from
+GHCR and replaces only the `oms` service. It preserves these named volumes and
+never manages Traefik. Follow [Production CI/CD](../../documentation/PRODUCTION_CICD.md)
+for the required GitHub secrets and one-time VPS setup.

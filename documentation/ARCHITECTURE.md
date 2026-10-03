@@ -4,7 +4,7 @@
 
 ```mermaid
 flowchart LR
-    Browser[Browser / Compose Web JS on GitHub Pages] -->|credentialed HTTPS| Ktor[Render Ktor API]
+    Browser[Browser / Compose Web UI] -->|same-origin HTTPS| Ktor[Hostinger Ktor API]
     ApiClient[API client] -->|Bearer JWT| Ktor
     Ktor --> Services[Domain services and RBAC]
     Services --> Repositories[Exposed repositories]
@@ -13,7 +13,7 @@ flowchart LR
     Flyway[Flyway V1-V29] --> MySQL
 ```
 
-The production browser bundle is published by GitHub Pages at `https://karatanov.github.io/oms/`. Render runs the Ktor JSON/file API at `https://oms-3j46.onrender.com/api/v1`; it allows the GitHub Pages origin with credentials for cookie-backed sessions. The Render root redirects legacy bookmarks to the Pages UI.
+The production browser bundle and Ktor JSON/file API are served from the same origin at `https://ua-oms.com`. GitHub Pages at `https://karatanov.github.io/oms/` is a legacy preview that calls the public API; it is not the production delivery path. Hostinger receives immutable GHCR images only through the documented GitHub Actions deployment workflow.
 
 ## Source modules
 
@@ -37,4 +37,4 @@ The import is deterministic rather than an administrator click-flow. `tools/gene
 
 ## Deployment
 
-Docker Compose runs MySQL and the integrated OMS image, with health-gated startup and separate persistent volumes for database and uploads. Flyway runs before repositories are used. Runtime secrets are environment values. Production TLS/reverse proxy and external backup scheduling are infrastructure responsibilities documented in the D11 report.
+Docker Compose runs MySQL and the integrated OMS image, with health-gated startup and separate persistent volumes for database and uploads. Flyway runs before repositories are used. Runtime secrets are environment values. Hostinger's separately managed Traefik provides TLS/reverse proxy; GitHub Actions verifies the public health response and immutable Git SHA after deploy. See `PRODUCTION_CICD.md`.

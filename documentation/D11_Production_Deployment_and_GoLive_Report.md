@@ -5,7 +5,7 @@
 
 ## Scope and release components
 
-The release publishes the Compose Web UI through GitHub Pages and packages the Ktor API in a lean Render Docker image, with MySQL 8.4, Flyway migrations and filesystem-backed MVP upload storage. Mobile distribution is not packaged by this repository deployment.
+The release packages the Compose Web UI and Ktor API into one Hostinger-ready Docker image, with MySQL 8.4, Flyway migrations and filesystem-backed MVP upload storage. GitHub Pages is a legacy preview only. Mobile distribution is not packaged by this repository deployment.
 
 ## Production-like deployment procedure
 
@@ -15,11 +15,11 @@ The release publishes the Compose Web UI through GitHub Pages and packages the K
 4. Flyway initializes an empty MySQL database and applies all ordered migrations. Do not modify applied migrations.
 5. Run the release smoke checks: login, dashboard, projects, project details, SIR, financials, documents and administration. Validate each representative role at the API layer.
 
-## Image-backed Render deployment
+## Image-backed Hostinger deployment
 
-For the Render free-tier service, use the repository's GitHub Actions workflow `.github/workflows/publish-ghcr.yml` to build the same multi-stage production image outside Render. A successful `master` run publishes `ghcr.io/karatanov/oms:latest` and an immutable commit-SHA tag for `linux/amd64`, with GitHub Actions layer caching enabled.
+Production is hosted at `https://ua-oms.com` on Hostinger. The repository's GitHub Actions workflow `.github/workflows/production-deployment.yml` runs tests, builds `linux/amd64`, publishes an immutable `ghcr.io/karatanov/oms:sha-<full SHA>` image, deploys that exact image to the VPS, then verifies the public health response reports the same SHA. Render is no longer part of the release path and is not changed by this process.
 
-Use `render.image.yaml.example` when creating an image-backed replacement service. Add a Render workspace registry credential named `ghcr-oms` with GitHub username `Karatanov` and a token restricted to `read:packages`; no registry token is stored in GitHub Actions, Render YAML or application configuration. Copy the current service's environment variables, health-check path and any disk configuration. Render image-backed services do not detect a changed `latest` tag automatically, so an operator performs **Manual Deploy → Deploy latest reference** after CI is green. This is intentional: publishing a container never consumes Render minutes or restarts the live service without an explicit deploy decision.
+The operational source of truth is [Production CI/CD](PRODUCTION_CICD.md), including required GitHub secrets, non-destructive Compose behaviour, SSH host-key pinning, one-time Hostinger setup, diagnostics and rollback.
 
 ## Validation evidence
 
@@ -33,11 +33,11 @@ Use `render.image.yaml.example` when creating an image-backed replacement servic
 
 ## Security and configuration
 
-All secrets are external environment values. The repository contains only placeholders. `OMS_JWT_SECRET` must be configured for persistent deployments; otherwise tokens are invalidated on process restart. The public UI is hosted at `https://karatanov.github.io/oms/`; that credentialed CORS origin is part of the server configuration. Configure `CORS_ALLOWED_HOST` only for an additional custom frontend origin.
+All secrets are external environment values. The repository contains only placeholders. `OMS_JWT_SECRET` must be configured for persistent deployments; otherwise tokens are invalidated on process restart. Production is hosted at `https://ua-oms.com/` as a same-origin UI/API deployment. Configure `CORS_ALLOWED_HOST` only for an additional custom frontend origin.
 
 ## Storage, backup and recovery
 
-Uploads are served from the `oms-uploads` filesystem volume. Every accepted document, SIR workbook, inspection photo and thumbnail is also mirrored to MySQL so an ephemeral Render deployment can restore a missing local file on first access. Back up both `mysql-data` and `oms-uploads` before production migration or release; the mirror is a resilience fallback, not a replacement for normal backups. No MinIO/S3 service is deployed.
+Uploads are served from the `oms-uploads` filesystem volume. Every accepted document, SIR workbook, inspection photo and thumbnail is also mirrored to MySQL so an ephemeral runtime filesystem can restore a missing local file on first access. Back up both `mysql-data` and `oms-uploads` before production migration or release; the mirror is a resilience fallback, not a replacement for normal backups. No MinIO/S3 service is deployed.
 
 ## Rollback
 

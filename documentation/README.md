@@ -12,6 +12,7 @@ Use this page as the documentation entry point for Phase 1.
 - `OMS_Administrator_Guide.docx` — environment, deployment, users/RBAC, operations and troubleshooting.
 - `D9_System_Integration_Testing_and_UAT_Report.md` — integration/UAT evidence and accepted limitations.
 - `D11_Production_Deployment_and_GoLive_Report.md` — production-like rehearsal, go-live checklist and rollback/recovery.
+- `PRODUCTION_CICD.md` — GitHub Actions → GHCR → Hostinger deployment, verification, rollback and one-time operations setup.
 - `OMS_Technical_Handover.docx` — official D12 handover and inventory.
 - `D12_Technical_Handover.md` — source-controlled technical companion to the D12 DOCX.
 

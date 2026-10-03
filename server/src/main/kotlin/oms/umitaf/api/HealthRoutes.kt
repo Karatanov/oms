@@ -11,6 +11,14 @@ import oms.umitaf.dto.HealthResponse
  * а використовуються для перевірки працездатності сервера.
  */
 fun Routing.healthRoutes() {
+    // Runtime images intentionally do not contain .git. CI injects these
+    // non-sensitive values at build time so an external deploy check can
+    // prove which immutable image is serving production.
+    fun response() = HealthResponse(
+        status = "UP",
+        gitSha = System.getenv("OMS_GIT_SHA") ?: "unknown",
+        buildTime = System.getenv("OMS_BUILD_TIME") ?: "unknown"
+    )
 
     /**
      * Endpoint для перевірки стану системи.
@@ -25,20 +33,12 @@ fun Routing.healthRoutes() {
      */
     get("/health") {
 
-        call.respond(
-            HealthResponse(
-                status = "UP"
-            )
-        )
+        call.respond(response())
     }
 
     // Keep the existing API health-check URL for local tools and API clients.
     get("/api/v1/health") {
 
-        call.respond(
-            HealthResponse(
-                status = "UP"
-            )
-        )
+        call.respond(response())
     }
 }

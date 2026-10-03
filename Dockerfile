@@ -43,9 +43,13 @@ RUN mkdir -p /workspace/web \
     && find /workspace/web -maxdepth 1 -type f \( -name 'composeApp.*' -o -name '*.wasm*' \) -printf '%f %s bytes\n' | sort
 
 FROM eclipse-temurin:21-jre
+ARG OMS_GIT_SHA=unknown
+ARG OMS_BUILD_TIME=unknown
 WORKDIR /opt/oms
 COPY --from=build /workspace/server/build/install/server/ ./
 COPY --from=build /workspace/web/ ./web/
-ENV JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=70.0"
+ENV JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=70.0" \
+    OMS_GIT_SHA=${OMS_GIT_SHA} \
+    OMS_BUILD_TIME=${OMS_BUILD_TIME}
 EXPOSE 8080
 CMD ["bin/server"]

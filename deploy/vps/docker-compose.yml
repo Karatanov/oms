@@ -18,7 +18,9 @@ services:
       - oms-internal
 
   oms:
-    image: ghcr.io/karatanov/oms:${OMS_IMAGE_TAG:-latest}
+    # Deployment always supplies a full immutable sha-<40 hex> tag.  Keeping
+    # this required prevents an accidental production restart on mutable latest.
+    image: ${OMS_IMAGE:-ghcr.io/karatanov/oms}:${OMS_IMAGE_TAG:?OMS_IMAGE_TAG must be an immutable sha tag}
     pull_policy: always
     restart: unless-stopped
     depends_on:

@@ -6,7 +6,7 @@
 
 ## 1. Handover scope and Phase 1 status
 
-This handover transfers the Phase 1 source code, MySQL migrations, Compose/Render deployment configuration, tests, environment template, user/administrator manuals, technical specification, D9 UAT evidence and D11 deployment material. D0-D10 are implemented and documented; D11 engineering preparation is ready for externally authorised cutover; D12 closes the repository and documentation handover.
+This handover transfers the Phase 1 source code, MySQL migrations, Compose/Hostinger deployment configuration, tests, environment template, user/administrator manuals, technical specification, D9 UAT evidence and D11 deployment material. D0-D10 are implemented and documented; D11 engineering preparation is ready for externally authorised cutover; D12 closes the repository and documentation handover.
 
 ## 2. Source code and technology
 

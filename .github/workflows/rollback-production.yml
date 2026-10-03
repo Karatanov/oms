@@ -1,0 +1,68 @@
+name: Rollback production
+
+on:
+  workflow_dispatch:
+    inputs:
+      git_sha:
+        description: Full 40-character Git SHA of a previously published OMS image
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: oms-production-release
+  cancel-in-progress: false
+
+jobs:
+  rollback:
+    name: Deploy selected immutable image
+    if: github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: production
+      url: https://ua-oms.com
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate rollback target
+        shell: bash
+        env:
+          SHA: ${{ inputs.git_sha }}
+        run: |
+          [[ "$SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "git_sha must be a full lowercase 40-character SHA." >&2; exit 64; }
+      - name: Configure trusted SSH connection
+        shell: bash
+        env:
+          PROD_SSH_KEY: ${{ secrets.PROD_SSH_KEY }}
+          PROD_SSH_KNOWN_HOSTS: ${{ secrets.PROD_SSH_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$PROD_SSH_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          printf '%s\n' "$PROD_SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+      - name: Deploy prior immutable image
+        shell: bash
+        env:
+          PROD_HOST: ${{ secrets.PROD_HOST }}
+          PROD_USER: ${{ secrets.PROD_USER }}
+          PROD_SSH_PORT: ${{ secrets.PROD_SSH_PORT || '22' }}
+          PROD_DEPLOY_DIR: ${{ vars.PROD_DEPLOY_DIR || '/docker/oms' }}
+          ROLLBACK_SHA: ${{ inputs.git_sha }}
+        run: |
+          target="${PROD_USER}@${PROD_HOST}"
+          ssh_opts=(-i ~/.ssh/id_ed25519 -o BatchMode=yes -o StrictHostKeyChecking=yes -p "$PROD_SSH_PORT")
+          ssh "${ssh_opts[@]}" "$target" "OMS_DEPLOY_DIR='$PROD_DEPLOY_DIR' OMS_IMAGE='ghcr.io/karatanov/oms' OMS_IMAGE_TAG='sha-$ROLLBACK_SHA' '$PROD_DEPLOY_DIR/scripts/deploy-production.sh'"
+      - name: Verify rollback over HTTPS
+        shell: bash
+        env:
+          EXPECTED_SHA: ${{ inputs.git_sha }}
+        run: |
+          for attempt in {1..24}; do
+            response="$(curl --fail --silent --show-error --max-time 15 https://ua-oms.com/health || true)"
+            jq -e --arg sha "$EXPECTED_SHA" '.status == "UP" and .gitSha == $sha' <<<"$response" >/dev/null && exit 0
+            sleep 5
+          done
+          exit 1

@@ -82,11 +82,11 @@ Health endpoints are unauthenticated. All business endpoints are under `/api/v1`
 
 For deployment, smoke testing, rollback and recovery use the D11 report and Administrator Guide linked from [the documentation index](documentation/README.md).
 
-### Production deployment via GHCR
+### Production deployment via GHCR and Hostinger
 
-Every push to `master` runs [Publish OMS container](.github/workflows/publish-ghcr.yml). It builds the production `linux/amd64` image on GitHub Actions, publishes `ghcr.io/karatanov/oms:latest` and an immutable SHA tag, and uses the GitHub Actions cache for Docker/Gradle layers.
+Every push to `master` runs [Production deployment](.github/workflows/production-deployment.yml): it tests the backend and frontend, publishes an immutable `ghcr.io/karatanov/oms:sha-<full Git SHA>` image, deploys that exact image to Hostinger, and verifies the public health response reports the same SHA. The production host is `https://ua-oms.com/`; Render is retired and must not be used.
 
-The production host is `https://ua-oms.com/`. Its deployment process consumes the published GHCR image; Render is retired and must not be used for OMS deployments.
+See [Production CI/CD](documentation/PRODUCTION_CICD.md) for the one-time VPS/GitHub setup, security model, diagnostics and safe rollback procedure.
 
 ### Frontend on GitHub Pages
 
