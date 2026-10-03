@@ -28,17 +28,17 @@ fun Sidebar(currentScreen: Screen, onNavigate: (Screen) -> Unit, onLogout: () ->
         // Keep a usable content lane on phone-sized browser windows.  The
         // compact rail retains all navigation through icons and tooltips.
         Column(Modifier.width(if (compact) 60.dp else 232.dp).fillMaxHeight().padding(if (compact) 6.dp else 12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Row(Modifier.fillMaxWidth().height(52.dp), verticalAlignment = Alignment.CenterVertically) {
+            Row(Modifier.fillMaxWidth().height(if (compact) 52.dp else 76.dp), verticalAlignment = Alignment.CenterVertically) {
                 if (!compact) {
                     Icon(Icons.Default.AccountBalance, null, tint = MaterialTheme.colorScheme.primary)
                     Column(Modifier.weight(1f).padding(start = 10.dp)) {
                         Text("UMITAF", style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.primary)
                         Text(
-                            "TA to the implementation of UR III Programme",
+                            "TA to the implementation\nof UR III Programme",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis
+                            maxLines = 3,
+                            overflow = TextOverflow.Clip
                         )
                     }
                 }
@@ -56,7 +56,7 @@ fun Sidebar(currentScreen: Screen, onNavigate: (Screen) -> Unit, onLogout: () ->
                 }
                 if (!isGuest) {
                     SidebarItem(LocalizationManager.t("inspection_reports"), Icons.Default.FactCheck, Screen.Inspections, currentScreen, onNavigate, compact)
-                    if (canAccessFinancials) SidebarItem(LocalizationManager.t("financial_monitoring"), Icons.Default.AccountBalance, Screen.Financial, currentScreen, onNavigate, compact, iconText = "€ ₴")
+                    if (canAccessFinancials) SidebarItem(LocalizationManager.t("financial_monitoring"), Icons.Default.AccountBalance, Screen.Financial, currentScreen, onNavigate, compact, iconText = "€")
                     SidebarItem(LocalizationManager.t("procurement_title"), Icons.Default.ShoppingCart, Screen.Procurement, currentScreen, onNavigate, compact)
                     SidebarItem(LocalizationManager.t("documents"), Icons.Default.FolderOpen, Screen.Documents, currentScreen, onNavigate, compact)
                 }

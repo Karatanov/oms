@@ -133,7 +133,7 @@ fun LoginScreen(
                             style = MaterialTheme.typography.labelMedium
                         )
                         Text(
-                            text = "TA to the implementation of UR III Programme",
+                            text = "TA to the implementation\nof UR III Programme",
                             color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.88f),
                             style = MaterialTheme.typography.labelSmall
                         )
