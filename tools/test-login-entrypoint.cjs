@@ -11,7 +11,7 @@ const startup = fs.readFileSync('composeApp/src/webMain/resources/startup.js', '
   try {
     for (const deployment of [
       { origin: 'https://ua-oms.com', entry: '/', app: 'https://ua-oms.com/app.html', api: 'https://ua-oms.com/api/v1' },
-      { origin: 'https://karatanov.github.io', entry: '/oms/', app: 'https://karatanov.github.io/oms/app.html', api: 'https://oms-3j46.onrender.com/api/v1' }
+      { origin: 'https://karatanov.github.io', entry: '/oms/', app: 'https://karatanov.github.io/oms/app.html', api: 'https://ua-oms.com/api/v1' }
     ]) {
       const context = await browser.newContext();
       const page = await context.newPage();
