@@ -15,7 +15,9 @@ permissions:
 
 concurrency:
   group: oms-ghcr-${{ github.ref }}
-  cancel-in-progress: true
+  # Never interrupt a production rollout halfway through. New pushes wait for
+  # the current build/deployment to finish and then deploy their own SHA.
+  cancel-in-progress: false
 
 env:
   REGISTRY: ghcr.io
@@ -66,3 +68,70 @@ jobs:
           platforms: linux/amd64
           tags: ${{ steps.metadata.outputs.tags }}
           labels: ${{ steps.metadata.outputs.labels }}
+
+  deploy-production:
+    name: Deploy production VPS
+    needs: publish
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: production
+      url: https://ua-oms.com/
+    permissions:
+      contents: read
+      packages: read
+    env:
+      DEPLOY_HOST: 2.24.162.154
+      DEPLOY_USER: root
+      IMAGE_TAG: sha-${{ github.sha }}
+    steps:
+      - name: Check out deployment script
+        uses: actions/checkout@v4
+
+      - name: Configure pinned SSH identity
+        env:
+          VPS_SSH_PRIVATE_KEY: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
+          VPS_SSH_KNOWN_HOSTS: ${{ secrets.VPS_SSH_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          install -d -m 0700 ~/.ssh
+          printf '%s\n' "$VPS_SSH_PRIVATE_KEY" > ~/.ssh/oms_vps
+          printf '%s\n' "$VPS_SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 0600 ~/.ssh/oms_vps ~/.ssh/known_hosts
+          ssh-keygen -y -f ~/.ssh/oms_vps >/dev/null
+          ssh-keygen -F "$DEPLOY_HOST" -f ~/.ssh/known_hosts >/dev/null
+
+      - name: Authorize the VPS to pull this build
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          printf '%s' "$GHCR_TOKEN" | ssh -i ~/.ssh/oms_vps \
+            -o BatchMode=yes -o IdentitiesOnly=yes \
+            "$DEPLOY_USER@$DEPLOY_HOST" \
+            "docker login ghcr.io --username '${{ github.actor }}' --password-stdin"
+
+      - name: Deploy immutable image with automatic rollback
+        run: |
+          set -euo pipefail
+          ssh -i ~/.ssh/oms_vps \
+            -o BatchMode=yes -o IdentitiesOnly=yes \
+            "$DEPLOY_USER@$DEPLOY_HOST" \
+            "bash -s -- '$IMAGE_TAG' '${{ github.sha }}'" \
+            < deploy/vps/deploy.sh
+
+      - name: Verify public HTTPS
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error \
+            --retry 12 --retry-delay 5 --retry-all-errors \
+            --max-time 15 https://ua-oms.com/health
+
+      - name: Remove temporary registry credentials
+        if: always()
+        run: |
+          ssh -i ~/.ssh/oms_vps \
+            -o BatchMode=yes -o IdentitiesOnly=yes \
+            "$DEPLOY_USER@$DEPLOY_HOST" \
+            'docker logout ghcr.io >/dev/null 2>&1 || true'
