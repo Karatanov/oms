@@ -739,10 +739,11 @@ private fun ProcurementEditorDialog(
                 OmsDateField(estimatedBidSubmissionDate, { estimatedBidSubmissionDate = it }, procurementHeaderLabels()[16], Modifier.fillMaxWidth())
                 OmsDateField(estimatedContractDate, { estimatedContractDate = it }, procurementHeaderLabels()[17], Modifier.fillMaxWidth())
                 OmsDateField(estimatedContractEndDate, { estimatedContractEndDate = it }, procurementHeaderLabels()[18], Modifier.fillMaxWidth())
+                Text(LocalizationManager.t("procurement_status_label"), style = MaterialTheme.typography.labelMedium)
                 InlineOptionPicker(
                     options = procurementStatuses,
                     selected = status.takeIf { it in procurementStatuses },
-                    prompt = LocalizationManager.t("procurement_status"),
+                    prompt = LocalizationManager.t("procurement_status_label"),
                     onSelect = { status = it },
                     itemLabel = LocalizationManager::procurementStatus
                 )
