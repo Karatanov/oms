@@ -20,9 +20,10 @@
     <style>
         :root { font-family: Inter, "Segoe UI", Arial, sans-serif; color: #20313c; }
         * { box-sizing: border-box; }
-        body { margin: 0; min-height: 100vh; }
-        .page { min-height: 100vh; display: grid; grid-template-columns: 1fr 1fr; }
-        .brand { display: flex; align-items: center; padding: clamp(38px, 7vw, 108px); color: white; background: linear-gradient(130deg, #278dad, #16566c); }
+        html, body { width: 100%; min-width: 0; }
+        body { margin: 0; min-height: 100vh; overflow-x: clip; }
+        .page { width: 100%; min-width: 0; min-height: 100vh; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); overflow-x: clip; }
+        .brand { display: flex; min-width: 0; align-items: center; padding: clamp(38px, 7vw, 108px); color: white; background: linear-gradient(130deg, #278dad, #16566c); }
         .brand > * { max-width: 510px; }
         .badge { display: inline-flex; flex-direction: column; gap: 3px; padding: 7px 13px; border: 1px solid #ffffff38; border-radius: 14px; background: #ffffff18; }
         .badge strong { font-weight: 700; letter-spacing: .09em; font-size: 12px; }
@@ -31,7 +32,7 @@
         .brand p { font-size: 20px; line-height: 1.5; color: #ffffffdf; }
         .features { display: grid; gap: 12px; margin: 40px 0 0; padding: 0; list-style: none; font-size: 16px; }
         .features li::before { content: "✓"; display: inline-grid; place-items: center; width: 22px; height: 22px; margin-right: 11px; border-radius: 50%; background: #ffffff24; font-size: 13px; font-weight: 800; }
-        .form-panel { position: relative; display: grid; place-items: center; padding: 48px 24px 88px; background: #fff; }
+        .form-panel { position: relative; display: grid; min-width: 0; place-items: center; padding: 48px 24px 88px; background: #fff; }
         .card { width: min(440px, 100%); }
         h2 { margin: 0 0 7px; font-size: 29px; letter-spacing: -.025em; }
         .hint { margin: 0 0 29px; color: #536571; }
@@ -50,7 +51,7 @@
         button:disabled { opacity: .65; cursor: wait; }
         #error { min-height: 20px; margin-top: 15px; color: #ac3038; font-size: 14px; }
         .language { position: fixed; z-index: 2; left: 24px; bottom: 24px; padding: 8px 13px; border: 1px solid #ffffff55; border-radius: 999px; background: #ffffff20; color: #fff; cursor: pointer; font-weight: 700; }
-        .oms-startup-status { position: absolute; z-index: 4; width: min(390px, calc(100% - 48px)); padding: 24px; border: 1px solid #d7e3e9; border-radius: 20px; background: #fffffff2; box-shadow: 0 18px 55px #153e4d24; backdrop-filter: blur(9px); }
+        .oms-startup-status { position: absolute; z-index: 4; top: 50%; left: 50%; width: min(390px, calc(100% - 48px)); max-width: calc(100% - 48px); padding: 24px; border: 1px solid #d7e3e9; border-radius: 20px; background: #fffffff2; box-shadow: 0 18px 55px #153e4d24; transform: translate(-50%, -50%); backdrop-filter: blur(9px); }
         .oms-startup-status[hidden] { display: none; }
         .oms-startup-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin-bottom: 11px; }
         .oms-startup-heading strong { font-size: 17px; color: #20313c; }
