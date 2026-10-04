@@ -82,6 +82,7 @@ jobs:
       name: production
       url: https://ua-oms.com/
     permissions:
+      actions: read
       contents: read
       packages: read
     env:
@@ -91,6 +92,47 @@ jobs:
     steps:
       - name: Check out deployment script
         uses: actions/checkout@v4
+
+      - name: Require successful regression workflows
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          required_workflows=(
+            'Backend regression tests'
+            'Project form regression tests'
+          )
+          for workflow in "${required_workflows[@]}"; do
+            verified=false
+            for _ in $(seq 1 30); do
+              state="$({
+                curl --fail --silent --show-error \
+                  -H 'Accept: application/vnd.github+json' \
+                  -H "Authorization: Bearer $GH_TOKEN" \
+                  -H 'X-GitHub-Api-Version: 2022-11-28' \
+                  "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/actions/runs?head_sha=$GITHUB_SHA&event=push&per_page=100"
+              } | jq -r --arg name "$workflow" '
+                [.workflow_runs[] | select(.name == $name)] | first |
+                if . == null then "missing" else "\(.status) \(.conclusion // "")" end
+              ')"
+              read -r status conclusion <<< "$state"
+              if [[ "$status" == completed ]]; then
+                if [[ "$conclusion" != success ]]; then
+                  echo "$workflow finished with $conclusion" >&2
+                  exit 1
+                fi
+                echo "$workflow passed"
+                verified=true
+                break
+              fi
+              echo "Waiting for $workflow (status: $status)"
+              sleep 10
+            done
+            if [[ "$verified" != true ]]; then
+              echo "Timed out waiting for $workflow" >&2
+              exit 1
+            fi
+          done
 
       - name: Configure pinned SSH identity
         env:

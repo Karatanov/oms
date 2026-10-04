@@ -32,7 +32,8 @@ const startup = fs.readFileSync('composeApp/src/webMain/resources/startup.js', '
         body: JSON.stringify({ browserBearerSupported: true, accessToken: 'fixture-token' })
       }));
       await page.goto(entry);
-      await page.waitForFunction(() => performance.getEntriesByName(new URL('assets-manifest.json', document.baseURI)).length > 0);
+      await page.waitForFunction(() => performance.getEntriesByType('resource')
+        .some(entry => /composeApp.*\.js/.test(entry.name)));
       assert.equal(requests.some(url => /composeApp.*\.js/.test(url)), true, 'login should warm the application cache without blocking the form');
       await page.locator('#username').fill('fixture');
       await page.locator('#password').fill('fixture');
