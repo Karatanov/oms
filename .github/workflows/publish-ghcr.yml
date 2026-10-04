@@ -13,12 +13,6 @@ permissions:
   contents: read
   packages: write
 
-concurrency:
-  group: oms-ghcr-${{ github.ref }}
-  # Never interrupt a production rollout halfway through. New pushes wait for
-  # the current build/deployment to finish and then deploy their own SHA.
-  cancel-in-progress: false
-
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
@@ -26,6 +20,11 @@ env:
 jobs:
   publish:
     runs-on: ubuntu-latest
+    # A newer commit supersedes an image that is still being built. Keep this
+    # separate from deployment concurrency so a live rollout is never killed.
+    concurrency:
+      group: oms-ghcr-build-${{ github.ref }}
+      cancel-in-progress: true
     # A failed cache transfer used to leave a runner occupied indefinitely.
     # The image is released infrequently, so a deterministic clean build is
     # preferable to an unreliable remote BuildKit cache.
@@ -75,6 +74,10 @@ jobs:
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    # Serialize production changes independently from cancellable image builds.
+    concurrency:
+      group: oms-production-vps
+      cancel-in-progress: false
     environment:
       name: production
       url: https://ua-oms.com/
