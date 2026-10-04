@@ -560,7 +560,7 @@ private fun ApiProcurementRecord.displayValues(): List<String> = listOf(
     tenderDocumentType.orEmpty().let(LocalizationManager::procurementValue),
     publishedInOjeu.orEmpty().let(LocalizationManager::procurementValue), tenderId.orEmpty(), estimatedProzorroDate.toOmsDate(), estimatedBidSubmissionDate.toOmsDate(),
     estimatedContractDate.toOmsDate(), estimatedContractEndDate.toOmsDate(), LocalizationManager.procurementStatus(purchaseStatus.orEmpty()),
-    localFinancingPct?.let { "${it.format(2)}%" }.orEmpty(), comments.orEmpty()
+    localFinancingPct.formatFixed(2).takeIf { it.isNotBlank() }?.plus("%").orEmpty(), comments.orEmpty()
 )
 
 /** Keeps procurement states visually distinguishable without depending on the selected UI language. */
@@ -612,11 +612,11 @@ private fun Double?.sortKey(): String = this?.let { value ->
 private fun procurementHeaderLabels(): List<String> = if (LocalizationManager.currentLanguage == Language.EN) listOf(
     "Tranche", "Region", "Promotor", "Subproject name", "Subproject code", "Subproject part", "Contract type",
     "Subproject cost, UAH", "EIB financing, UAH", "Local financing, UAH", "Estimated total, EUR", "Procurement method", "TD type", "Published in OJEU", "PROZORRO tender",
-    "Est. PROZORRO publication", "Est. bid submission", "Est. contract signing", "Est. contract end", "Procurement status", "Local co-financing", "Comments"
+    "Est. PROZORRO publication", "Est. bid submission", "Est. contract signing", "Est. contract end", "Procurement status", "Local co-financing, %", "Comments"
 ) else listOf(
     "Транш", "Область", "Бенефіціар", "Назва субпроєкту", "Код субпроєкту", "Частина субпроєкту", "Тип контракту",
     "Вартість субпроєкту, грн", "Фінансування ЄІБ, грн", "Місцеве фінансування, грн", "Оціночна сума, EUR", "Метод закупівлі", "Тип ТД", "Опубліковано в OJEU", "Тендер PROZORRO",
-    "План. публікація PROZORRO", "План. подання пропозицій", "План. підписання договору", "План. завершення договору", "Статус закупівлі", "Місцеве співфінансування", "Коментарі"
+    "План. публікація PROZORRO", "План. подання пропозицій", "План. підписання договору", "План. завершення договору", "Статус закупівлі", "Місцеве співфінансування, %", "Коментарі"
 )
 private val columnWidths = listOf(132, 160, 230, 340, 135, 145, 160, 170, 170, 180, 160, 250, 180, 150, 190, 145, 145, 145, 145, 230, 155, 260)
 private val procurementStatuses = listOf(
@@ -659,6 +659,14 @@ private fun Double?.format(decimals: Int): String = this?.let { value ->
     if (decimals == 0) rounded.toInt().toString() else rounded.toString()
 }.orEmpty()
 
+private fun Double?.formatFixed(decimals: Int): String = this?.let { value ->
+    val factor = (0 until decimals).fold(1L) { result, _ -> result * 10 }
+    val scaled = kotlin.math.round(value * factor).toLong()
+    val sign = if (scaled < 0) "-" else ""
+    val unsigned = kotlin.math.abs(scaled)
+    if (decimals == 0) "$sign$unsigned" else "$sign${unsigned / factor}.${(unsigned % factor).toString().padStart(decimals, '0')}"
+}.orEmpty()
+
 @Composable
 private fun ProcurementEditorDialog(
     existing: ApiProcurementRecord?,
@@ -681,7 +689,7 @@ private fun ProcurementEditorDialog(
     var estimatedContractDate by remember(existing?.id) { mutableStateOf(existing?.estimatedContractDate ?: currentIsoDate()) }
     var estimatedContractEndDate by remember(existing?.id) { mutableStateOf(existing?.estimatedContractEndDate ?: currentIsoDate()) }
     var status by remember(existing?.id) { mutableStateOf(existing?.purchaseStatus ?: procurementStatuses.first()) }
-    var localFinancingPct by remember(existing?.id) { mutableStateOf(existing?.localFinancingPct?.toString().orEmpty()) }
+    var localFinancingPct by remember(existing?.id) { mutableStateOf(existing?.localFinancingPct.formatFixed(2)) }
     var comments by remember(existing?.id) { mutableStateOf(existing?.comments.orEmpty()) }
     val availableSubprojects = ProjectRepository.projects.filter { it.projectType == "subproject" }
     LaunchedEffect(existing?.id) { ProjectRepository.refresh() }
