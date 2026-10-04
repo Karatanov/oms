@@ -88,6 +88,12 @@ private object InspectionReportsScreenCache {
     var reports: List<ReportRow>? = null
     var analytics: ApiInspectionAnalytics? = null
 
+    /**
+     * An empty registry must never be retained indefinitely: a report can be
+     * imported by another user while this browser session remains open.
+     */
+    fun hasReusableReports(): Boolean = !reports.isNullOrEmpty()
+
     fun invalidate() {
         reports = null
         analytics = null
@@ -121,7 +127,7 @@ fun ReportsScreen(
     var subprojectCodeFilter by remember { mutableStateOf<String?>(null) }
     var subprojectPartCodeFilter by remember { mutableStateOf<String?>(null) }
     var authorFilter by remember { mutableStateOf<String?>(null) }
-    var loading by remember { mutableStateOf(InspectionReportsScreenCache.reports == null) }
+    var loading by remember { mutableStateOf(!InspectionReportsScreenCache.hasReusableReports()) }
     var loadFailed by remember { mutableStateOf(false) }
     oms.navigation.ReportRouteReadiness(loading, loadFailed)
     var errorMessage by remember { mutableStateOf<String?>(null) }
@@ -137,7 +143,7 @@ fun ReportsScreen(
     val contentScrollState = rememberScrollState()
     var reloadKey by remember { mutableStateOf(0) }
     LaunchedEffect(reloadKey) {
-        if (reloadKey == 0 && InspectionReportsScreenCache.reports != null) {
+        if (reloadKey == 0 && InspectionReportsScreenCache.hasReusableReports()) {
             loading = false
             loadFailed = false
             return@LaunchedEffect
@@ -147,13 +153,14 @@ fun ReportsScreen(
         val reportItems = OmsApiClient.inspectionReports()
         // No project context is required for an empty registry.  This keeps the
         // first Reports visit lightweight on a fresh deployment.
-        if (reportItems.isNotEmpty()) {
-            ProjectRepository.refresh()
-            check(ProjectRepository.errorMessage == null) { "Could not load project context" }
-        }
+        if (reportItems.isNotEmpty()) ProjectRepository.refresh()
         val projectsById = ProjectRepository.projects.associateBy { it.id }
-        reports = reportItems.mapNotNull { item ->
-            val attachedProject = projectsById[item.projectUuid] ?: return@mapNotNull null
+        reports = reportItems.map { item ->
+            // The report itself is still valid if project context cannot be
+            // refreshed (for example during a transient projects request).
+            // Do not silently remove it from the registry in that case.
+            val attachedProject = projectsById[item.projectUuid]
+                ?: return@map ReportRow(item.projectUuid, "—", null, null, null, null, item.report)
             val ancestry = generateSequence(attachedProject) { current ->
                 current.parentProjectUuid?.let(projectsById::get)
             }.toList().asReversed()
