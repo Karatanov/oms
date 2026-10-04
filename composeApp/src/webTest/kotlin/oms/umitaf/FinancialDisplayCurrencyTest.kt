@@ -28,7 +28,7 @@ class FinancialDisplayCurrencyTest {
             val chart = aggregateMonthlyPayments(rows, "works", currency, mapOf("2026-09-01" to 45.0))
             val september = chart.payments.first { it.month == "2026-09" }
             assertEquals(rows.sumOf { it.record.displayAmountCents(currency, 45.0)!! }, september.amountCents)
-            assertEquals("2026-01", chart.payments.first().month)
+            assertEquals("2026-09", chart.payments.first().month)
             assertTrue(chart.tooltipByMonth.values.single().contains("KH08_07"))
         }
         assertTrue(aggregateMonthlyPayments(rows, "equipment").payments.isEmpty())
@@ -38,13 +38,13 @@ class FinancialDisplayCurrencyTest {
         assertEquals(10001L, uah.copy(amountEurCents = null).displayAmountCents("EUR"))
         assertNull(uah.copy(amountEurCents = null, eurExchangeRate = null).displayAmountCents("EUR"))
     }
-    @Test fun monthlyChartsIncludeJanuaryAndCalendarGapsAsZero() {
+    @Test fun monthlyChartsStartWithFirstPaymentAndIncludeLaterCalendarGaps() {
         val completed = completeFinancialMonths(listOf(
             oms.screens.MonthlyMoneyAmount("2026-02", 1250),
             oms.screens.MonthlyMoneyAmount("2026-04", 3750)
         ))
-        assertEquals(listOf("2026-01", "2026-02", "2026-03", "2026-04"), completed.map { it.month })
-        assertEquals(listOf(0L, 1250L, 0L, 3750L), completed.map { it.amountCents })
+        assertEquals(listOf("2026-02", "2026-03", "2026-04"), completed.map { it.month })
+        assertEquals(listOf(1250L, 0L, 3750L), completed.map { it.amountCents })
     }
     @Test fun messagesExistInBothLanguages() {
         val previous = LocalizationManager.currentLanguage
