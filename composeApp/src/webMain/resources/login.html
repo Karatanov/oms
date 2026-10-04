@@ -200,7 +200,10 @@
             if (!response.ok) throw Error(data.message || "Не вдалося увійти. Перевірте логін і пароль.");
             saveToken(data);
             persistCredentials();
-            await window.beginOmsStartup?.(english ? "en" : "uk");
+            // Startup state is persisted synchronously. Do not make a
+            // successful login wait for the whole Wasm bundle to prefetch:
+            // the application shell can show its own progress immediately.
+            window.beginOmsStartup?.(english ? "en" : "uk");
             location.replace(appUrl());
         } catch (error) {
             byId("error").textContent = error.message || "Не вдалося увійти.";
@@ -216,7 +219,7 @@
             const data = await response.json().catch(() => ({}));
             if (!response.ok) throw Error();
             saveToken(data);
-            await window.beginOmsStartup?.(english ? "en" : "uk");
+            window.beginOmsStartup?.(english ? "en" : "uk");
             location.replace(appUrl());
         } catch (_) {
             byId("error").textContent = "Не вдалося розпочати гостьовий сеанс.";

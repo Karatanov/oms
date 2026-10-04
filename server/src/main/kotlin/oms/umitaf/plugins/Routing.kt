@@ -62,7 +62,10 @@ fun Application.configureRouting() {
                 cacheControl { file ->
                     val fingerprinted = Regex("""composeApp\.[0-9a-f]{12}\.js|[0-9a-f]{20}\.wasm""")
                         .matches(file.name)
-                    if (fingerprinted) {
+                    // The Skiko runtime is versioned with the fingerprint of
+                    // its owning JS bundle (as a query string in the bundle),
+                    // so it is safe to retain it just like a hashed asset.
+                    if (fingerprinted || file.name == "skiko.wasm") {
                         listOf(CacheControl.MaxAge(maxAgeSeconds = 31_536_000, visibility = CacheControl.Visibility.Public))
                     } else {
                         // HTML and non-fingerprinted assets must revalidate so a

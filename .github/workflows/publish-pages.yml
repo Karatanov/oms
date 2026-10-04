@@ -53,11 +53,12 @@ jobs:
           cp -a composeApp/build/kotlin-webpack/js/productionExecutable/. build/pages/
           cp build/pages/index.html build/pages/app.html
           cp composeApp/src/webMain/resources/login.html build/pages/index.html
-          wasm_asset=$(find build/pages -maxdepth 1 -type f -name '*.wasm' -printf '%f\n' | grep -E '^[0-9a-f]{20}\.wasm$' | head -n 1)
-          test -n "$wasm_asset"
+          test -f build/pages/skiko.wasm
+          asset_hash=$(sha256sum build/pages/composeApp.js | cut -c1-12)
+          sed -i "s#skiko\\.wasm#skiko.wasm?v=${asset_hash}#g" build/pages/composeApp.js
           js_bytes=$(stat -c %s build/pages/composeApp.js)
-          wasm_bytes=$(stat -c %s "build/pages/$wasm_asset")
-          printf '{"version":"%s","assets":[{"url":"composeApp.js","bytes":%s},{"url":"%s","bytes":%s}]}\n' "$GITHUB_SHA" "$js_bytes" "$wasm_asset" "$wasm_bytes" > build/pages/assets-manifest.json
+          wasm_bytes=$(stat -c %s build/pages/skiko.wasm)
+          printf '{"version":"%s","assets":[{"url":"composeApp.js","bytes":%s},{"url":"skiko.wasm?v=%s","bytes":%s}]}\n' "$GITHUB_SHA" "$js_bytes" "$GITHUB_SHA" "$wasm_bytes" > build/pages/assets-manifest.json
           touch build/pages/.nojekyll
           test -f build/pages/index.html
           test -f build/pages/app.html
