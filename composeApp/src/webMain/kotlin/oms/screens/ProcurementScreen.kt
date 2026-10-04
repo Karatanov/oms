@@ -643,10 +643,11 @@ private val procurementMethods = listOf(
     "Місцевий шопінг/Прямий контракт / Local Shopping or Direct Contracting",
     "Прямий контракт / Direct Contract"
 )
-private val ojeuPublicationOptions = listOf("Так / Yes", "Ні / No")
-
 private fun sameProcurementStatus(first: String?, second: String?): Boolean =
     !first.isNullOrBlank() && !second.isNullOrBlank() && LocalizationManager.procurementStatus(first).equals(LocalizationManager.procurementStatus(second), ignoreCase = true)
+
+private fun String?.isPublishedInOjeu(): Boolean =
+    this?.contains("так", ignoreCase = true) == true || this?.contains("yes", ignoreCase = true) == true
 
 private fun String.toProzorroTenderUrl(): String =
     if (startsWith("https://", ignoreCase = true) || startsWith("http://", ignoreCase = true)) this
@@ -674,7 +675,7 @@ private fun ProcurementEditorDialog(
     var estimatedTotalEur by remember(existing?.id) { mutableStateOf(existing?.estimatedTotalEur?.toString().orEmpty()) }
     var procurementMethod by remember(existing?.id) { mutableStateOf(existing?.procurementMethod.orEmpty()) }
     var tenderDocumentType by remember(existing?.id) { mutableStateOf(existing?.tenderDocumentType.orEmpty()) }
-    var publishedInOjeu by remember(existing?.id) { mutableStateOf(existing?.publishedInOjeu.orEmpty()) }
+    var publishedInOjeu by remember(existing?.id) { mutableStateOf(existing?.publishedInOjeu.isPublishedInOjeu()) }
     var estimatedProzorroDate by remember(existing?.id) { mutableStateOf(existing?.estimatedProzorroDate ?: currentIsoDate()) }
     var estimatedBidSubmissionDate by remember(existing?.id) { mutableStateOf(existing?.estimatedBidSubmissionDate ?: currentIsoDate()) }
     var estimatedContractDate by remember(existing?.id) { mutableStateOf(existing?.estimatedContractDate ?: currentIsoDate()) }
@@ -726,7 +727,14 @@ private fun ProcurementEditorDialog(
                 OutlinedTextField(estimatedTotalEur, { numeric(it, true) { value -> estimatedTotalEur = value } }, label = { Text(procurementHeaderLabels()[10]) }, modifier = Modifier.fillMaxWidth())
                 InlineOptionPicker(procurementMethods, procurementMethod.takeIf { it.isNotBlank() }, procurementHeaderLabels()[11], { procurementMethod = it }, LocalizationManager::procurementValue)
                 OutlinedTextField(tenderDocumentType, { tenderDocumentType = it.procurementText(500) }, label = { Text(procurementHeaderLabels()[12]) }, modifier = Modifier.fillMaxWidth())
-                InlineOptionPicker(ojeuPublicationOptions, publishedInOjeu.takeIf { it.isNotBlank() }, procurementHeaderLabels()[13], { publishedInOjeu = it }, LocalizationManager::procurementValue)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Checkbox(checked = publishedInOjeu, onCheckedChange = { publishedInOjeu = it })
+                    Text(LocalizationManager.t("proc_published_in_ojeu"), style = MaterialTheme.typography.bodyMedium)
+                }
                 OmsDateField(estimatedProzorroDate, { estimatedProzorroDate = it }, procurementHeaderLabels()[15], Modifier.fillMaxWidth())
                 OmsDateField(estimatedBidSubmissionDate, { estimatedBidSubmissionDate = it }, procurementHeaderLabels()[16], Modifier.fillMaxWidth())
                 OmsDateField(estimatedContractDate, { estimatedContractDate = it }, procurementHeaderLabels()[17], Modifier.fillMaxWidth())
@@ -755,7 +763,7 @@ private fun ProcurementEditorDialog(
                         promotorName = promotorName.ifBlank { null }, subprojectNameUk = selected.name, subprojectNameEn = selected.nameEn,
                         sourceContractType = contractType.ifBlank { null },
                         subprojectTotalCostUah = totalCostUah.toDoubleOrNull(), subprojectEibFinancingUah = eibFinancingUah.toDoubleOrNull(), subprojectLocalFinancingUah = localFinancingUah.toDoubleOrNull(), estimatedTotalEur = estimatedTotalEur.toDoubleOrNull(),
-                        procurementMethod = procurementMethod.ifBlank { null }, tenderDocumentType = tenderDocumentType.ifBlank { null }, publishedInOjeu = publishedInOjeu.ifBlank { null },
+                        procurementMethod = procurementMethod.ifBlank { null }, tenderDocumentType = tenderDocumentType.ifBlank { null }, publishedInOjeu = if (publishedInOjeu) "Так / Yes" else "Ні / No",
                         estimatedProzorroDate = estimatedProzorroDate.ifBlank { null }, estimatedBidSubmissionDate = estimatedBidSubmissionDate.ifBlank { null }, estimatedContractDate = estimatedContractDate.ifBlank { null }, estimatedContractEndDate = estimatedContractEndDate.ifBlank { null },
                         purchaseStatus = status, localFinancingPct = localFinancingPct.toDoubleOrNull(), comments = comments.ifBlank { null }
                     ))
