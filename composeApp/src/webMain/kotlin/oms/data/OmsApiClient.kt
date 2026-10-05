@@ -236,6 +236,9 @@ object OmsApiClient {
 
     suspend fun deleteProcurement(id: Long): Boolean = client.delete("$baseUrl/procurements/$id").status.isSuccess()
 
+    suspend fun refreshProcurements(): ApiProcurementRefresh =
+        client.post("$baseUrl/procurements/refresh").body()
+
     suspend fun projectDetails(uuid: String): ApiProjectDetails =
         client.get("$baseUrl/projects/$uuid").body()
 
@@ -831,6 +834,9 @@ data class ApiProcurementRecord(
     val estimatedContractDate: String? = null, val estimatedContractEndDate: String? = null, val localFinancingPct: Double? = null,
     val comments: String? = null, val sourceStatusCode: String? = null, val projectId: Long? = null
 )
+
+@Serializable
+data class ApiProcurementRefresh(val importedCount: Int)
 
 @Serializable
 data class ProcurementRecordRequest(

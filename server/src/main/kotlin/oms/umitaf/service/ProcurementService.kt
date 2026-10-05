@@ -16,6 +16,55 @@ class ProcurementService(
     fun update(id: Long, request: ProcurementRecordRequest) = repository.update(id, request.toRecord())
     fun delete(id: Long) = repository.delete(id)
 
+    /**
+     * Rebuilds the registry from the approved DB6 workbook. Parsing and
+     * project-link validation complete before the single replacement
+     * transaction starts, so a bad or inaccessible source can never erase the
+     * last good registry. Batches absent from the source stay untouched.
+     */
+    fun refreshFromApprovedSource(): Int {
+        val sourceRows = ProcurementWorkbookSource.downloadAndParse()
+        require(sourceRows.isNotEmpty()) { "The approved procurement workbook contains no records." }
+        val projects = projectService.getAllProjects()
+        val subprojects = projects.filter { it.projectType == ProjectType.SUBPROJECT }
+            .associateBy { it.siteNumber.trim().uppercase() }
+        val parts = projects.filter { it.projectType == ProjectType.SUBPROJECT_PART }
+            .associateBy { it.siteNumber.trim().uppercase() }
+        val records = sourceRows.map { source ->
+            val subproject = subprojects[source.subprojectCode.uppercase()]
+                ?: throw IllegalArgumentException("Source row ${source.sourceId} references unknown subproject ${source.subprojectCode}.")
+            val part = source.partCode?.let { code ->
+                parts[code.uppercase()] ?: throw IllegalArgumentException("Source row ${source.sourceId} references unknown subproject part $code.")
+            }
+            require(part == null || part.parentProjectId == subproject.id) {
+                "Source row ${source.sourceId} contains a subproject part outside ${source.subprojectCode}."
+            }
+            ProcurementRecord(
+                id = 0, batchId = source.batchId,
+                oblastName = subproject.region?.trim().orEmpty().ifBlank { source.oblastId },
+                oblastId = source.oblastId, subProjectId = source.subprojectCode, subProjectLotId = source.partCode,
+                purchaseStatus = source.purchaseStatus, tenderId = source.tenderId, prozorroTenderId = source.prozorroUrl,
+                contractorNameUkr = null, contractorNameEng = null, contractorId = null,
+                contractDate = source.contractDate, contractEndDate = null, contractDurationMonths = source.contractDurationMonths,
+                contractAmountUah = source.contractAmountUah, contractAmountEur = null, financingContractDifferencePct = null,
+                promotorName = source.promotorName, subprojectNameUk = subproject.name, subprojectNameEn = source.subprojectNameEn,
+                sourceContractType = source.contractType, subprojectTotalCostUah = subproject.budgetPlanned.toDouble(),
+                subprojectEibFinancingUah = null, subprojectLocalFinancingUah = null,
+                estimatedTotalEur = null, estimatedTotalUah = source.estimatedTotalUah,
+                estimatedEibEur = null, estimatedEibUah = source.estimatedEibUah,
+                estimatedLocalEur = null, estimatedLocalUah = source.estimatedLocalUah,
+                procurementMethod = source.procurementMethod, tenderDocumentType = null, publishedInOjeu = null,
+                estimatedProzorroDate = source.estimatedProzorroDate,
+                estimatedBidSubmissionDate = source.estimatedBidSubmissionDate,
+                estimatedContractDate = source.estimatedContractDate,
+                estimatedContractEndDate = source.estimatedContractEndDate,
+                localFinancingPct = source.estimatedTotalUah?.takeIf { it != 0.0 }?.let { total -> source.estimatedLocalUah?.times(100.0)?.div(total) },
+                comments = source.comments, sourceStatusCode = source.typeCode, projectId = part?.id ?: subproject.id
+            )
+        }
+        return repository.replaceForBatches(records)
+    }
+
     private fun ProcurementRecordRequest.toRecord(): ProcurementRecord {
         val subproject = projectService.getAllProjects().firstOrNull {
             it.projectType == ProjectType.SUBPROJECT && it.siteNumber.equals(subProjectId.trim(), ignoreCase = true)

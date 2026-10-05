@@ -15,6 +15,7 @@ import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.filled.KeyboardArrowRight
@@ -77,6 +78,8 @@ fun ProcurementScreen(
     var editorRecord by remember { mutableStateOf<ApiProcurementRecord?>(null) }
     var creating by remember { mutableStateOf(false) }
     var recordPendingDeletion by remember { mutableStateOf<ApiProcurementRecord?>(null) }
+    var refreshingRegistry by remember { mutableStateOf(false) }
+    var registryRefreshMessage by remember { mutableStateOf<String?>(null) }
     var pageSize by remember { mutableStateOf(20) }
     var currentPage by remember { mutableStateOf(0) }
     var sortColumnIndex by remember { mutableStateOf(0) }
@@ -156,10 +159,31 @@ fun ProcurementScreen(
             .padding(start = 24.dp, top = 24.dp, end = 76.dp, bottom = 24.dp)
     ) {
         oms.components.PageHeading(LocalizationManager.t("procurement_title"), Icons.Default.ShoppingCart) {
-            if (canManageProcurements) Button(onClick = { error = null; creating = true }) { Icon(Icons.Default.Add, null); Spacer(Modifier.width(6.dp)); Text(LocalizationManager.t("add_procurement_record")) }
+            if (canManageProcurements) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedButton(enabled = !refreshingRegistry, onClick = {
+                        error = null; registryRefreshMessage = null
+                        scope.launch {
+                            refreshingRegistry = true
+                            runCatching { OmsApiClient.refreshProcurements() }
+                                .onSuccess { reloadKey++; registryRefreshMessage = LocalizationManager.t("procurement_refresh_success").replace("{count}", it.importedCount.toString()) }
+                                .onFailure { registryRefreshMessage = LocalizationManager.t("procurement_refresh_error").replace("{message}", it.message.orEmpty()) }
+                            refreshingRegistry = false
+                        }
+                    }) {
+                        if (refreshingRegistry) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
+                        else Icon(Icons.Default.Refresh, null)
+                        Spacer(Modifier.width(6.dp)); Text(LocalizationManager.t("refresh_procurement_registry"))
+                    }
+                    Button(onClick = { error = null; creating = true }) { Icon(Icons.Default.Add, null); Spacer(Modifier.width(6.dp)); Text(LocalizationManager.t("add_procurement_record")) }
+                }
+            }
         }
         Spacer(Modifier.height(8.dp))
         Text(LocalizationManager.t("procurement_subtitle"), style = MaterialTheme.typography.bodyMedium)
+        registryRefreshMessage?.let { message ->
+            Text(message, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
         Spacer(Modifier.height(16.dp))
         oms.components.AdaptiveChartRow(
             first = { MetricsListChart("procurement_status_chart", procurementStatusMetrics, compact = true) },

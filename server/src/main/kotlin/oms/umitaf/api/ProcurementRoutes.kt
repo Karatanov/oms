@@ -13,6 +13,7 @@ import oms.umitaf.domain.ProcurementRecord
 import oms.umitaf.dto.ErrorResponse
 import oms.umitaf.dto.ProcurementRecordRequest
 import oms.umitaf.dto.ProcurementRecordResponse
+import kotlinx.serialization.Serializable
 
 fun Route.procurementRoutes() {
     get("/api/v1/procurements") {
@@ -21,13 +22,13 @@ fun Route.procurementRoutes() {
     }
 
     post("/api/v1/procurements") {
-        call.requireRole("ADMIN", "PROJECT_MANAGER") ?: return@post
+        call.requireRole("ADMIN") ?: return@post
         val request = call.receive<ProcurementRecordRequest>()
         call.respondSafely(HttpStatusCode.Created) { AppContainer.procurementService.create(request).toResponse() }
     }
 
     patch("/api/v1/procurements/{id}") {
-        call.requireRole("ADMIN", "PROJECT_MANAGER") ?: return@patch
+        call.requireRole("ADMIN") ?: return@patch
         val id = call.parameters["id"]?.toLongOrNull()
             ?: return@patch call.respond(HttpStatusCode.BadRequest, ErrorResponse("VALIDATION_ERROR", "Procurement record ID is required."))
         val request = call.receive<ProcurementRecordRequest>()
@@ -38,18 +39,28 @@ fun Route.procurementRoutes() {
     }
 
     delete("/api/v1/procurements/{id}") {
-        call.requireRole("ADMIN", "PROJECT_MANAGER") ?: return@delete
+        call.requireRole("ADMIN") ?: return@delete
         val id = call.parameters["id"]?.toLongOrNull()
             ?: return@delete call.respond(HttpStatusCode.BadRequest, ErrorResponse("VALIDATION_ERROR", "Procurement record ID is required."))
         if (!AppContainer.procurementService.delete(id)) {
             call.respond(HttpStatusCode.NotFound, ErrorResponse("NOT_FOUND", "Procurement record not found."))
         } else call.respond(HttpStatusCode.NoContent)
     }
+
+    post("/api/v1/procurements/refresh") {
+        call.requireRole("ADMIN") ?: return@post
+        call.respondSafely(HttpStatusCode.OK) {
+            ProcurementRefreshResponse(AppContainer.procurementService.refreshFromApprovedSource())
+        }
+    }
 }
 
-private suspend fun io.ktor.server.application.ApplicationCall.respondSafely(
+@Serializable
+private data class ProcurementRefreshResponse(val importedCount: Int)
+
+private suspend fun <T> io.ktor.server.application.ApplicationCall.respondSafely(
     success: HttpStatusCode,
-    block: () -> ProcurementRecordResponse
+    block: () -> T
 ) {
     try {
         respond(success, block())

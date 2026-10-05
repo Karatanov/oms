@@ -167,7 +167,7 @@ fun AppLayout(appState: AppState) {
                 )
 
                 is Screen.Procurement -> if (appState.roleCode != "GUEST") ProcurementScreen(
-                    canManageProcurements = appState.roleCode in setOf("ADMIN", "PROJECT_MANAGER"),
+                    canManageProcurements = appState.roleCode == "ADMIN",
                     requestedStatusFilter = target.procurementStatus,
                     onRequestedStatusFilterConsumed = { appState.requestedProcurementStatus = null }
                 )
