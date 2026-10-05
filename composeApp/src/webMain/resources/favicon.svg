@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <title>UMITAF OMS</title>
+  <rect width="64" height="64" rx="14" fill="#278DAD"/>
+  <path d="M12 28 32 13l20 15H12Z" fill="#fff"/>
+  <path d="M15 31h34v5H15zM13 49h38v4H13z" fill="#fff"/>
+  <path d="M19 34h5v14h-5zM29.5 34h5v14h-5zM40 34h5v14h-5z" fill="#fff"/>
+</svg>
