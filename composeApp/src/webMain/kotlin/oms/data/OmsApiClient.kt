@@ -719,6 +719,8 @@ data class ApiProject(
     val amounts: Map<String, ProjectAmountDto> = emptyMap(),
     val contractorName: String? = null,
     val startDate: String? = null,
+    val plannedEndDate: String? = null,
+    val contractDurationDays: Long? = null,
     val status: String,
     val isArchived: Boolean = false,
     val archivedAt: String? = null,

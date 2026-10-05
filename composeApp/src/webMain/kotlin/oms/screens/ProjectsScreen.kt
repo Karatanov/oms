@@ -602,7 +602,7 @@ private fun <T> ProjectFilterDropdown(
 
 
 enum class SortColumn {
-    ID, TRANCHE, NAME, REGION, CITY, SECTOR, CONSTRUCTION_TYPE, STATUS, BUDGET, START_DATE, CONTRACTOR
+    ID, TRANCHE, NAME, REGION, CITY, SECTOR, CONSTRUCTION_TYPE, STATUS, BUDGET, START_DATE, PLANNED_END_DATE, IMPLEMENTATION_DURATION, CONTRACTOR
 }
 
 private fun sortKey(project: Project, column: SortColumn): String = when (column) {
@@ -616,6 +616,8 @@ private fun sortKey(project: Project, column: SortColumn): String = when (column
     SortColumn.STATUS -> project.status.name
     SortColumn.BUDGET -> project.budgetPlanned.toString().padStart(20, '0')
     SortColumn.START_DATE -> project.startDate.orEmpty()
+    SortColumn.PLANNED_END_DATE -> project.plannedEndDate.orEmpty()
+    SortColumn.IMPLEMENTATION_DURATION -> project.contractDurationDays?.toString()?.padStart(12, '0').orEmpty()
     SortColumn.CONTRACTOR -> project.contractorName.orEmpty()
 }
 
@@ -791,6 +793,8 @@ fun ProjectRow(
 
         Text(project.budgetLabel(), modifier = Modifier.width(ProjectTableColumns.width(SortColumn.BUDGET)), fontWeight = rowFontWeight)
         Text(project.startDate.toOmsDate(), modifier = Modifier.width(ProjectTableColumns.width(SortColumn.START_DATE)), fontWeight = rowFontWeight)
+        Text(project.plannedEndDate.toOmsDate(), modifier = Modifier.width(ProjectTableColumns.width(SortColumn.PLANNED_END_DATE)), fontWeight = rowFontWeight)
+        Text(project.contractDurationDays?.let(::durationMonthsLabel).orEmpty(), modifier = Modifier.width(ProjectTableColumns.width(SortColumn.IMPLEMENTATION_DURATION)), fontWeight = rowFontWeight)
         Text(project.contractorName.orEmpty(), modifier = Modifier.width(ProjectTableColumns.width(SortColumn.CONTRACTOR)), fontWeight = rowFontWeight)
 
         // Keep the icon group centred in the exact same 144dp cell as the

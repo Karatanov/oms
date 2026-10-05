@@ -26,6 +26,8 @@ fun TableHeader(currentSort: SortColumn, ascending: Boolean, onSort: (SortColumn
                 SortColumn.STATUS -> "status"
                 SortColumn.BUDGET -> "budget"
                 SortColumn.START_DATE -> "start_date"
+                SortColumn.PLANNED_END_DATE -> "planned_end_date"
+                SortColumn.IMPLEMENTATION_DURATION -> "implementation_duration"
                 SortColumn.CONTRACTOR -> "contractor"
             }
             SortableHeader(LocalizationManager.t(labelKey), column, currentSort, ascending, onSort,

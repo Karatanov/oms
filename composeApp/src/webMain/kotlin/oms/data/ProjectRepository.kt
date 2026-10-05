@@ -48,6 +48,8 @@ object ProjectRepository {
                     budgetCurrency = api.amounts["budget"]?.currency ?: api.currency,
                     contractorName = api.contractorName,
                     startDate = api.startDate,
+                    plannedEndDate = api.plannedEndDate,
+                    contractDurationDays = api.contractDurationDays,
                     status = api.status.toProjectStatus(),
                     latitude = api.latitude,
                     longitude = api.longitude,

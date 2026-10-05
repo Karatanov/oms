@@ -42,6 +42,12 @@ data class Project(
 
     val startDate: String? = null,
 
+    /** Planned completion and contract period shown in the subproject registry. */
+    val plannedEndDate: String? = null,
+
+    /** Duration between contract signing and planned completion, supplied by the API. */
+    val contractDurationDays: Long? = null,
+
     val status: ProjectStatus,
 
     // Географічні координати проєкту для відображення на карті.

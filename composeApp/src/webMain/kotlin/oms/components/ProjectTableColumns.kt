@@ -19,6 +19,8 @@ object ProjectTableColumns {
         SortColumn.STATUS to 140.dp,
         SortColumn.BUDGET to 120.dp,
         SortColumn.START_DATE to 120.dp,
+        SortColumn.PLANNED_END_DATE to 140.dp,
+        SortColumn.IMPLEMENTATION_DURATION to 150.dp,
         SortColumn.CONTRACTOR to 150.dp
     )
     val columns = widths.keys.toList()
