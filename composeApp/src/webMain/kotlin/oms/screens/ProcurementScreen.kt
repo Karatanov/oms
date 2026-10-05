@@ -733,6 +733,7 @@ private fun ProcurementEditorDialog(
                 OutlinedTextField(eibFinancingUah, { numeric(it, true) { value -> eibFinancingUah = value } }, label = { Text(procurementHeaderLabels()[8]) }, modifier = Modifier.fillMaxWidth())
                 OutlinedTextField(localFinancingUah, { numeric(it, true) { value -> localFinancingUah = value } }, label = { Text(procurementHeaderLabels()[9]) }, modifier = Modifier.fillMaxWidth())
                 OutlinedTextField(estimatedTotalEur, { numeric(it, true) { value -> estimatedTotalEur = value } }, label = { Text(procurementHeaderLabels()[10]) }, modifier = Modifier.fillMaxWidth())
+                Text(procurementHeaderLabels()[11], style = MaterialTheme.typography.labelMedium)
                 InlineOptionPicker(procurementMethods, procurementMethod.takeIf { it.isNotBlank() }, procurementHeaderLabels()[11], { procurementMethod = it }, LocalizationManager::procurementValue)
                 OutlinedTextField(tenderDocumentType, { tenderDocumentType = it.procurementText(500) }, label = { Text(procurementHeaderLabels()[12]) }, modifier = Modifier.fillMaxWidth())
                 Row(
