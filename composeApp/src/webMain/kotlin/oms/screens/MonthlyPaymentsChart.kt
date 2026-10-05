@@ -64,12 +64,19 @@ fun MonthlyTechnicalSupervisionPaymentsChart(records: List<FinancialChartRecord>
 
 @Composable
 fun MonthlyEngineerConsultantPaymentsChart(records: List<FinancialChartRecord>, rates: Map<String, Double> = emptyMap()) {
+    var expanded by remember { mutableStateOf(true) }
     MonthlyPurposePaymentsChart(
         records = records,
         rates = rates,
         purpose = "engineer_consultant",
         titleKey = "monthly_engineer_consultant_payments",
-        hintKey = "monthly_engineer_consultant_payments_hint"
+        hintKey = "monthly_engineer_consultant_payments_hint",
+        // Keep the dedicated CSC chart discoverable even before its first
+        // payment is imported. It will show the standard empty-data message
+        // and starts plotting automatically as soon as matching payments exist.
+        showWhenEmpty = true,
+        expanded = expanded,
+        onExpandedChange = { expanded = it }
     )
 }
 
@@ -80,12 +87,13 @@ private fun MonthlyPurposePaymentsChart(
     titleKey: String,
     hintKey: String,
     rates: Map<String, Double>,
+    showWhenEmpty: Boolean = false,
     expanded: Boolean = true,
     onExpandedChange: ((Boolean) -> Unit)? = null
 ) {
     var currency by remember { mutableStateOf("EUR") }
     val aggregation = aggregateMonthlyPayments(records, purpose, currency, rates)
-    if (aggregation.payments.isEmpty()) return
+    if (aggregation.payments.isEmpty() && !showWhenEmpty) return
     MonthlyMoneyChart(
         titleKey, hintKey, aggregation.payments, currency, aggregation.tooltipByMonth,
         currencySelector = { CurrencySelector(currency) { currency = it } },
