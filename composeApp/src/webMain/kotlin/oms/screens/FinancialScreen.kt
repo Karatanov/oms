@@ -286,12 +286,12 @@ fun FinancialScreen(
         val financialChartRecords = acts.map { FinancialChartRecord(it.act, it.subprojectCode.orEmpty()) }
         if (missingConversions == 0) {
         oms.components.AdaptiveChartRow(
-            first = { MonthlyPaymentsChart(financialChartRecords, displayCurrency, displayRates) },
-            second = { MonthlyTechnicalSupervisionPaymentsChart(financialChartRecords, displayCurrency, displayRates) }
+            first = { MonthlyPaymentsChart(financialChartRecords, displayRates) },
+            second = { MonthlyTechnicalSupervisionPaymentsChart(financialChartRecords, displayRates) }
         )
         oms.components.AdaptiveChartRow(
-            first = { MonthlyEquipmentPaymentsChart(financialChartRecords, displayCurrency, displayRates) },
-            second = { MonthlyEngineerConsultantPaymentsChart(financialChartRecords, displayCurrency, displayRates) }
+            first = { MonthlyEquipmentPaymentsChart(financialChartRecords, displayRates) },
+            second = { MonthlyEngineerConsultantPaymentsChart(financialChartRecords, displayRates) }
         )
         }
 

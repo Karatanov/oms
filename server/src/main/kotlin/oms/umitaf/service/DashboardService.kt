@@ -9,8 +9,9 @@ import org.jetbrains.exposed.v1.core.inList
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import java.util.UUID
 import java.time.LocalDate
+import kotlin.math.roundToLong
 
-data class MonthlyActPayment(val month: String, val amountEurCents: Long)
+data class MonthlyActPayment(val month: String, val amountEurCents: Long, val amountUahCents: Long? = null)
 /**
  * The approved amount in both presentation currencies.  Values are taken from
  * the frozen project conversion, never from a live NBU request made while the
@@ -80,6 +81,30 @@ private fun Int.matchesTrancheFilter(filter: Int?): Boolean = filter == null || 
     2 -> this == 2 || this == 9
     else -> false
 }
+
+private fun org.jetbrains.exposed.v1.core.ResultRow.amountUahCents(): Long? {
+    val amount = this[FinancialRecordTable.amount].toDouble()
+    return when (this[FinancialRecordTable.currency].uppercase()) {
+        "UAH" -> (amount * 100).roundToLong()
+        "EUR" -> this[FinancialRecordTable.eurExchangeRate]
+            ?.toDouble()
+            ?.takeIf { it.isFinite() && it > 0 }
+            ?.let { (amount * it * 100).roundToLong() }
+        else -> null
+    }
+}
+
+private fun monthlyPayments(rows: List<org.jetbrains.exposed.v1.core.ResultRow>): List<MonthlyActPayment> = rows
+    .filter { it[FinancialRecordTable.amountEurCents] != null }
+    .groupBy { it[FinancialRecordTable.recordDate].toString().take(7) }
+    .map { (month, monthRows) ->
+        MonthlyActPayment(
+            month = month,
+            amountEurCents = monthRows.sumOf { it[FinancialRecordTable.amountEurCents] ?: 0L },
+            amountUahCents = monthRows.mapNotNull { it.amountUahCents() }.takeIf { it.size == monthRows.size }?.sum()
+        )
+    }
+    .sortedBy { it.month }
 data class DashboardData(
     val projectsTotal:Long, val projectsActive:Long, val projectsCompletedThisMonth:Long, val budgetPlanned:Long,
     val amountSpent:Long, val inspectionsTotal:Long, val pendingInspections:Long, val findingsTotal:Long,
@@ -114,10 +139,7 @@ class DashboardService(
             it[FinancialRecordTable.recordType] in setOf("payment", "advance")
         }
         fun month(date: java.time.LocalDate) = date.toString().take(7)
-        val monthlyActPayments = paymentRecords.filter { it[FinancialRecordTable.amountEurCents] != null }
-            .groupBy { month(it[FinancialRecordTable.recordDate]) }
-            .map { (label, rows) -> MonthlyActPayment(label, rows.sumOf { it[FinancialRecordTable.amountEurCents] ?: 0L }) }
-            .sortedBy { it.month }
+        val monthlyActPayments = monthlyPayments(paymentRecords)
         val projectsById = projects.associateBy { it[ProjectTable.id].value }
         val nameEnByProjectId = if (projectIds.isEmpty()) emptyMap() else ProjectMonitoringDetailTable.selectAll()
             .where { ProjectMonitoringDetailTable.projectId inList projectIds }.associate {
@@ -195,10 +217,7 @@ class DashboardService(
                 it[FinancialRecordTable.recordType] in setOf("payment", "advance")
         }
         val spent = actRecords.sumOf { it[FinancialRecordTable.amount] }.toDouble()
-        val monthlyActPayments = paymentRecords.filter { it[FinancialRecordTable.amountEurCents] != null }
-            .groupBy { it[FinancialRecordTable.recordDate].toString().take(7) }
-            .map { (month, records) -> MonthlyActPayment(month, records.sumOf { it[FinancialRecordTable.amountEurCents] ?: 0L }) }
-            .sortedBy { it.month }
+        val monthlyActPayments = monthlyPayments(paymentRecords)
         val projectsById = projects.associateBy { it[ProjectTable.id].value }
         val nameEnByProjectId = ProjectMonitoringDetailTable.selectAll().associate {
             it[ProjectMonitoringDetailTable.projectId].value to it[ProjectMonitoringDetailTable.nameEn]
@@ -245,11 +264,9 @@ class DashboardService(
             .groupBy { reportMonthById[it[InspectionFindingTable.inspectionReportId].value] }
             .filterKeys { it != null }
             .map { DashboardMetric(it.key!!, it.value.size.toLong()) }.sortedBy { it.label }
-        val monthlyEquipmentPayments = FinancialRecordTable.selectAll().toList()
+        val monthlyEquipmentPayments = monthlyPayments(FinancialRecordTable.selectAll().toList()
             .filter { it[FinancialRecordTable.projectId].value in projectIds && it[FinancialRecordTable.paymentPurpose] == "equipment" && it[FinancialRecordTable.recordType] in setOf("payment", "advance") }
-            .filter { it[FinancialRecordTable.amountEurCents] != null }
-            .groupBy { month(it[FinancialRecordTable.recordDate]) }
-            .map { MonthlyActPayment(it.key, it.value.sumOf { row -> row[FinancialRecordTable.amountEurCents] ?: 0L }) }.sortedBy { it.month }
+        )
         // Procurement reference rows do not carry a project foreign key. Do not
         // expose their global aggregate to a manager whose dashboard is scoped.
         val procurementStatusCounts = procurementStatusMetrics(procurementRecords)

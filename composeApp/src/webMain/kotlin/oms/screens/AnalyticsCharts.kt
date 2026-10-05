@@ -226,8 +226,20 @@ fun MonthlyAmountsChart(
     onExpandedChange: ((Boolean) -> Unit)? = null,
     orientation: BarChartOrientation = BarChartOrientation.Vertical
 ) {
-    MonthlyMoneyChart(titleKey, hintKey, payments.map { MonthlyMoneyAmount(it.month, it.amountEurCents) },
-        "EUR", tooltipByMonth, expanded, onExpandedChange, orientation)
+    var currency by remember { mutableStateOf("EUR") }
+    MonthlyMoneyChart(
+        titleKey = titleKey,
+        hintKey = hintKey,
+        payments = payments.map { payment ->
+            MonthlyMoneyAmount(payment.month, if (currency == "EUR") payment.amountEurCents else payment.amountUahCents ?: 0L)
+        },
+        currency = currency,
+        tooltipByMonth = tooltipByMonth,
+        currencySelector = { oms.components.CurrencySelector(currency) { currency = it } },
+        expanded = expanded,
+        onExpandedChange = onExpandedChange,
+        orientation = orientation
+    )
 }
 
 data class MonthlyMoneyAmount(val month: String, val amountCents: Long)
@@ -239,6 +251,7 @@ fun MonthlyMoneyChart(
     payments: List<MonthlyMoneyAmount>,
     currency: String,
     tooltipByMonth: Map<String, String> = emptyMap(),
+    currencySelector: (@Composable () -> Unit)? = null,
     expanded: Boolean = true,
     onExpandedChange: ((Boolean) -> Unit)? = null,
     orientation: BarChartOrientation = BarChartOrientation.Vertical
@@ -249,12 +262,12 @@ fun MonthlyMoneyChart(
             value = it.amountCents.toFloat(),
             groupLabel = it.month.take(4),
             tooltip = tooltipByMonth[it.month],
-            formattedValue = "${formatChartAmount(it.amountCents / 100.0, "EUR")} $currency"
+            formattedValue = formatChartAmount(it.amountCents / 100.0, currency)
         )
     }
     AnalyticsCard(
-        titleKey, hintKey, data, { "${formatChartAmount(it / 100.0, "EUR")} $currency" }, labelMaxLines = 1,
-        expanded = expanded, onExpandedChange = onExpandedChange, orientation = orientation
+        titleKey, hintKey, data, { formatChartAmount(it / 100.0, currency) }, labelMaxLines = 1,
+        filterContent = currencySelector, expanded = expanded, onExpandedChange = onExpandedChange, orientation = orientation
     )
 }
 

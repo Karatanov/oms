@@ -7,6 +7,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import oms.data.ApiFinancialRecord
 import oms.data.displayAmountCents
+import oms.components.CurrencySelector
 import oms.localization.LocalizationManager
 
 data class FinancialChartRecord(
@@ -20,7 +21,8 @@ internal data class MonthlyFinancialAggregation(
 )
 
 @Composable
-fun MonthlyPaymentsChart(records: List<FinancialChartRecord>, currency: String = "EUR", rates: Map<String, Double> = emptyMap()) {
+fun MonthlyPaymentsChart(records: List<FinancialChartRecord>, rates: Map<String, Double> = emptyMap()) {
+    var currency by remember { mutableStateOf("EUR") }
     val aggregation = aggregateMonthlyPayments(records, "works", currency, rates)
     var expanded by remember { mutableStateOf(true) }
     MonthlyMoneyChart(
@@ -29,16 +31,17 @@ fun MonthlyPaymentsChart(records: List<FinancialChartRecord>, currency: String =
         currency = currency,
         payments = aggregation.payments,
         tooltipByMonth = aggregation.tooltipByMonth,
+        currencySelector = { CurrencySelector(currency) { currency = it } },
         expanded = expanded,
         onExpandedChange = { expanded = it }
     )
 }
 
 @Composable
-fun MonthlyEquipmentPaymentsChart(records: List<FinancialChartRecord>, currency: String = "EUR", rates: Map<String, Double> = emptyMap()) {
+fun MonthlyEquipmentPaymentsChart(records: List<FinancialChartRecord>, rates: Map<String, Double> = emptyMap()) {
     MonthlyPurposePaymentsChart(
         records = records,
-        currency = currency, rates = rates,
+        rates = rates,
         purpose = "equipment",
         titleKey = "monthly_equipment_payments",
         hintKey = "monthly_equipment_payments_hint"
@@ -46,11 +49,11 @@ fun MonthlyEquipmentPaymentsChart(records: List<FinancialChartRecord>, currency:
 }
 
 @Composable
-fun MonthlyTechnicalSupervisionPaymentsChart(records: List<FinancialChartRecord>, currency: String = "EUR", rates: Map<String, Double> = emptyMap()) {
+fun MonthlyTechnicalSupervisionPaymentsChart(records: List<FinancialChartRecord>, rates: Map<String, Double> = emptyMap()) {
     var expanded by remember { mutableStateOf(true) }
     MonthlyPurposePaymentsChart(
         records = records,
-        currency = currency, rates = rates,
+        rates = rates,
         purpose = "technical_supervision",
         titleKey = "monthly_technical_supervision_payments",
         hintKey = "monthly_technical_supervision_payments_hint",
@@ -60,10 +63,10 @@ fun MonthlyTechnicalSupervisionPaymentsChart(records: List<FinancialChartRecord>
 }
 
 @Composable
-fun MonthlyEngineerConsultantPaymentsChart(records: List<FinancialChartRecord>, currency: String = "EUR", rates: Map<String, Double> = emptyMap()) {
+fun MonthlyEngineerConsultantPaymentsChart(records: List<FinancialChartRecord>, rates: Map<String, Double> = emptyMap()) {
     MonthlyPurposePaymentsChart(
         records = records,
-        currency = currency, rates = rates,
+        rates = rates,
         purpose = "engineer_consultant",
         titleKey = "monthly_engineer_consultant_payments",
         hintKey = "monthly_engineer_consultant_payments_hint"
@@ -76,14 +79,18 @@ private fun MonthlyPurposePaymentsChart(
     purpose: String,
     titleKey: String,
     hintKey: String,
-    currency: String,
     rates: Map<String, Double>,
     expanded: Boolean = true,
     onExpandedChange: ((Boolean) -> Unit)? = null
 ) {
+    var currency by remember { mutableStateOf("EUR") }
     val aggregation = aggregateMonthlyPayments(records, purpose, currency, rates)
     if (aggregation.payments.isEmpty()) return
-    MonthlyMoneyChart(titleKey, hintKey, aggregation.payments, currency, aggregation.tooltipByMonth, expanded, onExpandedChange)
+    MonthlyMoneyChart(
+        titleKey, hintKey, aggregation.payments, currency, aggregation.tooltipByMonth,
+        currencySelector = { CurrencySelector(currency) { currency = it } },
+        expanded = expanded, onExpandedChange = onExpandedChange
+    )
 }
 
 internal fun aggregateMonthlyPayments(

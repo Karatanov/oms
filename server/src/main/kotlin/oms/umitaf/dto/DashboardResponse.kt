@@ -37,7 +37,11 @@ data class DashboardOverviewResponse(
 data class ActivityResponse(val action: String, val entityType: String, val entityId: Long, val userLogin: String? = null, val createdAt: String)
 
 @Serializable
-data class MonthlyActPaymentResponse(val month: String, val amountEurCents: Long)
+data class MonthlyActPaymentResponse(
+    val month: String,
+    val amountEurCents: Long,
+    val amountUahCents: Long? = null
+)
 @Serializable data class SubprojectFundingResponse(
     val projectUuid: String,
     val name: String,
