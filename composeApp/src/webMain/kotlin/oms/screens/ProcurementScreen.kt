@@ -183,7 +183,10 @@ fun ProcurementScreen(
             (procurementMethodFilter == null || record.procurementMethod == procurementMethodFilter) &&
             (statusFilter?.let { sameProcurementStatus(record.purchaseStatus, it) } ?: true) &&
             (signedContractMonthFilter == null || (record.contractDate ?: record.estimatedContractDate)?.take(7) == signedContractMonthFilter) &&
-            (search.isBlank() || listOf(record.subProjectId, record.subProjectLotId.orEmpty(), record.oblastName, record.promotorName.orEmpty(), record.subprojectNameUk.orEmpty(), record.subprojectNameEn.orEmpty(), record.tenderId.orEmpty()).any { it.contains(search, true) })
+            // Procurement search is intentionally narrow: the tracker is
+            // navigated by the subproject code or the oblast, while all other
+            // fields have their own column filters/sorting.
+            (search.isBlank() || listOf(record.subProjectId, record.subProjectLotId.orEmpty(), record.oblastName).any { it.contains(search, true) })
         }.sortedWith(compareBy<ApiProcurementRecord> { it.sortKey(sortColumnIndex) }
             .let { comparator -> if (sortAscending) comparator else comparator.reversed() })
         fun selectSort(columnIndex: Int) {
