@@ -34,8 +34,8 @@ class FinancialDisplayCurrencyTest {
         assertTrue(aggregateMonthlyPayments(rows, "equipment").payments.isEmpty())
     }
     @Test fun engineerConsultantPaymentsUseTheirOwnPurpose() {
-        val engineerPayment = uah.copy(id = "csc", paymentPurpose = "engineer_consultant")
-        val technicalPayment = uah.copy(id = "ts", paymentPurpose = "technical_supervision")
+        val engineerPayment = uah.copy(uuid = "csc", paymentPurpose = "engineer_consultant")
+        val technicalPayment = uah.copy(uuid = "ts", paymentPurpose = "technical_supervision")
         val rows = listOf(engineerPayment, technicalPayment).map { FinancialChartRecord(it, "KH08_07") }
 
         val chart = aggregateMonthlyPayments(rows, "engineer_consultant", "EUR", mapOf("2026-09-01" to 45.0))

@@ -3,6 +3,7 @@ package oms.umitaf.api
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
+import io.ktor.server.response.respondWithType
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.delete
 import io.ktor.server.routing.get
@@ -63,7 +64,7 @@ private suspend fun <T> io.ktor.server.application.ApplicationCall.respondSafely
     block: () -> T
 ) {
     try {
-        respond(status = success, message = block())
+        respondWithType(success, block())
     } catch (_: NoSuchElementException) {
         respond(HttpStatusCode.NotFound, ErrorResponse("NOT_FOUND", "Procurement record not found."))
     } catch (exception: IllegalArgumentException) {
