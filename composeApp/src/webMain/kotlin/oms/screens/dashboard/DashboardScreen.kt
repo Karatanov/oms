@@ -38,7 +38,11 @@ fun DashboardScreen(
     var dashboard by remember { mutableStateOf<ApiDashboardOverview?>(null) }
     var loading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf(false) }
-    oms.navigation.ReportRouteReadiness(loading, error)
+    // The Dashboard overview aggregates several monitoring sources and can be
+    // slow on a remote database.  It must never hold the whole workspace
+    // hostage: make the shell, sidebar and navigation interactive first, then
+    // render the charts' own updating state until the request completes.
+    oms.navigation.ReportRouteReadiness(loading = false)
     var reload by remember { mutableStateOf(0) }
     var latestPhotos by remember { mutableStateOf<List<ApiInspectionPhoto>?>(null) }
     var chartOrientation by remember { mutableStateOf(BarChartOrientation.Vertical) }
