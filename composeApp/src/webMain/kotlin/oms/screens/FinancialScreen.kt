@@ -257,8 +257,9 @@ fun FinancialScreen(
             pageScrollState.animateScrollTo(target)
         }
     }
-    fun selectChartMonth(month: String) {
+    fun selectChartMonth(month: String, purpose: String) {
         chartMonthFilter = month
+        paymentPurposeFilter = purpose
         scope.launch {
             delay(16)
             val target = (pageScrollState.value + tableTopInRootPx - tableTopPaddingPx)
@@ -326,12 +327,12 @@ fun FinancialScreen(
         // This is especially important for the CSC chart, whose valid payment
         // rows may coexist with unrelated legacy records.
         oms.components.AdaptiveChartRow(
-            first = { MonthlyPaymentsChart(financialChartRecords, displayRates, ::selectChartMonth) },
-            second = { MonthlyTechnicalSupervisionPaymentsChart(financialChartRecords, displayRates, ::selectChartMonth) }
+            first = { MonthlyPaymentsChart(financialChartRecords, displayRates) { month -> selectChartMonth(month, "works") } },
+            second = { MonthlyTechnicalSupervisionPaymentsChart(financialChartRecords, displayRates) { month -> selectChartMonth(month, "technical_supervision") } }
         )
         oms.components.AdaptiveChartRow(
-            first = { MonthlyEquipmentPaymentsChart(financialChartRecords, displayRates, ::selectChartMonth) },
-            second = { MonthlyEngineerConsultantPaymentsChart(financialChartRecords, displayRates, ::selectChartMonth) }
+            first = { MonthlyEquipmentPaymentsChart(financialChartRecords, displayRates) { month -> selectChartMonth(month, "equipment") } },
+            second = { MonthlyEngineerConsultantPaymentsChart(financialChartRecords, displayRates) { month -> selectChartMonth(month, "engineer_consultant") } }
         )
 
         BoxWithConstraints(Modifier.fillMaxWidth()) {
