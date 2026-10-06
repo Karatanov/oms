@@ -65,7 +65,11 @@ fun User.toResponse(): UserResponse {
  * Перетворює доменну модель проєкту
  * у DTO-відповідь REST API.
  */
-fun Project.toResponse(parentProjectUuid: String? = null, monitoring: oms.umitaf.domain.ProjectMonitoringDetails? = null): ProjectResponse {
+fun Project.toResponse(
+    parentProjectUuid: String? = null,
+    monitoring: oms.umitaf.domain.ProjectMonitoringDetails? = null,
+    financingDisbursedEurCents: Long = 0L
+): ProjectResponse {
 
     return ProjectResponse(
 
@@ -88,6 +92,10 @@ fun Project.toResponse(parentProjectUuid: String? = null, monitoring: oms.umitaf
             name,
 
         nameEn = monitoring?.nameEn,
+
+        beneficiaryNameUk = monitoring?.beneficiaryNameUk,
+
+        beneficiaryNameEn = monitoring?.beneficiaryNameEn,
 
         siteName =
             siteName,
@@ -196,7 +204,9 @@ fun Project.toResponse(parentProjectUuid: String? = null, monitoring: oms.umitaf
         amounts = amounts.mapValues { (_, value) -> ProjectAmountDto(
             value.amount.toPlainString(), value.currency, value.convertedAmount.toPlainString(),
             value.uahPerEur.stripTrailingZeros().toPlainString(), value.rateDate.toString(), value.conversionEdited
-        ) }
+        ) },
+
+        financingDisbursedEurCents = financingDisbursedEurCents
     )
 }
 

@@ -38,6 +38,10 @@ data class ProjectResponse(
     val name: String,
     val nameEn: String? = null,
 
+    /** Beneficiary names are used by compact presentations such as the map card. */
+    val beneficiaryNameUk: String? = null,
+    val beneficiaryNameEn: String? = null,
+
     /**
      * Код майданчика.
      */
@@ -141,5 +145,8 @@ data class ProjectResponse(
     val engineerConsultantStartDate: String? = null,
     val engineerConsultantPlannedEndDate: String? = null,
     val engineerConsultantDurationDays: Long? = null,
-    val amounts: Map<String, ProjectAmountDto> = emptyMap()
+    val amounts: Map<String, ProjectAmountDto> = emptyMap(),
+
+    /** Sum of recorded cash disbursements in frozen EUR cents. */
+    val financingDisbursedEurCents: Long = 0L
 )

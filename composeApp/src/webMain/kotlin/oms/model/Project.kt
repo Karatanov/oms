@@ -20,6 +20,10 @@ data class Project(
     val name: String,
     val nameEn: String? = null,
 
+    /** Beneficiary is shown in the map card when supplied by monitoring data. */
+    val beneficiaryNameUk: String? = null,
+    val beneficiaryNameEn: String? = null,
+
     /** Customer-facing project/subproject code (for example, KH08_09). */
     val siteNumber: String,
 
@@ -37,6 +41,11 @@ data class Project(
     /** Exact budget amount and currency selected in the project financial form. */
     val budgetDisplayAmount: String? = null,
     val budgetCurrency: String = "UAH",
+
+    /** Project-level financial values used by the map preview. */
+    val financingAmount: String? = null,
+    val financingCurrency: String? = null,
+    val financingDisbursedEurCents: Long = 0L,
 
     val contractorName: String? = null,
 
@@ -64,3 +73,8 @@ fun Project.localizedName(): String =
 
 fun Project.localizedCity(): String =
     if (oms.localization.LocalizationManager.currentLanguage == oms.localization.Language.EN) cityEn?.takeIf(String::isNotBlank) ?: city else city
+
+fun Project.localizedBeneficiary(): String =
+    if (oms.localization.LocalizationManager.currentLanguage == oms.localization.Language.EN)
+        beneficiaryNameEn?.takeIf(String::isNotBlank) ?: beneficiaryNameUk.orEmpty()
+    else beneficiaryNameUk?.takeIf(String::isNotBlank) ?: beneficiaryNameEn.orEmpty()

@@ -11,6 +11,7 @@ import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import oms.umitaf.domain.ProjectType
+import oms.umitaf.domain.FinancialRecordType
 import oms.umitaf.service.ProjectPdfExportService
 
 /**
@@ -80,13 +81,26 @@ fun Route.projectRoutes() {
 
         val projectUuidById = projects.associate { project -> project.id to project.uuid.toString() }
         val monitoringByProjectId = projectService.monitoringDetailsByProjectIds(pagedProjects.map { it.id })
+        // Build this once for the page, rather than performing a financial
+        // query per map marker/project card. Payment and advance records are
+        // actual disbursements; ACT rows describe completed work, not cash paid.
+        val disbursedEurCentsByProjectId = AppContainer.financialRecordService.getAll()
+            .asSequence()
+            .filter { it.recordType == FinancialRecordType.PAYMENT || it.recordType == FinancialRecordType.ADVANCE }
+            .mapNotNull { record -> record.amountEurCents?.let { record.projectId to it } }
+            .groupBy({ it.first }, { it.second })
+            .mapValues { (_, cents) -> cents.sum() }
         val response =
                     ProjectListResponse(
 
                 data =
                     pagedProjects.map { project ->
 
-                        project.toResponse(projectUuidById[project.parentProjectId], monitoringByProjectId[project.id])
+                        project.toResponse(
+                            parentProjectUuid = projectUuidById[project.parentProjectId],
+                            monitoring = monitoringByProjectId[project.id],
+                            financingDisbursedEurCents = disbursedEurCentsByProjectId[project.id] ?: 0L
+                        )
                     },
 
                 meta = PageMetadata(

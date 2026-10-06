@@ -971,6 +971,18 @@
                 region.textContent = project.regionLabel + ": " + project.region;
                 const subprojectCode = document.createElement("p");
                 subprojectCode.textContent = project.subprojectCodeLabel + ": " + (project.subprojectCode || "—");
+                const field = (label, value) => {
+                    const row = document.createElement("p");
+                    const labelElement = document.createElement("span");
+                    labelElement.className = "oms-map-field-label";
+                    labelElement.textContent = label + ": ";
+                    row.append(labelElement, document.createTextNode(value || "—"));
+                    return row;
+                };
+                const beneficiary = field(project.beneficiaryLabel, project.beneficiary);
+                const projectCost = field(project.projectCostLabel, project.projectCost);
+                const financingAmount = field(project.financingAmountLabel, project.financingAmount);
+                const financingDisbursed = field(project.financingDisbursedLabel, project.financingDisbursed);
                 const status = document.createElement("p");
                 const statusLabel = document.createElement("span");
                 statusLabel.textContent = project.statusLabel + ": ";
@@ -987,7 +999,7 @@
                 open.type = "button";
                 open.textContent = omsText("details");
                 open.onclick = () => umitafOnProjectClick && umitafOnProjectClick(project.id);
-                popupHtml.append(name, subprojectCode, region, status, open);
+                popupHtml.append(name, subprojectCode, region, beneficiary, projectCost, financingAmount, financingDisbursed, status, open);
 
                 // Several facilities may share one postal address. Spread only
                 // overlapping markers visually; their persisted GPS data remains exact.
