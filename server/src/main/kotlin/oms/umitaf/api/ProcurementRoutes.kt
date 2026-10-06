@@ -58,7 +58,7 @@ fun Route.procurementRoutes() {
 @Serializable
 private data class ProcurementRefreshResponse(val importedCount: Int)
 
-private suspend inline fun <reified T> io.ktor.server.application.ApplicationCall.respondSafely(
+private suspend inline fun <reified T : Any> io.ktor.server.application.ApplicationCall.respondSafely(
     success: HttpStatusCode,
     block: () -> T
 ) {
