@@ -1,6 +1,7 @@
 package oms.screens
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
@@ -134,7 +135,9 @@ private fun chartRates(
     currency: String,
     suppliedRates: Map<String, Double>
 ): Map<String, Double> {
-    var fetchedRates by remember(records, purpose) { mutableStateOf(emptyMap()) }
+    var fetchedRates by remember(records, purpose) {
+        mutableStateOf<Map<String, Double>>(emptyMap())
+    }
     LaunchedEffect(records, purpose, currency, suppliedRates) {
         if (currency != "UAH") return@LaunchedEffect
         val missingDates = records.asSequence()
