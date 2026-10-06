@@ -25,6 +25,9 @@
     <meta name="twitter:title" content="UMITAF OMS — Online Monitoring System">
     <meta name="twitter:description" content="Online monitoring of subprojects, inspections, procurement and financial control for Ukraine Recovery Programme III.">
     <meta name="twitter:image" content="https://ua-oms.com/social-preview.png">
+    <!-- Start the renderer download alongside the JavaScript bundle.  Without
+         this, Compose requests Skiko only after the main bundle is parsed. -->
+    <link rel="preload" href="skiko.wasm?__OMS_ASSET_VERSION__" as="fetch" type="application/wasm" crossorigin fetchpriority="high">
     <link type="text/css" rel="stylesheet" href="styles.css?v=20261002-content-navigation">
     <script src="auth.js?v=20260925-safari"></script>
     <script src="startup.js?v=20261002-startup-progress"></script>

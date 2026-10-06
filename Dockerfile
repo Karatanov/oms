@@ -28,9 +28,12 @@ RUN mkdir -p /workspace/web \
     && cp -a /workspace/composeApp/build/processedResources/js/main/. /workspace/web/ \
     && cp -a /workspace/composeApp/build/kotlin-webpack/js/productionExecutable/. /workspace/web/ \
     && cp /workspace/composeApp/src/webMain/resources/login.html /workspace/web/login.html \
+    && cp /workspace/composeApp/src/webMain/resources/favicon.svg /workspace/web/favicon.svg \
+    && cp /workspace/composeApp/src/webMain/resources/social-preview.png /workspace/web/social-preview.png \
     && asset_hash=$(sha256sum /workspace/web/composeApp.js | cut -c1-12) \
     && mv /workspace/web/composeApp.js "/workspace/web/composeApp.${asset_hash}.js" \
     && sed -i -E "s#composeApp\\.js(\\?[^\"']*)?#composeApp.${asset_hash}.js#g" /workspace/web/index.html /workspace/web/login.html \
+    && sed -i "s#__OMS_ASSET_VERSION__#v=${asset_hash}#g" /workspace/web/index.html \
     && sed -i "s#skiko\\.wasm#skiko.wasm?v=${asset_hash}#g" "/workspace/web/composeApp.${asset_hash}.js" \
     && test -f /workspace/web/skiko.wasm \
     && js_bytes=$(stat -c %s "/workspace/web/composeApp.${asset_hash}.js") \

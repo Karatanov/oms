@@ -53,8 +53,11 @@ jobs:
           cp -a composeApp/build/kotlin-webpack/js/productionExecutable/. build/pages/
           cp build/pages/index.html build/pages/app.html
           cp composeApp/src/webMain/resources/login.html build/pages/index.html
+          cp composeApp/src/webMain/resources/favicon.svg build/pages/favicon.svg
+          cp composeApp/src/webMain/resources/social-preview.png build/pages/social-preview.png
           test -f build/pages/skiko.wasm
           asset_hash=$(sha256sum build/pages/composeApp.js | cut -c1-12)
+          sed -i "s#__OMS_ASSET_VERSION__#v=${asset_hash}#g" build/pages/app.html
           sed -i "s#skiko\\.wasm#skiko.wasm?v=${asset_hash}#g" build/pages/composeApp.js
           js_bytes=$(stat -c %s build/pages/composeApp.js)
           wasm_bytes=$(stat -c %s build/pages/skiko.wasm)

@@ -284,7 +284,11 @@ fun FinancialScreen(
         }
 
         val financialChartRecords = acts.map { FinancialChartRecord(it.act, it.subprojectCode.orEmpty()) }
-        if (missingConversions == 0) {
+        // An old record without a frozen exchange rate must not hide every
+        // financial chart. Each chart omits only the rows it cannot convert;
+        // the warning above still tells the user which totals are incomplete.
+        // This is especially important for the CSC chart, whose valid payment
+        // rows may coexist with unrelated legacy records.
         oms.components.AdaptiveChartRow(
             first = { MonthlyPaymentsChart(financialChartRecords, displayRates) },
             second = { MonthlyTechnicalSupervisionPaymentsChart(financialChartRecords, displayRates) }
@@ -293,7 +297,6 @@ fun FinancialScreen(
             first = { MonthlyEquipmentPaymentsChart(financialChartRecords, displayRates) },
             second = { MonthlyEngineerConsultantPaymentsChart(financialChartRecords, displayRates) }
         )
-        }
 
         BoxWithConstraints(Modifier.fillMaxWidth()) {
             if (maxWidth >= 620.dp) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
