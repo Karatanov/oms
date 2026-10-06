@@ -33,7 +33,7 @@ fun MonthlyPaymentsChart(
     var expanded by remember { mutableStateOf(true) }
     MonthlyMoneyChart(
         titleKey = "monthly_project_payments",
-        hintKey = null,
+        hintKey = "monthly_project_payments_hint",
         currency = currency,
         payments = aggregation.payments,
         tooltipByMonth = aggregation.tooltipByMonth,
