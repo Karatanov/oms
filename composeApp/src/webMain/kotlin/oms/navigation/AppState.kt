@@ -29,6 +29,8 @@ class AppState {
     // One-shot filter passed from dashboard analytics to the project registry.
     var requestedProjectRegion by mutableStateOf<String?>(null)
     var requestedFinancialSubprojectUuid by mutableStateOf<String?>(null)
+    var requestedFinancialRegion by mutableStateOf<String?>(null)
+    var requestedFinancialMonth by mutableStateOf<String?>(null)
     var requestedProcurementStatus by mutableStateOf<String?>(null)
     var editingInspectionUuid by mutableStateOf<String?>(null)
     var viewingInspection by mutableStateOf(false)
@@ -112,6 +114,17 @@ class AppState {
 
     fun openFinancialBySubproject(subprojectUuid: String) {
         requestedFinancialSubprojectUuid = subprojectUuid
+        navigate(Screen.Financial)
+    }
+
+    /** Opens the financial register with records for the selected dashboard region. */
+    fun openFinancialByRegion(region: String) {
+        requestedFinancialRegion = region
+        navigate(Screen.Financial)
+    }
+
+    fun openFinancialByMonth(month: String) {
+        requestedFinancialMonth = month
         navigate(Screen.Financial)
     }
 

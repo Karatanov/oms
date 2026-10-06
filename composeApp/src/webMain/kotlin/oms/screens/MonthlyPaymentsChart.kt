@@ -22,7 +22,11 @@ internal data class MonthlyFinancialAggregation(
 )
 
 @Composable
-fun MonthlyPaymentsChart(records: List<FinancialChartRecord>, rates: Map<String, Double> = emptyMap()) {
+fun MonthlyPaymentsChart(
+    records: List<FinancialChartRecord>,
+    rates: Map<String, Double> = emptyMap(),
+    onMonthClick: (String) -> Unit = {}
+) {
     var currency by remember { mutableStateOf("EUR") }
     val aggregation = aggregateMonthlyPayments(records, "works", currency, chartRates(records, "works", currency, rates))
     var expanded by remember { mutableStateOf(true) }
@@ -34,23 +38,33 @@ fun MonthlyPaymentsChart(records: List<FinancialChartRecord>, rates: Map<String,
         tooltipByMonth = aggregation.tooltipByMonth,
         currencySelector = { CurrencySelector(currency) { currency = it } },
         expanded = expanded,
-        onExpandedChange = { expanded = it }
+        onExpandedChange = { expanded = it },
+        onMonthClick = onMonthClick
     )
 }
 
 @Composable
-fun MonthlyEquipmentPaymentsChart(records: List<FinancialChartRecord>, rates: Map<String, Double> = emptyMap()) {
+fun MonthlyEquipmentPaymentsChart(
+    records: List<FinancialChartRecord>,
+    rates: Map<String, Double> = emptyMap(),
+    onMonthClick: (String) -> Unit = {}
+) {
     MonthlyPurposePaymentsChart(
         records = records,
         rates = rates,
         purpose = "equipment",
         titleKey = "monthly_equipment_payments",
-        hintKey = "monthly_equipment_payments_hint"
+        hintKey = "monthly_equipment_payments_hint",
+        onMonthClick = onMonthClick
     )
 }
 
 @Composable
-fun MonthlyTechnicalSupervisionPaymentsChart(records: List<FinancialChartRecord>, rates: Map<String, Double> = emptyMap()) {
+fun MonthlyTechnicalSupervisionPaymentsChart(
+    records: List<FinancialChartRecord>,
+    rates: Map<String, Double> = emptyMap(),
+    onMonthClick: (String) -> Unit = {}
+) {
     var expanded by remember { mutableStateOf(true) }
     MonthlyPurposePaymentsChart(
         records = records,
@@ -59,12 +73,17 @@ fun MonthlyTechnicalSupervisionPaymentsChart(records: List<FinancialChartRecord>
         titleKey = "monthly_technical_supervision_payments",
         hintKey = "monthly_technical_supervision_payments_hint",
         expanded = expanded,
-        onExpandedChange = { expanded = it }
+        onExpandedChange = { expanded = it },
+        onMonthClick = onMonthClick
     )
 }
 
 @Composable
-fun MonthlyEngineerConsultantPaymentsChart(records: List<FinancialChartRecord>, rates: Map<String, Double> = emptyMap()) {
+fun MonthlyEngineerConsultantPaymentsChart(
+    records: List<FinancialChartRecord>,
+    rates: Map<String, Double> = emptyMap(),
+    onMonthClick: (String) -> Unit = {}
+) {
     var expanded by remember { mutableStateOf(true) }
     MonthlyPurposePaymentsChart(
         records = records,
@@ -77,7 +96,8 @@ fun MonthlyEngineerConsultantPaymentsChart(records: List<FinancialChartRecord>, 
         // and starts plotting automatically as soon as matching payments exist.
         showWhenEmpty = true,
         expanded = expanded,
-        onExpandedChange = { expanded = it }
+        onExpandedChange = { expanded = it },
+        onMonthClick = onMonthClick
     )
 }
 
@@ -90,7 +110,8 @@ private fun MonthlyPurposePaymentsChart(
     rates: Map<String, Double>,
     showWhenEmpty: Boolean = false,
     expanded: Boolean = true,
-    onExpandedChange: ((Boolean) -> Unit)? = null
+    onExpandedChange: ((Boolean) -> Unit)? = null,
+    onMonthClick: (String) -> Unit = {}
 ) {
     var currency by remember { mutableStateOf("EUR") }
     val aggregation = aggregateMonthlyPayments(records, purpose, currency, chartRates(records, purpose, currency, rates))
@@ -98,7 +119,7 @@ private fun MonthlyPurposePaymentsChart(
     MonthlyMoneyChart(
         titleKey, hintKey, aggregation.payments, currency, aggregation.tooltipByMonth,
         currencySelector = { CurrencySelector(currency) { currency = it } },
-        expanded = expanded, onExpandedChange = onExpandedChange
+        expanded = expanded, onExpandedChange = onExpandedChange, onMonthClick = onMonthClick
     )
 }
 

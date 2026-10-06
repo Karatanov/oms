@@ -44,7 +44,7 @@ import oms.components.canonicalUkraineRegion
 import kotlin.math.roundToLong
 
 @Composable
-fun FundingByOblastChart(items: List<ApiSubprojectFunding>, onOpenRegion: (String) -> Unit = {}, orientation: BarChartOrientation = BarChartOrientation.Vertical) {
+fun FundingByOblastChart(items: List<ApiSubprojectFunding>, onOpenFinancialRegion: (String) -> Unit = {}, orientation: BarChartOrientation = BarChartOrientation.Vertical) {
     var currency by remember { mutableStateOf("EUR") }
     val data = items
         .groupBy { localizedUkraineRegion(it.region).toRegionChartLabel() }
@@ -64,7 +64,7 @@ fun FundingByOblastChart(items: List<ApiSubprojectFunding>, onOpenRegion: (Strin
         hintKey = "approved_funding_by_oblast_hint",
         data = data,
         valueLabel = { formatChartAmount(it.toDouble(), currency) },
-        onItemClick = { bar -> bar.id?.let(onOpenRegion) },
+        onItemClick = { bar -> bar.id?.let(onOpenFinancialRegion) },
         labelMaxLines = 2,
         filterContent = {
             oms.components.CurrencySelector(currency) { currency = it }
@@ -254,12 +254,14 @@ fun MonthlyMoneyChart(
     currencySelector: (@Composable () -> Unit)? = null,
     expanded: Boolean = true,
     onExpandedChange: ((Boolean) -> Unit)? = null,
+    onMonthClick: (String) -> Unit = {},
     orientation: BarChartOrientation = BarChartOrientation.Vertical
 ) {
     val data = payments.sortedBy { it.month }.map {
         BarData(
             label = it.month.toMonthName(),
             value = it.amountCents.toFloat(),
+            id = it.month,
             groupLabel = it.month.take(4),
             tooltip = tooltipByMonth[it.month],
             formattedValue = formatChartAmount(it.amountCents / 100.0, currency)
@@ -267,7 +269,8 @@ fun MonthlyMoneyChart(
     }
     AnalyticsCard(
         titleKey, hintKey, data, { formatChartAmount(it / 100.0, currency) }, labelMaxLines = 1,
-        filterContent = currencySelector, expanded = expanded, onExpandedChange = onExpandedChange, orientation = orientation
+        filterContent = currencySelector, expanded = expanded, onExpandedChange = onExpandedChange,
+        onItemClick = { bar -> bar.id?.let(onMonthClick) }, orientation = orientation
     )
 }
 

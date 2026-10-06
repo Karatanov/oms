@@ -29,8 +29,8 @@ import oms.charts.BarChartOrientation
 @Composable
 fun DashboardScreen(
     onOpenProject: (oms.model.Project) -> Unit = {},
-    onOpenFinancial: () -> Unit = {},
-    onOpenProjectsByRegion: (String) -> Unit = {},
+    onOpenFinancialByMonth: (String) -> Unit = {},
+    onOpenFinancialByRegion: (String) -> Unit = {},
     onOpenFinancialBySubproject: (String) -> Unit = {},
     onOpenProcurementsByStatus: (String) -> Unit = {},
     onOpenInspectionPreview: (String) -> Unit = {}
@@ -133,7 +133,7 @@ fun DashboardScreen(
             else {
                 item {
                     AdaptiveChartRow(
-                        first = { FundingByOblastChart(dashboard?.subprojectFunding.orEmpty(), onOpenProjectsByRegion, chartOrientation) },
+                        first = { FundingByOblastChart(dashboard?.subprojectFunding.orEmpty(), onOpenFinancialByRegion, chartOrientation) },
                         second = { SubprojectProgressChart(dashboard?.subprojectProgress.orEmpty(), onOpenFinancialBySubproject, chartOrientation) }
                     )
                 }
@@ -147,7 +147,7 @@ fun DashboardScreen(
                                 orientation = chartOrientation
                             )
                         },
-                        second = { MonthlyActPaymentsChart(MaterialTheme.colorScheme.primary, dashboard?.monthlyActPayments.orEmpty(), onOpenFinancial, chartOrientation) }
+                        second = { MonthlyActPaymentsChart(MaterialTheme.colorScheme.primary, dashboard?.monthlyActPayments.orEmpty(), onOpenFinancialByMonth, chartOrientation) }
                     )
                 }
                 item { DashboardPhotoSlider(latest?.uuid, latest?.inspectionDate, latest?.subprojectCode, latestPhotos, onOpenInspectionPreview) }

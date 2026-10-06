@@ -30,7 +30,7 @@ import oms.localization.LocalizationManager
 import oms.components.CurrencySelector
 
 @Composable
-fun MonthlyActPaymentsChart(primary: Color, payments: List<ApiMonthlyActPayment>, onOpenFinancial: () -> Unit = {}, orientation: BarChartOrientation = BarChartOrientation.Vertical) {
+fun MonthlyActPaymentsChart(primary: Color, payments: List<ApiMonthlyActPayment>, onOpenFinancialByMonth: (String) -> Unit = {}, orientation: BarChartOrientation = BarChartOrientation.Vertical) {
     var currency by remember { mutableStateOf("EUR") }
     val sortedPayments = payments.sortedBy { it.month }
     val data = sortedPayments
@@ -39,6 +39,7 @@ fun MonthlyActPaymentsChart(primary: Color, payments: List<ApiMonthlyActPayment>
             BarData(
                 label = payment.month.toMonthName(),
                 value = amountCents.toFloat(),
+                id = payment.month,
                 groupLabel = payment.month.take(4),
                 formattedValue = formatActAmount(amountCents, currency)
             )
@@ -59,8 +60,9 @@ fun MonthlyActPaymentsChart(primary: Color, payments: List<ApiMonthlyActPayment>
             Spacer(Modifier.height(16.dp))
             if (data.isEmpty()) Text(LocalizationManager.t("no_payments_yet"))
             else if (orientation == BarChartOrientation.Vertical) VerticalBarChart(
-                data = data, color = primary, valueLabel = { formatActAmount(it.toLong(), currency) }, labelMaxLines = 1, onItemClick = { onOpenFinancial() }
-            ) else HorizontalBarChart(data, primary, valueLabel = { formatActAmount(it.toLong(), currency) }, onItemClick = { onOpenFinancial() })
+                data = data, color = primary, valueLabel = { formatActAmount(it.toLong(), currency) }, labelMaxLines = 1,
+                onItemClick = { bar -> bar.id?.let(onOpenFinancialByMonth) }
+            ) else HorizontalBarChart(data, primary, valueLabel = { formatActAmount(it.toLong(), currency) }, onItemClick = { bar -> bar.id?.let(onOpenFinancialByMonth) })
         }
     }
 }

@@ -27,13 +27,15 @@ data class RouteContent(
     val project: Project?,
     val region: String?,
     val financialSubproject: String?,
+    val financialRegion: String?,
+    val financialMonth: String?,
     val procurementStatus: String?,
     val inspectionUuid: String?,
     val viewingInspection: Boolean
 ) {
     companion object {
         fun capture(state: AppState) = RouteContent(state.currentScreen, state.selectedProject,
-            state.requestedProjectRegion, state.requestedFinancialSubprojectUuid,
+            state.requestedProjectRegion, state.requestedFinancialSubprojectUuid, state.requestedFinancialRegion, state.requestedFinancialMonth,
             state.requestedProcurementStatus, state.editingInspectionUuid, state.viewingInspection)
     }
 }

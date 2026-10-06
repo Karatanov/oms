@@ -51,9 +51,12 @@ import oms.components.OmsDateField
 import oms.components.toOmsDate
 import oms.components.InlineOptionPicker
 import oms.components.FilterDropdown
+import oms.components.canonicalUkraineRegion
+import oms.components.localizedUkraineRegion
 import oms.components.SearchableOptionPicker
 import oms.components.currentIsoDate
 import oms.components.WasmSafeOverlay
+import oms.screens.dashboard.toMonthName
 import kotlin.js.JsName
 import kotlin.math.roundToInt
 import kotlin.math.roundToLong
@@ -71,6 +74,7 @@ private data class ProjectActRow(
     val subprojectCode: String?,
     val subprojectPartName: String?,
     val trancheNumber: Int,
+    val region: String,
     val act: ApiFinancialRecord
 )
 
@@ -82,7 +86,11 @@ fun FinancialScreen(
     canAccessFinancials: Boolean = true,
     canManageFinancials: Boolean = true,
     requestedSubprojectUuid: String? = null,
-    onRequestedSubprojectFilterConsumed: () -> Unit = {}
+    requestedRegion: String? = null,
+    requestedMonth: String? = null,
+    onRequestedSubprojectFilterConsumed: () -> Unit = {},
+    onRequestedRegionFilterConsumed: () -> Unit = {},
+    onRequestedMonthFilterConsumed: () -> Unit = {}
 ) {
     if (!canAccessFinancials) {
         FinancialAccessDenied()
@@ -120,6 +128,8 @@ fun FinancialScreen(
     var paymentPurposeFilter by remember { mutableStateOf<String?>(null) }
     var trancheFilter by remember { mutableStateOf<Int?>(null) }
     var subprojectFilter by remember { mutableStateOf<String?>(null) }
+    var regionFilter by remember { mutableStateOf<String?>(null) }
+    var chartMonthFilter by remember { mutableStateOf<String?>(null) }
     var sort by remember { mutableStateOf(FinancialSort.ActDate) }
     var ascending by remember { mutableStateOf(false) }
     var reloadKey by remember { mutableStateOf(0) }
@@ -142,6 +152,18 @@ fun FinancialScreen(
         requestedSubprojectUuid?.let {
             subprojectFilter = it
             onRequestedSubprojectFilterConsumed()
+        }
+    }
+    LaunchedEffect(requestedRegion) {
+        requestedRegion?.let {
+            regionFilter = canonicalUkraineRegion(it)
+            onRequestedRegionFilterConsumed()
+        }
+    }
+    LaunchedEffect(requestedMonth) {
+        requestedMonth?.let {
+            chartMonthFilter = it
+            onRequestedMonthFilterConsumed()
         }
     }
 
@@ -168,6 +190,7 @@ fun FinancialScreen(
                     subproject?.siteNumber ?: project.siteNumber,
                     subprojectPart?.name,
                     subproject?.trancheNumber ?: project.trancheNumber,
+                    canonicalUkraineRegion(subproject?.region ?: project.region),
                     item.record
                 )
             }
@@ -184,11 +207,14 @@ fun FinancialScreen(
     val subprojectFilterOptions = acts.mapNotNull { row ->
         row.subprojectUuid?.takeIf { row.subprojectCode != null }?.let { uuid -> uuid to row.subprojectCode!! }
     }.distinctBy { (uuid, _) -> uuid }.sortedBy { (_, code) -> code }
+    val regionFilterOptions = acts.map { it.region }.filter(String::isNotBlank).distinct().sorted()
     val visibleActs = acts.filter {
         (recordTypeFilter == null || it.act.recordType == recordTypeFilter) &&
             (paymentPurposeFilter == null || it.act.paymentPurpose == paymentPurposeFilter) &&
             (trancheFilter == null || it.trancheNumber.isFinancialTranche(trancheFilter!!)) &&
-            (subprojectFilter == null || it.subprojectUuid == subprojectFilter)
+            (subprojectFilter == null || it.subprojectUuid == subprojectFilter) &&
+            (regionFilter == null || it.region == regionFilter) &&
+            (chartMonthFilter == null || (it.act.paymentDate ?: it.act.recordDate).take(7) == chartMonthFilter)
     }.sortedWith(compareBy<ProjectActRow> {
         when (sort) {
             FinancialSort.Type -> it.act.recordType
@@ -208,7 +234,7 @@ fun FinancialScreen(
     else (visibleActs.size + pageSize - 1) / pageSize
     // Filters change the data set just like on the Subprojects screen: start
     // from page one so the pagination status always describes visible rows.
-    LaunchedEffect(recordTypeFilter, paymentPurposeFilter, trancheFilter, subprojectFilter, pageSize) {
+    LaunchedEffect(recordTypeFilter, paymentPurposeFilter, trancheFilter, subprojectFilter, regionFilter, chartMonthFilter, pageSize) {
         currentPage = 0
     }
     LaunchedEffect(visibleActs.size, pageSize) { currentPage = currentPage.coerceIn(0, pageCount - 1) }
@@ -223,6 +249,16 @@ fun FinancialScreen(
     fun selectSort(column: FinancialSort) { if (sort == column) ascending = !ascending else { sort = column; ascending = true } }
     fun selectRecordType(type: String?) {
         recordTypeFilter = type
+        scope.launch {
+            delay(16)
+            val target = (pageScrollState.value + tableTopInRootPx - tableTopPaddingPx)
+                .roundToInt()
+                .coerceIn(0, pageScrollState.maxValue)
+            pageScrollState.animateScrollTo(target)
+        }
+    }
+    fun selectChartMonth(month: String) {
+        chartMonthFilter = month
         scope.launch {
             delay(16)
             val target = (pageScrollState.value + tableTopInRootPx - tableTopPaddingPx)
@@ -290,12 +326,12 @@ fun FinancialScreen(
         // This is especially important for the CSC chart, whose valid payment
         // rows may coexist with unrelated legacy records.
         oms.components.AdaptiveChartRow(
-            first = { MonthlyPaymentsChart(financialChartRecords, displayRates) },
-            second = { MonthlyTechnicalSupervisionPaymentsChart(financialChartRecords, displayRates) }
+            first = { MonthlyPaymentsChart(financialChartRecords, displayRates, ::selectChartMonth) },
+            second = { MonthlyTechnicalSupervisionPaymentsChart(financialChartRecords, displayRates, ::selectChartMonth) }
         )
         oms.components.AdaptiveChartRow(
-            first = { MonthlyEquipmentPaymentsChart(financialChartRecords, displayRates) },
-            second = { MonthlyEngineerConsultantPaymentsChart(financialChartRecords, displayRates) }
+            first = { MonthlyEquipmentPaymentsChart(financialChartRecords, displayRates, ::selectChartMonth) },
+            second = { MonthlyEngineerConsultantPaymentsChart(financialChartRecords, displayRates, ::selectChartMonth) }
         )
 
         BoxWithConstraints(Modifier.fillMaxWidth()) {
@@ -339,11 +375,26 @@ fun FinancialScreen(
                 onSelect = { subprojectFilter = it },
                 itemLabel = { uuid -> subprojectFilterOptions.firstOrNull { it.first == uuid }?.second.orEmpty() }
             )
+            FilterDropdown(
+                label = LocalizationManager.t("region"),
+                options = regionFilterOptions,
+                selected = regionFilter,
+                onSelect = { regionFilter = it },
+                itemLabel = ::localizedUkraineRegion
+            )
+            chartMonthFilter?.let { month ->
+                AssistChip(
+                    onClick = { chartMonthFilter = null },
+                    label = { Text("${LocalizationManager.t("date")}: ${month.toMonthName()} ${month.take(4)}") }
+                )
+            }
             OutlinedButton(onClick = {
                 recordTypeFilter = null
                 paymentPurposeFilter = null
                 trancheFilter = null
                 subprojectFilter = null
+                regionFilter = null
+                chartMonthFilter = null
             }) { Text(LocalizationManager.t("reset_filters")) }
         }
         oms.components.ScrollableTable(

@@ -87,8 +87,8 @@ fun AppLayout(appState: AppState) {
 
                 is Screen.Dashboard -> if (appState.roleCode != "GUEST") DashboardScreen(
                     onOpenProject = appState::openProjectDetail,
-                    onOpenFinancial = { if (appState.roleCode in setOf("ADMIN", "PROJECT_MANAGER")) appState.navigate(Screen.Financial) },
-                    onOpenProjectsByRegion = appState::openProjectsByRegion,
+                    onOpenFinancialByMonth = appState::openFinancialByMonth,
+                    onOpenFinancialByRegion = appState::openFinancialByRegion,
                     onOpenFinancialBySubproject = appState::openFinancialBySubproject,
                     onOpenProcurementsByStatus = appState::openProcurementsByStatus,
                     onOpenInspectionPreview = appState::openInspectionPreview
@@ -165,7 +165,11 @@ fun AppLayout(appState: AppState) {
                     canAccessFinancials = appState.roleCode in setOf("ADMIN", "PROJECT_MANAGER"),
                     canManageFinancials = appState.roleCode in setOf("ADMIN", "PROJECT_MANAGER"),
                     requestedSubprojectUuid = target.financialSubproject,
-                    onRequestedSubprojectFilterConsumed = { appState.requestedFinancialSubprojectUuid = null }
+                    requestedRegion = target.financialRegion,
+                    requestedMonth = target.financialMonth,
+                    onRequestedSubprojectFilterConsumed = { appState.requestedFinancialSubprojectUuid = null },
+                    onRequestedRegionFilterConsumed = { appState.requestedFinancialRegion = null },
+                    onRequestedMonthFilterConsumed = { appState.requestedFinancialMonth = null }
                 )
 
                 is Screen.Procurement -> if (appState.roleCode != "GUEST") ProcurementScreen(
