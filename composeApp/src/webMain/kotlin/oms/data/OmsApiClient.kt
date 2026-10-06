@@ -32,8 +32,6 @@ import org.w3c.fetch.RequestCredentials
 private external fun setOmsAccessToken(value: String)
 @JsName("omsAuthorizationFor")
 private external fun omsAuthorizationFor(url: String): String
-@JsName("takeOmsBootstrappedDashboard")
-private external fun takeOmsBootstrappedDashboard(): String
 
 @OptIn(ExperimentalWasmJsInterop::class)
 object OmsApiClient {
@@ -203,24 +201,14 @@ object OmsApiClient {
     }.body()
 
     suspend fun dashboardOverview(trancheNumber: Int? = null): ApiDashboardOverview {
-        // app.html fetches the initial overview immediately, while the large
-        // Compose bundle is still downloading. Reuse that response instead of
-        // issuing the same query again when Compose finally starts.
-        val bootstrapped = if (trancheNumber == null) {
-            runCatching { takeOmsBootstrappedDashboard() }.getOrDefault("")
-        } else ""
-        if (bootstrapped.isNotBlank()) {
-            return Json { ignoreUnknownKeys = true }.decodeFromString(bootstrapped)
-        }
-        return try {
-            client.get("$baseUrl/dashboard/overview") {
-                trancheNumber?.let { parameter("tranche", it) }
-            }.body()
-        } catch (_: Exception) {
-            // Keep the dashboard useful while an older database or a partially
-            // migrated instance cannot serve the lightweight endpoint.
-            dashboard(trancheNumber).toOverview()
-        }
+        // Keep exactly one overview request per opened Dashboard.  A former
+        // HTML-level prefetch could still be running when Compose started,
+        // causing two expensive aggregations to contend for the same database.
+        // Do not fall back to the larger legacy endpoint either: this screen
+        // already provides a visible retry state for a genuine API failure.
+        return client.get("$baseUrl/dashboard/overview") {
+            trancheNumber?.let { parameter("tranche", it) }
+        }.body()
     }
 
     suspend fun inspectionAnalytics(): ApiInspectionAnalytics =

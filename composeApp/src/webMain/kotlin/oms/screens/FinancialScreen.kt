@@ -307,16 +307,28 @@ fun FinancialScreen(
         }
         if (loading) oms.components.ContentState(LocalizationManager.t("loading_records"), loading = true)
         if (loadFailed) oms.components.ContentState(LocalizationManager.t("load_records_error"), error = true, onRetry = { reloadKey++ })
-        oms.components.CurrencySelector(displayCurrency) { displayCurrency = it }
-        Text(LocalizationManager.t("financial_display_currency_hint"), style = MaterialTheme.typography.bodySmall)
         if (loadingRates) oms.components.ContentState(LocalizationManager.t("financial_rates_loading"), loading = true)
         else if (missingConversions > 0) oms.components.ContentState(
             LocalizationManager.t("financial_rates_missing"), error = true, onRetry = { rateRetry++ })
 
         Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text(LocalizationManager.t("completed_works_by_acts"), style = MaterialTheme.typography.titleMedium)
-                Text(if (missingConversions > 0) "—" else (completedWorksTotal / 100.0).toMoney(displayCurrency), style = MaterialTheme.typography.headlineMedium)
+            BoxWithConstraints(Modifier.fillMaxWidth().padding(16.dp)) {
+                val amount = if (missingConversions > 0) "—" else (completedWorksTotal / 100.0).toMoney("").trim()
+                if (maxWidth >= 620.dp) {
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Text(LocalizationManager.t("completed_works_by_acts"), style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+                        Text(amount, style = MaterialTheme.typography.headlineMedium)
+                        oms.components.CurrencySelector(displayCurrency) { displayCurrency = it }
+                    }
+                } else {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(LocalizationManager.t("completed_works_by_acts"), style = MaterialTheme.typography.titleMedium)
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Text(amount, style = MaterialTheme.typography.headlineMedium)
+                            oms.components.CurrencySelector(displayCurrency) { displayCurrency = it }
+                        }
+                    }
+                }
             }
         }
 

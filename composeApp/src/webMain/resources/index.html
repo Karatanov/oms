@@ -1121,27 +1121,7 @@
     </div>
 </div>
 <!--suppress HtmlUnknownTarget -->
-<script>
-    window.omsBootstrappedDashboard = "";
-    window.takeOmsBootstrappedDashboard = () => {
-        const value = window.omsBootstrappedDashboard;
-        window.omsBootstrappedDashboard = "";
-        // Consuming cached data says nothing about whether the app is painted.
-        return value;
-    };
-    performance.mark("oms-shell-visible");
-    (async () => {
-        try {
-            const response = await omsAuthenticatedFetch(omsApiUrl("/dashboard/overview?background=true"));
-            if (response.status === 401) { location.replace("/"); return; }
-            if (!response.ok) throw new Error(`Dashboard ${response.status}`);
-            const text = await response.text();
-            window.omsBootstrappedDashboard = text;
-            performance.mark("oms-shell-useful");
-            performance.measure("oms-shell-to-useful", "oms-shell-visible", "oms-shell-useful");
-        } catch (_) { /* Compose performs the authoritative screen load and retry. */ }
-    })();
-</script>
+<script>performance.mark("oms-shell-visible");</script>
 <script>window.reportOmsStartupProgress?.(93, "interface");</script>
 <script type="application/javascript" src="composeApp.js?v=20261003-umitaf-programme-brand"></script>
 </body>
