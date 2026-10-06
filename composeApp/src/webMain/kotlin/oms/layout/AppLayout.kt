@@ -15,6 +15,7 @@ import oms.navigation.AppState
 import oms.navigation.Screen
 import oms.navigation.RouteContent
 import oms.navigation.RouteContentHost
+import oms.navigation.isGuestAccessible
 import oms.screens.*
 import oms.screens.dashboard.DashboardScreen
 import kotlin.js.JsName
@@ -65,12 +66,13 @@ fun AppLayout(appState: AppState) {
             fun ifCurrent(action: () -> Unit) {
                 if (appState.isAuthenticated && appState.navigationRevision == actionRevision) action()
             }
-            val allowed = when (target.screen) {
+            val allowed = if (appState.roleCode == "GUEST") {
+                target.screen.isGuestAccessible()
+            } else when (target.screen) {
                 Screen.Admin -> appState.roleCode == "ADMIN"
                 Screen.CreateProject, Screen.EditProject, Screen.Financial -> appState.roleCode in setOf("ADMIN", "PROJECT_MANAGER")
                 Screen.CreateInspection -> appState.roleCode in setOf("ADMIN", "PROJECT_MANAGER", "INSPECTOR") || target.viewingInspection
-                Screen.Dashboard, Screen.Projects, Screen.ProjectDetail, Screen.Map, Screen.Inspections, Screen.Procurement, Screen.Documents -> appState.roleCode != "GUEST"
-                Screen.GuestInfo -> appState.roleCode == "GUEST"
+                Screen.GuestInfo -> false
                 else -> true
             }
             if (!allowed) {

@@ -67,7 +67,7 @@ class AppState {
             "admin" -> Screen.Admin
             else -> if (roleCode == "GUEST") Screen.GuestInfo else Screen.Dashboard
         }
-        if (roleCode == "GUEST" && screen != Screen.GuestInfo) {
+        if (roleCode == "GUEST" && !screen.isGuestAccessible()) {
             currentScreen = Screen.GuestInfo
             replaceOmsRoute(Screen.GuestInfo.route())
         } else if ((screen == Screen.ProjectDetail || screen == Screen.EditProject) && selectedProject == null) currentScreen = Screen.Projects

@@ -61,6 +61,7 @@ fun Sidebar(currentScreen: Screen, onNavigate: (Screen) -> Unit, onLogout: () ->
             Column(Modifier.weight(1f).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 if (isGuest) {
                     SidebarItem(LocalizationManager.t("guest_information"), Icons.Default.Info, Screen.GuestInfo, currentScreen, onNavigate, compact)
+                    SidebarItem(LocalizationManager.t("map"), Icons.Default.Map, Screen.Map, currentScreen, onNavigate, compact)
                 } else {
                     SidebarItem(LocalizationManager.t("dashboard"), Icons.Default.Dashboard, Screen.Dashboard, currentScreen, onNavigate, compact)
                     SidebarItem(LocalizationManager.t("projects"), Icons.AutoMirrored.Filled.ListAlt, Screen.Projects, currentScreen, onNavigate, compact)

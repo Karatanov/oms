@@ -44,3 +44,6 @@ sealed class Screen(val title: String) {
     // 🔹 Адмінка
     object Admin : Screen("Administration")
 }
+
+/** Sections intentionally exposed by the limited guest session. */
+internal fun Screen.isGuestAccessible(): Boolean = this == Screen.GuestInfo || this == Screen.Map

@@ -10,6 +10,8 @@ import oms.localization.Strings
 import oms.screens.dashboard.toMonthName
 import oms.theme.Primary
 import androidx.compose.ui.graphics.Color
+import oms.navigation.Screen
+import oms.navigation.isGuestAccessible
 
 class ComposeAppWebTest {
 
@@ -46,5 +48,15 @@ class ComposeAppWebTest {
             assertTrue(!Strings.uk[it].isNullOrBlank(), "UK: $it")
             assertTrue(!Strings.en[it].isNullOrBlank(), "EN: $it")
         }
+    }
+
+    @Test
+    fun guestCanOpenProgrammeInformationAndMapOnly() {
+        assertTrue(Screen.GuestInfo.isGuestAccessible())
+        assertTrue(Screen.Map.isGuestAccessible())
+        assertTrue(!Screen.Dashboard.isGuestAccessible())
+        assertTrue(!Screen.Projects.isGuestAccessible())
+        assertTrue(!Screen.ProjectDetail.isGuestAccessible())
+        assertTrue(!Screen.Admin.isGuestAccessible())
     }
 }
