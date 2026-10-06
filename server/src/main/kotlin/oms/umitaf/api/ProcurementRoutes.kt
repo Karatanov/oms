@@ -63,7 +63,7 @@ private suspend fun <T> io.ktor.server.application.ApplicationCall.respondSafely
     block: () -> T
 ) {
     try {
-        respond(success, block())
+        respond(status = success, message = block())
     } catch (_: NoSuchElementException) {
         respond(HttpStatusCode.NotFound, ErrorResponse("NOT_FOUND", "Procurement record not found."))
     } catch (exception: IllegalArgumentException) {

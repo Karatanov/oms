@@ -3,6 +3,7 @@ package oms.umitaf.repository
 import oms.umitaf.database.tables.ProcurementRecordTable
 import oms.umitaf.domain.ProcurementRecord
 import org.jetbrains.exposed.v1.jdbc.selectAll
+import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.jetbrains.exposed.v1.jdbc.insertAndGetId
 import org.jetbrains.exposed.v1.jdbc.update
