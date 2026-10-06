@@ -7,7 +7,12 @@ fun ApiFinancialRecord.displayAmountCents(target: String, historicalRate: Double
     if (!amount.isFinite() || target !in setOf("EUR", "UAH")) return null
     if (currency == target) return (amount * 100).roundToLong()
     if (target == "EUR" && amountEurCents != null) return amountEurCents
-    val rate = eurExchangeRate?.takeIf { currency == "UAH" && it.isFinite() && it > 0 }
+    // EUR records created before frozen NBU rates stored 1.0 as a sentinel.
+    // Keep treating that legacy value as unknown, but prefer a genuine frozen
+    // EUR/UAH rate for newer EUR records before falling back to the NBU lookup.
+    val rate = eurExchangeRate?.takeIf {
+        it.isFinite() && it > 0 && (currency == "UAH" || it != 1.0)
+    }
         ?: historicalRate?.takeIf { it.isFinite() && it > 0 }
         ?: return null
     return when {

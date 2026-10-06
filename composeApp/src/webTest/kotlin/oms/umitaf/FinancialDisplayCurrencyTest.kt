@@ -19,6 +19,7 @@ class FinancialDisplayCurrencyTest {
         assertEquals(10025L, eur.displayAmountCents("EUR"))
         assertNull(eur.displayAmountCents("UAH")) // legacy 1.0 must not mean one hryvnia
         assertEquals(451125L, eur.displayAmountCents("UAH", 45.0))
+        assertEquals(451125L, eur.copy(eurExchangeRate = 45.0).displayAmountCents("UAH"))
         assertEquals(1.0, eur.eurExchangeRate)
         assertNull(eur.displayAmountCents("UAH", Double.NaN))
     }

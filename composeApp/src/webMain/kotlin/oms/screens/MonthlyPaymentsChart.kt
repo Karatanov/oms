@@ -6,6 +6,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import oms.data.ApiFinancialRecord
+import oms.data.OmsApiClient
 import oms.data.displayAmountCents
 import oms.components.CurrencySelector
 import oms.localization.LocalizationManager
@@ -23,7 +24,7 @@ internal data class MonthlyFinancialAggregation(
 @Composable
 fun MonthlyPaymentsChart(records: List<FinancialChartRecord>, rates: Map<String, Double> = emptyMap()) {
     var currency by remember { mutableStateOf("EUR") }
-    val aggregation = aggregateMonthlyPayments(records, "works", currency, rates)
+    val aggregation = aggregateMonthlyPayments(records, "works", currency, chartRates(records, "works", currency, rates))
     var expanded by remember { mutableStateOf(true) }
     MonthlyMoneyChart(
         titleKey = "monthly_project_payments",
@@ -92,13 +93,49 @@ private fun MonthlyPurposePaymentsChart(
     onExpandedChange: ((Boolean) -> Unit)? = null
 ) {
     var currency by remember { mutableStateOf("EUR") }
-    val aggregation = aggregateMonthlyPayments(records, purpose, currency, rates)
+    val aggregation = aggregateMonthlyPayments(records, purpose, currency, chartRates(records, purpose, currency, rates))
     if (aggregation.payments.isEmpty() && !showWhenEmpty) return
     MonthlyMoneyChart(
         titleKey, hintKey, aggregation.payments, currency, aggregation.tooltipByMonth,
         currencySelector = { CurrencySelector(currency) { currency = it } },
         expanded = expanded, onExpandedChange = onExpandedChange
     )
+}
+
+/**
+ * A chart owns its currency switch, so it must resolve legacy EUR-to-UAH
+ * rates itself instead of relying on the page-level currency selector.
+ */
+@Composable
+private fun chartRates(
+    records: List<FinancialChartRecord>,
+    purpose: String?,
+    currency: String,
+    suppliedRates: Map<String, Double>
+): Map<String, Double> {
+    var fetchedRates by remember(records, purpose) { mutableStateOf(emptyMap()) }
+    LaunchedEffect(records, purpose, currency, suppliedRates) {
+        if (currency != "UAH") return@LaunchedEffect
+        val missingDates = records.asSequence()
+            .map { it.record }
+            .filter { it.recordType in setOf("payment", "advance") && (purpose == null || it.paymentPurpose == purpose) }
+            .filter { it.currency == "EUR" && (it.eurExchangeRate == null || it.eurExchangeRate == 1.0) }
+            .map { it.recordDate }
+            .filter { it !in suppliedRates && it !in fetchedRates }
+            .distinct()
+            .toList()
+        val resolved = buildMap {
+            missingDates.forEach { date ->
+                try {
+                    put(date, OmsApiClient.projectExchangeRate(date).uahPerEur.toDouble())
+                } catch (failure: Exception) {
+                    if (failure is kotlinx.coroutines.CancellationException) throw failure
+                }
+            }
+        }
+        if (resolved.isNotEmpty()) fetchedRates = fetchedRates + resolved
+    }
+    return suppliedRates + fetchedRates
 }
 
 internal fun aggregateMonthlyPayments(
