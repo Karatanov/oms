@@ -58,13 +58,12 @@ fun Route.procurementRoutes() {
 @Serializable
 private data class ProcurementRefreshResponse(val importedCount: Int)
 
-private suspend fun <T> io.ktor.server.application.ApplicationCall.respondSafely(
+private suspend inline fun <reified T> io.ktor.server.application.ApplicationCall.respondSafely(
     success: HttpStatusCode,
     block: () -> T
 ) {
     try {
-        response.status(success)
-        respond(block())
+        respond(success, block())
     } catch (_: NoSuchElementException) {
         respond(HttpStatusCode.NotFound, ErrorResponse("NOT_FOUND", "Procurement record not found."))
     } catch (exception: IllegalArgumentException) {
