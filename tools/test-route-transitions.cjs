@@ -123,17 +123,39 @@ const origin = 'http://127.0.0.1:18088';
     releaseAnalytics();
 
     let releasePhotos;
-    await page.evaluate(() => { window.omsBootstrappedDashboard = ''; });
-    await page.route('**/api/v1/dashboard/overview**', route => route.fulfill({
+    let releaseOverview;
+    let overviewRequested;
+    const overviewRequestStarted = new Promise(resolve => { overviewRequested = resolve; });
+    let photoRequested;
+    const photoRequestStarted = new Promise(resolve => { photoRequested = resolve; });
+    const awaitRequest = async (request, name) => {
+      let timer;
+      try {
+        await Promise.race([request, new Promise((_, reject) => {
+          timer = setTimeout(() => reject(new Error(`Dashboard did not request ${name}`)), 10000);
+        })]);
+      } finally { clearTimeout(timer); }
+    };
+    await page.route('**/api/v1/dashboard/overview**', async route => {
+      await new Promise(resolve => { releaseOverview = resolve; pendingResponses.push(resolve); overviewRequested(); });
+      await route.fulfill({
       contentType: 'application/json', body: JSON.stringify({ recentInspections: [
         { uuid: 'pending-photo', inspectionCode: 'PHOTO-TEST', inspectionDate: '2026-09-01', status: 'draft' }
       ] })
-    }));
+      }).catch(() => {});
+    });
     await page.route('**/api/v1/inspection-reports/pending-photo/photos**', async route => {
-      await new Promise(resolve => { releasePhotos = resolve; pendingResponses.push(resolve); });
+      await new Promise(resolve => { releasePhotos = resolve; pendingResponses.push(resolve); photoRequested(); });
       await route.fulfill({ contentType: 'application/json', body: '[]' }).catch(() => {});
     });
     await navigate('dashboard'); await ready('Dashboard');
+    // Dashboard is usable before either overview data or its photos arrive.
+    // Await request events, not arbitrary delays or the old readiness timing.
+    await awaitRequest(overviewRequestStarted, 'overview');
+    assert.ok(releaseOverview, 'Dashboard must render while overview is pending');
+    releaseOverview();
+    await awaitRequest(photoRequestStarted, 'photos');
+    await ready('Dashboard');
     assert.ok(releasePhotos, 'Dashboard must render without waiting for photos');
     assert.equal(await page.locator('#oms-loading-overlay.visible').count(), 0);
     releasePhotos();
