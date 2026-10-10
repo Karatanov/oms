@@ -211,10 +211,11 @@
             if (!response.ok) throw Error(data.message || "Не вдалося увійти. Перевірте логін і пароль.");
             saveToken(data);
             persistCredentials();
-            // Startup state is persisted synchronously. Do not make a
-            // successful login wait for the whole Wasm bundle to prefetch:
-            // the application shell can show its own progress immediately.
-            window.beginOmsStartup?.(english ? "en" : "uk");
+            // The app shell starts its own progress state immediately.  Do
+            // not start a second full-bundle fetch just before navigation:
+            // browsers cancel it (or contend with the real app request) when
+            // this page is replaced.  The intentional idle warm-up below is
+            // still retained for users who spend time on this form.
             location.replace(appUrl());
         } catch (error) {
             byId("error").textContent = error.message || "Не вдалося увійти.";
@@ -230,7 +231,8 @@
             const data = await response.json().catch(() => ({}));
             if (!response.ok) throw Error();
             saveToken(data);
-            window.beginOmsStartup?.(english ? "en" : "uk");
+            // See the authenticated path above: the target page owns startup
+            // progress and resource loading after navigation.
             location.replace(appUrl());
         } catch (_) {
             byId("error").textContent = "Не вдалося розпочати гостьовий сеанс.";

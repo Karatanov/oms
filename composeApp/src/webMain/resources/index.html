@@ -28,6 +28,11 @@
     <!-- Start the renderer download alongside the JavaScript bundle.  Without
          this, Compose requests Skiko only after the main bundle is parsed. -->
     <link rel="preload" href="skiko.wasm?__OMS_ASSET_VERSION__" as="fetch" type="application/wasm" crossorigin fetchpriority="high">
+    <!-- The Compose bundle is at the end of the document so it can use the
+         native helpers defined below.  Start its transfer here nevertheless:
+         this keeps its download parallel with Skiko instead of waiting for
+         the HTML parser to reach the closing body tag. -->
+    <link rel="preload" href="composeApp.js?v=20261003-umitaf-programme-brand" as="script" fetchpriority="high">
     <link type="text/css" rel="stylesheet" href="styles.css?v=20261002-content-navigation">
     <script src="auth.js?v=20260925-safari"></script>
     <script src="startup.js?v=20261002-startup-progress"></script>
