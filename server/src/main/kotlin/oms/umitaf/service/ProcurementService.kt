@@ -43,23 +43,26 @@ class ProcurementService(
                 id = 0, batchId = source.batchId,
                 oblastName = subproject.region?.trim().orEmpty().ifBlank { source.oblastId },
                 oblastId = source.oblastId, subProjectId = source.subprojectCode, subProjectLotId = source.partCode,
-                purchaseStatus = source.purchaseStatus, tenderId = source.tenderId, prozorroTenderId = source.prozorroUrl,
-                contractorNameUkr = null, contractorNameEng = null, contractorId = null,
-                contractDate = source.contractDate, contractEndDate = null, contractDurationMonths = source.contractDurationMonths,
+                purchaseStatus = source.purchaseStatus, tenderId = source.sourceId, prozorroTenderId = source.prozorroUrl,
+                contractorNameUkr = source.contractorNameUkr, contractorNameEng = source.contractorNameEng, contractorId = source.contractorId,
+                contractDate = source.contractDate, contractEndDate = source.contractEndDate,
+                contractDurationMonths = source.contractDate?.let { start -> source.actualisedContractEndDate?.let { end -> java.time.temporal.ChronoUnit.MONTHS.between(start, end).toInt().coerceAtLeast(0) } },
                 contractAmountUah = source.contractAmountUah, contractAmountEur = null, financingContractDifferencePct = null,
-                promotorName = source.promotorName, subprojectNameUk = subproject.name, subprojectNameEn = source.subprojectNameEn,
-                sourceContractType = source.contractType, subprojectTotalCostUah = subproject.budgetPlanned.toDouble(),
+                actualisedContractEndDate = source.actualisedContractEndDate, contractAmountUahWithoutVat = source.contractAmountUahWithoutVat,
+                promotorName = source.promotorName, fbName = source.fbName, subprojectNameUk = source.subprojectNameUk ?: subproject.name, subprojectNameEn = source.subprojectNameEn,
+                sourceContractType = source.sourceContractType, subprojectTotalCostUah = subproject.budgetPlanned.toDouble(),
                 subprojectEibFinancingUah = null, subprojectLocalFinancingUah = null,
-                estimatedTotalEur = null, estimatedTotalUah = source.estimatedTotalUah,
+                estimatedTotalEur = null, estimatedTotalUah = null,
                 estimatedEibEur = null, estimatedEibUah = source.estimatedEibUah,
-                estimatedLocalEur = null, estimatedLocalUah = source.estimatedLocalUah,
+                estimatedLocalEur = null, estimatedLocalUah = null,
                 procurementMethod = source.procurementMethod, tenderDocumentType = null, publishedInOjeu = null,
-                estimatedProzorroDate = source.estimatedProzorroDate,
-                estimatedBidSubmissionDate = source.estimatedBidSubmissionDate,
-                estimatedContractDate = source.estimatedContractDate,
-                estimatedContractEndDate = source.estimatedContractEndDate,
-                localFinancingPct = source.estimatedTotalUah?.takeIf { it != 0.0 }?.let { total -> source.estimatedLocalUah?.times(100.0)?.div(total) },
-                comments = source.comments, sourceStatusCode = source.typeCode, projectId = part?.id ?: subproject.id
+                estimatedProzorroDate = null, estimatedBidSubmissionDate = null,
+                estimatedContractDate = null, estimatedContractEndDate = null,
+                localFinancingPct = source.realLocalCoFinancingPct,
+                tenderAttemptCount = source.tenderAttemptCount, pigViolations = source.pigViolations,
+                dreamCoFinancingPct = source.dreamCoFinancingPct, realLocalCoFinancingPct = source.realLocalCoFinancingPct,
+                realEibFinancingUah = source.realEibFinancingUah, bankGuarantee = source.bankGuarantee,
+                comments = source.comments, sourceStatusCode = source.sourceContractType, projectId = part?.id ?: subproject.id
             )
         }
         return repository.replaceForBatches(records)
@@ -82,15 +85,28 @@ class ProcurementService(
         require(contractDurationMonths == null || contractDurationMonths >= 0) { "Contract duration cannot be negative." }
         require(contractAmountUah == null || contractAmountUah >= 0) { "Contract amount cannot be negative." }
         require(contractAmountEur == null || contractAmountEur >= 0) { "Contract amount cannot be negative." }
-        return ProcurementRecord(0, derivedBatch, derivedRegion, subproject.siteNumber.take(2).uppercase(), subproject.siteNumber, part?.siteNumber, purchaseStatus.clean(),
-            tenderId.clean(), prozorroTenderId.clean(), contractorNameUkr.clean(), contractorNameEng.clean(), contractorId.clean(),
-            contractDate.toDate(), contractEndDate.toDate(), contractDurationMonths, contractAmountUah, contractAmountEur, financingContractDifferencePct,
-            promotorName.clean(), subproject.name, subprojectNameEn.clean(), sourceContractType.clean(),
-            subprojectTotalCostUah, subprojectEibFinancingUah, subprojectLocalFinancingUah,
-            estimatedTotalEur, estimatedTotalUah, estimatedEibEur, estimatedEibUah, estimatedLocalEur, estimatedLocalUah,
-            procurementMethod.clean(), tenderDocumentType.clean(), publishedInOjeu.clean(),
-            estimatedProzorroDate.toDate(), estimatedBidSubmissionDate.toDate(), estimatedContractDate.toDate(), estimatedContractEndDate.toDate(),
-            localFinancingPct, comments.clean(), sourceStatusCode.clean(), projectId = part?.id ?: subproject.id)
+        return ProcurementRecord(
+            id = 0, batchId = derivedBatch, oblastName = derivedRegion, oblastId = subproject.siteNumber.take(2).uppercase(),
+            subProjectId = subproject.siteNumber, subProjectLotId = part?.siteNumber, purchaseStatus = purchaseStatus.clean(),
+            tenderId = tenderId.clean(), prozorroTenderId = prozorroTenderId.clean(), contractorNameUkr = contractorNameUkr.clean(),
+            contractorNameEng = contractorNameEng.clean(), contractorId = contractorId.clean(), contractDate = contractDate.toDate(),
+            contractEndDate = contractEndDate.toDate(), contractDurationMonths = contractDurationMonths, contractAmountUah = contractAmountUah,
+            contractAmountEur = contractAmountEur, financingContractDifferencePct = financingContractDifferencePct,
+            actualisedContractEndDate = actualisedContractEndDate.toDate(), contractAmountUahWithoutVat = contractAmountUahWithoutVat,
+            promotorName = promotorName.clean(), fbName = fbName.clean(), subprojectNameUk = subproject.name,
+            subprojectNameEn = subprojectNameEn.clean(), sourceContractType = sourceContractType.clean(),
+            subprojectTotalCostUah = subprojectTotalCostUah, subprojectEibFinancingUah = subprojectEibFinancingUah,
+            subprojectLocalFinancingUah = subprojectLocalFinancingUah, estimatedTotalEur = estimatedTotalEur,
+            estimatedTotalUah = estimatedTotalUah, estimatedEibEur = estimatedEibEur, estimatedEibUah = estimatedEibUah,
+            estimatedLocalEur = estimatedLocalEur, estimatedLocalUah = estimatedLocalUah, procurementMethod = procurementMethod.clean(),
+            tenderDocumentType = tenderDocumentType.clean(), publishedInOjeu = publishedInOjeu.clean(),
+            estimatedProzorroDate = estimatedProzorroDate.toDate(), estimatedBidSubmissionDate = estimatedBidSubmissionDate.toDate(),
+            estimatedContractDate = estimatedContractDate.toDate(), estimatedContractEndDate = estimatedContractEndDate.toDate(),
+            localFinancingPct = localFinancingPct, tenderAttemptCount = tenderAttemptCount, pigViolations = pigViolations.clean(),
+            dreamCoFinancingPct = dreamCoFinancingPct, realLocalCoFinancingPct = realLocalCoFinancingPct,
+            realEibFinancingUah = realEibFinancingUah, bankGuarantee = bankGuarantee, comments = comments.clean(),
+            sourceStatusCode = sourceStatusCode.clean(), projectId = part?.id ?: subproject.id
+        )
     }
 
     private fun String?.clean() = this?.trim()?.ifBlank { null }

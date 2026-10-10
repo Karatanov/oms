@@ -61,6 +61,7 @@ class ExposedProcurementRecordRepository : ProcurementRecordRepository {
         this[ProcurementRecordTable.oblastName] = record.oblastName
         this[ProcurementRecordTable.oblastId] = record.oblastId
         this[ProcurementRecordTable.promotorName] = record.promotorName
+        this[ProcurementRecordTable.fbName] = record.fbName
         this[ProcurementRecordTable.subprojectNameUk] = record.subprojectNameUk
         this[ProcurementRecordTable.subprojectNameEn] = record.subprojectNameEn
         this[ProcurementRecordTable.subProjectId] = record.subProjectId
@@ -83,8 +84,10 @@ class ExposedProcurementRecordRepository : ProcurementRecordRepository {
         this[ProcurementRecordTable.contractorId] = record.contractorId
         this[ProcurementRecordTable.contractDate] = record.contractDate
         this[ProcurementRecordTable.contractEndDate] = record.contractEndDate
+        this[ProcurementRecordTable.actualisedContractEndDate] = record.actualisedContractEndDate
         this[ProcurementRecordTable.contractDurationMonths] = record.contractDurationMonths
         this[ProcurementRecordTable.contractAmountUah] = record.contractAmountUah?.let(BigDecimal::valueOf)
+        this[ProcurementRecordTable.contractAmountUahWithoutVat] = record.contractAmountUahWithoutVat?.let(BigDecimal::valueOf)
         this[ProcurementRecordTable.contractAmountEur] = record.contractAmountEur?.let(BigDecimal::valueOf)
         this[ProcurementRecordTable.financingContractDifferencePct] = record.financingContractDifferencePct?.let(BigDecimal::valueOf)
         this[ProcurementRecordTable.procurementMethod] = record.procurementMethod
@@ -95,6 +98,12 @@ class ExposedProcurementRecordRepository : ProcurementRecordRepository {
         this[ProcurementRecordTable.estimatedContractDate] = record.estimatedContractDate
         this[ProcurementRecordTable.estimatedContractEndDate] = record.estimatedContractEndDate
         this[ProcurementRecordTable.localFinancingPct] = record.localFinancingPct?.let(BigDecimal::valueOf)
+        this[ProcurementRecordTable.tenderAttemptCount] = record.tenderAttemptCount
+        this[ProcurementRecordTable.pigViolations] = record.pigViolations
+        this[ProcurementRecordTable.dreamCoFinancingPct] = record.dreamCoFinancingPct?.let(BigDecimal::valueOf)
+        this[ProcurementRecordTable.realLocalCoFinancingPct] = record.realLocalCoFinancingPct?.let(BigDecimal::valueOf)
+        this[ProcurementRecordTable.realEibFinancingUah] = record.realEibFinancingUah?.let(BigDecimal::valueOf)
+        this[ProcurementRecordTable.bankGuarantee] = record.bankGuarantee?.let(BigDecimal::valueOf)
         this[ProcurementRecordTable.comments] = record.comments
         this[ProcurementRecordTable.sourceStatusCode] = record.sourceStatusCode
         this[ProcurementRecordTable.projectId] = record.projectId?.let { org.jetbrains.exposed.v1.core.dao.id.EntityID(it, oms.umitaf.database.tables.ProjectTable) }
@@ -108,16 +117,16 @@ class ExposedProcurementRecordRepository : ProcurementRecordRepository {
         purchaseStatus = row[ProcurementRecordTable.purchaseStatus], tenderId = row[ProcurementRecordTable.tenderId],
         prozorroTenderId = row[ProcurementRecordTable.prozorroTenderId], contractorNameUkr = row[ProcurementRecordTable.contractorNameUkr],
         contractorNameEng = row[ProcurementRecordTable.contractorNameEng], contractorId = row[ProcurementRecordTable.contractorId],
-        contractDate = row[ProcurementRecordTable.contractDate], contractEndDate = row[ProcurementRecordTable.contractEndDate],
+        contractDate = row[ProcurementRecordTable.contractDate], contractEndDate = row[ProcurementRecordTable.contractEndDate], actualisedContractEndDate = row[ProcurementRecordTable.actualisedContractEndDate],
         contractDurationMonths = row[ProcurementRecordTable.contractDurationMonths],
-        contractAmountUah = row[ProcurementRecordTable.contractAmountUah]?.toDouble(), contractAmountEur = row[ProcurementRecordTable.contractAmountEur]?.toDouble(),
+        contractAmountUah = row[ProcurementRecordTable.contractAmountUah]?.toDouble(), contractAmountUahWithoutVat = row[ProcurementRecordTable.contractAmountUahWithoutVat]?.toDouble(), contractAmountEur = row[ProcurementRecordTable.contractAmountEur]?.toDouble(),
         financingContractDifferencePct = row[ProcurementRecordTable.financingContractDifferencePct]?.toDouble(),
-        promotorName = row[ProcurementRecordTable.promotorName], subprojectNameUk = row[ProcurementRecordTable.subprojectNameUk], subprojectNameEn = row[ProcurementRecordTable.subprojectNameEn],
+        promotorName = row[ProcurementRecordTable.promotorName], fbName = row[ProcurementRecordTable.fbName], subprojectNameUk = row[ProcurementRecordTable.subprojectNameUk], subprojectNameEn = row[ProcurementRecordTable.subprojectNameEn],
         sourceContractType = row[ProcurementRecordTable.sourceContractType],
         subprojectTotalCostUah = row[ProcurementRecordTable.subprojectTotalCostUah]?.toDouble(), subprojectEibFinancingUah = row[ProcurementRecordTable.subprojectEibFinancingUah]?.toDouble(), subprojectLocalFinancingUah = row[ProcurementRecordTable.subprojectLocalFinancingUah]?.toDouble(),
         estimatedTotalEur = row[ProcurementRecordTable.estimatedTotalEur]?.toDouble(), estimatedTotalUah = row[ProcurementRecordTable.estimatedTotalUah]?.toDouble(), estimatedEibEur = row[ProcurementRecordTable.estimatedEibEur]?.toDouble(), estimatedEibUah = row[ProcurementRecordTable.estimatedEibUah]?.toDouble(), estimatedLocalEur = row[ProcurementRecordTable.estimatedLocalEur]?.toDouble(), estimatedLocalUah = row[ProcurementRecordTable.estimatedLocalUah]?.toDouble(),
         procurementMethod = row[ProcurementRecordTable.procurementMethod], tenderDocumentType = row[ProcurementRecordTable.tenderDocumentType], publishedInOjeu = row[ProcurementRecordTable.publishedInOjeu],
         estimatedProzorroDate = row[ProcurementRecordTable.estimatedProzorroDate], estimatedBidSubmissionDate = row[ProcurementRecordTable.estimatedBidSubmissionDate], estimatedContractDate = row[ProcurementRecordTable.estimatedContractDate], estimatedContractEndDate = row[ProcurementRecordTable.estimatedContractEndDate],
-        localFinancingPct = row[ProcurementRecordTable.localFinancingPct]?.toDouble(), comments = row[ProcurementRecordTable.comments], sourceStatusCode = row[ProcurementRecordTable.sourceStatusCode], projectId = row[ProcurementRecordTable.projectId]?.value
+        localFinancingPct = row[ProcurementRecordTable.localFinancingPct]?.toDouble(), tenderAttemptCount = row[ProcurementRecordTable.tenderAttemptCount], pigViolations = row[ProcurementRecordTable.pigViolations], dreamCoFinancingPct = row[ProcurementRecordTable.dreamCoFinancingPct]?.toDouble(), realLocalCoFinancingPct = row[ProcurementRecordTable.realLocalCoFinancingPct]?.toDouble(), realEibFinancingUah = row[ProcurementRecordTable.realEibFinancingUah]?.toDouble(), bankGuarantee = row[ProcurementRecordTable.bankGuarantee]?.toDouble(), comments = row[ProcurementRecordTable.comments], sourceStatusCode = row[ProcurementRecordTable.sourceStatusCode], projectId = row[ProcurementRecordTable.projectId]?.value
     )
 }

@@ -76,9 +76,9 @@ private fun ProcurementRecord.toResponse() = ProcurementRecordResponse(
     subProjectId = subProjectId, subProjectLotId = subProjectLotId, purchaseStatus = purchaseStatus,
     tenderId = tenderId, prozorroTenderId = prozorroTenderId, contractorNameUkr = contractorNameUkr,
     contractorNameEng = contractorNameEng, contractorId = contractorId, contractDate = contractDate?.toString(),
-    contractEndDate = contractEndDate?.toString(), contractDurationMonths = contractDurationMonths,
-    contractAmountUah = contractAmountUah, contractAmountEur = contractAmountEur,
-    financingContractDifferencePct = financingContractDifferencePct, promotorName = promotorName,
+    contractEndDate = contractEndDate?.toString(), actualisedContractEndDate = actualisedContractEndDate?.toString(), contractDurationMonths = contractDurationMonths,
+    contractAmountUah = contractAmountUah, contractAmountUahWithoutVat = contractAmountUahWithoutVat, contractAmountEur = contractAmountEur,
+    financingContractDifferencePct = financingContractDifferencePct, promotorName = promotorName, fbName = fbName,
     subprojectNameUk = subprojectNameUk, subprojectNameEn = subprojectNameEn,
     sourceContractType = sourceContractType,
     subprojectTotalCostUah = subprojectTotalCostUah, subprojectEibFinancingUah = subprojectEibFinancingUah,
@@ -88,5 +88,8 @@ private fun ProcurementRecord.toResponse() = ProcurementRecordResponse(
     procurementMethod = procurementMethod, tenderDocumentType = tenderDocumentType, publishedInOjeu = publishedInOjeu,
     estimatedProzorroDate = estimatedProzorroDate?.toString(), estimatedBidSubmissionDate = estimatedBidSubmissionDate?.toString(),
     estimatedContractDate = estimatedContractDate?.toString(), estimatedContractEndDate = estimatedContractEndDate?.toString(),
-    localFinancingPct = localFinancingPct, comments = comments, sourceStatusCode = sourceStatusCode, projectId = projectId
+    localFinancingPct = localFinancingPct, tenderAttemptCount = tenderAttemptCount, pigViolations = pigViolations,
+    dreamCoFinancingPct = dreamCoFinancingPct, realLocalCoFinancingPct = realLocalCoFinancingPct,
+    realEibFinancingUah = realEibFinancingUah, bankGuarantee = bankGuarantee,
+    comments = comments, sourceStatusCode = sourceStatusCode, projectId = projectId
 )

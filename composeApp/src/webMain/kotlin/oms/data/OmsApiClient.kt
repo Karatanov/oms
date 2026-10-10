@@ -818,14 +818,16 @@ data class ApiProcurementRecord(
     val contractDate: String? = null, val contractEndDate: String? = null, val contractDurationMonths: Int? = null,
     val contractAmountUah: Double? = null, val contractAmountEur: Double? = null,
     val financingContractDifferencePct: Double? = null,
-    val promotorName: String? = null, val subprojectNameUk: String? = null, val subprojectNameEn: String? = null,
+    val promotorName: String? = null, val fbName: String? = null, val subprojectNameUk: String? = null, val subprojectNameEn: String? = null,
     val sourceContractType: String? = null,
     val subprojectTotalCostUah: Double? = null, val subprojectEibFinancingUah: Double? = null, val subprojectLocalFinancingUah: Double? = null,
     val estimatedTotalEur: Double? = null, val estimatedTotalUah: Double? = null, val estimatedEibEur: Double? = null, val estimatedEibUah: Double? = null,
     val estimatedLocalEur: Double? = null, val estimatedLocalUah: Double? = null, val procurementMethod: String? = null, val tenderDocumentType: String? = null,
     val publishedInOjeu: String? = null, val estimatedProzorroDate: String? = null, val estimatedBidSubmissionDate: String? = null,
-    val estimatedContractDate: String? = null, val estimatedContractEndDate: String? = null, val localFinancingPct: Double? = null,
-    val comments: String? = null, val sourceStatusCode: String? = null, val projectId: Long? = null
+    val estimatedContractDate: String? = null, val estimatedContractEndDate: String? = null, val actualisedContractEndDate: String? = null, val localFinancingPct: Double? = null,
+    val tenderAttemptCount: Int? = null, val pigViolations: String? = null, val contractAmountUahWithoutVat: Double? = null,
+    val dreamCoFinancingPct: Double? = null, val realLocalCoFinancingPct: Double? = null, val realEibFinancingUah: Double? = null,
+    val bankGuarantee: Double? = null, val comments: String? = null, val sourceStatusCode: String? = null, val projectId: Long? = null
 )
 
 @Serializable
@@ -840,15 +842,17 @@ data class ProcurementRecordRequest(
     val contractDate: String? = null, val contractEndDate: String? = null, val contractDurationMonths: Int? = null,
     val contractAmountUah: Double? = null, val contractAmountEur: Double? = null,
     val financingContractDifferencePct: Double? = null,
-    val promotorName: String? = null, val subprojectNameUk: String? = null, val subprojectNameEn: String? = null,
+    val promotorName: String? = null, val fbName: String? = null, val subprojectNameUk: String? = null, val subprojectNameEn: String? = null,
     val sourceContractType: String? = null,
     val subprojectTotalCostUah: Double? = null, val subprojectEibFinancingUah: Double? = null, val subprojectLocalFinancingUah: Double? = null,
     val estimatedTotalEur: Double? = null, val estimatedTotalUah: Double? = null, val estimatedEibEur: Double? = null, val estimatedEibUah: Double? = null,
     val estimatedLocalEur: Double? = null, val estimatedLocalUah: Double? = null,
     val procurementMethod: String? = null, val tenderDocumentType: String? = null, val publishedInOjeu: String? = null,
     val estimatedProzorroDate: String? = null, val estimatedBidSubmissionDate: String? = null,
-    val estimatedContractDate: String? = null, val estimatedContractEndDate: String? = null,
-    val localFinancingPct: Double? = null, val comments: String? = null, val sourceStatusCode: String? = null,
+    val estimatedContractDate: String? = null, val estimatedContractEndDate: String? = null, val actualisedContractEndDate: String? = null,
+    val localFinancingPct: Double? = null, val tenderAttemptCount: Int? = null, val pigViolations: String? = null,
+    val contractAmountUahWithoutVat: Double? = null, val dreamCoFinancingPct: Double? = null, val realLocalCoFinancingPct: Double? = null,
+    val realEibFinancingUah: Double? = null, val bankGuarantee: Double? = null, val comments: String? = null, val sourceStatusCode: String? = null,
     val projectId: Long? = null
 )
 
