@@ -54,6 +54,7 @@ import oms.model.localizedName
 import oms.localization.Language
 import oms.localization.LocalizationManager
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
@@ -78,7 +79,9 @@ fun ProcurementScreen(
     var editorRecord by remember { mutableStateOf<ApiProcurementRecord?>(null) }
     var creating by remember { mutableStateOf(false) }
     var recordPendingDeletion by remember { mutableStateOf<ApiProcurementRecord?>(null) }
-    var refreshingRegistry by remember { mutableStateOf(false) }
+    var refreshConfirmationOpen by remember { mutableStateOf(false) }
+    var refreshJob by remember { mutableStateOf<oms.data.ApiProcurementRefresh?>(null) }
+    var refreshElapsedSeconds by remember { mutableStateOf(0) }
     var registryRefreshMessage by remember { mutableStateOf<String?>(null) }
     var pageSize by remember { mutableStateOf(20) }
     var currentPage by remember { mutableStateOf(0) }
@@ -99,6 +102,32 @@ fun ProcurementScreen(
         runCatching { OmsApiClient.procurements() }
             .onSuccess { records = it.sortedWith(compareBy({ record -> record.batchId }, { record -> record.id })) }
             .onFailure { loadError = LocalizationManager.t("procurement_load_error") }
+    }
+    LaunchedEffect(refreshJob?.id) {
+        val id = refreshJob?.id ?: return@LaunchedEffect
+        refreshElapsedSeconds = 0
+        while (refreshJob?.status in setOf("RUNNING", "CANCELLING")) {
+            delay(1_000)
+            refreshElapsedSeconds += 1
+            runCatching { OmsApiClient.procurementRefresh(id) }
+                .onSuccess { updated ->
+                    refreshJob = updated
+                    when (updated.status) {
+                        "COMPLETED" -> {
+                            reloadKey++
+                            registryRefreshMessage = LocalizationManager.t("procurement_refresh_success")
+                                .replace("{count}", updated.importedCount?.toString().orEmpty())
+                        }
+                        "FAILED" -> registryRefreshMessage = LocalizationManager.t("procurement_refresh_error")
+                            .replace("{message}", updated.error.orEmpty())
+                        "CANCELLED" -> registryRefreshMessage = LocalizationManager.t("procurement_refresh_cancelled")
+                    }
+                }
+                .onFailure { error ->
+                    refreshJob = refreshJob?.copy(status = "FAILED", error = error.message)
+                    registryRefreshMessage = LocalizationManager.t("procurement_refresh_error").replace("{message}", error.message.orEmpty())
+                }
+        }
     }
     // The Subproject code is a map link, so retain the shared project snapshot
     // while the procurement registry is open. Refresh() is a no-op when it is
@@ -161,18 +190,10 @@ fun ProcurementScreen(
         oms.components.PageHeading(LocalizationManager.t("procurement_title"), Icons.Default.ShoppingCart) {
             if (canManageProcurements) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(enabled = !refreshingRegistry, onClick = {
-                        error = null; registryRefreshMessage = null
-                        scope.launch {
-                            refreshingRegistry = true
-                            runCatching { OmsApiClient.refreshProcurements() }
-                                .onSuccess { reloadKey++; registryRefreshMessage = LocalizationManager.t("procurement_refresh_success").replace("{count}", it.importedCount.toString()) }
-                                .onFailure { registryRefreshMessage = LocalizationManager.t("procurement_refresh_error").replace("{message}", it.message.orEmpty()) }
-                            refreshingRegistry = false
-                        }
+                    OutlinedButton(enabled = refreshJob?.status !in setOf("RUNNING", "CANCELLING"), onClick = {
+                        error = null; registryRefreshMessage = null; refreshConfirmationOpen = true
                     }) {
-                        if (refreshingRegistry) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
-                        else Icon(Icons.Default.Refresh, null)
+                        Icon(Icons.Default.Refresh, null)
                         Spacer(Modifier.width(6.dp)); Text(LocalizationManager.t("refresh_procurement_registry"))
                     }
                     Button(onClick = { error = null; creating = true }) { Icon(Icons.Default.Add, null); Spacer(Modifier.width(6.dp)); Text(LocalizationManager.t("add_procurement_record")) }
@@ -295,6 +316,45 @@ fun ProcurementScreen(
         oms.components.HoldToScrollButton(LocalizationManager.t("dashboard_scroll_up"), Icons.Default.KeyboardArrowUp, contentScrollState, -1)
         oms.components.HoldToScrollButton(LocalizationManager.t("dashboard_scroll_down"), Icons.Default.KeyboardArrowDown, contentScrollState, 1)
     }
+    if (refreshConfirmationOpen) WasmSafeOverlay(onDismiss = { refreshConfirmationOpen = false }) {
+        Card(Modifier.widthIn(max = 520.dp).fillMaxWidth()) {
+            Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                Text(LocalizationManager.t("procurement_refresh_confirm_title"), style = MaterialTheme.typography.titleLarge)
+                Text(LocalizationManager.t("procurement_refresh_confirm_message"), style = MaterialTheme.typography.bodyMedium)
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
+                    OutlinedButton(onClick = { refreshConfirmationOpen = false }) { Text(LocalizationManager.t("cancel")) }
+                    Button(onClick = {
+                        refreshConfirmationOpen = false
+                        scope.launch {
+                            runCatching { OmsApiClient.startProcurementRefresh() }
+                                .onSuccess { refreshJob = it }
+                                .onFailure { failure -> registryRefreshMessage = LocalizationManager.t("procurement_refresh_error").replace("{message}", failure.message.orEmpty()) }
+                        }
+                    }) { Text(LocalizationManager.t("procurement_refresh_continue")) }
+                }
+            }
+        }
+    }
+    refreshJob?.takeIf { it.status in setOf("RUNNING", "CANCELLING") }?.let { job ->
+        WasmSafeOverlay(onDismiss = {}) {
+            Card(Modifier.widthIn(max = 520.dp).fillMaxWidth()) {
+                Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Text(LocalizationManager.t("procurement_refresh_progress_title"), style = MaterialTheme.typography.titleLarge)
+                    Text(LocalizationManager.t("procurement_refresh_phase_${job.phase}"), style = MaterialTheme.typography.bodyMedium)
+                    LinearProgressIndicator(
+                        progress = { (job.progress / 100f).coerceIn(0f, 1f) },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Text("${job.progress}% · ${formatRefreshElapsed(refreshElapsedSeconds)}", style = MaterialTheme.typography.bodySmall)
+                    OutlinedButton(
+                        enabled = job.status == "RUNNING",
+                        onClick = { scope.launch { runCatching { OmsApiClient.cancelProcurementRefresh(job.id) }.onSuccess { refreshJob = it } } },
+                        modifier = Modifier.align(Alignment.End)
+                    ) { Text(LocalizationManager.t("procurement_refresh_cancel")) }
+                }
+            }
+        }
+    }
     if (creating) WasmSafeOverlay(onDismiss = { creating = false }, errorMessage = error) {
             ProcurementEditorDialog(null, onDismiss = { creating = false }) { request ->
             scope.launch { runCatching { OmsApiClient.createProcurement(request) }
@@ -325,6 +385,9 @@ fun ProcurementScreen(
         }
     }
 }
+
+private fun formatRefreshElapsed(seconds: Int): String =
+    "${(seconds / 60).toString().padStart(2, '0')}:${(seconds % 60).toString().padStart(2, '0')}"
 
 @Composable
 private fun ProcurementPagination(

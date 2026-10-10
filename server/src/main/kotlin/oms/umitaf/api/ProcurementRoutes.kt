@@ -49,14 +49,39 @@ fun Route.procurementRoutes() {
 
     post("/api/v1/procurements/refresh") {
         call.requireRole("ADMIN") ?: return@post
-        call.respondSafely(HttpStatusCode.OK) {
-            ProcurementRefreshResponse(AppContainer.procurementService.refreshFromApprovedSource())
-        }
+        call.respondSafely(HttpStatusCode.Accepted) { AppContainer.procurementService.startApprovedSourceRefresh().toResponse() }
+    }
+
+    get("/api/v1/procurements/refresh/{id}") {
+        call.requireRole("ADMIN") ?: return@get
+        val id = call.parameters["id"] ?: return@get call.respond(HttpStatusCode.BadRequest, ErrorResponse("VALIDATION_ERROR", "Refresh ID is required."))
+        val status = AppContainer.procurementService.getApprovedSourceRefresh(id)
+            ?: return@get call.respond(HttpStatusCode.NotFound, ErrorResponse("NOT_FOUND", "Procurement refresh not found."))
+        call.respond(status.toResponse())
+    }
+
+    post("/api/v1/procurements/refresh/{id}/cancel") {
+        call.requireRole("ADMIN") ?: return@post
+        val id = call.parameters["id"] ?: return@post call.respond(HttpStatusCode.BadRequest, ErrorResponse("VALIDATION_ERROR", "Refresh ID is required."))
+        val status = AppContainer.procurementService.cancelApprovedSourceRefresh(id)
+            ?: return@post call.respond(HttpStatusCode.NotFound, ErrorResponse("NOT_FOUND", "Procurement refresh not found."))
+        call.respond(status.toResponse())
     }
 }
 
 @Serializable
-private data class ProcurementRefreshResponse(val importedCount: Int)
+private data class ProcurementRefreshResponse(
+    val id: String,
+    val status: String,
+    val progress: Int,
+    val phase: String,
+    val importedCount: Int? = null,
+    val error: String? = null
+)
+
+private fun oms.umitaf.service.ProcurementService.RefreshStatus.toResponse() = ProcurementRefreshResponse(
+    id = id, status = status, progress = progress, phase = phase, importedCount = importedCount, error = error
+)
 
 private suspend inline fun <reified T : Any> io.ktor.server.application.ApplicationCall.respondSafely(
     success: HttpStatusCode,
@@ -66,6 +91,8 @@ private suspend inline fun <reified T : Any> io.ktor.server.application.Applicat
         respond(success, block())
     } catch (_: NoSuchElementException) {
         respond(HttpStatusCode.NotFound, ErrorResponse("NOT_FOUND", "Procurement record not found."))
+    } catch (exception: IllegalStateException) {
+        respond(HttpStatusCode.Conflict, ErrorResponse("CONFLICT", exception.message ?: "Procurement refresh is already running."))
     } catch (exception: IllegalArgumentException) {
         respond(HttpStatusCode.BadRequest, ErrorResponse("VALIDATION_ERROR", exception.message ?: "Invalid procurement data."))
     }
