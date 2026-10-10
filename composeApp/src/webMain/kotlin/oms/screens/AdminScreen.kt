@@ -21,6 +21,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
@@ -40,6 +41,11 @@ import oms.localization.LocalizationManager
 import oms.screens.dashboard.ActivitySection
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
+import kotlin.js.JsName
+
+@JsName("omsBuildVersion") private external fun omsBuildVersion(): String
+@JsName("omsBuildCommit") private external fun omsBuildCommit(): String
+@JsName("omsBuildDate") private external fun omsBuildDate(): String
 
 private enum class UserSort { Id, Username, FullName, Email, Role, Status, LastLogin, Region, Department, Language, Created, FailedAttempts, LockedUntil, Updated }
 
@@ -85,6 +91,12 @@ private fun LanguageFlag(language: String) {
 
 @Composable
 fun AdminScreen() {
+    val buildMarker = remember {
+        val version = runCatching(::omsBuildVersion).getOrDefault("1.0")
+        val commit = runCatching(::omsBuildCommit).getOrDefault("").takeUnless { it.startsWith("__OMS_") }
+        val updatedAt = runCatching(::omsBuildDate).getOrDefault("").takeUnless { it.startsWith("__OMS_") }
+        listOfNotNull("v$version", commit?.take(12), updatedAt?.takeIf(String::isNotBlank)).joinToString(" · ")
+    }
     var search by remember { mutableStateOf("") }
     var loading by remember { mutableStateOf(true) }
     var users by remember { mutableStateOf<List<ApiUser>>(emptyList()) }
@@ -227,6 +239,13 @@ fun AdminScreen() {
         }
         ActivitySection(activities, users)
         errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+        Text(
+            buildMarker,
+            modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = .55f),
+            textAlign = TextAlign.End
+        )
     }
     selectedUser?.let { user -> WasmSafeOverlay(onDismiss = {
             if (!savingUser) {

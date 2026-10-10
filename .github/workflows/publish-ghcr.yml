@@ -67,6 +67,9 @@ jobs:
           platforms: linux/amd64
           tags: ${{ steps.metadata.outputs.tags }}
           labels: ${{ steps.metadata.outputs.labels }}
+          build-args: |
+            OMS_GIT_SHA=${{ github.sha }}
+            OMS_BUILD_DATE=${{ github.event.head_commit.timestamp }}
 
   deploy-production:
     name: Deploy production VPS

@@ -32,6 +32,14 @@
     <script src="auth.js?v=20260925-safari"></script>
     <script src="startup.js?v=20261002-startup-progress"></script>
     <script>
+        // Values are replaced during the immutable production/Pages build.
+        // Keeping them in the HTML shell avoids an extra API request solely
+        // for the discreet Administrator build marker.
+        window.omsBuildVersion = () => "1.0";
+        window.omsBuildCommit = () => "__OMS_GIT_COMMIT__";
+        window.omsBuildDate = () => "__OMS_BUILD_DATE__";
+    </script>
+    <script>
         function omsApiUrl(path) {
             const local = ["localhost", "127.0.0.1"].includes(window.location.hostname);
             // Production serves UI and API together at ua-oms.com. The legacy

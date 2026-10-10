@@ -1,5 +1,7 @@
 FROM gradle:8.14-jdk21 AS build
 WORKDIR /workspace
+ARG OMS_GIT_SHA=local
+ARG OMS_BUILD_DATE=local
 RUN apt-get update && apt-get install -y --no-install-recommends brotli && rm -rf /var/lib/apt/lists/*
 COPY gradle gradle
 COPY gradlew gradlew.bat gradle.properties settings.gradle.kts build.gradle.kts ./
@@ -40,6 +42,8 @@ RUN mkdir -p /workspace/web \
     && wasm_bytes=$(stat -c %s /workspace/web/skiko.wasm) \
     && printf '{"version":"%s","assets":[{"url":"%s","bytes":%s},{"url":"skiko.wasm?v=%s","bytes":%s}]}\n' "$asset_hash" "composeApp.${asset_hash}.js" "$js_bytes" "$asset_hash" "$wasm_bytes" > /workspace/web/assets-manifest.json \
     && cp /workspace/web/index.html /workspace/web/app.html \
+    && git_short=$(printf '%s' "$OMS_GIT_SHA" | cut -c1-12) \
+    && sed -i "s|__OMS_GIT_COMMIT__|$git_short|g; s|__OMS_BUILD_DATE__|$OMS_BUILD_DATE|g" /workspace/web/app.html \
     && find /workspace/web -type f \( -name '*.js' -o -name '*.css' -o -name '*.wasm' \) -exec gzip -9 -k {} + \
     && find /workspace/web -type f \( -name '*.js' -o -name '*.css' -o -name '*.wasm' \) -exec brotli -q 9 -f -k {} + \
     && echo 'Optimized browser asset sizes:' \

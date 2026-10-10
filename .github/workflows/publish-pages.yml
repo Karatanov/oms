@@ -57,7 +57,10 @@ jobs:
           cp composeApp/src/webMain/resources/social-preview.png build/pages/social-preview.png
           test -f build/pages/skiko.wasm
           asset_hash=$(sha256sum build/pages/composeApp.js | cut -c1-12)
+          build_date=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
+          git_short=$(printf '%s' "$GITHUB_SHA" | cut -c1-12)
           sed -i "s#__OMS_ASSET_VERSION__#v=${asset_hash}#g" build/pages/app.html
+          sed -i "s|__OMS_GIT_COMMIT__|${git_short}|g; s|__OMS_BUILD_DATE__|${build_date}|g" build/pages/app.html
           sed -i "s#skiko\\.wasm#skiko.wasm?v=${asset_hash}#g" build/pages/composeApp.js
           js_bytes=$(stat -c %s build/pages/composeApp.js)
           wasm_bytes=$(stat -c %s build/pages/skiko.wasm)
