@@ -12,3 +12,17 @@ data class FinancialRecordResponse(
     val eurExchangeDate: String? = null,
     val amountEurCents: Long? = null
 )
+
+@Serializable
+data class FinancialProgressItemResponse(
+    val label: String,
+    val contractAmountUah: Double,
+    val completedAmountUah: Double,
+    val completionPct: Double
+)
+
+@Serializable
+data class FinancialProgressResponse(
+    val byRegion: List<FinancialProgressItemResponse> = emptyList(),
+    val byConstructionType: List<FinancialProgressItemResponse> = emptyList()
+)

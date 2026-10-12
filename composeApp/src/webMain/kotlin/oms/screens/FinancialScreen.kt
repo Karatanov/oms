@@ -35,6 +35,8 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import oms.data.ApiFinancialRecord
+import oms.data.ApiFinancialProgress
+import oms.data.ApiFinancialProgressItem
 import oms.data.displayAmountCents
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -98,6 +100,7 @@ fun FinancialScreen(
     }
 
     var acts by remember { mutableStateOf<List<ProjectActRow>>(emptyList()) }
+    var financialProgress by remember { mutableStateOf<ApiFinancialProgress?>(null) }
     var displayCurrency by remember { mutableStateOf("EUR") }
     var displayRates by remember { mutableStateOf<Map<String, Double>>(emptyMap()) }
     var loadingRates by remember { mutableStateOf(false) }
@@ -171,6 +174,7 @@ fun FinancialScreen(
         loading = true; loadFailed = false
         try {
         val records = OmsApiClient.allFinancialRecords()
+        financialProgress = runCatching { OmsApiClient.financialProgress() }.getOrNull()
         // A project snapshot is necessary only to decorate actual rows.  On an
         // empty register do not wait for the much larger project hierarchy.
         if (records.isNotEmpty()) {
@@ -346,6 +350,12 @@ fun FinancialScreen(
             first = { MonthlyEquipmentPaymentsChart(financialChartRecords, displayRates) { month -> selectChartMonth(month, "equipment") } },
             second = { MonthlyEngineerConsultantPaymentsChart(financialChartRecords, displayRates) { month -> selectChartMonth(month, "engineer_consultant") } }
         )
+        financialProgress?.let { progress ->
+            oms.components.AdaptiveChartRow(
+                first = { FinancialProgressCard("financial_progress_by_region", progress.byRegion) },
+                second = { FinancialProgressCard("financial_progress_by_construction_type", progress.byConstructionType) }
+            )
+        }
 
         BoxWithConstraints(Modifier.fillMaxWidth()) {
             if (maxWidth >= 620.dp) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
@@ -850,6 +860,39 @@ private fun Int.isFinancialTranche(filter: Int): Boolean = when (filter) {
 
 /** The database stores the tranche as a number; the register deliberately exposes only its A/B code. */
 private fun Int.financialTrancheCode(): String = if (this == 2 || this == 9) "B" else "A"
+
+@Composable
+private fun FinancialProgressCard(titleKey: String, items: List<ApiFinancialProgressItem>) {
+    Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text(LocalizationManager.t(titleKey), style = MaterialTheme.typography.titleMedium)
+            if (items.isEmpty()) {
+                Text(LocalizationManager.t("no_chart_data"), color = MaterialTheme.colorScheme.onSurfaceVariant)
+            } else items.sortedBy { it.label }.forEach { item ->
+                val label = if (titleKey == "financial_progress_by_region") {
+                    localizedUkraineRegion(item.label)
+                } else {
+                    LocalizationManager.t("construction_${item.label}").takeUnless { it == "construction_${item.label}" } ?: item.label
+                }
+                Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text(label, Modifier.weight(1f), maxLines = 2)
+                        Text("${item.completionPct.roundToInt()}%", color = MaterialTheme.colorScheme.primary)
+                    }
+                    LinearProgressIndicator(
+                        progress = { (item.completionPct / 100.0).toFloat().coerceIn(0f, 1f) },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Text(
+                        "₴ ${item.completedAmountUah.formatUiAmount()} / ₴ ${item.contractAmountUah.formatUiAmount()}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+    }
+}
 
 @Composable
 private fun FinancialPaymentPurposeBadge(recordType: String, purpose: String) {

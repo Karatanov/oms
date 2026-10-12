@@ -9,8 +9,62 @@ import io.ktor.utils.io.readRemaining
 import kotlinx.io.readByteArray
 import oms.umitaf.config.AppContainer
 import oms.umitaf.dto.*
+import oms.umitaf.domain.FinancialRecordType
+import oms.umitaf.domain.ProjectType
 
 fun Route.financialRoutes() {
+    get("/api/v1/financials/progress") {
+        call.requireRole("ADMIN", "PROJECT_MANAGER") ?: return@get
+        val projects = AppContainer.projectService.getAllProjects()
+        val byId = projects.associateBy { it.id }
+        val subprojects = projects.filter { it.projectType == ProjectType.SUBPROJECT }
+        fun parentSubproject(projectId: Long): oms.umitaf.domain.Project? {
+            var current = byId[projectId] ?: return null
+            while (current.projectType != ProjectType.SUBPROJECT) {
+                current = current.parentProjectId?.let(byId::get) ?: return null
+            }
+            return current
+        }
+        val completedBySubprojectId = AppContainer.financialRecordService.getAll()
+            .asSequence()
+            .filter { it.recordType == FinancialRecordType.ACT }
+            .mapNotNull { record ->
+                val subproject = parentSubproject(record.projectId) ?: return@mapNotNull null
+                val uah = when (record.currency.uppercase()) {
+                    "UAH" -> record.amount
+                    "EUR" -> record.eurExchangeRate?.takeIf { it > 0 }?.let { record.amount * it }
+                    else -> null
+                } ?: return@mapNotNull null
+                subproject.id to uah
+            }
+            .groupBy({ it.first }, { it.second })
+            .mapValues { (_, amounts) -> amounts.sum() }
+        data class Aggregate(var contract: Double = 0.0, var completed: Double = 0.0)
+        fun aggregate(label: (oms.umitaf.domain.Project) -> String): List<FinancialProgressItemResponse> {
+            val rows = linkedMapOf<String, Aggregate>()
+            subprojects.forEach { subproject ->
+                val key = label(subproject).trim().ifBlank { "Unspecified" }
+                val totals = rows.getOrPut(key) { Aggregate() }
+                totals.contract += (subproject.subprojectContractAmount ?: subproject.budgetPlanned).toDouble()
+                totals.completed += completedBySubprojectId[subproject.id] ?: 0.0
+            }
+            return rows.map { (label, totals) ->
+                FinancialProgressItemResponse(
+                    label = label,
+                    contractAmountUah = totals.contract,
+                    completedAmountUah = totals.completed,
+                    completionPct = if (totals.contract > 0) totals.completed * 100.0 / totals.contract else 0.0
+                )
+            }.sortedBy { it.label }
+        }
+        call.respond(
+            FinancialProgressResponse(
+                byRegion = aggregate { it.region.orEmpty() },
+                byConstructionType = aggregate { it.constructionType }
+            )
+        )
+    }
+
     get("/api/v1/financials") {
         call.requireRole("ADMIN", "PROJECT_MANAGER") ?: return@get
         val records = AppContainer.financialRecordService.getAll()

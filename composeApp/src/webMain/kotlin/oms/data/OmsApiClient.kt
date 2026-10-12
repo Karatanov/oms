@@ -375,6 +375,9 @@ object OmsApiClient {
     suspend fun allFinancialRecords(): List<ApiProjectFinancialRecord> =
         client.get("$baseUrl/financials").body()
 
+    suspend fun financialProgress(): ApiFinancialProgress =
+        client.get("$baseUrl/financials/progress").body()
+
     suspend fun createFinancialRecord(projectUuid: String, request: FinancialRecordRequest): ApiFinancialRecord =
         client.post("$baseUrl/projects/$projectUuid/financials") {
             contentType(ContentType.Application.Json)
@@ -813,6 +816,16 @@ data class ApiMonthlyActPayment(val month: String, val amountEurCents: Long, val
     val signedContractsAmountUah: Double,
     val servicesPaidEurCents: Long,
     val servicesPaidUahCents: Long? = null
+)
+@Serializable data class ApiFinancialProgressItem(
+    val label: String,
+    val contractAmountUah: Double,
+    val completedAmountUah: Double,
+    val completionPct: Double
+)
+@Serializable data class ApiFinancialProgress(
+    val byRegion: List<ApiFinancialProgressItem> = emptyList(),
+    val byConstructionType: List<ApiFinancialProgressItem> = emptyList()
 )
 @Serializable data class ApiInspectionAnalytics(
     val monthlyInspectionCounts: List<ApiDashboardMetric> = emptyList(),
