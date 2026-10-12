@@ -12,6 +12,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import oms.umitaf.domain.ProjectType
 import oms.umitaf.domain.FinancialRecordType
+import oms.umitaf.domain.ProcurementRecord
 import oms.umitaf.service.ProjectPdfExportService
 
 /**
@@ -356,6 +357,14 @@ fun Route.projectRoutes() {
         val projects = projectService.getAllProjects().filter { project ->
             requestedUuids.isEmpty() || project.uuid.toString() in requestedUuids
         }
+        val monitoringByProjectId = projectService.monitoringDetailsByProjectIds(projects.map { it.id })
+        // The procurement register can contain several contracts for one
+        // subproject (Works, TS and CSC). Load it once and aggregate only
+        // actually signed contracts for the Subprojects export sheet.
+        val signedProcurementsByProjectId = AppContainer.procurementService.getAll()
+            .asSequence()
+            .filter { procurement -> procurement.isSignedContract() }
+            .groupBy { procurement -> procurement.projectId }
         call.response.header(HttpHeaders.ContentDisposition, "attachment; filename=oms-projects.xlsx")
         call.respondOutputStream(ContentType.parse("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")) {
             XSSFWorkbook().use { workbook ->
@@ -376,6 +385,55 @@ fun Route.projectRoutes() {
                     }
                 }
                 headers.indices.forEach(sheet::autoSizeColumn)
+
+                // Keep the legacy sheet intact and add a purpose-built SP tab.
+                // It is intentionally one row per subproject, so recipients can
+                // compare monitoring and signed-contract financing without
+                // manually joining the projects and procurement workbooks.
+                val subprojectsSheet = workbook.createSheet("Subprojects")
+                val subprojectHeaders = listOf(
+                    "subproject_code", "subproject_name", "tranche", "region",
+                    "municipality_uk", "municipality_en", "final_beneficiary_uk", "final_beneficiary_en",
+                    "works_contract_amount_uah", "works_eib_financing_uah", "works_local_financing_uah", "works_local_cofinancing_pct",
+                    "ts_contract_amount_uah", "ts_eib_financing_uah", "ts_local_financing_uah", "ts_local_cofinancing_pct",
+                    "csc_contract_amount_uah", "csc_eib_financing_uah", "csc_local_financing_uah", "csc_local_cofinancing_pct"
+                )
+                subprojectsSheet.createRow(0).apply {
+                    subprojectHeaders.forEachIndexed { index, header -> createCell(index).setCellValue(header) }
+                }
+                projects.asSequence()
+                    .filter { it.projectType == ProjectType.SUBPROJECT }
+                    .forEachIndexed { index, subproject ->
+                        val monitoring = monitoringByProjectId[subproject.id]
+                        val contracts = signedProcurementsByProjectId[subproject.id].orEmpty()
+                        val works = contracts.filter { it.isWorksContract() }.signedContractTotals()
+                        val technicalSupervision = contracts.filter { it.isTechnicalSupervisionContract() }.signedContractTotals()
+                        val engineerConsultant = contracts.filter { it.isEngineerConsultantContract() }.signedContractTotals()
+                        subprojectsSheet.createRow(index + 1).apply {
+                            createCell(0).setCellValue(subproject.siteNumber)
+                            createCell(1).setCellValue(subproject.name)
+                            createCell(2).setCellValue(subproject.trancheNumber.toString())
+                            createCell(3).setCellValue(subproject.region.orEmpty())
+                            createCell(4).setCellValue(monitoring?.municipalityNameUk.orEmpty())
+                            createCell(5).setCellValue(monitoring?.municipalityNameEn.orEmpty())
+                            createCell(6).setCellValue(monitoring?.beneficiaryNameUk.orEmpty())
+                            createCell(7).setCellValue(monitoring?.beneficiaryNameEn.orEmpty())
+                            setNumeric(8, works.contractAmountUah)
+                            setNumeric(9, works.eibFinancingUah)
+                            setNumeric(10, works.localFinancingUah)
+                            setNumeric(11, works.localCofinancingPct)
+                            setNumeric(12, technicalSupervision.contractAmountUah)
+                            setNumeric(13, technicalSupervision.eibFinancingUah)
+                            setNumeric(14, technicalSupervision.localFinancingUah)
+                            setNumeric(15, technicalSupervision.localCofinancingPct)
+                            setNumeric(16, engineerConsultant.contractAmountUah)
+                            setNumeric(17, engineerConsultant.eibFinancingUah)
+                            setNumeric(18, engineerConsultant.localFinancingUah)
+                            setNumeric(19, engineerConsultant.localCofinancingPct)
+                        }
+                    }
+                subprojectsSheet.createFreezePane(0, 1)
+                subprojectHeaders.indices.forEach(subprojectsSheet::autoSizeColumn)
                 workbook.write(this)
             }
         }
@@ -623,4 +681,58 @@ fun Route.projectRoutes() {
             )
         }
     }
+}
+
+private data class SignedContractTotals(
+    val contractAmountUah: Double?,
+    val eibFinancingUah: Double?,
+    val localFinancingUah: Double?,
+    val localCofinancingPct: Double?
+)
+
+/** The approved register uses bilingual statuses; retain a single semantic test
+ * here so the export cannot include tenders that have not become contracts. */
+private fun ProcurementRecord.isSignedContract(): Boolean =
+    purchaseStatus?.let { status ->
+        status.contains("Договір укладено", ignoreCase = true) ||
+            status.contains("Contract signed", ignoreCase = true)
+    } == true
+
+private fun ProcurementRecord.isWorksContract(): Boolean =
+    sourceContractType.orEmpty().let { type ->
+        type.contains("робот", ignoreCase = true) || type.contains("works", ignoreCase = true)
+    }
+
+private fun ProcurementRecord.isTechnicalSupervisionContract(): Boolean =
+    sourceContractType.orEmpty().let { type ->
+        type.contains("техніч", ignoreCase = true) || type.contains(" / ts", ignoreCase = true)
+    }
+
+private fun ProcurementRecord.isEngineerConsultantContract(): Boolean =
+    sourceContractType.orEmpty().let { type ->
+        type.contains("інженер", ignoreCase = true) ||
+            type.contains("consult", ignoreCase = true) ||
+            type.contains(" / csc", ignoreCase = true)
+    }
+
+/**
+ * Calculates financing distribution from signed contracts only.  Local funding
+ * is the contract remainder when the source provides the EIB amount; this is
+ * more reliable than summing percentages across several contracts.
+ */
+private fun Iterable<ProcurementRecord>.signedContractTotals(): SignedContractTotals {
+    val records = toList()
+    val contractAmount = records.mapNotNull { it.contractAmountUah }.sum().takeIf { records.any { it.contractAmountUah != null } }
+    val eibAmount = records.mapNotNull { it.realEibFinancingUah ?: it.estimatedEibUah }.sum()
+        .takeIf { records.any { it.realEibFinancingUah != null || it.estimatedEibUah != null } }
+    val localAmount = if (contractAmount != null && eibAmount != null) (contractAmount - eibAmount).coerceAtLeast(0.0) else null
+    val localPercent = when {
+        contractAmount != null && contractAmount > 0.0 && localAmount != null -> localAmount / contractAmount * 100.0
+        else -> records.mapNotNull { it.realLocalCoFinancingPct ?: it.localFinancingPct }.average().takeUnless { it.isNaN() }
+    }
+    return SignedContractTotals(contractAmount, eibAmount, localAmount, localPercent)
+}
+
+private fun org.apache.poi.ss.usermodel.Row.setNumeric(column: Int, value: Double?) {
+    value?.let { createCell(column).setCellValue(it) }
 }
