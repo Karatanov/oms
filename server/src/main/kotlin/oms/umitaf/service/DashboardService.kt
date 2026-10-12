@@ -39,12 +39,23 @@ data class DashboardNationalSummary(
     val servicesPaidEurCents: Long,
     val servicesPaidUahCents: Long?
 )
+/**
+ * Signed-contract indicators mirrored from the engineering dashboard.  The
+ * source workbook records actual contract values in UAH, so no speculative
+ * EUR conversion is applied here.
+ */
+data class DashboardContractTypeMetric(
+    val type: String,
+    val contractsCount: Long,
+    val contractAmountUah: Double
+)
 data class DashboardOverviewData(
     val recentInspections: List<DashboardRecentInspection>,
     val monthlyActPayments: List<MonthlyActPayment>,
     val subprojectFunding: List<DashboardSubprojectFunding>,
     val subprojectProgress: List<DashboardSubprojectProgress>,
     val procurementStatusCounts: List<DashboardMetric>,
+    val signedContractsByType: List<DashboardContractTypeMetric>,
     val nationalSummary: DashboardNationalSummary
 )
 
@@ -90,6 +101,42 @@ private fun isConstructionContractSigned(status: String?) =
 private fun isWorksContract(type: String?) = type?.let {
     it.contains("робот", ignoreCase = true) || it.contains("works", ignoreCase = true)
 } == true
+
+private val dashboardContractTypeOrder = listOf(
+    "dashboard_contract_works",
+    "dashboard_contract_technical_supervision",
+    "dashboard_contract_engineer_consultant"
+)
+
+private fun canonicalDashboardContractType(type: String?): String? {
+    val value = type?.trim()?.lowercase().orEmpty()
+    return when {
+        value == "ts" || value.contains("technical supervision") || value.contains("технічн") ->
+            "dashboard_contract_technical_supervision"
+        value == "csc" || value.contains("engineer-consultant") || value.contains("engineer consultant") ||
+            value.contains("інженер") || value.contains("консультант") ->
+            "dashboard_contract_engineer_consultant"
+        value == "w" || value.contains("works") || value.contains("робот") -> "dashboard_contract_works"
+        else -> null
+    }
+}
+
+private fun signedContractTypeMetrics(
+    procurementRecords: List<org.jetbrains.exposed.v1.core.ResultRow>
+): List<DashboardContractTypeMetric> {
+    val signedByType = procurementRecords.asSequence()
+        .filter { isConstructionContractSigned(it[ProcurementRecordTable.purchaseStatus]) }
+        .mapNotNull { row -> canonicalDashboardContractType(row[ProcurementRecordTable.sourceContractType])?.let { it to row } }
+        .groupBy({ it.first }, { it.second })
+    return dashboardContractTypeOrder.map { type ->
+        val rows = signedByType[type].orEmpty()
+        DashboardContractTypeMetric(
+            type = type,
+            contractsCount = rows.size.toLong(),
+            contractAmountUah = rows.sumOf { it[ProcurementRecordTable.contractAmountUah]?.toDouble() ?: 0.0 }
+        )
+    }
+}
 
 /** Source workbooks identify tranches as batches 8 and 9; user-created records
  * use the application values 1 and 2. Both pairs represent the same A/B cut. */
@@ -212,6 +259,7 @@ class DashboardService(
             )
         }.sortedBy { it.name }
         val procurementStatusCounts = procurementStatusMetrics(procurementRecords)
+        val signedContractsByType = signedContractTypeMetrics(procurementRecords)
         val signedContracts = procurementRecords.filter { record ->
             isConstructionContractSigned(record[ProcurementRecordTable.purchaseStatus])
         }
@@ -245,7 +293,7 @@ class DashboardService(
                     subprojectFor(inspection.projectId)?.let { projectsById[it]?.get(ProjectTable.siteNumber) }
                 )
             },
-            monthlyActPayments, subprojectFunding, subprojectProgress, procurementStatusCounts, nationalSummary
+            monthlyActPayments, subprojectFunding, subprojectProgress, procurementStatusCounts, signedContractsByType, nationalSummary
         )
     }
 

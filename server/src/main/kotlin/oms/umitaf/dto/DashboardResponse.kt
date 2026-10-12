@@ -31,6 +31,7 @@ data class DashboardOverviewResponse(
     val subprojectFunding: List<SubprojectFundingResponse> = emptyList(),
     val subprojectProgress: List<SubprojectProgressResponse> = emptyList(),
     val procurementStatusCounts: List<DashboardMetricResponse> = emptyList(),
+    val signedContractsByType: List<DashboardContractTypeMetricResponse> = emptyList(),
     val nationalSummary: DashboardNationalSummaryResponse? = null
 )
 
@@ -52,6 +53,11 @@ data class MonthlyActPaymentResponse(
 )
 @Serializable data class SubprojectProgressResponse(val projectUuid: String, val code: String, val name: String, val nameEn: String? = null, val region: String, val completionPct: Double)
 @Serializable data class DashboardMetricResponse(val label: String, val value: Long)
+@Serializable data class DashboardContractTypeMetricResponse(
+    val type: String,
+    val contractsCount: Long,
+    val contractAmountUah: Double
+)
 @Serializable data class DashboardNationalSummaryResponse(
     val subprojectsCount: Long,
     val regionsCount: Long,

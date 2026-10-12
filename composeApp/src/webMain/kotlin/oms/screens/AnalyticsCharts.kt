@@ -186,6 +186,8 @@ fun MetricsChart(
         val isMonth = metric.label.matches(Regex("\\d{4}-\\d{2}"))
         val displayLabel = if (titleKey.contains("procurement_status")) {
             LocalizationManager.procurementStatus(metric.label)
+        } else if (titleKey.contains("signed_contract")) {
+            LocalizationManager.t(metric.label)
         } else metric.label
         BarData(
             label = if (centerYearLabels && isMonth) displayLabel.toMonthName() else displayLabel.toChartMonth(),

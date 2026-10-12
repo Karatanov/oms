@@ -160,6 +160,27 @@ fun DashboardScreen(
                         second = { MonthlyActPaymentsChart(MaterialTheme.colorScheme.primary, dashboard?.monthlyActPayments.orEmpty(), onOpenFinancialByMonth, chartOrientation) }
                     )
                 }
+                item {
+                    val contractTypes = dashboard?.signedContractsByType.orEmpty()
+                    AdaptiveChartRow(
+                        first = {
+                            MetricsChart(
+                                "signed_contracts_by_type",
+                                hintKey = "signed_contracts_by_type_hint",
+                                metrics = contractTypes.map { ApiDashboardMetric(it.type, it.contractsCount) },
+                                orientation = chartOrientation
+                            )
+                        },
+                        second = {
+                            MetricsChart(
+                                "signed_contract_value_by_type",
+                                hintKey = "signed_contract_value_by_type_hint",
+                                metrics = contractTypes.map { ApiDashboardMetric(it.type, it.contractAmountUah.roundToLong()) },
+                                orientation = chartOrientation
+                            )
+                        }
+                    )
+                }
                 item { DashboardPhotoSlider(latest?.uuid, latest?.inspectionDate, latest?.subprojectCode, latestPhotos, onOpenInspectionPreview) }
             }
         }

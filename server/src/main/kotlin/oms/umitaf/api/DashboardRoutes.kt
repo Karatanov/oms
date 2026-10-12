@@ -12,6 +12,7 @@ import oms.umitaf.dto.MonthlyActPaymentResponse
 import oms.umitaf.dto.SubprojectFundingResponse
 import oms.umitaf.dto.SubprojectProgressResponse
 import oms.umitaf.dto.DashboardMetricResponse
+import oms.umitaf.dto.DashboardContractTypeMetricResponse
 import oms.umitaf.dto.DashboardNationalSummaryResponse
 import java.time.ZoneOffset
 
@@ -27,6 +28,9 @@ fun Route.dashboardRoutes() {
                 subprojectFunding = overview.subprojectFunding.map { SubprojectFundingResponse(it.projectUuid, it.name, it.region, it.amountUah, it.amountEur) },
                 subprojectProgress = overview.subprojectProgress.map { SubprojectProgressResponse(it.projectUuid, it.code, it.name, it.nameEn, it.region, it.completionPct) },
                 procurementStatusCounts = overview.procurementStatusCounts.map { DashboardMetricResponse(it.label, it.value) },
+                signedContractsByType = overview.signedContractsByType.map {
+                    DashboardContractTypeMetricResponse(it.type, it.contractsCount, it.contractAmountUah)
+                },
                 nationalSummary = DashboardNationalSummaryResponse(
                     overview.nationalSummary.subprojectsCount,
                     overview.nationalSummary.regionsCount,
