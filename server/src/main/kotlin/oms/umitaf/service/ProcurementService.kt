@@ -6,11 +6,16 @@ import oms.umitaf.domain.ProjectType
 import oms.umitaf.dto.ProcurementRecordRequest
 import java.time.LocalDate
 import java.util.UUID
+import java.util.concurrent.Executors
+import java.util.concurrent.ScheduledExecutorService
+import java.util.concurrent.TimeUnit
+import org.slf4j.LoggerFactory
 
 class ProcurementService(
     private val repository: ProcurementRecordRepository,
     private val projectService: ProjectService
 ) {
+    private val logger = LoggerFactory.getLogger(javaClass)
     data class RefreshStatus(
         val id: String,
         val status: String,
@@ -31,12 +36,53 @@ class ProcurementService(
 
     private val refreshLock = Any()
     @Volatile private var activeRefresh: RefreshJob? = null
+    @Volatile private var automaticRefreshStarted = false
+    private var automaticRefreshExecutor: ScheduledExecutorService? = null
 
     fun getAll() = repository.findAll()
     fun getBySubProjectId(subProjectId: String) = repository.findBySubProjectId(subProjectId)
     fun create(request: ProcurementRecordRequest) = repository.create(request.toRecord())
     fun update(id: Long, request: ProcurementRecordRequest) = repository.update(id, request.toRecord())
     fun delete(id: Long) = repository.delete(id)
+
+    /**
+     * Keeps the procurement registry aligned with the approved DB6.3 source
+     * without turning an application restart into a long, blocking download.
+     * The existing refresh workflow validates the complete source before it
+     * replaces records, so a failed scheduled run leaves the last good data
+     * untouched.  The administrator can still request an immediate refresh.
+     */
+    fun startAutomaticApprovedSourceRefresh(
+        initialDelayMinutes: Long,
+        intervalHours: Long
+    ) = synchronized(refreshLock) {
+        if (automaticRefreshStarted) return
+        automaticRefreshStarted = true
+        automaticRefreshExecutor = Executors.newSingleThreadScheduledExecutor { runnable ->
+            Thread(runnable, "procurement-auto-refresh").apply { isDaemon = true }
+        }.also { executor ->
+            executor.scheduleWithFixedDelay({
+                try {
+                    startApprovedSourceRefresh()
+                    logger.info("Scheduled procurement registry refresh started.")
+                } catch (error: IllegalStateException) {
+                    logger.info("Scheduled procurement registry refresh skipped: {}", error.message)
+                } catch (error: Exception) {
+                    logger.warn("Scheduled procurement registry refresh could not start.", error)
+                }
+            }, initialDelayMinutes.coerceAtLeast(1), intervalHours.coerceAtLeast(1) * 60, TimeUnit.MINUTES)
+        }
+        logger.info(
+            "Scheduled procurement registry refresh enabled: every {} hour(s), first run in {} minute(s).",
+            intervalHours.coerceAtLeast(1), initialDelayMinutes.coerceAtLeast(1)
+        )
+    }
+
+    fun stopAutomaticApprovedSourceRefresh() = synchronized(refreshLock) {
+        automaticRefreshExecutor?.shutdownNow()
+        automaticRefreshExecutor = null
+        automaticRefreshStarted = false
+    }
 
     /**
      * Rebuilds the registry from the approved DB6 workbook. Parsing and

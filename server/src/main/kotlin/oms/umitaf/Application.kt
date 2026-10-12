@@ -1,6 +1,7 @@
 package oms.umitaf
 
 import io.ktor.server.application.*
+import oms.umitaf.config.AppContainer
 import oms.umitaf.plugins.*
 
 /**
@@ -60,10 +61,26 @@ fun Application.module(
      */
     if (configureDatabase) {
         configureDatabase()
+        configureProcurementAutoRefresh()
     }
 
     /**
      * Реєструємо HTTP-маршрути застосунку.
      */
     configureRouting()
+}
+
+/** Approved procurement data are imported periodically.  It is deliberately
+ * configured after the database migrations and does not block application
+ * start or browser navigation. */
+private fun Application.configureProcurementAutoRefresh() {
+    if (System.getenv("PROCUREMENT_AUTO_REFRESH_ENABLED").equals("false", ignoreCase = true)) return
+    val initialDelay = System.getenv("PROCUREMENT_AUTO_REFRESH_INITIAL_DELAY_MINUTES")
+        ?.toLongOrNull()?.coerceAtLeast(1) ?: 5L
+    val intervalHours = System.getenv("PROCUREMENT_AUTO_REFRESH_INTERVAL_HOURS")
+        ?.toLongOrNull()?.coerceAtLeast(1) ?: 24L
+    AppContainer.procurementService.startAutomaticApprovedSourceRefresh(initialDelay, intervalHours)
+    environment.monitor.subscribe(ApplicationStopping) {
+        AppContainer.procurementService.stopAutomaticApprovedSourceRefresh()
+    }
 }

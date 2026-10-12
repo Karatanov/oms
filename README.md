@@ -57,6 +57,8 @@ The development UI calls `http://localhost:8080/api/v1`. The integrated producti
 
 `.env.example` is the source of truth for local environment names. Required persistent-deployment values are database credentials and a random `OMS_JWT_SECRET` of at least 32 characters. `OMS_UPLOAD_DIR` selects the filesystem root; `OMS_LOG_LEVEL` defaults to `INFO`; `CORS_ALLOWED_HOST` is needed only when the frontend is hosted on a different origin.
 
+The approved DB6.3 procurement workbook is refreshed automatically five minutes after server start and then every 24 hours. Configure its direct XLSX URL with `PROCUREMENT_SOURCE_URL`; `PROCUREMENT_AUTO_REFRESH_ENABLED`, `PROCUREMENT_AUTO_REFRESH_INITIAL_DELAY_MINUTES`, and `PROCUREMENT_AUTO_REFRESH_INTERVAL_HOURS` control the schedule. A source error is logged and preserves the previous validated registry.
+
 No production credentials, TLS keys or production `.env` file belong in Git.
 
 ## Build and test
