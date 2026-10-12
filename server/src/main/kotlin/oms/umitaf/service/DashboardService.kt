@@ -87,6 +87,10 @@ private fun procurementStatusMetrics(procurementRecords: List<org.jetbrains.expo
 private fun isConstructionContractSigned(status: String?) =
     status?.let { it.contains("Договір укладено", ignoreCase = true) || it.contains("Contract signed", ignoreCase = true) } == true
 
+private fun isWorksContract(type: String?) = type?.let {
+    it.contains("робот", ignoreCase = true) || it.contains("works", ignoreCase = true)
+} == true
+
 /** Source workbooks identify tranches as batches 8 and 9; user-created records
  * use the application values 1 and 2. Both pairs represent the same A/B cut. */
 private fun Int.matchesTrancheFilter(filter: Int?): Boolean = filter == null || when (filter) {
@@ -176,20 +180,32 @@ class DashboardService(
                 current = project[ProjectTable.parentProjectId]?.value ?: return null
             }
         }
+        // Completion is defined as completed-work acts / construction contract.
+        // Convert every act to UAH before aggregating — a raw sum of UAH and
+        // EUR was the reason mixed-currency portfolios could misleadingly show
+        // 0% (or an unrelated percentage) for every subproject.
         val actualBySubproject = actRecords.groupBy { subprojectFor(it[FinancialRecordTable.projectId].value) }
             .filterKeys { it != null }
-            .mapValues { (_, rows) -> rows.sumOf { it[FinancialRecordTable.amount] }.toDouble() }
+            .mapValues { (_, rows) -> rows.sumOf { (it.amountUahCents() ?: 0L).toDouble() / 100.0 } }
         val procurementProjectCodes = projects.mapNotNull { it[ProjectTable.siteNumber]?.trim()?.lowercase()?.takeIf(String::isNotBlank) }.toSet() +
             projects.map { it[ProjectTable.uuid].lowercase() }.toSet()
         val procurementRecords = if (allowedProjectIds == null) ProcurementRecordTable.selectAll().toList().filter { record ->
             trancheNumber == null || record[ProcurementRecordTable.subProjectId].trim().lowercase() in procurementProjectCodes
         } else emptyList()
+        val signedWorksAmountBySubprojectCode = procurementRecords.asSequence()
+            .filter { record ->
+                isConstructionContractSigned(record[ProcurementRecordTable.purchaseStatus]) &&
+                    isWorksContract(record[ProcurementRecordTable.sourceContractType])
+            }
+            .groupBy { it[ProcurementRecordTable.subProjectId].trim().lowercase() }
+            .mapValues { (_, records) -> records.sumOf { it[ProcurementRecordTable.contractAmountUah]?.toDouble() ?: 0.0 } }
         // Progress must cover every subproject.  A missing or unsigned
         // construction contract simply results in 0%, rather than hiding its
         // region from the dashboard filter.
-        val subprojectProgress = subprojects.map { row ->
+        val subprojectProgress = subprojects.filter { it[ProjectTable.status] == "active" }.map { row ->
             val id = row[ProjectTable.id].value
-            val contract = row[ProjectTable.subprojectContractAmount] ?: row[ProjectTable.budgetPlanned]
+            val contract = signedWorksAmountBySubprojectCode[row[ProjectTable.siteNumber].orEmpty().trim().lowercase()]
+                ?: (row[ProjectTable.subprojectContractAmount] ?: row[ProjectTable.budgetPlanned]).toDouble()
             DashboardSubprojectProgress(
                 row[ProjectTable.uuid], row[ProjectTable.siteNumber].orEmpty(), row[ProjectTable.name], nameEnByProjectId[id], row[ProjectTable.region].orEmpty(),
                 if (contract > 0) (actualBySubproject[id] ?: 0.0) * 100.0 / contract else 0.0
