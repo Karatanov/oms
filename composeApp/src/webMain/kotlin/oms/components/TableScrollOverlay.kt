@@ -25,6 +25,7 @@ private data class ActiveTableNavigator(val id: Any, val scroll: ScrollState)
 
 internal class TableScrollOverlayState {
     private var active by mutableStateOf<ActiveTableNavigator?>(null)
+    var hidden by mutableStateOf(false)
 
     fun show(id: Any, scroll: ScrollState) {
         active = ActiveTableNavigator(id, scroll)
@@ -36,6 +37,7 @@ internal class TableScrollOverlayState {
 
     @Composable
     fun BoxScope.Content() {
+        if (hidden) return
         val navigator = active ?: return
         Surface(
             modifier = Modifier.align(Alignment.BottomCenter)

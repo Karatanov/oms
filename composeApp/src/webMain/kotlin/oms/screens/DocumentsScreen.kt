@@ -159,7 +159,7 @@ fun DocumentsScreen(canManageDocuments: Boolean = true) {
     fun selectSort(column: DocumentSort) { if (sort == column) ascending = !ascending else { sort = column; ascending = true } }
     Box(Modifier.fillMaxSize()) {
     Column(
-        Modifier.fillMaxSize().verticalScroll(pageScrollState).padding(24.dp),
+        Modifier.fillMaxSize().verticalScroll(pageScrollState).padding(oms.layout.workspacePadding()),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         oms.components.PageHeading(LocalizationManager.t("documents_title"), Icons.Default.FolderOpen) {
@@ -322,15 +322,15 @@ private fun DocumentPagination(
     onPageSize: (Int) -> Unit,
     onPage: (Int) -> Unit
 ) {
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+    oms.components.AdaptivePagination(sizeControls = {
         Text(LocalizationManager.t("rows_per_page"), style = MaterialTheme.typography.bodySmall)
         Spacer(Modifier.width(8.dp))
         InlineOptionPicker(listOf(20, 50, 100), pageSize, LocalizationManager.t("rows_per_page"), onPageSize, modifier = Modifier.width(100.dp), fillWidth = false)
-        Spacer(Modifier.width(16.dp))
+    }, navigation = {
         TextButton(onClick = { onPage((currentPage - 1).coerceAtLeast(0)) }, enabled = currentPage > 0) { Text("‹") }
         Text(if (total == 0) "0 / 0" else "${currentPage * pageSize + 1}–${minOf((currentPage + 1) * pageSize, total)} / $total")
         TextButton(onClick = { onPage((currentPage + 1).coerceAtMost(pageCount - 1)) }, enabled = currentPage < pageCount - 1) { Text("›") }
-    }
+    })
 }
 
 @Composable

@@ -185,11 +185,11 @@ fun ProcurementScreen(
                 }
             }
             .verticalScroll(contentScrollState)
-            .padding(start = 24.dp, top = 24.dp, end = 76.dp, bottom = 24.dp)
+            .padding(oms.layout.workspacePadding(withScrollControls = true))
     ) {
         oms.components.PageHeading(LocalizationManager.t("procurement_title"), Icons.Default.ShoppingCart) {
             if (canManageProcurements) {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedButton(enabled = refreshJob?.status !in setOf("RUNNING", "CANCELLING"), onClick = {
                         error = null; registryRefreshMessage = null; refreshConfirmationOpen = true
                     }) {
@@ -308,7 +308,7 @@ fun ProcurementScreen(
             }
         }
     }
-    Column(
+    if (!oms.layout.LocalMobileLayout.current) Column(
         modifier = Modifier.align(Alignment.CenterEnd).padding(end = 20.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
         horizontalAlignment = Alignment.CenterHorizontally
@@ -398,10 +398,7 @@ private fun ProcurementPagination(
     onPageSize: (Int) -> Unit,
     onPage: (Int) -> Unit
 ) {
-    Row(
-        horizontalArrangement = Arrangement.End,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
+    oms.components.AdaptivePagination(sizeControls = {
         Text(LocalizationManager.t("rows_per_page"), style = MaterialTheme.typography.bodySmall)
         Spacer(Modifier.width(8.dp))
         InlineOptionPicker(
@@ -412,7 +409,7 @@ private fun ProcurementPagination(
             itemLabel = { if (it == Int.MAX_VALUE) LocalizationManager.t("all") else it.toString() },
             fillWidth = false
         )
-        Spacer(Modifier.width(12.dp))
+    }, navigation = {
         Text(
             LocalizationManager.t("page_of")
                 .replace("{page}", (currentPage + 1).toString())
@@ -422,7 +419,7 @@ private fun ProcurementPagination(
         )
         TableActionIconButton(LocalizationManager.t("previous_page"), Icons.Default.KeyboardArrowLeft) { onPage(currentPage - 1) }
         TableActionIconButton(LocalizationManager.t("next_page"), Icons.Default.KeyboardArrowRight) { onPage(currentPage + 1) }
-    }
+    })
 }
 
 @Composable

@@ -1,6 +1,8 @@
 package oms.screens
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -52,11 +54,31 @@ fun MapScreen(onOpenProject: (Project) -> Unit = {}) {
         (search.isBlank() || it.localizedName().contains(search, true) || it.siteNumber.contains(search, true) || it.localizedCity().contains(search, true)) &&
         (region == null || it.region == region) && (status == null || it.status == status)
     }
-    Column(Modifier.fillMaxSize().padding(24.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        PageHeading(LocalizationManager.t("projects_map"), Icons.Default.Map)
+    val mobile = oms.layout.LocalMobileLayout.current
+    var filtersExpanded by remember { mutableStateOf(false) }
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+    // Leave room for the heading/actions and a usable map, even on short phones.
+    val filterHeight = (maxHeight * .5f).coerceAtMost((maxHeight - 400.dp).coerceAtLeast(80.dp))
+    val shortViewport = maxHeight < 500.dp
+    Column(Modifier.fillMaxSize().padding(oms.layout.workspacePadding()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        if (mobile && shortViewport) Text(LocalizationManager.t("projects_map"), style = MaterialTheme.typography.titleLarge)
+        else PageHeading(LocalizationManager.t("projects_map"), Icons.Default.Map)
+        if (mobile) Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Text("${LocalizationManager.t("markers_count")} ${visible.size}", Modifier.weight(1f), style = MaterialTheme.typography.labelLarge)
+            TextButton(onClick = { filtersExpanded = !filtersExpanded }) {
+                Icon(if (filtersExpanded) Icons.Default.ExpandLess else Icons.Default.FilterList, null)
+                Spacer(Modifier.width(6.dp))
+                Text(LocalizationManager.t("filters"))
+            }
+        }
+        if (!mobile || filtersExpanded) Column(
+            if (mobile) (if (shortViewport) Modifier.weight(1f).fillMaxWidth() else Modifier.fillMaxWidth().heightIn(max = filterHeight))
+                .verticalScroll(rememberScrollState()) else Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
         Text(LocalizationManager.t("map_scope"), style = MaterialTheme.typography.labelLarge)
-        Row(Modifier.widthIn(max = 680.dp).fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            SingleChoiceSegmentedButtonRow(Modifier.weight(1f)) {
+        @Composable fun ScopeSelector(modifier: Modifier) {
+            SingleChoiceSegmentedButtonRow(modifier) {
                 MapScope.entries.forEachIndexed { index, option ->
                     SegmentedButton(
                         selected = mapScope == option,
@@ -69,7 +91,9 @@ fun MapScreen(onOpenProject: (Project) -> Unit = {}) {
                     )
                 }
             }
-            SingleChoiceSegmentedButtonRow(Modifier.weight(1f)) {
+        }
+        @Composable fun TrancheSelector(modifier: Modifier) {
+            SingleChoiceSegmentedButtonRow(modifier) {
                 listOf<Int?>(null, 1, 2).forEachIndexed { index, option ->
                     SegmentedButton(
                         selected = trancheNumber == option,
@@ -87,6 +111,15 @@ fun MapScreen(onOpenProject: (Project) -> Unit = {}) {
                         }
                     )
                 }
+            }
+        }
+        BoxWithConstraints(Modifier.widthIn(max = 680.dp).fillMaxWidth()) {
+            if (maxWidth < 620.dp) Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                ScopeSelector(Modifier.fillMaxWidth())
+                TrancheSelector(Modifier.fillMaxWidth())
+            } else Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                ScopeSelector(Modifier.weight(1f))
+                TrancheSelector(Modifier.weight(1f))
             }
         }
         BoxWithConstraints(Modifier.fillMaxWidth()) {
@@ -117,23 +150,25 @@ fun MapScreen(onOpenProject: (Project) -> Unit = {}) {
             } else {
                 FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     controls(Modifier.fillMaxWidth())
-                    regionFilter(Modifier.width(200.dp))
-                    statusFilter(Modifier.width(190.dp))
+                    regionFilter(if (mobile) Modifier.fillMaxWidth() else Modifier.width(200.dp))
+                    statusFilter(if (mobile) Modifier.fillMaxWidth() else Modifier.width(190.dp))
                     reset()
                 }
             }
         }
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Text("${LocalizationManager.t("markers_count")} ${visible.size}", Modifier.weight(1f), style = MaterialTheme.typography.labelLarge)
+        }
+        if (!mobile || !shortViewport || !filtersExpanded) FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            if (!mobile) Text("${LocalizationManager.t("markers_count")} ${visible.size}", Modifier.align(Alignment.CenterVertically), style = MaterialTheme.typography.labelLarge)
             TextButton(onClick = ::fitUkraineOverview) { Icon(Icons.Default.Public, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text(LocalizationManager.t("all_ukraine")) }
             TextButton(onClick = ::fitLeafletResults, enabled = visible.isNotEmpty()) { Icon(Icons.Default.CenterFocusStrong, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text(LocalizationManager.t("fit_results")) }
         }
         if (ProjectRepository.loading) ContentState(LocalizationManager.t("loading_records"), loading = true)
         else if (ProjectRepository.errorMessage != null) ContentState(LocalizationManager.t("load_records_error"), error = true, onRetry = { scope.launch { ProjectRepository.refresh(force = true) } })
         else if (visible.isEmpty()) ContentState(LocalizationManager.t("no_map_results"))
-        Box(Modifier.fillMaxWidth().weight(1f)) {
+        if (!mobile || !shortViewport || !filtersExpanded) Box(Modifier.fillMaxWidth().weight(1f)) {
             LeafletMapView(visible, allProjects = projects) { id -> visible.firstOrNull { it.id == id }?.let(onOpenProject) }
         }
+    }
     }
 }
 

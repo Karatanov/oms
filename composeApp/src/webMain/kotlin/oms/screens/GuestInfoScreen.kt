@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.OpenInNew
@@ -26,14 +28,15 @@ import oms.localization.LocalizationManager
 /** The guest session deliberately exposes programme context, never project data. */
 @Composable
 fun GuestInfoScreen() {
+    oms.navigation.ReportRouteReadiness(loading = false)
     val uriHandler = LocalUriHandler.current
     Column(
-        Modifier.fillMaxSize().padding(24.dp),
+        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(oms.layout.workspacePadding()),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         PageHeading(LocalizationManager.t("guest_information"), Icons.Default.Info)
         Card(Modifier.fillMaxWidth()) {
-            Column(Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(Modifier.padding(if (oms.layout.LocalMobileLayout.current) 16.dp else 24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(LocalizationManager.t("guest_programme_title"), style = MaterialTheme.typography.headlineSmall)
                 Text(LocalizationManager.t("guest_programme_description"), style = MaterialTheme.typography.bodyLarge)
                 Spacer(Modifier.height(4.dp))
@@ -41,7 +44,7 @@ fun GuestInfoScreen() {
             }
         }
         Card(Modifier.fillMaxWidth()) {
-            Column(Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(Modifier.padding(if (oms.layout.LocalMobileLayout.current) 16.dp else 24.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(LocalizationManager.t("guest_contacts_title"), style = MaterialTheme.typography.titleLarge)
                 Text(LocalizationManager.t("guest_contacts_description"))
                 TextButton(

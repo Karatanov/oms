@@ -47,8 +47,14 @@ jobs:
         env:
           OMS_SMOKE_ASSETS: build/navigation-fixture
         run: node tools/test-route-transitions.cjs
+      - name: Mobile and tablet layouts in Chromium
+        env:
+          OMS_SMOKE_ASSETS: build/navigation-fixture
+        run: node tools/test-mobile-layout.cjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: project-form-test-results
-          path: composeApp/build/reports/tests/
+          path: |
+            composeApp/build/reports/tests/
+            build/mobile-layout-screenshots/

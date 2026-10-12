@@ -348,7 +348,7 @@ fun CreateInspectionScreen(
                 }
             }
             .verticalScroll(pageScrollState)
-            .padding(start = 24.dp, top = 24.dp, end = 76.dp, bottom = 24.dp),
+            .padding(oms.layout.workspacePadding(withScrollControls = true)),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         PageHeading(
@@ -688,7 +688,7 @@ fun CreateInspectionScreen(
         }
         errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error) }
     }
-    Column(
+    if (!oms.layout.LocalMobileLayout.current) Column(
         modifier = Modifier.align(Alignment.CenterEnd).padding(end = 20.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
         horizontalAlignment = Alignment.CenterHorizontally

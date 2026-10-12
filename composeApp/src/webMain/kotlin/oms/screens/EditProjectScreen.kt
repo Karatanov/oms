@@ -32,7 +32,7 @@ fun EditProjectScreen(project: Project, onCancel: () -> Unit = {}, onSaved: (Pro
             }.onFailure { error = L.t("error_load_project") }
     }
     MaterialTheme(colorScheme = MaterialTheme.colorScheme.copy(onPrimary = Color.White)) {
-        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(oms.layout.workspacePadding()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             oms.components.PageHeading(L.t("edit_project"), Icons.Default.Edit)
             val form = state
             if (form == null) CircularProgressIndicator() else {

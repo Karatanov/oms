@@ -45,7 +45,10 @@ fun ScrollableTable(
     val liveTableTop = pageScrollState?.let { scrollState ->
         (tableTopInPage ?: tableTopInRoot + scrollState.value) - scrollState.value
     } ?: tableTopInRoot
-    val stickyOffset = (-liveTableTop)
+    val contentTop = with(androidx.compose.ui.platform.LocalDensity.current) {
+        if (oms.layout.LocalMobileLayout.current) 56.dp.toPx() else 0f
+    }
+    val stickyOffset = (contentTop - liveTableTop)
         .coerceAtLeast(0f)
         .coerceAtMost((tableHeight - headerHeight).coerceAtLeast(0).toFloat())
     val surface = MaterialTheme.colorScheme.surface

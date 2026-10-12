@@ -30,7 +30,7 @@ fun CreateProjectScreen(onCancel: () -> Unit = {}, onCreated: () -> Unit = {}) {
         runCatching { OmsApiClient.projectExchangeRate() }.getOrNull()?.let(state::applyRate)
     }
     MaterialTheme(colorScheme = MaterialTheme.colorScheme.copy(onPrimary = Color.White)) {
-        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(oms.layout.workspacePadding()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             oms.components.PageHeading(L.t("create_project"), Icons.Default.CreateNewFolder)
             Text(L.t("project_created_hint"), color = MaterialTheme.colorScheme.onSurfaceVariant)
             ProjectForm(state, parents, editing = false, loadParentsOnOpen = {

@@ -1,6 +1,7 @@
 html, body {
     width: 100%;
     height: 100%;
+    height: 100dvh;
     margin: 0;
     padding: 0;
     overflow: hidden;
@@ -172,6 +173,7 @@ body {
 
 @media (max-width: 800px) {
     .photo-slider-item { flex-basis: 150px; height: 132px; }
+    .oms-route-card { box-sizing: border-box; max-width: calc(100% - 24px); flex-wrap: wrap; gap: 8px; padding: 16px; }
 }
 
 #map-pane {
@@ -194,6 +196,11 @@ body.map-visible #map-pane {
 
 /* The in-canvas option layer must remain above native map/image surfaces. */
 body.canvas-overlay-open #map-pane, body.canvas-overlay-open #dashboard-photo-slider, body.canvas-overlay-open .inspection-photo-preview-pane { visibility: hidden; }
+body.mobile-navigation-open #map-pane,
+body.mobile-navigation-open #dashboard-photo-slider,
+body.mobile-navigation-open .inspection-photo-preview-pane,
+body.mobile-navigation-open .inspection-report-photo-gallery,
+body.mobile-navigation-open #oms-route-transition { visibility: hidden; }
 
 #oms-paste-notice {
     position: fixed;

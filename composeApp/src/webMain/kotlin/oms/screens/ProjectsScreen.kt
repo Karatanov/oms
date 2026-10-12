@@ -184,7 +184,7 @@ fun ProjectsScreen(
             .verticalScroll(pageScrollState)
             // Leave a fixed lane for the page-scroll controls, as on the
             // procurement and inspection-report screens.
-            .padding(start = 16.dp, top = 16.dp, end = 76.dp, bottom = 16.dp)
+            .padding(oms.layout.workspacePadding(withScrollControls = true, desktop = 16.dp))
     ) {
 
         // The programme is contextual information, not a table row.  Keep it
@@ -335,7 +335,7 @@ fun ProjectsScreen(
         Spacer(Modifier.height(16.dp))
 
     }
-    Surface(
+    if (!oms.layout.LocalMobileLayout.current) Surface(
         modifier = Modifier.align(Alignment.CenterEnd).padding(end = 16.dp).zIndex(10f),
         shape = MaterialTheme.shapes.large,
         color = MaterialTheme.colorScheme.surface,
@@ -501,17 +501,17 @@ private fun ProjectPagination(
     pageSize: Int, currentPage: Int, pageCount: Int, total: Int,
     onPageSize: (Int) -> Unit, onPage: (Int) -> Unit
 ) {
-    Row(horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
+    oms.components.AdaptivePagination(sizeControls = {
         Text(LocalizationManager.t("rows_per_page"), style = MaterialTheme.typography.bodySmall)
         Spacer(Modifier.width(8.dp))
         InlineOptionPicker(listOf(20, 50, 100, Int.MAX_VALUE), pageSize, LocalizationManager.t("rows_per_page"), onPageSize,
             itemLabel = { if (it == Int.MAX_VALUE) LocalizationManager.t("all") else it.toString() }, fillWidth = false)
-        Spacer(Modifier.width(12.dp))
+    }, navigation = {
         Text(LocalizationManager.t("page_of").replace("{page}", (currentPage + 1).toString())
             .replace("{pages}", pageCount.toString()).replace("{total}", total.toString()), style = MaterialTheme.typography.bodySmall)
         TableActionIconButton(LocalizationManager.t("previous_page"), Icons.Default.KeyboardArrowLeft) { onPage(currentPage - 1) }
         TableActionIconButton(LocalizationManager.t("next_page"), Icons.Default.KeyboardArrowRight) { onPage(currentPage + 1) }
-    }
+    })
 }
 
 private data class ProjectTreeRow(

@@ -285,7 +285,7 @@ fun FinancialScreen(
                     else -> false
                 }
             }
-            .verticalScroll(pageScrollState).padding(start = 24.dp, top = 24.dp, end = 76.dp, bottom = 24.dp),
+            .verticalScroll(pageScrollState).padding(oms.layout.workspacePadding(withScrollControls = true)),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         oms.components.PageHeading(LocalizationManager.t("financial_monitoring"), Icons.Default.AccountBalance, iconText = "€") {
@@ -452,7 +452,7 @@ fun FinancialScreen(
 
         errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error) }
     }
-    Surface(
+    if (!oms.layout.LocalMobileLayout.current) Surface(
         modifier = Modifier.align(Alignment.CenterEnd).padding(end = 16.dp).zIndex(10f),
         shape = MaterialTheme.shapes.large,
         color = MaterialTheme.colorScheme.surface,
@@ -818,7 +818,7 @@ private fun FinancialPagination(
     onPageSize: (Int) -> Unit,
     onPage: (Int) -> Unit
 ) {
-    Row(horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
+    oms.components.AdaptivePagination(sizeControls = {
         Text(LocalizationManager.t("rows_per_page"), style = MaterialTheme.typography.bodySmall)
         Spacer(Modifier.width(8.dp))
         InlineOptionPicker(
@@ -829,7 +829,7 @@ private fun FinancialPagination(
             itemLabel = { if (it == Int.MAX_VALUE) LocalizationManager.t("all") else it.toString() },
             fillWidth = false
         )
-        Spacer(Modifier.width(12.dp))
+    }, navigation = {
         Text(
             LocalizationManager.t("page_of")
                 .replace("{page}", (currentPage + 1).toString())
@@ -839,7 +839,7 @@ private fun FinancialPagination(
         )
         TableActionIconButton(LocalizationManager.t("previous_page"), Icons.Default.KeyboardArrowLeft) { onPage(currentPage - 1) }
         TableActionIconButton(LocalizationManager.t("next_page"), Icons.Default.KeyboardArrowRight) { onPage(currentPage + 1) }
-    }
+    })
 }
 
 private fun Int.isFinancialTranche(filter: Int): Boolean = when (filter) {

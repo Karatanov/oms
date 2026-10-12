@@ -239,7 +239,7 @@ fun ReportsScreen(
                 }
             }
             .verticalScroll(contentScrollState)
-            .padding(start = 24.dp, top = 24.dp, end = 76.dp, bottom = 24.dp),
+            .padding(oms.layout.workspacePadding(withScrollControls = true)),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         oms.components.PageHeading(LocalizationManager.t("reports_title"), Icons.Default.FactCheck) {
@@ -396,7 +396,7 @@ fun ReportsScreen(
             }
         )
     } }
-    Column(
+    if (!oms.layout.LocalMobileLayout.current) Column(
         modifier = Modifier.align(Alignment.CenterEnd).padding(end = 20.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
         horizontalAlignment = Alignment.CenterHorizontally

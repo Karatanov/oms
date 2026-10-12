@@ -1,13 +1,21 @@
 package oms.layout
 
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.text.selection.DisableSelection
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Language
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.input.key.*
+import androidx.compose.ui.semantics.*
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -21,6 +29,7 @@ import oms.screens.dashboard.DashboardScreen
 import kotlin.js.JsName
 
 @JsName("fitUkraineOverview") private external fun resetMapToUkraine()
+@JsName("setOmsMobileNavigationOpen") private external fun setMobileNavigationOpen(open: Boolean)
 
 //import oms.screens.documents.*
 //import oms.screens.admin.*
@@ -33,18 +42,26 @@ fun AppLayout(appState: AppState) {
     // happens while one is open, its transparent dismiss layer would otherwise
     // remain over the new screen and make every control appear unresponsive.
     val optionOverlay = oms.components.LocalOptionOverlay.current
+    val tableNavigator = oms.components.LocalTableScrollOverlay.current
     LaunchedEffect(appState.navigationRevision) { optionOverlay.menu = null }
     val route = remember(appState.navigationRevision) { RouteContent.capture(appState) }
 
     BoxWithConstraints(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+    val mobile = maxWidth < 768.dp || (maxHeight < 500.dp && maxWidth < 1100.dp)
+    var navigationOpen by remember { mutableStateOf(false) }
+    LaunchedEffect(appState.navigationRevision, mobile) { navigationOpen = false }
+    DisposableEffect(mobile && navigationOpen) {
+        setMobileNavigationOpen(mobile && navigationOpen)
+        tableNavigator.hidden = mobile && navigationOpen
+        onDispose { setMobileNavigationOpen(false); tableNavigator.hidden = false }
+    }
     var compact by remember(maxWidth < 1100.dp) { mutableStateOf(maxWidth < 1100.dp) }
-    Row(modifier = Modifier.fillMaxSize()) {
-
-        // ---------------- SIDEBAR ----------------
+    @Composable fun NavigationSidebar() {
         DisableSelection {
             Sidebar(
                 currentScreen = appState.currentScreen,
                 onNavigate = {
+                    navigationOpen = false
                     if (it == Screen.Map && appState.currentScreen == Screen.Map) resetMapToUkraine()
                     else appState.navigate(it)
                 },
@@ -53,10 +70,27 @@ fun AppLayout(appState: AppState) {
                 isAdmin = appState.roleCode == "ADMIN",
                 isGuest = appState.roleCode == "GUEST",
                 canAccessFinancials = appState.roleCode in setOf("ADMIN", "PROJECT_MANAGER"),
-                compact = compact,
-                onToggle = { compact = !compact }
+                compact = if (mobile) false else compact,
+                onToggle = { if (mobile) navigationOpen = false else compact = !compact },
+                toggleLabel = if (mobile) oms.localization.LocalizationManager.t("close") else null
             )
         }
+    }
+    CompositionLocalProvider(LocalMobileLayout provides mobile) {
+    Column(Modifier.fillMaxSize()) {
+    if (mobile) Surface(color = MaterialTheme.colorScheme.surface, tonalElevation = 2.dp) {
+        Row(Modifier.fillMaxWidth().height(56.dp).padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+            IconButton(onClick = { optionOverlay.menu = null; navigationOpen = true }, modifier = Modifier.semantics { testTag = "mobile-navigation-toggle" }) {
+                Icon(Icons.Default.Menu, oms.localization.LocalizationManager.t("expand_navigation"))
+            }
+            Text("UMITAF OMS", Modifier.weight(1f), style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            IconButton(onClick = oms.localization.LocalizationManager::switchLanguage) {
+                Icon(Icons.Default.Language, oms.localization.LocalizationManager.t("language"))
+            }
+        }
+    }
+    Row(modifier = Modifier.weight(1f).fillMaxWidth()) {
+        if (!mobile) NavigationSidebar()
         // ---------------- CONTENT ----------------
         Box(modifier = Modifier.weight(1f)) {
           RouteContentHost(route, appState.navigationRevision) { target ->
@@ -188,6 +222,19 @@ fun AppLayout(appState: AppState) {
             }
           }
         }
+    }
+    }
+    if (mobile && navigationOpen) {
+        val requester = remember { FocusRequester() }
+        LaunchedEffect(Unit) { requester.requestFocus() }
+        Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.scrim.copy(alpha = .4f))
+            .clickable(onClickLabel = oms.localization.LocalizationManager.t("close")) { navigationOpen = false })
+        Box(Modifier.fillMaxHeight().focusRequester(requester).onPreviewKeyEvent {
+            if (it.type == KeyEventType.KeyDown && it.key == Key.Escape) { navigationOpen = false; true } else false
+        }.focusable().semantics { paneTitle = oms.localization.LocalizationManager.t("expand_navigation") }) {
+            NavigationSidebar()
+        }
+    }
     }
     }
 }

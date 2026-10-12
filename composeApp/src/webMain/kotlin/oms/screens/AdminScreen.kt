@@ -156,7 +156,7 @@ fun AdminScreen() {
 
     Box(Modifier.fillMaxSize()) {
     Column(
-        Modifier.fillMaxSize().verticalScroll(pageScrollState).padding(24.dp),
+        Modifier.fillMaxSize().verticalScroll(pageScrollState).padding(oms.layout.workspacePadding()),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         oms.components.PageHeading(LocalizationManager.t("admin_title"), Icons.Default.AdminPanelSettings) {

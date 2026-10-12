@@ -26,13 +26,14 @@ fun OmsBadge(text: String, color: Color, fontWeight: FontWeight = FontWeight.Med
             .padding(horizontal = 7.dp, vertical = 3.dp))
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun PageHeading(
     title: String,
     icon: ImageVector,
     subtitle: String? = null,
     iconText: String? = null,
-    actions: @Composable RowScope.() -> Unit = {}
+    actions: @Composable () -> Unit = {}
 ) {
     BoxWithConstraints(Modifier.fillMaxWidth()) {
         @Composable fun HeadingText(textModifier: Modifier = Modifier) {
@@ -47,7 +48,7 @@ fun PageHeading(
                 )
             }
             Column(textModifier) {
-                Text(title, style = MaterialTheme.typography.headlineMedium, maxLines = 2)
+                Text(title, style = if (oms.layout.LocalMobileLayout.current) MaterialTheme.typography.headlineSmall else MaterialTheme.typography.headlineMedium, maxLines = 2)
                 subtitle?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2) }
             }
         }
@@ -59,7 +60,7 @@ fun PageHeading(
         } else {
             Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) { HeadingText(Modifier.weight(1f)) }
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) { actions() }
+                FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End), verticalArrangement = Arrangement.spacedBy(8.dp)) { actions() }
             }
         }
     }
@@ -95,6 +96,17 @@ fun AdaptiveChartRow(first: @Composable () -> Unit, second: @Composable () -> Un
             Box(Modifier.weight(1f)) { first() }
             Box(Modifier.weight(1f)) { second() }
         } else Column(verticalArrangement = Arrangement.spacedBy(16.dp)) { first(); second() }
+    }
+}
+
+/** Keep page-size and previous/next controls together, wrapping between groups. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+fun AdaptivePagination(sizeControls: @Composable () -> Unit, navigation: @Composable () -> Unit) {
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.End),
+        verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) { sizeControls() }
+        Row(verticalAlignment = Alignment.CenterVertically) { navigation() }
     }
 }
 

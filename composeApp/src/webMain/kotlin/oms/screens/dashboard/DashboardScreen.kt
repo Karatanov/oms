@@ -27,6 +27,7 @@ import oms.screens.*
 import oms.charts.BarChartOrientation
 
 @Composable
+@OptIn(ExperimentalLayoutApi::class)
 fun DashboardScreen(
     onOpenProject: (oms.model.Project) -> Unit = {},
     onOpenFinancialByMonth: (String) -> Unit = {},
@@ -82,15 +83,15 @@ fun DashboardScreen(
                 else -> false
             }
         }.focusable(),
-            contentPadding = PaddingValues(start = 24.dp, top = 24.dp, end = 68.dp, bottom = 24.dp),
+            contentPadding = oms.layout.workspacePadding(withScrollControls = true),
             verticalArrangement = Arrangement.spacedBy(16.dp)) {
             item {
                 PageHeading(LocalizationManager.t("dashboard"), Icons.Default.Dashboard,
                     LocalizationManager.t("portfolio_overview"))
             }
             item {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                    SingleChoiceSegmentedButtonRow(Modifier.widthIn(max = 500.dp).weight(1f)) {
+                FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    SingleChoiceSegmentedButtonRow(Modifier.widthIn(max = 500.dp).fillMaxWidth()) {
                         listOf<Int?>(null, 1, 2).forEachIndexed { index, option ->
                             SegmentedButton(
                                 selected = trancheNumber == option,
@@ -157,7 +158,7 @@ fun DashboardScreen(
                 item { DashboardPhotoSlider(latest?.uuid, latest?.inspectionDate, latest?.subprojectCode, latestPhotos, onOpenInspectionPreview) }
             }
         }
-        Column(Modifier.align(Alignment.CenterEnd).padding(end = 8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        if (!oms.layout.LocalMobileLayout.current) Column(Modifier.align(Alignment.CenterEnd).padding(end = 8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             oms.components.HoldToScrollButton(LocalizationManager.t("dashboard_scroll_up"), Icons.Default.KeyboardArrowUp, scrollState, -1, clickDistance = 500f)
             oms.components.HoldToScrollButton(LocalizationManager.t("dashboard_scroll_down"), Icons.Default.KeyboardArrowDown, scrollState, 1, clickDistance = 500f)
         }

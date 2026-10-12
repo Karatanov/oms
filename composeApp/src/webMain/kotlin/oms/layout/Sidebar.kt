@@ -23,7 +23,7 @@ import oms.navigation.Screen
 @Composable
 fun Sidebar(currentScreen: Screen, onNavigate: (Screen) -> Unit, onLogout: () -> Unit,
     username: String, isAdmin: Boolean, isGuest: Boolean, canAccessFinancials: Boolean,
-    compact: Boolean, onToggle: () -> Unit
+    compact: Boolean, onToggle: () -> Unit, toggleLabel: String? = null
 ) {
     Surface(color = MaterialTheme.colorScheme.surface) {
         // Keep a usable content lane on phone-sized browser windows.  The
@@ -54,7 +54,7 @@ fun Sidebar(currentScreen: Screen, onNavigate: (Screen) -> Unit, onLogout: () ->
                         )
                     }
                 }
-                TableActionIconButton(LocalizationManager.t(if (compact) "expand_navigation" else "collapse_navigation"),
+                TableActionIconButton(toggleLabel ?: LocalizationManager.t(if (compact) "expand_navigation" else "collapse_navigation"),
                     if (compact) Icons.Default.Menu else Icons.Default.MenuOpen, onToggle)
             }
             HorizontalDivider(Modifier.padding(vertical = 8.dp))

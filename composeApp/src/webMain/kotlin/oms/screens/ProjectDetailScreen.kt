@@ -133,7 +133,7 @@ fun ProjectDetailScreen(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(24.dp),
+            .padding(oms.layout.workspacePadding()),
         verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
         // Breadcrumb

@@ -382,6 +382,10 @@
             document.body.classList.toggle("canvas-overlay-open", active);
         }
 
+        function setOmsMobileNavigationOpen(active) {
+            document.body.classList.toggle("mobile-navigation-open", active);
+        }
+
         function showLeafletMapPane() {
             document.body.classList.add("map-visible");
             ensureLeafletLoaded().then(loaded => {
