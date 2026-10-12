@@ -779,7 +779,8 @@ data class ApiDashboardOverview(
     val monthlyActPayments: List<ApiMonthlyActPayment> = emptyList(),
     val subprojectFunding: List<ApiSubprojectFunding> = emptyList(),
     val subprojectProgress: List<ApiSubprojectProgress> = emptyList(),
-    val procurementStatusCounts: List<ApiDashboardMetric> = emptyList()
+    val procurementStatusCounts: List<ApiDashboardMetric> = emptyList(),
+    val nationalSummary: ApiDashboardNationalSummary? = null
 )
 
 private fun ApiDashboard.toOverview() = ApiDashboardOverview(
@@ -801,6 +802,18 @@ data class ApiMonthlyActPayment(val month: String, val amountEurCents: Long, val
 )
 @Serializable data class ApiSubprojectProgress(val projectUuid: String, val code: String = "", val name: String, val nameEn: String? = null, val region: String = "", val completionPct: Double)
 @Serializable data class ApiDashboardMetric(val label: String, val value: Long)
+@Serializable data class ApiDashboardNationalSummary(
+    val subprojectsCount: Long,
+    val regionsCount: Long,
+    val municipalitiesCount: Long,
+    val settlementsCount: Long,
+    val approvedFundingUah: Double,
+    val approvedFundingEur: Double,
+    val signedContractsCount: Long,
+    val signedContractsAmountUah: Double,
+    val servicesPaidEurCents: Long,
+    val servicesPaidUahCents: Long? = null
+)
 @Serializable data class ApiInspectionAnalytics(
     val monthlyInspectionCounts: List<ApiDashboardMetric> = emptyList(),
     val monthlyEshsViolations: List<ApiDashboardMetric> = emptyList()

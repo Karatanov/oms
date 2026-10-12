@@ -27,12 +27,25 @@ data class DashboardSubprojectFunding(
 data class DashboardSubprojectProgress(val projectUuid: String, val code: String, val name: String, val nameEn: String?, val region: String, val completionPct: Double)
 data class DashboardMetric(val label: String, val value: Long)
 data class DashboardRecentInspection(val report: InspectionReport, val subprojectCode: String?)
+data class DashboardNationalSummary(
+    val subprojectsCount: Long,
+    val regionsCount: Long,
+    val municipalitiesCount: Long,
+    val settlementsCount: Long,
+    val approvedFundingUah: Double,
+    val approvedFundingEur: Double,
+    val signedContractsCount: Long,
+    val signedContractsAmountUah: Double,
+    val servicesPaidEurCents: Long,
+    val servicesPaidUahCents: Long?
+)
 data class DashboardOverviewData(
     val recentInspections: List<DashboardRecentInspection>,
     val monthlyActPayments: List<MonthlyActPayment>,
     val subprojectFunding: List<DashboardSubprojectFunding>,
     val subprojectProgress: List<DashboardSubprojectProgress>,
-    val procurementStatusCounts: List<DashboardMetric>
+    val procurementStatusCounts: List<DashboardMetric>,
+    val nationalSummary: DashboardNationalSummary
 )
 
 private val procurementStatusOrder = listOf(
@@ -141,10 +154,11 @@ class DashboardService(
         fun month(date: java.time.LocalDate) = date.toString().take(7)
         val monthlyActPayments = monthlyPayments(paymentRecords)
         val projectsById = projects.associateBy { it[ProjectTable.id].value }
-        val nameEnByProjectId = if (projectIds.isEmpty()) emptyMap() else ProjectMonitoringDetailTable.selectAll()
-            .where { ProjectMonitoringDetailTable.projectId inList projectIds }.associate {
-                it[ProjectMonitoringDetailTable.projectId].value to it[ProjectMonitoringDetailTable.nameEn]
+        val monitoringByProjectId = if (projectIds.isEmpty()) emptyMap() else ProjectMonitoringDetailTable.selectAll()
+            .where { ProjectMonitoringDetailTable.projectId inList projectIds }.associateBy {
+                it[ProjectMonitoringDetailTable.projectId].value
             }
+        val nameEnByProjectId = monitoringByProjectId.mapValues { (_, row) -> row[ProjectMonitoringDetailTable.nameEn] }
         val subprojects = projects.filter { it[ProjectTable.projectType] == "subproject" }
         val amountsByProject = if (projectIds.isEmpty()) emptyMap() else ProjectAmountTable.selectAll()
             .where { ProjectAmountTable.projectId inList projectIds }
@@ -182,6 +196,25 @@ class DashboardService(
             )
         }.sortedBy { it.name }
         val procurementStatusCounts = procurementStatusMetrics(procurementRecords)
+        val signedContracts = procurementRecords.filter { record ->
+            isConstructionContractSigned(record[ProcurementRecordTable.purchaseStatus])
+        }
+        val servicesPaidUah = paymentRecords.mapNotNull { it.amountUahCents() }
+        val nationalSummary = DashboardNationalSummary(
+            subprojectsCount = subprojects.size.toLong(),
+            regionsCount = subprojects.map { it[ProjectTable.region].orEmpty().trim() }.filter(String::isNotBlank).distinct().size.toLong(),
+            municipalitiesCount = subprojects.mapNotNull { row ->
+                monitoringByProjectId[row[ProjectTable.id].value]?.get(ProjectMonitoringDetailTable.municipalityNameUk)
+                    ?.trim()?.takeIf(String::isNotBlank)
+            }.distinct().size.toLong(),
+            settlementsCount = subprojects.map { it[ProjectTable.city].orEmpty().trim() }.filter(String::isNotBlank).distinct().size.toLong(),
+            approvedFundingUah = subprojectFunding.sumOf { it.amountUah },
+            approvedFundingEur = subprojectFunding.sumOf { it.amountEur },
+            signedContractsCount = signedContracts.size.toLong(),
+            signedContractsAmountUah = signedContracts.sumOf { it[ProcurementRecordTable.contractAmountUah]?.toDouble() ?: 0.0 },
+            servicesPaidEurCents = paymentRecords.sumOf { it[FinancialRecordTable.amountEurCents] ?: 0L },
+            servicesPaidUahCents = servicesPaidUah.takeIf { it.size == paymentRecords.size }?.sum()
+        )
         fun report(row: org.jetbrains.exposed.v1.core.ResultRow) = InspectionReport(
             row[InspectionReportTable.id].value, UUID.fromString(row[InspectionReportTable.uuid]), row[InspectionReportTable.projectId].value,
             row[InspectionReportTable.reportCode], row[InspectionReportTable.inspectionType], row[InspectionReportTable.inspectionDate],
@@ -196,7 +229,7 @@ class DashboardService(
                     subprojectFor(inspection.projectId)?.let { projectsById[it]?.get(ProjectTable.siteNumber) }
                 )
             },
-            monthlyActPayments, subprojectFunding, subprojectProgress, procurementStatusCounts
+            monthlyActPayments, subprojectFunding, subprojectProgress, procurementStatusCounts, nationalSummary
         )
     }
 

@@ -15,6 +15,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.input.key.*
 import kotlinx.coroutines.CancellationException
@@ -25,6 +26,7 @@ import oms.data.*
 import oms.localization.LocalizationManager
 import oms.screens.*
 import oms.charts.BarChartOrientation
+import kotlin.math.roundToLong
 
 @Composable
 @OptIn(ExperimentalLayoutApi::class)
@@ -119,6 +121,9 @@ fun DashboardScreen(
                     }
                 }
             }
+            dashboard?.nationalSummary?.let { summary ->
+                item { NationalPortfolioSummary(summary) }
+            }
             if (loading) {
                 item { ContentState(LocalizationManager.t("loading_dashboard"), loading = true) }
                 item {
@@ -164,6 +169,59 @@ fun DashboardScreen(
         }
     }
 }
+
+@Composable
+private fun NationalPortfolioSummary(summary: ApiDashboardNationalSummary) {
+    Card(
+        Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+    ) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text(
+                LocalizationManager.t("national_portfolio_summary"),
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            )
+            FlowRow(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(18.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                SummaryMetric("national_subprojects", summary.subprojectsCount.toString())
+                SummaryMetric("national_regions", summary.regionsCount.toString())
+                SummaryMetric("national_communities", summary.municipalitiesCount.toString())
+                SummaryMetric("national_settlements", summary.settlementsCount.toString())
+                SummaryMetric(
+                    "national_approved_financing",
+                    "€ ${summary.approvedFundingEur.roundToLong().grouped()} · ₴ ${summary.approvedFundingUah.roundToLong().grouped()}"
+                )
+                SummaryMetric("national_signed_contracts", summary.signedContractsCount.toString())
+                SummaryMetric("national_signed_contract_value", "₴ ${summary.signedContractsAmountUah.roundToLong().grouped()}")
+                SummaryMetric(
+                    "national_services_paid",
+                    "€ ${summary.servicesPaidEurCents.toEuroAmount()}" +
+                        (summary.servicesPaidUahCents?.let { " · ₴ ${it.toUahAmount()}" }.orEmpty())
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SummaryMetric(labelKey: String, value: String) {
+    Column(Modifier.widthIn(min = 126.dp)) {
+        Text(LocalizationManager.t(labelKey), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(value, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+    }
+}
+
+private fun Long.grouped(): String = toString().removePrefix("-").reversed().chunked(3).joinToString(" ").reversed().let {
+    if (this < 0) "−$it" else it
+}
+
+private fun Long.toEuroAmount(): String = "${(this / 100).grouped()}.${(this % 100).toString().padStart(2, '0')}"
+private fun Long.toUahAmount(): String = "${(this / 100).grouped()}.${(this % 100).toString().padStart(2, '0')}"
 
 @Composable
 private fun dashboardSegmentedColors() = SegmentedButtonDefaults.colors(
