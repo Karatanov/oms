@@ -11,6 +11,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.focus.FocusRequester
@@ -38,10 +40,15 @@ fun WasmSafeOverlay(onDismiss: (() -> Unit)? = null, errorMessage: String? = nul
         Box(Modifier.fillMaxSize().clickable(
             interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
             indication = null, onClick = { onDismiss?.invoke() }))
-        Column(Modifier.padding(20.dp).widthIn(max = 960.dp)
+        // Forms opened in this layer can be taller than a phone viewport.  A
+        // scrolling dialog keeps its actions and all fields reachable instead
+        // of letting the lower part be clipped by the browser viewport.
+        Column(
+            Modifier.fillMaxWidth().padding(12.dp).widthIn(max = 960.dp)
+                .verticalScroll(rememberScrollState())
             .semantics { paneTitle = LocalizationManager.t("edit_dialog") },
             verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Box(Modifier.weight(1f, fill = false)) { content() }
+            Box(Modifier.fillMaxWidth()) { content() }
             errorMessage?.let { ContentState(it, error = true) }
         }
     }

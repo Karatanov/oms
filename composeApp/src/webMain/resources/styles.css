@@ -174,6 +174,12 @@ body {
 @media (max-width: 800px) {
     .photo-slider-item { flex-basis: 150px; height: 132px; }
     .oms-route-card { box-sizing: border-box; max-width: calc(100% - 24px); flex-wrap: wrap; gap: 8px; padding: 16px; }
+    .photo-lightbox { grid-template-columns: 42px minmax(0, 1fr) 42px; padding: 16px 8px 24px; }
+    .photo-lightbox-nav { width: 38px; height: 54px; font-size: 38px; }
+    .photo-lightbox-close { top: 10px; right: 10px; }
+    .inspection-photo-picker { padding: 10px; }
+    .inspection-photo-picker-dialog { max-height: calc(100dvh - 20px); padding: 16px; }
+    .inspection-photo-previews { grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; }
 }
 
 #map-pane {

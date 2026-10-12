@@ -52,7 +52,9 @@ fun AppLayout(appState: AppState) {
     LaunchedEffect(appState.navigationRevision, mobile) { navigationOpen = false }
     DisposableEffect(mobile && navigationOpen) {
         setMobileNavigationOpen(mobile && navigationOpen)
-        tableNavigator.hidden = mobile && navigationOpen
+        // Horizontal table controls remain available on phones; only hide
+        // them while the navigation drawer itself is open.
+        tableNavigator.hidden = navigationOpen
         onDispose { setMobileNavigationOpen(false); tableNavigator.hidden = false }
     }
     var compact by remember(maxWidth < 1100.dp) { mutableStateOf(maxWidth < 1100.dp) }

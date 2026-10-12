@@ -20,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.zIndex
 import androidx.compose.ui.unit.dp
+import oms.layout.LocalMobileLayout
 
 private data class ActiveTableNavigator(val id: Any, val scroll: ScrollState)
 
@@ -41,7 +42,7 @@ internal class TableScrollOverlayState {
         val navigator = active ?: return
         Surface(
             modifier = Modifier.align(Alignment.BottomCenter)
-                .width(208.dp)
+                .width(if (LocalMobileLayout.current) 176.dp else 208.dp)
                 .padding(top = 8.dp)
                 .zIndex(100f)
                 .shadow(6.dp),
