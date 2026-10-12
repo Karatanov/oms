@@ -6,7 +6,9 @@ import org.apache.pdfbox.pdmodel.PDPageContentStream
 import org.apache.pdfbox.pdmodel.common.PDRectangle
 import org.apache.pdfbox.pdmodel.font.PDType0Font
 import oms.umitaf.domain.FinancialRecord
+import oms.umitaf.domain.InspectionReport
 import oms.umitaf.domain.Project
+import oms.umitaf.domain.ProjectDocument
 import java.io.ByteArrayOutputStream
 import java.text.DecimalFormat
 
@@ -16,7 +18,12 @@ import java.text.DecimalFormat
  * recipient's machine without relying on the server's installed fonts.
  */
 class ProjectPdfExportService {
-    fun export(project: Project, financialRecords: List<FinancialRecord>): ByteArray =
+    fun export(
+        project: Project,
+        financialRecords: List<FinancialRecord>,
+        inspectionReports: List<InspectionReport> = emptyList(),
+        documents: List<ProjectDocument> = emptyList()
+    ): ByteArray =
         PDDocument().use { document ->
             val fontBytes = requireNotNull(javaClass.getResourceAsStream("/fonts/DejaVuSans.ttf")) {
                 "PDF export font is unavailable."
@@ -77,6 +84,18 @@ class ProjectPdfExportService {
             if (financialRecords.isEmpty()) writer.paragraph("No financial records.")
             else financialRecords.sortedByDescending { it.recordDate }.forEach { record ->
                 writer.paragraph("${record.recordDate} · ${record.recordType.name.lowercase()} · ${record.referenceNumber} · ${money(record.amount, record.currency)}${record.description?.let { " · $it" }.orEmpty()}")
+            }
+
+            writer.title("Inspection reports")
+            if (inspectionReports.isEmpty()) writer.paragraph("No inspection reports.")
+            else inspectionReports.sortedByDescending { it.inspectionDate }.forEach { report ->
+                writer.paragraph("${report.inspectionDate} · ${report.reportCode ?: "—"} · ${report.inspectionType ?: "—"} · ${report.status.name.lowercase().replace('_', ' ')}${report.summary?.let { " · $it" }.orEmpty()}")
+            }
+
+            writer.title("Attached documents")
+            if (documents.isEmpty()) writer.paragraph("No attached documents.")
+            else documents.sortedBy { it.originalName }.forEach { document ->
+                writer.paragraph("${document.docType} · ${document.originalName}${document.description?.let { " · $it" }.orEmpty()}")
             }
             ByteArrayOutputStream().use { output ->
                 writer.close()

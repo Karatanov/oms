@@ -475,7 +475,12 @@ fun Route.projectRoutes() {
         }
         val safeCode = project.siteNumber.replace(Regex("[^A-Za-z0-9._-]"), "_").ifBlank { "subproject" }
         val bytes = withContext(Dispatchers.IO) {
-            projectPdfExportService.export(project, AppContainer.financialRecordService.getAll(project.id))
+            projectPdfExportService.export(
+                project = project,
+                financialRecords = AppContainer.financialRecordService.getAll(project.id),
+                inspectionReports = AppContainer.inspectionReportService.getProjectReports(project.id),
+                documents = AppContainer.projectDocumentService.list(project.id)
+            )
         }
         call.response.header(HttpHeaders.ContentDisposition, "attachment; filename=\"$safeCode-general-info-and-financials.pdf\"")
         call.respondBytes(bytes, ContentType.Application.Pdf)
