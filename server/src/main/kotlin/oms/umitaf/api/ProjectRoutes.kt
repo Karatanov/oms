@@ -299,22 +299,17 @@ fun Route.projectRoutes() {
                         it.financialCompletionPct
                     )
                 },
-                programmeDetails = AppContainer.projectRepository.programmeDetails(project.id)?.let {
-                    ProgrammeDetailsResponse(
-                        it.implementor, it.financingInstitution, it.financeContractNumber, it.serapisNumber,
-                        it.agreementDate.toString(), it.loanAmount.toPlainString(), it.loanCurrency,
-                        it.sourceWorkbook, it.sourceSnapshotDate?.toString()
-                    )
-                },
                 monitoringDetails = monitoring?.let {
+                    // Source identifiers remain server-side; the UI needs only display values.
                     ProjectMonitoringDetailsResponse(
-                        it.sourceBatchId, it.sourceSubprojectId, it.sourceLotId, it.nameEn, it.oblastCode,
-                        it.municipalityNameUk, it.municipalityNameEn, it.settlementNameEn, it.priorityAreaSource,
-                        it.projectManagerNameUk, it.projectManagerNameEn, it.projectManagerOrgId,
-                        it.beneficiaryNameUk, it.beneficiaryNameEn, it.beneficiaryOrgId, it.dreamProjectId,
-                        it.dreamProjectUrl, it.applicationId, it.dreamApplicationId,
-                        it.constructionProcurementStatus, it.constructionWorkStatus, it.geocodeAccuracy,
-                        it.geocodeQuery, it.geocodeDisplayName, it.sourceRows, it.sourceWorkbook
+                        nameEn = it.nameEn,
+                        municipalityNameUk = it.municipalityNameUk,
+                        municipalityNameEn = it.municipalityNameEn,
+                        settlementNameEn = it.settlementNameEn,
+                        beneficiaryNameUk = it.beneficiaryNameUk,
+                        beneficiaryNameEn = it.beneficiaryNameEn,
+                        constructionProcurementStatus = it.constructionProcurementStatus,
+                        constructionWorkStatus = it.constructionWorkStatus
                     )
                 },
                 contractorNameEn = contractorNameEn

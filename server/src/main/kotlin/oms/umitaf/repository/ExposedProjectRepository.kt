@@ -61,18 +61,6 @@ private fun projectDependencies(projectId: Long): Map<String, Long> = linkedMapO
 ).filterValues { it > 0 }
 
 class ExposedProjectRepository : ProjectRepository {
-    override fun programmeDetails(projectId: Long) = transaction {
-        ProgrammeDetailTable.selectAll().where { ProgrammeDetailTable.projectId eq projectId }.limit(1).firstOrNull()?.let { row ->
-            oms.umitaf.domain.ProgrammeDetails(
-                row[ProgrammeDetailTable.implementor], row[ProgrammeDetailTable.financingInstitution],
-                row[ProgrammeDetailTable.financeContractNumber], row[ProgrammeDetailTable.serapisNumber],
-                row[ProgrammeDetailTable.agreementDate], row[ProgrammeDetailTable.loanAmount],
-                row[ProgrammeDetailTable.loanCurrency], row[ProgrammeDetailTable.sourceWorkbook],
-                row[ProgrammeDetailTable.sourceSnapshotDate]
-            )
-        }
-    }
-
     override fun monitoringDetails(projectId: Long) = transaction {
         ProjectMonitoringDetailTable.selectAll().where { ProjectMonitoringDetailTable.projectId eq projectId }.limit(1).firstOrNull()?.toMonitoringDetails()
     }

@@ -2,31 +2,15 @@ package oms.umitaf.repository
 
 import oms.umitaf.domain.Project
 
-/**
- * Контракт доступу до проєктів.
- *
- * Репозиторій відповідає виключно
- * за отримання та збереження даних.
- */
+/** Persistence boundary for projects and their monitoring metadata. */
 interface ProjectRepository {
-    fun programmeDetails(projectId: Long): oms.umitaf.domain.ProgrammeDetails?
     fun monitoringDetails(projectId: Long): oms.umitaf.domain.ProjectMonitoringDetails?
     fun monitoringDetailsByProjectIds(projectIds: Collection<Long>): Map<Long, oms.umitaf.domain.ProjectMonitoringDetails>
     fun managerIdForUuid(uuid: String): Long?
     fun managedProjectIds(userId: Long): Set<Long>
 
-    /**
-     * Повертає всі доступні проєкти.
-     *
-     * На поточній ітерації фільтрація,
-     * сортування та пагінація ще
-     * не реалізовані.
-     */
+    /** Returns the complete hierarchy; filtering and pagination belong to the service/API layer. */
     fun findAll(): List<Project>
-
-    /**
-     * Створює новий проєкт.
-     */
     fun create(
         name: String,
         siteName: String,
@@ -51,9 +35,6 @@ interface ProjectRepository {
         managerId: Long
     ): Project
 
-    /**
-     * Повертає проєкт за його публічним UUID.
-     */
     fun findByUuid(
         uuid: String
     ): Project?

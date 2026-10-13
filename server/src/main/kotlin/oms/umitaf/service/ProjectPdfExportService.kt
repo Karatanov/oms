@@ -12,7 +12,11 @@ import java.math.BigDecimal
 import java.text.DecimalFormat
 import java.time.LocalDate
 
-/** A printable, localized subproject card mirroring the General information tab. */
+/**
+ * A printable, localized subproject card mirroring the General information tab.
+ * Vector shapes are used for section icons so the PDF does not depend on a
+ * recipient machine having Material Icons installed.
+ */
 class ProjectPdfExportService {
     enum class Language { UK, EN }
 

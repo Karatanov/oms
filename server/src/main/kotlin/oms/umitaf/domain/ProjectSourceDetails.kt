@@ -1,20 +1,9 @@
 package oms.umitaf.domain
 
-import java.math.BigDecimal
-import java.time.LocalDate
-
-data class ProgrammeDetails(
-    val implementor: String,
-    val financingInstitution: String,
-    val financeContractNumber: String,
-    val serapisNumber: String,
-    val agreementDate: LocalDate,
-    val loanAmount: BigDecimal,
-    val loanCurrency: String,
-    val sourceWorkbook: String,
-    val sourceSnapshotDate: LocalDate?
-)
-
+/**
+ * Imported monitoring metadata retained for reconciliation with source workbooks.
+ * The browser receives a smaller presentation-safe projection of this record.
+ */
 data class ProjectMonitoringDetails(
     val sourceBatchId: Int?, val sourceSubprojectId: String, val sourceLotId: String,
     val nameEn: String?, val oblastCode: String?, val municipalityNameUk: String?,
