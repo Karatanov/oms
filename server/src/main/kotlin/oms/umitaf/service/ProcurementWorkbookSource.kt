@@ -154,7 +154,7 @@ object ProcurementWorkbookSource {
     private fun cachedText(cell: Cell): String = when (cell.cachedFormulaResultType) {
         CellType.STRING -> cell.stringCellValue
         CellType.NUMERIC -> formatter.formatRawCellContents(
-            cell.numericCellValue, cell.cellStyle.dataFormat, cell.cellStyle.dataFormatString
+            cell.numericCellValue, cell.cellStyle.dataFormat.toInt(), cell.cellStyle.dataFormatString
         )
         CellType.BOOLEAN -> cell.booleanCellValue.toString()
         else -> ""
