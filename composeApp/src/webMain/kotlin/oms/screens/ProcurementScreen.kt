@@ -58,6 +58,7 @@ import kotlinx.coroutines.delay
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.decodeFromString
 import kotlin.js.JsName
+import kotlin.time.TimeSource
 
 @JsName("openProcurementWorkbookUpload")
 external fun openProcurementWorkbookUpload(onComplete: (String, String) -> Unit)
@@ -112,9 +113,13 @@ fun ProcurementScreen(
     LaunchedEffect(refreshJob?.id) {
         val id = refreshJob?.id ?: return@LaunchedEffect
         refreshElapsedSeconds = 0
+        val startedAt = TimeSource.Monotonic.markNow()
         while (refreshJob?.status in setOf("RUNNING", "CANCELLING")) {
-            delay(1_000)
-            refreshElapsedSeconds += 1
+            // The parser reports individual source columns. Poll a little more
+            // frequently so a long XLSX import visibly advances rather than
+            // appearing stuck at its initial percentage.
+            delay(400)
+            refreshElapsedSeconds = startedAt.elapsedNow().inWholeSeconds.toInt()
             runCatching { OmsApiClient.procurementRefresh(id) }
                 .onSuccess { updated ->
                     refreshJob = updated
@@ -354,7 +359,7 @@ fun ProcurementScreen(
             Card(Modifier.widthIn(max = 520.dp).fillMaxWidth()) {
                 Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                     Text(LocalizationManager.t("procurement_refresh_progress_title"), style = MaterialTheme.typography.titleLarge)
-                    Text(LocalizationManager.t("procurement_refresh_phase_${job.phase}"), style = MaterialTheme.typography.bodyMedium)
+                    Text(procurementRefreshPhaseLabel(job.phase), style = MaterialTheme.typography.bodyMedium)
                     LinearProgressIndicator(
                         progress = { (job.progress / 100f).coerceIn(0f, 1f) },
                         modifier = Modifier.fillMaxWidth()
@@ -402,6 +407,14 @@ fun ProcurementScreen(
 
 private fun formatRefreshElapsed(seconds: Int): String =
     "${(seconds / 60).toString().padStart(2, '0')}:${(seconds % 60).toString().padStart(2, '0')}"
+
+private fun procurementRefreshPhaseLabel(phase: String): String =
+    if (phase.startsWith("column:")) {
+        LocalizationManager.t("procurement_refresh_phase_column")
+            .replace("{column}", phase.removePrefix("column:"))
+    } else {
+        LocalizationManager.t("procurement_refresh_phase_$phase")
+    }
 
 @Composable
 private fun ProcurementPagination(

@@ -8,8 +8,8 @@ import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.jetbrains.exposed.v1.jdbc.insertAndGetId
 import org.jetbrains.exposed.v1.jdbc.update
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
+import org.jetbrains.exposed.v1.jdbc.deleteAll
 import org.jetbrains.exposed.v1.core.eq
-import org.jetbrains.exposed.v1.core.inList
 import org.jetbrains.exposed.v1.core.statements.UpdateBuilder
 import java.math.BigDecimal
 
@@ -19,8 +19,8 @@ interface ProcurementRecordRepository {
     fun create(record: ProcurementRecord): ProcurementRecord
     fun update(id: Long, record: ProcurementRecord): ProcurementRecord?
     fun delete(id: Long): Boolean
-    /** Replaces only tranches represented in the approved source, atomically. */
-    fun replaceForBatches(records: List<ProcurementRecord>): Int
+    /** Replaces the complete procurement registry from the approved source, atomically. */
+    fun replaceAll(records: List<ProcurementRecord>): Int
 }
 
 class ExposedProcurementRecordRepository : ProcurementRecordRepository {
@@ -46,10 +46,9 @@ class ExposedProcurementRecordRepository : ProcurementRecordRepository {
 
     override fun delete(id: Long): Boolean = transaction { ProcurementRecordTable.deleteWhere { ProcurementRecordTable.id eq id } > 0 }
 
-    override fun replaceForBatches(records: List<ProcurementRecord>): Int = transaction {
-        val batches = records.map { it.batchId }.distinct()
-        require(batches.isNotEmpty()) { "Approved source contains no procurement batches." }
-        ProcurementRecordTable.deleteWhere { ProcurementRecordTable.batchId inList batches }
+    override fun replaceAll(records: List<ProcurementRecord>): Int = transaction {
+        require(records.isNotEmpty()) { "Approved source contains no procurement records." }
+        ProcurementRecordTable.deleteAll()
         records.forEach { record ->
             ProcurementRecordTable.insert { row -> row.applyRecord(record) }
         }

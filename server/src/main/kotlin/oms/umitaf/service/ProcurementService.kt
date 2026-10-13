@@ -92,7 +92,8 @@ class ProcurementService(
      * Rebuilds the registry from the approved DB6 workbook. Parsing and
      * project-link validation complete before the single replacement
      * transaction starts, so a bad or inaccessible source can never erase the
-     * last good registry. Batches absent from the source stay untouched.
+     * last good registry. A successful run replaces the complete registry:
+     * DB-Procurement Tables.xlsx is the sole authoritative source.
      */
     /** Starts a cancellable, single-flight approved-source refresh. */
     fun startApprovedSourceRefresh(): RefreshStatus = synchronized(refreshLock) {
@@ -117,7 +118,7 @@ class ProcurementService(
         val job = RefreshJob(UUID.randomUUID().toString(), uploadedWorkbook)
         if (uploadedWorkbook != null) {
             job.progress = 10
-            job.phase = "validating"
+            job.phase = "opening_workbook"
         }
         activeRefresh = job
         Thread({ runRefresh(job) }, "procurement-refresh-${job.id.take(8)}").apply {
@@ -175,14 +176,15 @@ class ProcurementService(
         onProgress: (Int, String) -> Unit = { _, _ -> }
     ): Int {
         if (uploadedWorkbook == null) onProgress(10, "downloading")
-        val sourceRows = uploadedWorkbook?.let(ProcurementWorkbookSource::parseApprovedWorkbook)
-            ?: ProcurementWorkbookSource.downloadAndParse()
+        val parseProgress: (Int, String) -> Unit = { progress, phase -> onProgress(progress, phase) }
+        val sourceRows = uploadedWorkbook?.let { ProcurementWorkbookSource.parseApprovedWorkbook(it, parseProgress) }
+            ?: ProcurementWorkbookSource.downloadAndParse(parseProgress)
         checkCancelled(shouldCancel)
         require(sourceRows.isNotEmpty()) { "The approved procurement workbook contains no records." }
-        onProgress(25, "synchronizing_projects")
-        synchronizeProjectHierarchy(sourceRows, shouldCancel)
+        onProgress(47, "synchronizing_projects")
+        synchronizeProjectHierarchy(sourceRows, shouldCancel, onProgress)
         checkCancelled(shouldCancel)
-        onProgress(40, "validating")
+        onProgress(61, "validating")
         val projects = projectService.getAllProjects()
         val subprojects = projects.filter { it.projectType == ProjectType.SUBPROJECT }
             .associateBy { it.siteNumber.trim().uppercase() }
@@ -191,7 +193,7 @@ class ProcurementService(
         val records = sourceRows.mapIndexed { index, source ->
             if (index % 10 == 0) {
                 checkCancelled(shouldCancel)
-                onProgress(40 + (index * 45 / sourceRows.size), "validating")
+                onProgress(61 + (index * 28 / sourceRows.size), "validating")
             }
             val subproject = subprojects[source.subprojectCode.uppercase()]
                 ?: throw IllegalArgumentException("Source row ${source.sourceId} references unknown subproject ${source.subprojectCode}.")
@@ -229,7 +231,7 @@ class ProcurementService(
         }
         checkCancelled(shouldCancel)
         onProgress(90, "saving")
-        return repository.replaceForBatches(records)
+        return repository.replaceAll(records)
     }
 
     /**
@@ -241,7 +243,8 @@ class ProcurementService(
      */
     private fun synchronizeProjectHierarchy(
         sourceRows: List<ProcurementWorkbookSource.SourceRow>,
-        shouldCancel: () -> Boolean
+        shouldCancel: () -> Boolean,
+        onProgress: (Int, String) -> Unit
     ) {
         var projects = projectService.getAllProjects()
         val programme = projects.firstOrNull {
@@ -268,8 +271,10 @@ class ProcurementService(
 
         val subprojectsByCode = projects.filter { it.projectType == ProjectType.SUBPROJECT }
             .associateBy { it.siteNumber.trim().uppercase() }.toMutableMap()
-        sourceRows.groupBy { it.subprojectCode.uppercase() }.forEach { (code, rows) ->
+        val subprojectGroups = sourceRows.groupBy { it.subprojectCode.uppercase() }.entries.toList()
+        subprojectGroups.forEachIndexed { index, (code, rows) ->
             checkCancelled(shouldCancel)
+            if (index % 4 == 0) onProgress(47 + (index * 7 / subprojectGroups.size.coerceAtLeast(1)), "synchronizing_projects")
             if (code !in subprojectsByCode) {
                 val source = rows.firstMeaningfulSource()
                 val region = source.regionDetails()
@@ -308,8 +313,10 @@ class ProcurementService(
         projects = projectService.getAllProjects()
         val partsByCode = projects.filter { it.projectType == ProjectType.SUBPROJECT_PART }
             .associateBy { it.siteNumber.trim().uppercase() }.toMutableMap()
-        sourceRows.filter { it.partCode != null }.groupBy { it.partCode!!.uppercase() }.forEach { (partCode, rows) ->
+        val partGroups = sourceRows.filter { it.partCode != null }.groupBy { it.partCode!!.uppercase() }.entries.toList()
+        partGroups.forEachIndexed { index, (partCode, rows) ->
             checkCancelled(shouldCancel)
+            if (index % 4 == 0) onProgress(54 + (index * 6 / partGroups.size.coerceAtLeast(1)), "synchronizing_projects")
             if (partCode !in partsByCode) {
                 val source = rows.firstMeaningfulSource()
                 val parent = subprojectsByCode[source.subprojectCode.uppercase()]

@@ -4,6 +4,8 @@ import org.apache.poi.ss.usermodel.DataFormatter
 import org.apache.poi.ss.usermodel.DateUtil
 import org.apache.poi.ss.usermodel.FormulaEvaluator
 import org.apache.poi.ss.usermodel.Row
+import org.apache.poi.ss.usermodel.Cell
+import org.apache.poi.ss.usermodel.CellType
 import org.apache.poi.ss.usermodel.WorkbookFactory
 import java.io.ByteArrayInputStream
 import java.net.HttpURLConnection
@@ -29,19 +31,26 @@ object ProcurementWorkbookSource {
         val realEibFinancingUah: Double?, val bankGuarantee: Double?, val comments: String?
     )
 
-    fun downloadAndParse(): List<SourceRow> = parse(download())
+    fun downloadAndParse(onProgress: (Int, String) -> Unit = { _, _ -> }): List<SourceRow> {
+        onProgress(8, "downloading")
+        return parse(download(), onProgress)
+    }
 
     /** Parses an administrator-uploaded copy of the same approved workbook. */
-    fun parseApprovedWorkbook(bytes: ByteArray): List<SourceRow> = parse(bytes)
+    fun parseApprovedWorkbook(bytes: ByteArray, onProgress: (Int, String) -> Unit = { _, _ -> }): List<SourceRow> =
+        parse(bytes, onProgress)
 
-    internal fun parse(bytes: ByteArray): List<SourceRow> {
+    internal fun parse(bytes: ByteArray, onProgress: (Int, String) -> Unit = { _, _ -> }): List<SourceRow> {
+        onProgress(14, "opening_workbook")
         WorkbookFactory.create(ByteArrayInputStream(bytes)).use { workbook ->
-            // DB6.3 is a reporting sheet: most of its values are formulas
-            // looking up DB6.2. DataFormatter alone returns the formula text
-            // (for example IFERROR(INDEX(...))) instead of its value.
+            // DB6.3 is a reporting sheet. Its formula cells contain approved,
+            // cached values from the workbook author. Re-evaluating them with
+            // Apache POI can shift INDEX/MATCH references and import values
+            // from a different source line. Keep the source's cached values.
             val evaluator = workbook.creationHelper.createFormulaEvaluator()
             val sheet = workbook.getSheet(sheetName)
                 ?: throw IllegalArgumentException("The approved workbook has no '$sheetName' sheet.")
+            onProgress(16, "reading_headers")
             val headerRowNumber = (sheet.firstRowNum..sheet.lastRowNum).firstOrNull { rowHasHeader(sheet.getRow(it), "Procurement ID", evaluator) }
                 ?: throw IllegalArgumentException("The approved workbook has no Procurement ID header on '$sheetName'.")
             val headers = headers(sheet.getRow(headerRowNumber), evaluator)
@@ -52,11 +61,21 @@ object ProcurementWorkbookSource {
                 // KH08_09#Lot1_TS$1). "Procurement ID" is a grouping field
                 // and legitimately repeats where one procedure has several
                 // contracts or lots, so it must not be used as the row key.
-                val sourceId = cellText(row, 0, evaluator).trim().takeIf(String::isNotBlank)
-                    ?: text(row, headers, "Procurement ID", evaluator)
-                    ?: return@mapNotNull null
+                cellText(row, 0, evaluator).trim().takeIf(String::isNotBlank)?.let { it to row }
+            }
+            val valuesByHeader = linkedMapOf<String, List<SourceCellValue>>()
+            sourceColumns.forEachIndexed { columnIndex, heading ->
+                val column = headers[normalizeHeader(heading)] ?: return@forEachIndexed
+                // Reserve a visible part of the operation for every source
+                // column so the progress counter advances throughout parsing.
+                onProgress(13 + ((columnIndex + 1) * 32 / sourceColumns.size), "column:$heading")
+                valuesByHeader[heading] = rows.map { (_, row) -> sourceCellValue(row, column, evaluator) }
+            }
+            fun value(rowIndex: Int, heading: String): SourceCellValue =
+                valuesByHeader[heading]?.get(rowIndex) ?: SourceCellValue()
+            val parsedRows = rows.mapIndexed { rowIndex, (sourceId, _) ->
                 val projectReference = projectReferenceFromSourceId(sourceId)
-                val sourceSubprojectCode = text(row, headers, "Sub-Project ID", evaluator)
+                val sourceSubprojectCode = value(rowIndex, "Sub-Project ID").text
                 val subprojectCode = projectReference?.subprojectCode ?: sourceSubprojectCode?.substringBefore('#')?.trim()
                     ?: throw IllegalArgumentException("Source row $sourceId has no Sub-Project ID.")
                 val partCode = projectReference?.partCode
@@ -64,30 +83,32 @@ object ProcurementWorkbookSource {
                 // Some approved DB6.3 exports carry an incorrect calculated value in the
                 // Type cell. The procurement ID is authoritative in that case: its suffix
                 // is one of W, TS, or CSC (for example CH08_09_TS).
-                val type = text(row, headers, "Type", evaluator)?.uppercase()
+                val type = value(rowIndex, "Type").text?.uppercase()
                     ?.takeIf { it in contractTypes }
                     ?: contractTypeFromSourceId(sourceId)
                     ?: throw IllegalArgumentException(
-                        "Source row $sourceId has an unsupported Type '${text(row, headers, "Type", evaluator)}'."
+                        "Source row $sourceId has an unsupported Type '${value(rowIndex, "Type").text}'."
                     )
                 SourceRow(
                     sourceId, subprojectCode, partCode,
-                    number(row, headers, "Batch ID", evaluator)?.toInt() ?: throw IllegalArgumentException("Source row $sourceId has no Batch ID."),
-                    text(row, headers, "Oblast ID", evaluator).orEmpty(), contractTypes.getValue(type),
-                    text(row, headers, "Sub-Project Name (ukr)", evaluator), text(row, headers, "Sub-Project Name (eng)", evaluator),
-                    text(row, headers, "Promotor Name", evaluator), text(row, headers, "FB Name", evaluator), text(row, headers, "Procurement Method", evaluator),
-                    text(row, headers, "Procurement Status", evaluator), number(row, headers, "Number of attempt for tender procedure", evaluator)?.toInt(),
-                    text(row, headers, "PIG violations (if any)", evaluator), text(row, headers, "Prozorro reference", evaluator),
-                    date(row, headers, "Contract Date", evaluator), date(row, headers, "Contract end date", evaluator), date(row, headers, "Actualised contract end date", evaluator),
-                    text(row, headers, "Contractor ID", evaluator), text(row, headers, "Contractor Name eng", evaluator), text(row, headers, "Contractor Name ukr", evaluator), text(row, headers, "Contract Reference No.", evaluator),
-                    number(row, headers, "Contract amount, UAH with VAT", evaluator), number(row, headers, "Contract amount, UAH without VAT", evaluator),
-                    number(row, headers, "DREAM co-financing (%)", evaluator), number(row, headers, "Estimated amount and Financing (EIB financing, UAH)", evaluator),
-                    number(row, headers, "Real local co-financing according to contract (%)", evaluator), number(row, headers, "Real EIB financing according contract data (UAH)", evaluator),
-                    number(row, headers, "Bank guarantee", evaluator), text(row, headers, "Comments (if any)", evaluator)
+                    value(rowIndex, "Batch ID").number?.toInt() ?: throw IllegalArgumentException("Source row $sourceId has no Batch ID."),
+                    value(rowIndex, "Oblast ID").text.orEmpty(), contractTypes.getValue(type),
+                    value(rowIndex, "Sub-Project Name (ukr)").text, value(rowIndex, "Sub-Project Name (eng)").text,
+                    value(rowIndex, "Promotor Name").text, value(rowIndex, "FB Name").text, value(rowIndex, "Procurement Method").text,
+                    value(rowIndex, "Procurement Status").text, value(rowIndex, "Number of attempt for tender procedure").number?.toInt(),
+                    value(rowIndex, "PIG violations (if any)").text, value(rowIndex, "Prozorro reference").text,
+                    value(rowIndex, "Contract Date").date, value(rowIndex, "Contract end date").date, value(rowIndex, "Actualised contract end date").date,
+                    value(rowIndex, "Contractor ID").text, value(rowIndex, "Contractor Name eng").text, value(rowIndex, "Contractor Name ukr").text, value(rowIndex, "Contract Reference No.").text,
+                    value(rowIndex, "Contract amount, UAH with VAT").number, value(rowIndex, "Contract amount, UAH without VAT").number,
+                    value(rowIndex, "DREAM co-financing (%)").number, value(rowIndex, "Estimated amount and Financing (EIB financing, UAH)").number,
+                    value(rowIndex, "Real local co-financing according to contract (%)").number, value(rowIndex, "Real EIB financing according contract data (UAH)").number,
+                    value(rowIndex, "Bank guarantee").number, value(rowIndex, "Comments (if any)").text
                 )
             }
-            require(rows.map { it.sourceId }.toSet().size == rows.size) { "The approved workbook contains duplicate Procurement IDs." }
-            return rows
+            require(parsedRows.map { it.sourceId }.toSet().size == parsedRows.size) {
+                "The approved workbook contains duplicate source row identifiers."
+            }
+            return parsedRows
         }
     }
 
@@ -98,10 +119,6 @@ object ProcurementWorkbookSource {
         }
     }
     private fun rowHasHeader(row: Row?, heading: String, evaluator: FormulaEvaluator) = headers(row, evaluator).containsKey(normalizeHeader(heading))
-    private fun text(row: Row, headers: Map<String, Int>, heading: String, evaluator: FormulaEvaluator): String? = headers[normalizeHeader(heading)]
-        ?.let { cellText(row, it, evaluator).trim().takeIf(String::isNotBlank) }
-    private fun number(row: Row, headers: Map<String, Int>, heading: String, evaluator: FormulaEvaluator): Double? = headers[normalizeHeader(heading)]?.let { cellNumber(row, it, evaluator) }
-    private fun date(row: Row, headers: Map<String, Int>, heading: String, evaluator: FormulaEvaluator): LocalDate? = headers[normalizeHeader(heading)]?.let { cellDate(row, it, evaluator) }
     private fun normalizeHeader(value: String): String = value.replace(Regex("\\s+"), " ").trim().lowercase(Locale.US)
 
     private fun download(): ByteArray {
@@ -124,25 +141,53 @@ object ProcurementWorkbookSource {
         } catch (_: Exception) { throw IllegalArgumentException("The approved procurement source is unavailable. Configure PROCUREMENT_SOURCE_URL with a server-readable XLSX download URL.") }
     }
 
+    private data class SourceCellValue(val text: String? = null, val number: Double? = null, val date: LocalDate? = null)
+
     private val formatter = DataFormatter(Locale.US)
-    private fun cellText(row: Row?, index: Int, evaluator: FormulaEvaluator): String = row?.getCell(index)
-        ?.let { cell -> formatter.formatCellValue(cell, evaluator) }
-        .orEmpty()
-    private fun cellNumber(row: Row, index: Int, evaluator: FormulaEvaluator): Double? = row.getCell(index)?.let { cell ->
-        val evaluated = if (cell.cellType == org.apache.poi.ss.usermodel.CellType.FORMULA) evaluator.evaluate(cell) else null
-        if (evaluated?.cellType == org.apache.poi.ss.usermodel.CellType.NUMERIC) evaluated.numberValue
-        else if (cell.cellType == org.apache.poi.ss.usermodel.CellType.NUMERIC) cell.numericCellValue
-        else cellText(row, index, evaluator).replace(',', '.').replace("%", "").trim().toDoubleOrNull()
+
+    /**
+     * Do not recalculate reporting formulas. DB6.3 is distributed with their
+     * approved calculated values; POI's evaluator does not reproduce all Excel
+     * formula semantics used by the tracker and can return a value from another
+     * row. For a formula cell, POI exposes the cached result directly.
+     */
+    private fun cachedText(cell: Cell): String = when (cell.cachedFormulaResultType) {
+        CellType.STRING -> cell.stringCellValue
+        CellType.NUMERIC -> formatter.formatRawCellContents(
+            cell.numericCellValue, cell.cellStyle.dataFormat, cell.cellStyle.dataFormatString
+        )
+        CellType.BOOLEAN -> cell.booleanCellValue.toString()
+        else -> ""
     }
+
+    private fun cellText(row: Row?, index: Int, evaluator: FormulaEvaluator): String = row?.getCell(index)
+        ?.let { cell -> if (cell.cellType == CellType.FORMULA) cachedText(cell) else formatter.formatCellValue(cell, evaluator) }
+        .orEmpty()
+
+    private fun cellNumber(row: Row, index: Int, evaluator: FormulaEvaluator): Double? = row.getCell(index)?.let { cell ->
+        when (cell.cellType) {
+            CellType.FORMULA -> if (cell.cachedFormulaResultType == CellType.NUMERIC) cell.numericCellValue
+                else cachedText(cell).replace(',', '.').replace("%", "").trim().toDoubleOrNull()
+            CellType.NUMERIC -> cell.numericCellValue
+            else -> cellText(row, index, evaluator).replace(',', '.').replace("%", "").trim().toDoubleOrNull()
+        }
+    }
+
     private fun cellDate(row: Row, index: Int, evaluator: FormulaEvaluator): LocalDate? = row.getCell(index)?.let { cell ->
         val numeric = when (cell.cellType) {
-            org.apache.poi.ss.usermodel.CellType.FORMULA -> evaluator.evaluate(cell)?.takeIf { it.cellType == org.apache.poi.ss.usermodel.CellType.NUMERIC }?.numberValue
-            org.apache.poi.ss.usermodel.CellType.NUMERIC -> cell.numericCellValue
+            CellType.FORMULA -> if (cell.cachedFormulaResultType == CellType.NUMERIC) cell.numericCellValue else null
+            CellType.NUMERIC -> cell.numericCellValue
             else -> null
         }
         if (numeric != null && DateUtil.isCellDateFormatted(cell)) DateUtil.getLocalDateTime(numeric).toLocalDate()
         else parseDate(cellText(row, index, evaluator))
     }
+
+    private fun sourceCellValue(row: Row, index: Int, evaluator: FormulaEvaluator) = SourceCellValue(
+        text = cellText(row, index, evaluator).trim().takeIf(String::isNotBlank),
+        number = cellNumber(row, index, evaluator),
+        date = cellDate(row, index, evaluator)
+    )
     private fun parseDate(value: String): LocalDate? {
         val normalized = value.trim()
         if (normalized.isBlank() || normalized.equals("n/a", true) || normalized.equals("not applicable", true) || normalized.equals("no", true)) return null
@@ -171,13 +216,15 @@ object ProcurementWorkbookSource {
         )
     }
 
-    private val requiredHeaders = setOf(
+    /** Ordered so the refresh overlay can show the actual column being read. */
+    private val sourceColumns = listOf(
         "Procurement ID", "Sub-Project ID", "Batch ID", "Oblast ID", "Type", "Sub-Project Name (ukr)", "Sub-Project Name (eng)",
         "Promotor Name", "FB Name", "Procurement Method", "Procurement Status", "Number of attempt for tender procedure",
         "PIG violations (if any)", "Prozorro reference", "Contract Date", "Contract end date", "Actualised contract end date",
         "Contractor ID", "Contractor Name eng", "Contractor Name ukr", "Contract Reference No.", "Contract amount, UAH with VAT",
         "Contract amount, UAH without VAT", "DREAM co-financing (%)", "Estimated amount and Financing (EIB financing, UAH)",
-        "Real local co-financing according to contract (%)", "Real EIB financing according contract data (UAH)", "Bank guarantee"
+        "Real local co-financing according to contract (%)", "Real EIB financing according contract data (UAH)", "Bank guarantee", "Comments (if any)"
     )
+    private val requiredHeaders = sourceColumns.filterNot { it == "Comments (if any)" }.toSet()
     private val contractTypes = mapOf("W" to "Роботи / Works", "TS" to "Технічний нагляд / TS", "CSC" to "Інженер-консультант / CSC")
 }
