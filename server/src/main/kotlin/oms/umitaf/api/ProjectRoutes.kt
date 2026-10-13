@@ -473,13 +473,16 @@ fun Route.projectRoutes() {
         if (project.projectType != ProjectType.SUBPROJECT) {
             return@get call.respond(HttpStatusCode.BadRequest, ErrorResponse("VALIDATION_ERROR", "PDF export is available for subprojects only."))
         }
+        val language = when (call.request.queryParameters["lang"]?.lowercase()) {
+            "en" -> ProjectPdfExportService.Language.EN
+            else -> ProjectPdfExportService.Language.UK
+        }
         val safeCode = project.siteNumber.replace(Regex("[^A-Za-z0-9._-]"), "_").ifBlank { "subproject" }
         val bytes = withContext(Dispatchers.IO) {
             projectPdfExportService.export(
                 project = project,
-                financialRecords = AppContainer.financialRecordService.getAll(project.id),
-                inspectionReports = AppContainer.inspectionReportService.getProjectReports(project.id),
-                documents = AppContainer.projectDocumentService.list(project.id)
+                monitoring = AppContainer.projectRepository.monitoringDetails(project.id),
+                language = language
             )
         }
         call.response.header(HttpHeaders.ContentDisposition, "attachment; filename=\"$safeCode-general-info-and-financials.pdf\"")

@@ -229,7 +229,7 @@ fun ProjectDetailScreen(
                     }
                     if (project.projectType.equals("subproject", ignoreCase = true)) {
                         IconButton(
-                            onClick = { openOmsDownload(omsApiUrl("/projects/${project.id}/export-pdf")) },
+                            onClick = { openOmsDownload(omsApiUrl("/projects/${project.id}/export-pdf?lang=${if (LocalizationManager.currentLanguage == Language.EN) "en" else "uk"}")) },
                             modifier = Modifier.pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true)
                         ) {
                             Icon(
@@ -251,7 +251,7 @@ fun ProjectDetailScreen(
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         if (canEditProject) Button(onClick = { onEdit(project) }, modifier = Modifier.pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true)) { Icon(Icons.Default.Edit, LocalizationManager.t("edit")); Spacer(Modifier.width(8.dp)); Text(LocalizationManager.t("edit")) }
                         if (canDeleteProject) OutlinedButton(onClick = { confirmDeletion = true }, modifier = Modifier.pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true), colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)) { Icon(Icons.Default.DeleteForever, LocalizationManager.t("permanently_delete")); Spacer(Modifier.width(8.dp)); Text(LocalizationManager.t("permanently_delete")) }
-                        if (project.projectType.equals("subproject", ignoreCase = true)) IconButton(onClick = { openOmsDownload(omsApiUrl("/projects/${project.id}/export-pdf")) }, modifier = Modifier.pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true)) { Icon(Icons.Default.PictureAsPdf, LocalizationManager.t("download_subproject_pdf"), tint = MaterialTheme.colorScheme.primary) }
+                        if (project.projectType.equals("subproject", ignoreCase = true)) IconButton(onClick = { openOmsDownload(omsApiUrl("/projects/${project.id}/export-pdf?lang=${if (LocalizationManager.currentLanguage == Language.EN) "en" else "uk"}")) }, modifier = Modifier.pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true)) { Icon(Icons.Default.PictureAsPdf, LocalizationManager.t("download_subproject_pdf"), tint = MaterialTheme.colorScheme.primary) }
                     }
                 }
                 }
@@ -529,7 +529,8 @@ private fun ProjectGeneralInfoTab(details: oms.data.ApiProjectDetails?) {
                 LocalizationManager.t("description") to (data.description ?: "—"),
                 LocalizationManager.t("status") to LocalizationManager.t("project_status_${data.status}"),
                 LocalizationManager.t("sector") to data.sector.sectorLabel(),
-                LocalizationManager.t("construction_type") to data.constructionType.constructionTypeLabel()
+                LocalizationManager.t("construction_type") to data.constructionType.constructionTypeLabel(),
+                LocalizationManager.t("beneficiary") to (if (LocalizationManager.currentLanguage == Language.EN) details.monitoringDetails?.beneficiaryNameEn ?: details.monitoringDetails?.beneficiaryNameUk else details.monitoringDetails?.beneficiaryNameUk).orEmpty().ifBlank { "—" }
             ).let { fields ->
                 if (data.projectType.equals("project", true)) fields else fields + listOf(
                     LocalizationManager.t("planned_end_date") to (data.plannedEndDate ?: data.projectedCompletionTime).toOmsDate(),
@@ -540,6 +541,7 @@ private fun ProjectGeneralInfoTab(details: oms.data.ApiProjectDetails?) {
                 LocalizationManager.t("address") to localizedProjectAddress(details),
                 LocalizationManager.t("region") to localizedUkraineRegion(data.region.ifBlank { "—" }),
                 LocalizationManager.t("city") to (if (LocalizationManager.currentLanguage == Language.EN) details.monitoringDetails?.settlementNameEn ?: data.city else data.city).ifBlank { "—" },
+                LocalizationManager.t("municipality") to (if (LocalizationManager.currentLanguage == Language.EN) details.monitoringDetails?.municipalityNameEn ?: details.monitoringDetails?.municipalityNameUk else details.monitoringDetails?.municipalityNameUk).orEmpty().ifBlank { "—" },
                 LocalizationManager.t("coordinates") to "${data.latitude}, ${data.longitude}"
             )
             val finance = listOf(
@@ -591,10 +593,6 @@ private fun ProjectGeneralInfoTab(details: oms.data.ApiProjectDetails?) {
                     LocalizationManager.t("work_status") to (it.constructionWorkStatus ?: "—")
                 )
             }.orEmpty()
-            val source = buildList {
-                details.programmeDetails?.let { add(LocalizationManager.t("implementor") to it.implementor); add(LocalizationManager.t("financing_institution") to it.financingInstitution); add(LocalizationManager.t("finance_contract_number") to it.financeContractNumber); add("Serapis" to it.serapisNumber) }
-                details.monitoringDetails?.let { add(LocalizationManager.t("source_subproject_id") to it.sourceSubprojectId); add(LocalizationManager.t("source_lot_id") to it.sourceLotId); add(LocalizationManager.t("english_name") to (it.nameEn ?: "—")); add(LocalizationManager.t("municipality") to (if (LocalizationManager.currentLanguage == Language.EN) it.municipalityNameEn ?: it.municipalityNameUk else it.municipalityNameUk) .orEmpty().ifBlank { "—" }); add(LocalizationManager.t("beneficiary") to (if (LocalizationManager.currentLanguage == Language.EN) it.beneficiaryNameEn ?: it.beneficiaryNameUk else it.beneficiaryNameUk).orEmpty().ifBlank { "—" }); add(LocalizationManager.t("project_manager") to (if (LocalizationManager.currentLanguage == Language.EN) it.projectManagerNameEn ?: it.projectManagerNameUk else it.projectManagerNameUk).orEmpty().ifBlank { "—" }); add(LocalizationManager.t("coordinate_accuracy") to LocalizationManager.t("geocode_accuracy_${it.geocodeAccuracy ?: "unknown"}")) }
-            }
             Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 CollapsibleProjectSection(LocalizationManager.t("basic_information"), Icons.Default.Info, general, initiallyExpanded = true)
                 if (!data.projectType.equals("project", true)) CollapsibleProjectSection(LocalizationManager.t("parameters_and_location"), Icons.Default.LocationOn, location, showMapLink = true, latitude = data.latitude, longitude = data.longitude)
@@ -604,7 +602,6 @@ private fun ProjectGeneralInfoTab(details: oms.data.ApiProjectDetails?) {
                 CollapsibleProjectSection(LocalizationManager.t("technical_supervision_information"), Icons.Default.Info, technical)
                 CollapsibleProjectSection(LocalizationManager.t("engineer_consultant_information"), Icons.Default.Info, engineer)
                 if (procurement.isNotEmpty()) CollapsibleProjectSection(LocalizationManager.t("procurement_title"), Icons.Default.Info, procurement)
-                if (source.isNotEmpty()) CollapsibleProjectSection(LocalizationManager.t("source_information"), Icons.Default.Info, source)
             }
         }
     }
