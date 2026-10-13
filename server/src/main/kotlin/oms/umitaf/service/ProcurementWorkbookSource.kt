@@ -48,7 +48,13 @@ object ProcurementWorkbookSource {
             requiredHeaders.forEach { heading -> require(headers.containsKey(normalizeHeader(heading))) { "The approved workbook is missing '$heading' on '$sheetName'." } }
             val rows = (headerRowNumber + 1..sheet.lastRowNum).mapNotNull { rowNumber ->
                 val row = sheet.getRow(rowNumber) ?: return@mapNotNull null
-                val sourceId = text(row, headers, "Procurement ID", evaluator) ?: return@mapNotNull null
+                // Column A is the unique line identifier (for example
+                // KH08_09#Lot1_TS$1). "Procurement ID" is a grouping field
+                // and legitimately repeats where one procedure has several
+                // contracts or lots, so it must not be used as the row key.
+                val sourceId = cellText(row, 0, evaluator).trim().takeIf(String::isNotBlank)
+                    ?: text(row, headers, "Procurement ID", evaluator)
+                    ?: return@mapNotNull null
                 val subprojectCode = text(row, headers, "Sub-Project ID", evaluator)
                     ?: throw IllegalArgumentException("Source row $sourceId has no Sub-Project ID.")
                 // Some approved DB6.3 exports carry an incorrect calculated value in the
