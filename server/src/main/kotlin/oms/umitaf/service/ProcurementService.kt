@@ -25,7 +25,7 @@ class ProcurementService(
         val error: String? = null
     )
 
-    private class RefreshJob(val id: String) {
+    private class RefreshJob(val id: String, val uploadedWorkbook: ByteArray? = null) {
         @Volatile var status = "RUNNING"
         @Volatile var progress = 5
         @Volatile var phase = "downloading"
@@ -92,16 +92,35 @@ class ProcurementService(
      */
     /** Starts a cancellable, single-flight approved-source refresh. */
     fun startApprovedSourceRefresh(): RefreshStatus = synchronized(refreshLock) {
+        startRefresh(null)
+    }
+
+    /**
+     * A private Google Drive workbook cannot be fetched by the server with an
+     * anonymous HTTP request.  This path accepts the same approved XLSX from
+     * an administrator and applies the identical validation/replacement flow.
+     */
+    fun startApprovedWorkbookRefresh(workbook: ByteArray): RefreshStatus = synchronized(refreshLock) {
+        require(workbook.isNotEmpty()) { "Select an approved procurement workbook." }
+        require(workbook.size <= 20_000_000) { "The approved procurement workbook must not exceed 20 MB." }
+        startRefresh(workbook)
+    }
+
+    private fun startRefresh(uploadedWorkbook: ByteArray?): RefreshStatus {
         activeRefresh?.takeIf { it.status in setOf("RUNNING", "CANCELLING") }?.let {
             throw IllegalStateException("A procurement refresh is already running.")
         }
-        val job = RefreshJob(UUID.randomUUID().toString())
+        val job = RefreshJob(UUID.randomUUID().toString(), uploadedWorkbook)
+        if (uploadedWorkbook != null) {
+            job.progress = 10
+            job.phase = "validating"
+        }
         activeRefresh = job
         Thread({ runRefresh(job) }, "procurement-refresh-${job.id.take(8)}").apply {
             isDaemon = true
             start()
         }
-        job.snapshot()
+        return job.snapshot()
     }
 
     fun getApprovedSourceRefresh(id: String): RefreshStatus? = activeRefresh
@@ -122,6 +141,7 @@ class ProcurementService(
     private fun runRefresh(job: RefreshJob) {
         try {
             val imported = refreshFromApprovedSource(
+                uploadedWorkbook = job.uploadedWorkbook,
                 shouldCancel = { job.cancelRequested },
                 onProgress = { progress, phase -> job.progress = progress; job.phase = phase }
             )
@@ -146,11 +166,13 @@ class ProcurementService(
     private fun checkCancelled(shouldCancel: () -> Boolean) { if (shouldCancel()) throw RefreshCancelled() }
 
     fun refreshFromApprovedSource(
+        uploadedWorkbook: ByteArray? = null,
         shouldCancel: () -> Boolean = { false },
         onProgress: (Int, String) -> Unit = { _, _ -> }
     ): Int {
-        onProgress(10, "downloading")
-        val sourceRows = ProcurementWorkbookSource.downloadAndParse()
+        if (uploadedWorkbook == null) onProgress(10, "downloading")
+        val sourceRows = uploadedWorkbook?.let(ProcurementWorkbookSource::parseApprovedWorkbook)
+            ?: ProcurementWorkbookSource.downloadAndParse()
         checkCancelled(shouldCancel)
         onProgress(40, "validating")
         require(sourceRows.isNotEmpty()) { "The approved procurement workbook contains no records." }

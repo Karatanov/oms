@@ -1,6 +1,9 @@
 package oms.umitaf.api
 
 import io.ktor.http.HttpStatusCode
+import io.ktor.http.content.PartData
+import io.ktor.http.content.forEachPart
+import io.ktor.server.request.receiveMultipart
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
@@ -8,6 +11,8 @@ import io.ktor.server.routing.delete
 import io.ktor.server.routing.get
 import io.ktor.server.routing.patch
 import io.ktor.server.routing.post
+import io.ktor.utils.io.readRemaining
+import kotlinx.io.readByteArray
 import oms.umitaf.config.AppContainer
 import oms.umitaf.domain.ProcurementRecord
 import oms.umitaf.dto.ErrorResponse
@@ -50,6 +55,31 @@ fun Route.procurementRoutes() {
     post("/api/v1/procurements/refresh") {
         call.requireRole("ADMIN") ?: return@post
         call.respondSafely(HttpStatusCode.Accepted) { AppContainer.procurementService.startApprovedSourceRefresh().toResponse() }
+    }
+
+    post("/api/v1/procurements/refresh/upload") {
+        call.requireRole("ADMIN") ?: return@post
+        var workbook: ByteArray? = null
+        try {
+            call.receiveMultipart().forEachPart { part ->
+                if (part is PartData.FileItem && part.name == "file") {
+                    val name = part.originalFileName.orEmpty()
+                    require(name.endsWith(".xlsx", true) || name.endsWith(".xls", true)) {
+                        "Select an XLS or XLSX procurement workbook."
+                    }
+                    val bytes = part.provider().readRemaining(20_000_001).readByteArray()
+                    require(bytes.size <= 20_000_000) { "The approved procurement workbook must not exceed 20 MB." }
+                    workbook = bytes
+                }
+                part.dispose()
+            }
+            val status = AppContainer.procurementService.startApprovedWorkbookRefresh(
+                workbook ?: throw IllegalArgumentException("Multipart field 'file' is required.")
+            )
+            call.respond(HttpStatusCode.Accepted, status.toResponse())
+        } catch (exception: IllegalArgumentException) {
+            call.respond(HttpStatusCode.BadRequest, ErrorResponse("VALIDATION_ERROR", exception.message ?: "Invalid procurement workbook."))
+        }
     }
 
     get("/api/v1/procurements/refresh/{id}") {

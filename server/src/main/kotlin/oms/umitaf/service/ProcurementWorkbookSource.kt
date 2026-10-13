@@ -30,6 +30,9 @@ object ProcurementWorkbookSource {
 
     fun downloadAndParse(): List<SourceRow> = parse(download())
 
+    /** Parses an administrator-uploaded copy of the same approved workbook. */
+    fun parseApprovedWorkbook(bytes: ByteArray): List<SourceRow> = parse(bytes)
+
     internal fun parse(bytes: ByteArray): List<SourceRow> {
         WorkbookFactory.create(ByteArrayInputStream(bytes)).use { workbook ->
             val sheet = workbook.getSheet(sheetName)

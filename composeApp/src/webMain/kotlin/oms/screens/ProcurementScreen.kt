@@ -55,6 +55,12 @@ import oms.localization.Language
 import oms.localization.LocalizationManager
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.decodeFromString
+import kotlin.js.JsName
+
+@JsName("openProcurementWorkbookUpload")
+external fun openProcurementWorkbookUpload(onComplete: (String, String) -> Unit)
 
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
@@ -325,10 +331,18 @@ fun ProcurementScreen(
                     OutlinedButton(onClick = { refreshConfirmationOpen = false }) { Text(LocalizationManager.t("cancel")) }
                     Button(onClick = {
                         refreshConfirmationOpen = false
-                        scope.launch {
-                            runCatching { OmsApiClient.startProcurementRefresh() }
-                                .onSuccess { refreshJob = it }
-                                .onFailure { failure -> registryRefreshMessage = LocalizationManager.t("procurement_refresh_error").replace("{message}", failure.message.orEmpty()) }
+                        openProcurementWorkbookUpload { uploadError, refreshJson ->
+                            if (uploadError.isNotBlank()) {
+                                registryRefreshMessage = LocalizationManager.t("procurement_refresh_error")
+                                    .replace("{message}", uploadError)
+                            } else {
+                                runCatching { Json { ignoreUnknownKeys = true }.decodeFromString<oms.data.ApiProcurementRefresh>(refreshJson) }
+                                    .onSuccess { refreshJob = it }
+                                    .onFailure { failure ->
+                                        registryRefreshMessage = LocalizationManager.t("procurement_refresh_error")
+                                            .replace("{message}", failure.message.orEmpty())
+                                    }
+                            }
                         }
                     }) { Text(LocalizationManager.t("procurement_refresh_continue")) }
                 }
