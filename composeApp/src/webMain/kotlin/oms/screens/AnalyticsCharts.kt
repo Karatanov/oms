@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
@@ -19,8 +20,10 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.input.pointer.pointerHoverIcon
@@ -46,30 +49,120 @@ import kotlin.math.roundToLong
 @Composable
 fun FundingByOblastChart(items: List<ApiSubprojectFunding>, onOpenFinancialRegion: (String) -> Unit = {}, orientation: BarChartOrientation = BarChartOrientation.Vertical) {
     var currency by remember { mutableStateOf("EUR") }
-    val data = items
-        .groupBy { localizedUkraineRegion(it.region).toRegionChartLabel() }
-        .entries
-        .sortedBy { it.key }
-        .map { entry ->
-            val amount = entry.value.sumOf { if (currency == "EUR") it.amountEur else it.amountUah }
-            BarData(
-                label = entry.key,
-                value = amount.toFloat(),
-                id = entry.value.firstOrNull()?.region,
-                formattedValue = formatChartAmount(amount, currency),
-            )
-        }
-    AnalyticsCard(
-        titleKey = "approved_funding_by_oblast",
-        hintKey = "approved_funding_by_oblast_hint",
-        data = data,
-        valueLabel = { formatChartAmount(it.toDouble(), currency) },
-        onItemClick = { bar -> bar.id?.let(onOpenFinancialRegion) },
-        labelMaxLines = 2,
-        filterContent = {
-            oms.components.CurrencySelector(currency) { currency = it }
-        }, orientation = orientation
+    val fundingByRegion = items
+        .groupBy { canonicalUkraineRegion(it.region) }
+        .mapValues { (_, rows) -> rows.sumOf { if (currency == "EUR") it.amountEur else it.amountUah } }
+    UkraineFundingMapChart(
+        amounts = fundingByRegion,
+        currency = currency,
+        onCurrencyChange = { currency = it },
+        onOpenFinancialRegion = onOpenFinancialRegion
     )
+}
+
+private data class UkraineMapRegion(val name: String)
+
+/**
+ * A deliberately schematic rather than geographical map.  It remains legible
+ * in a half-width dashboard card, while preserving every oblast as a distinct
+ * click target.  The order approximates Ukraine west-to-east and north-to-south.
+ */
+private val ukraineFundingMapRows = listOf(
+    0 to listOf(
+        UkraineMapRegion("Волинська область"), UkraineMapRegion("Рівненська область"),
+        UkraineMapRegion("Житомирська область"), UkraineMapRegion("Київська область"),
+        UkraineMapRegion("Чернігівська область"), UkraineMapRegion("Сумська область")
+    ),
+    0 to listOf(
+        UkraineMapRegion("Львівська область"), UkraineMapRegion("Тернопільська область"),
+        UkraineMapRegion("Хмельницька область"), UkraineMapRegion("Вінницька область"),
+        UkraineMapRegion("Черкаська область"), UkraineMapRegion("Полтавська область"),
+        UkraineMapRegion("Харківська область")
+    ),
+    0 to listOf(
+        UkraineMapRegion("Закарпатська область"), UkraineMapRegion("Івано-Франківська область"),
+        UkraineMapRegion("Чернівецька область"), UkraineMapRegion("Кіровоградська область"),
+        UkraineMapRegion("Дніпропетровська область"), UkraineMapRegion("Донецька область"),
+        UkraineMapRegion("Луганська область")
+    ),
+    2 to listOf(
+        UkraineMapRegion("Одеська область"), UkraineMapRegion("Миколаївська область"),
+        UkraineMapRegion("Херсонська область"), UkraineMapRegion("Запорізька область")
+    )
+)
+
+@Composable
+private fun UkraineFundingMapChart(
+    amounts: Map<String, Double>,
+    currency: String,
+    onCurrencyChange: (String) -> Unit,
+    onOpenFinancialRegion: (String) -> Unit
+) {
+    val maxAmount = amounts.values.maxOrNull()?.takeIf { it > 0.0 } ?: 1.0
+    Card(
+        Modifier.fillMaxWidth().heightIn(min = 476.dp),
+        shape = RoundedCornerShape(12.dp),
+        colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+    ) {
+        Column(Modifier.padding(16.dp)) {
+            Box(Modifier.fillMaxWidth().height(44.dp), contentAlignment = Alignment.Center) {
+                Text(LocalizationManager.t("approved_funding_by_oblast"), style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center)
+            }
+            Text(
+                LocalizationManager.t("approved_funding_by_oblast_hint"),
+                modifier = Modifier.fillMaxWidth(),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
+            )
+            Box(Modifier.fillMaxWidth().padding(top = 8.dp), contentAlignment = Alignment.Center) {
+                oms.components.CurrencySelector(currency, onCurrencyChange)
+            }
+            Spacer(Modifier.height(14.dp))
+            Column(
+                modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceContainerLow, RoundedCornerShape(12.dp)).padding(8.dp),
+                verticalArrangement = Arrangement.spacedBy(5.dp)
+            ) {
+                ukraineFundingMapRows.forEach { (indent, regions) ->
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        repeat(indent) { Spacer(Modifier.weight(1f)) }
+                        regions.forEach { region ->
+                            val amount = amounts[region.name] ?: 0.0
+                            val intensity = (amount / maxAmount).toFloat().coerceIn(0f, 1f)
+                            val cellColor = if (amount <= 0.0) MaterialTheme.colorScheme.surfaceVariant
+                            else MaterialTheme.colorScheme.primary.copy(alpha = .18f + intensity * .72f)
+                            val textColor = if (intensity > .55f) Color.White else MaterialTheme.colorScheme.onSurface
+                            Column(
+                                modifier = Modifier.weight(1f)
+                                    .background(cellColor, RoundedCornerShape(8.dp))
+                                    .then(if (amount > 0.0) Modifier.clickable { onOpenFinancialRegion(region.name) }.pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true) else Modifier)
+                                    .padding(horizontal = 3.dp, vertical = 8.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
+                            ) {
+                                Text(
+                                    localizedUkraineRegion(region.name).toRegionChartLabel(),
+                                    color = textColor,
+                                    fontSize = 9.sp,
+                                    lineHeight = 10.sp,
+                                    maxLines = 2,
+                                    textAlign = TextAlign.Center
+                                )
+                                if (amount > 0.0) Text(
+                                    formatChartAmount(amount, currency),
+                                    color = textColor,
+                                    fontSize = 8.sp,
+                                    maxLines = 1,
+                                    textAlign = TextAlign.Center
+                                )
+                            }
+                        }
+                        repeat((7 - indent - regions.size).coerceAtLeast(0)) { Spacer(Modifier.weight(1f)) }
+                    }
+                }
+            }
+        }
+    }
 }
 
 @Composable
