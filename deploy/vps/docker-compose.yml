@@ -49,6 +49,10 @@ services:
       - traefik.http.routers.oms.entrypoints=websecure
       - traefik.http.routers.oms.tls=true
       - traefik.http.routers.oms.tls.certresolver=letsencrypt
+      # Request one certificate for the canonical host and its www alias.
+      # That certificate is then available before the www router redirects.
+      - traefik.http.routers.oms.tls.domains[0].main=ua-oms.com
+      - traefik.http.routers.oms.tls.domains[0].sans=www.ua-oms.com
       - traefik.http.routers.oms.middlewares=oms-compress
       - traefik.http.middlewares.oms-compress.compress=true
       - traefik.http.services.oms.loadbalancer.server.port=8080
@@ -62,7 +66,7 @@ services:
       - traefik.http.routers.oms-www.tls.certresolver=letsencrypt
       - traefik.http.routers.oms-www.middlewares=oms-www-redirect
       - traefik.http.routers.oms-www.service=noop@internal
-      - traefik.http.middlewares.oms-www-redirect.redirectregex.regex=^https://www\\.ua-oms\\.com/(.*)
+      - traefik.http.middlewares.oms-www-redirect.redirectregex.regex=^https://www\.ua-oms\.com/(.*)
       - traefik.http.middlewares.oms-www-redirect.redirectregex.replacement=https://ua-oms.com/$${1}
       - traefik.http.middlewares.oms-www-redirect.redirectregex.permanent=true
     healthcheck:
