@@ -863,12 +863,26 @@ private fun Int.financialTrancheCode(): String = if (this == 2 || this == 9) "B"
 
 @Composable
 private fun FinancialProgressCard(titleKey: String, items: List<ApiFinancialProgressItem>) {
+    var expanded by remember { mutableStateOf(true) }
     Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text(LocalizationManager.t(titleKey), style = MaterialTheme.typography.titleMedium)
-            if (items.isEmpty()) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    LocalizationManager.t(titleKey),
+                    modifier = Modifier.weight(1f),
+                    style = MaterialTheme.typography.titleMedium
+                )
+                TableActionIconButton(
+                    tooltip = LocalizationManager.t(if (expanded) "collapse" else "expand"),
+                    icon = if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown
+                ) { expanded = !expanded }
+            }
+            if (expanded && items.isEmpty()) {
                 Text(LocalizationManager.t("no_chart_data"), color = MaterialTheme.colorScheme.onSurfaceVariant)
-            } else items.sortedBy { it.label }.forEach { item ->
+            } else if (expanded) items.sortedBy { it.label }.forEach { item ->
                 val label = if (titleKey == "financial_progress_by_region") {
                     localizedUkraineRegion(item.label)
                 } else {
