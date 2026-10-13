@@ -1,8 +1,10 @@
 package oms.screens
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -21,6 +23,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -60,37 +66,6 @@ fun FundingByOblastChart(items: List<ApiSubprojectFunding>, onOpenFinancialRegio
     )
 }
 
-private data class UkraineMapRegion(val name: String)
-
-/**
- * A deliberately schematic rather than geographical map.  It remains legible
- * in a half-width dashboard card, while preserving every oblast as a distinct
- * click target.  The order approximates Ukraine west-to-east and north-to-south.
- */
-private val ukraineFundingMapRows = listOf(
-    0 to listOf(
-        UkraineMapRegion("Волинська область"), UkraineMapRegion("Рівненська область"),
-        UkraineMapRegion("Житомирська область"), UkraineMapRegion("Київська область"),
-        UkraineMapRegion("Чернігівська область"), UkraineMapRegion("Сумська область")
-    ),
-    0 to listOf(
-        UkraineMapRegion("Львівська область"), UkraineMapRegion("Тернопільська область"),
-        UkraineMapRegion("Хмельницька область"), UkraineMapRegion("Вінницька область"),
-        UkraineMapRegion("Черкаська область"), UkraineMapRegion("Полтавська область"),
-        UkraineMapRegion("Харківська область")
-    ),
-    0 to listOf(
-        UkraineMapRegion("Закарпатська область"), UkraineMapRegion("Івано-Франківська область"),
-        UkraineMapRegion("Чернівецька область"), UkraineMapRegion("Кіровоградська область"),
-        UkraineMapRegion("Дніпропетровська область"), UkraineMapRegion("Донецька область"),
-        UkraineMapRegion("Луганська область")
-    ),
-    2 to listOf(
-        UkraineMapRegion("Одеська область"), UkraineMapRegion("Миколаївська область"),
-        UkraineMapRegion("Херсонська область"), UkraineMapRegion("Запорізька область")
-    )
-)
-
 @Composable
 private fun UkraineFundingMapChart(
     amounts: Map<String, Double>,
@@ -100,7 +75,7 @@ private fun UkraineFundingMapChart(
 ) {
     val maxAmount = amounts.values.maxOrNull()?.takeIf { it > 0.0 } ?: 1.0
     Card(
-        Modifier.fillMaxWidth().heightIn(min = 476.dp),
+        Modifier.fillMaxWidth().heightIn(min = 462.dp),
         shape = RoundedCornerShape(12.dp),
         colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
@@ -119,48 +94,56 @@ private fun UkraineFundingMapChart(
                 oms.components.CurrencySelector(currency, onCurrencyChange)
             }
             Spacer(Modifier.height(14.dp))
-            Column(
-                modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceContainerLow, RoundedCornerShape(12.dp)).padding(8.dp),
-                verticalArrangement = Arrangement.spacedBy(5.dp)
-            ) {
-                ukraineFundingMapRows.forEach { (indent, regions) ->
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                        repeat(indent) { Spacer(Modifier.weight(1f)) }
-                        regions.forEach { region ->
-                            val amount = amounts[region.name] ?: 0.0
-                            val intensity = (amount / maxAmount).toFloat().coerceIn(0f, 1f)
-                            val cellColor = if (amount <= 0.0) MaterialTheme.colorScheme.surfaceVariant
-                            else MaterialTheme.colorScheme.primary.copy(alpha = .18f + intensity * .72f)
-                            val textColor = if (intensity > .55f) Color.White else MaterialTheme.colorScheme.onSurface
-                            Column(
-                                modifier = Modifier.weight(1f)
-                                    .background(cellColor, RoundedCornerShape(8.dp))
-                                    .then(if (amount > 0.0) Modifier.clickable { onOpenFinancialRegion(region.name) }.pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true) else Modifier)
-                                    .padding(horizontal = 3.dp, vertical = 8.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.Center
-                            ) {
-                                Text(
-                                    localizedUkraineRegion(region.name).toRegionChartLabel(),
-                                    color = textColor,
-                                    fontSize = 9.sp,
-                                    lineHeight = 10.sp,
-                                    maxLines = 2,
-                                    textAlign = TextAlign.Center
-                                )
-                                if (amount > 0.0) Text(
-                                    formatChartAmount(amount, currency),
-                                    color = textColor,
-                                    fontSize = 8.sp,
-                                    maxLines = 1,
-                                    textAlign = TextAlign.Center
-                                )
-                            }
-                        }
-                        repeat((7 - indent - regions.size).coerceAtLeast(0)) { Spacer(Modifier.weight(1f)) }
-                    }
+            UkraineFundingMap(
+                amounts = amounts,
+                maxAmount = maxAmount,
+                onOpenFinancialRegion = onOpenFinancialRegion
+            )
+        }
+    }
+}
+
+@Composable
+private fun UkraineFundingMap(
+    amounts: Map<String, Double>,
+    maxAmount: Double,
+    onOpenFinancialRegion: (String) -> Unit
+) {
+    val primary = MaterialTheme.colorScheme.primary
+    val emptyRegion = MaterialTheme.colorScheme.surfaceVariant
+    val border = MaterialTheme.colorScheme.outlineVariant
+    Canvas(
+        modifier = Modifier
+            .fillMaxWidth()
+            .aspectRatio(ukraineMapWidth / ukraineMapHeight)
+            .background(MaterialTheme.colorScheme.surfaceContainerLow, RoundedCornerShape(12.dp))
+            .padding(8.dp)
+            .pointerInput(onOpenFinancialRegion, amounts) {
+                detectTapGestures { position ->
+                    val point = UkraineMapPoint(
+                        position.x / size.width * ukraineMapWidth,
+                        position.y / size.height * ukraineMapHeight
+                    )
+                    ukraineFundingMapRegions.firstOrNull { it.contains(point) }
+                        ?.let { onOpenFinancialRegion(it.name) }
                 }
             }
+    ) {
+        val scaleX = size.width / ukraineMapWidth
+        val scaleY = size.height / ukraineMapHeight
+        ukraineFundingMapRegions.forEach { region ->
+            val amount = amounts[region.name] ?: 0.0
+            val intensity = (amount / maxAmount).toFloat().coerceIn(0f, 1f)
+            val fill = if (amount <= 0.0) emptyRegion else primary.copy(alpha = .18f + intensity * .72f)
+            val path = Path()
+            region.rings.forEach { ring ->
+                if (ring.size < 3) return@forEach
+                path.moveTo(ring.first().x * scaleX, ring.first().y * scaleY)
+                ring.drop(1).forEach { path.lineTo(it.x * scaleX, it.y * scaleY) }
+                path.close()
+            }
+            drawPath(path, fill)
+            drawPath(path, border, style = Stroke(width = 1.25f))
         }
     }
 }
