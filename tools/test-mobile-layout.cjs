@@ -92,23 +92,29 @@ const origin = 'http://127.0.0.1:18088';
       console.log(`Responsive UI passed: ${viewport.width}x${viewport.height}`);
       await page.close();
     }
-    // The guest landing page must become ready and support scrolling on a phone.
+    // Guests now land on Dashboard and can open Map on a phone.
     const guest = await browser.newPage({ viewport: { width: 320, height: 568 }, hasTouch: true });
     await guest.route('**/api/v1/auth/session*', route => route.fulfill({ contentType: 'application/json', body: '{"guest":true}' }));
-    await guest.goto(`${origin}/app.html#guest-info`);
+    await guest.goto(`${origin}/app.html#dashboard`);
     await guest.waitForFunction(() => {
       const pane = document.getElementById('oms-route-transition');
-      return pane?.hidden && pane.dataset.displayedSection === 'Guest information';
+      return pane?.hidden && pane.dataset.displayedSection === 'Dashboard';
     }, null, { timeout: 120000 });
     await guest.waitForFunction(() => !document.querySelector('#oms-loading-overlay.visible'));
-    await guest.mouse.move(160, 300);
-    const beforeScroll = await guest.screenshot();
-    await guest.mouse.wheel(0, 700);
-    await guest.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
-    assert.ok(!beforeScroll.equals(await guest.screenshot()), 'Guest information must scroll on a short phone');
     await guest.screenshot({ path: 'build/mobile-layout-screenshots/guest-320x568.png' });
+    await guest.evaluate(() => { pushOmsRoute('map'); window.dispatchEvent(new PopStateEvent('popstate')); });
+    await guest.waitForFunction(() => {
+      const pane = document.getElementById('oms-route-transition');
+      return pane?.hidden && pane.dataset.displayedSection === 'Projects Map';
+    }, null, { timeout: 120000 });
+    await guest.screenshot({ path: 'build/mobile-layout-screenshots/guest-map-320x568.png' });
+    await guest.evaluate(() => { pushOmsRoute('admin'); window.dispatchEvent(new PopStateEvent('popstate')); });
+    await guest.waitForFunction(() => {
+      const pane = document.getElementById('oms-route-transition');
+      return location.hash === '#dashboard' && pane?.hidden && pane.dataset.displayedSection === 'Dashboard';
+    }, null, { timeout: 120000 });
     await guest.close();
-    console.log('Mobile guest landing passed');
+    console.log('Mobile guest Dashboard, Map and restricted-route redirect passed');
   } finally {
     await browser?.close();
     server.kill();

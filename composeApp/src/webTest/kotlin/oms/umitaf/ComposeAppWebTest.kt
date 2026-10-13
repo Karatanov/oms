@@ -51,10 +51,9 @@ class ComposeAppWebTest {
     }
 
     @Test
-    fun guestCanOpenProgrammeInformationAndMapOnly() {
-        assertTrue(Screen.GuestInfo.isGuestAccessible())
+    fun guestCanOpenDashboardAndMapOnly() {
+        assertTrue(Screen.Dashboard.isGuestAccessible())
         assertTrue(Screen.Map.isGuestAccessible())
-        assertTrue(!Screen.Dashboard.isGuestAccessible())
         assertTrue(!Screen.Projects.isGuestAccessible())
         assertTrue(!Screen.ProjectDetail.isGuestAccessible())
         assertTrue(!Screen.Admin.isGuestAccessible())
