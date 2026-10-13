@@ -497,7 +497,7 @@ private fun ProcurementTable(
                 ProcurementFilters(allRecords, trancheFilter, onTrancheChange, oblastFilter, onOblastChange, subprojectFilter, onSubprojectChange,
                     contractTypeFilter, onContractTypeChange, procurementMethodFilter, onProcurementMethodChange, statusFilter, onStatusChange,
                     canResetFilters, onResetFilters, canManage)
-                ProcurementRow(procurementHeaderLabels(), showActions = canManage, isHeader = true,
+                ProcurementRow(procurementTableHeaderLabels(), showActions = canManage, isHeader = true,
                     sortColumnIndex = sortColumnIndex, sortAscending = sortAscending, onSort = onSort)
                 HorizontalDivider()
             }
@@ -550,13 +550,13 @@ private fun ProcurementFilters(
                         itemLabel = { if (it == 8 || it == 1) LocalizationManager.t("tranche_a") else if (it == 9 || it == 2) LocalizationManager.t("tranche_b") else it.toString() },
                         clearLabel = LocalizationManager.t("all"), onClear = { onTrancheChange(null) }
                     )
-                    5 -> InlineOptionPicker(
+                    4 -> InlineOptionPicker(
                         records.mapNotNull { it.procurementMethod?.takeIf(String::isNotBlank) }.distinct().sorted(),
                         procurementMethodFilter, LocalizationManager.t("proc_method"), onProcurementMethodChange,
                         LocalizationManager::procurementValue,
                         clearLabel = LocalizationManager.t("all"), onClear = { onProcurementMethodChange(null) }
                     )
-                    6 -> InlineOptionPicker(
+                    5 -> InlineOptionPicker(
                         procurementStatuses, statusFilter, LocalizationManager.t("procurement_status"), onStatusChange,
                         LocalizationManager::procurementStatus,
                         clearLabel = LocalizationManager.t("all"), onClear = { onStatusChange(null) }
@@ -630,11 +630,11 @@ private fun ProcurementRow(
                 SortableTableHeader(value, index == sortColumnIndex, sortAscending, { onSort(index) }, Modifier.width(width.dp))
                 return@forEachIndexed
             }
-            if (!isHeader && index == 6) Box(Modifier.width(width.dp).padding(horizontal = 6.dp)) {
+            if (!isHeader && index == 5) Box(Modifier.width(width.dp).padding(horizontal = 6.dp)) {
                 oms.components.OmsBadge(value, procurementStatusColor(record?.purchaseStatus ?: value))
-            } else if (!isHeader && index == 5 && value.isNotBlank()) Box(Modifier.width(width.dp).padding(horizontal = 6.dp)) {
+            } else if (!isHeader && index == 4 && value.isNotBlank()) Box(Modifier.width(width.dp).padding(horizontal = 6.dp)) {
                 oms.components.OmsBadge(value, procurementMethodColor(record?.procurementMethod ?: value))
-            } else if (!isHeader && index == 9 && value.isNotBlank()) {
+            } else if (!isHeader && index == 8 && value.isNotBlank()) {
                 Text(
                     value,
                     Modifier.width(width.dp).padding(horizontal = 6.dp)
@@ -670,7 +670,7 @@ private fun ProcurementRow(
 private fun ApiProcurementRecord.displayValues(): List<String> = listOf(
     subProjectId, if (batchId == 8) "A" else if (batchId == 9) "B" else batchId.toString(),
     if (LocalizationManager.currentLanguage == Language.EN) subprojectNameEn ?: subprojectNameUk.orEmpty() else subprojectNameUk ?: subprojectNameEn.orEmpty(),
-    promotorName.orEmpty(), fbName.orEmpty(), procurementMethod.orEmpty().let(LocalizationManager::procurementValue),
+    localizedPromotorName(), procurementMethod.orEmpty().let(LocalizationManager::procurementValue),
     LocalizationManager.procurementStatus(purchaseStatus.orEmpty()), tenderAttemptCount?.toString().orEmpty(),
     pigViolations.orEmpty().let(LocalizationManager::procurementValue), prozorroTenderId.orEmpty(),
     contractDate.toOmsDate(), contractEndDate.toOmsDate(), actualisedContractEndDate.toOmsDate(), contractorId.orEmpty(),
@@ -678,6 +678,13 @@ private fun ApiProcurementRecord.displayValues(): List<String> = listOf(
     contractAmountUah.format(2), contractAmountUahWithoutVat.format(2), dreamCoFinancingPct.formatPercent(),
     estimatedEibUah.format(2), realLocalCoFinancingPct.formatPercent(), realEibFinancingUah.format(2), bankGuarantee.formatPercent()
 )
+
+/** Promotor and FB are the same business value in the approved workbook. */
+private fun ApiProcurementRecord.localizedPromotorName(): String = if (LocalizationManager.currentLanguage == Language.EN) {
+    promotorName?.takeIf(String::isNotBlank) ?: fbName.orEmpty()
+} else {
+    fbName?.takeIf(String::isNotBlank) ?: promotorName.orEmpty()
+}
 
 /** Keeps procurement states visually distinguishable without depending on the selected UI language. */
 private fun procurementStatusColor(status: String) = when {
@@ -713,14 +720,14 @@ private fun procurementMethodColor(method: String) = when {
 
 private fun ApiProcurementRecord.sortKey(columnIndex: Int): String = when (columnIndex) {
     1 -> batchId.toString().padStart(12, '0')
-    7 -> tenderAttemptCount?.toString()?.padStart(12, '0').orEmpty()
-    15 -> contractAmountUah.sortKey()
-    16 -> contractAmountUahWithoutVat.sortKey()
-    17 -> dreamCoFinancingPct.sortKey()
-    18 -> estimatedEibUah.sortKey()
-    19 -> realLocalCoFinancingPct.sortKey()
-    20 -> realEibFinancingUah.sortKey()
-    21 -> bankGuarantee.sortKey()
+    6 -> tenderAttemptCount?.toString()?.padStart(12, '0').orEmpty()
+    14 -> contractAmountUah.sortKey()
+    15 -> contractAmountUahWithoutVat.sortKey()
+    16 -> dreamCoFinancingPct.sortKey()
+    17 -> estimatedEibUah.sortKey()
+    18 -> realLocalCoFinancingPct.sortKey()
+    19 -> realEibFinancingUah.sortKey()
+    20 -> bankGuarantee.sortKey()
     else -> displayValues().getOrElse(columnIndex) { "" }.lowercase()
 }
 
@@ -739,7 +746,20 @@ private fun procurementHeaderLabels(): List<String> = if (LocalizationManager.cu
     "ID підрядника", "Назва підрядника", "Сума договору з ПДВ, грн", "Сума договору без ПДВ, грн", "Співфінансування DREAM, %",
     "Оціночне фінансування ЄІБ, грн", "Фактичне місцеве співфінансування, %", "Фактичне фінансування ЄІБ, грн", "Банківська гарантія, %"
 )
-private val columnWidths = listOf(145, 104, 360, 220, 220, 250, 220, 130, 240, 230, 145, 165, 190, 150, 300, 210, 220, 190, 220, 220, 220, 180)
+
+private fun procurementTableHeaderLabels(): List<String> = if (LocalizationManager.currentLanguage == Language.EN) listOf(
+    "Subproject code", "Batch", "Subproject name", "Promotor name", "Procurement method", "Procurement status",
+    "Tender attempts", "PIG violations", "PROZORRO reference", "Contract date", "Contract end date", "Actualised contract end date",
+    "Contractor ID", "Contractor name", "Contract amount, UAH with VAT", "Contract amount, UAH without VAT", "DREAM co-financing, %",
+    "Estimated EIB financing, UAH", "Real local co-financing, %", "Real EIB financing, UAH", "Bank guarantee, %"
+) else listOf(
+    "Код субпроєкту", "Транш", "Назва субпроєкту", "Назва ФБ", "Метод закупівлі", "Статус закупівлі",
+    "Кількість спроб", "Порушення PIG", "Посилання PROZORRO", "Дата договору", "Дата завершення договору", "Актуалізована дата завершення",
+    "ID підрядника", "Назва підрядника", "Сума договору з ПДВ, грн", "Сума договору без ПДВ, грн", "Співфінансування DREAM, %",
+    "Оціночне фінансування ЄІБ, грн", "Фактичне місцеве співфінансування, %", "Фактичне фінансування ЄІБ, грн", "Банківська гарантія, %"
+)
+
+private val columnWidths = listOf(145, 104, 360, 220, 250, 220, 130, 240, 230, 145, 165, 190, 150, 300, 210, 220, 190, 220, 220, 220, 180)
 private val procurementStatuses = listOf(
     "Не розпочато / Not Started",
     "Закупівля триває / Tender Ongoing",
