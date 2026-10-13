@@ -18,7 +18,7 @@ import java.time.ZoneOffset
 
 fun Route.dashboardRoutes() {
     get("/api/v1/dashboard/overview") {
-        val session = call.requireRole("ADMIN", "PROJECT_MANAGER", "INSPECTOR", "VIEWER") ?: return@get
+        val session = call.requireRole("ADMIN", "PROJECT_MANAGER", "INSPECTOR", "VIEWER", "GUEST") ?: return@get
         val trancheNumber = call.request.queryParameters["tranche"]?.toIntOrNull()?.takeIf { it in 1..2 }
         val overview = AppContainer.dashboardService.getOverview(null, trancheNumber)
         call.respond(

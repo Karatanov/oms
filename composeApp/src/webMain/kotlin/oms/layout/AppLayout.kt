@@ -108,7 +108,6 @@ fun AppLayout(appState: AppState) {
                 Screen.Admin -> appState.roleCode == "ADMIN"
                 Screen.CreateProject, Screen.EditProject, Screen.Financial -> appState.roleCode in setOf("ADMIN", "PROJECT_MANAGER")
                 Screen.CreateInspection -> appState.roleCode in setOf("ADMIN", "PROJECT_MANAGER", "INSPECTOR") || target.viewingInspection
-                Screen.GuestInfo -> false
                 else -> true
             }
             if (!allowed) {
@@ -119,15 +118,13 @@ fun AppLayout(appState: AppState) {
             }
             when (target.screen) {
 
-                is Screen.GuestInfo -> GuestInfoScreen()
-
-                is Screen.Dashboard -> if (appState.roleCode != "GUEST") DashboardScreen(
-                    onOpenProject = appState::openProjectDetail,
-                    onOpenFinancialByMonth = appState::openFinancialByMonth,
-                    onOpenFinancialByRegion = appState::openFinancialByRegion,
-                    onOpenFinancialBySubproject = appState::openFinancialBySubproject,
-                    onOpenProcurementsByStatus = appState::openProcurementsByStatus,
-                    onOpenInspectionPreview = appState::openInspectionPreview
+                is Screen.Dashboard -> DashboardScreen(
+                    onOpenProject = if (appState.roleCode == "GUEST") ({}) else appState::openProjectDetail,
+                    onOpenFinancialByMonth = if (appState.roleCode == "GUEST") ({}) else appState::openFinancialByMonth,
+                    onOpenFinancialByRegion = if (appState.roleCode == "GUEST") ({}) else appState::openFinancialByRegion,
+                    onOpenFinancialBySubproject = if (appState.roleCode == "GUEST") ({}) else appState::openFinancialBySubproject,
+                    onOpenProcurementsByStatus = if (appState.roleCode == "GUEST") ({}) else appState::openProcurementsByStatus,
+                    onOpenInspectionPreview = if (appState.roleCode == "GUEST") ({}) else appState::openInspectionPreview
                 )
 
                 is Screen.Projects -> ProjectsScreen(

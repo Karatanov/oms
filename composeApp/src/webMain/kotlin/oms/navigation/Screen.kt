@@ -7,9 +7,6 @@ sealed class Screen(val title: String) {
     // 🔹 Екран логіну (без sidebar)
     object Login : Screen("Login")
 
-    /** Public landing page for the explicitly limited guest session. */
-    object GuestInfo : Screen("Guest information")
-
     // 🔹 Головна панель
     object Dashboard : Screen("Dashboard")
 
@@ -46,4 +43,4 @@ sealed class Screen(val title: String) {
 }
 
 /** Sections intentionally exposed by the limited guest session. */
-internal fun Screen.isGuestAccessible(): Boolean = this == Screen.GuestInfo || this == Screen.Map
+internal fun Screen.isGuestAccessible(): Boolean = this == Screen.Dashboard || this == Screen.Map

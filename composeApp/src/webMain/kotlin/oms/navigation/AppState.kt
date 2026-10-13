@@ -54,7 +54,6 @@ class AppState {
 
     fun restoreRoute(route: String) {
         val screen = when (route.substringBefore('/')) {
-            "guest-info" -> Screen.GuestInfo
             "dashboard" -> Screen.Dashboard
             "projects" -> Screen.Projects
             "project-new" -> Screen.CreateProject
@@ -67,11 +66,11 @@ class AppState {
             "procurement" -> Screen.Procurement
             "documents" -> Screen.Documents
             "admin" -> Screen.Admin
-            else -> if (roleCode == "GUEST") Screen.GuestInfo else Screen.Dashboard
+            else -> Screen.Dashboard
         }
         if (roleCode == "GUEST" && !screen.isGuestAccessible()) {
-            currentScreen = Screen.GuestInfo
-            replaceOmsRoute(Screen.GuestInfo.route())
+            currentScreen = Screen.Dashboard
+            replaceOmsRoute(Screen.Dashboard.route())
         } else if ((screen == Screen.ProjectDetail || screen == Screen.EditProject) && selectedProject == null) currentScreen = Screen.Projects
         else currentScreen = screen
         navigationRevision++
@@ -164,8 +163,8 @@ class AppState {
         username = "Guest"
         roleCode = "GUEST"
         isAuthenticated = true
-        currentScreen = Screen.GuestInfo
-        replaceOmsRoute(Screen.GuestInfo.route())
+        currentScreen = Screen.Dashboard
+        replaceOmsRoute(Screen.Dashboard.route())
     }
 
     // 🔹 Logout
@@ -184,7 +183,6 @@ class AppState {
 
 private fun Screen.route(): String = when (this) {
     Screen.Login -> "login"
-    Screen.GuestInfo -> "guest-info"
     Screen.Dashboard -> "dashboard"
     Screen.Projects -> "projects"
     Screen.CreateProject -> "project-new"
