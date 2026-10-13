@@ -55,8 +55,12 @@ object ProcurementWorkbookSource {
                 val sourceId = cellText(row, 0, evaluator).trim().takeIf(String::isNotBlank)
                     ?: text(row, headers, "Procurement ID", evaluator)
                     ?: return@mapNotNull null
-                val subprojectCode = text(row, headers, "Sub-Project ID", evaluator)
+                val projectReference = projectReferenceFromSourceId(sourceId)
+                val sourceSubprojectCode = text(row, headers, "Sub-Project ID", evaluator)
+                val subprojectCode = projectReference?.subprojectCode ?: sourceSubprojectCode?.substringBefore('#')?.trim()
                     ?: throw IllegalArgumentException("Source row $sourceId has no Sub-Project ID.")
+                val partCode = projectReference?.partCode
+                    ?: sourceSubprojectCode?.takeIf { it.contains("#LOT", true) }
                 // Some approved DB6.3 exports carry an incorrect calculated value in the
                 // Type cell. The procurement ID is authoritative in that case: its suffix
                 // is one of W, TS, or CSC (for example CH08_09_TS).
@@ -67,7 +71,7 @@ object ProcurementWorkbookSource {
                         "Source row $sourceId has an unsupported Type '${text(row, headers, "Type", evaluator)}'."
                     )
                 SourceRow(
-                    sourceId, subprojectCode.substringBefore('#').trim(), subprojectCode.takeIf { it.contains("#LOT", true) },
+                    sourceId, subprojectCode, partCode,
                     number(row, headers, "Batch ID", evaluator)?.toInt() ?: throw IllegalArgumentException("Source row $sourceId has no Batch ID."),
                     text(row, headers, "Oblast ID", evaluator).orEmpty(), contractTypes.getValue(type),
                     text(row, headers, "Sub-Project Name (ukr)", evaluator), text(row, headers, "Sub-Project Name (eng)", evaluator),
@@ -153,6 +157,19 @@ object ProcurementWorkbookSource {
         .substringAfterLast('_')
         .uppercase()
         .takeIf { it in contractTypes }
+
+    private data class ProjectReference(val subprojectCode: String, val partCode: String?)
+
+    private fun projectReferenceFromSourceId(sourceId: String): ProjectReference? {
+        val identifier = sourceId.substringBefore('$').trim()
+        if (contractTypeFromSourceId(identifier) == null) return null
+        val projectReference = identifier.substringBeforeLast('_').trim()
+        if (projectReference.isBlank()) return null
+        return ProjectReference(
+            subprojectCode = projectReference.substringBefore('#').trim(),
+            partCode = projectReference.takeIf { it.contains("#LOT", true) }
+        )
+    }
 
     private val requiredHeaders = setOf(
         "Procurement ID", "Sub-Project ID", "Batch ID", "Oblast ID", "Type", "Sub-Project Name (ukr)", "Sub-Project Name (eng)",
