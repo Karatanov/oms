@@ -25,9 +25,11 @@
     <meta name="twitter:title" content="UMITAF OMS — Online Monitoring System">
     <meta name="twitter:description" content="Online monitoring of subprojects, inspections, procurement and financial control for Ukraine Recovery Programme III.">
     <meta name="twitter:image" content="https://ua-oms.com/social-preview.png">
-    <!-- Start the renderer download alongside the JavaScript bundle.  Without
-         this, Compose requests Skiko only after the main bundle is parsed. -->
-    <link rel="preload" href="skiko.wasm?__OMS_ASSET_VERSION__" as="fetch" type="application/wasm" crossorigin fetchpriority="high">
+    <!-- The production build replaces this with Webpack's hashed renderer
+         file.  It must be the same URL that the bundle fetches: preloading
+         skiko.wasm under a second name made browsers download the identical
+         8.6 MB renderer twice. -->
+    <link rel="preload" href="__OMS_WASM_ASSET__" as="fetch" type="application/wasm" crossorigin fetchpriority="high">
     <!-- The Compose bundle is at the end of the document so it can use the
          native helpers defined below.  Start its transfer here nevertheless:
          this keeps its download parallel with Skiko instead of waiting for

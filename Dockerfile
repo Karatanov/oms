@@ -32,15 +32,16 @@ RUN mkdir -p /workspace/web \
     && cp /workspace/composeApp/src/webMain/resources/login.html /workspace/web/login.html \
     && cp /workspace/composeApp/src/webMain/resources/favicon.svg /workspace/web/favicon.svg \
     && cp /workspace/composeApp/src/webMain/resources/social-preview.png /workspace/web/social-preview.png \
+    && wasm_asset=$(find /workspace/web -maxdepth 1 -type f -name '*.wasm' ! -name 'skiko.wasm' -printf '%f\n' | head -n 1) \
+    && test -n "$wasm_asset" && test -f "/workspace/web/$wasm_asset" \
+    && sed -i "s#skiko\\.wasm#$wasm_asset#g" /workspace/web/composeApp.js \
     && asset_hash=$(sha256sum /workspace/web/composeApp.js | cut -c1-12) \
     && mv /workspace/web/composeApp.js "/workspace/web/composeApp.${asset_hash}.js" \
     && sed -i -E "s#composeApp\\.js(\\?[^\"']*)?#composeApp.${asset_hash}.js#g" /workspace/web/index.html /workspace/web/login.html \
-    && sed -i "s#__OMS_ASSET_VERSION__#v=${asset_hash}#g" /workspace/web/index.html \
-    && sed -i "s#skiko\\.wasm#skiko.wasm?v=${asset_hash}#g" "/workspace/web/composeApp.${asset_hash}.js" \
-    && test -f /workspace/web/skiko.wasm \
+    && sed -i "s#__OMS_WASM_ASSET__#$wasm_asset#g" /workspace/web/index.html \
     && js_bytes=$(stat -c %s "/workspace/web/composeApp.${asset_hash}.js") \
-    && wasm_bytes=$(stat -c %s /workspace/web/skiko.wasm) \
-    && printf '{"version":"%s","assets":[{"url":"%s","bytes":%s},{"url":"skiko.wasm?v=%s","bytes":%s}]}\n' "$asset_hash" "composeApp.${asset_hash}.js" "$js_bytes" "$asset_hash" "$wasm_bytes" > /workspace/web/assets-manifest.json \
+    && wasm_bytes=$(stat -c %s "/workspace/web/$wasm_asset") \
+    && printf '{"version":"%s","assets":[{"url":"%s","bytes":%s},{"url":"%s","bytes":%s}]}\n' "$asset_hash" "composeApp.${asset_hash}.js" "$js_bytes" "$wasm_asset" "$wasm_bytes" > /workspace/web/assets-manifest.json \
     && cp /workspace/web/index.html /workspace/web/app.html \
     && git_short=$(printf '%s' "$OMS_GIT_SHA" | cut -c1-12) \
     && sed -i "s|__OMS_GIT_COMMIT__|$git_short|g; s|__OMS_BUILD_DATE__|$OMS_BUILD_DATE|g" /workspace/web/app.html \

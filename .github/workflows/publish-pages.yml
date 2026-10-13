@@ -55,16 +55,17 @@ jobs:
           cp composeApp/src/webMain/resources/login.html build/pages/index.html
           cp composeApp/src/webMain/resources/favicon.svg build/pages/favicon.svg
           cp composeApp/src/webMain/resources/social-preview.png build/pages/social-preview.png
-          test -f build/pages/skiko.wasm
+          wasm_asset=$(find build/pages -maxdepth 1 -type f -name '*.wasm' ! -name 'skiko.wasm' -printf '%f\n' | head -n 1)
+          test -n "$wasm_asset" && test -f "build/pages/$wasm_asset"
+          sed -i "s#skiko\\.wasm#$wasm_asset#g" build/pages/composeApp.js
           asset_hash=$(sha256sum build/pages/composeApp.js | cut -c1-12)
           build_date=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
           git_short=$(printf '%s' "$GITHUB_SHA" | cut -c1-12)
-          sed -i "s#__OMS_ASSET_VERSION__#v=${asset_hash}#g" build/pages/app.html
+          sed -i "s#__OMS_WASM_ASSET__#${wasm_asset}#g" build/pages/app.html
           sed -i "s|__OMS_GIT_COMMIT__|${git_short}|g; s|__OMS_BUILD_DATE__|${build_date}|g" build/pages/app.html
-          sed -i "s#skiko\\.wasm#skiko.wasm?v=${asset_hash}#g" build/pages/composeApp.js
           js_bytes=$(stat -c %s build/pages/composeApp.js)
-          wasm_bytes=$(stat -c %s build/pages/skiko.wasm)
-          printf '{"version":"%s","assets":[{"url":"composeApp.js","bytes":%s},{"url":"skiko.wasm?v=%s","bytes":%s}]}\n' "$GITHUB_SHA" "$js_bytes" "$GITHUB_SHA" "$wasm_bytes" > build/pages/assets-manifest.json
+          wasm_bytes=$(stat -c %s "build/pages/$wasm_asset")
+          printf '{"version":"%s","assets":[{"url":"composeApp.js","bytes":%s},{"url":"%s","bytes":%s}]}\n' "$GITHUB_SHA" "$js_bytes" "$wasm_asset" "$wasm_bytes" > build/pages/assets-manifest.json
           touch build/pages/.nojekyll
           test -f build/pages/index.html
           test -f build/pages/app.html
