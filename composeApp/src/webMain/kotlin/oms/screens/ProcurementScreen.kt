@@ -63,6 +63,9 @@ import kotlin.time.TimeSource
 @JsName("openProcurementWorkbookUpload")
 external fun openProcurementWorkbookUpload(onComplete: (String, String) -> Unit)
 
+private const val procurementSourceWorkbookUrl =
+    "https://docs.google.com/spreadsheets/d/1tN1kbjw94g3zHKLRNDjgryuBXbYWuk2j/edit?gid=1331483415#gid=1331483415"
+
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
 fun ProcurementScreen(
@@ -95,6 +98,7 @@ fun ProcurementScreen(
     var sortColumnIndex by remember { mutableStateOf(0) }
     var sortAscending by remember { mutableStateOf(true) }
     val scope = rememberCoroutineScope()
+    val refreshUriHandler = LocalUriHandler.current
     val contentScrollState = rememberScrollState()
     var tableTopInRootPx by remember { mutableStateOf(0f) }
     val tableTopPaddingPx = with(LocalDensity.current) { 24.dp.toPx() }
@@ -332,6 +336,18 @@ fun ProcurementScreen(
             Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 Text(LocalizationManager.t("procurement_refresh_confirm_title"), style = MaterialTheme.typography.titleLarge)
                 Text(LocalizationManager.t("procurement_refresh_confirm_message"), style = MaterialTheme.typography.bodyMedium)
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(LocalizationManager.t("procurement_refresh_instruction_step_1"), style = MaterialTheme.typography.bodyMedium)
+                    Text(
+                        procurementSourceWorkbookUrl,
+                        color = MaterialTheme.colorScheme.primary,
+                        textDecoration = TextDecoration.Underline,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.clickable { refreshUriHandler.openUri(procurementSourceWorkbookUrl) }
+                    )
+                    Text(LocalizationManager.t("procurement_refresh_instruction_step_2"), style = MaterialTheme.typography.bodyMedium)
+                    Text(LocalizationManager.t("procurement_refresh_instruction_step_3"), style = MaterialTheme.typography.bodyMedium)
+                }
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
                     OutlinedButton(onClick = { refreshConfirmationOpen = false }) { Text(LocalizationManager.t("cancel")) }
                     Button(onClick = {
