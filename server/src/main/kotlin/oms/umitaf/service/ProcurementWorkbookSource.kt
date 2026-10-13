@@ -24,7 +24,7 @@ object ProcurementWorkbookSource {
         val fbName: String?, val procurementMethod: String?, val purchaseStatus: String?, val tenderAttemptCount: Int?,
         val pigViolations: String?, val prozorroUrl: String?, val contractDate: LocalDate?, val contractEndDate: LocalDate?,
         val actualisedContractEndDate: LocalDate?, val contractorId: String?, val contractorNameEng: String?,
-        val contractorNameUkr: String?, val contractAmountUah: Double?, val contractAmountUahWithoutVat: Double?,
+        val contractorNameUkr: String?, val contractReference: String?, val contractAmountUah: Double?, val contractAmountUahWithoutVat: Double?,
         val dreamCoFinancingPct: Double?, val estimatedEibUah: Double?, val realLocalCoFinancingPct: Double?,
         val realEibFinancingUah: Double?, val bankGuarantee: Double?, val comments: String?
     )
@@ -79,7 +79,7 @@ object ProcurementWorkbookSource {
                     text(row, headers, "Procurement Status", evaluator), number(row, headers, "Number of attempt for tender procedure", evaluator)?.toInt(),
                     text(row, headers, "PIG violations (if any)", evaluator), text(row, headers, "Prozorro reference", evaluator),
                     date(row, headers, "Contract Date", evaluator), date(row, headers, "Contract end date", evaluator), date(row, headers, "Actualised contract end date", evaluator),
-                    text(row, headers, "Contractor ID", evaluator), text(row, headers, "Contractor Name eng", evaluator), text(row, headers, "Contractor Name ukr", evaluator),
+                    text(row, headers, "Contractor ID", evaluator), text(row, headers, "Contractor Name eng", evaluator), text(row, headers, "Contractor Name ukr", evaluator), text(row, headers, "Contract Reference No.", evaluator),
                     number(row, headers, "Contract amount, UAH with VAT", evaluator), number(row, headers, "Contract amount, UAH without VAT", evaluator),
                     number(row, headers, "DREAM co-financing (%)", evaluator), number(row, headers, "Estimated amount and Financing (EIB financing, UAH)", evaluator),
                     number(row, headers, "Real local co-financing according to contract (%)", evaluator), number(row, headers, "Real EIB financing according contract data (UAH)", evaluator),
@@ -175,7 +175,7 @@ object ProcurementWorkbookSource {
         "Procurement ID", "Sub-Project ID", "Batch ID", "Oblast ID", "Type", "Sub-Project Name (ukr)", "Sub-Project Name (eng)",
         "Promotor Name", "FB Name", "Procurement Method", "Procurement Status", "Number of attempt for tender procedure",
         "PIG violations (if any)", "Prozorro reference", "Contract Date", "Contract end date", "Actualised contract end date",
-        "Contractor ID", "Contractor Name eng", "Contractor Name ukr", "Contract amount, UAH with VAT",
+        "Contractor ID", "Contractor Name eng", "Contractor Name ukr", "Contract Reference No.", "Contract amount, UAH with VAT",
         "Contract amount, UAH without VAT", "DREAM co-financing (%)", "Estimated amount and Financing (EIB financing, UAH)",
         "Real local co-financing according to contract (%)", "Real EIB financing according contract data (UAH)", "Bank guarantee"
     )

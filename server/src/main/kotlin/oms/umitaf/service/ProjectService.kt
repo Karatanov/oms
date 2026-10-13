@@ -30,6 +30,7 @@ class ProjectService(
     }
 
     fun isManagedBy(uuid: String, userId: Long): Boolean = projectRepository.managerIdForUuid(uuid) == userId
+    fun managerIdForProject(uuid: String): Long? = projectRepository.managerIdForUuid(uuid)
     fun managedProjectIds(userId: Long): Set<Long> = projectRepository.managedProjectIds(userId)
     fun monitoringDetailsByProjectIds(projectIds: Collection<Long>) = projectRepository.monitoringDetailsByProjectIds(projectIds)
 

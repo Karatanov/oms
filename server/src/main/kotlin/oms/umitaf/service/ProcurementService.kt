@@ -4,11 +4,13 @@ import oms.umitaf.repository.ProcurementRecordRepository
 import oms.umitaf.domain.ProcurementRecord
 import oms.umitaf.domain.ProjectType
 import oms.umitaf.dto.ProcurementRecordRequest
+import oms.umitaf.dto.UpdateProjectRequest
 import java.time.LocalDate
 import java.util.UUID
 import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.TimeUnit
+import kotlin.math.roundToLong
 import org.slf4j.LoggerFactory
 
 class ProcurementService(
@@ -174,8 +176,11 @@ class ProcurementService(
         val sourceRows = uploadedWorkbook?.let(ProcurementWorkbookSource::parseApprovedWorkbook)
             ?: ProcurementWorkbookSource.downloadAndParse()
         checkCancelled(shouldCancel)
-        onProgress(40, "validating")
         require(sourceRows.isNotEmpty()) { "The approved procurement workbook contains no records." }
+        onProgress(25, "synchronizing_projects")
+        synchronizeProjectHierarchy(sourceRows, shouldCancel)
+        checkCancelled(shouldCancel)
+        onProgress(40, "validating")
         val projects = projectService.getAllProjects()
         val subprojects = projects.filter { it.projectType == ProjectType.SUBPROJECT }
             .associateBy { it.siteNumber.trim().uppercase() }
@@ -224,6 +229,191 @@ class ProcurementService(
         onProgress(90, "saving")
         return repository.replaceForBatches(records)
     }
+
+    /**
+     * DB6.3 is the approved source for the procurement registry. New rows may
+     * reference a subproject or a lot that has not reached OMS yet, so create
+     * the missing hierarchy before validating the procurement records.
+     * Existing project records are deliberately left untouched: the workbook
+     * does not contain a complete project passport and must not overwrite it.
+     */
+    private fun synchronizeProjectHierarchy(
+        sourceRows: List<ProcurementWorkbookSource.SourceRow>,
+        shouldCancel: () -> Boolean
+    ) {
+        var projects = projectService.getAllProjects()
+        val programme = projects.firstOrNull {
+            it.projectType == ProjectType.PROJECT &&
+                (it.siteNumber.equals("URP-III", true) || it.name.equals("Ukraine Recovery Programme III", true))
+        } ?: throw IllegalArgumentException("The Ukraine Recovery Programme III parent project is missing.")
+        val importManagerId = projectService.managerIdForProject(programme.uuid.toString())
+            ?: throw IllegalArgumentException("The Ukraine Recovery Programme III parent project has no manager.")
+
+        val subprojectsByCode = projects.filter { it.projectType == ProjectType.SUBPROJECT }
+            .associateBy { it.siteNumber.trim().uppercase() }.toMutableMap()
+        sourceRows.groupBy { it.subprojectCode.uppercase() }.forEach { (code, rows) ->
+            checkCancelled(shouldCancel)
+            if (code !in subprojectsByCode) {
+                val source = rows.firstMeaningfulSource()
+                val region = source.regionDetails()
+                val subproject = projectService.createProject(
+                    name = source.subprojectNameUk?.trim().takeUnless { it.isNullOrEmpty() }
+                        ?: source.subprojectNameEn?.trim().takeUnless { it.isNullOrEmpty() }
+                        ?: source.subprojectCode,
+                    address = "",
+                    region = region.name,
+                    city = region.centre,
+                    sector = "",
+                    constructionType = source.inferredConstructionType(),
+                    budgetPlanned = rows.importBudget(),
+                    siteName = source.subprojectCode,
+                    siteNumber = source.subprojectCode,
+                    latitude = region.latitude,
+                    longitude = region.longitude,
+                    engineerConsultantContractAmount = null,
+                    technicalSupervisionAmount = null,
+                    projectType = "subproject",
+                    parentProjectUuid = programme.uuid.toString(),
+                    trancheNumber = source.trancheNumber(),
+                    subprojectContractAmount = rows.importBudget(),
+                    startDate = rows.primaryWorksContract()?.contractDate?.toString(),
+                    contractSignedDate = rows.primaryWorksContract()?.contractDate?.toString(),
+                    plannedEndDate = rows.primaryWorksContract()?.validPlannedEndDate()?.toString(),
+                    managerId = importManagerId
+                )
+                enrichImportedProject(subproject, rows)
+                subprojectsByCode[code] = subproject
+            }
+        }
+
+        // Reload after creating subprojects so their generated IDs are used as
+        // parents for any lot records from the same workbook.
+        projects = projectService.getAllProjects()
+        val partsByCode = projects.filter { it.projectType == ProjectType.SUBPROJECT_PART }
+            .associateBy { it.siteNumber.trim().uppercase() }.toMutableMap()
+        sourceRows.filter { it.partCode != null }.groupBy { it.partCode!!.uppercase() }.forEach { (partCode, rows) ->
+            checkCancelled(shouldCancel)
+            if (partCode !in partsByCode) {
+                val source = rows.firstMeaningfulSource()
+                val parent = subprojectsByCode[source.subprojectCode.uppercase()]
+                    ?: throw IllegalArgumentException("Source row ${source.sourceId} references unknown subproject ${source.subprojectCode}.")
+                val part = projectService.createProject(
+                    name = source.subprojectNameUk?.trim().takeUnless { it.isNullOrEmpty() }
+                        ?: source.subprojectNameEn?.trim().takeUnless { it.isNullOrEmpty() }
+                        ?: source.partCode!!,
+                    address = "",
+                    region = parent.region.orEmpty(),
+                    city = parent.city.orEmpty(),
+                    sector = parent.sector.orEmpty(),
+                    constructionType = parent.constructionType.orEmpty().ifBlank { source.inferredConstructionType() },
+                    budgetPlanned = rows.importBudget(),
+                    siteName = source.partCode!!,
+                    siteNumber = source.partCode!!,
+                    latitude = parent.latitude ?: source.regionDetails().latitude,
+                    longitude = parent.longitude ?: source.regionDetails().longitude,
+                    engineerConsultantContractAmount = null,
+                    technicalSupervisionAmount = null,
+                    projectType = "subproject_part",
+                    parentProjectUuid = parent.uuid.toString(),
+                    trancheNumber = parent.trancheNumber,
+                    subprojectContractAmount = rows.importBudget(),
+                    startDate = rows.primaryWorksContract()?.contractDate?.toString(),
+                    contractSignedDate = rows.primaryWorksContract()?.contractDate?.toString(),
+                    plannedEndDate = rows.primaryWorksContract()?.validPlannedEndDate()?.toString(),
+                    managerId = importManagerId
+                )
+                enrichImportedProject(part, rows)
+                partsByCode[partCode] = part
+            }
+        }
+    }
+
+    private fun List<ProcurementWorkbookSource.SourceRow>.firstMeaningfulSource() =
+        firstOrNull { !it.subprojectNameUk.isNullOrBlank() || !it.subprojectNameEn.isNullOrBlank() } ?: first()
+
+    private fun List<ProcurementWorkbookSource.SourceRow>.importBudget(): Long = asSequence()
+        .flatMap { sequenceOf(it.contractAmountUah, it.estimatedEibUah) }
+        .filterNotNull()
+        .maxOrNull()
+        ?.roundToLong()
+        ?.coerceAtLeast(1L)
+        ?: 1L
+
+    private fun List<ProcurementWorkbookSource.SourceRow>.primaryWorksContract() =
+        firstOrNull { it.sourceContractType.contains("works", true) || it.sourceContractType.contains("роботи", true) }
+
+    private fun ProcurementWorkbookSource.SourceRow.effectiveContractEndDate() =
+        actualisedContractEndDate ?: contractEndDate
+
+    private fun ProcurementWorkbookSource.SourceRow.validPlannedEndDate() =
+        effectiveContractEndDate()?.takeUnless { end -> contractDate?.isAfter(end) == true }
+
+    /** Adds contract-specific information that is available in DB6.3 to a newly created record. */
+    private fun enrichImportedProject(project: oms.umitaf.domain.Project, rows: List<ProcurementWorkbookSource.SourceRow>) {
+        val works = rows.primaryWorksContract()
+        val technicalSupervision = rows.firstOrNull { it.sourceContractType.contains("TS", true) }
+        val engineerConsultant = rows.firstOrNull { it.sourceContractType.contains("CSC", true) }
+        projectService.updateProject(project.uuid.toString(), UpdateProjectRequest(
+            contractorName = (works?.contractorNameUkr ?: works?.contractorNameEng).limitedTo(255),
+            constructionContractNumber = works?.contractReference.limitedTo(100),
+            constructionContractSigningDate = works?.contractDate?.toString(),
+            constructionStartDate = works?.contractDate?.toString(),
+            projectedCompletionTime = works?.validPlannedEndDate()?.toString(),
+            technicalSupervisionAmount = technicalSupervision?.contractAmountUah?.roundToLong(),
+            technicalSupervisionName = (technicalSupervision?.contractorNameUkr ?: technicalSupervision?.contractorNameEng).limitedTo(255),
+            technicalSupervisionContractNumber = technicalSupervision?.contractReference.limitedTo(100),
+            technicalSupervisionContractDate = technicalSupervision?.contractDate?.toString(),
+            technicalSupervisionStartDate = technicalSupervision?.contractDate?.toString(),
+            technicalSupervisionPlannedEndDate = technicalSupervision?.validPlannedEndDate()?.toString(),
+            engineerConsultantContractAmount = engineerConsultant?.contractAmountUah?.roundToLong(),
+            engineerConsultantName = (engineerConsultant?.contractorNameUkr ?: engineerConsultant?.contractorNameEng).limitedTo(255),
+            engineerConsultantContractNumber = engineerConsultant?.contractReference.limitedTo(100),
+            engineerConsultantContractDate = engineerConsultant?.contractDate?.toString(),
+            engineerConsultantStartDate = engineerConsultant?.contractDate?.toString(),
+            engineerConsultantPlannedEndDate = engineerConsultant?.validPlannedEndDate()?.toString()
+        ))
+    }
+
+    private fun ProcurementWorkbookSource.SourceRow.trancheNumber() = if (batchId == 9) 2 else 1
+
+    private fun ProcurementWorkbookSource.SourceRow.inferredConstructionType(): String {
+        val name = "${subprojectNameUk.orEmpty()} ${subprojectNameEn.orEmpty()}".lowercase()
+        return when {
+            "капіталь" in name || "capital repair" in name -> "capital_repair"
+            "нове будівництво" in name || "new construction" in name -> "new_construction"
+            else -> "reconstruction"
+        }
+    }
+
+    private data class RegionDetails(val name: String, val centre: String, val latitude: Double, val longitude: Double)
+
+    private fun ProcurementWorkbookSource.SourceRow.regionDetails(): RegionDetails = oblastDetails[oblastId.trim().uppercase()]
+        ?: RegionDetails(oblastId.ifBlank { "Не визначено" }, "", 50.4501, 30.5234)
+
+    private val oblastDetails = mapOf(
+        "CH" to RegionDetails("Чернігівська", "Чернігів", 51.4982, 31.2893),
+        "CK" to RegionDetails("Черкаська", "Черкаси", 49.4444, 32.0598),
+        "CV" to RegionDetails("Чернівецька", "Чернівці", 48.2915, 25.9403),
+        "DP" to RegionDetails("Дніпропетровська", "Дніпро", 48.4647, 35.0462),
+        "IF" to RegionDetails("Івано-Франківська", "Івано-Франківськ", 48.9226, 24.7111),
+        "KH" to RegionDetails("Харківська", "Харків", 49.9935, 36.2304),
+        "KM" to RegionDetails("Хмельницька", "Хмельницький", 49.4229, 26.9871),
+        "KR" to RegionDetails("Кіровоградська", "Кропивницький", 48.5079, 32.2623),
+        "KS" to RegionDetails("Херсонська", "Херсон", 46.6354, 32.6169),
+        "KV" to RegionDetails("Київська", "Київ", 50.4501, 30.5234),
+        "LV" to RegionDetails("Львівська", "Львів", 49.8397, 24.0297),
+        "MY" to RegionDetails("Миколаївська", "Миколаїв", 46.9750, 31.9946),
+        "OD" to RegionDetails("Одеська", "Одеса", 46.4825, 30.7233),
+        "PL" to RegionDetails("Полтавська", "Полтава", 49.5883, 34.5514),
+        "RV" to RegionDetails("Рівненська", "Рівне", 50.6199, 26.2516),
+        "SM" to RegionDetails("Сумська", "Суми", 50.9077, 34.7981),
+        "VN" to RegionDetails("Вінницька", "Вінниця", 49.2328, 28.4810),
+        "ZH" to RegionDetails("Житомирська", "Житомир", 50.2547, 28.6587),
+        "ZK" to RegionDetails("Закарпатська", "Ужгород", 48.6208, 22.2879),
+        "ZP" to RegionDetails("Запорізька", "Запоріжжя", 47.8388, 35.1396)
+    )
+
+    private fun String?.limitedTo(max: Int): String? = this?.trim()?.take(max)?.ifBlank { null }
 
     private fun ProcurementRecordRequest.toRecord(): ProcurementRecord {
         val subproject = projectService.getAllProjects().firstOrNull {
