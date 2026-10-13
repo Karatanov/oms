@@ -52,6 +52,19 @@ services:
       - traefik.http.routers.oms.middlewares=oms-compress
       - traefik.http.middlewares.oms-compress.compress=true
       - traefik.http.services.oms.loadbalancer.server.port=8080
+      # Keep www usable for links typed or copied by users, while preserving
+      # one canonical origin for sessions, SEO and API requests.  This router
+      # has its own ACME certificate so browsers never see Traefik's default
+      # self-signed certificate before the redirect can run.
+      - traefik.http.routers.oms-www.rule=Host(`www.ua-oms.com`)
+      - traefik.http.routers.oms-www.entrypoints=websecure
+      - traefik.http.routers.oms-www.tls=true
+      - traefik.http.routers.oms-www.tls.certresolver=letsencrypt
+      - traefik.http.routers.oms-www.middlewares=oms-www-redirect
+      - traefik.http.routers.oms-www.service=noop@internal
+      - traefik.http.middlewares.oms-www-redirect.redirectregex.regex=^https://www\\.ua-oms\\.com/(.*)
+      - traefik.http.middlewares.oms-www-redirect.redirectregex.replacement=https://ua-oms.com/$${1}
+      - traefik.http.middlewares.oms-www-redirect.redirectregex.permanent=true
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/health >/dev/null"]
       interval: 15s
