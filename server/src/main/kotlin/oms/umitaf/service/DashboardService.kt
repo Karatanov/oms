@@ -95,6 +95,53 @@ private fun procurementStatusMetrics(procurementRecords: List<org.jetbrains.expo
     return procurementStatusOrder.map { status -> DashboardMetric(status, countByStatus[status] ?: 0L) }
 }
 
+/**
+ * Dashboard source data has historically used several spellings for the same
+ * oblast: Ukrainian/English, with or without the "oblast" suffix, and in a
+ * few cases the city adjective.  The national indicator must count actual
+ * Ukrainian oblasts, rather than raw labels from source spreadsheets.
+ *
+ * Kyiv city is deliberately not included here: it is a city with special
+ * status, not one of Ukraine's 24 oblasts.
+ */
+private fun canonicalUkraineOblast(value: String?): String? {
+    val normalized = value.orEmpty()
+        .lowercase()
+        .replace('’', '\'')
+        .replace(Regex("[^a-zа-яіїєґ']+"), " ")
+        .replace(Regex("\\b(область|обл|oblast|region)\\b"), " ")
+        .trim()
+        .replace(Regex("\\s+"), " ")
+
+    return when {
+        normalized.contains("вінни") || normalized.contains("vinnyt") -> "Vinnytsia"
+        normalized.contains("волин") || normalized.contains("volyn") -> "Volyn"
+        normalized.contains("дніпр") || normalized.contains("dnipro") -> "Dnipropetrovsk"
+        normalized.contains("донець") || normalized.contains("donetsk") -> "Donetsk"
+        normalized.contains("житом") || normalized.contains("zhytom") -> "Zhytomyr"
+        normalized.contains("закар") || normalized.contains("zakarp") || normalized.contains("transcarpath") -> "Zakarpattia"
+        normalized.contains("запор") || normalized.contains("zaporiz") -> "Zaporizhzhia"
+        normalized.contains("івано") || normalized.contains("frankiv") || normalized.contains("ivano") -> "Ivano-Frankivsk"
+        normalized.contains("київ") || normalized.contains("kyiv") || normalized.contains("kiev") -> "Kyiv"
+        normalized.contains("кіров") || normalized.contains("kirov") -> "Kirovohrad"
+        normalized.contains("луган") || normalized.contains("luhansk") || normalized.contains("lugansk") -> "Luhansk"
+        normalized.contains("львів") || normalized.contains("lviv") || normalized.contains("l'viv") -> "Lviv"
+        normalized.contains("микола") || normalized.contains("mykol") || normalized.contains("nikola") -> "Mykolaiv"
+        normalized.contains("одес") || normalized.contains("odes") -> "Odesa"
+        normalized.contains("полтав") || normalized.contains("poltav") -> "Poltava"
+        normalized.contains("рівнен") || normalized.contains("rivne") || normalized.contains("rovno") -> "Rivne"
+        normalized.contains("сумсь") || normalized == "sumy" -> "Sumy"
+        normalized.contains("терноп") || normalized.contains("ternop") -> "Ternopil"
+        normalized.contains("харків") || normalized.contains("khark") || normalized.contains("hark") -> "Kharkiv"
+        normalized.contains("херсон") || normalized.contains("kherson") -> "Kherson"
+        normalized.contains("хмель") || normalized.contains("khmel") || normalized.contains("hmeln") -> "Khmelnytskyi"
+        normalized.contains("черкас") || normalized.contains("cherkas") -> "Cherkasy"
+        normalized.contains("чернів") || normalized.contains("cherniv") -> "Chernivtsi"
+        normalized.contains("черніг") || normalized.contains("chernih") || normalized.contains("chernig") -> "Chernihiv"
+        else -> null
+    }
+}
+
 private fun isConstructionContractSigned(status: String?) =
     status?.let { it.contains("Договір укладено", ignoreCase = true) || it.contains("Contract signed", ignoreCase = true) } == true
 
@@ -266,7 +313,7 @@ class DashboardService(
         val servicesPaidUah = paymentRecords.mapNotNull { it.amountUahCents() }
         val nationalSummary = DashboardNationalSummary(
             subprojectsCount = subprojects.size.toLong(),
-            regionsCount = subprojects.map { it[ProjectTable.region].orEmpty().trim() }.filter(String::isNotBlank).distinct().size.toLong(),
+            regionsCount = subprojects.mapNotNull { canonicalUkraineOblast(it[ProjectTable.region]) }.distinct().size.toLong(),
             municipalitiesCount = subprojects.mapNotNull { row ->
                 monitoringByProjectId[row[ProjectTable.id].value]?.get(ProjectMonitoringDetailTable.municipalityNameUk)
                     ?.trim()?.takeIf(String::isNotBlank)
