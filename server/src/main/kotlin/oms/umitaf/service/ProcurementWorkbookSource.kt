@@ -51,9 +51,15 @@ object ProcurementWorkbookSource {
                 val sourceId = text(row, headers, "Procurement ID", evaluator) ?: return@mapNotNull null
                 val subprojectCode = text(row, headers, "Sub-Project ID", evaluator)
                     ?: throw IllegalArgumentException("Source row $sourceId has no Sub-Project ID.")
+                // Some approved DB6.3 exports carry an incorrect calculated value in the
+                // Type cell. The procurement ID is authoritative in that case: its suffix
+                // is one of W, TS, or CSC (for example CH08_09_TS).
                 val type = text(row, headers, "Type", evaluator)?.uppercase()
-                    ?: throw IllegalArgumentException("Source row $sourceId has no Type.")
-                require(type in contractTypes) { "Source row $sourceId has an unsupported Type '$type'." }
+                    ?.takeIf { it in contractTypes }
+                    ?: contractTypeFromSourceId(sourceId)
+                    ?: throw IllegalArgumentException(
+                        "Source row $sourceId has an unsupported Type '${text(row, headers, "Type", evaluator)}'."
+                    )
                 SourceRow(
                     sourceId, subprojectCode.substringBefore('#').trim(), subprojectCode.takeIf { it.contains("#LOT", true) },
                     number(row, headers, "Batch ID", evaluator)?.toInt() ?: throw IllegalArgumentException("Source row $sourceId has no Batch ID."),
@@ -135,6 +141,12 @@ object ProcurementWorkbookSource {
         }
         return null
     }
+
+    private fun contractTypeFromSourceId(sourceId: String): String? = sourceId
+        .substringBefore('$')
+        .substringAfterLast('_')
+        .uppercase()
+        .takeIf { it in contractTypes }
 
     private val requiredHeaders = setOf(
         "Procurement ID", "Sub-Project ID", "Batch ID", "Oblast ID", "Type", "Sub-Project Name (ukr)", "Sub-Project Name (eng)",
