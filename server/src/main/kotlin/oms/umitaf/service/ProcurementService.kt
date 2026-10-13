@@ -1,6 +1,7 @@
 package oms.umitaf.service
 
 import oms.umitaf.repository.ProcurementRecordRepository
+import oms.umitaf.repository.UserRepository
 import oms.umitaf.domain.ProcurementRecord
 import oms.umitaf.domain.ProjectType
 import oms.umitaf.dto.ProcurementRecordRequest
@@ -15,7 +16,8 @@ import org.slf4j.LoggerFactory
 
 class ProcurementService(
     private val repository: ProcurementRecordRepository,
-    private val projectService: ProjectService
+    private val projectService: ProjectService,
+    private val userRepository: UserRepository
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
     data class RefreshStatus(
@@ -246,8 +248,23 @@ class ProcurementService(
             it.projectType == ProjectType.PROJECT &&
                 (it.siteNumber.equals("URP-III", true) || it.name.equals("Ukraine Recovery Programme III", true))
         } ?: throw IllegalArgumentException("The Ukraine Recovery Programme III parent project is missing.")
+        // Import is a system-maintenance operation.  Older seed data may not
+        // have an assignee on the root programme, but that must not prevent an
+        // administrator from synchronising the approved procurement source.
+        // Repair the missing assignment using an active administrator so the
+        // newly created records also satisfy the project ownership invariant.
         val importManagerId = projectService.managerIdForProject(programme.uuid.toString())
-            ?: throw IllegalArgumentException("The Ukraine Recovery Programme III parent project has no manager.")
+            ?: userRepository.findAll()
+                .firstOrNull { user ->
+                    user.role.code.equals("admin", ignoreCase = true) &&
+                        user.status.equals("active", ignoreCase = true) && !user.isArchived
+                }
+                ?.id
+                ?.also { fallbackAdminId ->
+                    projectService.bulkReassign(listOf(programme.uuid.toString()), fallbackAdminId)
+                    logger.info("Assigned administrator {} to the root programme for procurement import.", fallbackAdminId)
+                }
+            ?: throw IllegalStateException("No active administrator is available to own imported projects.")
 
         val subprojectsByCode = projects.filter { it.projectType == ProjectType.SUBPROJECT }
             .associateBy { it.siteNumber.trim().uppercase() }.toMutableMap()
