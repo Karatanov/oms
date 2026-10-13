@@ -2,6 +2,7 @@ package oms.umitaf.service
 
 import org.apache.poi.ss.usermodel.DataFormatter
 import org.apache.poi.ss.usermodel.DateUtil
+import org.apache.poi.ss.usermodel.FormulaEvaluator
 import org.apache.poi.ss.usermodel.Row
 import org.apache.poi.ss.usermodel.WorkbookFactory
 import java.io.ByteArrayInputStream
@@ -35,34 +36,38 @@ object ProcurementWorkbookSource {
 
     internal fun parse(bytes: ByteArray): List<SourceRow> {
         WorkbookFactory.create(ByteArrayInputStream(bytes)).use { workbook ->
+            // DB6.3 is a reporting sheet: most of its values are formulas
+            // looking up DB6.2. DataFormatter alone returns the formula text
+            // (for example IFERROR(INDEX(...))) instead of its value.
+            val evaluator = workbook.creationHelper.createFormulaEvaluator()
             val sheet = workbook.getSheet(sheetName)
                 ?: throw IllegalArgumentException("The approved workbook has no '$sheetName' sheet.")
-            val headerRowNumber = (sheet.firstRowNum..sheet.lastRowNum).firstOrNull { rowHasHeader(sheet.getRow(it), "Procurement ID") }
+            val headerRowNumber = (sheet.firstRowNum..sheet.lastRowNum).firstOrNull { rowHasHeader(sheet.getRow(it), "Procurement ID", evaluator) }
                 ?: throw IllegalArgumentException("The approved workbook has no Procurement ID header on '$sheetName'.")
-            val headers = headers(sheet.getRow(headerRowNumber))
+            val headers = headers(sheet.getRow(headerRowNumber), evaluator)
             requiredHeaders.forEach { heading -> require(headers.containsKey(normalizeHeader(heading))) { "The approved workbook is missing '$heading' on '$sheetName'." } }
             val rows = (headerRowNumber + 1..sheet.lastRowNum).mapNotNull { rowNumber ->
                 val row = sheet.getRow(rowNumber) ?: return@mapNotNull null
-                val sourceId = text(row, headers, "Procurement ID") ?: return@mapNotNull null
-                val subprojectCode = text(row, headers, "Sub-Project ID")
+                val sourceId = text(row, headers, "Procurement ID", evaluator) ?: return@mapNotNull null
+                val subprojectCode = text(row, headers, "Sub-Project ID", evaluator)
                     ?: throw IllegalArgumentException("Source row $sourceId has no Sub-Project ID.")
-                val type = text(row, headers, "Type")?.uppercase()
+                val type = text(row, headers, "Type", evaluator)?.uppercase()
                     ?: throw IllegalArgumentException("Source row $sourceId has no Type.")
                 require(type in contractTypes) { "Source row $sourceId has an unsupported Type '$type'." }
                 SourceRow(
                     sourceId, subprojectCode.substringBefore('#').trim(), subprojectCode.takeIf { it.contains("#LOT", true) },
-                    number(row, headers, "Batch ID")?.toInt() ?: throw IllegalArgumentException("Source row $sourceId has no Batch ID."),
-                    text(row, headers, "Oblast ID").orEmpty(), contractTypes.getValue(type),
-                    text(row, headers, "Sub-Project Name (ukr)"), text(row, headers, "Sub-Project Name (eng)"),
-                    text(row, headers, "Promotor Name"), text(row, headers, "FB Name"), text(row, headers, "Procurement Method"),
-                    text(row, headers, "Procurement Status"), number(row, headers, "Number of attempt for tender procedure")?.toInt(),
-                    text(row, headers, "PIG violations (if any)"), text(row, headers, "Prozorro reference"),
-                    date(row, headers, "Contract Date"), date(row, headers, "Contract end date"), date(row, headers, "Actualised contract end date"),
-                    text(row, headers, "Contractor ID"), text(row, headers, "Contractor Name eng"), text(row, headers, "Contractor Name ukr"),
-                    number(row, headers, "Contract amount, UAH with VAT"), number(row, headers, "Contract amount, UAH without VAT"),
-                    number(row, headers, "DREAM co-financing (%)"), number(row, headers, "Estimated amount and Financing (EIB financing, UAH)"),
-                    number(row, headers, "Real local co-financing according to contract (%)"), number(row, headers, "Real EIB financing according contract data (UAH)"),
-                    number(row, headers, "Bank guarantee"), text(row, headers, "Comments (if any)")
+                    number(row, headers, "Batch ID", evaluator)?.toInt() ?: throw IllegalArgumentException("Source row $sourceId has no Batch ID."),
+                    text(row, headers, "Oblast ID", evaluator).orEmpty(), contractTypes.getValue(type),
+                    text(row, headers, "Sub-Project Name (ukr)", evaluator), text(row, headers, "Sub-Project Name (eng)", evaluator),
+                    text(row, headers, "Promotor Name", evaluator), text(row, headers, "FB Name", evaluator), text(row, headers, "Procurement Method", evaluator),
+                    text(row, headers, "Procurement Status", evaluator), number(row, headers, "Number of attempt for tender procedure", evaluator)?.toInt(),
+                    text(row, headers, "PIG violations (if any)", evaluator), text(row, headers, "Prozorro reference", evaluator),
+                    date(row, headers, "Contract Date", evaluator), date(row, headers, "Contract end date", evaluator), date(row, headers, "Actualised contract end date", evaluator),
+                    text(row, headers, "Contractor ID", evaluator), text(row, headers, "Contractor Name eng", evaluator), text(row, headers, "Contractor Name ukr", evaluator),
+                    number(row, headers, "Contract amount, UAH with VAT", evaluator), number(row, headers, "Contract amount, UAH without VAT", evaluator),
+                    number(row, headers, "DREAM co-financing (%)", evaluator), number(row, headers, "Estimated amount and Financing (EIB financing, UAH)", evaluator),
+                    number(row, headers, "Real local co-financing according to contract (%)", evaluator), number(row, headers, "Real EIB financing according contract data (UAH)", evaluator),
+                    number(row, headers, "Bank guarantee", evaluator), text(row, headers, "Comments (if any)", evaluator)
                 )
             }
             require(rows.map { it.sourceId }.toSet().size == rows.size) { "The approved workbook contains duplicate Procurement IDs." }
@@ -70,17 +75,17 @@ object ProcurementWorkbookSource {
         }
     }
 
-    private fun headers(row: Row?): Map<String, Int> = buildMap {
+    private fun headers(row: Row?, evaluator: FormulaEvaluator): Map<String, Int> = buildMap {
         row ?: return@buildMap
         for (index in row.firstCellNum.coerceAtLeast(0) until row.lastCellNum.coerceAtLeast(0)) {
-            cellText(row, index).trim().takeIf(String::isNotBlank)?.let { put(normalizeHeader(it), index) }
+            cellText(row, index, evaluator).trim().takeIf(String::isNotBlank)?.let { put(normalizeHeader(it), index) }
         }
     }
-    private fun rowHasHeader(row: Row?, heading: String) = headers(row).containsKey(normalizeHeader(heading))
-    private fun text(row: Row, headers: Map<String, Int>, heading: String): String? = headers[normalizeHeader(heading)]
-        ?.let { cellText(row, it).trim().takeIf(String::isNotBlank) }
-    private fun number(row: Row, headers: Map<String, Int>, heading: String): Double? = headers[normalizeHeader(heading)]?.let { cellNumber(row, it) }
-    private fun date(row: Row, headers: Map<String, Int>, heading: String): LocalDate? = headers[normalizeHeader(heading)]?.let { cellDate(row, it) }
+    private fun rowHasHeader(row: Row?, heading: String, evaluator: FormulaEvaluator) = headers(row, evaluator).containsKey(normalizeHeader(heading))
+    private fun text(row: Row, headers: Map<String, Int>, heading: String, evaluator: FormulaEvaluator): String? = headers[normalizeHeader(heading)]
+        ?.let { cellText(row, it, evaluator).trim().takeIf(String::isNotBlank) }
+    private fun number(row: Row, headers: Map<String, Int>, heading: String, evaluator: FormulaEvaluator): Double? = headers[normalizeHeader(heading)]?.let { cellNumber(row, it, evaluator) }
+    private fun date(row: Row, headers: Map<String, Int>, heading: String, evaluator: FormulaEvaluator): LocalDate? = headers[normalizeHeader(heading)]?.let { cellDate(row, it, evaluator) }
     private fun normalizeHeader(value: String): String = value.replace(Regex("\\s+"), " ").trim().lowercase(Locale.US)
 
     private fun download(): ByteArray {
@@ -104,14 +109,23 @@ object ProcurementWorkbookSource {
     }
 
     private val formatter = DataFormatter(Locale.US)
-    private fun cellText(row: Row?, index: Int): String = row?.getCell(index)?.let(formatter::formatCellValue).orEmpty()
-    private fun cellNumber(row: Row, index: Int): Double? = row.getCell(index)?.let { cell ->
-        if (cell.cellType == org.apache.poi.ss.usermodel.CellType.NUMERIC) cell.numericCellValue
-        else cellText(row, index).replace(',', '.').replace("%", "").trim().toDoubleOrNull()
+    private fun cellText(row: Row?, index: Int, evaluator: FormulaEvaluator): String = row?.getCell(index)
+        ?.let { cell -> formatter.formatCellValue(cell, evaluator) }
+        .orEmpty()
+    private fun cellNumber(row: Row, index: Int, evaluator: FormulaEvaluator): Double? = row.getCell(index)?.let { cell ->
+        val evaluated = if (cell.cellType == org.apache.poi.ss.usermodel.CellType.FORMULA) evaluator.evaluate(cell) else null
+        if (evaluated?.cellType == org.apache.poi.ss.usermodel.CellType.NUMERIC) evaluated.numberValue
+        else if (cell.cellType == org.apache.poi.ss.usermodel.CellType.NUMERIC) cell.numericCellValue
+        else cellText(row, index, evaluator).replace(',', '.').replace("%", "").trim().toDoubleOrNull()
     }
-    private fun cellDate(row: Row, index: Int): LocalDate? = row.getCell(index)?.let { cell ->
-        if (cell.cellType == org.apache.poi.ss.usermodel.CellType.NUMERIC && DateUtil.isCellDateFormatted(cell)) cell.localDateTimeCellValue.toLocalDate()
-        else parseDate(cellText(row, index))
+    private fun cellDate(row: Row, index: Int, evaluator: FormulaEvaluator): LocalDate? = row.getCell(index)?.let { cell ->
+        val numeric = when (cell.cellType) {
+            org.apache.poi.ss.usermodel.CellType.FORMULA -> evaluator.evaluate(cell)?.takeIf { it.cellType == org.apache.poi.ss.usermodel.CellType.NUMERIC }?.numberValue
+            org.apache.poi.ss.usermodel.CellType.NUMERIC -> cell.numericCellValue
+            else -> null
+        }
+        if (numeric != null && DateUtil.isCellDateFormatted(cell)) DateUtil.getLocalDateTime(numeric).toLocalDate()
+        else parseDate(cellText(row, index, evaluator))
     }
     private fun parseDate(value: String): LocalDate? {
         val normalized = value.trim()
