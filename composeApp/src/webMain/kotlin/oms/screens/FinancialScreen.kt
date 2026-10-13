@@ -884,7 +884,7 @@ private fun FinancialProgressCard(titleKey: String, items: List<ApiFinancialProg
                         modifier = Modifier.fillMaxWidth()
                     )
                     Text(
-                        "₴ ${item.completedAmountUah.formatUiAmount()} / ₴ ${item.contractAmountUah.formatUiAmount()}",
+                        "${item.completedAmountUah.formatUiAmount()} UAH / ${item.contractAmountUah.formatUiAmount()} UAH",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

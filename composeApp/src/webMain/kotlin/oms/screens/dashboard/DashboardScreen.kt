@@ -215,14 +215,14 @@ private fun NationalPortfolioSummary(summary: ApiDashboardNationalSummary) {
                 SummaryMetric("national_settlements", summary.settlementsCount.toString())
                 SummaryMetric(
                     "national_approved_financing",
-                    "€ ${summary.approvedFundingEur.roundToLong().grouped()} · ₴ ${summary.approvedFundingUah.roundToLong().grouped()}"
+                    "€ ${summary.approvedFundingEur.roundToLong().grouped()} · ${summary.approvedFundingUah.roundToLong().grouped()} UAH"
                 )
                 SummaryMetric("national_signed_contracts", summary.signedContractsCount.toString())
-                SummaryMetric("national_signed_contract_value", "₴ ${summary.signedContractsAmountUah.roundToLong().grouped()}")
+                SummaryMetric("national_signed_contract_value", "${summary.signedContractsAmountUah.roundToLong().grouped()} UAH")
                 SummaryMetric(
                     "national_services_paid",
                     "€ ${summary.servicesPaidEurCents.toEuroAmount()}" +
-                        (summary.servicesPaidUahCents?.let { " · ₴ ${it.toUahAmount()}" }.orEmpty())
+                        (summary.servicesPaidUahCents?.let { " · ${it.toUahAmount()} UAH" }.orEmpty())
                 )
             }
         }
