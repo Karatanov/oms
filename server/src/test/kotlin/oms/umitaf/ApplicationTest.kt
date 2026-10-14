@@ -9,6 +9,11 @@ import kotlin.test.*
 
 class ApplicationTest {
 
+    @Test fun manualProcurementCreationRouteIsUnavailable() = testApplication {
+        application { module(configureDatabase = false) }
+        assertEquals(HttpStatusCode.NotFound, client.post("/api/v1/procurements").status)
+    }
+
     @Test fun guestBearerRestoresSessionWithoutCookiesAndCorsAllowsAuthorization() = testApplication {
         application { module(configureDatabase = false) }
         val guest = client.post("/api/v1/auth/guest")

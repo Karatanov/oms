@@ -26,12 +26,6 @@ fun Route.procurementRoutes() {
         call.respond(AppContainer.procurementService.getAll().map(ProcurementRecord::toResponse))
     }
 
-    post("/api/v1/procurements") {
-        call.requireRole("ADMIN") ?: return@post
-        val request = call.receive<ProcurementRecordRequest>()
-        call.respondSafely(HttpStatusCode.Created) { AppContainer.procurementService.create(request).toResponse() }
-    }
-
     patch("/api/v1/procurements/{id}") {
         call.requireRole("ADMIN") ?: return@patch
         val id = call.parameters["id"]?.toLongOrNull()

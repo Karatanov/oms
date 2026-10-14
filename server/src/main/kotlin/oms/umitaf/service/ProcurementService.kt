@@ -45,7 +45,6 @@ class ProcurementService(
 
     fun getAll() = repository.findAll()
     fun getBySubProjectId(subProjectId: String) = repository.findBySubProjectId(subProjectId)
-    fun create(request: ProcurementRecordRequest) = repository.create(request.toRecord())
     fun update(id: Long, request: ProcurementRecordRequest) = repository.update(id, request.toRecord())
     fun delete(id: Long) = repository.delete(id)
 

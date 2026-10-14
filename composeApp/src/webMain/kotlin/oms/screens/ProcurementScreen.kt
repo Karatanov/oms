@@ -12,7 +12,6 @@ import androidx.compose.material3.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.ShoppingCart
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Refresh
@@ -87,7 +86,6 @@ fun ProcurementScreen(
     oms.navigation.ReportRouteReadiness(records == null && loadError == null, loadError != null)
     var reloadKey by remember { mutableStateOf(0) }
     var editorRecord by remember { mutableStateOf<ApiProcurementRecord?>(null) }
-    var creating by remember { mutableStateOf(false) }
     var recordPendingDeletion by remember { mutableStateOf<ApiProcurementRecord?>(null) }
     var refreshConfirmationOpen by remember { mutableStateOf(false) }
     var refreshJob by remember { mutableStateOf<oms.data.ApiProcurementRefresh?>(null) }
@@ -211,7 +209,6 @@ fun ProcurementScreen(
                         Icon(Icons.Default.Refresh, null)
                         Spacer(Modifier.width(6.dp)); Text(LocalizationManager.t("refresh_procurement_registry"))
                     }
-                    Button(onClick = { error = null; creating = true }) { Icon(Icons.Default.Add, null); Spacer(Modifier.width(6.dp)); Text(LocalizationManager.t("add_procurement_record")) }
                 }
             }
         }
@@ -390,13 +387,6 @@ fun ProcurementScreen(
             }
         }
     }
-    if (creating) WasmSafeOverlay(onDismiss = { creating = false }, errorMessage = error) {
-            ProcurementEditorDialog(null, onDismiss = { creating = false }) { request ->
-            scope.launch { runCatching { OmsApiClient.createProcurement(request) }
-                .onSuccess { records = (records.orEmpty() + it).sortedBy { record -> record.id }; creating = false }
-                .onFailure { error = LocalizationManager.t("error_create_procurement").replace("{message}", it.message.orEmpty()) } }
-            }
-        }
     editorRecord?.let { existing -> WasmSafeOverlay(onDismiss = { editorRecord = null }, errorMessage = error) {
             ProcurementEditorDialog(existing, onDismiss = { editorRecord = null }) { request ->
             scope.launch { runCatching { OmsApiClient.updateProcurement(existing.id, request) }
@@ -812,30 +802,30 @@ private fun Double?.formatPercent(): String = this?.let { value -> (value * 100.
 
 @Composable
 private fun ProcurementEditorDialog(
-    existing: ApiProcurementRecord?,
+    existing: ApiProcurementRecord,
     onDismiss: () -> Unit,
     onSave: (ProcurementRecordRequest) -> Unit
 ) {
-    var subprojectId by remember(existing?.id) { mutableStateOf(existing?.subProjectId.orEmpty()) }
-    var subprojectPartId by remember(existing?.id) { mutableStateOf(existing?.subProjectLotId.orEmpty()) }
-    var promotorName by remember(existing?.id) { mutableStateOf(existing?.promotorName.orEmpty()) }
-    var contractType by remember(existing?.id) { mutableStateOf(existing?.sourceContractType.orEmpty()) }
-    var totalCostUah by remember(existing?.id) { mutableStateOf(existing?.subprojectTotalCostUah?.toString().orEmpty()) }
-    var eibFinancingUah by remember(existing?.id) { mutableStateOf(existing?.subprojectEibFinancingUah?.toString().orEmpty()) }
-    var localFinancingUah by remember(existing?.id) { mutableStateOf(existing?.subprojectLocalFinancingUah?.toString().orEmpty()) }
-    var estimatedTotalEur by remember(existing?.id) { mutableStateOf(existing?.estimatedTotalEur?.toString().orEmpty()) }
-    var procurementMethod by remember(existing?.id) { mutableStateOf(existing?.procurementMethod.orEmpty()) }
-    var tenderDocumentType by remember(existing?.id) { mutableStateOf(existing?.tenderDocumentType.orEmpty()) }
-    var publishedInOjeu by remember(existing?.id) { mutableStateOf(existing?.publishedInOjeu.isPublishedInOjeu()) }
-    var estimatedProzorroDate by remember(existing?.id) { mutableStateOf(existing?.estimatedProzorroDate ?: currentIsoDate()) }
-    var estimatedBidSubmissionDate by remember(existing?.id) { mutableStateOf(existing?.estimatedBidSubmissionDate ?: currentIsoDate()) }
-    var estimatedContractDate by remember(existing?.id) { mutableStateOf(existing?.estimatedContractDate ?: currentIsoDate()) }
-    var estimatedContractEndDate by remember(existing?.id) { mutableStateOf(existing?.estimatedContractEndDate ?: currentIsoDate()) }
-    var status by remember(existing?.id) { mutableStateOf(existing?.purchaseStatus ?: procurementStatuses.first()) }
-    var localFinancingPct by remember(existing?.id) { mutableStateOf(existing?.localFinancingPct.formatFixed(2)) }
-    var comments by remember(existing?.id) { mutableStateOf(existing?.comments.orEmpty()) }
+    var subprojectId by remember(existing.id) { mutableStateOf(existing.subProjectId) }
+    var subprojectPartId by remember(existing.id) { mutableStateOf(existing.subProjectLotId.orEmpty()) }
+    var promotorName by remember(existing.id) { mutableStateOf(existing.promotorName.orEmpty()) }
+    var contractType by remember(existing.id) { mutableStateOf(existing.sourceContractType.orEmpty()) }
+    var totalCostUah by remember(existing.id) { mutableStateOf(existing.subprojectTotalCostUah?.toString().orEmpty()) }
+    var eibFinancingUah by remember(existing.id) { mutableStateOf(existing.subprojectEibFinancingUah?.toString().orEmpty()) }
+    var localFinancingUah by remember(existing.id) { mutableStateOf(existing.subprojectLocalFinancingUah?.toString().orEmpty()) }
+    var estimatedTotalEur by remember(existing.id) { mutableStateOf(existing.estimatedTotalEur?.toString().orEmpty()) }
+    var procurementMethod by remember(existing.id) { mutableStateOf(existing.procurementMethod.orEmpty()) }
+    var tenderDocumentType by remember(existing.id) { mutableStateOf(existing.tenderDocumentType.orEmpty()) }
+    var publishedInOjeu by remember(existing.id) { mutableStateOf(existing.publishedInOjeu.isPublishedInOjeu()) }
+    var estimatedProzorroDate by remember(existing.id) { mutableStateOf(existing.estimatedProzorroDate ?: currentIsoDate()) }
+    var estimatedBidSubmissionDate by remember(existing.id) { mutableStateOf(existing.estimatedBidSubmissionDate ?: currentIsoDate()) }
+    var estimatedContractDate by remember(existing.id) { mutableStateOf(existing.estimatedContractDate ?: currentIsoDate()) }
+    var estimatedContractEndDate by remember(existing.id) { mutableStateOf(existing.estimatedContractEndDate ?: currentIsoDate()) }
+    var status by remember(existing.id) { mutableStateOf(existing.purchaseStatus ?: procurementStatuses.first()) }
+    var localFinancingPct by remember(existing.id) { mutableStateOf(existing.localFinancingPct.formatFixed(2)) }
+    var comments by remember(existing.id) { mutableStateOf(existing.comments.orEmpty()) }
     val availableSubprojects = ProjectRepository.projects.filter { it.projectType == "subproject" }
-    LaunchedEffect(existing?.id) { ProjectRepository.refresh() }
+    LaunchedEffect(existing.id) { ProjectRepository.refresh() }
     val selectedSubproject = availableSubprojects.firstOrNull { it.siteNumber.equals(subprojectId, ignoreCase = true) }
     val availableParts = selectedSubproject?.let { subproject ->
         ProjectRepository.projects.filter { it.projectType == "subproject_part" && it.parentProjectUuid == subproject.id }
@@ -850,7 +840,7 @@ private fun ProcurementEditorDialog(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(LocalizationManager.t(if (existing == null) "add_procurement_record" else "edit_procurement_record"), style = MaterialTheme.typography.titleLarge)
+            Text(LocalizationManager.t("edit_procurement_record"), style = MaterialTheme.typography.titleLarge)
             Column(Modifier.fillMaxWidth().heightIn(max = 520.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 AutocompleteField(subprojectId, { entered ->
                     subprojectId = entered.procurementText(100)
@@ -909,19 +899,19 @@ private fun ProcurementEditorDialog(
                     val selectedBatch = if (selected.trancheNumber == 2 || selected.trancheNumber == 9) 9 else 8
                     onSave(ProcurementRecordRequest(
                         batchId = selectedBatch, oblastName = selected.region, oblastId = selected.siteNumber.take(2).uppercase(), subProjectId = selected.siteNumber,
-                        subProjectLotId = subprojectPartId.ifBlank { null }, tenderId = existing?.tenderId, prozorroTenderId = existing?.prozorroTenderId,
-                        contractorNameUkr = existing?.contractorNameUkr, contractorNameEng = existing?.contractorNameEng, contractorId = existing?.contractorId,
-                        contractDate = existing?.contractDate, contractEndDate = existing?.contractEndDate, actualisedContractEndDate = existing?.actualisedContractEndDate, contractDurationMonths = existing?.contractDurationMonths,
-                        contractAmountUah = existing?.contractAmountUah, contractAmountUahWithoutVat = existing?.contractAmountUahWithoutVat, contractAmountEur = existing?.contractAmountEur, financingContractDifferencePct = existing?.financingContractDifferencePct,
-                        promotorName = promotorName.ifBlank { null }, fbName = existing?.fbName, subprojectNameUk = selected.name, subprojectNameEn = selected.nameEn,
+                        subProjectLotId = subprojectPartId.ifBlank { null }, tenderId = existing.tenderId, prozorroTenderId = existing.prozorroTenderId,
+                        contractorNameUkr = existing.contractorNameUkr, contractorNameEng = existing.contractorNameEng, contractorId = existing.contractorId,
+                        contractDate = existing.contractDate, contractEndDate = existing.contractEndDate, actualisedContractEndDate = existing.actualisedContractEndDate, contractDurationMonths = existing.contractDurationMonths,
+                        contractAmountUah = existing.contractAmountUah, contractAmountUahWithoutVat = existing.contractAmountUahWithoutVat, contractAmountEur = existing.contractAmountEur, financingContractDifferencePct = existing.financingContractDifferencePct,
+                        promotorName = promotorName.ifBlank { null }, fbName = existing.fbName, subprojectNameUk = selected.name, subprojectNameEn = selected.nameEn,
                         sourceContractType = contractType.ifBlank { null },
                         subprojectTotalCostUah = totalCostUah.toDoubleOrNull(), subprojectEibFinancingUah = eibFinancingUah.toDoubleOrNull(), subprojectLocalFinancingUah = localFinancingUah.toDoubleOrNull(), estimatedTotalEur = estimatedTotalEur.toDoubleOrNull(),
                         procurementMethod = procurementMethod.ifBlank { null }, tenderDocumentType = tenderDocumentType.ifBlank { null }, publishedInOjeu = if (publishedInOjeu) "Так / Yes" else "Ні / No",
                         estimatedProzorroDate = estimatedProzorroDate.ifBlank { null }, estimatedBidSubmissionDate = estimatedBidSubmissionDate.ifBlank { null }, estimatedContractDate = estimatedContractDate.ifBlank { null }, estimatedContractEndDate = estimatedContractEndDate.ifBlank { null },
-                        purchaseStatus = status, localFinancingPct = localFinancingPct.toDoubleOrNull(), tenderAttemptCount = existing?.tenderAttemptCount,
-                        pigViolations = existing?.pigViolations, dreamCoFinancingPct = existing?.dreamCoFinancingPct,
-                        realLocalCoFinancingPct = existing?.realLocalCoFinancingPct, realEibFinancingUah = existing?.realEibFinancingUah,
-                        bankGuarantee = existing?.bankGuarantee, comments = comments.ifBlank { null }
+                        purchaseStatus = status, localFinancingPct = localFinancingPct.toDoubleOrNull(), tenderAttemptCount = existing.tenderAttemptCount,
+                        pigViolations = existing.pigViolations, dreamCoFinancingPct = existing.dreamCoFinancingPct,
+                        realLocalCoFinancingPct = existing.realLocalCoFinancingPct, realEibFinancingUah = existing.realEibFinancingUah,
+                        bankGuarantee = existing.bankGuarantee, comments = comments.ifBlank { null }
                     ))
                 }, enabled = valid) { Text(LocalizationManager.t("save")) }
             }

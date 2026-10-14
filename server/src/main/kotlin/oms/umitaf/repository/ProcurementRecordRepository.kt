@@ -5,7 +5,6 @@ import oms.umitaf.domain.ProcurementRecord
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
-import org.jetbrains.exposed.v1.jdbc.insertAndGetId
 import org.jetbrains.exposed.v1.jdbc.update
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.deleteAll
@@ -16,7 +15,6 @@ import java.math.BigDecimal
 interface ProcurementRecordRepository {
     fun findAll(): List<ProcurementRecord>
     fun findBySubProjectId(subProjectId: String): List<ProcurementRecord>
-    fun create(record: ProcurementRecord): ProcurementRecord
     fun update(id: Long, record: ProcurementRecord): ProcurementRecord?
     fun delete(id: Long): Boolean
     /** Replaces the complete procurement registry from the approved source, atomically. */
@@ -32,11 +30,6 @@ class ExposedProcurementRecordRepository : ProcurementRecordRepository {
         ProcurementRecordTable.selectAll()
             .where { ProcurementRecordTable.subProjectId eq subProjectId }
             .map(::map)
-    }
-
-    override fun create(record: ProcurementRecord): ProcurementRecord = transaction {
-        val id = ProcurementRecordTable.insertAndGetId { row -> row.applyRecord(record) }.value
-        ProcurementRecordTable.selectAll().where { ProcurementRecordTable.id eq id }.limit(1).first().let(::map)
     }
 
     override fun update(id: Long, record: ProcurementRecord): ProcurementRecord? = transaction {

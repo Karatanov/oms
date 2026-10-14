@@ -216,9 +216,6 @@ object OmsApiClient {
 
     suspend fun procurements(): List<ApiProcurementRecord> = client.get("$baseUrl/procurements").body()
 
-    suspend fun createProcurement(request: ProcurementRecordRequest): ApiProcurementRecord =
-        client.post("$baseUrl/procurements") { contentType(ContentType.Application.Json); setBody(request) }.body()
-
     suspend fun updateProcurement(id: Long, request: ProcurementRecordRequest): ApiProcurementRecord =
         client.patch("$baseUrl/procurements/$id") { contentType(ContentType.Application.Json); setBody(request) }.body()
 

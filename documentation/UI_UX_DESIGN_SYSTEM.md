@@ -60,7 +60,7 @@ Financial registry empty states follow the active type filter: All, Invoice, Act
 
 Selecting a financial record type smoothly brings the registry table to the top of the visible content area, so the filtered result or its contextual empty state is immediately visible without manual scrolling past the analytics section.
 
-Procurement: responsive analytical pair, project/contractor search and status filter, single-language status badges, consistent action alignment, scroll controls and local dialog errors.
+Procurement: responsive analytical pair, project/contractor search and status filter, single-language status badges, consistent action alignment, scroll controls and local dialog errors. The registry has no manual creation path: new records arrive only through the protected approved-source refresh/import workflow; authorized administrators may still edit or delete existing records.
 
 UMITAF review baseline: project-detail sections are independently collapsible and start with the customer-facing name and location; the location provides an openable/copyable OpenStreetMap URL. Re-selecting the active Map item restores the Ukraine overview, map popups remain opaque and inside the viewport, and browser history supports Back navigation. Approved funding and subproject completion use horizontally scrollable vertical bars; procurement status uses a vertically paged list. Procurement data is paginated at 20, 50, 100 or all records; empty inspection and financial tables do not render redundant horizontal controls. Imported bilingual names are selected according to the current UI language.
 
