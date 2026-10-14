@@ -27,6 +27,9 @@ external fun setLeafletProjects(projectsJson: String)
 @JsName("setLeafletProjectClickHandler")
 external fun setLeafletProjectClickHandler(handler: (String) -> Unit)
 
+@JsName("setLeafletFullscreenLabels")
+external fun setLeafletFullscreenLabels(enterLabel: String, exitLabel: String)
+
 @Composable
 fun LeafletMapView(
     projects: List<Project>,
@@ -36,14 +39,21 @@ fun LeafletMapView(
     NativePaneAnchor("map-pane", Modifier.fillMaxSize())
     if (!oms.navigation.LocalRouteVisible.current) return
     val language = LocalizationManager.currentLanguage
-    DisposableEffect(projects, allProjects, language) {
+    // The native pane has one lifecycle per visible route.  Marker/filter
+    // updates below must not dispose it, otherwise a live fullscreen session
+    // would be closed whenever the visible project list changes.
+    DisposableEffect(Unit) {
         showLeafletMapPane()
+        onDispose { hideLeafletMapPane() }
+    }
+    DisposableEffect(projects, allProjects, language) {
+        setLeafletFullscreenLabels(
+            LocalizationManager.t("map_enter_fullscreen"),
+            LocalizationManager.t("map_exit_fullscreen")
+        )
         setLeafletProjectClickHandler(onProjectClick)
         setLeafletProjects(projects.toLeafletJson(allProjects))
-
-        onDispose {
-            hideLeafletMapPane()
-        }
+        onDispose { }
     }
 }
 

@@ -64,6 +64,13 @@
         let umitafMarkersLayer = null;
         let umitafOnProjectClick = null;
         let umitafLeafletLoading = null;
+        let umitafMapPaneBounds = null;
+        let umitafMapFullscreenFallback = false;
+        let umitafMapFullscreenButton = null;
+        let umitafMapFullscreenLabels = {
+            enter: "Open map in full screen",
+            exit: "Exit full-screen mode"
+        };
         let omsLanguage = "uk";
         const omsBrowserStrings = {
             uk: {
@@ -325,6 +332,100 @@
             umitafLeafletMap.fitBounds(ukraineBounds, { padding: [24, 24] });
         }
 
+        function nativeMapFullscreenActive() {
+            const pane = document.getElementById("map-pane");
+            return !!pane && (document.fullscreenElement === pane || document.webkitFullscreenElement === pane);
+        }
+
+        function restoreMapPaneBounds() {
+            const pane = document.getElementById("map-pane");
+            if (!pane || !umitafMapPaneBounds) return;
+            const { x, y, width, height } = umitafMapPaneBounds;
+            Object.assign(pane.style, { left: x + "px", top: y + "px", width: width + "px", height: height + "px", right: "auto", bottom: "auto" });
+        }
+
+        function refreshMapFullscreenState() {
+            const pane = document.getElementById("map-pane");
+            if (!pane) return;
+            const active = nativeMapFullscreenActive() || umitafMapFullscreenFallback;
+            pane.classList.toggle("oms-map-fullscreen", active);
+            document.body.classList.toggle("map-fullscreen-open", active);
+            if (!active) restoreMapPaneBounds();
+            if (umitafMapFullscreenButton) {
+                const label = active ? umitafMapFullscreenLabels.exit : umitafMapFullscreenLabels.enter;
+                umitafMapFullscreenButton.title = label;
+                umitafMapFullscreenButton.setAttribute("aria-label", label);
+                umitafMapFullscreenButton.dataset.fullscreen = active ? "true" : "false";
+                umitafMapFullscreenButton.innerHTML = active
+                    ? '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3v5H3M16 3v5h5M8 21v-5H3M16 21v-5h5"/></svg>'
+                    : '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3H3v5M16 3h5v5M8 21H3v-5M16 21h5v-5"/></svg>';
+            }
+            if (umitafLeafletMap) {
+                requestAnimationFrame(() => umitafLeafletMap?.invalidateSize({ pan: false }));
+                setTimeout(() => umitafLeafletMap?.invalidateSize({ pan: false }), 180);
+            }
+        }
+
+        function useMapFullscreenFallback() {
+            umitafMapFullscreenFallback = true;
+            refreshMapFullscreenState();
+        }
+
+        function exitLeafletMapFullscreen() {
+            if (nativeMapFullscreenActive()) {
+                const exit = document.exitFullscreen || document.webkitExitFullscreen;
+                if (exit) {
+                    const result = exit.call(document);
+                    if (result && typeof result.catch === "function") result.catch(() => {});
+                }
+            }
+            umitafMapFullscreenFallback = false;
+            refreshMapFullscreenState();
+        }
+
+        function toggleLeafletMapFullscreen() {
+            const pane = document.getElementById("map-pane");
+            if (!pane) return;
+            if (nativeMapFullscreenActive() || umitafMapFullscreenFallback) {
+                exitLeafletMapFullscreen();
+                return;
+            }
+            const request = pane.requestFullscreen || pane.webkitRequestFullscreen;
+            if (!request) {
+                useMapFullscreenFallback();
+                return;
+            }
+            try {
+                const result = request.call(pane);
+                if (result && typeof result.catch === "function") {
+                    result.catch(useMapFullscreenFallback);
+                } else {
+                    // Older Safari exposes a void-prefixed API.  If it does
+                    // not enter native fullscreen, retain a usable CSS mode.
+                    setTimeout(() => { if (!nativeMapFullscreenActive()) useMapFullscreenFallback(); }, 300);
+                }
+            } catch (_) {
+                useMapFullscreenFallback();
+            }
+        }
+
+        function setLeafletFullscreenLabels(enterLabel, exitLabel) {
+            umitafMapFullscreenLabels = { enter: enterLabel, exit: exitLabel };
+            refreshMapFullscreenState();
+        }
+
+        document.addEventListener("fullscreenchange", () => {
+            if (!nativeMapFullscreenActive()) umitafMapFullscreenFallback = false;
+            refreshMapFullscreenState();
+        });
+        document.addEventListener("webkitfullscreenchange", () => {
+            if (!nativeMapFullscreenActive()) umitafMapFullscreenFallback = false;
+            refreshMapFullscreenState();
+        });
+        document.addEventListener("keydown", event => {
+            if (event.key === "Escape" && umitafMapFullscreenFallback) exitLeafletMapFullscreen();
+        });
+
         function initLeafletMap() {
             const mapHost = document.getElementById("map-host");
             if (!mapHost) return false;
@@ -358,6 +459,20 @@
                     iconAnchor: L.point(26, 26)
                 })
             }).addTo(umitafLeafletMap);
+            const FullscreenControl = L.Control.extend({
+                options: { position: "topright" },
+                onAdd: () => {
+                    const button = L.DomUtil.create("button", "oms-map-fullscreen-control");
+                    button.type = "button";
+                    L.DomEvent.disableClickPropagation(button);
+                    L.DomEvent.disableScrollPropagation(button);
+                    L.DomEvent.on(button, "click", toggleLeafletMapFullscreen);
+                    umitafMapFullscreenButton = button;
+                    refreshMapFullscreenState();
+                    return button;
+                }
+            });
+            umitafLeafletMap.addControl(new FullscreenControl());
             fitUkraineOverview();
             return true;
         }
@@ -374,6 +489,10 @@
                 document.body.appendChild(pane);
             }
             if (!pane) return;
+            if (id === "map-pane") {
+                umitafMapPaneBounds = { x, y, width, height };
+                if (nativeMapFullscreenActive() || umitafMapFullscreenFallback) return;
+            }
             if (id !== "oms-route-transition") pane.inert = !document.getElementById("oms-route-transition")?.hidden;
             pane.classList.toggle("oms-pane-clipped", height <= 0 || width <= 0);
             Object.assign(pane.style, { left: x + "px", top: y + "px", width: width + "px", height: height + "px", right: "auto", bottom: "auto" });
@@ -397,6 +516,7 @@
         }
 
         function hideLeafletMapPane() {
+            exitLeafletMapFullscreen();
             document.body.classList.remove("map-visible");
         }
 

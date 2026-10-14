@@ -214,6 +214,8 @@ object Strings {
         "admin" to "Адміністратор",
 
         "projects_map" to "Карта проєктів",
+        "map_enter_fullscreen" to "Відкрити карту на весь екран",
+        "map_exit_fullscreen" to "Вийти з повноекранного режиму",
         "map_controls" to "Елементи керування картою",
         "map_projects_info" to "На карті відображаються проєкти, доступні поточному користувачу.",
         "map_marker_info" to "Колір маркера відповідає статусу проєкту.",
@@ -1039,6 +1041,8 @@ object Strings {
         "admin" to "Admin",
 
         "projects_map" to "Projects Map",
+        "map_enter_fullscreen" to "Open map in full screen",
+        "map_exit_fullscreen" to "Exit full-screen mode",
         "map_controls" to "Map Controls",
         "map_projects_info" to "The map shows projects available to the current user.",
         "map_marker_info" to "Marker color matches the project status.",

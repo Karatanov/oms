@@ -200,6 +200,40 @@ body.map-visible #map-pane {
     display: block;
 }
 
+/* The native Leaflet pane can use browser fullscreen without recreating the
+   map.  The class is a Safari/older-browser fallback when Fullscreen API is
+   unavailable or rejected. */
+body.map-fullscreen-open { overflow: hidden; }
+#map-pane.oms-map-fullscreen,
+#map-pane:fullscreen,
+#map-pane:-webkit-full-screen {
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100vw !important;
+    height: 100dvh !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    border-radius: 0 !important;
+    z-index: 10010 !important;
+}
+body.map-fullscreen-open #map-pane { visibility: visible !important; }
+.oms-map-fullscreen-control {
+    display: grid;
+    width: 34px;
+    height: 34px;
+    place-items: center;
+    border: 0;
+    border-radius: 4px;
+    background: #fff;
+    color: #278dad;
+    box-shadow: 0 1px 5px rgba(0, 0, 0, .38);
+    cursor: pointer;
+}
+.oms-map-fullscreen-control:hover,
+.oms-map-fullscreen-control:focus-visible { background: #f0f9fc; }
+.oms-map-fullscreen-control:focus-visible { outline: 2px solid #16566c; outline-offset: 2px; }
+.oms-map-fullscreen-control svg { display: block; width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
 /* The in-canvas option layer must remain above native map/image surfaces. */
 body.canvas-overlay-open #map-pane, body.canvas-overlay-open #dashboard-photo-slider, body.canvas-overlay-open .inspection-photo-preview-pane { visibility: hidden; }
 body.mobile-navigation-open #map-pane,
