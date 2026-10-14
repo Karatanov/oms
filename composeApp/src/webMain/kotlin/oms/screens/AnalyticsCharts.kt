@@ -65,8 +65,15 @@ fun FundingByOblastChart(items: List<ApiSubprojectFunding>, onOpenFinancialRegio
     val fundingByRegion = items
         .groupBy { canonicalUkraineRegion(it.region) }
         .mapValues { (_, rows) -> rows.sumOf { if (currency == "EUR") it.amountEur else it.amountUah } }
+    // The map is a comparison of approved funding, not an exchange-rate
+    // heatmap.  Keep its intensity on the canonical UAH amount so changing
+    // the displayed currency never changes the relative colour of regions.
+    val intensityByRegion = items
+        .groupBy { canonicalUkraineRegion(it.region) }
+        .mapValues { (_, rows) -> rows.sumOf { it.amountUah } }
     UkraineFundingMapChart(
         amounts = fundingByRegion,
+        intensityAmounts = intensityByRegion,
         currency = currency,
         onCurrencyChange = { currency = it },
         onOpenFinancialRegion = onOpenFinancialRegion
@@ -76,11 +83,12 @@ fun FundingByOblastChart(items: List<ApiSubprojectFunding>, onOpenFinancialRegio
 @Composable
 private fun UkraineFundingMapChart(
     amounts: Map<String, Double>,
+    intensityAmounts: Map<String, Double>,
     currency: String,
     onCurrencyChange: (String) -> Unit,
     onOpenFinancialRegion: (String) -> Unit
 ) {
-    val maxAmount = amounts.values.maxOrNull()?.takeIf { it > 0.0 } ?: 1.0
+    val maxAmount = intensityAmounts.values.maxOrNull()?.takeIf { it > 0.0 } ?: 1.0
     Card(
         Modifier.fillMaxWidth().heightIn(min = 462.dp),
         shape = RoundedCornerShape(12.dp),
@@ -103,6 +111,7 @@ private fun UkraineFundingMapChart(
             Spacer(Modifier.height(14.dp))
             UkraineFundingMap(
                 amounts = amounts,
+                intensityAmounts = intensityAmounts,
                 currency = currency,
                 maxAmount = maxAmount,
                 onOpenFinancialRegion = onOpenFinancialRegion
@@ -115,6 +124,7 @@ private fun UkraineFundingMapChart(
 @OptIn(ExperimentalComposeUiApi::class)
 private fun UkraineFundingMap(
     amounts: Map<String, Double>,
+    intensityAmounts: Map<String, Double>,
     currency: String,
     maxAmount: Double,
     onOpenFinancialRegion: (String) -> Unit
@@ -168,13 +178,13 @@ private fun UkraineFundingMap(
             val scaleX = size.width / ukraineMapWidth
             val scaleY = size.height / ukraineMapHeight
             ukraineFundingMapRegions.forEach { region ->
-                val amount = amounts[region.name] ?: 0.0
-                val intensity = (amount / maxAmount).toFloat().coerceIn(0f, 1f)
+                val intensityAmount = intensityAmounts[region.name] ?: 0.0
+                val intensity = (intensityAmount / maxAmount).toFloat().coerceIn(0f, 1f)
                 val isHovered = region == hoveredRegion
                 val fill = when {
-                    isHovered && amount <= 0.0 -> primary.copy(alpha = .30f)
+                    isHovered && intensityAmount <= 0.0 -> primary.copy(alpha = .30f)
                     isHovered -> primary.copy(alpha = (.32f + intensity * .68f).coerceAtMost(1f))
-                    amount <= 0.0 -> emptyRegion
+                    intensityAmount <= 0.0 -> emptyRegion
                     else -> primary.copy(alpha = .18f + intensity * .72f)
                 }
                 val path = Path()

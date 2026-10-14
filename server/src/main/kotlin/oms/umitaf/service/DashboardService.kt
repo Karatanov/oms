@@ -7,6 +7,8 @@ import oms.umitaf.domain.ProjectAmount
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.core.inList
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
+import java.math.BigDecimal
+import java.math.RoundingMode
 import java.util.UUID
 import java.time.LocalDate
 import kotlin.math.roundToLong
@@ -436,10 +438,15 @@ private fun org.jetbrains.exposed.v1.core.ResultRow.toFunding(
     val amount = amounts?.get("construction") ?: amounts?.get("budget")
     val legacyUah = this[ProjectTable.subprojectContractAmount] ?: this[ProjectTable.budgetPlanned]
     val uah = amount?.uah?.toDouble() ?: legacyUah.toDouble()
-    // Old records without a frozen conversion remain usable in UAH.  The
-    // seeded and newly saved records always have this value.
-    val eur = amount?.let { if (it.currency == "EUR") it.amount else it.convertedAmount }?.toDouble() ?: 0.0
+    // Regional funding is one comparison.  Individual records can retain
+    // their own frozen conversion dates, while legacy imports have no EUR
+    // conversion at all.  For this aggregate we therefore use the canonical
+    // UAH total and one programme presentation rate; a currency toggle can
+    // change labels, but never a region's relative share or colour.
+    val eur = uah.toBigDecimal().divide(DASHBOARD_UAH_PER_EUR, 2, RoundingMode.HALF_UP).toDouble()
     return DashboardSubprojectFunding(
         this[ProjectTable.uuid], this[ProjectTable.name], this[ProjectTable.region].orEmpty(), uah, eur
     )
 }
+
+private val DASHBOARD_UAH_PER_EUR = BigDecimal("48.00")
