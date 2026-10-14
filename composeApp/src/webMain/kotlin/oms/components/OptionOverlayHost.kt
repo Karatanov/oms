@@ -24,7 +24,10 @@ import oms.localization.LocalizationManager
 
 internal data class OptionMenu(
     val id: Any, val anchor: Rect, val labels: List<String>, val selectedIndex: Int,
-    val onChoose: (Int) -> Unit, val onDismiss: () -> Unit, val focusOnOpen: Boolean = true
+    val onChoose: (Int) -> Unit, val onDismiss: () -> Unit, val focusOnOpen: Boolean = true,
+    val selectedIndexes: Set<Int> = setOf(selectedIndex),
+    val multiSelect: Boolean = false,
+    val clearIndex: Int? = null
 )
 internal class OptionOverlayState {
     var menu by mutableStateOf<OptionMenu?>(null)
@@ -84,15 +87,23 @@ fun OptionOverlayHost(content: @Composable () -> Unit) {
                     LazyColumn(state = listState, contentPadding = PaddingValues(vertical = 4.dp)) {
                         if (menu.labels.isEmpty()) item { Text(LocalizationManager.t("no_options"), Modifier.padding(12.dp)) }
                         itemsIndexed(menu.labels, key = { index, _ -> index }) { index, label ->
+                            val isClearAction = menu.clearIndex == index
+                            val isSelected = index in menu.selectedIndexes
                             Row(Modifier.fillMaxWidth()
                                 .background(if (index == active) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface)
-                                .clickable(role = Role.RadioButton) { menu.onChoose(index) }
+                                .clickable(role = if (menu.multiSelect && !isClearAction) Role.Checkbox else Role.RadioButton) { menu.onChoose(index) }
                                 .pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true)
-                                .semantics { selected = index == menu.selectedIndex }
+                                .semantics { selected = isSelected }
                                 .heightIn(min = 44.dp).padding(horizontal = 12.dp, vertical = 8.dp),
                                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 Text(label, Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
-                                if (index == menu.selectedIndex) Icon(Icons.Default.Check, null, Modifier.size(18.dp), tint = MaterialTheme.colorScheme.primary)
+                                when {
+                                    menu.multiSelect && !isClearAction -> Checkbox(
+                                        checked = isSelected,
+                                        onCheckedChange = { menu.onChoose(index) }
+                                    )
+                                    isSelected -> Icon(Icons.Default.Check, null, Modifier.size(18.dp), tint = MaterialTheme.colorScheme.primary)
+                                }
                             }
                         }
                     }

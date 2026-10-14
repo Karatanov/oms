@@ -1175,7 +1175,6 @@
             const projects = JSON.parse(projectsJson);
 
             if (!projects.length) {
-                fitUkraineOverview();
                 return;
             }
 
@@ -1258,11 +1257,9 @@
                     .addTo(umitafMarkersLayer);
             });
 
-            // The map is an overview: opening it and changing filters must not
-            // unexpectedly zoom into a single oblast or a group of facilities.
-            // Wait until Compose has made the map host visible.  Without this second
-            // pass Leaflet can retain a zoom calculated while the host had no width.
-            setTimeout(fitUkraineOverview, 0);
+            // Filter updates replace only marker data. The initial map lifecycle
+            // establishes its Ukraine overview; changing a checkbox must preserve
+            // the user's current centre and zoom level.
         }
 
 

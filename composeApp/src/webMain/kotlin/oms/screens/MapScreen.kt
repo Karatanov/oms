@@ -39,8 +39,8 @@ fun MapScreen(onOpenProject: (Project) -> Unit = {}) {
     val scope = rememberCoroutineScope()
     val projects = ProjectRepository.projects
     var search by remember { mutableStateOf("") }
-    var region by remember { mutableStateOf<String?>(null) }
-    var status by remember { mutableStateOf<ProjectStatus?>(null) }
+    var regions by remember { mutableStateOf<Set<String>>(emptySet()) }
+    var statuses by remember { mutableStateOf<Set<ProjectStatus>>(emptySet()) }
     var mapScope by remember { mutableStateOf(MapScope.SUBPROJECTS) }
     var trancheNumber by remember { mutableStateOf<Int?>(null) }
     // Show exactly one child level, never portfolio-level projects.
@@ -50,10 +50,7 @@ fun MapScreen(onOpenProject: (Project) -> Unit = {}) {
             it.latitude in -90.0..90.0 && it.longitude in -180.0..180.0 &&
             (it.latitude != 0.0 || it.longitude != 0.0)
     }
-    val visible = located.filter {
-        (search.isBlank() || it.localizedName().contains(search, true) || it.siteNumber.contains(search, true) || it.localizedCity().contains(search, true)) &&
-        (region == null || it.region == region) && (status == null || it.status == status)
-    }
+    val visible = located.filter { it.matchesMapFilters(search, regions, statuses) }
     val mobile = oms.layout.LocalMobileLayout.current
     var filtersExpanded by remember { mutableStateOf(false) }
     BoxWithConstraints(Modifier.fillMaxSize()) {
@@ -128,17 +125,35 @@ fun MapScreen(onOpenProject: (Project) -> Unit = {}) {
                     label = { Text(LocalizationManager.t("search_project")) }, leadingIcon = { Icon(Icons.Default.Search, null) }, modifier = modifier)
             }
             val regionFilter: @Composable (Modifier) -> Unit = { modifier ->
-                InlineOptionPicker(located.map { it.region }.filter(String::isNotBlank).distinct().sorted(), region,
-                    LocalizationManager.t("region"), { region = it }, ::localizedUkraineRegion, modifier = modifier,
-                    clearLabel = LocalizationManager.t("all"), onClear = { region = null })
+                MultiSelectOptionPicker(
+                    options = located.map { it.region }.filter(String::isNotBlank).distinct().sorted(),
+                    selected = regions,
+                    prompt = LocalizationManager.t("region"),
+                    onSelectionChange = { regions = it },
+                    itemLabel = ::localizedUkraineRegion,
+                    modifier = modifier,
+                    clearLabel = LocalizationManager.t("map_clear_selection")
+                )
             }
             val statusFilter: @Composable (Modifier) -> Unit = { modifier ->
-                InlineOptionPicker(ProjectStatus.entries, status, LocalizationManager.t("status"), { status = it },
-                    { LocalizationManager.t("project_status_${it.name.lowercase()}") }, modifier = modifier,
-                    clearLabel = LocalizationManager.t("all"), onClear = { status = null })
+                MultiSelectOptionPicker(
+                    options = ProjectStatus.entries,
+                    selected = statuses,
+                    prompt = LocalizationManager.t("status"),
+                    onSelectionChange = { statuses = it },
+                    itemLabel = { LocalizationManager.t("project_status_${it.name.lowercase()}") },
+                    modifier = modifier,
+                    clearLabel = LocalizationManager.t("map_clear_selection")
+                )
             }
             val reset: @Composable () -> Unit = {
-                TextButton(onClick = { search = ""; region = null; status = null; trancheNumber = null }) { Text(LocalizationManager.t("reset_filters")) }
+                TextButton(onClick = {
+                    search = ""
+                    regions = emptySet()
+                    statuses = emptySet()
+                    trancheNumber = null
+                    fitUkraineOverview()
+                }) { Text(LocalizationManager.t("reset_filters")) }
             }
             if (maxWidth >= 900.dp) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -187,3 +202,13 @@ private fun Project.matchesMapTranche(filter: Int?): Boolean = when (filter) {
     2 -> trancheNumber == 2 || trancheNumber == 9
     else -> trancheNumber == filter
 }
+
+/** OR applies inside each selected category; independent categories use AND. */
+internal fun Project.matchesMapFilters(
+    search: String,
+    regions: Set<String>,
+    statuses: Set<ProjectStatus>
+): Boolean =
+    (search.isBlank() || localizedName().contains(search, true) || siteNumber.contains(search, true) || localizedCity().contains(search, true)) &&
+        (regions.isEmpty() || region in regions) &&
+        (statuses.isEmpty() || status in statuses)
