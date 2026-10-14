@@ -586,7 +586,13 @@ private fun ProjectGeneralInfoTab(details: oms.data.ApiProjectDetails?) {
                 )
             }.orEmpty()
             Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                CollapsibleProjectSection(LocalizationManager.t("basic_information"), Icons.Default.Info, general, initiallyExpanded = true)
+                CollapsibleProjectSection(
+                    LocalizationManager.t("basic_information"),
+                    Icons.Default.Info,
+                    general,
+                    initiallyExpanded = true,
+                    showProjectStatusInfo = true
+                )
                 if (!data.projectType.equals("project", true)) CollapsibleProjectSection(LocalizationManager.t("parameters_and_location"), Icons.Default.LocationOn, location, showMapLink = true, latitude = data.latitude, longitude = data.longitude)
                 CollapsibleProjectSection(LocalizationManager.t("section_finance"), Icons.Default.Payments, finance)
                 CollapsibleProjectSection(LocalizationManager.t("construction_contractor_information"), Icons.Default.Info, contractor)
@@ -606,7 +612,8 @@ private fun CollapsibleProjectSection(
     showMapLink: Boolean = false,
     latitude: Double = 0.0,
     longitude: Double = 0.0,
-    initiallyExpanded: Boolean = false
+    initiallyExpanded: Boolean = false,
+    showProjectStatusInfo: Boolean = false
 ) {
     var expanded by remember { mutableStateOf(initiallyExpanded) }
     val uriHandler = LocalUriHandler.current
@@ -626,7 +633,14 @@ private fun CollapsibleProjectSection(
         if (expanded) {
             fields.forEach { (label, value) ->
                 Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                    Text(label, modifier = Modifier.width(210.dp), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    if (showProjectStatusInfo && label == LocalizationManager.t("status")) {
+                        oms.components.ProjectStatusLabelWithInfo(
+                            modifier = Modifier.width(210.dp),
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    } else {
+                        Text(label, modifier = Modifier.width(210.dp), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
                     Text(value, modifier = Modifier.weight(1f))
                 }
                 HorizontalDivider()

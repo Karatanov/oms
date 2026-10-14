@@ -1,5 +1,6 @@
 package oms.components
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -30,8 +31,27 @@ fun TableHeader(currentSort: SortColumn, ascending: Boolean, onSort: (SortColumn
                 SortColumn.IMPLEMENTATION_DURATION -> "implementation_duration"
                 SortColumn.CONTRACTOR -> "contractor"
             }
-            SortableHeader(LocalizationManager.t(labelKey), column, currentSort, ascending, onSort,
-                Modifier.width(ProjectTableColumns.width(column)))
+            if (column == SortColumn.STATUS) {
+                Box(
+                    Modifier.width(ProjectTableColumns.width(column)).height(oms.theme.OmsDimensions.TableHeaderHeight)
+                        .background(MaterialTheme.colorScheme.surfaceContainerLow),
+                    contentAlignment = Alignment.CenterStart
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        SortableTableHeader(
+                            title = LocalizationManager.t(labelKey),
+                            selected = currentSort == column,
+                            ascending = ascending,
+                            onClick = { onSort(column) },
+                            modifier = Modifier.wrapContentWidth()
+                        )
+                        ProjectStatusInfoButton()
+                    }
+                }
+            } else {
+                SortableHeader(LocalizationManager.t(labelKey), column, currentSort, ascending, onSort,
+                    Modifier.width(ProjectTableColumns.width(column)))
+            }
         }
         Box(Modifier.width(ProjectTableColumns.actions).height(oms.theme.OmsDimensions.TableHeaderHeight),
             contentAlignment = Alignment.Center) {

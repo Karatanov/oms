@@ -84,7 +84,7 @@ internal fun ProjectForm(
                 fillWidth = false
             )
             field("description", "description", Modifier.fillMaxWidth(), 3)()
-            Text(L.t("status"), style = MaterialTheme.typography.labelLarge)
+            oms.components.ProjectStatusLabelWithInfo(style = MaterialTheme.typography.labelLarge)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 listOf("planned", "active", "suspended", "completed", "archived", "dlp").forEach { status ->
                     FilterChip(state["status"] == status, { state["status"] = status }, { Text(L.t("project_status_$status")) })

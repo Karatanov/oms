@@ -37,10 +37,10 @@ fun TooltipOverlayHost(content: @Composable () -> Unit) {
                     .coerceIn(8.dp, (maxWidth - width - 8.dp).coerceAtLeast(8.dp))
                 val bottom = with(density) { tooltip.bounds.bottom.toDp() }
                 val top = with(density) { tooltip.bounds.top.toDp() }
-                val below = maxHeight - bottom >= 104.dp
-                val y = if (below) bottom + 6.dp else (top - 104.dp).coerceAtLeast(8.dp)
+                val below = maxHeight - bottom >= 172.dp
+                val y = if (below) bottom + 6.dp else (top - 172.dp).coerceAtLeast(8.dp)
                 Surface(
-                    Modifier.offset(x, y).widthIn(max = width).heightIn(max = 96.dp),
+                    Modifier.offset(x, y).widthIn(max = width).heightIn(max = 164.dp),
                     shape = MaterialTheme.shapes.small,
                     color = MaterialTheme.colorScheme.inverseSurface,
                     contentColor = MaterialTheme.colorScheme.inverseOnSurface,
@@ -59,6 +59,7 @@ fun OmsTooltipBox(
     modifier: Modifier = Modifier,
     tooltip: @Composable () -> Unit,
     openOnPress: Boolean = false,
+    forceOpen: Boolean = false,
     enabled: Boolean = true,
     content: @Composable () -> Unit
 ) {
@@ -69,10 +70,10 @@ fun OmsTooltipBox(
     var focused by remember { mutableStateOf(false) }
     var pinned by remember { mutableStateOf(false) }
     val currentTooltip by rememberUpdatedState(tooltip)
-    LaunchedEffect(enabled, hovered, focused, pinned, bounds) {
+    LaunchedEffect(enabled, hovered, focused, pinned, forceOpen, bounds) {
         host.dismiss(id)
-        if (enabled && (hovered || focused || pinned)) {
-            if (!pinned) delay(450)
+        if (enabled && (hovered || focused || pinned || forceOpen)) {
+            if (!pinned && !forceOpen) delay(450)
             host.entry = TooltipEntry(id, bounds) { currentTooltip() }
         }
     }
