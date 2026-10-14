@@ -248,8 +248,8 @@ def project_tuple(row: dict, geocoding: dict[str, dict]) -> list:
         row["I"], row["E"], row["F"], None,
         project_address(row), row["C"], row["M"], location.get("latitude"), location.get("longitude"), row["status"], row["sector"], row["constructionType"],
         rounded_long(row["Y"]) or 0, rounded_long(row["CY"]), rounded_long(row["CA"]), rounded_long(row["AV"]),
-        row["BB"], None, row["AS"], row["AT"], None, None, None, row["AS"], row["BB"], row["AT"],
-        "UAH", row["AP"], None, None, None, row["AN"], row["BU"], row["BS"], row["BX"], row["CD"], row["CE"],
+        row["BB"], None, row["AS"], row["AT"], row["AS"], row["BB"], row["AT"],
+        "UAH", row["AP"], row["AN"], row["BU"], row["BS"], row["BX"], row["CD"], row["CE"],
         row["CS"], row["CQ"], row["CV"], row["DB"], row["DC"], None,
         "(SELECT id FROM users WHERE username = 'admin' LIMIT 1)",
     ]
@@ -259,9 +259,8 @@ PROJECT_COLUMNS = [
     "uuid", "project_type", "tranche_number", "parent_project_id", "name", "site_name", "site_number", "description",
     "address", "region", "city", "latitude", "longitude", "status", "sector", "construction_type", "budget_planned",
     "engineer_consultant_contract_amount", "technical_supervision_amount", "subproject_contract_amount", "start_date", "end_date",
-    "contract_signed_date", "planned_end_date", "design_contract_signing_date", "design_start_date", "design_planned_end_date",
-    "construction_contract_signing_date", "construction_start_date", "projected_completion_time", "currency", "contractor_name",
-    "designer_name", "design_contract_number", "design_contract_term", "construction_contract_number", "technical_supervision_name",
+    "contract_signed_date", "planned_end_date", "construction_contract_signing_date", "construction_start_date", "projected_completion_time", "currency", "contractor_name",
+    "construction_contract_number", "technical_supervision_name",
     "technical_supervision_contract_number", "technical_supervision_contract_date", "technical_supervision_start_date",
     "technical_supervision_planned_end_date", "engineer_consultant_name", "engineer_consultant_contract_number",
     "engineer_consultant_contract_date", "engineer_consultant_start_date", "engineer_consultant_planned_end_date", "manager_id", "created_by",
@@ -279,8 +278,8 @@ def build_sql(rows: list[dict], supplements: dict[str, dict[str, dict]], geocodi
     root_values = [
         PROGRAMME_UUID, "project", 8, None, "Ukraine Recovery Programme III", "URP-III", "URP-III", None,
         None, None, None, None, None, "active", None, None, 100000000,
-        None, None, None, None, None, None, None, None, None, None, None, None, None,
-        "EUR", None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
+        None, None, None, None, None, None, None, None, None, None,
+        "EUR", None, None, None, None, None, None, None, None, None, None, None, None, None,
         "(SELECT id FROM users WHERE username = 'admin' LIMIT 1)",
     ]
     lines.append("INSERT INTO projects (" + ", ".join(PROJECT_COLUMNS) + ") VALUES")

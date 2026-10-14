@@ -133,17 +133,11 @@ class ExposedProjectRepository : ProjectRepository {
                     endDate = row[ProjectTable.endDate],
                     contractSignedDate = row[ProjectTable.contractSignedDate],
                     plannedEndDate = row[ProjectTable.plannedEndDate],
-                    designContractSigningDate = row[ProjectTable.designContractSigningDate],
-                    designStartDate = row[ProjectTable.designStartDate],
-                    designPlannedEndDate = row[ProjectTable.designPlannedEndDate],
                     constructionContractSigningDate = row[ProjectTable.constructionContractSigningDate],
                     constructionStartDate = row[ProjectTable.constructionStartDate],
                     projectedCompletionTime = row[ProjectTable.projectedCompletionTime],
                     currency = row[ProjectTable.currency],
                     contractorName = row[ProjectTable.contractorName],
-                    designerName = row[ProjectTable.designerName],
-                    designContractNumber = row[ProjectTable.designContractNumber],
-                    designContractTerm = row[ProjectTable.designContractTerm],
                     constructionContractNumber = row[ProjectTable.constructionContractNumber],
                     technicalSupervisionName = row[ProjectTable.technicalSupervisionName],
                     technicalSupervisionContractNumber = row[ProjectTable.technicalSupervisionContractNumber],
@@ -255,13 +249,6 @@ class ExposedProjectRepository : ProjectRepository {
                     plannedEndDate =
                         row[ProjectTable.plannedEndDate],
 
-                    designContractSigningDate =
-                        row[ProjectTable.designContractSigningDate],
-
-                    designStartDate = row[ProjectTable.designStartDate],
-
-                    designPlannedEndDate = row[ProjectTable.designPlannedEndDate],
-
                     constructionContractSigningDate =
                         row[ProjectTable.constructionContractSigningDate],
 
@@ -275,9 +262,6 @@ class ExposedProjectRepository : ProjectRepository {
                         row[ProjectTable.currency],
 
                     contractorName = row[ProjectTable.contractorName],
-                    designerName = row[ProjectTable.designerName],
-                    designContractNumber = row[ProjectTable.designContractNumber],
-                    designContractTerm = row[ProjectTable.designContractTerm],
                     constructionContractNumber = row[ProjectTable.constructionContractNumber],
                     technicalSupervisionName = row[ProjectTable.technicalSupervisionName],
                     technicalSupervisionContractNumber = row[ProjectTable.technicalSupervisionContractNumber],
@@ -377,9 +361,6 @@ class ExposedProjectRepository : ProjectRepository {
             endDate = null,
             contractSignedDate = contractSignedDate,
             plannedEndDate = plannedEndDate,
-            designContractSigningDate = null,
-            designStartDate = null,
-            designPlannedEndDate = null,
             constructionContractSigningDate = null,
             constructionStartDate = null,
             projectedCompletionTime = null,
@@ -451,17 +432,11 @@ class ExposedProjectRepository : ProjectRepository {
                 it[endDate] = patch.endDate
                 it[contractSignedDate] = patch.contractSignedDate
                 it[plannedEndDate] = patch.plannedEndDate
-                it[designContractSigningDate] = patch.designContractSigningDate
-                it[designStartDate] = patch.designStartDate
-                it[designPlannedEndDate] = patch.designPlannedEndDate
                 it[constructionContractSigningDate] = patch.constructionContractSigningDate
                 it[constructionStartDate] = patch.constructionStartDate
                 it[projectedCompletionTime] = patch.projectedCompletionTime
                 it[currency] = patch.currency
                 it[contractorName] = patch.contractorName
-                it[designerName] = patch.designerName
-                it[designContractNumber] = patch.designContractNumber
-                it[designContractTerm] = patch.designContractTerm
                 it[constructionContractNumber] = patch.constructionContractNumber
                 it[technicalSupervisionName] = patch.technicalSupervisionName
                 it[technicalSupervisionContractNumber] = patch.technicalSupervisionContractNumber

@@ -553,14 +553,6 @@ private fun ProjectGeneralInfoTab(details: oms.data.ApiProjectDetails?) {
                 LocalizationManager.t("technical_supervision_contract_amount") to (data.technicalSupervisionAmount?.toMoney() ?: "—"),
                 LocalizationManager.t("engineer_consultant_contract_amount") to (data.engineerConsultantContractAmount?.toMoney() ?: "—")
             )
-            val designer = listOf(
-                LocalizationManager.t("designer_name") to (data.designerName ?: "—"),
-                LocalizationManager.t("contract_number") to (data.designContractNumber ?: "—"),
-                LocalizationManager.t("design_contract_date") to data.designContractSigningDate.toOmsDate(),
-                LocalizationManager.t("design_start_date") to data.designStartDate.toOmsDate(),
-                LocalizationManager.t("design_planned_end_date") to data.designPlannedEndDate.toOmsDate(),
-                LocalizationManager.t("design_contract_term") to (data.designDurationDays?.let(::durationMonthsLabel) ?: "—")
-            )
             val contractor = listOf(
                 LocalizationManager.t("contractor") to if (LocalizationManager.currentLanguage == Language.EN) {
                     details.contractorNameEn?.takeIf(String::isNotBlank) ?: localizedOrganisationName(data.contractorName)
@@ -575,16 +567,16 @@ private fun ProjectGeneralInfoTab(details: oms.data.ApiProjectDetails?) {
                 LocalizationManager.t("name") to localizedOrganisationName(data.technicalSupervisionName),
                 LocalizationManager.t("contract_number") to (data.technicalSupervisionContractNumber ?: "—"),
                 LocalizationManager.t("contract_date") to data.technicalSupervisionContractDate.toOmsDate(),
-                LocalizationManager.t("design_start_date") to data.technicalSupervisionStartDate.toOmsDate(),
-                LocalizationManager.t("design_planned_end_date") to data.technicalSupervisionPlannedEndDate.toOmsDate(),
+                LocalizationManager.t("contract_start_date") to data.technicalSupervisionStartDate.toOmsDate(),
+                LocalizationManager.t("contract_planned_end_date") to data.technicalSupervisionPlannedEndDate.toOmsDate(),
                 LocalizationManager.t("contract_duration") to (data.technicalSupervisionDurationDays?.let(::durationMonthsLabel) ?: "—")
             )
             val engineer = listOf(
                 LocalizationManager.t("name") to localizedOrganisationName(data.engineerConsultantName),
                 LocalizationManager.t("contract_number") to (data.engineerConsultantContractNumber ?: "—"),
                 LocalizationManager.t("contract_date") to data.engineerConsultantContractDate.toOmsDate(),
-                LocalizationManager.t("design_start_date") to data.engineerConsultantStartDate.toOmsDate(),
-                LocalizationManager.t("design_planned_end_date") to data.engineerConsultantPlannedEndDate.toOmsDate(),
+                LocalizationManager.t("contract_start_date") to data.engineerConsultantStartDate.toOmsDate(),
+                LocalizationManager.t("contract_planned_end_date") to data.engineerConsultantPlannedEndDate.toOmsDate(),
                 LocalizationManager.t("contract_duration") to (data.engineerConsultantDurationDays?.let(::durationMonthsLabel) ?: "—")
             )
             val procurement = details.monitoringDetails?.let {
@@ -597,7 +589,6 @@ private fun ProjectGeneralInfoTab(details: oms.data.ApiProjectDetails?) {
                 CollapsibleProjectSection(LocalizationManager.t("basic_information"), Icons.Default.Info, general, initiallyExpanded = true)
                 if (!data.projectType.equals("project", true)) CollapsibleProjectSection(LocalizationManager.t("parameters_and_location"), Icons.Default.LocationOn, location, showMapLink = true, latitude = data.latitude, longitude = data.longitude)
                 CollapsibleProjectSection(LocalizationManager.t("section_finance"), Icons.Default.Payments, finance)
-                CollapsibleProjectSection(LocalizationManager.t("designer_information"), Icons.Default.Info, designer)
                 CollapsibleProjectSection(LocalizationManager.t("construction_contractor_information"), Icons.Default.Info, contractor)
                 CollapsibleProjectSection(LocalizationManager.t("technical_supervision_information"), Icons.Default.Info, technical)
                 CollapsibleProjectSection(LocalizationManager.t("engineer_consultant_information"), Icons.Default.Info, engineer)

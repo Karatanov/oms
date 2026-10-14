@@ -111,14 +111,10 @@ data class ProjectResponse(
     val endDate: String?,
     val contractSignedDate: String?,
     val plannedEndDate: String?,
-    val designContractSigningDate: String?,
-    val designStartDate: String? = null,
-    val designPlannedEndDate: String? = null,
     val constructionContractSigningDate: String?,
     val constructionStartDate: String?,
     val projectedCompletionTime: String?,
     val contractDurationDays: Long?,
-    val designDurationDays: Long? = null,
 
     /**
      * Валюта відображення.
@@ -129,9 +125,6 @@ data class ProjectResponse(
      * Назва підрядника.
      */
     val contractorName: String?,
-    val designerName: String? = null,
-    val designContractNumber: String? = null,
-    val designContractTerm: String? = null,
     val constructionContractNumber: String? = null,
     val technicalSupervisionName: String? = null,
     val technicalSupervisionContractNumber: String? = null,

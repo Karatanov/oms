@@ -408,13 +408,6 @@ class ProjectService(
             if (value == null) existing else value.trim().also { require(it.length <= max) { "Contract field is too long (maximum $max)." } }.ifBlank { null }
         fun date(value: String?, existing: LocalDate?, label: String): LocalDate? =
             if (value == null) existing else parseOptionalDate(value, label)
-        val designStartDate = date(request.designStartDate, current.designStartDate, "Design start date")
-        val designPlannedEndDate = date(request.designPlannedEndDate, current.designPlannedEndDate, "Design planned completion date")
-        if (designStartDate != null && designPlannedEndDate != null) {
-            require(!designPlannedEndDate.isBefore(designStartDate)) {
-                "Design planned completion cannot precede design start."
-            }
-        }
         val technicalSupervisionStartDate = date(request.technicalSupervisionStartDate, current.technicalSupervisionStartDate, "Technical supervision start date")
         val technicalSupervisionPlannedEndDate = date(request.technicalSupervisionPlannedEndDate, current.technicalSupervisionPlannedEndDate, "Technical supervision planned completion date")
         if (technicalSupervisionStartDate != null && technicalSupervisionPlannedEndDate != null) {
@@ -429,9 +422,6 @@ class ProjectService(
                 "Engineer-consultant planned completion cannot precede its start."
             }
         }
-        val designTerm = if (designStartDate != null && designPlannedEndDate != null)
-            java.time.temporal.ChronoUnit.DAYS.between(designStartDate, designPlannedEndDate).toString()
-        else null
         val trancheNumber = request.trancheNumber ?: current.trancheNumber
         require(trancheNumber in 1..2) { "Tranche must be A or B." }
         val patch = ProjectPatch(
@@ -458,17 +448,11 @@ class ProjectService(
             endDate = date(request.endDate, current.endDate, "End date"),
             contractSignedDate = date(request.contractSignedDate, current.contractSignedDate, "Contract signing date"),
             plannedEndDate = date(request.plannedEndDate, current.plannedEndDate, "Planned end date"),
-            designContractSigningDate = date(request.designContractSigningDate, current.designContractSigningDate, "Design contract signing date"),
-            designStartDate = designStartDate,
-            designPlannedEndDate = designPlannedEndDate,
             constructionContractSigningDate = date(request.constructionContractSigningDate, current.constructionContractSigningDate, "Construction contract signing date"),
             constructionStartDate = date(request.constructionStartDate, current.constructionStartDate, "Construction start date"),
             projectedCompletionTime = date(request.projectedCompletionTime, current.projectedCompletionTime, "Projected completion date"),
             currency = request.currency?.trim()?.uppercase()?.also { require(it.matches(Regex("[A-Z]{3}"))) { "Currency must be a three-letter code." } } ?: current.currency,
             contractorName = text(request.contractorName, current.contractorName, 255),
-            designerName = text(request.designerName, current.designerName, 255),
-            designContractNumber = text(request.designContractNumber, current.designContractNumber, 100),
-            designContractTerm = designTerm,
             constructionContractNumber = text(request.constructionContractNumber, current.constructionContractNumber, 100),
             technicalSupervisionName = text(request.technicalSupervisionName, current.technicalSupervisionName, 255),
             technicalSupervisionContractNumber = text(request.technicalSupervisionContractNumber, current.technicalSupervisionContractNumber, 100),

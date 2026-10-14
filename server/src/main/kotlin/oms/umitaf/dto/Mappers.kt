@@ -160,13 +160,6 @@ fun Project.toResponse(
         plannedEndDate =
             plannedEndDate?.toString(),
 
-        designContractSigningDate =
-            designContractSigningDate?.toString(),
-
-        designStartDate = designStartDate?.toString(),
-
-        designPlannedEndDate = designPlannedEndDate?.toString(),
-
         constructionContractSigningDate =
             constructionContractSigningDate?.toString(),
 
@@ -179,15 +172,10 @@ fun Project.toResponse(
         contractDurationDays =
             contractDurationDays,
 
-        designDurationDays = designDurationDays,
-
         currency =
             currency,
 
         contractorName = contractorName,
-        designerName = designerName,
-        designContractNumber = designContractNumber,
-        designContractTerm = designContractTerm,
         constructionContractNumber = constructionContractNumber,
         technicalSupervisionName = technicalSupervisionName,
         technicalSupervisionContractNumber = technicalSupervisionContractNumber,

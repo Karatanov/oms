@@ -22,8 +22,7 @@ internal class ProjectFormState(details: ApiProjectDetailsData? = null, private 
         "constructionType" to (details?.constructionType ?: "reconstruction"),
         "address" to details?.address.orEmpty(), "region" to details?.region.orEmpty(), "city" to details?.city.orEmpty(),
         "latitude" to details?.latitude?.toString().orEmpty(), "longitude" to details?.longitude?.toString().orEmpty(),
-        "designerName" to details?.designerName.orEmpty(), "designContractNumber" to details?.designContractNumber.orEmpty(),
-        "designContractTerm" to details?.designContractTerm.orEmpty(), "contractorName" to details?.contractorName.orEmpty(),
+        "contractorName" to details?.contractorName.orEmpty(),
         "constructionContractNumber" to details?.constructionContractNumber.orEmpty(),
         "technicalSupervisionName" to details?.technicalSupervisionName.orEmpty(),
         "technicalSupervisionContractNumber" to details?.technicalSupervisionContractNumber.orEmpty(),
@@ -31,9 +30,6 @@ internal class ProjectFormState(details: ApiProjectDetailsData? = null, private 
         "engineerConsultantContractNumber" to details?.engineerConsultantContractNumber.orEmpty(),
         "startDate" to initialDate(details, details?.startDate), "endDate" to initialDate(details, details?.endDate),
         "contractSignedDate" to initialDate(details, details?.contractSignedDate), "plannedEndDate" to initialDate(details, details?.plannedEndDate),
-        "designContractSigningDate" to initialDate(details, details?.designContractSigningDate),
-        "designStartDate" to initialDate(details, details?.designStartDate),
-        "designPlannedEndDate" to initialDate(details, details?.designPlannedEndDate),
         "technicalSupervisionContractDate" to initialDate(details, details?.technicalSupervisionContractDate),
         "technicalSupervisionStartDate" to initialDate(details, details?.technicalSupervisionStartDate),
         "technicalSupervisionPlannedEndDate" to initialDate(details, details?.technicalSupervisionPlannedEndDate),
@@ -60,8 +56,8 @@ internal class ProjectFormState(details: ApiProjectDetailsData? = null, private 
         if (!editingForm && projectType != "project" && parentUuid.isNullOrBlank()) put("parent", L.t("select_parent_project"))
         if (trancheNumber() == null) put("tranche", L.t("tranche_invalid"))
         val limits = mapOf("code" to 50, "address" to 500, "region" to 100, "city" to 100,
-            "designerName" to 255, "contractorName" to 255, "technicalSupervisionName" to 255, "engineerConsultantName" to 255,
-            "designContractNumber" to 100, "constructionContractNumber" to 100,
+            "contractorName" to 255, "technicalSupervisionName" to 255, "engineerConsultantName" to 255,
+            "constructionContractNumber" to 100,
             "technicalSupervisionContractNumber" to 100, "engineerConsultantContractNumber" to 100)
         limits.forEach { (key, limit) -> if (this@ProjectFormState[key].trim().length > limit)
             put(key, L.t("field_max_length").replace("{max}", limit.toString())) }
@@ -81,7 +77,7 @@ internal class ProjectFormState(details: ApiProjectDetailsData? = null, private 
         fields.filterKeys { it.endsWith("Date") || it == "projectedCompletionTime" || it.endsWith("SigningDate") }
             .forEach { (key, value) -> if (value.isNotBlank() && !oms.components.isValidIsoDate(value)) put(key, L.t("date_invalid")) }
         listOf("constructionContractSigningDate" to "projectedCompletionTime", "constructionStartDate" to "projectedCompletionTime",
-            "designStartDate" to "designPlannedEndDate", "technicalSupervisionStartDate" to "technicalSupervisionPlannedEndDate",
+            "technicalSupervisionStartDate" to "technicalSupervisionPlannedEndDate",
             "engineerConsultantStartDate" to "engineerConsultantPlannedEndDate").forEach { (start, end) ->
             if (oms.components.isValidIsoDate(this@ProjectFormState[start]) && oms.components.isValidIsoDate(this@ProjectFormState[end]) &&
                 this@ProjectFormState[end] < this@ProjectFormState[start]) put(end, L.t("project_dates_invalid"))
@@ -98,9 +94,6 @@ internal class ProjectFormState(details: ApiProjectDetailsData? = null, private 
         currentRate = rate
         money = money.mapValues { (_, value) -> if (value.rate.isBlank() && !value.edited) value.withRate(rate) else value }
     }
-    fun designDurationLabel(): String = browserDaysBetweenIsoDates(this["designStartDate"], this["designPlannedEndDate"])
-        ?.let(::durationMonthsLabel)
-        .orEmpty()
     fun durationLabel(startKey: String, endKey: String): String = browserDaysBetweenIsoDates(this[startKey], this[endKey])
         ?.let(::durationMonthsLabel)
         .orEmpty()
@@ -117,11 +110,9 @@ internal class ProjectFormState(details: ApiProjectDetailsData? = null, private 
         region = this["region"].trim(), city = this["city"].trim(), latitude = coordinate("latitude") ?: 0.0, longitude = coordinate("longitude") ?: 0.0,
         sector = this["sector"], constructionType = this["constructionType"],
         startDate = this["constructionStartDate"], endDate = this["endDate"], contractSignedDate = this["constructionContractSigningDate"], plannedEndDate = this["projectedCompletionTime"],
-        designContractSigningDate = this["designContractSigningDate"], constructionContractSigningDate = this["constructionContractSigningDate"],
-        designStartDate = this["designStartDate"], designPlannedEndDate = this["designPlannedEndDate"],
+        constructionContractSigningDate = this["constructionContractSigningDate"],
         constructionStartDate = this["constructionStartDate"], projectedCompletionTime = this["projectedCompletionTime"],
-        contractorName = this["contractorName"].trim(), designerName = this["designerName"].trim(),
-        designContractNumber = this["designContractNumber"].trim(), designContractTerm = null,
+        contractorName = this["contractorName"].trim(),
         constructionContractNumber = this["constructionContractNumber"].trim(),
         technicalSupervisionName = this["technicalSupervisionName"].trim(), technicalSupervisionContractNumber = this["technicalSupervisionContractNumber"].trim(),
         technicalSupervisionContractDate = this["technicalSupervisionContractDate"], technicalSupervisionStartDate = this["technicalSupervisionStartDate"], technicalSupervisionPlannedEndDate = this["technicalSupervisionPlannedEndDate"],
@@ -137,11 +128,9 @@ internal class ProjectFormState(details: ApiProjectDetailsData? = null, private 
             latitude = p.latitude!!, longitude = p.longitude!!, sector = p.sector!!, constructionType = p.constructionType!!,
             budgetPlanned = money.getValue("budget").legacyUah(), projectType = projectType, parentProjectUuid = parentUuid, trancheNumber = p.trancheNumber ?: 1,
             startDate = p.startDate, endDate = p.endDate, contractSignedDate = p.contractSignedDate, plannedEndDate = p.plannedEndDate,
-            designContractSigningDate = p.designContractSigningDate, constructionContractSigningDate = p.constructionContractSigningDate,
-            designStartDate = p.designStartDate, designPlannedEndDate = p.designPlannedEndDate,
+            constructionContractSigningDate = p.constructionContractSigningDate,
             constructionStartDate = p.constructionStartDate, projectedCompletionTime = p.projectedCompletionTime,
-            contractorName = p.contractorName, designerName = p.designerName, designContractNumber = p.designContractNumber,
-            designContractTerm = p.designContractTerm, constructionContractNumber = p.constructionContractNumber,
+            contractorName = p.contractorName, constructionContractNumber = p.constructionContractNumber,
             technicalSupervisionName = p.technicalSupervisionName, technicalSupervisionContractNumber = p.technicalSupervisionContractNumber,
             technicalSupervisionContractDate = p.technicalSupervisionContractDate, technicalSupervisionStartDate = p.technicalSupervisionStartDate, technicalSupervisionPlannedEndDate = p.technicalSupervisionPlannedEndDate,
             engineerConsultantName = p.engineerConsultantName, engineerConsultantContractNumber = p.engineerConsultantContractNumber,

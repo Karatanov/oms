@@ -130,21 +130,6 @@ internal fun ProjectForm(
     }
     Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            FormSectionTitle(L.t("designer_information"), Icons.Default.DesignServices)
-            field("designerName", "designer_name", Modifier.fillMaxWidth())()
-            FormPair(
-                { field("designContractNumber", "contract_number", it)() },
-                { ProjectFieldValidation(state, "designContractSigningDate", it) { OmsDateField(state["designContractSigningDate"], { value -> state["designContractSigningDate"] = value }, L.t("contract_date"), Modifier.fillMaxWidth()) } }
-            )
-            FormTriplet(
-                { ProjectFieldValidation(state, "designStartDate", it) { OmsDateField(state["designStartDate"], { value -> state["designStartDate"] = value }, L.t("design_start_date"), Modifier.fillMaxWidth()) } },
-                { ProjectFieldValidation(state, "designPlannedEndDate", it) { OmsDateField(state["designPlannedEndDate"], { value -> state["designPlannedEndDate"] = value }, L.t("design_planned_end_date"), Modifier.fillMaxWidth()) } },
-                { modifier -> OutlinedTextField(state.designDurationLabel(), {}, label = { Text(L.t("design_contract_term")) }, readOnly = true, singleLine = true, modifier = modifier) }
-            )
-        }
-    }
-    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             FormSectionTitle(L.t("construction_contractor_information"), Icons.Default.Engineering)
             field("contractorName", "contractor_name", Modifier.fillMaxWidth())()
             FormPair(
@@ -200,8 +185,8 @@ private fun ContractInformationCard(
                 { modifier -> ProjectFieldValidation(state, prefix + "ContractDate", modifier) { OmsDateField(contractDate, onContractDateChange, L.t("contract_date"), Modifier.fillMaxWidth()) } }
             )
             FormTriplet(
-                { modifier -> ProjectFieldValidation(state, prefix + "StartDate", modifier) { OmsDateField(startDate, onStartDateChange, L.t("design_start_date"), Modifier.fillMaxWidth()) } },
-                { modifier -> ProjectFieldValidation(state, prefix + "PlannedEndDate", modifier) { OmsDateField(plannedEndDate, onPlannedEndDateChange, L.t("design_planned_end_date"), Modifier.fillMaxWidth()) } },
+                { modifier -> ProjectFieldValidation(state, prefix + "StartDate", modifier) { OmsDateField(startDate, onStartDateChange, L.t("contract_start_date"), Modifier.fillMaxWidth()) } },
+                { modifier -> ProjectFieldValidation(state, prefix + "PlannedEndDate", modifier) { OmsDateField(plannedEndDate, onPlannedEndDateChange, L.t("contract_planned_end_date"), Modifier.fillMaxWidth()) } },
                 { modifier -> OutlinedTextField(duration, {}, label = { Text(L.t("contract_duration")) }, readOnly = true, singleLine = true, modifier = modifier) }
             )
         }
