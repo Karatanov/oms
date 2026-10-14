@@ -4,19 +4,15 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.http.content.PartData
 import io.ktor.http.content.forEachPart
 import io.ktor.server.request.receiveMultipart
-import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
-import io.ktor.server.routing.delete
 import io.ktor.server.routing.get
-import io.ktor.server.routing.patch
 import io.ktor.server.routing.post
 import io.ktor.utils.io.readRemaining
 import kotlinx.io.readByteArray
 import oms.umitaf.config.AppContainer
 import oms.umitaf.domain.ProcurementRecord
 import oms.umitaf.dto.ErrorResponse
-import oms.umitaf.dto.ProcurementRecordRequest
 import oms.umitaf.dto.ProcurementRecordResponse
 import kotlinx.serialization.Serializable
 
@@ -24,26 +20,6 @@ fun Route.procurementRoutes() {
     get("/api/v1/procurements") {
         call.requireRole("ADMIN", "PROJECT_MANAGER", "INSPECTOR", "VIEWER") ?: return@get
         call.respond(AppContainer.procurementService.getAll().map(ProcurementRecord::toResponse))
-    }
-
-    patch("/api/v1/procurements/{id}") {
-        call.requireRole("ADMIN") ?: return@patch
-        val id = call.parameters["id"]?.toLongOrNull()
-            ?: return@patch call.respond(HttpStatusCode.BadRequest, ErrorResponse("VALIDATION_ERROR", "Procurement record ID is required."))
-        val request = call.receive<ProcurementRecordRequest>()
-        call.respondSafely(HttpStatusCode.OK) {
-            AppContainer.procurementService.update(id, request)?.toResponse()
-                ?: throw NoSuchElementException("Procurement record not found.")
-        }
-    }
-
-    delete("/api/v1/procurements/{id}") {
-        call.requireRole("ADMIN") ?: return@delete
-        val id = call.parameters["id"]?.toLongOrNull()
-            ?: return@delete call.respond(HttpStatusCode.BadRequest, ErrorResponse("VALIDATION_ERROR", "Procurement record ID is required."))
-        if (!AppContainer.procurementService.delete(id)) {
-            call.respond(HttpStatusCode.NotFound, ErrorResponse("NOT_FOUND", "Procurement record not found."))
-        } else call.respond(HttpStatusCode.NoContent)
     }
 
     post("/api/v1/procurements/refresh") {
@@ -113,8 +89,6 @@ private suspend inline fun <reified T : Any> io.ktor.server.application.Applicat
 ) {
     try {
         respond(success, block())
-    } catch (_: NoSuchElementException) {
-        respond(HttpStatusCode.NotFound, ErrorResponse("NOT_FOUND", "Procurement record not found."))
     } catch (exception: IllegalStateException) {
         respond(HttpStatusCode.Conflict, ErrorResponse("CONFLICT", exception.message ?: "Procurement refresh is already running."))
     } catch (exception: IllegalArgumentException) {

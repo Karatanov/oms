@@ -5,8 +5,6 @@ import oms.umitaf.domain.ProcurementRecord
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
-import org.jetbrains.exposed.v1.jdbc.update
-import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.deleteAll
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.statements.UpdateBuilder
@@ -15,8 +13,6 @@ import java.math.BigDecimal
 interface ProcurementRecordRepository {
     fun findAll(): List<ProcurementRecord>
     fun findBySubProjectId(subProjectId: String): List<ProcurementRecord>
-    fun update(id: Long, record: ProcurementRecord): ProcurementRecord?
-    fun delete(id: Long): Boolean
     /** Replaces the complete procurement registry from the approved source, atomically. */
     fun replaceAll(records: List<ProcurementRecord>): Int
 }
@@ -31,13 +27,6 @@ class ExposedProcurementRecordRepository : ProcurementRecordRepository {
             .where { ProcurementRecordTable.subProjectId eq subProjectId }
             .map(::map)
     }
-
-    override fun update(id: Long, record: ProcurementRecord): ProcurementRecord? = transaction {
-        if (ProcurementRecordTable.update({ ProcurementRecordTable.id eq id }) { row -> row.applyRecord(record) } == 0) null
-        else ProcurementRecordTable.selectAll().where { ProcurementRecordTable.id eq id }.limit(1).first().let(::map)
-    }
-
-    override fun delete(id: Long): Boolean = transaction { ProcurementRecordTable.deleteWhere { ProcurementRecordTable.id eq id } > 0 }
 
     override fun replaceAll(records: List<ProcurementRecord>): Int = transaction {
         require(records.isNotEmpty()) { "Approved source contains no procurement records." }

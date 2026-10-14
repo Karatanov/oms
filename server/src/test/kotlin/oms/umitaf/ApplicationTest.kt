@@ -14,6 +14,12 @@ class ApplicationTest {
         assertEquals(HttpStatusCode.NotFound, client.post("/api/v1/procurements").status)
     }
 
+    @Test fun manualProcurementMutationRoutesAreUnavailable() = testApplication {
+        application { module(configureDatabase = false) }
+        assertEquals(HttpStatusCode.NotFound, client.patch("/api/v1/procurements/1").status)
+        assertEquals(HttpStatusCode.NotFound, client.delete("/api/v1/procurements/1").status)
+    }
+
     @Test fun guestBearerRestoresSessionWithoutCookiesAndCorsAllowsAuthorization() = testApplication {
         application { module(configureDatabase = false) }
         val guest = client.post("/api/v1/auth/guest")

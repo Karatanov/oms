@@ -4,9 +4,7 @@ import oms.umitaf.repository.ProcurementRecordRepository
 import oms.umitaf.repository.UserRepository
 import oms.umitaf.domain.ProcurementRecord
 import oms.umitaf.domain.ProjectType
-import oms.umitaf.dto.ProcurementRecordRequest
 import oms.umitaf.dto.UpdateProjectRequest
-import java.time.LocalDate
 import java.util.UUID
 import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledExecutorService
@@ -45,8 +43,6 @@ class ProcurementService(
 
     fun getAll() = repository.findAll()
     fun getBySubProjectId(subProjectId: String) = repository.findBySubProjectId(subProjectId)
-    fun update(id: Long, request: ProcurementRecordRequest) = repository.update(id, request.toRecord())
-    fun delete(id: Long) = repository.delete(id)
 
     /**
      * Keeps the procurement registry aligned with the approved DB6.3 source
@@ -438,47 +434,4 @@ class ProcurementService(
 
     private fun String?.limitedTo(max: Int): String? = this?.trim()?.take(max)?.ifBlank { null }
 
-    private fun ProcurementRecordRequest.toRecord(): ProcurementRecord {
-        val subproject = projectService.getAllProjects().firstOrNull {
-            it.projectType == ProjectType.SUBPROJECT && it.siteNumber.equals(subProjectId.trim(), ignoreCase = true)
-        } ?: throw IllegalArgumentException("Select a valid subproject code.")
-        val part = subProjectLotId.clean()?.let { lotCode ->
-            projectService.getAllProjects().firstOrNull {
-                it.projectType == ProjectType.SUBPROJECT_PART &&
-                    it.parentProjectId == subproject.id &&
-                    it.siteNumber.equals(lotCode, ignoreCase = true)
-            } ?: throw IllegalArgumentException("Selected subproject part does not belong to this subproject.")
-        }
-        val derivedBatch = if (subproject.trancheNumber in setOf(2, 9)) 9 else 8
-        val derivedRegion = subproject.region?.trim().orEmpty()
-        require(derivedRegion.isNotBlank()) { "The selected subproject has no region." }
-        require(contractDurationMonths == null || contractDurationMonths >= 0) { "Contract duration cannot be negative." }
-        require(contractAmountUah == null || contractAmountUah >= 0) { "Contract amount cannot be negative." }
-        require(contractAmountEur == null || contractAmountEur >= 0) { "Contract amount cannot be negative." }
-        return ProcurementRecord(
-            id = 0, batchId = derivedBatch, oblastName = derivedRegion, oblastId = subproject.siteNumber.take(2).uppercase(),
-            subProjectId = subproject.siteNumber, subProjectLotId = part?.siteNumber, purchaseStatus = purchaseStatus.clean(),
-            tenderId = tenderId.clean(), prozorroTenderId = prozorroTenderId.clean(), contractorNameUkr = contractorNameUkr.clean(),
-            contractorNameEng = contractorNameEng.clean(), contractorId = contractorId.clean(), contractDate = contractDate.toDate(),
-            contractEndDate = contractEndDate.toDate(), contractDurationMonths = contractDurationMonths, contractAmountUah = contractAmountUah,
-            contractAmountEur = contractAmountEur, financingContractDifferencePct = financingContractDifferencePct,
-            actualisedContractEndDate = actualisedContractEndDate.toDate(), contractAmountUahWithoutVat = contractAmountUahWithoutVat,
-            promotorName = promotorName.clean(), fbName = fbName.clean(), subprojectNameUk = subproject.name,
-            subprojectNameEn = subprojectNameEn.clean(), sourceContractType = sourceContractType.clean(),
-            subprojectTotalCostUah = subprojectTotalCostUah, subprojectEibFinancingUah = subprojectEibFinancingUah,
-            subprojectLocalFinancingUah = subprojectLocalFinancingUah, estimatedTotalEur = estimatedTotalEur,
-            estimatedTotalUah = estimatedTotalUah, estimatedEibEur = estimatedEibEur, estimatedEibUah = estimatedEibUah,
-            estimatedLocalEur = estimatedLocalEur, estimatedLocalUah = estimatedLocalUah, procurementMethod = procurementMethod.clean(),
-            tenderDocumentType = tenderDocumentType.clean(), publishedInOjeu = publishedInOjeu.clean(),
-            estimatedProzorroDate = estimatedProzorroDate.toDate(), estimatedBidSubmissionDate = estimatedBidSubmissionDate.toDate(),
-            estimatedContractDate = estimatedContractDate.toDate(), estimatedContractEndDate = estimatedContractEndDate.toDate(),
-            localFinancingPct = localFinancingPct, tenderAttemptCount = tenderAttemptCount, pigViolations = pigViolations.clean(),
-            dreamCoFinancingPct = dreamCoFinancingPct, realLocalCoFinancingPct = realLocalCoFinancingPct,
-            realEibFinancingUah = realEibFinancingUah, bankGuarantee = bankGuarantee, comments = comments.clean(),
-            sourceStatusCode = sourceStatusCode.clean(), projectId = part?.id ?: subproject.id
-        )
-    }
-
-    private fun String?.clean() = this?.trim()?.ifBlank { null }
-    private fun String?.toDate() = clean()?.let { runCatching { LocalDate.parse(it) }.getOrElse { throw IllegalArgumentException("Dates must use YYYY-MM-DD.") } }
 }

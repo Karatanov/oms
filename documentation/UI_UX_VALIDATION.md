@@ -30,7 +30,7 @@ The following checks used the compiled application with synthetic HTTP fixtures,
 - Inspection edit dialog, inspection-type picker, Escape dismissal of only the picker, move-report target selection and Cancel.
 - Manual SIR project/subproject/part selection, inspection-type options and long-form scrolling. The native OS date popup was not capturable in the browser screenshot; its visual positioning is not claimed as verified.
 - Administration UK/EN switching, create/edit light dialogs, Cancel, and an intentionally injected HTTP 422 response shown inside the user editor. No user was created or password changed in this UI pass.
-- Procurement editor, all six localized status choices, picker Escape and editor Cancel after scrolling.
+- Procurement registry filters, all six localized status choices and approved-source refresh dialog cancellation after scrolling.
 - Finance editor, payment-purpose selection, Cancel after scrolling, horizontal table controls, and import/export dialog opening/Cancel.
 - Document upload dialog opening/Cancel; empty-document state and Other filter are present.
 - Final production rebuild passed on Windows (10m 17s, five JVM tests with no failures). A fresh-origin smoke check confirmed dashboard-to-documents navigation, the localized document-type picker including subproject parts/invoice/act, picker Escape and dialog Cancel with no browser console errors. A normal reload of the earlier local fixture had reused cached scripts, so it was not used as evidence for the final bundle.
