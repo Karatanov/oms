@@ -59,6 +59,7 @@ fun OmsTooltipBox(
     modifier: Modifier = Modifier,
     tooltip: @Composable () -> Unit,
     openOnPress: Boolean = false,
+    enabled: Boolean = true,
     content: @Composable () -> Unit
 ) {
     val host = LocalTooltipOverlay.current
@@ -68,9 +69,9 @@ fun OmsTooltipBox(
     var focused by remember { mutableStateOf(false) }
     var pinned by remember { mutableStateOf(false) }
     val currentTooltip by rememberUpdatedState(tooltip)
-    LaunchedEffect(hovered, focused, pinned, bounds) {
+    LaunchedEffect(enabled, hovered, focused, pinned, bounds) {
         host.dismiss(id)
-        if (hovered || focused || pinned) {
+        if (enabled && (hovered || focused || pinned)) {
             if (!pinned) delay(450)
             host.entry = TooltipEntry(id, bounds) { currentTooltip() }
         }

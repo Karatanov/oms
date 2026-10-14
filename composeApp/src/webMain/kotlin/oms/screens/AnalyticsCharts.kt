@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -22,6 +23,7 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -32,7 +34,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.input.pointer.PointerIcon
+import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.onPointerEvent
 import androidx.compose.ui.input.pointer.pointerHoverIcon
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
@@ -48,6 +54,7 @@ import oms.data.ApiSubprojectProgress
 import oms.localization.LocalizationManager
 import oms.screens.dashboard.toMonthName
 import oms.components.FilterDropdown
+import oms.components.OmsTooltipBox
 import oms.components.localizedUkraineRegion
 import oms.components.canonicalUkraineRegion
 import kotlin.math.roundToLong
@@ -96,6 +103,7 @@ private fun UkraineFundingMapChart(
             Spacer(Modifier.height(14.dp))
             UkraineFundingMap(
                 amounts = amounts,
+                currency = currency,
                 maxAmount = maxAmount,
                 onOpenFinancialRegion = onOpenFinancialRegion
             )
@@ -104,21 +112,49 @@ private fun UkraineFundingMapChart(
 }
 
 @Composable
+@OptIn(ExperimentalComposeUiApi::class)
 private fun UkraineFundingMap(
     amounts: Map<String, Double>,
+    currency: String,
     maxAmount: Double,
     onOpenFinancialRegion: (String) -> Unit
 ) {
     val primary = MaterialTheme.colorScheme.primary
     val emptyRegion = MaterialTheme.colorScheme.surfaceVariant
     val border = MaterialTheme.colorScheme.outlineVariant
-    Canvas(
+    var hoveredRegion by remember { mutableStateOf<UkraineMapRegion?>(null) }
+    var mapSize by remember { mutableStateOf(IntSize.Zero) }
+    OmsTooltipBox(
         modifier = Modifier
             .fillMaxWidth()
             .aspectRatio(ukraineMapWidth / ukraineMapHeight)
             .background(MaterialTheme.colorScheme.surfaceContainerLow, RoundedCornerShape(12.dp))
-            .padding(8.dp)
-            .pointerInput(onOpenFinancialRegion, amounts) {
+            .padding(8.dp),
+        enabled = hoveredRegion != null,
+        tooltip = {
+            hoveredRegion?.let { region ->
+                Column {
+                    Text(localizedUkraineRegion(region.name), fontWeight = FontWeight.SemiBold)
+                    Text("${formatFundingMapAmount(amounts[region.name] ?: 0.0)} $currency", style = MaterialTheme.typography.bodySmall)
+                }
+            }
+        }
+    ) {
+        Canvas(
+            modifier = Modifier
+                .fillMaxSize()
+                .onSizeChanged { mapSize = it }
+                .onPointerEvent(PointerEventType.Move) { event ->
+                    val position = event.changes.firstOrNull()?.position ?: return@onPointerEvent
+                    if (mapSize.width == 0 || mapSize.height == 0) return@onPointerEvent
+                    val point = UkraineMapPoint(
+                        position.x / mapSize.width * ukraineMapWidth,
+                        position.y / mapSize.height * ukraineMapHeight
+                    )
+                    hoveredRegion = ukraineFundingMapRegions.firstOrNull { it.contains(point) }
+                }
+                .onPointerEvent(PointerEventType.Exit) { hoveredRegion = null }
+                .pointerInput(onOpenFinancialRegion, amounts) {
                 detectTapGestures { position ->
                     val point = UkraineMapPoint(
                         position.x / size.width * ukraineMapWidth,
@@ -127,25 +163,47 @@ private fun UkraineFundingMap(
                     ukraineFundingMapRegions.firstOrNull { it.contains(point) }
                         ?.let { onOpenFinancialRegion(it.name) }
                 }
+                }
+        ) {
+            val scaleX = size.width / ukraineMapWidth
+            val scaleY = size.height / ukraineMapHeight
+            ukraineFundingMapRegions.forEach { region ->
+                val amount = amounts[region.name] ?: 0.0
+                val intensity = (amount / maxAmount).toFloat().coerceIn(0f, 1f)
+                val isHovered = region == hoveredRegion
+                val fill = when {
+                    isHovered && amount <= 0.0 -> primary.copy(alpha = .30f)
+                    isHovered -> primary.copy(alpha = (.32f + intensity * .68f).coerceAtMost(1f))
+                    amount <= 0.0 -> emptyRegion
+                    else -> primary.copy(alpha = .18f + intensity * .72f)
+                }
+                val path = Path()
+                region.rings.forEach { ring ->
+                    if (ring.size < 3) return@forEach
+                    path.moveTo(ring.first().x * scaleX, ring.first().y * scaleY)
+                    ring.drop(1).forEach { path.lineTo(it.x * scaleX, it.y * scaleY) }
+                    path.close()
+                }
+                drawPath(path, fill)
+                drawPath(
+                    path,
+                    if (isHovered) primary else border,
+                    style = Stroke(width = if (isHovered) 2.5f else 1.25f)
+                )
             }
-    ) {
-        val scaleX = size.width / ukraineMapWidth
-        val scaleY = size.height / ukraineMapHeight
-        ukraineFundingMapRegions.forEach { region ->
-            val amount = amounts[region.name] ?: 0.0
-            val intensity = (amount / maxAmount).toFloat().coerceIn(0f, 1f)
-            val fill = if (amount <= 0.0) emptyRegion else primary.copy(alpha = .18f + intensity * .72f)
-            val path = Path()
-            region.rings.forEach { ring ->
-                if (ring.size < 3) return@forEach
-                path.moveTo(ring.first().x * scaleX, ring.first().y * scaleY)
-                ring.drop(1).forEach { path.lineTo(it.x * scaleX, it.y * scaleY) }
-                path.close()
-            }
-            drawPath(path, fill)
-            drawPath(path, border, style = Stroke(width = 1.25f))
         }
     }
+}
+
+/** Compact locale-neutral money formatter suitable for Canvas tooltips in JS/Wasm. */
+private fun formatFundingMapAmount(value: Double): String {
+    val cents = (value * 100).roundToLong()
+    val sign = if (cents < 0) "-" else ""
+    val absolute = if (cents < 0) -cents else cents
+    val whole = absolute / 100
+    val fraction = absolute % 100
+    val grouped = whole.toString().reversed().chunked(3).joinToString(" ").reversed()
+    return if (fraction == 0L) "$sign$grouped" else "$sign$grouped,${fraction.toString().padStart(2, '0').trimEnd('0')}"
 }
 
 @Composable
