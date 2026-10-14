@@ -67,9 +67,16 @@
         let umitafMapPaneBounds = null;
         let umitafMapFullscreenFallback = false;
         let umitafMapFullscreenButton = null;
+        let umitafMapLayerControl = null;
+        let umitafMapBaseLayers = null;
         let umitafMapFullscreenLabels = {
             enter: "Open map in full screen",
             exit: "Exit full-screen mode"
+        };
+        let umitafMapLayerLabels = {
+            title: "Map layers",
+            openStreetMap: "OpenStreetMap",
+            satellite: "Satellite"
         };
         let omsLanguage = "uk";
         const omsBrowserStrings = {
@@ -414,6 +421,38 @@
             refreshMapFullscreenState();
         }
 
+        // Rebuild only Leaflet's small labels control when the application language
+        // changes. The tile layer instances stay attached to the existing map, so
+        // the selected base map, view, markers and open popup are all preserved.
+        function refreshLeafletLayerControl() {
+            if (!umitafLeafletMap || !umitafMapBaseLayers || !window.L) return;
+            if (umitafMapLayerControl) umitafLeafletMap.removeControl(umitafMapLayerControl);
+            umitafMapLayerControl = L.control.layers({
+                [umitafMapLayerLabels.openStreetMap]: umitafMapBaseLayers.openStreetMap,
+                [umitafMapLayerLabels.satellite]: umitafMapBaseLayers.satellite
+            }, null, { position: "topright", collapsed: true });
+            umitafMapLayerControl.addTo(umitafLeafletMap);
+            const controlElement = umitafMapLayerControl.getContainer();
+            if (controlElement) {
+                controlElement.setAttribute("aria-label", umitafMapLayerLabels.title);
+                controlElement.setAttribute("title", umitafMapLayerLabels.title);
+                const toggle = controlElement.querySelector(".leaflet-control-layers-toggle");
+                if (toggle) {
+                    toggle.setAttribute("aria-label", umitafMapLayerLabels.title);
+                    toggle.setAttribute("title", umitafMapLayerLabels.title);
+                }
+            }
+        }
+
+        function setLeafletLayerLabels(title, openStreetMapLabel, satelliteLabel) {
+            umitafMapLayerLabels = {
+                title: title || "Map layers",
+                openStreetMap: openStreetMapLabel || "OpenStreetMap",
+                satellite: satelliteLabel || "Satellite"
+            };
+            refreshLeafletLayerControl();
+        }
+
         document.addEventListener("fullscreenchange", () => {
             if (!nativeMapFullscreenActive()) umitafMapFullscreenFallback = false;
             refreshMapFullscreenState();
@@ -440,12 +479,26 @@
                 maxBoundsViscosity: 1.0
             });
 
-            L.tileLayer(
+            const openStreetMapLayer = L.tileLayer(
                 "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
                 {
                     attribution: "&copy; OpenStreetMap contributors"
                 }
-            ).addTo(umitafLeafletMap);
+            );
+            // NASA GIBS publishes the VIIRS true-colour imagery as a public WMTS
+            // service. It needs no API key; its required acknowledgement remains in
+            // the Leaflet attribution control, including in fullscreen mode.
+            const satelliteLayer = L.tileLayer(
+                "https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/VIIRS_SNPP_CorrectedReflectance_TrueColor/default/GoogleMapsCompatible_Level9/{z}/{y}/{x}.jpg",
+                {
+                    maxNativeZoom: 9,
+                    maxZoom: 18,
+                    attribution: "NASA GIBS / NASA EOSDIS"
+                }
+            );
+            umitafMapBaseLayers = { openStreetMap: openStreetMapLayer, satellite: satelliteLayer };
+            openStreetMapLayer.addTo(umitafLeafletMap);
+            refreshLeafletLayerControl();
 
             umitafMarkersLayer = L.markerClusterGroup({
                 showCoverageOnHover: false,

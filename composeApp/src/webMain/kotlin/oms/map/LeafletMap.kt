@@ -30,6 +30,9 @@ external fun setLeafletProjectClickHandler(handler: (String) -> Unit)
 @JsName("setLeafletFullscreenLabels")
 external fun setLeafletFullscreenLabels(enterLabel: String, exitLabel: String)
 
+@JsName("setLeafletLayerLabels")
+external fun setLeafletLayerLabels(title: String, openStreetMapLabel: String, satelliteLabel: String)
+
 @Composable
 fun LeafletMapView(
     projects: List<Project>,
@@ -50,6 +53,11 @@ fun LeafletMapView(
         setLeafletFullscreenLabels(
             LocalizationManager.t("map_enter_fullscreen"),
             LocalizationManager.t("map_exit_fullscreen")
+        )
+        setLeafletLayerLabels(
+            LocalizationManager.t("map_layers"),
+            LocalizationManager.t("map_layer_openstreetmap"),
+            LocalizationManager.t("map_layer_satellite")
         )
         setLeafletProjectClickHandler(onProjectClick)
         setLeafletProjects(projects.toLeafletJson(allProjects))
