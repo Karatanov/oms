@@ -11,7 +11,9 @@ class ApplicationTest {
 
     @Test fun manualProcurementCreationRouteIsUnavailable() = testApplication {
         application { module(configureDatabase = false) }
-        assertEquals(HttpStatusCode.NotFound, client.post("/api/v1/procurements").status)
+        // The collection remains readable, so Ktor correctly reports a
+        // disallowed write method instead of a missing resource.
+        assertEquals(HttpStatusCode.MethodNotAllowed, client.post("/api/v1/procurements").status)
     }
 
     @Test fun manualProcurementMutationRoutesAreUnavailable() = testApplication {
