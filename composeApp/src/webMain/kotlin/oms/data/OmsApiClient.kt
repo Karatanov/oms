@@ -845,7 +845,7 @@ data class ApiProcurementRecord(
     val estimatedContractDate: String? = null, val estimatedContractEndDate: String? = null, val actualisedContractEndDate: String? = null, val localFinancingPct: Double? = null,
     val tenderAttemptCount: Int? = null, val pigViolations: String? = null, val contractAmountUahWithoutVat: Double? = null,
     val dreamCoFinancingPct: Double? = null, val realLocalCoFinancingPct: Double? = null, val realEibFinancingUah: Double? = null,
-    val bankGuarantee: Double? = null, val comments: String? = null, val sourceStatusCode: String? = null, val projectId: Long? = null
+    val bankGuarantee: Double? = null, val contractLink: String? = null, val comments: String? = null, val sourceStatusCode: String? = null, val projectId: Long? = null
 )
 
 @Serializable

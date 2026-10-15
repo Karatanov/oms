@@ -124,5 +124,6 @@ private fun ProcurementRecord.toResponse() = ProcurementRecordResponse(
     localFinancingPct = localFinancingPct, tenderAttemptCount = tenderAttemptCount, pigViolations = pigViolations,
     dreamCoFinancingPct = dreamCoFinancingPct, realLocalCoFinancingPct = realLocalCoFinancingPct,
     realEibFinancingUah = realEibFinancingUah, bankGuarantee = bankGuarantee,
+    contractLink = contractLink,
     comments = comments, sourceStatusCode = sourceStatusCode, projectId = projectId
 )

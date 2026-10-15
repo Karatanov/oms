@@ -52,6 +52,7 @@ object ProcurementRecordTable : LongIdTable("procurement_records") {
     val realLocalCoFinancingPct = decimal("real_local_co_financing_pct", 14, 10).nullable()
     val realEibFinancingUah = decimal("real_eib_financing_uah", 18, 2).nullable()
     val bankGuarantee = decimal("bank_guarantee", 14, 10).nullable()
+    val contractLink = varchar("contract_link", 2048).nullable()
     val comments = text("comments").nullable()
     val sourceStatusCode = varchar("source_status_code", 64).nullable()
     val projectId = optReference("project_id", ProjectTable, onDelete = ReferenceOption.CASCADE)

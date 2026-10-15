@@ -51,6 +51,8 @@ data class ProcurementRecord(
     val realLocalCoFinancingPct: Double? = null,
     val realEibFinancingUah: Double? = null,
     val bankGuarantee: Double? = null,
+    /** Direct approved-source link to the signed contract, when published. */
+    val contractLink: String? = null,
     val comments: String? = null,
     val sourceStatusCode: String? = null,
     val projectId: Long? = null

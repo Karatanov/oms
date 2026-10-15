@@ -577,6 +577,17 @@ private fun ProcurementRow(
                     color = MaterialTheme.colorScheme.primary,
                     textDecoration = TextDecoration.Underline
                 )
+            } else if (!isHeader && index == 21 && value.isNotBlank()) {
+                Text(
+                    value,
+                    Modifier.width(width.dp).padding(horizontal = 6.dp)
+                        .clickable { uriHandler.openUri(record?.contractLink ?: value) },
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    textDecoration = TextDecoration.Underline
+                )
             } else if (!isHeader && index == 0 && subprojectMapUrl != null) {
                 Text(
                     value,
@@ -610,7 +621,8 @@ private fun ApiProcurementRecord.displayValues(): List<String> = listOf(
     contractDate.toOmsDate(), contractEndDate.toOmsDate(), actualisedContractEndDate.toOmsDate(), contractorId.orEmpty(),
     if (LocalizationManager.currentLanguage == Language.EN) contractorNameEng ?: contractorNameUkr.orEmpty() else contractorNameUkr ?: contractorNameEng.orEmpty(),
     contractAmountUah.format(2), contractAmountUahWithoutVat.format(2), dreamCoFinancingPct.formatPercent(),
-    estimatedEibUah.format(2), realLocalCoFinancingPct.formatPercent(), realEibFinancingUah.format(2), bankGuarantee.formatPercent()
+    estimatedEibUah.format(2), realLocalCoFinancingPct.formatPercent(), realEibFinancingUah.format(2), bankGuarantee.formatPercent(),
+    contractLink.orEmpty()
 )
 
 /** Promotor and FB are the same business value in the approved workbook. */
@@ -673,27 +685,27 @@ private fun procurementHeaderLabels(): List<String> = if (LocalizationManager.cu
     "Subproject code", "Batch", "Subproject name", "Promotor name", "FB name", "Procurement method", "Procurement status",
     "Tender attempts", "PIG violations", "PROZORRO reference", "Contract date", "Contract end date", "Actualised contract end date",
     "Contractor ID", "Contractor name", "Contract amount, UAH with VAT", "Contract amount, UAH without VAT", "DREAM co-financing, %",
-    "Estimated EIB financing, UAH", "Real local co-financing, %", "Real EIB financing, UAH", "Bank guarantee, %"
+    "Estimated EIB financing, UAH", "Real local co-financing, %", "Real EIB financing, UAH", "Bank guarantee, %", "Contract link"
 ) else listOf(
     "Код субпроєкту", "Транш", "Назва субпроєкту", "Назва промотора", "Назва ФБ", "Метод закупівлі", "Статус закупівлі",
     "Кількість спроб", "Порушення PIG", "Посилання PROZORRO", "Дата договору", "Дата завершення договору", "Актуалізована дата завершення",
     "ID підрядника", "Назва підрядника", "Сума договору з ПДВ, грн", "Сума договору без ПДВ, грн", "Співфінансування DREAM, %",
-    "Оціночне фінансування ЄІБ, грн", "Фактичне місцеве співфінансування, %", "Фактичне фінансування ЄІБ, грн", "Банківська гарантія, %"
+    "Оціночне фінансування ЄІБ, грн", "Фактичне місцеве співфінансування, %", "Фактичне фінансування ЄІБ, грн", "Банківська гарантія, %", "Посилання на договір"
 )
 
 private fun procurementTableHeaderLabels(): List<String> = if (LocalizationManager.currentLanguage == Language.EN) listOf(
     "Subproject code", "Batch", "Subproject name", "Promotor name", "Procurement method", "Procurement status",
     "Tender attempts", "PIG violations", "PROZORRO reference", "Contract date", "Contract end date", "Actualised contract end date",
     "Contractor ID", "Contractor name", "Contract amount, UAH with VAT", "Contract amount, UAH without VAT", "DREAM co-financing, %",
-    "Estimated EIB financing, UAH", "Real local co-financing, %", "Real EIB financing, UAH", "Bank guarantee, %"
+    "Estimated EIB financing, UAH", "Real local co-financing, %", "Real EIB financing, UAH", "Bank guarantee, %", "Contract link"
 ) else listOf(
     "Код субпроєкту", "Транш", "Назва субпроєкту", "Назва ФБ", "Метод закупівлі", "Статус закупівлі",
     "Кількість спроб", "Порушення PIG", "Посилання PROZORRO", "Дата договору", "Дата завершення договору", "Актуалізована дата завершення",
     "ID підрядника", "Назва підрядника", "Сума договору з ПДВ, грн", "Сума договору без ПДВ, грн", "Співфінансування DREAM, %",
-    "Оціночне фінансування ЄІБ, грн", "Фактичне місцеве співфінансування, %", "Фактичне фінансування ЄІБ, грн", "Банківська гарантія, %"
+    "Оціночне фінансування ЄІБ, грн", "Фактичне місцеве співфінансування, %", "Фактичне фінансування ЄІБ, грн", "Банківська гарантія, %", "Посилання на договір"
 )
 
-private val columnWidths = listOf(145, 104, 360, 220, 250, 220, 130, 240, 230, 145, 165, 190, 150, 300, 210, 220, 190, 220, 220, 220, 180)
+private val columnWidths = listOf(145, 104, 360, 220, 250, 220, 130, 240, 230, 145, 165, 190, 150, 300, 210, 220, 190, 220, 220, 220, 180, 240)
 private val procurementStatuses = listOf(
     "Не розпочато / Not Started",
     "Закупівля триває / Tender Ongoing",

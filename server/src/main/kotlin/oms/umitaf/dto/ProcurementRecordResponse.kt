@@ -52,6 +52,7 @@ data class ProcurementRecordResponse(
     val realLocalCoFinancingPct: Double? = null,
     val realEibFinancingUah: Double? = null,
     val bankGuarantee: Double? = null,
+    val contractLink: String? = null,
     val comments: String? = null,
     val sourceStatusCode: String? = null,
     val projectId: Long? = null

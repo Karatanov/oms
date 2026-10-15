@@ -28,7 +28,7 @@ object ProcurementWorkbookSource {
         val actualisedContractEndDate: LocalDate?, val contractorId: String?, val contractorNameEng: String?,
         val contractorNameUkr: String?, val contractReference: String?, val contractAmountUah: Double?, val contractAmountUahWithoutVat: Double?,
         val dreamCoFinancingPct: Double?, val estimatedEibUah: Double?, val realLocalCoFinancingPct: Double?,
-        val realEibFinancingUah: Double?, val bankGuarantee: Double?, val comments: String?
+        val realEibFinancingUah: Double?, val bankGuarantee: Double?, val contractLink: String?, val comments: String?
     )
 
     fun downloadAndParse(onProgress: (Int, String) -> Unit = { _, _ -> }): List<SourceRow> {
@@ -102,7 +102,8 @@ object ProcurementWorkbookSource {
                     value(rowIndex, "Contract amount, UAH with VAT").number, value(rowIndex, "Contract amount, UAH without VAT").number,
                     value(rowIndex, "DREAM co-financing (%)").number, value(rowIndex, "Estimated amount and Financing (EIB financing, UAH)").number,
                     value(rowIndex, "Real local co-financing according to contract (%)").number, value(rowIndex, "Real EIB financing according contract data (UAH)").number,
-                    value(rowIndex, "Bank guarantee").number, value(rowIndex, "Comments (if any)").text
+                    value(rowIndex, "Bank guarantee").number, value(rowIndex, "Link to Contract").text,
+                    value(rowIndex, "Comments (if any)").text
                 )
             }
             require(parsedRows.map { it.sourceId }.toSet().size == parsedRows.size) {
@@ -223,8 +224,10 @@ object ProcurementWorkbookSource {
         "PIG violations (if any)", "Prozorro reference", "Contract Date", "Contract end date", "Actualised contract end date",
         "Contractor ID", "Contractor Name eng", "Contractor Name ukr", "Contract Reference No.", "Contract amount, UAH with VAT",
         "Contract amount, UAH without VAT", "DREAM co-financing (%)", "Estimated amount and Financing (EIB financing, UAH)",
-        "Real local co-financing according to contract (%)", "Real EIB financing according contract data (UAH)", "Bank guarantee", "Comments (if any)"
+        "Real local co-financing according to contract (%)", "Real EIB financing according contract data (UAH)", "Bank guarantee", "Link to Contract", "Comments (if any)"
     )
-    private val requiredHeaders = sourceColumns.filterNot { it == "Comments (if any)" }.toSet()
+    // The contract URL was added after the first approved template. It stays
+    // optional so a historic approved export remains importable.
+    private val requiredHeaders = sourceColumns.filterNot { it in setOf("Comments (if any)", "Link to Contract") }.toSet()
     private val contractTypes = mapOf("W" to "Роботи / Works", "TS" to "Технічний нагляд / TS", "CSC" to "Інженер-консультант / CSC")
 }

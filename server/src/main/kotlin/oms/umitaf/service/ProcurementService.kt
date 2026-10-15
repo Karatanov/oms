@@ -221,6 +221,7 @@ class ProcurementService(
                 tenderAttemptCount = source.tenderAttemptCount, pigViolations = source.pigViolations,
                 dreamCoFinancingPct = source.dreamCoFinancingPct, realLocalCoFinancingPct = source.realLocalCoFinancingPct,
                 realEibFinancingUah = source.realEibFinancingUah, bankGuarantee = source.bankGuarantee,
+                contractLink = source.contractLink,
                 comments = source.comments, sourceStatusCode = source.sourceContractType, projectId = part?.id ?: subproject.id
             )
         }
