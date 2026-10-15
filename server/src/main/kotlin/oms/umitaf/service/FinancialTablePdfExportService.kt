@@ -91,7 +91,7 @@ class FinancialTablePdfExportService(
         else -> if (language == Language.UK) "Оплата за будівельним контрактом" else "Construction contract payment"
     }
 
-    private class Labels(language: Language) {
+    private class Labels(private val language: Language) {
         private val values = mapOf(
             "type" to pair("Тип", "Type"), "purpose" to pair("Призначення", "Purpose"), "tranche" to pair("Транш", "Tranche"), "subproject" to pair("Субпроєкт", "Subproject"), "code" to pair("Код субпроєкту", "Subproject code"), "part" to pair("Частина субпроєкту", "Subproject part"), "date" to pair("Дата", "Date"), "amount" to pair("Сума", "Amount"), "currency" to pair("Валюта", "Currency"), "description" to pair("Опис", "Description"), "author" to pair("Автор", "Author"), "no_records" to pair("Немає фінансових записів для експорту", "No financial records to export")
         )
