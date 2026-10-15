@@ -262,33 +262,6 @@ fun ProjectsScreen(
 
         Spacer(Modifier.height(8.dp))
 
-        // A portfolio-wide tranche switch is deliberately outside the table
-        // header: it stays discoverable on compact screens and applies before
-        // any column-specific filters are considered.
-        SingleChoiceSegmentedButtonRow(Modifier.widthIn(max = 460.dp).fillMaxWidth()) {
-            listOf<Int?>(null, 1, 2).forEachIndexed { index, option ->
-                SegmentedButton(
-                    selected = trancheFilter == option,
-                    onClick = { trancheFilter = option },
-                    shape = SegmentedButtonDefaults.itemShape(index, 3),
-                    colors = SegmentedButtonDefaults.colors(
-                        activeContainerColor = Primary,
-                        activeContentColor = Color.White
-                    ),
-                    icon = {},
-                    label = {
-                        Text(LocalizationManager.t(when (option) {
-                            null -> "all_tranches"
-                            1 -> "tranche_a"
-                            else -> "tranche_b"
-                        }))
-                    }
-                )
-            }
-        }
-
-        Spacer(Modifier.height(8.dp))
-
         ProjectsTable(
             projects = filteredProjects,
             searchText = searchText,
