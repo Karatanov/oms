@@ -101,6 +101,7 @@ object AppContainer {
 
     val inspectionReportFileRepository: InspectionReportFileRepository = ExposedInspectionReportFileRepository()
     val inspectionReportFileService = InspectionReportFileService(inspectionReportFileRepository, inspectionReportService)
+    val sirPdfExportService = SirPdfExportService(inspectionReportFileService)
 
     val projectDocumentRepository: ProjectDocumentRepository = ExposedProjectDocumentRepository()
     val projectDocumentService = ProjectDocumentService(projectDocumentRepository)

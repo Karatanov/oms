@@ -16,6 +16,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.FileDownload
+import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.UploadFile
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
@@ -310,6 +311,9 @@ fun ReportsScreen(
                         }
                         TableActionIconButton(LocalizationManager.t("open_source_file"), Icons.Default.FileDownload) {
                             oms.data.openOmsDownload(oms.data.omsApiUrl("/inspection-reports/${row.report.uuid}/source-file"))
+                        }
+                        TableActionIconButton(LocalizationManager.t("download_report_pdf"), Icons.Default.PictureAsPdf) {
+                            oms.data.openOmsDownload(oms.data.omsApiUrl("/inspection-reports/${row.report.uuid}/export-pdf"))
                         }
                         if (canCreateReports) TableActionIconButton(LocalizationManager.t("delete_report"), Icons.Default.Delete) {
                             deletion.show(row.title()) { scope.launch {

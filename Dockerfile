@@ -52,6 +52,12 @@ RUN mkdir -p /workspace/web \
 
 FROM eclipse-temurin:21-jre
 WORKDIR /opt/oms
+# The SIR PDF endpoint renders the approved XLSX template with LibreOffice.
+# Keeping this in the runtime image makes the conversion deterministic and
+# avoids depending on a desktop Office installation or an external service.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends libreoffice-calc fonts-crosextra-carlito \
+    && rm -rf /var/lib/apt/lists/*
 COPY --from=build /workspace/server/build/install/server/ ./
 COPY --from=build /workspace/web/ ./web/
 ENV JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=70.0"

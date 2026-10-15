@@ -13,6 +13,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -203,6 +204,9 @@ fun DocumentsScreen(canManageDocuments: Boolean = true) {
                             val path = if (row.isSirSource) "/inspection-reports/${row.uuid}/source-file" else "/projects/${row.projectUuid}/documents/${row.uuid}/download"
                             oms.data.openOmsDownload(oms.data.omsApiUrl(path))
                         }
+                        if (row.isSirSource) TableActionIconButton(LocalizationManager.t("download_report_pdf"), Icons.Default.PictureAsPdf) {
+                            oms.data.openOmsDownload(oms.data.omsApiUrl("/inspection-reports/${row.uuid}/export-pdf"))
+                        } else Spacer(Modifier.width(48.dp))
                         if (canManageDocuments) TableActionIconButton(LocalizationManager.t("delete"), Icons.Default.Delete) {
                             deletion.show(row.fileName + if (row.isSirSource) "\n" + LocalizationManager.t("sir_delete_warning") else "") { scope.launch {
                                 val deleted = if (row.isSirSource) OmsApiClient.deleteInspectionReport(row.uuid)

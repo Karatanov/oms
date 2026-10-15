@@ -667,6 +667,12 @@ private fun ProjectReportsTab(reports: List<ApiInspectionReport>) {
                     ) {
                         Text(LocalizationManager.t("upload_xls"))
                     }
+                    IconButton(
+                        onClick = { oms.data.openOmsDownload(oms.data.omsApiUrl("/inspection-reports/${report.uuid}/export-pdf")) },
+                        modifier = Modifier.pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true)
+                    ) {
+                        Icon(Icons.Default.PictureAsPdf, LocalizationManager.t("download_report_pdf"))
+                    }
                 }
                 Text(report.summary ?: LocalizationManager.t("inspection_report"), style = MaterialTheme.typography.titleMedium)
                 Text("${report.inspectionDate} • ${LocalizationManager.t("${report.status}_status")}")

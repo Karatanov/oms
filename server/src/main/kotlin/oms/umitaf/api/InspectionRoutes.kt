@@ -131,6 +131,31 @@ fun Route.inspectionRoutes() {
         call.respondFile(path.toFile())
     }
 
+    get("/api/v1/inspection-reports/{reportUuid}/export-pdf") {
+        val report = call.findReport() ?: return@get
+        try {
+            // Conversion opens an Office workbook and can take several seconds
+            // for evidence-heavy reports, so never block Ktor's event loop.
+            val pdf = withContext(Dispatchers.IO) {
+                AppContainer.sirPdfExportService.export(report)
+            }
+            call.response.header(
+                HttpHeaders.ContentDisposition,
+                ContentDisposition.Attachment
+                    .withParameter(ContentDisposition.Parameters.FileName, pdf.fileName)
+                    .toString()
+            )
+            call.respondBytes(pdf.bytes, ContentType.Application.Pdf)
+        } catch (exception: oms.umitaf.service.SirPdfExportService.PdfExportUnavailableException) {
+            call.respond(
+                HttpStatusCode.ServiceUnavailable,
+                ErrorResponse("PDF_EXPORT_UNAVAILABLE", exception.message ?: "The PDF export service is unavailable.")
+            )
+        } catch (exception: IllegalArgumentException) {
+            call.validationError(exception)
+        }
+    }
+
     get("/api/v1/inspection-reports/{reportUuid}/preview") {
         val report = call.findReport() ?: return@get
         try {
