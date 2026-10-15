@@ -14,6 +14,7 @@ import oms.umitaf.domain.ProjectType
 import oms.umitaf.domain.FinancialRecordType
 import oms.umitaf.domain.ProcurementRecord
 import oms.umitaf.service.ProjectPdfExportService
+import oms.umitaf.service.SubprojectsTablePdfExportService
 
 /**
  * Маршрути роботи з проєктами.
@@ -23,6 +24,7 @@ fun Route.projectRoutes() {
     val projectService =
         AppContainer.projectService
     val projectPdfExportService = ProjectPdfExportService()
+    val subprojectsTablePdfExportService = SubprojectsTablePdfExportService()
 
     get("/api/v1/exchange-rates/eur") {
         call.requireRole("ADMIN", "PROJECT_MANAGER") ?: return@get
@@ -425,6 +427,29 @@ fun Route.projectRoutes() {
                 subprojectHeaders.indices.forEach(subprojectsSheet::autoSizeColumn)
                 workbook.write(this)
             }
+        }
+    }
+
+    /**
+     * Produces one printable registry table from the UUIDs already filtered and
+     * sorted in the browser. Keeping that ordered selection avoids reapplying
+     * UI-only search and tree rules on the server or losing rows to pagination.
+     */
+    get("/api/v1/projects/export-table-pdf") {
+        call.requireRole("ADMIN", "PROJECT_MANAGER") ?: return@get
+        val requestedUuids = call.request.queryParameters.getAll("uuid")
+            ?.map(String::trim)?.filter(String::isNotEmpty).orEmpty()
+        val allProjects = projectService.getAllProjects()
+        val projectsByUuid = allProjects.associateBy { it.uuid.toString() }
+        val projects = if (requestedUuids.isEmpty()) allProjects else requestedUuids.mapNotNull(projectsByUuid::get)
+        val language = if (call.request.queryParameters["lang"].equals("en", ignoreCase = true)) {
+            SubprojectsTablePdfExportService.Language.EN
+        } else SubprojectsTablePdfExportService.Language.UK
+        val filterSummary = call.request.queryParameters["filters"]?.take(500)
+        val monitoring = projectService.monitoringDetailsByProjectIds(projects.map { it.id })
+        call.response.header(HttpHeaders.ContentDisposition, "attachment; filename=oms-subprojects.pdf")
+        call.respondOutputStream(ContentType.Application.Pdf) {
+            write(subprojectsTablePdfExportService.export(projects, monitoring, language, filterSummary))
         }
     }
 

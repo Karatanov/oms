@@ -16,6 +16,7 @@ import io.ktor.client.request.setBody
 import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
+import io.ktor.http.encodeURLParameter
 import io.ktor.http.contentType
 import io.ktor.http.isSuccess
 import io.ktor.serialization.kotlinx.json.json
@@ -195,6 +196,11 @@ object OmsApiClient {
 
     fun projectExportUrl(projectUuids: Collection<String>): String =
         "$baseUrl/projects/export" + projectUuids.joinToString(prefix = "?", separator = "&") { "uuid=$it" }
+
+    /** The browser supplies the fully filtered/sorted table order for PDF export. */
+    fun projectTablePdfExportUrl(projectUuids: Collection<String>, language: String, filterSummary: String): String =
+        "$baseUrl/projects/export-table-pdf?lang=$language&filters=${filterSummary.encodeURLParameter()}" +
+            projectUuids.joinToString(separator = "", prefix = "") { "&uuid=$it" }
 
     suspend fun dashboard(trancheNumber: Int? = null): ApiDashboard = client.get("$baseUrl/dashboard") {
         trancheNumber?.let { parameter("tranche", it) }

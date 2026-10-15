@@ -23,6 +23,7 @@ import androidx.compose.material.icons.filled.Layers
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.DeleteForever
+import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -162,6 +163,14 @@ fun ProjectsScreen(
             .mapTo(mutableSetOf()) { it.id }
         projects.filter { it.id in visibleIds && !it.isProgrammeRoot() }
     }
+    val exportFilterSummary = buildList {
+        if (searchText.isNotBlank()) add("${LocalizationManager.t("search_project")}: $searchText")
+        regionFilter?.let { add("${LocalizationManager.t("region")}: ${localizedUkraineRegion(it)}") }
+        statusFilter?.let { add("${LocalizationManager.t("status")}: ${LocalizationManager.t("project_status_${it.name.lowercase()}")}") }
+        trancheFilter?.let { add("${LocalizationManager.t("tranche")}: ${it.trancheLabel()}") }
+        constructionTypeFilter?.let { add("${LocalizationManager.t("construction_type")}: ${it.constructionTypeLabel()}") }
+        sectorFilter?.let { add("${LocalizationManager.t("sector")}: ${it.sectorLabel()}") }
+    }.joinToString("; ")
 
     MaterialTheme(colorScheme = MaterialTheme.colorScheme.copy(onPrimary = Color.White)) {
     Box(Modifier.fillMaxSize()) {
@@ -305,7 +314,11 @@ fun ProjectsScreen(
             canPermanentlyDeleteProjects = canPermanentlyDeleteProjects,
             onExpandRow = { rowTop -> scope.launch { pageScrollState.animateScrollTo((pageScrollState.value + rowTop - 16f).toInt().coerceAtLeast(0)) } },
             selectedProjectIds = selectedProjectIds,
-            onSelectionChange = { id, selected -> selectedProjectIds = if (selected) selectedProjectIds + id else selectedProjectIds - id }
+            onSelectionChange = { id, selected -> selectedProjectIds = if (selected) selectedProjectIds + id else selectedProjectIds - id },
+            onExportPdf = if (canManageProjects) { orderedIds ->
+                val language = if (oms.localization.LocalizationManager.currentLanguage == oms.localization.Language.EN) "en" else "uk"
+                oms.data.openOmsDownload(oms.data.OmsApiClient.projectTablePdfExportUrl(orderedIds, language, exportFilterSummary))
+            } else null
         )
 
         errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error) }
@@ -381,7 +394,8 @@ fun ProjectsTable(
     canPermanentlyDeleteProjects: Boolean,
     onExpandRow: (Float) -> Unit,
     selectedProjectIds: Set<String>,
-    onSelectionChange: (String, Boolean) -> Unit
+    onSelectionChange: (String, Boolean) -> Unit,
+    onExportPdf: ((List<String>) -> Unit)? = null
 ) {
 
     var sortColumn by remember { mutableStateOf(SortColumn.NAME) }
@@ -441,10 +455,18 @@ fun ProjectsTable(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 OutlinedTextField(value = searchText, onValueChange = onSearchTextChange, label = { Text(LocalizationManager.t("search_project")) }, leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) }, singleLine = true, modifier = Modifier.weight(1f).widthIn(min = 280.dp))
+                onExportPdf?.let { export ->
+                    OutlinedButton(onClick = { export(sortedProjects.map { it.project.id }) }, enabled = sortedProjects.isNotEmpty()) {
+                        Icon(Icons.Default.PictureAsPdf, contentDescription = null)
+                        Spacer(Modifier.width(4.dp))
+                        Text(LocalizationManager.t("export_pdf"))
+                    }
+                }
                 ProjectPagination(pageSize, currentPage, pageCount, sortedProjects.size, { pageSize = it }) { currentPage = it.coerceIn(0, pageCount - 1) }
             } else Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(value = searchText, onValueChange = onSearchTextChange, label = { Text(LocalizationManager.t("search_project")) }, leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
+                    onExportPdf?.let { export -> OutlinedButton(onClick = { export(sortedProjects.map { it.project.id }) }, enabled = sortedProjects.isNotEmpty()) { Text(LocalizationManager.t("export_pdf")) } }
                     ProjectPagination(pageSize, currentPage, pageCount, sortedProjects.size, { pageSize = it }) { currentPage = it.coerceIn(0, pageCount - 1) }
                 }
             }
