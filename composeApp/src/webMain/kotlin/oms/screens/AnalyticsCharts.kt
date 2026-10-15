@@ -61,6 +61,7 @@ import oms.components.FilterDropdown
 import oms.components.OmsTooltipBox
 import oms.components.ChartSortControls
 import oms.components.ChartDataLabelsToggle
+import oms.components.ChartPngExportButton
 import oms.components.localizedUkraineRegion
 import oms.components.canonicalUkraineRegion
 import kotlin.math.roundToLong
@@ -506,6 +507,14 @@ private fun AnalyticsCard(
                         onDirectionToggle = { sortAscending = !sortAscending }
                     )
                     if (data.isNotEmpty()) ChartDataLabelsToggle(showDataLabels) { showDataLabels = it }
+                    if (displayData.isNotEmpty()) ChartPngExportButton(
+                        title = LocalizationManager.t(titleKey),
+                        filenameStem = titleKey,
+                        data = displayData,
+                        orientation = orientation,
+                        showDataLabels = showDataLabels,
+                        valueLabel = valueLabel
+                    )
                 }
             }
             if (expanded) {

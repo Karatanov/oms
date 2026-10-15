@@ -1,6 +1,7 @@
 package oms.screens.dashboard
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -29,6 +30,7 @@ import oms.data.ApiMonthlyActPayment
 import oms.localization.LocalizationManager
 import oms.components.CurrencySelector
 import oms.components.ChartDataLabelsToggle
+import oms.components.ChartPngExportButton
 
 @Composable
 fun MonthlyActPaymentsChart(primary: Color, payments: List<ApiMonthlyActPayment>, onOpenFinancialByMonth: (String) -> Unit = {}, orientation: BarChartOrientation = BarChartOrientation.Vertical) {
@@ -57,7 +59,17 @@ fun MonthlyActPaymentsChart(primary: Color, payments: List<ApiMonthlyActPayment>
                 )
                 if (data.isNotEmpty()) {
                     Box(Modifier.align(Alignment.CenterStart)) {
-                        ChartDataLabelsToggle(showDataLabels) { showDataLabels = it }
+                        Row {
+                            ChartDataLabelsToggle(showDataLabels) { showDataLabels = it }
+                            ChartPngExportButton(
+                                title = LocalizationManager.t("monthly_act_payments"),
+                                filenameStem = "monthly-act-payments",
+                                data = data,
+                                orientation = orientation,
+                                showDataLabels = showDataLabels,
+                                valueLabel = { formatActAmount(it.toLong(), currency) }
+                            )
+                        }
                     }
                 }
             }
