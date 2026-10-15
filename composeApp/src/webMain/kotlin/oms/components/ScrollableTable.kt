@@ -28,6 +28,8 @@ fun ScrollableTable(
     modifier: Modifier = Modifier,
     showScrollControls: Boolean = true,
     pageScrollState: ScrollState? = null,
+    pinnedStartHeader: (@Composable () -> Unit)? = null,
+    pinnedStartContent: (@Composable () -> Unit)? = null,
     header: @Composable ColumnScope.() -> Unit,
     content: @Composable ColumnScope.() -> Unit
 ) {
@@ -59,7 +61,7 @@ fun ScrollableTable(
         onDispose { navigatorOverlay.dismiss(navigatorId) }
     }
 
-    Column(modifier.fillMaxWidth()) {
+    Box(modifier.fillMaxWidth()) {
         Column(
             Modifier.fillMaxWidth()
                 .onGloballyPositioned { coordinates ->
@@ -97,6 +99,22 @@ fun ScrollableTable(
                 Column(Modifier.horizontalScroll(scroll, enabled = false), content = header)
             }
             Column(Modifier.fillMaxWidth().horizontalScroll(scroll), content = content)
+        }
+        // Compose/Wasm cannot make a child of a horizontalScroll viewport
+        // position: sticky.  Render a narrow duplicate leading strip only
+        // once the user starts moving horizontally; it preserves the actual
+        // table body and does not recreate or scroll its rows.
+        if (scroll.value > 0 && pinnedStartHeader != null && pinnedStartContent != null) {
+            Column(Modifier.align(Alignment.TopStart).zIndex(4f).clipToBounds()) {
+                Box(
+                    Modifier
+                        .zIndex(2f)
+                        .graphicsLayer { translationY = stickyOffset }
+                        .background(surface)
+                        .then(if (stickyOffset > 0f) Modifier.shadow(3.dp) else Modifier)
+                ) { pinnedStartHeader() }
+                Column(Modifier.background(surface)) { pinnedStartContent() }
+            }
         }
     }
 }

@@ -24,6 +24,8 @@ object ProjectTableColumns {
         SortColumn.CONTRACTOR to 150.dp
     )
     val columns = widths.keys.toList()
+    /** Selection/tree controls plus the stable subproject code column. */
+    val frozenStartWidth = selection + hierarchy + widths.getValue(SortColumn.ID)
     val totalWidth = widths.values.fold(selection + hierarchy + actions) { total, width -> total + width }
     fun width(column: SortColumn) = widths.getValue(column)
 }

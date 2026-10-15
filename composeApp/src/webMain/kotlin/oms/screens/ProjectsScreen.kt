@@ -452,6 +452,22 @@ fun ProjectsTable(
         Spacer(Modifier.height(8.dp))
         oms.components.ScrollableTable(
             pageScrollState = pageScrollState,
+            pinnedStartHeader = {
+                ProjectFrozenCodeHeader(sortColumn, ascending) { column ->
+                    if (sortColumn == column) ascending = !ascending
+                    else { sortColumn = column; ascending = true }
+                }
+            },
+            pinnedStartContent = {
+                pageRows.forEach { row ->
+                    ProjectFrozenCodeRow(
+                        project = row.project,
+                        isProject = row.project.projectType.equals("project", ignoreCase = true),
+                        isSelected = row.project.id in selectedProjectIds,
+                        highlightSearchMatch = searchText.isNotBlank() && row.project.matchesProjectSearch(searchText)
+                    )
+                }
+            },
             header = {
                 filters()
                 TableHeader(sortColumn, ascending) { column ->
@@ -494,6 +510,67 @@ fun ProjectsTable(
             }
         }
     }
+}
+
+/** Leading overlay used only while the wide registry is scrolled right. */
+@Composable
+private fun ProjectFrozenCodeHeader(
+    sortColumn: SortColumn,
+    ascending: Boolean,
+    onSort: (SortColumn) -> Unit
+) {
+    Column(Modifier.width(ProjectTableColumns.frozenStartWidth).background(MaterialTheme.colorScheme.surface)) {
+        Box(Modifier.fillMaxWidth().height(64.dp), contentAlignment = Alignment.CenterStart) {
+            Text(
+                LocalizationManager.t("filters"),
+                modifier = Modifier.padding(start = ProjectTableColumns.selection + ProjectTableColumns.hierarchy),
+                style = MaterialTheme.typography.labelLarge
+            )
+        }
+        Row(Modifier.fillMaxWidth().height(oms.theme.OmsDimensions.TableHeaderHeight)) {
+            Spacer(Modifier.width(ProjectTableColumns.selection + ProjectTableColumns.hierarchy))
+            oms.components.SortableHeader(
+                LocalizationManager.t("project_code"),
+                SortColumn.ID,
+                sortColumn,
+                ascending,
+                onSort,
+                Modifier.width(ProjectTableColumns.width(SortColumn.ID))
+            )
+        }
+        HorizontalDivider()
+    }
+}
+
+@Composable
+private fun ProjectFrozenCodeRow(
+    project: Project,
+    isProject: Boolean,
+    isSelected: Boolean,
+    highlightSearchMatch: Boolean
+) {
+    val background = when {
+        isSelected -> MaterialTheme.colorScheme.primaryContainer
+        highlightSearchMatch -> MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.50f)
+        isProject -> MaterialTheme.colorScheme.surfaceContainerLow
+        else -> MaterialTheme.colorScheme.surface
+    }
+    Row(
+        Modifier
+            .width(ProjectTableColumns.frozenStartWidth)
+            .height(44.dp)
+            .background(background),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Spacer(Modifier.width(ProjectTableColumns.selection + ProjectTableColumns.hierarchy))
+        Text(
+            project.siteNumber,
+            modifier = Modifier.width(ProjectTableColumns.width(SortColumn.ID)),
+            fontWeight = if (isProject) FontWeight.Bold else FontWeight.Normal,
+            maxLines = 1
+        )
+    }
+    HorizontalDivider()
 }
 
 @Composable
