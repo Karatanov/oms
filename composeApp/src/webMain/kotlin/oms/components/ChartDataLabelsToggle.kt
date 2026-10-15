@@ -12,6 +12,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import oms.localization.LocalizationManager
 
 /** Small per-chart control for bar-value labels; it deliberately has no global persistence. */
 @Composable
