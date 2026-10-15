@@ -28,10 +28,12 @@ import oms.charts.BarChartOrientation
 import oms.data.ApiMonthlyActPayment
 import oms.localization.LocalizationManager
 import oms.components.CurrencySelector
+import oms.components.ChartDataLabelsToggle
 
 @Composable
 fun MonthlyActPaymentsChart(primary: Color, payments: List<ApiMonthlyActPayment>, onOpenFinancialByMonth: (String) -> Unit = {}, orientation: BarChartOrientation = BarChartOrientation.Vertical) {
     var currency by remember { mutableStateOf("EUR") }
+    var showDataLabels by remember { mutableStateOf(true) }
     val sortedPayments = payments.sortedBy { it.month }
     val data = sortedPayments
         .map { payment ->
@@ -53,6 +55,11 @@ fun MonthlyActPaymentsChart(primary: Color, payments: List<ApiMonthlyActPayment>
                     style = MaterialTheme.typography.titleMedium,
                     textAlign = TextAlign.Center
                 )
+                if (data.isNotEmpty()) {
+                    Box(Modifier.align(Alignment.CenterStart)) {
+                        ChartDataLabelsToggle(showDataLabels) { showDataLabels = it }
+                    }
+                }
             }
             Box(Modifier.fillMaxWidth().height(40.dp), contentAlignment = Alignment.Center) {
                 CurrencySelector(currency) { currency = it }
@@ -61,8 +68,8 @@ fun MonthlyActPaymentsChart(primary: Color, payments: List<ApiMonthlyActPayment>
             if (data.isEmpty()) Text(LocalizationManager.t("no_payments_yet"))
             else if (orientation == BarChartOrientation.Vertical) VerticalBarChart(
                 data = data, color = primary, valueLabel = { formatActAmount(it.toLong(), currency) }, labelMaxLines = 1,
-                onItemClick = { bar -> bar.id?.let(onOpenFinancialByMonth) }
-            ) else HorizontalBarChart(data, primary, valueLabel = { formatActAmount(it.toLong(), currency) }, onItemClick = { bar -> bar.id?.let(onOpenFinancialByMonth) })
+                onItemClick = { bar -> bar.id?.let(onOpenFinancialByMonth) }, showDataLabels = showDataLabels
+            ) else HorizontalBarChart(data, primary, valueLabel = { formatActAmount(it.toLong(), currency) }, onItemClick = { bar -> bar.id?.let(onOpenFinancialByMonth) }, showDataLabels = showDataLabels)
         }
     }
 }

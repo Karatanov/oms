@@ -27,7 +27,8 @@ import oms.components.OmsTooltipBox
 @OptIn(ExperimentalMaterial3Api::class)
 fun HorizontalBarChart(
     data: List<BarData>, color: Color, valueLabel: (Float) -> String = { it.toLong().toString() },
-    onItemClick: ((BarData) -> Unit)? = null
+    onItemClick: ((BarData) -> Unit)? = null,
+    showDataLabels: Boolean = true
 ) {
     if (data.isEmpty()) return
     val maxValue = data.maxOf { it.value }.coerceAtLeast(1f)
@@ -48,7 +49,9 @@ fun HorizontalBarChart(
                         Box(Modifier.weight(1f).height(20.dp).clip(MaterialTheme.shapes.extraSmall).background(MaterialTheme.colorScheme.surfaceVariant)) {
                             Box(Modifier.fillMaxWidth((item.value.coerceAtLeast(0f) / maxValue).coerceIn(0f, 1f)).fillMaxHeight().background(item.color ?: color))
                         }
-                        Text(displayValue, Modifier.width(72.dp), textAlign = TextAlign.End, style = MaterialTheme.typography.labelSmall)
+                        if (showDataLabels) {
+                            Text(displayValue, Modifier.width(72.dp), textAlign = TextAlign.End, style = MaterialTheme.typography.labelSmall)
+                        }
                     }
                 }
             }

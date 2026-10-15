@@ -23,7 +23,8 @@ fun VerticalBarChart(
     data: List<BarData>, color: Color, labelWidth: Dp = 88.dp, labelMaxLines: Int = 2,
     maxVisibleItems: Int? = null, initialScrollToEnd: Boolean = false,
     valueLabel: (Float) -> String = { it.toLong().toString() }, onItemClick: ((BarData) -> Unit)? = null,
-    showScrollControls: Boolean = true
+    showScrollControls: Boolean = true,
+    showDataLabels: Boolean = true
 ) {
     if (data.isEmpty()) return
     val maxValue = data.maxOf { it.value }.coerceAtLeast(1f)
@@ -45,10 +46,12 @@ fun VerticalBarChart(
                                 .pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true)
                         ),
                         horizontalAlignment = Alignment.CenterHorizontally) {
-                        Box(Modifier.fillMaxWidth().height(154.dp), contentAlignment = Alignment.BottomCenter) {
+                        Box(Modifier.fillMaxWidth().height(if (showDataLabels) 154.dp else 128.dp), contentAlignment = Alignment.BottomCenter) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text(displayValue, style = MaterialTheme.typography.labelMedium, maxLines = 1)
-                                Spacer(Modifier.height(6.dp))
+                                if (showDataLabels) {
+                                    Text(displayValue, style = MaterialTheme.typography.labelMedium, maxLines = 1)
+                                    Spacer(Modifier.height(6.dp))
+                                }
                                 Box(Modifier.width(28.dp).height((118f * (item.value.coerceAtLeast(0f) / maxValue)).dp)
                                     .clip(MaterialTheme.shapes.extraSmall).background(item.color ?: color))
                             }

@@ -43,10 +43,14 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import oms.charts.BarData
 import oms.charts.VerticalBarChart
 import oms.charts.HorizontalBarChart
 import oms.charts.BarChartOrientation
+import oms.charts.ChartSortCriterion
+import oms.charts.sortBarData
+import oms.charts.sortChartCategories
 import oms.data.ApiDashboardMetric
 import oms.data.ApiMonthlyActPayment
 import oms.data.ApiSubprojectFunding
@@ -55,6 +59,8 @@ import oms.localization.LocalizationManager
 import oms.screens.dashboard.toMonthName
 import oms.components.FilterDropdown
 import oms.components.OmsTooltipBox
+import oms.components.ChartSortControls
+import oms.components.ChartDataLabelsToggle
 import oms.components.localizedUkraineRegion
 import oms.components.canonicalUkraineRegion
 import kotlin.math.roundToLong
@@ -248,7 +254,8 @@ fun SubprojectProgressChart(items: List<ApiSubprojectProgress>, onOpenFinancial:
                 itemLabel = ::localizedUkraineRegion
             )
         },
-        orientation = orientation
+        orientation = orientation,
+        sortEnabled = true
     )
 }
 
@@ -271,7 +278,8 @@ private fun AnalyticsListCard(
     titleKey: String,
     rows: List<AnalyticsListRow>,
     hintKey: String? = null,
-    compact: Boolean = false
+    compact: Boolean = false,
+    sortControls: (@Composable () -> Unit)? = null
 ) {
     var page by remember(rows) { mutableStateOf(0) }
     val pageSize = 6
@@ -285,6 +293,9 @@ private fun AnalyticsListCard(
         Column(Modifier.padding(16.dp)) {
             Box(Modifier.fillMaxWidth().height(44.dp), contentAlignment = Alignment.Center) {
                 Text(LocalizationManager.t(titleKey), style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center)
+                sortControls?.let { controls ->
+                    Box(Modifier.align(Alignment.CenterStart)) { controls() }
+                }
             }
             hintKey?.let { Text(LocalizationManager.t(it), Modifier.fillMaxWidth(), textAlign = TextAlign.Center, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
             Spacer(Modifier.height(8.dp))
@@ -349,16 +360,32 @@ fun MetricsChart(
         onItemClick = onItemClick?.let { handler -> { bar -> bar.id?.let(handler) } },
         orientation = orientation,
         expanded = expanded,
-        onExpandedChange = onExpandedChange
+        onExpandedChange = onExpandedChange,
+        // Month-keyed metrics are chronological and must never be reordered.
+        sortEnabled = metrics.any() && metrics.none { it.label.matches(Regex("\\d{4}-\\d{2}")) }
     )
 }
 
 @Composable
 fun MetricsListChart(titleKey: String, metrics: List<ApiDashboardMetric>, compact: Boolean = false) {
+    var criterion by remember { mutableStateOf<ChartSortCriterion?>(null) }
+    var ascending by remember { mutableStateOf(true) }
+    val displayMetrics = criterion?.let { activeCriterion ->
+        sortChartCategories(
+            metrics,
+            activeCriterion,
+            ascending,
+            labelOf = { LocalizationManager.procurementStatus(it.label) },
+            valueOf = { it.value.toDouble() }
+        )
+    } ?: metrics
     AnalyticsListCard(
         titleKey,
-        metrics.map { AnalyticsListRow(LocalizationManager.procurementStatus(it.label), it.value.toString()) },
-        compact = compact
+        displayMetrics.map { AnalyticsListRow(LocalizationManager.procurementStatus(it.label), it.value.toString()) },
+        compact = compact,
+        sortControls = {
+            ChartSortControls(criterion, ascending, { criterion = it }, { ascending = !ascending })
+        }
     )
 }
 
@@ -433,8 +460,15 @@ private fun AnalyticsCard(
     showScrollControls: Boolean = true,
     expanded: Boolean = true,
     onExpandedChange: ((Boolean) -> Unit)? = null,
-    orientation: BarChartOrientation = BarChartOrientation.Vertical
+    orientation: BarChartOrientation = BarChartOrientation.Vertical,
+    sortEnabled: Boolean = false
 ) {
+    var sortCriterion by remember { mutableStateOf<ChartSortCriterion?>(null) }
+    var sortAscending by remember { mutableStateOf(true) }
+    // This is intentionally local to a chart card. Sorting, orientation,
+    // filters and currency recompositions therefore retain the user's choice.
+    var showDataLabels by remember { mutableStateOf(true) }
+    val displayData = sortCriterion?.let { sortBarData(data, it, sortAscending) } ?: data
     val cardModifier = Modifier.fillMaxWidth().then(
         if (!expanded) Modifier
         else if (compact) Modifier.heightIn(min = 144.dp)
@@ -460,6 +494,19 @@ private fun AnalyticsCard(
                         )
                     }
                 }
+                Row(
+                    modifier = Modifier.align(Alignment.CenterStart),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    if (sortEnabled) ChartSortControls(
+                        criterion = sortCriterion,
+                        ascending = sortAscending,
+                        onCriterionChange = { sortCriterion = it },
+                        onDirectionToggle = { sortAscending = !sortAscending }
+                    )
+                    if (data.isNotEmpty()) ChartDataLabelsToggle(showDataLabels) { showDataLabels = it }
+                }
             }
             if (expanded) {
                 Box(Modifier.fillMaxWidth().height(40.dp), contentAlignment = Alignment.Center) {
@@ -476,9 +523,9 @@ private fun AnalyticsCard(
                     Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) { content() }
                 }
                 Spacer(Modifier.height(if (compact) 8.dp else 16.dp))
-                if (data.isEmpty()) Text(LocalizationManager.t("no_chart_data"), color = MaterialTheme.colorScheme.onSurfaceVariant)
-                else if (orientation == BarChartOrientation.Vertical) VerticalBarChart(data, MaterialTheme.colorScheme.primary, labelMaxLines = labelMaxLines, maxVisibleItems = 6, valueLabel = valueLabel, onItemClick = onItemClick, showScrollControls = showScrollControls)
-                else HorizontalBarChart(data, MaterialTheme.colorScheme.primary, valueLabel = valueLabel, onItemClick = onItemClick)
+                if (displayData.isEmpty()) Text(LocalizationManager.t("no_chart_data"), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                else if (orientation == BarChartOrientation.Vertical) VerticalBarChart(displayData, MaterialTheme.colorScheme.primary, labelMaxLines = labelMaxLines, maxVisibleItems = 6, valueLabel = valueLabel, onItemClick = onItemClick, showScrollControls = showScrollControls, showDataLabels = showDataLabels)
+                else HorizontalBarChart(displayData, MaterialTheme.colorScheme.primary, valueLabel = valueLabel, onItemClick = onItemClick, showDataLabels = showDataLabels)
             }
         }
     }
