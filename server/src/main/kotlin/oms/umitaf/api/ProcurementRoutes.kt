@@ -24,7 +24,9 @@ fun Route.procurementRoutes() {
 
     post("/api/v1/procurements/refresh") {
         call.requireRole("ADMIN") ?: return@post
-        call.respondSafely(HttpStatusCode.Accepted) { AppContainer.procurementService.startApprovedSourceRefresh().toResponse() }
+        call.respondRefreshSafely(HttpStatusCode.Accepted) {
+            AppContainer.procurementService.startApprovedSourceRefresh().toResponse()
+        }
     }
 
     post("/api/v1/procurements/refresh/upload") {
@@ -83,9 +85,15 @@ private fun oms.umitaf.service.ProcurementService.RefreshStatus.toResponse() = P
     id = id, status = status, progress = progress, phase = phase, importedCount = importedCount, error = error
 )
 
-private suspend inline fun <reified T : Any> io.ktor.server.application.ApplicationCall.respondSafely(
+/**
+ * Sends the only success payload emitted by the procurement refresh endpoint.
+ *
+ * Keeping this concrete avoids Kotlin/Ktor response-type inference at the route
+ * boundary, which previously made the production build fail before deployment.
+ */
+private suspend fun io.ktor.server.application.ApplicationCall.respondRefreshSafely(
     success: HttpStatusCode,
-    block: () -> T
+    block: () -> ProcurementRefreshResponse
 ) {
     try {
         respond(success, block())
