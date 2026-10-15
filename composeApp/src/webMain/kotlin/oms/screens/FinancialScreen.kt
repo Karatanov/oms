@@ -55,6 +55,7 @@ import oms.components.InlineOptionPicker
 import oms.components.FilterDropdown
 import oms.components.canonicalUkraineRegion
 import oms.components.localizedUkraineRegion
+import oms.components.sectorLabel
 import oms.components.SearchableOptionPicker
 import oms.components.currentIsoDate
 import oms.components.WasmSafeOverlay
@@ -355,6 +356,7 @@ fun FinancialScreen(
                 first = { FinancialProgressCard("financial_progress_by_region", progress.byRegion) },
                 second = { FinancialProgressCard("financial_progress_by_construction_type", progress.byConstructionType) }
             )
+            FinancialProgressCard("financial_progress_by_sector", progress.bySector)
         }
 
         BoxWithConstraints(Modifier.fillMaxWidth()) {
@@ -883,10 +885,11 @@ private fun FinancialProgressCard(titleKey: String, items: List<ApiFinancialProg
             if (expanded && items.isEmpty()) {
                 Text(LocalizationManager.t("no_chart_data"), color = MaterialTheme.colorScheme.onSurfaceVariant)
             } else if (expanded) items.sortedBy { it.label }.forEach { item ->
-                val label = if (titleKey == "financial_progress_by_region") {
-                    localizedUkraineRegion(item.label)
-                } else {
-                    LocalizationManager.t("construction_${item.label}").takeUnless { it == "construction_${item.label}" } ?: item.label
+                val label = when (titleKey) {
+                    "financial_progress_by_region" -> localizedUkraineRegion(item.label)
+                    "financial_progress_by_sector" -> item.label.sectorLabel()
+                    else -> LocalizationManager.t("construction_${item.label}")
+                        .takeUnless { it == "construction_${item.label}" } ?: item.label
                 }
                 Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {

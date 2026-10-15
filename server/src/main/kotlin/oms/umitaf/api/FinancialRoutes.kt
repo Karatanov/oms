@@ -60,7 +60,8 @@ fun Route.financialRoutes() {
         call.respond(
             FinancialProgressResponse(
                 byRegion = aggregate { it.region.orEmpty() },
-                byConstructionType = aggregate { it.constructionType.orEmpty() }
+                byConstructionType = aggregate { it.constructionType.orEmpty() },
+                bySector = aggregate { it.sector.orEmpty() }
             )
         )
     }

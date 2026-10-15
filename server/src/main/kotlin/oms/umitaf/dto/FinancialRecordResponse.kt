@@ -24,5 +24,6 @@ data class FinancialProgressItemResponse(
 @Serializable
 data class FinancialProgressResponse(
     val byRegion: List<FinancialProgressItemResponse> = emptyList(),
-    val byConstructionType: List<FinancialProgressItemResponse> = emptyList()
+    val byConstructionType: List<FinancialProgressItemResponse> = emptyList(),
+    val bySector: List<FinancialProgressItemResponse> = emptyList()
 )

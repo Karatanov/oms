@@ -811,7 +811,8 @@ data class ApiMonthlyActPayment(val month: String, val amountEurCents: Long, val
 )
 @Serializable data class ApiFinancialProgress(
     val byRegion: List<ApiFinancialProgressItem> = emptyList(),
-    val byConstructionType: List<ApiFinancialProgressItem> = emptyList()
+    val byConstructionType: List<ApiFinancialProgressItem> = emptyList(),
+    val bySector: List<ApiFinancialProgressItem> = emptyList()
 )
 @Serializable data class ApiInspectionAnalytics(
     val monthlyInspectionCounts: List<ApiDashboardMetric> = emptyList(),
