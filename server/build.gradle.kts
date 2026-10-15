@@ -25,6 +25,9 @@ val copyTiDbMigrations by tasks.registering(Copy::class) {
         // TiDB cannot add a foreign key in the same ALTER TABLE statement
         // that adds its local column.
         exclude("V58__add_entity_archiving.sql")
+        // V63 has a TiDB-specific replacement in tidb-overrides. Copying both
+        // produces the same Flyway filename twice and blocks every build.
+        exclude("V63__remove_designer_information.sql")
     }
     // A few TiDB limitations need a full SQL replacement, not a line rewrite.
     from(layout.projectDirectory.dir("src/main/resources/db/tidb-overrides"))
