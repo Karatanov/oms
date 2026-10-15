@@ -13,6 +13,7 @@ import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.KeyboardArrowUp
@@ -244,6 +245,14 @@ fun FinancialScreen(
     }
     LaunchedEffect(visibleActs.size, pageSize) { currentPage = currentPage.coerceIn(0, pageCount - 1) }
     val pageRows = if (pageSize == Int.MAX_VALUE) visibleActs else visibleActs.drop(currentPage * pageSize).take(pageSize)
+    val financialPdfFilterSummary = buildList {
+        recordTypeFilter?.let { add("${LocalizationManager.t("type")}: ${LocalizationManager.t("record_type_$it")}") }
+        paymentPurposeFilter?.let { add("${LocalizationManager.t("payment_purpose")}: ${LocalizationManager.t("payment_purpose_$it")}") }
+        trancheFilter?.let { add("${LocalizationManager.t("tranche")}: ${it.financialTrancheCode()}") }
+        subprojectFilter?.let { selected -> subprojectFilterOptions.firstOrNull { it.first == selected }?.second?.let { add("${LocalizationManager.t("subproject_code")}: $it") } }
+        regionFilter?.let { add("${LocalizationManager.t("region")}: ${localizedUkraineRegion(it)}") }
+        chartMonthFilter?.let { add("${LocalizationManager.t("date")}: ${it.toMonthName()} ${it.take(4)}") }
+    }.joinToString(" · ")
     val emptyRecordsMessage = when (recordTypeFilter) {
         "invoice" -> "no_invoices"
         "act" -> "no_acts"
@@ -363,10 +372,40 @@ fun FinancialScreen(
             if (maxWidth >= 620.dp) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                 Text(LocalizationManager.t("financial_records"), style = MaterialTheme.typography.titleLarge)
                 Spacer(Modifier.weight(1f))
+                OutlinedButton(
+                    onClick = {
+                        oms.data.openOmsDownload(
+                            OmsApiClient.financialTablePdfExportUrl(
+                                language = if (oms.localization.LocalizationManager.currentLanguage == oms.localization.Language.EN) "en" else "uk",
+                                currency = displayCurrency,
+                                recordType = recordTypeFilter,
+                                paymentPurpose = paymentPurposeFilter,
+                                tranche = trancheFilter,
+                                subprojectUuid = subprojectFilter,
+                                region = regionFilter,
+                                month = chartMonthFilter,
+                                sort = sort.name.replaceFirstChar { it.lowercase() },
+                                ascending = ascending,
+                                filterSummary = financialPdfFilterSummary
+                            )
+                        )
+                    },
+                    enabled = visibleActs.isNotEmpty()
+                ) { Icon(Icons.Default.PictureAsPdf, null); Spacer(Modifier.width(6.dp)); Text(LocalizationManager.t("export_pdf")) }
                 FinancialPagination(pageSize, currentPage, pageCount, visibleActs.size, { pageSize = it }) { currentPage = it.coerceIn(0, pageCount - 1) }
             } else Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(LocalizationManager.t("financial_records"), style = MaterialTheme.typography.titleLarge)
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
+                    OutlinedButton(
+                        onClick = {
+                            oms.data.openOmsDownload(OmsApiClient.financialTablePdfExportUrl(
+                                if (oms.localization.LocalizationManager.currentLanguage == oms.localization.Language.EN) "en" else "uk", displayCurrency,
+                                recordTypeFilter, paymentPurposeFilter, trancheFilter, subprojectFilter, regionFilter, chartMonthFilter,
+                                sort.name.replaceFirstChar { it.lowercase() }, ascending, financialPdfFilterSummary
+                            ))
+                        }, enabled = visibleActs.isNotEmpty()
+                    ) { Icon(Icons.Default.PictureAsPdf, null); Spacer(Modifier.width(6.dp)); Text(LocalizationManager.t("export_pdf")) }
+                    Spacer(Modifier.width(8.dp))
                     FinancialPagination(pageSize, currentPage, pageCount, visibleActs.size, { pageSize = it }) { currentPage = it.coerceIn(0, pageCount - 1) }
                 }
             }

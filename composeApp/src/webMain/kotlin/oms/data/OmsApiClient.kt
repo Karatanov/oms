@@ -202,6 +202,36 @@ object OmsApiClient {
         "$baseUrl/projects/export-table-pdf?lang=$language&filters=${filterSummary.encodeURLParameter()}" +
             projectUuids.joinToString(separator = "", prefix = "") { "&uuid=$it" }
 
+    /** Mirrors the active Financial Monitoring view without serializing every record UUID into the URL. */
+    fun financialTablePdfExportUrl(
+        language: String,
+        currency: String,
+        recordType: String?,
+        paymentPurpose: String?,
+        tranche: Int?,
+        subprojectUuid: String?,
+        region: String?,
+        month: String?,
+        sort: String,
+        ascending: Boolean,
+        filterSummary: String
+    ): String {
+        val parameters = buildList {
+            add("lang=$language")
+            add("currency=${currency.encodeURLParameter()}")
+            recordType?.let { add("recordType=${it.encodeURLParameter()}") }
+            paymentPurpose?.let { add("paymentPurpose=${it.encodeURLParameter()}") }
+            tranche?.let { add("tranche=$it") }
+            subprojectUuid?.let { add("subproject=${it.encodeURLParameter()}") }
+            region?.let { add("region=${it.encodeURLParameter()}") }
+            month?.let { add("month=${it.encodeURLParameter()}") }
+            add("sort=${sort.encodeURLParameter()}")
+            add("ascending=$ascending")
+            filterSummary.takeIf(String::isNotBlank)?.let { add("filters=${it.encodeURLParameter()}") }
+        }
+        return "$baseUrl/financials/export-table-pdf?${parameters.joinToString("&")}"
+    }
+
     suspend fun dashboard(trancheNumber: Int? = null): ApiDashboard = client.get("$baseUrl/dashboard") {
         trancheNumber?.let { parameter("tranche", it) }
     }.body()

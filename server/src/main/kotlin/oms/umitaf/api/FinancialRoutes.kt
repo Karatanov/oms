@@ -6,13 +6,18 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.http.content.*
 import io.ktor.utils.io.readRemaining
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.io.readByteArray
 import oms.umitaf.config.AppContainer
 import oms.umitaf.dto.*
 import oms.umitaf.domain.FinancialRecordType
 import oms.umitaf.domain.ProjectType
+import oms.umitaf.service.FinancialTablePdfExportService
+import kotlin.math.roundToLong
 
 fun Route.financialRoutes() {
+    val financialTablePdfExportService = FinancialTablePdfExportService()
     get("/api/v1/financials/progress") {
         call.requireRole("ADMIN", "PROJECT_MANAGER") ?: return@get
         val projects = AppContainer.projectService.getAllProjects()
@@ -84,6 +89,87 @@ fun Route.financialRoutes() {
                 }
             }
         )
+    }
+
+    /**
+     * Builds the complete current registry view server-side. The browser sends
+     * only its filter/sort state, never a pagination page or an unbounded list
+     * of UUIDs, so a PDF remains complete even for large financial registers.
+     */
+    get("/api/v1/financials/export-table-pdf") {
+        call.requireRole("ADMIN", "PROJECT_MANAGER") ?: return@get
+        val language = if (call.request.queryParameters["lang"].equals("en", ignoreCase = true)) {
+            FinancialTablePdfExportService.Language.EN
+        } else FinancialTablePdfExportService.Language.UK
+        val currency = call.request.queryParameters["currency"]?.uppercase().takeIf { it in setOf("EUR", "UAH") } ?: "EUR"
+        val recordType = call.request.queryParameters["recordType"]?.takeIf { it in setOf("invoice", "act", "payment", "advance") }
+        val paymentPurpose = call.request.queryParameters["paymentPurpose"]?.takeIf { it in setOf("works", "equipment", "technical_supervision", "engineer_consultant") }
+        val tranche = call.request.queryParameters["tranche"]?.toIntOrNull()?.takeIf { it in setOf(1, 2) }
+        val subprojectUuid = call.request.queryParameters["subproject"]?.trim()?.takeIf(String::isNotEmpty)
+        val region = call.request.queryParameters["region"]?.trim()?.takeIf(String::isNotEmpty)
+        val month = call.request.queryParameters["month"]?.takeIf { it.matches(Regex("\\d{4}-\\d{2}")) }
+        val sort = call.request.queryParameters["sort"].orEmpty()
+        val ascending = call.request.queryParameters["ascending"]?.toBooleanStrictOrNull() ?: false
+        val projectsById = AppContainer.projectService.getAllProjects().associateBy { it.id }
+        fun rowFor(record: oms.umitaf.domain.FinancialRecord): FinancialTablePdfExportService.Row? {
+            val project = projectsById[record.projectId] ?: return null
+            val ancestry = generateSequence(project) { current -> current.parentProjectId?.let(projectsById::get) }
+                .toList().asReversed()
+            val subproject = ancestry.firstOrNull { it.projectType == ProjectType.SUBPROJECT }
+            val subprojectPart = ancestry.firstOrNull { it.projectType == ProjectType.SUBPROJECT_PART }
+            return FinancialTablePdfExportService.Row(
+                record = record,
+                trancheNumber = subproject?.trancheNumber ?: project.trancheNumber,
+                subprojectUuid = subproject?.uuid?.toString(),
+                subprojectName = subproject?.name ?: project.name,
+                subprojectCode = subproject?.siteNumber ?: project.siteNumber,
+                subprojectPartName = subprojectPart?.name,
+                region = subproject?.region ?: project.region.orEmpty()
+            )
+        }
+        fun isRequestedTranche(value: Int) = when (tranche) {
+            1 -> value == 1 || value == 8
+            2 -> value == 2 || value == 9
+            else -> true
+        }
+        fun displayedAmount(record: oms.umitaf.domain.FinancialRecord): Long? = when {
+            record.currency.equals(currency, ignoreCase = true) -> (record.amount * 100).roundToLong()
+            currency == "EUR" -> record.amountEurCents
+            record.currency.equals("EUR", ignoreCase = true) && record.eurExchangeRate != null && record.eurExchangeRate > 0 && record.eurExchangeRate != 1.0 ->
+                (record.amount * record.eurExchangeRate * 100).roundToLong()
+            else -> null
+        }
+        val rows = AppContainer.financialRecordService.getAll().mapNotNull(::rowFor)
+            .filter { row ->
+                (recordType == null || row.record.recordType.name.equals(recordType, ignoreCase = true)) &&
+                    (paymentPurpose == null || row.record.paymentPurpose == paymentPurpose) &&
+                    isRequestedTranche(row.trancheNumber) &&
+                    (subprojectUuid == null || row.subprojectUuid == subprojectUuid) &&
+                    (region == null || sameRegion(region, row.region)) &&
+                    (month == null || (row.record.paymentDate ?: row.record.recordDate).toString().take(7) == month)
+            }
+            .sortedByDescending { it.record.recordDate }
+            .sortedWith(compareBy<FinancialTablePdfExportService.Row> {
+                when (sort) {
+                    "type" -> it.record.recordType.name
+                    "purpose" -> it.record.paymentPurpose
+                    "tranche" -> it.trancheNumber.toString()
+                    "subproject" -> it.subprojectName
+                    "subprojectCode" -> it.subprojectCode.orEmpty()
+                    "subprojectPart" -> it.subprojectPartName.orEmpty()
+                    "amount" -> (displayedAmount(it.record) ?: Long.MIN_VALUE).toString().padStart(20, '0')
+                    "currency" -> currency
+                    "description" -> it.record.description ?: it.record.milestone.orEmpty()
+                    "author" -> ""
+                    else -> it.record.recordDate.toString()
+                }
+            }.let { if (ascending) it else it.reversed() })
+        val filterSummary = call.request.queryParameters["filters"]?.take(500)
+        val pdf = withContext(Dispatchers.IO) {
+            financialTablePdfExportService.export(rows, language, currency, filterSummary)
+        }
+        call.response.header(HttpHeaders.ContentDisposition, "attachment; filename=oms-financial-monitoring.pdf")
+        call.respondBytes(pdf, ContentType.Application.Pdf)
     }
 
     route("/api/v1/projects/{projectUuid}/financials") {
@@ -210,3 +296,10 @@ fun Route.financialRoutes() {
 private suspend fun io.ktor.server.application.ApplicationCall.project() = parameters["projectUuid"]?.let { AppContainer.projectService.getProjectByUuid(it) } ?: run { financeNotFound("Project not found."); null }
 private suspend fun io.ktor.server.application.ApplicationCall.financeError(e: IllegalArgumentException) { respond(HttpStatusCode.BadRequest, ErrorResponse("VALIDATION_ERROR", e.message ?: "Invalid request.")) }
 private suspend fun io.ktor.server.application.ApplicationCall.financeNotFound(message: String) { respond(HttpStatusCode.NotFound, ErrorResponse("NOT_FOUND", message)) }
+
+/** Matches the browser's canonical region filter without relying on translated display labels. */
+private fun sameRegion(left: String, right: String?): Boolean =
+    left.normalizedRegion() == right.orEmpty().normalizedRegion()
+
+private fun String.normalizedRegion(): String =
+    lowercase().replace(Regex("[.,]"), "").replace(Regex("\\s+(область|обл|oblast|region)$"), "").replace(Regex("\\s+"), " ").trim()
