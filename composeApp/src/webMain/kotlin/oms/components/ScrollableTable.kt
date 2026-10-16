@@ -19,6 +19,7 @@ import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.semantics.*
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.zIndex
 import oms.localization.LocalizationManager
 
@@ -28,6 +29,7 @@ fun ScrollableTable(
     modifier: Modifier = Modifier,
     showScrollControls: Boolean = true,
     pageScrollState: ScrollState? = null,
+    pinnedStartWidth: Dp? = null,
     pinnedStartHeader: (@Composable () -> Unit)? = null,
     pinnedStartContent: (@Composable () -> Unit)? = null,
     header: @Composable ColumnScope.() -> Unit,
@@ -104,8 +106,17 @@ fun ScrollableTable(
         // position: sticky.  Render a narrow duplicate leading strip only
         // once the user starts moving horizontally; it preserves the actual
         // table body and does not recreate or scroll its rows.
-        if (scroll.value > 0 && pinnedStartHeader != null && pinnedStartContent != null) {
-            Column(Modifier.align(Alignment.TopStart).zIndex(4f).clipToBounds()) {
+        if (scroll.value > 0 && pinnedStartWidth != null && pinnedStartHeader != null && pinnedStartContent != null) {
+            // An explicit width is essential on Web/Wasm: an unconstrained
+            // sibling Column may be measured to the full viewport width and
+            // paint an opaque surface over every non-frozen column.
+            Column(
+                Modifier
+                    .align(Alignment.TopStart)
+                    .width(pinnedStartWidth)
+                    .zIndex(4f)
+                    .clipToBounds()
+            ) {
                 Box(
                     Modifier
                         .zIndex(2f)

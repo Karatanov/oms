@@ -474,6 +474,7 @@ fun ProjectsTable(
         Spacer(Modifier.height(8.dp))
         oms.components.ScrollableTable(
             pageScrollState = pageScrollState,
+            pinnedStartWidth = ProjectTableColumns.frozenStartWidth,
             pinnedStartHeader = {
                 ProjectFrozenCodeHeader(sortColumn, ascending) { column ->
                     if (sortColumn == column) ascending = !ascending
