@@ -46,7 +46,18 @@
         if (!apiUrl(url)) return;
         try {
             const response = await omsAuthenticatedFetch(url);
-            if (!response.ok) throw new Error('Download unavailable');
+            if (!response.ok) {
+                let message = '';
+                try {
+                    const payload = await response.json();
+                    message = typeof payload?.message === 'string' ? payload.message : '';
+                } catch (_) { /* A proxy may return an empty or non-JSON error body. */ }
+                const authFailure = response.status === 401 || response.status === 403;
+                const fallback = authFailure
+                    ? (omsLanguage === 'en' ? 'Your session or permissions do not allow this download. Please sign in again.' : 'Ваша сесія або права доступу не дозволяють це завантаження. Увійдіть повторно.')
+                    : (omsLanguage === 'en' ? 'Could not prepare the file. Please retry.' : 'Не вдалося підготувати файл. Повторіть спробу.');
+                throw new Error(message || fallback);
+            }
             const blobUrl = URL.createObjectURL(await response.blob());
             const disposition = response.headers.get('Content-Disposition') || '';
             const encoded = /filename\*=UTF-8''([^;]+)/i.exec(disposition);
@@ -57,8 +68,9 @@
             anchor.href = blobUrl; anchor.download = filename;
             document.body.append(anchor); anchor.click(); anchor.remove();
             setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
-        } catch (_) {
-            alert(omsLanguage === 'en' ? 'Could not download the file. Sign in again or retry.' : 'Не вдалося завантажити файл. Увійдіть повторно або повторіть спробу.');
+        } catch (error) {
+            const fallback = omsLanguage === 'en' ? 'Could not download the file. Please retry.' : 'Не вдалося завантажити файл. Повторіть спробу.';
+            alert(error instanceof Error && error.message ? error.message : fallback);
         }
     };
 })();

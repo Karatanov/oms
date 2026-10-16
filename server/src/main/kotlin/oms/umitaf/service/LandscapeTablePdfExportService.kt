@@ -139,10 +139,34 @@ class LandscapeTablePdfExportService {
             }
         }
 
+        /**
+         * Spreadsheet data is external input and can contain control characters
+         * or glyphs that are absent from the embedded PDF font. PDFBox throws
+         * while measuring or writing such a value, which must not abort an
+         * otherwise valid registry export.
+         */
+        private fun pdfText(value: String): String {
+            val result = StringBuilder(value.length)
+            var index = 0
+            while (index < value.length) {
+                val codePoint = value.codePointAt(index)
+                val character = String(Character.toChars(codePoint))
+                val isAllowedWhitespace = codePoint == '\n'.code || codePoint == '\r'.code || codePoint == '\t'.code
+                val printable = codePoint >= 0x20 && codePoint != 0x7f
+                if ((printable || isAllowedWhitespace) && runCatching { font.getStringWidth(character) }.isSuccess) {
+                    result.append(character)
+                } else {
+                    result.append(' ')
+                }
+                index += Character.charCount(codePoint)
+            }
+            return result.toString().trim().ifBlank { "—" }
+        }
+
         private fun wrap(value: String, size: Float, width: Float): List<String> {
             val lines = mutableListOf<String>()
             var line = ""
-            value.replace('\n', ' ').trim().split(Regex("\\s+")).filter(String::isNotBlank).forEach { word ->
+            pdfText(value).replace('\n', ' ').trim().split(Regex("\\s+")).filter(String::isNotBlank).forEach { word ->
                 splitLongWord(word, size, width).forEach { piece ->
                     val candidate = if (line.isEmpty()) piece else "$line $piece"
                     if (line.isNotEmpty() && textWidth(candidate, size) > width) { lines += line; line = piece } else line = candidate
@@ -164,10 +188,10 @@ class LandscapeTablePdfExportService {
             return pieces
         }
 
-        private fun textWidth(value: String, size: Float) = font.getStringWidth(value) / 1000f * size
+        private fun textWidth(value: String, size: Float) = font.getStringWidth(pdfText(value)) / 1000f * size
         private fun text(value: String, x: Float, baseline: Float, size: Float, color: FloatArray) {
             stream!!.beginText(); stream!!.setNonStrokingColor(color[0], color[1], color[2]); stream!!.setFont(font, size)
-            stream!!.newLineAtOffset(x, baseline); stream!!.showText(value); stream!!.endText()
+            stream!!.newLineAtOffset(x, baseline); stream!!.showText(pdfText(value)); stream!!.endText()
         }
 
         private companion object {
