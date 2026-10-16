@@ -150,7 +150,7 @@ class UserService(
 
     private fun normalizeStatus(value: String): String {
         val status = value.trim().lowercase()
-        require(status in setOf("active", "pending", "disabled")) { "User status must be active, pending, or disabled." }
+        require(status in setOf("active", "disabled")) { "User status must be active or disabled." }
         return status
     }
 

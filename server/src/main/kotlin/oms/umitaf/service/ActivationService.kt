@@ -11,27 +11,22 @@ import java.security.SecureRandom
 import java.time.LocalDateTime
 import java.util.Base64
 
-/** Issues one-time activation links and writes development mail to a local outbox.
+/** Issues one-time password-reset links and writes development mail to a local outbox.
  * SMTP can replace the outbox without changing the token lifecycle or API.
  */
 class ActivationService(private val userRepository: UserRepository) {
-    fun issue(userId: Long, email: String) {
-        issueLink(userId, email, "account activation") { token, expiresAt ->
-            userRepository.storeActivationToken(userId, hash(token), expiresAt)
-        }
-    }
-
     fun issuePasswordReset(userId: Long, email: String) {
         issueLink(userId, email, "password reset") { token, expiresAt ->
             userRepository.storePasswordResetToken(userId, hash(token), expiresAt)
         }
     }
 
-    fun activate(token: String, password: String): Long {
+    fun resetPassword(token: String, password: String): Long {
         require(password.length >= 8 && password.any(Char::isLetter) && password.any(Char::isDigit)) { "Password must contain at least 8 characters, including letters and numbers." }
         val state = userRepository.activationState(hash(token.trim())) ?: throw IllegalArgumentException("Activation link is invalid.")
         require(state.expiresAt?.isAfter(LocalDateTime.now()) == true) { "Activation link has expired." }
-        require(userRepository.activate(state.userId, PasswordHasher.hash(password), LocalDateTime.now())) { "Activation failed." }
+        // Resetting a password must not silently re-enable an administrator-disabled account.
+        require(userRepository.resetPassword(state.userId, PasswordHasher.hash(password), LocalDateTime.now())) { "Password reset failed." }
         return state.userId
     }
 

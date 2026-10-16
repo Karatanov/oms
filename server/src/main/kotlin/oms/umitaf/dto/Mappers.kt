@@ -45,7 +45,9 @@ fun User.toResponse(): UserResponse {
         email = email,
         firstName = firstName,
         lastName = lastName,
-        status = status,
+        // Legacy values must never reintroduce a third state to the public UI.
+        // Any non-active historical status is safely presented as disabled.
+        status = if (status.equals("active", ignoreCase = true)) "active" else "disabled",
         region = region,
         department = department,
         preferredLang = preferredLang,

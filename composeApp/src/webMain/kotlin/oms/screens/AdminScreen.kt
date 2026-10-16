@@ -22,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
@@ -53,9 +54,7 @@ private enum class UserSort { Id, Username, FullName, Email, Role, Status, LastL
 private fun UserStatusChip(status: String) {
     val color = when (status.lowercase()) {
         "active" -> Color(0xFF2E7D32)
-        "pending" -> Color(0xFF757575)
-        "disabled", "locked" -> Color(0xFFC62828)
-        else -> Color(0xFF546E7A)
+        else -> Color(0xFFC62828)
     }
     oms.components.OmsBadge(LocalizationManager.t("user_status_${status.lowercase()}").takeIf { it != "user_status_${status.lowercase()}" } ?: status, color)
 }
@@ -375,7 +374,9 @@ private fun CreateUserDialog(roles: List<ApiRole>, onDismiss: () -> Unit, onSave
     var region by remember { mutableStateOf("") }
     var department by remember { mutableStateOf("") }
     var preferredLang by remember { mutableStateOf("uk") }
+    var password by remember { mutableStateOf("") }
     val role = roles.firstOrNull { it.code == roleCode }
+    val passwordIsValid = password.length >= 8 && password.any(Char::isLetter) && password.any(Char::isDigit)
     Card(
         modifier = Modifier.widthIn(max = 760.dp).fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = Color.White)
@@ -388,6 +389,13 @@ private fun CreateUserDialog(roles: List<ApiRole>, onDismiss: () -> Unit, onSave
             ) {
             OutlinedTextField(username, { username = it }, label = { Text(LocalizationManager.t("username")) }, modifier = Modifier.fillMaxWidth())
             OutlinedTextField(email, { email = it }, label = { Text(LocalizationManager.t("email")) }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(
+                password, { password = it },
+                label = { Text(LocalizationManager.t("password")) },
+                visualTransformation = PasswordVisualTransformation(),
+                modifier = Modifier.fillMaxWidth()
+            )
+            Text(LocalizationManager.t("password_requirements"), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(firstName, { firstName = it }, label = { Text(LocalizationManager.t("first_name")) }, modifier = Modifier.weight(1f))
                 OutlinedTextField(lastName, { lastName = it }, label = { Text(LocalizationManager.t("last_name")) }, modifier = Modifier.weight(1f))
@@ -410,17 +418,18 @@ private fun CreateUserDialog(roles: List<ApiRole>, onDismiss: () -> Unit, onSave
                         CreateUserRequest(
                             username = username.trim(),
                             email = email.trim(),
+                            password = password,
                             roleCode = roleCode,
                             firstName = firstName.trim(),
                             lastName = lastName.trim(),
-                            status = "pending",
+                            status = "active",
                             region = region.trim().ifBlank { null },
                             department = department.trim().ifBlank { null },
                             preferredLang = preferredLang
                         )
                     )
                 },
-                enabled = username.isNotBlank() && email.contains('@') && role != null
+                enabled = username.isNotBlank() && email.contains('@') && passwordIsValid && role != null
             ) { Text(LocalizationManager.t("create")) }
             }
         }
@@ -442,7 +451,7 @@ private fun EditUserDialog(
     var password by remember(user.id) { mutableStateOf("") }
     var firstName by remember(user.id) { mutableStateOf(user.firstName) }
     var lastName by remember(user.id) { mutableStateOf(user.lastName) }
-    var status by remember(user.id) { mutableStateOf(user.status) }
+    var status by remember(user.id) { mutableStateOf(user.status.takeIf { it in setOf("active", "disabled") } ?: "disabled") }
     var region by remember(user.id) { mutableStateOf(user.region.orEmpty()) }
     var department by remember(user.id) { mutableStateOf(user.department.orEmpty()) }
     var preferredLang by remember(user.id) { mutableStateOf(user.preferredLang) }
@@ -468,7 +477,7 @@ private fun EditUserDialog(
                 OutlinedTextField(department, { department = it }, label = { Text(LocalizationManager.t("department")) }, modifier = Modifier.weight(1f))
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                listOf("active", "pending", "disabled").forEach { value -> FilterChip(status == value, { status = value }, label = { Text(LocalizationManager.t("user_status_$value")) }) }
+                listOf("active", "disabled").forEach { value -> FilterChip(status == value, { status = value }, label = { Text(LocalizationManager.t("user_status_$value")) }) }
                 listOf("uk", "en").forEach { value -> FilterChip(preferredLang == value, { preferredLang = value }, label = { Text(value.uppercase()) }) }
             }
             InlineOptionPicker(options = roles, selected = role, prompt = roleCode, onSelect = { roleCode = it.code }, itemLabel = { LocalizationManager.t("role_${it.code.lowercase()}") })

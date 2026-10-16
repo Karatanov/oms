@@ -21,11 +21,7 @@ data class CreateUserRequest(
      */
     val email: String,
 
-    /**
-     * Пароль користувача.
-     *
-     * Поки що зберігається без хешування.
-     */
+    /** Initial password. It is accepted only in transit and hashed by the server. */
     val password: String = "",
 
     /**

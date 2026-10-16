@@ -104,11 +104,11 @@ fun Route.authRoutes() {
     post("/api/v1/auth/activate") {
         try {
             val request = call.receive<ActivateAccountRequest>()
-            val userId = AppContainer.activationService.activate(request.token, request.password)
-            AppContainer.auditLogService.record(userId, "user_activated", "user", userId)
+            val userId = AppContainer.activationService.resetPassword(request.token, request.password)
+            AppContainer.auditLogService.record(userId, "user_password_reset", "user", userId)
             call.respond(HttpStatusCode.NoContent)
         } catch (exception: IllegalArgumentException) {
-            call.respond(HttpStatusCode.BadRequest, ErrorResponse("ACTIVATION_ERROR", exception.message ?: "Activation failed."))
+            call.respond(HttpStatusCode.BadRequest, ErrorResponse("ACTIVATION_ERROR", exception.message ?: "Password reset failed."))
         }
     }
 }

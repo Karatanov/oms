@@ -20,7 +20,6 @@ import oms.umitaf.dto.CreateUserRequest
 import oms.umitaf.dto.ErrorResponse
 import oms.umitaf.dto.UpdateUserRequest
 import oms.umitaf.dto.toResponse
-import java.util.UUID
 
 /**
  * Маршрути роботи з користувачами.
@@ -76,18 +75,15 @@ fun Route.userRoutes() {
             val user = userService.createUser(
                 username = request.username,
                 email = request.email,
-                // Pending accounts receive their actual password only through the activation flow.
-                // The random placeholder is never exposed and is replaced on activation.
-                password = "Activation1${UUID.randomUUID()}",
+                password = request.password,
                 roleCode = request.roleCode,
-                firstName = request.firstName, lastName = request.lastName, status = "pending",
+                firstName = request.firstName, lastName = request.lastName, status = request.status,
                 region = request.region, department = request.department, preferredLang = request.preferredLang
             )
             AppContainer.auditLogService.record(
                 session.userId, "user_created", "user", user.id,
-                newValues = "{\"role\":\"${user.role.code}\",\"status\":\"pending\"}"
+                newValues = "{\"role\":\"${user.role.code}\",\"status\":\"${user.status}\"}"
             )
-            AppContainer.activationService.issue(user.id, user.email)
 
             call.respond(
                 HttpStatusCode.Created,
