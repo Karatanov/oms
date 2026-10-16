@@ -26,9 +26,12 @@ class FinancialTablePdfExportService(
     fun export(rows: List<Row>, language: Language, currency: String, filterSummary: String?): ByteArray {
         val labels = Labels(language)
         val normalizedCurrency = currency.uppercase().takeIf { it in setOf("EUR", "UAH") } ?: "EUR"
+        // Keep compact fields close to the width their values need. The
+        // subproject name is deliberately the dominant column: it is the
+        // primary identifier users need when reading a printed registry.
         val columns = listOf(
-            "type" to 70f, "purpose" to 120f, "tranche" to 45f, "subproject" to 145f, "code" to 85f,
-            "part" to 110f, "date" to 75f, "amount" to 85f, "currency" to 45f, "description" to 155f, "author" to 70f
+            "type" to 45f, "purpose" to 90f, "tranche" to 35f, "subproject" to 260f, "code" to 65f,
+            "part" to 85f, "date" to 60f, "amount" to 76f, "currency" to 42f, "description" to 100f
         ).map { LandscapeTablePdfExportService.Column(labels[it.first], it.second) }
         return tableExporter.export(
             LandscapeTablePdfExportService.Request(
@@ -57,8 +60,7 @@ class FinancialTablePdfExportService(
             record.recordDate.format(DateTimeFormatter.ofPattern("dd.MM.yyyy")),
             displayAmount(record, currency)?.let { money(it, language) } ?: "—",
             currency,
-            record.description ?: record.milestone ?: "—",
-            "—" // The current web table has no persisted author value.
+            record.description ?: record.milestone ?: "—"
         )
     }
 
@@ -93,7 +95,7 @@ class FinancialTablePdfExportService(
 
     private class Labels(private val language: Language) {
         private val values = mapOf(
-            "type" to pair("Тип", "Type"), "purpose" to pair("Призначення", "Purpose"), "tranche" to pair("Транш", "Tranche"), "subproject" to pair("Субпроєкт", "Subproject"), "code" to pair("Код субпроєкту", "Subproject code"), "part" to pair("Частина субпроєкту", "Subproject part"), "date" to pair("Дата", "Date"), "amount" to pair("Сума", "Amount"), "currency" to pair("Валюта", "Currency"), "description" to pair("Опис", "Description"), "author" to pair("Автор", "Author"), "no_records" to pair("Немає фінансових записів для експорту", "No financial records to export")
+            "type" to pair("Тип", "Type"), "purpose" to pair("Призначення", "Purpose"), "tranche" to pair("Транш", "Tranche"), "subproject" to pair("Субпроєкт", "Subproject"), "code" to pair("Код субпроєкту", "Subproject code"), "part" to pair("Частина субпроєкту", "Subproject part"), "date" to pair("Дата", "Date"), "amount" to pair("Сума", "Amount"), "currency" to pair("Валюта", "Currency"), "description" to pair("Опис", "Description"), "no_records" to pair("Немає фінансових записів для експорту", "No financial records to export")
         )
         private fun pair(uk: String, en: String) = if (language == Language.UK) uk else en
         operator fun get(key: String) = values[key].orEmpty()
