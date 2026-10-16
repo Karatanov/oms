@@ -211,11 +211,11 @@
             if (!response.ok) throw Error(data.message || "Не вдалося увійти. Перевірте логін і пароль.");
             saveToken(data);
             persistCredentials();
-            // The app shell starts its own progress state immediately.  Do
-            // not start a second full-bundle fetch just before navigation:
-            // browsers cancel it (or contend with the real app request) when
-            // this page is replaced.  The intentional idle warm-up below is
-            // still retained for users who spend time on this form.
+            // Preserve the login artwork and show the real hand-off state at
+            // once.  The app page itself owns the asset request: downloads
+            // started in this document are cancelled during navigation and
+            // would otherwise compete with the actual application load.
+            window.beginOmsStartup?.(english ? "en" : "uk", false);
             location.replace(appUrl());
         } catch (error) {
             byId("error").textContent = error.message || "Не вдалося увійти.";
@@ -231,8 +231,7 @@
             const data = await response.json().catch(() => ({}));
             if (!response.ok) throw Error();
             saveToken(data);
-            // See the authenticated path above: the target page owns startup
-            // progress and resource loading after navigation.
+            window.beginOmsStartup?.(english ? "en" : "uk", false);
             location.replace(appUrl());
         } catch (_) {
             byId("error").textContent = "Не вдалося розпочати гостьовий сеанс.";
@@ -240,9 +239,6 @@
         }
     };
     byId("forgot").onclick = () => { byId("error").textContent = "Зверніться до адміністратора для відновлення пароля."; };
-    const warm = () => window.omsWarmApplicationAssets?.();
-    if ("requestIdleCallback" in window) requestIdleCallback(warm, { timeout: 1_000 });
-    else setTimeout(warm, 250);
 })();
 </script>
 </body>

@@ -32,14 +32,15 @@ const startup = fs.readFileSync('composeApp/src/webMain/resources/startup.js', '
         body: JSON.stringify({ browserBearerSupported: true, accessToken: 'fixture-token' })
       }));
       await page.goto(entry);
-      await page.waitForFunction(() => performance.getEntriesByType('resource')
-        .some(entry => /composeApp.*\.js/.test(entry.name)));
-      assert.equal(requests.some(url => /composeApp.*\.js/.test(url)), true, 'login should warm the application cache without blocking the form');
       await page.locator('#username').fill('fixture');
       await page.locator('#password').fill('fixture');
       await Promise.all([page.waitForURL(deployment.app), page.locator('#submit').click()]);
       assert.equal(requests.includes(`${deployment.api}/auth/login`), true);
       assert.equal(await page.evaluate(() => sessionStorage.getItem('oms.accessToken')), 'fixture-token');
+      assert.equal(JSON.parse(await page.evaluate(() => sessionStorage.getItem('oms.startup'))).active, true,
+        'login should transfer visible startup state without starting a cancellable bundle download');
+      assert.equal(requests.some(url => /composeApp.*\.js/.test(url)), false,
+        'login should not compete with the application document for a large bundle');
       await context.close();
       console.log(`PASS lightweight login routing: ${entry}`);
     }

@@ -188,7 +188,7 @@
     }
 
     window.omsWarmApplicationAssets = warmApplicationAssets;
-    window.beginOmsStartup = language => {
+    window.beginOmsStartup = (language, warmAssets = true) => {
         locale = language === "en" ? "en" : "uk";
         active = true;
         failed = false;
@@ -198,7 +198,11 @@
         ensureTimer();
         ensureWatchdog();
         render("preparing");
-        return warmApplicationAssets();
+        // A navigation destroys in-flight fetches from the login document.
+        // Preserve only the visible startup state there; let the app document
+        // own its asset transfer so a slow connection never downloads the
+        // same incomplete bundle twice.
+        return warmAssets ? warmApplicationAssets() : Promise.resolve(true);
     };
     window.reportOmsStartupProgress = (value, messageKey) => {
         if (!active) {
@@ -238,6 +242,11 @@
     if (active) {
         ensureTimer();
         ensureWatchdog();
+        // The app shell has already declared its native preloads above this
+        // script. Start tracking those same-document transfers now,
+        // rather than waiting for DOMContentLoaded after the blocking bundle
+        // script has finished executing.
+        warmApplicationAssets();
         window.addEventListener("DOMContentLoaded", () => {
             report(Math.max(progress, 91), "session");
         }, { once: true });
