@@ -24,7 +24,7 @@ fun ChartDataLabelsToggle(showDataLabels: Boolean, onShowDataLabelsChange: (Bool
         IconButton(
             onClick = { onShowDataLabelsChange(!showDataLabels) },
             modifier = Modifier
-                .size(36.dp)
+                .size(30.dp)
                 .buttonHandCursor()
                 .background(
                     if (showDataLabels) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
@@ -36,7 +36,7 @@ fun ChartDataLabelsToggle(showDataLabels: Boolean, onShowDataLabelsChange: (Bool
                 imageVector = if (showDataLabels) Icons.Default.Visibility else Icons.Default.VisibilityOff,
                 contentDescription = null,
                 tint = if (showDataLabels) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(18.dp)
+                modifier = Modifier.size(16.dp)
             )
         }
     }

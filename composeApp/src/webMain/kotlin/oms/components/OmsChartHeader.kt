@@ -1,10 +1,10 @@
 package oms.components
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
@@ -19,8 +19,9 @@ import androidx.compose.ui.unit.dp
 /**
  * Responsive title and action area shared by OMS chart cards.
  *
- * Wide cards reserve a separate trailing lane for actions. Narrow cards put
- * the actions below the title, so neither text nor controls can overlap.
+ * Titles remain optically centred within the entire chart card. On wide cards
+ * a compact toolbar is overlaid in a protected trailing lane; narrow cards
+ * put the toolbar below the title so controls never overlap its text.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -31,25 +32,20 @@ fun OmsChartHeader(
 ) {
     BoxWithConstraints(modifier.fillMaxWidth()) {
         if (maxWidth >= 640.dp && !oms.layout.LocalMobileLayout.current) {
-            Row(
-                Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+            Box(Modifier.fillMaxWidth()) {
                 Text(
                     title,
-                    // Avoid RowScope.weight here: its JS metadata became
-                    // internal after the Compose/Kotlin tooling update.
-                    // A proportional lane retains the non-overlapping wide
-                    // layout without depending on that extension.
-                    modifier = Modifier.fillMaxWidth(0.70f),
+                    // Symmetric padding protects the title from the trailing
+                    // controls while preserving the card's visual centre.
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 118.dp),
                     style = MaterialTheme.typography.titleMedium,
-                    textAlign = TextAlign.Start,
+                    textAlign = TextAlign.Center,
                     maxLines = 3
                 )
                 FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.End),
-                    verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterVertically)
+                    modifier = Modifier.align(Alignment.CenterEnd),
+                    horizontalArrangement = Arrangement.spacedBy(2.dp, Alignment.End),
+                    verticalArrangement = Arrangement.spacedBy(2.dp, Alignment.CenterVertically)
                 ) { toolbar() }
             }
         } else {
@@ -58,7 +54,7 @@ fun OmsChartHeader(
                     title,
                     modifier = Modifier.fillMaxWidth(),
                     style = MaterialTheme.typography.titleMedium,
-                    textAlign = TextAlign.Start,
+                    textAlign = TextAlign.Center,
                     maxLines = 3
                 )
                 FlowRow(

@@ -43,7 +43,7 @@ fun ChartSortControls(
                     SegmentedButton(
                         selected = criterion == option,
                         onClick = { onCriterionChange(option) },
-                        modifier = Modifier.height(32.dp).buttonHandCursor().semantics { contentDescription = LocalizationManager.t(tooltipKey) },
+                        modifier = Modifier.height(28.dp).buttonHandCursor().semantics { contentDescription = LocalizationManager.t(tooltipKey) },
                         shape = SegmentedButtonDefaults.itemShape(index, 2),
                         icon = {},
                         label = { Text(label, style = MaterialTheme.typography.labelSmall) }
@@ -56,13 +56,13 @@ fun ChartSortControls(
         OmsTooltipBox(tooltip = { Text(LocalizationManager.t(directionKey)) }) {
             IconButton(
                 onClick = onDirectionToggle,
-                modifier = Modifier.size(36.dp).buttonHandCursor().semantics { contentDescription = LocalizationManager.t(directionKey) }
+                modifier = Modifier.size(30.dp).buttonHandCursor().semantics { contentDescription = LocalizationManager.t(directionKey) }
             ) {
                 Icon(
                     if (ascending) Icons.Default.ArrowUpward else Icons.Default.ArrowDownward,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(18.dp)
+                    modifier = Modifier.size(16.dp)
                 )
             }
         }

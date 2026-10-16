@@ -65,11 +65,11 @@ fun ChartPngExportButton(
             },
             enabled = data.isNotEmpty(),
             modifier = modifier
-                .size(36.dp)
+                .size(30.dp)
                 .buttonHandCursor()
                 .semantics { contentDescription = LocalizationManager.t("download_png") }
         ) {
-            Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(18.dp))
+            Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(16.dp))
         }
     }
 }
