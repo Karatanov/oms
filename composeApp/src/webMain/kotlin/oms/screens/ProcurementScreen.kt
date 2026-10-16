@@ -492,20 +492,21 @@ private fun ProcurementFilters(
         columnWidths.forEachIndexed { index, width ->
             Box(Modifier.width(width.dp).padding(horizontal = 6.dp)) {
                 when (index) {
-                    0 -> Column {
-                        ProcurementResetFiltersButton(canResetFilters, onResetFilters)
-                        InlineOptionPicker(
-                            records.map { it.subProjectId }.filter(String::isNotBlank).distinct().sorted(), subprojectFilter,
-                            LocalizationManager.t("proc_subproject_id"), onSubprojectChange,
-                            clearLabel = LocalizationManager.t("all"), onClear = { onSubprojectChange(null) }
-                        )
-                    }
+                    0 -> InlineOptionPicker(
+                        records.map { it.subProjectId }.filter(String::isNotBlank).distinct().sorted(), subprojectFilter,
+                        LocalizationManager.t("proc_subproject_id"), onSubprojectChange,
+                        clearLabel = LocalizationManager.t("all"), onClear = { onSubprojectChange(null) }
+                    )
                     1 -> InlineOptionPicker(
                         records.map { it.batchId }.distinct().sorted(), trancheFilter,
                         LocalizationManager.t("tranche"), onTrancheChange,
                         itemLabel = { if (it == 8 || it == 1) LocalizationManager.t("tranche_a") else if (it == 9 || it == 2) LocalizationManager.t("tranche_b") else it.toString() },
                         clearLabel = LocalizationManager.t("all"), onClear = { onTrancheChange(null) }
                     )
+                    // Keep the reset action over the Subproject name column:
+                    // it stays close to filtering controls without competing
+                    // with the key subproject-code selector on the left.
+                    2 -> ProcurementResetFiltersButton(canResetFilters, onResetFilters)
                     4 -> InlineOptionPicker(
                         records.mapNotNull { it.procurementMethod?.takeIf(String::isNotBlank) }.distinct().sorted(),
                         procurementMethodFilter, LocalizationManager.t("proc_method"), onProcurementMethodChange,
