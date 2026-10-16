@@ -20,18 +20,30 @@ class SubprojectsTablePdfExportService(
         filterSummary: String?
     ): ByteArray {
         val labels = Labels(language)
+        val budgetCurrencies = projects.map { it.currency.uppercase() }
+            .filter(String::isNotBlank)
+            .distinct()
+            .sorted()
+        val budgetHeader = labels["budget"] + budgetCurrencies
+            .takeIf { it.isNotEmpty() }
+            ?.joinToString(separator = " / ", prefix = " (", postfix = ")")
+            .orEmpty()
+        // Use compact widths for values which are typically short, reserving
+        // the largest printable area for the subproject name.
         val columns = listOf(
-            "code" to 78f, "tranche" to 54f, "name" to 146f, "region" to 96f, "city" to 78f,
-            "sector" to 78f, "construction_type" to 108f, "status" to 84f, "budget" to 72f,
-            "start_date" to 72f, "planned_end_date" to 84f, "implementation_duration" to 90f, "contractor" to 90f
-        ).map { LandscapeTablePdfExportService.Column(labels[it.first], it.second) }
+            "code" to 60f, "tranche" to 34f, "name" to 270f, "region" to 70f, "city" to 70f,
+            "sector" to 65f, "construction_type" to 92f, "status" to 70f, "budget" to 90f,
+            "start_date" to 60f, "planned_end_date" to 76f, "implementation_duration" to 70f, "contractor" to 100f
+        ).map { (key, width) ->
+            LandscapeTablePdfExportService.Column(if (key == "budget") budgetHeader else labels[key], width)
+        }
         val rows = projects.map { project ->
             val monitoring = monitoringByProjectId[project.id]
             val name = if (language == Language.EN) monitoring?.nameEn?.takeIf(String::isNotBlank) ?: project.name else project.name
             listOf(
                 project.siteNumber, if (project.trancheNumber == 2 || project.trancheNumber == 9) "B" else "A", name,
                 region(project.region), project.city.orEmpty(), sector(project.sector, language), construction(project.constructionType, language),
-                status(project.status.name, language), money(project.budgetPlanned, project.currency), date(project.startDate), date(project.plannedEndDate),
+                status(project.status.name, language), money(project.budgetPlanned), date(project.startDate), date(project.plannedEndDate),
                 project.contractDurationDays?.let { months(it, language) }.orEmpty(), project.contractorName.orEmpty()
             )
         }
@@ -51,7 +63,7 @@ class SubprojectsTablePdfExportService(
     }
 
     private fun date(value: LocalDate?) = value?.format(DateTimeFormatter.ofPattern("dd.MM.yyyy")).orEmpty()
-    private fun money(value: Long, currency: String) = "${DecimalFormat("#,##0.00").format(value)} $currency"
+    private fun money(value: Long) = DecimalFormat("#,##0.00").format(value)
     private fun months(days: Long, language: Language): String { val value = ceil(days / 30.44).toInt().coerceAtLeast(1); return if (language == Language.UK) "$value міс." else "$value months" }
     private fun region(value: String?) = value.orEmpty().replace(Regex("(?i)\\s*(область|oblast|region)$"), "").trim()
     private fun sector(value: String?, language: Language) = when (value?.lowercase()) { "education" -> if (language == Language.UK) "Освіта" else "Education"; "health", "healthcare" -> if (language == Language.UK) "Охорона здоров’я" else "Healthcare"; "housing" -> if (language == Language.UK) "Житло" else "Housing"; "water_supply" -> if (language == Language.UK) "Водопостачання" else "Water supply"; "sewerage" -> if (language == Language.UK) "Водовідведення" else "Sewerage"; "heat_supply" -> if (language == Language.UK) "Теплопостачання" else "Heat supply"; "shelter" -> if (language == Language.UK) "Укриття" else "Shelter"; else -> value.orEmpty() }
