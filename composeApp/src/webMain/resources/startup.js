@@ -242,11 +242,11 @@
     if (active) {
         ensureTimer();
         ensureWatchdog();
-        // The app shell has already declared its native preloads above this
-        // script. Start tracking those same-document transfers now,
-        // rather than waiting for DOMContentLoaded after the blocking bundle
-        // script has finished executing.
-        warmApplicationAssets();
+        // The document declares native preloads for the renderer and bundle.
+        // Do not duplicate them with fetch(): preload and fetch have different
+        // request modes and some browsers download both on a slow connection.
+        // The progress overlay is retained through the hand-off and Compose
+        // reports the final readiness stages below.
         window.addEventListener("DOMContentLoaded", () => {
             report(Math.max(progress, 91), "session");
         }, { once: true });
