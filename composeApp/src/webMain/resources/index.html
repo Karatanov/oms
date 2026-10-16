@@ -486,15 +486,15 @@
                     attribution: "&copy; OpenStreetMap contributors"
                 }
             );
-            // NASA GIBS publishes the VIIRS true-colour imagery as a public WMTS
-            // service. It needs no API key; its required acknowledgement remains in
-            // the Leaflet attribution control, including in fullscreen mode.
+            // NASA GIBS' "default" VIIRS layer currently returns black imagery
+            // across Ukraine despite responding with HTTP 200. Esri World Imagery
+            // provides current, visible tiles without an application API key. Keep
+            // the provider attribution in Leaflet, including fullscreen mode.
             const satelliteLayer = L.tileLayer(
-                "https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/VIIRS_SNPP_CorrectedReflectance_TrueColor/default/GoogleMapsCompatible_Level9/{z}/{y}/{x}.jpg",
+                "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
                 {
-                    maxNativeZoom: 9,
                     maxZoom: 18,
-                    attribution: "NASA GIBS / NASA EOSDIS"
+                    attribution: "Tiles © Esri"
                 }
             );
             umitafMapBaseLayers = { openStreetMap: openStreetMapLayer, satellite: satelliteLayer };
