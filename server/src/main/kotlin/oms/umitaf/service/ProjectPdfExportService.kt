@@ -65,11 +65,13 @@ class ProjectPdfExportService {
     private enum class Icon { INFO, LOCATION, FINANCE, CONSTRUCTION, SUPERVISION, CONSULTANT }
 
     private class PdfWriter(private val document: PDDocument, private val font: PDType0Font, private val language: Language) {
-        private val margin = 42f; private val width = PDRectangle.A4.width - margin * 2; private var page: PDPage? = null; private var stream: PDPageContentStream? = null; private var y = 0f; private var rowIndex = 0
+        // Slightly narrower margins and section gaps make the card print more
+        // efficiently while keeping the type and fields at their readable size.
+        private val margin = 34f; private val width = PDRectangle.A4.width - margin * 2; private var page: PDPage? = null; private var stream: PDPageContentStream? = null; private var y = 0f; private var rowIndex = 0
         private val primary = floatArrayOf(0.153f, 0.553f, 0.678f); private val ink = floatArrayOf(0.10f, 0.17f, 0.22f)
         init { newPage() }
-        fun cover(name: String, code: String) { ensure(94f); fillColor(primary); stream!!.addRect(margin, y - 52f, width, 52f); stream!!.fill(); text(name, margin + 18f, y - 24f, 18f, floatArrayOf(1f, 1f, 1f)); text("${label("subproject_code")}: $code", margin + 18f, y - 43f, 10f, floatArrayOf(0.92f, 0.98f, 1f)); y -= 72f }
-        fun section(title: String, icon: Icon, content: PdfWriter.() -> Unit) { ensure(34f); rowIndex = 0; stream!!.setNonStrokingColor(0.91f, 0.97f, 0.98f); stream!!.addRect(margin, y - 25f, width, 25f); stream!!.fill(); drawIcon(icon, margin + 13f, y - 13f); text(title, margin + 29f, y - 17f, 12f, primary); y -= 31f; content(); y -= 12f }
+        fun cover(name: String, code: String) { ensure(78f); fillColor(primary); stream!!.addRect(margin, y - 46f, width, 46f); stream!!.fill(); text(name, margin + 15f, y - 21f, 17f, floatArrayOf(1f, 1f, 1f)); text("${label("subproject_code")}: $code", margin + 15f, y - 38f, 9.5f, floatArrayOf(0.92f, 0.98f, 1f)); y -= 60f }
+        fun section(title: String, icon: Icon, content: PdfWriter.() -> Unit) { ensure(32f); rowIndex = 0; stream!!.setNonStrokingColor(0.91f, 0.97f, 0.98f); stream!!.addRect(margin, y - 24f, width, 24f); stream!!.fill(); drawIcon(icon, margin + 13f, y - 12f); text(title, margin + 29f, y - 16f, 11.5f, primary); y -= 29f; content(); y -= 8f }
         fun row(label: String, rawValue: Any?) {
             val value = when (rawValue) { null -> return; is LocalDate -> rawValue.format(java.time.format.DateTimeFormatter.ofPattern("dd.MM.yyyy")); else -> rawValue.toString().trim().takeIf(String::isNotEmpty) ?: return }
             val labelWidth = 178f; val valueWidth = width - labelWidth - 20f; val labelLines = wrap(label, 9f, labelWidth - 14f); val valueLines = wrap(value, 9.5f, valueWidth - 14f); val lines = maxOf(labelLines.size, valueLines.size); val height = 12f + lines * 13f

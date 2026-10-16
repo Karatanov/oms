@@ -45,7 +45,10 @@ class LandscapeTablePdfExportService {
         private val request: Request
     ) {
         private val pageSize = PDRectangle(1190.55f, 841.89f) // A3 landscape
-        private val margin = 28f
+        // Print tables use narrow, but still practical, margins. Together with
+        // a compact document header this saves meaningful vertical space on
+        // multi-page registries without reducing the business data.
+        private val margin = 20f
         private val usableWidth = pageSize.width - margin * 2
         private val columns = request.columns.let { source ->
             val total = source.sumOf { it.relativeWidth.toDouble() }.toFloat().coerceAtLeast(1f)
@@ -59,7 +62,7 @@ class LandscapeTablePdfExportService {
             request.rows.forEach { row ->
                 val cells = columns.indices.map { row.getOrElse(it) { "—" }.ifBlank { "—" } }
                 val height = rowHeight(cells)
-                if (y - height < margin + 20f) newPage()
+                if (y - height < margin + 14f) newPage()
                 drawRow(cells, height)
             }
             if (request.rows.isEmpty()) text(request.noRecordsLabel, margin, y - 20f, 10f, INK)
@@ -78,15 +81,15 @@ class LandscapeTablePdfExportService {
         }
 
         private fun drawDocumentHeader() {
-            text(request.title, margin, y - 15f, 16f, PRIMARY)
+            text(request.title, margin, y - 13f, 14f, PRIMARY)
             val date = "${request.exportDateLabel}: ${LocalDate.now().format(DateTimeFormatter.ofPattern("dd.MM.yyyy"))}"
-            text(date, pageSize.width - margin - textWidth(date, 8f), y - 13f, 8f, INK)
+            text(date, pageSize.width - margin - textWidth(date, 7.5f), y - 12f, 7.5f, INK)
             val total = "${request.totalLabel}: ${request.rows.size}"
-            text(total, margin, y - 30f, 8f, MUTED)
+            text(total, margin, y - 27f, 7.5f, MUTED)
             request.filterSummary?.takeIf(String::isNotBlank)?.let { summary ->
-                text("${request.filtersLabel}: $summary", margin + 180f, y - 30f, 8f, MUTED)
+                text("${request.filtersLabel}: $summary", margin + 155f, y - 27f, 7.5f, MUTED)
             }
-            y -= 70f
+            y -= 52f
         }
 
         private fun drawTableHeader() {
@@ -111,8 +114,8 @@ class LandscapeTablePdfExportService {
             var x = margin
             columns.forEachIndexed { index, column ->
                 if (index > 0) { stream!!.moveTo(x, y); stream!!.lineTo(x, y - height) }
-                wrap(cells[index], 7f, column.relativeWidth - 6f).forEachIndexed { line, value ->
-                    text(value, x + 3f, top - 9f - line * 8.5f, 7f, INK)
+                wrap(cells[index], 6.8f, column.relativeWidth - 6f).forEachIndexed { line, value ->
+                    text(value, x + 3f, top - 8.5f - line * 7.9f, 6.8f, INK)
                 }
                 x += column.relativeWidth
             }
@@ -121,8 +124,8 @@ class LandscapeTablePdfExportService {
         }
 
         private fun rowHeight(cells: List<String>): Float =
-            (cells.indices.maxOf { index -> wrap(cells[index], 7f, columns[index].relativeWidth - 6f).size } * 8.5f + 8f)
-                .coerceAtLeast(20f)
+            (cells.indices.maxOf { index -> wrap(cells[index], 6.8f, columns[index].relativeWidth - 6f).size } * 7.9f + 7f)
+                .coerceAtLeast(17f)
 
         private fun addPageNumbers() {
             val total = document.numberOfPages

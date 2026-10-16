@@ -1,10 +1,12 @@
 package oms.umitaf.api
 
 import io.ktor.http.HttpStatusCode
+import io.ktor.http.ContentType
 import io.ktor.http.content.PartData
 import io.ktor.http.content.forEachPart
 import io.ktor.server.request.receiveMultipart
 import io.ktor.server.response.respond
+import io.ktor.server.response.respondBytes
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
@@ -14,12 +16,39 @@ import oms.umitaf.config.AppContainer
 import oms.umitaf.domain.ProcurementRecord
 import oms.umitaf.dto.ErrorResponse
 import oms.umitaf.dto.ProcurementRecordResponse
+import oms.umitaf.service.ProcurementTablePdfExportService
 import kotlinx.serialization.Serializable
 
 fun Route.procurementRoutes() {
     get("/api/v1/procurements") {
         call.requireRole("ADMIN", "PROJECT_MANAGER", "INSPECTOR", "VIEWER") ?: return@get
         call.respond(AppContainer.procurementService.getAll().map(ProcurementRecord::toResponse))
+    }
+
+    /**
+     * Exports the entire filtered and sorted client registry. Record IDs are
+     * submitted in UI order rather than only the current pagination page.
+     */
+    get("/api/v1/procurements/export-table-pdf") {
+        call.requireRole("ADMIN", "PROJECT_MANAGER", "INSPECTOR", "VIEWER") ?: return@get
+        val requestedIds = call.request.queryParameters.getAll("id")
+            ?.mapNotNull { it.toLongOrNull() }
+            ?.distinct()
+            .orEmpty()
+        val hasExplicitSelection = requestedIds.isNotEmpty() ||
+            call.request.queryParameters["empty"]?.toBooleanStrictOrNull() == true
+        val allRecords = AppContainer.procurementService.getAll()
+        val recordsById = allRecords.associateBy { it.id }
+        val records = if (hasExplicitSelection) requestedIds.mapNotNull(recordsById::get) else allRecords
+        val language = if (call.request.queryParameters["lang"].equals("en", ignoreCase = true)) {
+            ProcurementTablePdfExportService.Language.EN
+        } else {
+            ProcurementTablePdfExportService.Language.UK
+        }
+        val filterSummary = call.request.queryParameters["filters"]?.take(500)
+        val pdf = ProcurementTablePdfExportService().export(records, language, filterSummary)
+        call.response.header("Content-Disposition", "attachment; filename=oms-procurement.pdf")
+        call.respondBytes(pdf, ContentType.Application.Pdf)
     }
 
     post("/api/v1/procurements/refresh") {

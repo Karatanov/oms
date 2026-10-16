@@ -252,6 +252,11 @@ object OmsApiClient {
 
     suspend fun procurements(): List<ApiProcurementRecord> = client.get("$baseUrl/procurements").body()
 
+    /** Ordered IDs retain the exact filtered/sorted procurement table in the PDF. */
+    fun procurementTablePdfExportUrl(recordIds: Collection<Long>, language: String, filterSummary: String): String =
+        "$baseUrl/procurements/export-table-pdf?lang=$language&filters=${filterSummary.encodeURLParameter()}&empty=${recordIds.isEmpty()}" +
+            recordIds.joinToString(separator = "", prefix = "") { "&id=$it" }
+
     suspend fun startProcurementRefresh(): ApiProcurementRefresh =
         client.post("$baseUrl/procurements/refresh").body()
 

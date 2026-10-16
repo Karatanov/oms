@@ -13,6 +13,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.filled.KeyboardArrowRight
@@ -252,6 +253,16 @@ fun ProcurementScreen(
         val hasActiveFilters = search.isNotBlank() || trancheFilter != null || oblastFilter != null ||
             subprojectFilter != null || contractTypeFilter != null || procurementMethodFilter != null ||
             statusFilter != null || signedContractMonthFilter != null
+        val procurementPdfFilterSummary = buildList {
+            search.takeIf(String::isNotBlank)?.let { add("${LocalizationManager.t("procurement_search")}: $it") }
+            trancheFilter?.let { add("${LocalizationManager.t("tranche")}: ${if (it == 8 || it == 1) "A" else "B"}") }
+            oblastFilter?.let { add("${LocalizationManager.t("region")}: $it") }
+            subprojectFilter?.let { add("${LocalizationManager.t("proc_subproject_id")}: $it") }
+            contractTypeFilter?.let { add("${LocalizationManager.t("proc_source_contract_type")}: $it") }
+            procurementMethodFilter?.let { add("${LocalizationManager.t("proc_method")}: ${LocalizationManager.procurementValue(it)}") }
+            statusFilter?.let { add("${LocalizationManager.t("procurement_status")}: ${LocalizationManager.procurementStatus(it)}") }
+            signedContractMonthFilter?.let { add("${LocalizationManager.t("signed_construction_contracts")}: $it") }
+        }.joinToString(" · ")
         fun resetFilters() {
             search = ""
             trancheFilter = null
@@ -274,11 +285,27 @@ fun ProcurementScreen(
                         leadingIcon = { Icon(Icons.Default.Search, null) }, modifier = modifier
                     )
                     @Composable fun Pagination() = ProcurementPagination(pageSize, currentPage, pageCount, visibleRecords.size, { pageSize = it }) { currentPage = it.coerceIn(0, pageCount - 1) }
+                    @Composable fun ExportPdf() = OutlinedButton(
+                        onClick = {
+                            oms.data.openOmsDownload(
+                                OmsApiClient.procurementTablePdfExportUrl(
+                                    recordIds = visibleRecords.map { it.id },
+                                    language = if (LocalizationManager.currentLanguage == Language.EN) "en" else "uk",
+                                    filterSummary = procurementPdfFilterSummary
+                                )
+                            )
+                        },
+                        enabled = visibleRecords.isNotEmpty()
+                    ) {
+                        Icon(Icons.Default.PictureAsPdf, null)
+                        Spacer(Modifier.width(6.dp))
+                        Text(LocalizationManager.t("export_pdf"))
+                    }
                     if (maxWidth >= 620.dp) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                        SearchField(Modifier.weight(1f).widthIn(min = 280.dp)); Pagination()
+                        SearchField(Modifier.weight(1f).widthIn(min = 280.dp)); ExportPdf(); Pagination()
                     } else Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         SearchField(Modifier.fillMaxWidth())
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) { Pagination() }
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) { ExportPdf(); Pagination() }
                     }
                 }
                 signedContractMonthFilter?.let { month ->
