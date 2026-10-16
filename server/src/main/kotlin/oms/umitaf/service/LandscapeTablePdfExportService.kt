@@ -127,7 +127,11 @@ class LandscapeTablePdfExportService {
         private fun addPageNumbers() {
             val total = document.numberOfPages
             document.pages.forEachIndexed { index, page ->
-                PDPageContentStream(document, page, AppendMode.APPEND, true).use { footer ->
+                // An appended content stream has no active graphics state by
+                // default. Reset it before setting the footer colour; otherwise
+                // PDFBox can reject `setNonStrokingColor` with "The color space
+                // must be set before setting a color".
+                PDPageContentStream(document, page, AppendMode.APPEND, true, true).use { footer ->
                     val value = request.pageLabel(index + 1, total)
                     footer.beginText()
                     footer.setFont(font, 8f)
