@@ -69,10 +69,21 @@ class ProcurementTablePdfExportService(
     )
 
     private fun merge(parts: List<ByteArray>): ByteArray = PDDocument().use { destination ->
-        parts.forEach { bytes ->
-            PDDocument.load(bytes).use { source -> source.pages.forEach { page -> destination.importPage(page) } }
+        // `importPage` keeps references to the source page streams until the
+        // destination document is written. Keep all source documents open for
+        // the complete merge; closing them earlier produces a corrupt PDF.
+        val sources = parts.map(PDDocument::load)
+        try {
+            sources.forEach { source ->
+                source.pages.forEach { page -> destination.importPage(page) }
+            }
+            ByteArrayOutputStream().use { output ->
+                destination.save(output)
+                output.toByteArray()
+            }
+        } finally {
+            sources.forEach(PDDocument::close)
         }
-        ByteArrayOutputStream().use { output -> destination.save(output); output.toByteArray() }
     }
 
     private fun localized(uk: String?, en: String?, language: Language) =
