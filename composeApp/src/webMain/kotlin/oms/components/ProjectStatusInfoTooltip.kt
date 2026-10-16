@@ -47,6 +47,22 @@ fun ProjectStatusInfoButton(modifier: Modifier = Modifier) {
                     "• ${LocalizationManager.t("project_status_active")} — ${LocalizationManager.t("project_status_info_active")}",
                     style = MaterialTheme.typography.bodySmall
                 )
+                Text(
+                    "• ${LocalizationManager.t("project_status_suspended")} — ${LocalizationManager.t("project_status_info_suspended")}",
+                    style = MaterialTheme.typography.bodySmall
+                )
+                Text(
+                    "• ${LocalizationManager.t("project_status_completed")} — ${LocalizationManager.t("project_status_info_completed")}",
+                    style = MaterialTheme.typography.bodySmall
+                )
+                Text(
+                    "• ${LocalizationManager.t("project_status_archived")} — ${LocalizationManager.t("project_status_info_archived")}",
+                    style = MaterialTheme.typography.bodySmall
+                )
+                Text(
+                    "• ${LocalizationManager.t("project_status_dlp")} — ${LocalizationManager.t("project_status_info_dlp")}",
+                    style = MaterialTheme.typography.bodySmall
+                )
             }
         }
     ) {
