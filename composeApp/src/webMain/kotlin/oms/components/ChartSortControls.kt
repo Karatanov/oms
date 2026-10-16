@@ -3,6 +3,8 @@ package oms.components
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDownward
@@ -32,7 +34,7 @@ fun ChartSortControls(
     onDirectionToggle: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Row(modifier, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+    Row(modifier, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
         OmsTooltipBox(tooltip = { Text(LocalizationManager.t("chart_sort_alphabetically")) }) {
             SingleChoiceSegmentedButtonRow {
                 listOf(ChartSortCriterion.Label, ChartSortCriterion.Value).forEachIndexed { index, option ->
@@ -41,10 +43,10 @@ fun ChartSortControls(
                     SegmentedButton(
                         selected = criterion == option,
                         onClick = { onCriterionChange(option) },
-                        modifier = Modifier.buttonHandCursor().semantics { contentDescription = LocalizationManager.t(tooltipKey) },
+                        modifier = Modifier.height(32.dp).buttonHandCursor().semantics { contentDescription = LocalizationManager.t(tooltipKey) },
                         shape = SegmentedButtonDefaults.itemShape(index, 2),
                         icon = {},
-                        label = { Text(label) }
+                        label = { Text(label, style = MaterialTheme.typography.labelSmall) }
                     )
                 }
             }
@@ -54,12 +56,13 @@ fun ChartSortControls(
         OmsTooltipBox(tooltip = { Text(LocalizationManager.t(directionKey)) }) {
             IconButton(
                 onClick = onDirectionToggle,
-                modifier = Modifier.buttonHandCursor().semantics { contentDescription = LocalizationManager.t(directionKey) }
+                modifier = Modifier.size(36.dp).buttonHandCursor().semantics { contentDescription = LocalizationManager.t(directionKey) }
             ) {
                 Icon(
                     if (ascending) Icons.Default.ArrowUpward else Icons.Default.ArrowDownward,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(18.dp)
                 )
             }
         }

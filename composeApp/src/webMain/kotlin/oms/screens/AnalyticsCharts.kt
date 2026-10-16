@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -62,8 +63,10 @@ import oms.components.OmsTooltipBox
 import oms.components.ChartSortControls
 import oms.components.ChartDataLabelsToggle
 import oms.components.ChartPngExportButton
+import oms.components.OmsChartHeader
 import oms.components.localizedUkraineRegion
 import oms.components.canonicalUkraineRegion
+import oms.components.buttonHandCursor
 import kotlin.math.roundToLong
 
 @Composable
@@ -292,11 +295,8 @@ private fun AnalyticsListCard(
         colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Column(Modifier.padding(16.dp)) {
-            Box(Modifier.fillMaxWidth().height(44.dp), contentAlignment = Alignment.Center) {
-                Text(LocalizationManager.t(titleKey), style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center)
-                sortControls?.let { controls ->
-                    Box(Modifier.align(Alignment.CenterStart)) { controls() }
-                }
+            OmsChartHeader(LocalizationManager.t(titleKey)) {
+                sortControls?.invoke()
             }
             hintKey?.let { Text(LocalizationManager.t(it), Modifier.fillMaxWidth(), textAlign = TextAlign.Center, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
             Spacer(Modifier.height(8.dp))
@@ -478,43 +478,30 @@ private fun AnalyticsCard(
     Card(cardModifier, shape = RoundedCornerShape(12.dp),
         colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
         Column(Modifier.padding(16.dp)) {
-            Box(Modifier.fillMaxWidth().height(44.dp), contentAlignment = Alignment.Center) {
-                Text(
-                    LocalizationManager.t(titleKey),
-                    style = MaterialTheme.typography.titleMedium,
-                    textAlign = TextAlign.Center
+            OmsChartHeader(LocalizationManager.t(titleKey)) {
+                if (sortEnabled) ChartSortControls(
+                    criterion = sortCriterion,
+                    ascending = sortAscending,
+                    onCriterionChange = { sortCriterion = it },
+                    onDirectionToggle = { sortAscending = !sortAscending }
+                )
+                if (data.isNotEmpty()) ChartDataLabelsToggle(showDataLabels) { showDataLabels = it }
+                if (displayData.isNotEmpty()) ChartPngExportButton(
+                    title = LocalizationManager.t(titleKey),
+                    filenameStem = titleKey,
+                    data = displayData,
+                    orientation = orientation,
+                    showDataLabels = showDataLabels,
+                    valueLabel = valueLabel
                 )
                 onExpandedChange?.let { onToggle ->
-                    IconButton(
-                        onClick = { onToggle(!expanded) },
-                        modifier = Modifier.align(Alignment.CenterEnd)
-                    ) {
+                    IconButton(onClick = { onToggle(!expanded) }, modifier = Modifier.size(36.dp).buttonHandCursor()) {
                         Icon(
                             if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                            contentDescription = LocalizationManager.t(if (expanded) "collapse" else "expand")
+                            contentDescription = LocalizationManager.t(if (expanded) "collapse" else "expand"),
+                            modifier = Modifier.size(18.dp)
                         )
                     }
-                }
-                Row(
-                    modifier = Modifier.align(Alignment.CenterStart),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    if (sortEnabled) ChartSortControls(
-                        criterion = sortCriterion,
-                        ascending = sortAscending,
-                        onCriterionChange = { sortCriterion = it },
-                        onDirectionToggle = { sortAscending = !sortAscending }
-                    )
-                    if (data.isNotEmpty()) ChartDataLabelsToggle(showDataLabels) { showDataLabels = it }
-                    if (displayData.isNotEmpty()) ChartPngExportButton(
-                        title = LocalizationManager.t(titleKey),
-                        filenameStem = titleKey,
-                        data = displayData,
-                        orientation = orientation,
-                        showDataLabels = showDataLabels,
-                        valueLabel = valueLabel
-                    )
                 }
             }
             if (expanded) {

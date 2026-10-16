@@ -1,6 +1,7 @@
 package oms.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
@@ -12,6 +13,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.dp
 import oms.localization.LocalizationManager
 
 /** Small per-chart control for bar-value labels; it deliberately has no global persistence. */
@@ -22,6 +24,7 @@ fun ChartDataLabelsToggle(showDataLabels: Boolean, onShowDataLabelsChange: (Bool
         IconButton(
             onClick = { onShowDataLabelsChange(!showDataLabels) },
             modifier = Modifier
+                .size(36.dp)
                 .buttonHandCursor()
                 .background(
                     if (showDataLabels) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
@@ -32,7 +35,8 @@ fun ChartDataLabelsToggle(showDataLabels: Boolean, onShowDataLabelsChange: (Bool
             Icon(
                 imageVector = if (showDataLabels) Icons.Default.Visibility else Icons.Default.VisibilityOff,
                 contentDescription = null,
-                tint = if (showDataLabels) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                tint = if (showDataLabels) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(18.dp)
             )
         }
     }

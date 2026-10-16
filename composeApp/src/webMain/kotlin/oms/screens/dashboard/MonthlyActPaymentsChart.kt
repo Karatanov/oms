@@ -1,7 +1,6 @@
 package oms.screens.dashboard
 
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -18,9 +17,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import oms.charts.BarData
 import oms.charts.VerticalBarChart
@@ -31,6 +28,7 @@ import oms.localization.LocalizationManager
 import oms.components.CurrencySelector
 import oms.components.ChartDataLabelsToggle
 import oms.components.ChartPngExportButton
+import oms.components.OmsChartHeader
 
 @Composable
 fun MonthlyActPaymentsChart(primary: Color, payments: List<ApiMonthlyActPayment>, onOpenFinancialByMonth: (String) -> Unit = {}, orientation: BarChartOrientation = BarChartOrientation.Vertical) {
@@ -51,26 +49,17 @@ fun MonthlyActPaymentsChart(primary: Color, payments: List<ApiMonthlyActPayment>
     Card(modifier = Modifier.fillMaxWidth().heightIn(min = 420.dp), shape = RoundedCornerShape(12.dp),
         colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Box(Modifier.fillMaxWidth().height(44.dp), contentAlignment = Alignment.Center) {
-                Text(
-                    LocalizationManager.t("monthly_act_payments"),
-                    style = MaterialTheme.typography.titleMedium,
-                    textAlign = TextAlign.Center
-                )
+            OmsChartHeader(LocalizationManager.t("monthly_act_payments")) {
                 if (data.isNotEmpty()) {
-                    Box(Modifier.align(Alignment.CenterStart)) {
-                        Row {
-                            ChartDataLabelsToggle(showDataLabels) { showDataLabels = it }
-                            ChartPngExportButton(
-                                title = LocalizationManager.t("monthly_act_payments"),
-                                filenameStem = "monthly-act-payments",
-                                data = data,
-                                orientation = orientation,
-                                showDataLabels = showDataLabels,
-                                valueLabel = { formatActAmount(it.toLong(), currency) }
-                            )
-                        }
-                    }
+                    ChartDataLabelsToggle(showDataLabels) { showDataLabels = it }
+                    ChartPngExportButton(
+                        title = LocalizationManager.t("monthly_act_payments"),
+                        filenameStem = "monthly-act-payments",
+                        data = data,
+                        orientation = orientation,
+                        showDataLabels = showDataLabels,
+                        valueLabel = { formatActAmount(it.toLong(), currency) }
+                    )
                 }
             }
             Box(Modifier.fillMaxWidth().height(40.dp), contentAlignment = Alignment.Center) {
