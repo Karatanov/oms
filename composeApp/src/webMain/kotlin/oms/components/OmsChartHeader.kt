@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.weight
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -39,7 +38,11 @@ fun OmsChartHeader(
             ) {
                 Text(
                     title,
-                    modifier = Modifier.weight(1f),
+                    // Avoid RowScope.weight here: its JS metadata became
+                    // internal after the Compose/Kotlin tooling update.
+                    // A proportional lane retains the non-overlapping wide
+                    // layout without depending on that extension.
+                    modifier = Modifier.fillMaxWidth(0.70f),
                     style = MaterialTheme.typography.titleMedium,
                     textAlign = TextAlign.Start,
                     maxLines = 3
