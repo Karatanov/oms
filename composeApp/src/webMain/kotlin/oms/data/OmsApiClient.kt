@@ -23,6 +23,7 @@ import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.js.ExperimentalWasmJsInterop
 import kotlin.js.JsName
 import kotlin.js.unsafeCast
@@ -76,15 +77,28 @@ object OmsApiClient {
         return payload.user
     }
 
-    /** Returns the active server session without showing the global loader. */
-    suspend fun currentSessionUser(): ApiUser? {
+    /**
+     * Returns the active server session without showing a global loader.
+     *
+     * This request is the only network operation that runs before Compose can
+     * reveal the login screen. A network stack may leave `fetch` pending
+     * indefinitely, so bound this bootstrap check and fall back to login.
+     */
+    suspend fun currentSessionUser(): ApiUser? = withTimeoutOrNull(12_000) {
         val response = client.get("$baseUrl/auth/session?background=true")
-        if (response.status.value == 401) { setOmsAccessToken(""); return null }
-        if (!response.status.isSuccess()) throw IllegalStateException(response.bodyAsText())
-        // The verified guest marker is a UI identity, never a persisted user record.
-        val body = response.bodyAsText()
-        if (body.contains("\"guest\":true")) return ApiUser(0L, "Guest", "", role = ApiRole(0L, "GUEST", "Guest"))
-        return Json { ignoreUnknownKeys = true }.decodeFromString(body)
+        when {
+            response.status.value == 401 -> {
+                setOmsAccessToken("")
+                null
+            }
+            !response.status.isSuccess() -> throw IllegalStateException(response.bodyAsText())
+            else -> {
+                // The verified guest marker is a UI identity, never a persisted user record.
+                val body = response.bodyAsText()
+                if (body.contains("\"guest\":true")) ApiUser(0L, "Guest", "", role = ApiRole(0L, "GUEST", "Guest"))
+                else Json { ignoreUnknownKeys = true }.decodeFromString(body)
+            }
+        }
     }
 
     suspend fun startGuestSession() {

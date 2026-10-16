@@ -8,7 +8,9 @@
             session: "Перевірка сеансу…",
             interface: "Запуск інтерфейсу…",
             ready: "Готово",
-            elapsed: "Час завантаження"
+            elapsed: "Час завантаження",
+            failed: "Не вдалося запустити інтерфейс. Перевірте з’єднання та повторіть спробу.",
+            retry: "Повторити"
         },
         en: {
             preparing: "Preparing the system…",
@@ -17,7 +19,9 @@
             session: "Checking your session…",
             interface: "Starting the interface…",
             ready: "Ready",
-            elapsed: "Loading time"
+            elapsed: "Loading time",
+            failed: "The interface could not be started. Check your connection and try again.",
+            retry: "Retry"
         }
     };
     let locale = "uk";
@@ -27,6 +31,8 @@
     let warmProgress = 0;
     let warmupPromise = null;
     let timer = null;
+    let watchdog = null;
+    let failed = false;
 
     const stored = (() => {
         try { return JSON.parse(sessionStorage.getItem(storageKey) || "{}"); }
@@ -95,16 +101,44 @@
         if (percent) percent.textContent = `${value}%`;
         if (message && messageKey) message.textContent = text(messageKey);
         if (elapsed) elapsed.textContent = `${text("elapsed")}: ${elapsedText()}`;
+        const retry = document.getElementById("oms-startup-retry");
+        if (retry) {
+            retry.hidden = !failed;
+            retry.textContent = text("retry");
+        }
     };
     const ensureTimer = () => {
         if (timer) return;
         timer = setInterval(() => render(), 250);
     };
     const report = (value, messageKey) => {
-        if (!active) return;
+        if (!active || failed) return;
         progress = Math.max(progress, Number(value) || 0);
         persist();
         render(messageKey);
+    };
+    const clearWatchdog = () => {
+        if (watchdog) clearTimeout(watchdog);
+        watchdog = null;
+    };
+    const failStartup = cause => {
+        if (!active || failed) return;
+        failed = true;
+        clearWatchdog();
+        clearInterval(timer);
+        timer = null;
+        sessionStorage.removeItem(storageKey);
+        // Keep the failure visible instead of leaving a progress indicator
+        // indefinitely at 93%. The technical cause stays in DevTools only.
+        console.error("OMS startup failed", cause);
+        render("failed");
+    };
+    const ensureWatchdog = () => {
+        if (watchdog || failed) return;
+        // The production renderer is large and may need tens of seconds on a
+        // cold connection. This is a failure screen, not an auto-dismissal:
+        // a user must explicitly retry if mounting never completes.
+        watchdog = setTimeout(() => failStartup(new Error("Startup did not complete within 90 seconds")), 90_000);
     };
     const reportWarmup = value => {
         warmProgress = Math.max(warmProgress, value);
@@ -157,10 +191,12 @@
     window.beginOmsStartup = language => {
         locale = language === "en" ? "en" : "uk";
         active = true;
+        failed = false;
         startedAt = Date.now();
         progress = Math.max(progress, warmProgress, 3);
         persist();
         ensureTimer();
+        ensureWatchdog();
         render("preparing");
         return warmApplicationAssets();
     };
@@ -170,10 +206,13 @@
             startedAt = Date.now();
         }
         ensureTimer();
+        ensureWatchdog();
         report(value, messageKey || "interface");
     };
     window.completeOmsStartup = () => {
+        if (failed) return;
         report(100, "ready");
+        clearWatchdog();
         performance.mark("oms-dashboard-handoff");
         sessionStorage.removeItem(storageKey);
         setTimeout(() => {
@@ -185,8 +224,20 @@
         }, 220);
     };
 
+    window.retryOmsStartup = () => window.location.reload();
+    window.addEventListener("error", event => {
+        if (!active) return;
+        const target = event.target;
+        const resourceFailure = target && (target.tagName === "SCRIPT" || target.tagName === "LINK");
+        failStartup(resourceFailure ? new Error(`Could not load ${target.src || target.href || "startup resource"}`) : event.error || new Error(event.message || "Unhandled startup error"));
+    }, true);
+    window.addEventListener("unhandledrejection", event => {
+        if (active) failStartup(event.reason || new Error("Unhandled startup rejection"));
+    });
+
     if (active) {
         ensureTimer();
+        ensureWatchdog();
         window.addEventListener("DOMContentLoaded", () => {
             report(Math.max(progress, 91), "session");
         }, { once: true });
