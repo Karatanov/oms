@@ -61,6 +61,20 @@ private fun isSignatureSectionTitle(value: String): Boolean =
     value.equals(SIGNATURE_SECTION_TITLE, ignoreCase = true) ||
         value.equals("M4H QA STAFF", ignoreCase = true)
 
+/**
+ * A stable, user-facing SIR export name.  The stored source workbook may have
+ * originated outside OMS and therefore have an arbitrary filename; downloads
+ * must instead be identifiable by subproject and inspection date.
+ */
+fun sirExportFileBaseName(subprojectCode: String?, inspectionDate: String): String {
+    val safeCode = subprojectCode.orEmpty()
+        .replace(Regex("[^A-Za-z0-9._-]"), "_")
+        .trim('_')
+        .ifBlank { "subproject" }
+    val safeDate = inspectionDate.replace(Regex("[^0-9-]"), "").ifBlank { "date" }
+    return "OMS_SIR_${safeCode.take(120)}_$safeDate"
+}
+
 class InspectionReportFileService(
     private val fileRepository: InspectionReportFileRepository,
     private val reportService: InspectionReportService
@@ -236,7 +250,7 @@ class InspectionReportFileService(
             latitude = request.latitude,
             longitude = request.longitude
         )
-        val fileName = "SIR-UMITAF_${request.inspectionDate.replace("-", "")}.xlsx"
+        val fileName = "${sirExportFileBaseName(project.siteNumber, request.inspectionDate)}.xlsx"
         val directory = uploadDirectory("inspection-reports")
         Files.createDirectories(directory)
         val target = directory.resolve("${report.uuid}.xlsx")
@@ -652,9 +666,11 @@ class InspectionReportFileService(
         firstRow(sheet, "PURCHASED MATERIALS")?.let { reinforcePurchasedMaterialsBorders(sheet, it) }
         firstRow(sheet, "NARRATIVE ASSESSMENT - COMMENTS ON PROGRESS")
             ?.let { reinforceProgressAssessmentBorders(sheet, it) }
-        // The old M4H wording was part of the supplied sample, not the
-        // current report template. Preserve the layout, but publish UNDP.
-        sheet.getRow(signatureSectionRow(sheet) - 1)?.getCell(0)?.setCellValue(SIGNATURE_SECTION_TITLE)
+        // Row shifts used to preserve just the heading text while silently
+        // dropping its merged geometry. Restore the complete signing block
+        // after every dynamic section has finished changing the worksheet.
+        normalizeSignatureBlock(sheet)
+        reinforceFinalReportBorder(sheet)
         focusWorkbookAtReportStart(workbook, sheet)
     }
 
@@ -671,8 +687,58 @@ class InspectionReportFileService(
         firstColumn: Int,
         lastColumn: Int
     ) {
-        val region = CellRangeAddress(row - 1, row - 1, firstColumn, lastColumn)
+        applyMediumOutline(sheet, CellRangeAddress(row - 1, row - 1, firstColumn, lastColumn))
+    }
+
+    private fun applyMediumOutline(sheet: org.apache.poi.ss.usermodel.Sheet, region: CellRangeAddress) {
         RegionUtil.setBorderTop(BorderStyle.MEDIUM, region, sheet)
+        RegionUtil.setBorderBottom(BorderStyle.MEDIUM, region, sheet)
+        RegionUtil.setBorderLeft(BorderStyle.MEDIUM, region, sheet)
+        RegionUtil.setBorderRight(BorderStyle.MEDIUM, region, sheet)
+    }
+
+    /** Rebuilds the final signing geometry from the approved SIR template. */
+    private fun normalizeSignatureBlock(sheet: org.apache.poi.ss.usermodel.Sheet) {
+        val titleRow = signatureSectionRow(sheet)
+        val titleIndex = titleRow - 1
+        val signatureFirstRow = titleIndex + 1
+        val signatureLastRow = titleIndex + 2
+
+        // Apache POI does not reliably retain merges crossing rows shifted by
+        // optional SIR sections. Remove only merges touching the two regions
+        // we rebuild; inspector and representative data cells stay intact.
+        for (index in sheet.mergedRegions.size - 1 downTo 0) {
+            val region = sheet.mergedRegions[index]
+            val touchesTitle = region.firstRow <= titleIndex && region.lastRow >= titleIndex
+            val touchesSignature = region.firstRow <= signatureLastRow && region.lastRow >= signatureFirstRow &&
+                region.firstColumn <= 11 && region.lastColumn >= 7
+            if (touchesTitle || touchesSignature) sheet.removeMergedRegion(index)
+        }
+
+        val title = sheet.getRow(titleIndex) ?: sheet.createRow(titleIndex)
+        (1..11).forEach { column -> (title.getCell(column) ?: title.createCell(column)).setBlank() }
+        title.getCell(0).setCellValue(SIGNATURE_SECTION_TITLE)
+        val titleRegion = CellRangeAddress(titleIndex, titleIndex, 0, 11)
+        sheet.addMergedRegion(titleRegion)
+        applyMediumOutline(sheet, titleRegion)
+
+        val signatureRow = sheet.getRow(signatureFirstRow) ?: sheet.createRow(signatureFirstRow)
+        (8..11).forEach { column -> (signatureRow.getCell(column) ?: signatureRow.createCell(column)).setBlank() }
+        signatureRow.getCell(7).setCellValue("SIGNATURE")
+        val signatureRegion = CellRangeAddress(signatureFirstRow, signatureLastRow, 7, 11)
+        sheet.addMergedRegion(signatureRegion)
+        applyMediumOutline(sheet, signatureRegion)
+    }
+
+    /** Ensures the report's last printed row has a visibly closed contour. */
+    private fun reinforceFinalReportBorder(sheet: org.apache.poi.ss.usermodel.Sheet) {
+        val lastContentRow = (sheet.lastRowNum downTo 0).firstOrNull { rowIndex ->
+            val row = sheet.getRow(rowIndex) ?: return@firstOrNull false
+            (0..11).any { column ->
+                row.getCell(column)?.let { DataFormatter().formatCellValue(it).trim().isNotEmpty() } == true
+            }
+        } ?: return
+        val region = CellRangeAddress(lastContentRow, lastContentRow, 0, 11)
         RegionUtil.setBorderBottom(BorderStyle.MEDIUM, region, sheet)
         RegionUtil.setBorderLeft(BorderStyle.MEDIUM, region, sheet)
         RegionUtil.setBorderRight(BorderStyle.MEDIUM, region, sheet)

@@ -118,6 +118,8 @@
             if (!overlay) {
                 overlay = document.createElement("div");
                 overlay.id = "oms-operation-progress";
+                overlay.setAttribute("role", "status");
+                overlay.setAttribute("aria-live", "polite");
                 overlay.innerHTML = '<div class="oms-loading-card"><span class="oms-loading-spinner"></span><span class="oms-loading-message"></span></div>';
                 document.body.appendChild(overlay);
             }
@@ -1279,6 +1281,12 @@
            Requests and section transitions must never reuse this element. */
         #oms-loading-overlay { position: fixed; inset: 0; z-index: 2147483647; overflow: auto; background: #fff; color: #20313c; transition: opacity .18s ease; font-family: Inter, "Segoe UI", Arial, sans-serif; }
         #oms-loading-overlay:not(.visible) { opacity: 0; pointer-events: none; }
+        /* File uploads happen outside Compose through the native picker. Keep
+           a separate, prominent progress layer so the selected operation is
+           always visible while the browser transfers the binary payload. */
+        #oms-operation-progress { position: fixed; inset: 0; z-index: 2147483646; display: grid; place-items: center; padding: 24px; background: #153e4d38; opacity: 0; pointer-events: none; transition: opacity .18s ease; }
+        #oms-operation-progress.visible { opacity: 1; pointer-events: auto; }
+        #oms-operation-progress .oms-loading-card { max-width: min(390px, 100%); padding: 20px 24px; border: 1px solid #d7e3e9; border-radius: 16px; background: #fff; box-shadow: 0 18px 55px #153e4d42; color: #20313c; font-size: 15px; }
         .oms-loading-card { display: flex; align-items: center; gap: 10px; color: #536571; font: 500 13px Inter, Arial, sans-serif; }
         .oms-loading-spinner { width: 22px; height: 22px; border: 3px solid #17728a33; border-top-color: #17728a; border-radius: 50%; animation: oms-spin .7s linear infinite; }
         .oms-startup-login { min-height: 100vh; display: grid; grid-template-columns: 1fr 1fr; }

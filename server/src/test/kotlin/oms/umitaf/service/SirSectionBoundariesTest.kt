@@ -8,6 +8,11 @@ import org.apache.poi.ss.util.CellRangeAddress
 import kotlin.test.*
 
 class SirSectionBoundariesTest {
+    @Test fun `SIR workbook and PDF share a stable subproject filename base`() {
+        assertEquals("OMS_SIR_KH08_07_2026-09-22", sirExportFileBaseName("KH08_07", "2026-09-22"))
+        assertEquals("OMS_SIR_subproject_2026-09-22", sirExportFileBaseName(null, "2026-09-22"))
+    }
+
     @Test fun `removing compact materials preserves subsequent progress and signature`() {
         val service = InspectionReportFileService(
             unusedRepository(InspectionReportFileRepository::class.java),

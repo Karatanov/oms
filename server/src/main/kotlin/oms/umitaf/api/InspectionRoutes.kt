@@ -11,6 +11,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.io.readByteArray
 import oms.umitaf.config.AppContainer
+import oms.umitaf.service.sirExportFileBaseName
 import oms.umitaf.dto.*
 
 private const val AUTO_HSE_FINDING_CATEGORY = "hse_sir_auto"
@@ -127,7 +128,11 @@ fun Route.inspectionRoutes() {
             ?: return@get call.notFound("Original SIR file not found.")
         val path = AppContainer.inspectionReportFileService.resolveFile(file)
             ?: return@get call.notFound("Original SIR file is unavailable.")
-        call.response.header(HttpHeaders.ContentDisposition, ContentDisposition.Attachment.withParameter(ContentDisposition.Parameters.FileName, file.originalName).toString())
+        val project = AppContainer.projectService.getAllProjects().firstOrNull { it.id == report.projectId }
+            ?: return@get call.notFound("Project not found.")
+        val extension = file.originalName.substringAfterLast('.', "xlsx").lowercase().ifBlank { "xlsx" }
+        val downloadName = "${sirExportFileBaseName(project.siteNumber, report.inspectionDate)}.$extension"
+        call.response.header(HttpHeaders.ContentDisposition, ContentDisposition.Attachment.withParameter(ContentDisposition.Parameters.FileName, downloadName).toString())
         call.respondFile(path.toFile())
     }
 
@@ -136,8 +141,10 @@ fun Route.inspectionRoutes() {
         try {
             // Conversion opens an Office workbook and can take several seconds
             // for evidence-heavy reports, so never block Ktor's event loop.
+            val project = AppContainer.projectService.getAllProjects().firstOrNull { it.id == report.projectId }
+                ?: return@get call.notFound("Project not found.")
             val pdf = withContext(Dispatchers.IO) {
-                AppContainer.sirPdfExportService.export(report)
+                AppContainer.sirPdfExportService.export(report, sirExportFileBaseName(project.siteNumber, report.inspectionDate))
             }
             call.response.header(
                 HttpHeaders.ContentDisposition,

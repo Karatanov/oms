@@ -20,7 +20,7 @@ class SirPdfExportService(
 ) {
     data class ExportedSirPdf(val fileName: String, val bytes: ByteArray)
 
-    fun export(report: InspectionReport): ExportedSirPdf {
+    fun export(report: InspectionReport, fileBaseName: String): ExportedSirPdf {
         val file = reportFileService.getFile(report.id)
             ?: throw IllegalArgumentException("Original SIR file not found.")
         val extension = file.originalName.substringAfterLast('.', "").lowercase()
@@ -73,9 +73,8 @@ class SirPdfExportService(
             if (!Files.isRegularFile(pdf) || Files.size(pdf) == 0L) {
                 throw PdfExportUnavailableException("The PDF export service could not create a PDF.")
             }
-            val reportId = report.reportCode?.trim()?.takeIf { it.isNotEmpty() } ?: report.uuid.toString()
             return ExportedSirPdf(
-                fileName = "OMS_SIR_${safeFileComponent(reportId)}_${report.inspectionDate}.pdf",
+                fileName = "${safeFileComponent(fileBaseName)}.pdf",
                 bytes = Files.readAllBytes(pdf)
             )
         } catch (exception: InterruptedException) {
