@@ -131,7 +131,7 @@ fun Route.inspectionRoutes() {
         val project = AppContainer.projectService.getAllProjects().firstOrNull { it.id == report.projectId }
             ?: return@get call.notFound("Project not found.")
         val extension = file.originalName.substringAfterLast('.', "xlsx").lowercase().ifBlank { "xlsx" }
-        val downloadName = "${sirExportFileBaseName(project.siteNumber, report.inspectionDate)}.$extension"
+        val downloadName = "${sirExportFileBaseName(project.siteNumber, report.inspectionDate.toString())}.$extension"
         call.response.header(HttpHeaders.ContentDisposition, ContentDisposition.Attachment.withParameter(ContentDisposition.Parameters.FileName, downloadName).toString())
         call.respondFile(path.toFile())
     }
@@ -144,7 +144,7 @@ fun Route.inspectionRoutes() {
             val project = AppContainer.projectService.getAllProjects().firstOrNull { it.id == report.projectId }
                 ?: return@get call.notFound("Project not found.")
             val pdf = withContext(Dispatchers.IO) {
-                AppContainer.sirPdfExportService.export(report, sirExportFileBaseName(project.siteNumber, report.inspectionDate))
+                AppContainer.sirPdfExportService.export(report, sirExportFileBaseName(project.siteNumber, report.inspectionDate.toString()))
             }
             call.response.header(
                 HttpHeaders.ContentDisposition,
