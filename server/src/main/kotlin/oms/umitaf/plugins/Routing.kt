@@ -6,7 +6,9 @@ import io.ktor.server.http.content.*
 import io.ktor.server.routing.*
 import io.ktor.server.response.respondFile
 import io.ktor.server.response.respondRedirect
+import io.ktor.server.sessions.get
 import oms.umitaf.api.*
+import oms.umitaf.security.UserSession
 import java.io.File
 
 /**
@@ -56,6 +58,14 @@ fun Application.configureRouting() {
             // application bundle. The bundle is requested only after login.
             get("/") {
                 call.respondFile(File(frontendDirectory, "login.html"))
+            }
+            // Bookmarks and stale browser history can point straight at the
+            // heavyweight Compose entry point. Keep an unauthenticated visit
+            // lightweight as well: only an established server session may
+            // receive app.html and download the WASM application.
+            get("/app.html") {
+                val page = if (call.sessions.get<UserSession>() == null) "login.html" else "app.html"
+                call.respondFile(File(frontendDirectory, page))
             }
             staticFiles("/", frontendDirectory, index = "index.html") {
                 preCompressed(CompressedFileType.BROTLI, CompressedFileType.GZIP)

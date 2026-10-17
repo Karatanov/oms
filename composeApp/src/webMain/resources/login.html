@@ -160,6 +160,17 @@
         remember.checked = Boolean(savedUsername && savedPassword);
     } catch (_) { /* Storage may be disabled by browser privacy settings. */ }
     let english = false;
+    // Warm the application only after the lightweight login document has
+    // painted. This makes the form usable immediately while allowing a
+    // patient visitor to benefit from a browser cache hit after signing in.
+    // The warm-up never enables the startup overlay and therefore cannot
+    // block typing, language selection or authentication.
+    const warmApplicationInBackground = () => window.omsWarmApplicationAssets?.();
+    if ("requestIdleCallback" in window) {
+        window.requestIdleCallback(warmApplicationInBackground, { timeout: 1_000 });
+    } else {
+        window.setTimeout(warmApplicationInBackground, 0);
+    }
     const uk = ["З поверненням", "Будь ласка, увійдіть до свого облікового запису.", "Логін або електронна пошта", "Пароль", "Запам’ятати мене", "Забули пароль?", "Увійти", "Продовжити як гість"];
     const en = ["Welcome back", "Please sign in to your account.", "Username or email", "Password", "Remember me", "Forgot password?", "Sign in", "Continue as guest"];
     const translated = ["welcome", "hint", "username-label", "password-label", "remember-label", "forgot", "submit", "guest"];
@@ -211,10 +222,9 @@
             if (!response.ok) throw Error(data.message || "Не вдалося увійти. Перевірте логін і пароль.");
             saveToken(data);
             persistCredentials();
-            // Preserve the login artwork and show the real hand-off state at
-            // once.  The app page itself owns the asset request: downloads
-            // started in this document are cancelled during navigation and
-            // would otherwise compete with the actual application load.
+            // Preserve the login artwork and show the hand-off state only
+            // after authentication. Any completed idle warm-up is reusable
+            // from the browser cache; an incomplete one is harmless.
             window.beginOmsStartup?.(english ? "en" : "uk", false);
             location.replace(appUrl());
         } catch (error) {
