@@ -7,6 +7,7 @@ import io.ktor.server.routing.*
 import io.ktor.server.response.respondFile
 import io.ktor.server.response.respondRedirect
 import io.ktor.server.sessions.get
+import io.ktor.server.sessions.sessions
 import oms.umitaf.api.*
 import oms.umitaf.security.UserSession
 import java.io.File
