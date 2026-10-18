@@ -1,4 +1,9 @@
-FROM gradle:8.14-jdk21 AS build
+# syntax=docker/dockerfile:1.7
+
+# Keep JVM dependency resolution separate from both application build targets.
+# The CI workflow exports this stage to BuildKit's GitHub Actions cache, so an
+# unchanged Gradle graph does not have to be downloaded on every deployment.
+FROM gradle:8.14-jdk21 AS gradle-base
 WORKDIR /workspace
 ARG OMS_GIT_SHA=local
 ARG OMS_BUILD_DATE=local
@@ -13,19 +18,22 @@ COPY composeApp/build.gradle.kts composeApp/build.gradle.kts
 COPY shared/build.gradle.kts shared/build.gradle.kts
 RUN gradle :server:dependencies --no-daemon --max-workers=1
 
-# Source changes intentionally start only here. The dependency layer above is
-# still reused unless a JVM build configuration changes.
+# A server-only change must not rebuild the production WASM bundle.  Splitting
+# these stages lets BuildKit reuse the completed frontend stage independently.
+FROM gradle-base AS frontend-build
 COPY composeApp/src composeApp/src
 COPY shared/src shared/src
-COPY server/src server/src
-# The VPS serves the browser bundle and API from one origin.  The bundle is
-# built once in CI and copied into the runtime image; the server never compiles
-# Kotlin at startup.
-# The development artifact is tens of megabytes and dominates cold startup.
-# Production Webpack is deliberately allowed to finish; CI has a bounded job
-# timeout and publishes only after the optimized artifact is complete.
-RUN gradle -PrenderJsOnly :composeApp:jsBrowserProductionWebpack :server:installDist --no-daemon --max-workers=1
+RUN gradle -PrenderJsOnly :composeApp:jsBrowserProductionWebpack --no-daemon --max-workers=1
 
+FROM gradle-base AS server-build
+COPY shared/src shared/src
+COPY server/src server/src
+RUN gradle :server:installDist --no-daemon --max-workers=1
+
+# The VPS serves the browser bundle and API from one origin.  This small
+# packaging stage is intentionally separate: build metadata changes only
+# repackage already-built assets instead of triggering Gradle/Webpack again.
+FROM frontend-build AS web-build
 RUN mkdir -p /workspace/web \
     && cp -a /workspace/composeApp/build/processedResources/js/main/. /workspace/web/ \
     && cp -a /workspace/composeApp/build/kotlin-webpack/js/productionExecutable/. /workspace/web/ \
@@ -58,8 +66,8 @@ WORKDIR /opt/oms
 RUN apt-get update \
     && apt-get install -y --no-install-recommends libreoffice-calc fonts-crosextra-carlito \
     && rm -rf /var/lib/apt/lists/*
-COPY --from=build /workspace/server/build/install/server/ ./
-COPY --from=build /workspace/web/ ./web/
+COPY --from=server-build /workspace/server/build/install/server/ ./
+COPY --from=web-build /workspace/web/ ./web/
 ENV JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=70.0"
 EXPOSE 8080
 CMD ["bin/server"]

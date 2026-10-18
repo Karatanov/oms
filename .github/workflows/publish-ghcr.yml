@@ -25,9 +25,9 @@ jobs:
     concurrency:
       group: oms-ghcr-build-${{ github.ref }}
       cancel-in-progress: true
-    # A failed cache transfer used to leave a runner occupied indefinitely.
-    # The image is released infrequently, so a deterministic clean build is
-    # preferable to an unreliable remote BuildKit cache.
+    # The BuildKit cache retains independent frontend/server stages. A changed
+    # server route therefore does not rebuild the production WASM bundle.
+    # A clean build remains valid if the cache is unavailable.
     # Production Webpack/Terser takes roughly 20 minutes for the current
     # Compose graph. Keep a firm ceiling without forcing a development bundle.
     timeout-minutes: 45
@@ -70,6 +70,8 @@ jobs:
           build-args: |
             OMS_GIT_SHA=${{ github.sha }}
             OMS_BUILD_DATE=${{ github.event.head_commit.timestamp }}
+          cache-from: type=gha,scope=oms-production-container
+          cache-to: type=gha,mode=max,scope=oms-production-container,ignore-error=true
 
   deploy-production:
     name: Deploy production VPS
