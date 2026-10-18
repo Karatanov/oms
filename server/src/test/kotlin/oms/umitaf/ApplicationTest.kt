@@ -9,6 +9,15 @@ import kotlin.test.*
 
 class ApplicationTest {
 
+    @Test fun healthAndVersionEndpointsRemainAvailableWithoutDatabase() = testApplication {
+        application { module(configureDatabase = false) }
+
+        assertEquals(HttpStatusCode.OK, client.get("/health").status)
+        val version = client.get("/version")
+        assertEquals(HttpStatusCode.OK, version.status)
+        assertTrue(version.bodyAsText().contains("\"revision\":\"local\""))
+    }
+
     @Test fun manualProcurementCreationRouteIsUnavailable() = testApplication {
         application { module(configureDatabase = false) }
         // The collection remains readable, so Ktor correctly reports a
