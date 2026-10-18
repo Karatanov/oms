@@ -184,6 +184,8 @@ jobs:
           curl --fail --silent --show-error \
             --retry 12 --retry-delay 5 --retry-all-errors \
             --max-time 15 https://ua-oms.com/health
+          deployed_revision="$(curl --fail --silent --show-error --max-time 15 https://ua-oms.com/version | jq -r '.revision')"
+          test "$deployed_revision" = "${GITHUB_SHA:0:12}"
           redirect_headers="$(curl --fail --silent --show-error --location --max-time 15 \
             --write-out '%{url_effective}' --output /dev/null https://www.ua-oms.com/)"
           test "$redirect_headers" = "https://ua-oms.com/"

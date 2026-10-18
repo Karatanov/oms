@@ -60,6 +60,7 @@ RUN mkdir -p /workspace/web \
 
 FROM eclipse-temurin:21-jre
 WORKDIR /opt/oms
+ARG OMS_GIT_SHA=local
 # The SIR PDF endpoint renders the approved XLSX template with LibreOffice.
 # Keeping this in the runtime image makes the conversion deterministic and
 # avoids depending on a desktop Office installation or an external service.
@@ -69,5 +70,6 @@ RUN apt-get update \
 COPY --from=server-build /workspace/server/build/install/server/ ./
 COPY --from=web-build /workspace/web/ ./web/
 ENV JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=70.0"
+ENV OMS_GIT_REVISION="$OMS_GIT_SHA"
 EXPOSE 8080
 CMD ["bin/server"]
