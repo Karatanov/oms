@@ -35,11 +35,15 @@ class ApplicationTest {
         application { module(configureDatabase = false) }
         val guest = client.post("/api/v1/auth/guest")
         assertEquals(HttpStatusCode.OK, guest.status)
+        assertEquals("private, no-store", guest.headers[HttpHeaders.CacheControl])
         val json = kotlinx.serialization.json.Json.parseToJsonElement(guest.bodyAsText()) as kotlinx.serialization.json.JsonObject
         val token = (json.getValue("accessToken") as kotlinx.serialization.json.JsonPrimitive).content
-        assertEquals(HttpStatusCode.Unauthorized, client.get("/api/v1/auth/session").status)
+        val anonymousSession = client.get("/api/v1/auth/session")
+        assertEquals(HttpStatusCode.Unauthorized, anonymousSession.status)
+        assertEquals("private, no-store", anonymousSession.headers[HttpHeaders.CacheControl])
         val restored = client.get("/api/v1/auth/session") { bearerAuth(token) }
         assertEquals(HttpStatusCode.OK, restored.status)
+        assertEquals("private, no-store", restored.headers[HttpHeaders.CacheControl])
         assertTrue(restored.bodyAsText().contains("\"guest\":true"))
         assertEquals(HttpStatusCode.Unauthorized, client.get("/api/v1/auth/session") { bearerAuth("invalid") }.status)
         val preflight = client.options("/api/v1/auth/session") {

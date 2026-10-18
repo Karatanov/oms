@@ -25,6 +25,7 @@ fun Route.authRoutes() {
 
     /** Restores a validated bearer or browser cookie session after a page refresh. */
     get("/api/v1/auth/session") {
+        call.preventAuthResponseCaching()
         val session = call.requireRole("ADMIN", "PROJECT_MANAGER", "INSPECTOR", "VIEWER", "GUEST") ?: return@get
         if (session.roleCode.equals("GUEST", ignoreCase = true)) {
             return@get call.respond(
@@ -40,6 +41,7 @@ fun Route.authRoutes() {
      * Вхід користувача до системи.
      */
     post("/api/v1/auth/login") {
+        call.preventAuthResponseCaching()
 
         val request =
             call.receive<LoginRequest>()
@@ -81,16 +83,19 @@ fun Route.authRoutes() {
     }
 
     post("/api/v1/auth/logout") {
+        call.preventAuthResponseCaching()
         call.sessions.clear<UserSession>()
         call.respond(HttpStatusCode.NoContent)
     }
 
     post("/api/v1/auth/guest") {
+        call.preventAuthResponseCaching()
         call.sessions.set(UserSession(0L, "GUEST"))
         call.respond(GuestSessionResponse(guest = true, accessToken = JwtTokenService.issue(0L, "GUEST")))
     }
 
     post("/api/v1/auth/password-reset") {
+        call.preventAuthResponseCaching()
         val identifier = call.receive<PasswordResetRequest>().identifier.trim()
         if (identifier.isNotEmpty()) {
             AppContainer.userService.getAllUsers().firstOrNull {
@@ -102,6 +107,7 @@ fun Route.authRoutes() {
     }
 
     post("/api/v1/auth/activate") {
+        call.preventAuthResponseCaching()
         try {
             val request = call.receive<ActivateAccountRequest>()
             val userId = AppContainer.activationService.resetPassword(request.token, request.password)
@@ -111,6 +117,11 @@ fun Route.authRoutes() {
             call.respond(HttpStatusCode.BadRequest, ErrorResponse("ACTIVATION_ERROR", exception.message ?: "Password reset failed."))
         }
     }
+}
+
+/** Authentication replies may contain a user identity or bearer token. */
+private fun ApplicationCall.preventAuthResponseCaching() {
+    response.headers.append(HttpHeaders.CacheControl, "private, no-store")
 }
 
 @kotlinx.serialization.Serializable
