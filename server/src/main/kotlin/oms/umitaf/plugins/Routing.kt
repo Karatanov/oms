@@ -1,6 +1,7 @@
 package oms.umitaf.plugins
 
 import io.ktor.http.CacheControl
+import io.ktor.http.HttpHeaders
 import io.ktor.server.application.*
 import io.ktor.server.http.content.*
 import io.ktor.server.routing.*
@@ -58,6 +59,10 @@ fun Application.configureRouting() {
             // Keep the initial page independent from the large Kotlin/JS
             // application bundle. The bundle is requested only after login.
             get("/") {
+                // This page is the release entry point. It can reference a new
+                // fingerprinted Compose bundle on every deployment, so never
+                // let a browser reuse it heuristically from its HTTP cache.
+                call.response.headers.append(HttpHeaders.CacheControl, "public, no-cache")
                 call.respondFile(File(frontendDirectory, "login.html"))
             }
             // Bookmarks and stale browser history can point straight at the
@@ -66,6 +71,10 @@ fun Application.configureRouting() {
             // receive app.html and download the WASM application.
             get("/app.html") {
                 val page = if (call.sessions.get<UserSession>() == null) "login.html" else "app.html"
+                // Keep the application shell in step with its fingerprinted
+                // assets after a deployment. The assets themselves remain
+                // immutable and are cached for a year below.
+                call.response.headers.append(HttpHeaders.CacheControl, "public, no-cache")
                 call.respondFile(File(frontendDirectory, page))
             }
             staticFiles("/", frontendDirectory, index = "index.html") {
