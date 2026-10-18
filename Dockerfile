@@ -5,8 +5,6 @@
 # unchanged Gradle graph does not have to be downloaded on every deployment.
 FROM gradle:8.14-jdk21 AS gradle-base
 WORKDIR /workspace
-ARG OMS_GIT_SHA=local
-ARG OMS_BUILD_DATE=local
 RUN apt-get update && apt-get install -y --no-install-recommends brotli && rm -rf /var/lib/apt/lists/*
 COPY gradle gradle
 COPY gradlew gradlew.bat gradle.properties settings.gradle.kts build.gradle.kts ./
@@ -34,6 +32,8 @@ RUN gradle :server:installDist --no-daemon --max-workers=1
 # packaging stage is intentionally separate: build metadata changes only
 # repackage already-built assets instead of triggering Gradle/Webpack again.
 FROM frontend-build AS web-build
+ARG OMS_GIT_SHA=local
+ARG OMS_BUILD_DATE=local
 RUN mkdir -p /workspace/web \
     && cp -a /workspace/composeApp/build/processedResources/js/main/. /workspace/web/ \
     && cp -a /workspace/composeApp/build/kotlin-webpack/js/productionExecutable/. /workspace/web/ \
