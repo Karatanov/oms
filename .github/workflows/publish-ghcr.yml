@@ -188,6 +188,32 @@ jobs:
             --write-out '%{url_effective}' --output /dev/null https://www.ua-oms.com/)"
           test "$redirect_headers" = "https://ua-oms.com/"
 
+      # A healthy API alone does not prove that the browser application can
+      # start. /app.html may intentionally return the unauthenticated login
+      # page, so inspect the immutable Compose shell at /index.html and every
+      # versioned JS/WASM resource before marking a rollout healthy.
+      - name: Verify browser application shell and assets
+        run: |
+          set -euo pipefail
+          base_url='https://ua-oms.com'
+          app_html="$(curl --fail --silent --show-error --max-time 30 "$base_url/index.html")"
+          grep -Fq 'composeApp.' <<< "$app_html"
+          ! grep -Fq '__OMS_WASM_ASSET__' <<< "$app_html"
+          manifest="$(curl --fail --silent --show-error --max-time 30 "$base_url/assets-manifest.json")"
+          jq -e '.version | type == "string" and length > 0' <<< "$manifest" >/dev/null
+          jq -e '.assets | type == "array" and length >= 2' <<< "$manifest" >/dev/null
+          while IFS=$'\t' read -r asset_url expected_bytes; do
+            test -n "$asset_url"
+            asset_file="$(mktemp)"
+            trap 'rm -f "$asset_file"' EXIT
+            curl --fail --silent --show-error --max-time 60 \
+              --output "$asset_file" "$base_url/$asset_url"
+            actual_bytes="$(wc -c < "$asset_file")"
+            test "$actual_bytes" -eq "$expected_bytes"
+            rm -f "$asset_file"
+            trap - EXIT
+          done < <(jq -r '.assets[] | [.url, .bytes] | @tsv' <<< "$manifest")
+
       - name: Remove temporary registry credentials
         if: always()
         run: |
