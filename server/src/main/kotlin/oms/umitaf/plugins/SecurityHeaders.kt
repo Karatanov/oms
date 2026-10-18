@@ -1,8 +1,9 @@
 package oms.umitaf.plugins
 
+import io.ktor.http.append
 import io.ktor.server.application.Application
-import io.ktor.server.application.install
-import io.ktor.server.plugins.defaultheaders.DefaultHeaders
+import io.ktor.server.application.ApplicationCallPipeline
+import io.ktor.server.application.intercept
 
 /**
  * Adds browser protections that are safe for the SPA and external map tiles.
@@ -11,10 +12,10 @@ import io.ktor.server.plugins.defaultheaders.DefaultHeaders
  * layer: both need deployment-specific allow-lists and TLS knowledge.
  */
 fun Application.configureSecurityHeaders() {
-    install(DefaultHeaders) {
-        header("X-Content-Type-Options", "nosniff")
-        header("Referrer-Policy", "strict-origin-when-cross-origin")
-        header("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
-        header("X-Frame-Options", "SAMEORIGIN")
+    intercept(ApplicationCallPipeline.Setup) {
+        call.response.headers.append("X-Content-Type-Options", "nosniff")
+        call.response.headers.append("Referrer-Policy", "strict-origin-when-cross-origin")
+        call.response.headers.append("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
+        call.response.headers.append("X-Frame-Options", "SAMEORIGIN")
     }
 }
