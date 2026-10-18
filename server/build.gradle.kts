@@ -66,6 +66,7 @@ dependencies {
     implementation("io.ktor:ktor-server-status-pages")
     implementation("io.ktor:ktor-server-call-logging")
     implementation("io.ktor:ktor-server-cors")
+    implementation("io.ktor:ktor-server-default-headers")
     implementation("io.ktor:ktor-server-sessions")
     implementation("com.mysql:mysql-connector-j:9.3.0")
     implementation("org.jetbrains.exposed:exposed-core:1.0.0")

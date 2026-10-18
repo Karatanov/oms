@@ -12,7 +12,11 @@ class ApplicationTest {
     @Test fun healthAndVersionEndpointsRemainAvailableWithoutDatabase() = testApplication {
         application { module(configureDatabase = false) }
 
-        assertEquals(HttpStatusCode.OK, client.get("/health").status)
+        val health = client.get("/health")
+        assertEquals(HttpStatusCode.OK, health.status)
+        assertEquals("nosniff", health.headers["X-Content-Type-Options"])
+        assertEquals("strict-origin-when-cross-origin", health.headers["Referrer-Policy"])
+        assertEquals("SAMEORIGIN", health.headers["X-Frame-Options"])
         val version = client.get("/version")
         assertEquals(HttpStatusCode.OK, version.status)
         assertTrue(version.bodyAsText().contains("\"revision\":\"local\""))

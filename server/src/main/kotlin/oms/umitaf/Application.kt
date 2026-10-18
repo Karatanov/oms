@@ -41,6 +41,8 @@ fun Application.module(
      */
     configureMonitoring()
 
+    configureSecurityHeaders()
+
     /**
      * Налаштовуємо підтримку JSON.
      */
