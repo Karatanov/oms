@@ -3,6 +3,7 @@ package oms.umitaf.plugins
 import io.ktor.http.append
 import io.ktor.server.application.Application
 import io.ktor.server.application.ApplicationCallPipeline
+import io.ktor.server.application.call
 
 /**
  * Adds browser protections that are safe for the SPA and external map tiles.
