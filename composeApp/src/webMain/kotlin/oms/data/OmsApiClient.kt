@@ -436,6 +436,10 @@ object OmsApiClient {
             region?.takeIf(String::isNotBlank)?.let { parameter("region", it) }
         }.body()
 
+    /** Returns source-level aggregate indicators without importing financial records. */
+    suspend fun paymentMonitoring(): ApiPaymentMonitoring =
+        client.get("$baseUrl/financials/payment-monitoring").body()
+
     suspend fun createFinancialRecord(projectUuid: String, request: FinancialRecordRequest): ApiFinancialRecord =
         client.post("$baseUrl/projects/$projectUuid/financials") {
             contentType(ContentType.Application.Json)
@@ -879,6 +883,22 @@ data class ApiMonthlyActPayment(val month: String, val amountEurCents: Long, val
     val byRegion: List<ApiFinancialProgressItem> = emptyList(),
     val byConstructionType: List<ApiFinancialProgressItem> = emptyList(),
     val bySector: List<ApiFinancialProgressItem> = emptyList()
+)
+@Serializable data class ApiPaymentMonitoringItem(
+    val code: String,
+    val totalInvestmentUah: Double? = null,
+    val eibInvestmentUah: Double? = null,
+    val localCoFinancingUah: Double? = null,
+    val paidAndInProgressUah: Double? = null,
+    val paidUah: Double? = null,
+    val remainingUah: Double? = null,
+    val plannedEibSharePct: Double? = null,
+    val factualEibSharePct: Double? = null,
+    val eibShareCompliance: String? = null
+)
+@Serializable data class ApiPaymentMonitoring(
+    val refreshedAt: String,
+    val items: List<ApiPaymentMonitoringItem> = emptyList()
 )
 @Serializable data class ApiInspectionAnalytics(
     val monthlyInspectionCounts: List<ApiDashboardMetric> = emptyList(),

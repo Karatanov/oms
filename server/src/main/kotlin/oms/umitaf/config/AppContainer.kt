@@ -95,6 +95,7 @@ object AppContainer {
     val financialRecordRepository: FinancialRecordRepository = ExposedFinancialRecordRepository()
     val nbuExchangeRateService = NbuExchangeRateService()
     val financialRecordService = FinancialRecordService(financialRecordRepository, nbuExchangeRateService)
+    val paymentMonitoringService = PaymentMonitoringService()
 
     val procurementRecordRepository: ProcurementRecordRepository = ExposedProcurementRecordRepository()
     val procurementService = ProcurementService(procurementRecordRepository, projectService, userRepository)

@@ -38,6 +38,7 @@ import kotlinx.coroutines.launch
 import oms.data.ApiFinancialRecord
 import oms.data.ApiFinancialProgress
 import oms.data.ApiFinancialProgressItem
+import oms.data.ApiPaymentMonitoring
 import oms.data.displayAmountCents
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -103,6 +104,7 @@ fun FinancialScreen(
 
     var acts by remember { mutableStateOf<List<ProjectActRow>>(emptyList()) }
     var financialProgress by remember { mutableStateOf<ApiFinancialProgress?>(null) }
+    var paymentMonitoring by remember { mutableStateOf<ApiPaymentMonitoring?>(null) }
     var displayCurrency by remember { mutableStateOf("EUR") }
     var displayRates by remember { mutableStateOf<Map<String, Double>>(emptyMap()) }
     var loadingRates by remember { mutableStateOf(false) }
@@ -210,6 +212,11 @@ fun FinancialScreen(
     // table, rather than only filtering its rows.
     LaunchedEffect(reloadKey, regionFilter) {
         financialProgress = runCatching { OmsApiClient.financialProgress(regionFilter) }.getOrNull()
+    }
+    // The external workbook is supplemental. It must not hold up the main
+    // financial register when its source is temporarily unavailable.
+    LaunchedEffect(reloadKey) {
+        paymentMonitoring = runCatching { OmsApiClient.paymentMonitoring() }.getOrNull()
     }
 
     val regionScopedActs = acts.filter { regionFilter == null || it.region == regionFilter }
@@ -373,6 +380,7 @@ fun FinancialScreen(
             )
             FinancialProgressCard("financial_progress_by_sector", progress.bySector)
         }
+        paymentMonitoring?.let(::PaymentMonitoringCard)
 
         BoxWithConstraints(Modifier.fillMaxWidth()) {
             if (maxWidth >= 620.dp) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
@@ -955,6 +963,102 @@ private fun FinancialProgressCard(titleKey: String, items: List<ApiFinancialProg
         }
     }
 }
+
+@Composable
+private fun PaymentMonitoringCard(snapshot: ApiPaymentMonitoring) {
+    var expanded by remember { mutableStateOf(false) }
+    var page by remember(snapshot.items) { mutableStateOf(0) }
+    val rows = remember(snapshot.items) { snapshot.items.sortedBy { it.code } }
+    val pageSize = 20
+    val pageCount = maxOf(1, (rows.size + pageSize - 1) / pageSize)
+    val visibleRows = rows.drop(page.coerceIn(0, pageCount - 1) * pageSize).take(pageSize)
+    Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text(LocalizationManager.t("payment_monitoring_title"), style = MaterialTheme.typography.titleMedium)
+                    Text(
+                        LocalizationManager.t("payment_monitoring_description"),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                TableActionIconButton(
+                    tooltip = LocalizationManager.t(if (expanded) "collapse" else "expand"),
+                    icon = if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown
+                ) { expanded = !expanded }
+            }
+            if (expanded) {
+                if (rows.isEmpty()) {
+                    Text(LocalizationManager.t("no_chart_data"), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                } else {
+                    Box(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
+                        Column(Modifier.width(1_565.dp)) {
+                            PaymentMonitoringHeader()
+                            visibleRows.forEach { row -> PaymentMonitoringRow(row) }
+                        }
+                    }
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            LocalizationManager.t("page_of")
+                                .replace("{page}", (page.coerceIn(0, pageCount - 1) + 1).toString())
+                                .replace("{pages}", pageCount.toString())
+                                .replace("{total}", rows.size.toString()),
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                        TableActionIconButton(LocalizationManager.t("previous_page"), Icons.Default.KeyboardArrowLeft) { page = (page - 1).coerceAtLeast(0) }
+                        TableActionIconButton(LocalizationManager.t("next_page"), Icons.Default.KeyboardArrowRight) { page = (page + 1).coerceAtMost(pageCount - 1) }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PaymentMonitoringHeader() {
+    Row(Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
+        PaymentMonitoringCell(LocalizationManager.t("subproject_code"), 130.dp, true)
+        PaymentMonitoringCell(LocalizationManager.t("payment_monitoring_total_cost"), 165.dp, true)
+        PaymentMonitoringCell(LocalizationManager.t("payment_monitoring_eib_cost"), 180.dp, true)
+        PaymentMonitoringCell(LocalizationManager.t("payment_monitoring_local_cost"), 170.dp, true)
+        PaymentMonitoringCell(LocalizationManager.t("payment_monitoring_paid_progress"), 190.dp, true)
+        PaymentMonitoringCell(LocalizationManager.t("payment_monitoring_paid"), 150.dp, true)
+        PaymentMonitoringCell(LocalizationManager.t("remaining"), 160.dp, true)
+        PaymentMonitoringCell(LocalizationManager.t("payment_monitoring_eib_planned"), 130.dp, true)
+        PaymentMonitoringCell(LocalizationManager.t("payment_monitoring_eib_factual"), 130.dp, true)
+        PaymentMonitoringCell(LocalizationManager.t("payment_monitoring_eib_compliance"), 160.dp, true)
+    }
+}
+
+@Composable
+private fun PaymentMonitoringRow(row: oms.data.ApiPaymentMonitoringItem) {
+    Row(Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
+        PaymentMonitoringCell(row.code, 130.dp)
+        PaymentMonitoringCell(row.totalInvestmentUah.asUah(), 165.dp)
+        PaymentMonitoringCell(row.eibInvestmentUah.asUah(), 180.dp)
+        PaymentMonitoringCell(row.localCoFinancingUah.asUah(), 170.dp)
+        PaymentMonitoringCell(row.paidAndInProgressUah.asUah(), 190.dp)
+        PaymentMonitoringCell(row.paidUah.asUah(), 150.dp)
+        PaymentMonitoringCell(row.remainingUah.asUah(), 160.dp)
+        PaymentMonitoringCell(row.plannedEibSharePct.asPercent(), 130.dp)
+        PaymentMonitoringCell(row.factualEibSharePct.asPercent(), 130.dp)
+        PaymentMonitoringCell(row.eibShareCompliance ?: "—", 160.dp)
+    }
+}
+
+@Composable
+private fun PaymentMonitoringCell(value: String, width: androidx.compose.ui.unit.Dp, heading: Boolean = false) {
+    Text(
+        value,
+        modifier = Modifier.width(width).padding(horizontal = 6.dp),
+        style = if (heading) MaterialTheme.typography.labelMedium else MaterialTheme.typography.bodySmall,
+        maxLines = if (heading) 3 else 2
+    )
+}
+
+private fun Double?.asUah(): String = this?.let { "${it.formatUiAmount()} UAH" } ?: "—"
+private fun Double?.asPercent(): String = this?.let { "${it.formatUiAmount()}%" } ?: "—"
 
 @Composable
 private fun FinancialPaymentPurposeBadge(recordType: String, purpose: String) {

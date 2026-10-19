@@ -27,3 +27,24 @@ data class FinancialProgressResponse(
     val byConstructionType: List<FinancialProgressItemResponse> = emptyList(),
     val bySector: List<FinancialProgressItemResponse> = emptyList()
 )
+
+/** Read-only cumulative indicators from the approved UR III payment workbook. */
+@Serializable
+data class PaymentMonitoringItemResponse(
+    val code: String,
+    val totalInvestmentUah: Double? = null,
+    val eibInvestmentUah: Double? = null,
+    val localCoFinancingUah: Double? = null,
+    val paidAndInProgressUah: Double? = null,
+    val paidUah: Double? = null,
+    val remainingUah: Double? = null,
+    val plannedEibSharePct: Double? = null,
+    val factualEibSharePct: Double? = null,
+    val eibShareCompliance: String? = null
+)
+
+@Serializable
+data class PaymentMonitoringResponse(
+    val refreshedAt: String,
+    val items: List<PaymentMonitoringItemResponse> = emptyList()
+)

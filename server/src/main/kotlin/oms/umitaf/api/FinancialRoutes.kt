@@ -18,6 +18,34 @@ import kotlin.math.roundToLong
 
 fun Route.financialRoutes() {
     val financialTablePdfExportService = FinancialTablePdfExportService()
+    get("/api/v1/financials/payment-monitoring") {
+        call.requireRole("ADMIN", "PROJECT_MANAGER") ?: return@get
+        try {
+            val snapshot = withContext(Dispatchers.IO) { AppContainer.paymentMonitoringService.current() }
+            call.respond(
+                PaymentMonitoringResponse(
+                    refreshedAt = snapshot.refreshedAt,
+                    items = snapshot.items.map { item ->
+                        PaymentMonitoringItemResponse(
+                            code = item.code,
+                            totalInvestmentUah = item.totalInvestmentUah,
+                            eibInvestmentUah = item.eibInvestmentUah,
+                            localCoFinancingUah = item.localCoFinancingUah,
+                            paidAndInProgressUah = item.paidAndInProgressUah,
+                            paidUah = item.paidUah,
+                            remainingUah = item.remainingUah,
+                            plannedEibSharePct = item.plannedEibSharePct,
+                            factualEibSharePct = item.factualEibSharePct,
+                            eibShareCompliance = item.eibShareCompliance
+                        )
+                    }
+                )
+            )
+        } catch (error: IllegalArgumentException) {
+            call.respond(HttpStatusCode.ServiceUnavailable, mapOf("error" to error.message.orEmpty()))
+        }
+    }
+
     get("/api/v1/financials/progress") {
         call.requireRole("ADMIN", "PROJECT_MANAGER") ?: return@get
         val requestedRegion = call.request.queryParameters["region"]
