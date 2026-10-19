@@ -31,10 +31,13 @@ fun VerticalBarChart(
     val scroll = rememberScrollState()
     LaunchedEffect(data, initialScrollToEnd, scroll.maxValue) { if (initialScrollToEnd) scroll.scrollTo(scroll.maxValue) }
     val laneHeight = if (labelMaxLines == 1) 24.dp else 52.dp
-    val plotWidth = labelWidth * data.size + 8.dp * (data.size - 1)
+    // Keep adjacent columns visually distinct while using the available chart
+    // width more efficiently, especially on compact screens.
+    val columnGap = 4.dp
+    val plotWidth = labelWidth * data.size + columnGap * (data.size - 1)
     Column(Modifier.fillMaxWidth()) {
         Column(Modifier.fillMaxWidth().horizontalScroll(scroll)) {
-        Row(Modifier.width(plotWidth), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(Modifier.width(plotWidth), horizontalArrangement = Arrangement.spacedBy(columnGap)) {
             data.forEach { item ->
                 val displayValue = item.formattedValue ?: valueLabel(item.value)
                 val tooltip = listOf(item.label + ": " + displayValue, item.tooltip).filterNotNull().joinToString("\n")
@@ -72,9 +75,9 @@ fun VerticalBarChart(
                     groups.add(previous.first to previous.second + 1)
                 } else groups.add(item.groupLabel to 1)
             }
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(columnGap)) {
                 groups.forEach { (year, count) ->
-                    Text(year.orEmpty(), Modifier.width(labelWidth * count + 8.dp * (count - 1)),
+                    Text(year.orEmpty(), Modifier.width(labelWidth * count + columnGap * (count - 1)),
                         textAlign = TextAlign.Center, style = MaterialTheme.typography.labelMedium)
                 }
             }
