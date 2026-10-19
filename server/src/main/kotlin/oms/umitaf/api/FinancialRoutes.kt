@@ -20,9 +20,18 @@ fun Route.financialRoutes() {
     val financialTablePdfExportService = FinancialTablePdfExportService()
     get("/api/v1/financials/progress") {
         call.requireRole("ADMIN", "PROJECT_MANAGER") ?: return@get
+        val requestedRegion = call.request.queryParameters["region"]
+            ?.trim()
+            ?.replace(Regex("\\s+(область|oblast|region)$", RegexOption.IGNORE_CASE), "")
+            ?.takeIf(String::isNotBlank)
         val projects = AppContainer.projectService.getAllProjects()
         val byId = projects.associateBy { it.id }
-        val subprojects = projects.filter { it.projectType == ProjectType.SUBPROJECT }
+        val subprojects = projects.filter { project ->
+            project.projectType == ProjectType.SUBPROJECT &&
+                (requestedRegion == null || project.region.orEmpty()
+                    .replace(Regex("\\s+(область|oblast|region)$", RegexOption.IGNORE_CASE), "")
+                    .equals(requestedRegion, ignoreCase = true))
+        }
         fun parentSubproject(projectId: Long): oms.umitaf.domain.Project? {
             var current = byId[projectId] ?: return null
             while (current.projectType != ProjectType.SUBPROJECT) {

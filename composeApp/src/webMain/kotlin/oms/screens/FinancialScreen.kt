@@ -176,7 +176,6 @@ fun FinancialScreen(
         loading = true; loadFailed = false
         try {
         val records = OmsApiClient.allFinancialRecords()
-        financialProgress = runCatching { OmsApiClient.financialProgress() }.getOrNull()
         // A project snapshot is necessary only to decorate actual rows.  On an
         // empty register do not wait for the much larger project hierarchy.
         if (records.isNotEmpty()) {
@@ -206,8 +205,15 @@ fun FinancialScreen(
             loadFailed = true
         } finally { loading = false }
     }
+    // Region is intentionally global on this screen: summaries and every
+    // financial chart must describe the same geographic selection as the
+    // table, rather than only filtering its rows.
+    LaunchedEffect(reloadKey, regionFilter) {
+        financialProgress = runCatching { OmsApiClient.financialProgress(regionFilter) }.getOrNull()
+    }
 
-    val completedWorksTotal = acts
+    val regionScopedActs = acts.filter { regionFilter == null || it.region == regionFilter }
+    val completedWorksTotal = regionScopedActs
         .filter { it.act.recordType == "act" }
         .sumOf { displayCents(it.act) ?: 0L }
     val subprojectFilterOptions = acts.mapNotNull { row ->
@@ -346,7 +352,7 @@ fun FinancialScreen(
             }
         }
 
-        val financialChartRecords = acts.map { FinancialChartRecord(it.act, it.subprojectCode.orEmpty()) }
+        val financialChartRecords = regionScopedActs.map { FinancialChartRecord(it.act, it.subprojectCode.orEmpty()) }
         // An old record without a frozen exchange rate must not hide every
         // financial chart. Each chart omits only the rows it cannot convert;
         // the warning above still tells the user which totals are incomplete.

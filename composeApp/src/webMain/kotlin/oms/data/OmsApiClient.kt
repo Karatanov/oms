@@ -431,8 +431,10 @@ object OmsApiClient {
     suspend fun allFinancialRecords(): List<ApiProjectFinancialRecord> =
         client.get("$baseUrl/financials").body()
 
-    suspend fun financialProgress(): ApiFinancialProgress =
-        client.get("$baseUrl/financials/progress").body()
+    suspend fun financialProgress(region: String? = null): ApiFinancialProgress =
+        client.get("$baseUrl/financials/progress") {
+            region?.takeIf(String::isNotBlank)?.let { parameter("region", it) }
+        }.body()
 
     suspend fun createFinancialRecord(projectUuid: String, request: FinancialRecordRequest): ApiFinancialRecord =
         client.post("$baseUrl/projects/$projectUuid/financials") {
