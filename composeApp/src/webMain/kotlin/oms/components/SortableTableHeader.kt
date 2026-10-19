@@ -24,12 +24,15 @@ fun SortableTableHeader(title: String, selected: Boolean, ascending: Boolean, on
         contentPadding = PaddingValues(horizontal = if (numeric) 8.dp else 0.dp, vertical = 4.dp),
         colors = ButtonDefaults.textButtonColors(contentColor = if (selected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant)
     ) {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Text(title, Modifier.weight(1f), style = MaterialTheme.typography.labelLarge, maxLines = 2,
-                textAlign = if (numeric) androidx.compose.ui.text.style.TextAlign.End else androidx.compose.ui.text.style.TextAlign.Start)
+        Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+            Text(title, Modifier.fillMaxWidth().padding(horizontal = 16.dp), style = MaterialTheme.typography.labelLarge, maxLines = 2,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center)
             if (selected) {
-                Spacer(Modifier.width(4.dp))
-                Icon(if (ascending) Icons.Default.ArrowUpward else Icons.Default.ArrowDownward, null, Modifier.size(14.dp))
+                Icon(
+                    if (ascending) Icons.Default.ArrowUpward else Icons.Default.ArrowDownward,
+                    null,
+                    Modifier.align(Alignment.CenterEnd).padding(end = 4.dp).size(14.dp)
+                )
             }
         }
     }

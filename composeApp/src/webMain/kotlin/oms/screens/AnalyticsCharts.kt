@@ -475,7 +475,7 @@ private fun AnalyticsCard(
     val cardModifier = Modifier.fillMaxWidth().then(
         if (!expanded) Modifier
         else if (compact) Modifier.heightIn(min = 144.dp)
-        else Modifier.heightIn(min = if (filterContent == null) 420.dp else 476.dp)
+        else Modifier.heightIn(min = if (filterContent == null) 348.dp else 392.dp)
     )
     Card(cardModifier, shape = RoundedCornerShape(12.dp),
         colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
@@ -509,7 +509,7 @@ private fun AnalyticsCard(
                 }
             }
             if (expanded) {
-                Box(Modifier.fillMaxWidth().height(40.dp), contentAlignment = Alignment.Center) {
+                Box(Modifier.fillMaxWidth().height(28.dp), contentAlignment = Alignment.Center) {
                     hintKey?.let {
                         Text(
                             LocalizationManager.t(it),
@@ -522,7 +522,7 @@ private fun AnalyticsCard(
                 filterContent?.let { content ->
                     Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) { content() }
                 }
-                Spacer(Modifier.height(if (compact) 8.dp else 16.dp))
+                Spacer(Modifier.height(if (compact) 6.dp else 8.dp))
                 if (displayData.isEmpty()) Text(LocalizationManager.t("no_chart_data"), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 else if (orientation == BarChartOrientation.Vertical) VerticalBarChart(displayData, MaterialTheme.colorScheme.primary, labelMaxLines = labelMaxLines, maxVisibleItems = 6, valueLabel = valueLabel, onItemClick = onItemClick, showScrollControls = showScrollControls, showDataLabels = showDataLabels)
                 else HorizontalBarChart(displayData, MaterialTheme.colorScheme.primary, valueLabel = valueLabel, onItemClick = onItemClick, showDataLabels = showDataLabels)

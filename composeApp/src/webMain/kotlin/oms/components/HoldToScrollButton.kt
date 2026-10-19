@@ -31,7 +31,7 @@ fun HoldToScrollButton(
     direction: Int,
     modifier: Modifier = Modifier,
     clickDistance: Float = 420f,
-    continuousPixelsPerFrame: Float = 9f,
+    continuousPixelsPerFrame: Float = 12f,
     enabled: Boolean = true
 ) {
     val scope = rememberCoroutineScope()

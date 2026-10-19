@@ -197,10 +197,10 @@ private fun NationalPortfolioSummary(summary: ApiDashboardNationalSummary) {
         Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(
                 LocalizationManager.t("national_portfolio_summary"),
-                style = MaterialTheme.typography.titleMedium,
+                style = MaterialTheme.typography.titleLarge,
                 modifier = Modifier.fillMaxWidth(),
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center
             )
@@ -232,8 +232,8 @@ private fun NationalPortfolioSummary(summary: ApiDashboardNationalSummary) {
 @Composable
 private fun SummaryMetric(labelKey: String, value: String) {
     Column(Modifier.widthIn(min = 126.dp)) {
-        Text(LocalizationManager.t(labelKey), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(value, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+        Text(LocalizationManager.t(labelKey), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(value, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
     }
 }
 
