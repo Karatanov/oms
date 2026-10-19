@@ -30,6 +30,7 @@ import oms.components.CurrencySelector
 import oms.components.ChartDataLabelsToggle
 import oms.components.ChartPngExportButton
 import oms.components.OmsChartHeader
+import kotlin.math.roundToInt
 
 @Composable
 fun MonthlyActPaymentsChart(primary: Color, payments: List<ApiMonthlyActPayment>, onOpenFinancialByMonth: (String) -> Unit = {}, orientation: BarChartOrientation = BarChartOrientation.Vertical) {
@@ -59,7 +60,8 @@ fun MonthlyActPaymentsChart(primary: Color, payments: List<ApiMonthlyActPayment>
                         data = data,
                         orientation = orientation,
                         showDataLabels = showDataLabels,
-                        valueLabel = { formatActAmount(it.toLong(), currency) }
+                        valueLabel = { formatActAmount(it.toLong(), currency) },
+                        currency = currency
                     )
                 }
             }
@@ -77,5 +79,4 @@ fun MonthlyActPaymentsChart(primary: Color, payments: List<ApiMonthlyActPayment>
 }
 
 private fun formatActAmount(cents: Long, currency: String): String =
-    if (currency == "EUR") "${cents / 100}.${(cents % 100).toString().padStart(2, '0')}"
-    else (cents / 100).toString()
+    (cents / 100.0).roundToInt().toString()

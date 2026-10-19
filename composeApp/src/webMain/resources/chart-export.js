@@ -39,10 +39,12 @@
             const max = Math.max(1, ...entries.map(item => item.numeric));
             const scale = 2;
             const padding = 52;
-            const titleHeight = 58;
+            const hasSubtitle = Boolean(config.subtitle || config.currency);
+            const hasGroups = entries.some(item => item.groupLabel);
+            const titleHeight = hasSubtitle ? 82 : 58;
             const lane = horizontal ? 66 : 150;
             const cssWidth = horizontal ? 1280 : Math.max(980, entries.length * 132 + padding * 2);
-            const cssHeight = horizontal ? Math.max(300, entries.length * lane + titleHeight + padding * 2) : 520;
+            const cssHeight = horizontal ? Math.max(300, entries.length * lane + titleHeight + padding * 2) : (hasGroups ? 564 : 520);
             const canvas = document.createElement('canvas');
             canvas.width = cssWidth * scale; canvas.height = cssHeight * scale;
             const ctx = canvas.getContext('2d');
@@ -50,6 +52,11 @@
             ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, cssWidth, cssHeight);
             ctx.fillStyle = '#153544'; ctx.font = '600 22px Arial, sans-serif'; ctx.textAlign = 'center';
             ctx.fillText(config.title, cssWidth / 2, padding - 14);
+            if (hasSubtitle) {
+                const details = [config.subtitle, config.currency].filter(Boolean).join(' · ');
+                ctx.fillStyle = '#496574'; ctx.font = '13px Arial, sans-serif';
+                ctx.fillText(details, cssWidth / 2, padding + 10);
+            }
             ctx.strokeStyle = '#d6e0e4'; ctx.lineWidth = 1;
             ctx.fillStyle = '#278DAD';
             if (horizontal) {
@@ -66,7 +73,7 @@
                 });
             } else {
                 const chartTop = titleHeight + padding;
-                const chartBottom = cssHeight - padding - 78;
+                const chartBottom = cssHeight - padding - (hasGroups ? 112 : 78);
                 const chartHeight = chartBottom - chartTop;
                 const laneWidth = (cssWidth - padding * 2) / entries.length;
                 ctx.beginPath(); ctx.moveTo(padding, chartBottom + .5); ctx.lineTo(cssWidth - padding, chartBottom + .5); ctx.stroke();
@@ -79,6 +86,18 @@
                     ctx.fillStyle = '#153544'; ctx.font = '12px Arial, sans-serif'; ctx.textAlign = 'center';
                     wrap(ctx, item.label, laneWidth - 8).slice(0, 3).forEach((line, lineIndex) => ctx.fillText(line, left + barWidth / 2, chartBottom + 20 + lineIndex * 15));
                 });
+                if (hasGroups) {
+                    let first = 0;
+                    while (first < entries.length) {
+                        const year = entries[first].groupLabel || '';
+                        let end = first + 1;
+                        while (end < entries.length && entries[end].groupLabel === year) end++;
+                        const center = padding + ((first + end) / 2) * laneWidth;
+                        ctx.fillStyle = '#496574'; ctx.font = '600 12px Arial, sans-serif'; ctx.textAlign = 'center';
+                        ctx.fillText(year, center, chartBottom + 86);
+                        first = end;
+                    }
+                }
             }
             download(canvas, config.filename);
             return true;

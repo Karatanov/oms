@@ -25,6 +25,8 @@ private external fun downloadOmsChartPng(payloadJson: String): Boolean
 @Serializable
 private data class ChartExportPayload(
     val title: String,
+    val subtitle: String? = null,
+    val currency: String? = null,
     val filename: String,
     val orientation: String,
     val showDataLabels: Boolean,
@@ -33,7 +35,7 @@ private data class ChartExportPayload(
 )
 
 @Serializable
-private data class ChartExportItem(val label: String, val value: String)
+private data class ChartExportItem(val label: String, val value: String, val groupLabel: String? = null)
 
 /**
  * Exports the exact data currently rendered by a reusable OMS bar chart.
@@ -48,6 +50,8 @@ fun ChartPngExportButton(
     orientation: BarChartOrientation,
     showDataLabels: Boolean,
     valueLabel: (Float) -> String,
+    subtitle: String? = null,
+    currency: String? = null,
     modifier: Modifier = Modifier
 ) {
     OmsTooltipBox(tooltip = { Text(LocalizationManager.t("download_png")) }) {
@@ -55,10 +59,12 @@ fun ChartPngExportButton(
             onClick = {
                 val payload = ChartExportPayload(
                     title = title,
+                    subtitle = subtitle,
+                    currency = currency,
                     filename = "oms-${filenameStem.toSafeFilenameStem()}.png",
                     orientation = orientation.name,
                     showDataLabels = showDataLabels,
-                    data = data.map { item -> ChartExportItem(item.label, item.formattedValue ?: valueLabel(item.value)) },
+                    data = data.map { item -> ChartExportItem(item.label, item.formattedValue ?: valueLabel(item.value), item.groupLabel) },
                     exportFailedMessage = LocalizationManager.t("export_failed")
                 )
                 downloadOmsChartPng(Json.encodeToString(payload))

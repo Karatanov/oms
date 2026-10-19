@@ -444,6 +444,7 @@ fun MonthlyMoneyChart(
     AnalyticsCard(
         titleKey, hintKey, data, { formatChartAmount(it / 100.0, currency) }, labelMaxLines = 1,
         filterContent = currencySelector, expanded = expanded, onExpandedChange = onExpandedChange,
+        currency = currency,
         onItemClick = { bar -> bar.id?.let(onMonthClick) }, orientation = orientation
     )
 }
@@ -462,7 +463,8 @@ private fun AnalyticsCard(
     expanded: Boolean = true,
     onExpandedChange: ((Boolean) -> Unit)? = null,
     orientation: BarChartOrientation = BarChartOrientation.Vertical,
-    sortEnabled: Boolean = false
+    sortEnabled: Boolean = false,
+    currency: String? = null
 ) {
     var sortCriterion by remember { mutableStateOf<ChartSortCriterion?>(null) }
     var sortAscending by remember { mutableStateOf(true) }
@@ -492,7 +494,9 @@ private fun AnalyticsCard(
                     data = displayData,
                     orientation = orientation,
                     showDataLabels = showDataLabels,
-                    valueLabel = valueLabel
+                    valueLabel = valueLabel,
+                    subtitle = hintKey?.let(LocalizationManager::t),
+                    currency = currency
                 )
                 onExpandedChange?.let { onToggle ->
                     IconButton(onClick = { onToggle(!expanded) }, modifier = Modifier.size(36.dp).buttonHandCursor()) {
@@ -532,10 +536,8 @@ private fun String.toChartMonth(): String = if (matches(Regex("\\d{4}-\\d{2}")))
 internal fun String.toRegionChartLabel(): String =
     replace(Regex("\\s+(область|oblast|region)$", RegexOption.IGNORE_CASE), "").trim()
 private fun formatChartAmount(value: Double, currency: String): String {
-    if (currency == "EUR") {
-        val cents = (value * 100).roundToLong()
-        return "${groupedNumber(cents / 100)}.${(cents % 100).toString().padStart(2, '0')}"
-    }
+    // Charts communicate a trend; whole units are clearer. Exact cents stay
+    // available in the register and in tooltips sourced from that register.
     return groupedNumber(value.roundToLong())
 }
 
