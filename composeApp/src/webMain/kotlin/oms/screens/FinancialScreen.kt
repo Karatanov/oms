@@ -380,7 +380,7 @@ fun FinancialScreen(
             )
             FinancialProgressCard("financial_progress_by_sector", progress.bySector)
         }
-        paymentMonitoring?.let(::PaymentMonitoringCard)
+        paymentMonitoring?.let { snapshot -> PaymentMonitoringCard(snapshot) }
 
         BoxWithConstraints(Modifier.fillMaxWidth()) {
             if (maxWidth >= 620.dp) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
