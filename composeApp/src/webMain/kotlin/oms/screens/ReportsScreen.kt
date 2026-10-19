@@ -40,8 +40,6 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.async
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import oms.data.ApiInspectionReport
@@ -423,18 +421,23 @@ private fun ReportPreviewDialog(report: ReportRow, onDismiss: () -> Unit) {
     val tableScroll = rememberScrollState()
     LaunchedEffect(report.report.uuid) {
         failed = false
-        runCatching {
-            coroutineScope {
-                val loadedPreview = async { OmsApiClient.inspectionReportPreview(report.report.uuid) }
-                val loadedPhotos = async { OmsApiClient.inspectionPhotos(report.report.uuid) }
-                loadedPreview.await() to loadedPhotos.await()
-            }
-        }.onSuccess { (loadedPreview, loadedPhotos) ->
+        photos = emptyList()
+        runCatching { OmsApiClient.inspectionReportPreview(report.report.uuid) }
+            .onSuccess { loadedPreview ->
             preview = loadedPreview
-            photos = loadedPhotos
             selectedSheet = 0
         }
             .onFailure { failed = true }
+    }
+    // Embedded image extraction for old XLSX reports can take substantially
+    // longer than parsing the report itself. Do not make the preview wait for
+    // that optional evidence: render the report after its own request and
+    // hydrate photographs independently once Compose has painted the dialog.
+    LaunchedEffect(report.report.uuid, preview?.fileName) {
+        if (preview == null || failed) return@LaunchedEffect
+        delay(250)
+        photos = runCatching { OmsApiClient.inspectionPhotos(report.report.uuid) }
+            .getOrDefault(emptyList())
     }
     Card(
         Modifier.widthIn(max = 920.dp).fillMaxWidth(),
