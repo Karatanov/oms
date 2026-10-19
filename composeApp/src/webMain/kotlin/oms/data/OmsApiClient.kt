@@ -5,6 +5,7 @@ import io.ktor.client.call.body
 import io.ktor.client.engine.js.Js
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.HttpSend
+import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.plugin
 import io.ktor.client.request.get
 import io.ktor.client.request.delete
@@ -47,6 +48,14 @@ object OmsApiClient {
         }
         install(ContentNegotiation) {
             json(Json { ignoreUnknownKeys = true })
+        }
+        // Browser fetch can remain pending indefinitely after a stalled proxy
+        // or broken network transition. Bound ordinary API calls so every
+        // screen can leave its loading state and surface its existing retry UI.
+        // Large imports use asynchronous server jobs and polling, while file
+        // downloads bypass this client, so this ceiling does not cut off them.
+        install(HttpTimeout) {
+            requestTimeoutMillis = 75_000
         }
     }
 
