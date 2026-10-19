@@ -1186,8 +1186,6 @@ class InspectionReportFileService(
         return try {
             Files.newInputStream(path).use { input ->
                 WorkbookFactory.create(input).use { workbook ->
-                    val formatter = DataFormatter()
-                    val evaluator = workbook.creationHelper.createFormulaEvaluator()
                     val manual = runCatching { readSirWorkbook(workbook, report) }.getOrNull()
                         ?.takeIf { parsed ->
                             parsed.projectName?.isNotBlank() == true ||
@@ -1195,6 +1193,21 @@ class InspectionReportFileService(
                                 parsed.activities.isNotEmpty() ||
                                 parsed.hseObservations.isNotEmpty()
                         }
+                    // Imported SIRs which conform to the supported template
+                    // are displayed through the structured read-only form.
+                    // Building a generic grid for every workbook sheet after
+                    // the form has already been parsed only repeats formula
+                    // evaluation and can noticeably delay opening reports
+                    // with a large evidence sheet.
+                    if (manual != null) {
+                        val response = InspectionReportPreviewResponse(file.originalName, emptyList(), manual)
+                        synchronized(previewCache) { previewCache[key] = response }
+                        return@use response
+                    }
+                    // Retain the generic workbook grid only for legacy or
+                    // non-standard files that cannot provide form data.
+                    val formatter = DataFormatter()
+                    val evaluator = workbook.creationHelper.createFormulaEvaluator()
                     val sheets = workbook.map { sheet ->
                         val rows = buildList {
                             for (index in 0..sheet.lastRowNum) {
