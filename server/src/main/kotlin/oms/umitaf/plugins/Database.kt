@@ -81,6 +81,12 @@ fun Application.configureDatabase() {
      */
     val dataSource = HikariDataSource(hikariConfig)
 
+    DatabaseReadiness.register(dataSource)
+    environment.monitor.subscribe(ApplicationStopping) {
+        DatabaseReadiness.unregister(dataSource)
+        dataSource.close()
+    }
+
     /**
      * Exposed працює не напряму з MySQL,
      * а через пул HikariCP.
