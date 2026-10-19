@@ -695,7 +695,7 @@ private fun ProjectFinancialsTab(financials: ApiFinancialRecords?) {
                 ScrollableTable(
                     modifier = Modifier.fillMaxWidth(),
                     header = {
-                        Row(Modifier.width(910.dp).padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Row(Modifier.width(910.dp).padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                             FinancialDetailHeader("reference_number", 150.dp)
                             FinancialDetailHeader("type", 110.dp)
                             FinancialDetailHeader("payment_purpose", 220.dp)

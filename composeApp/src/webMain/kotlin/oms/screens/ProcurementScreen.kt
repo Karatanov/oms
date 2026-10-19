@@ -151,11 +151,16 @@ fun ProcurementScreen(
             )
         }
     }
-    val procurementStatusMetrics = records?.let { loaded ->
+    // A tranche is a page-level view, not merely a table filter: the two
+    // procurement charts must describe precisely the same registry subset.
+    val trancheRecords = records.orEmpty().filter { record ->
+        trancheFilter == null || record.batchId == trancheFilter
+    }
+    val procurementStatusMetrics = records?.let {
         procurementStatuses.map { status ->
             ApiDashboardMetric(
                 status,
-                loaded.asSequence()
+                trancheRecords.asSequence()
                     .filter { sameProcurementStatus(it.purchaseStatus, status) }
                     .map { it.subProjectId }
                     .distinct()
@@ -164,7 +169,7 @@ fun ProcurementScreen(
             )
         }
     }.orEmpty()
-    val signedContractMetrics = records.orEmpty()
+    val signedContractMetrics = trancheRecords
         .asSequence()
         .filter { sameProcurementStatus(it.purchaseStatus, procurementStatuses[3]) }
         .mapNotNull { (it.contractDate ?: it.estimatedContractDate)?.takeIf { date -> date.length >= 7 }?.take(7) }
@@ -584,7 +589,7 @@ private fun ProcurementRow(
     }
     Row(
         Modifier.width(columnWidths.sum().dp)
-            .padding(vertical = if (isHeader) 2.dp else 6.dp),
+            .padding(vertical = if (isHeader) 2.dp else 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         values.take(columnWidths.size).zip(columnWidths).forEachIndexed { index, (value, width) ->
@@ -601,17 +606,19 @@ private fun ProcurementRow(
                     value,
                     Modifier.width(width.dp).padding(horizontal = 6.dp)
                         .clickable { uriHandler.openUri(record?.prozorroTenderId?.toProzorroTenderUrl() ?: value.toProzorroTenderUrl()) },
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.primary,
                     textDecoration = TextDecoration.Underline
                 )
-            } else if (!isHeader && index == 21 && value.isNotBlank()) {
+            } else if (!isHeader && index == 9 && value.isNotBlank()) {
                 Text(
                     value,
                     Modifier.width(width.dp).padding(horizontal = 6.dp)
                         .clickable { uriHandler.openUri(record?.contractLink ?: value) },
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.primary,
                     textDecoration = TextDecoration.Underline
@@ -633,7 +640,8 @@ private fun ProcurementRow(
                 maxLines = if (isHeader) 1 else Int.MAX_VALUE,
                 overflow = if (isHeader) TextOverflow.Ellipsis else TextOverflow.Clip,
                 style = if (isHeader) MaterialTheme.typography.labelSmall else MaterialTheme.typography.bodySmall,
-                fontWeight = if (isHeader) FontWeight.SemiBold else FontWeight.Normal
+                fontWeight = if (isHeader) FontWeight.SemiBold else FontWeight.Normal,
+                textAlign = if (index in centeredProcurementColumns) androidx.compose.ui.text.style.TextAlign.Center else androidx.compose.ui.text.style.TextAlign.Start
             )
         }
     }
@@ -646,11 +654,11 @@ private fun ApiProcurementRecord.displayValues(): List<String> = listOf(
     localizedPromotorName(), procurementMethod.orEmpty().let(LocalizationManager::procurementValue),
     LocalizationManager.procurementStatus(purchaseStatus.orEmpty()), tenderAttemptCount?.toString().orEmpty(),
     pigViolations.orEmpty().let(LocalizationManager::procurementValue), prozorroTenderId.orEmpty(),
+    contractLink.orEmpty(),
     contractDate.toOmsDate(), contractEndDate.toOmsDate(), actualisedContractEndDate.toOmsDate(), contractorId.orEmpty(),
     if (LocalizationManager.currentLanguage == Language.EN) contractorNameEng ?: contractorNameUkr.orEmpty() else contractorNameUkr ?: contractorNameEng.orEmpty(),
     contractAmountUah.format(2), contractAmountUahWithoutVat.format(2), dreamCoFinancingPct.formatPercent(),
-    estimatedEibUah.format(2), realLocalCoFinancingPct.formatPercent(), realEibFinancingUah.format(2), bankGuarantee.formatPercent(),
-    contractLink.orEmpty()
+    estimatedEibUah.format(2), realLocalCoFinancingPct.formatPercent(), realEibFinancingUah.format(2), bankGuarantee.formatPercent()
 )
 
 /** Promotor and FB are the same business value in the approved workbook. */
@@ -695,13 +703,13 @@ private fun procurementMethodColor(method: String) = when {
 private fun ApiProcurementRecord.sortKey(columnIndex: Int): String = when (columnIndex) {
     1 -> batchId.toString().padStart(12, '0')
     6 -> tenderAttemptCount?.toString()?.padStart(12, '0').orEmpty()
-    14 -> contractAmountUah.sortKey()
-    15 -> contractAmountUahWithoutVat.sortKey()
-    16 -> dreamCoFinancingPct.sortKey()
-    17 -> estimatedEibUah.sortKey()
-    18 -> realLocalCoFinancingPct.sortKey()
-    19 -> realEibFinancingUah.sortKey()
-    20 -> bankGuarantee.sortKey()
+    15 -> contractAmountUah.sortKey()
+    16 -> contractAmountUahWithoutVat.sortKey()
+    17 -> dreamCoFinancingPct.sortKey()
+    18 -> estimatedEibUah.sortKey()
+    19 -> realLocalCoFinancingPct.sortKey()
+    20 -> realEibFinancingUah.sortKey()
+    21 -> bankGuarantee.sortKey()
     else -> displayValues().getOrElse(columnIndex) { "" }.lowercase()
 }
 
@@ -711,29 +719,30 @@ private fun Double?.sortKey(): String = this?.let { value ->
 
 private fun procurementHeaderLabels(): List<String> = if (LocalizationManager.currentLanguage == Language.EN) listOf(
     "Subproject code", "Batch", "Subproject name", "Promotor name", "FB name", "Procurement method", "Procurement status",
-    "Tender attempts", "PIG violations", "PROZORRO reference", "Contract date", "Contract end date", "Actualised contract end date",
+    "Tender attempts", "PIG violations", "PROZORRO reference", "Contract link", "Contract date", "Contract end date", "Actualised contract end date",
     "Contractor ID", "Contractor name", "Contract amount, UAH with VAT", "Contract amount, UAH without VAT", "DREAM co-financing, %",
-    "Estimated EIB financing, UAH", "Real local co-financing, %", "Real EIB financing, UAH", "Bank guarantee, %", "Contract link"
+    "Estimated EIB financing, UAH", "Real local co-financing, %", "Real EIB financing, UAH", "Bank guarantee, %"
 ) else listOf(
     "Код субпроєкту", "Транш", "Назва субпроєкту", "Назва промотора", "Назва ФБ", "Метод закупівлі", "Статус закупівлі",
-    "Кількість спроб", "Порушення PIG", "Посилання PROZORRO", "Дата договору", "Дата завершення договору", "Актуалізована дата завершення",
+    "Кількість спроб", "Порушення PIG", "Посилання PROZORRO", "Посилання на договір", "Дата договору", "Дата завершення договору", "Актуалізована дата завершення",
     "ID підрядника", "Назва підрядника", "Сума договору з ПДВ, грн", "Сума договору без ПДВ, грн", "Співфінансування DREAM, %",
-    "Оціночне фінансування ЄІБ, грн", "Фактичне місцеве співфінансування, %", "Фактичне фінансування ЄІБ, грн", "Банківська гарантія, %", "Посилання на договір"
+    "Оціночне фінансування ЄІБ, грн", "Фактичне місцеве співфінансування, %", "Фактичне фінансування ЄІБ, грн", "Банківська гарантія, %"
 )
 
 private fun procurementTableHeaderLabels(): List<String> = if (LocalizationManager.currentLanguage == Language.EN) listOf(
     "Subproject code", "Batch", "Subproject name", "Promotor name", "Procurement method", "Procurement status",
-    "Tender attempts", "PIG violations", "PROZORRO reference", "Contract date", "Contract end date", "Actualised contract end date",
+    "Tender attempts", "PIG violations", "PROZORRO reference", "Contract link", "Contract date", "Contract end date", "Actualised contract end date",
     "Contractor ID", "Contractor name", "Contract amount, UAH with VAT", "Contract amount, UAH without VAT", "DREAM co-financing, %",
-    "Estimated EIB financing, UAH", "Real local co-financing, %", "Real EIB financing, UAH", "Bank guarantee, %", "Contract link"
+    "Estimated EIB financing, UAH", "Real local co-financing, %", "Real EIB financing, UAH", "Bank guarantee, %"
 ) else listOf(
     "Код субпроєкту", "Транш", "Назва субпроєкту", "Назва ФБ", "Метод закупівлі", "Статус закупівлі",
-    "Кількість спроб", "Порушення PIG", "Посилання PROZORRO", "Дата договору", "Дата завершення договору", "Актуалізована дата завершення",
+    "Кількість спроб", "Порушення PIG", "Посилання PROZORRO", "Посилання на договір", "Дата договору", "Дата завершення договору", "Актуалізована дата завершення",
     "ID підрядника", "Назва підрядника", "Сума договору з ПДВ, грн", "Сума договору без ПДВ, грн", "Співфінансування DREAM, %",
-    "Оціночне фінансування ЄІБ, грн", "Фактичне місцеве співфінансування, %", "Фактичне фінансування ЄІБ, грн", "Банківська гарантія, %", "Посилання на договір"
+    "Оціночне фінансування ЄІБ, грн", "Фактичне місцеве співфінансування, %", "Фактичне фінансування ЄІБ, грн", "Банківська гарантія, %"
 )
 
-private val columnWidths = listOf(145, 104, 360, 220, 250, 220, 130, 240, 230, 145, 165, 190, 150, 300, 210, 220, 190, 220, 220, 220, 180, 240)
+private val columnWidths = listOf(145, 104, 360, 220, 250, 220, 130, 240, 230, 190, 145, 165, 190, 150, 300, 210, 220, 190, 220, 220, 220, 180)
+private val centeredProcurementColumns = setOf(1, 6, 7, 8, 9, 10, 11, 12, 13, 15, 16, 17, 18, 19, 20, 21)
 private val procurementStatuses = listOf(
     "Не розпочато / Not Started",
     "Закупівля триває / Tender Ongoing",
@@ -758,10 +767,19 @@ private fun String?.isPublishedInOjeu(): Boolean =
 private fun String.toProzorroTenderUrl(): String =
     if (startsWith("https://", ignoreCase = true) || startsWith("http://", ignoreCase = true)) this
     else "https://prozorro.gov.ua/uk/tender/$this"
+/** Browser-safe grouped money formatting. `DecimalFormat` is JVM-only, so do
+ * not use it in Compose/Wasm table cells. */
 private fun Double?.format(decimals: Int): String = this?.let { value ->
-    val multiplier = if (decimals == 0) 1.0 else 100.0
-    val rounded = kotlin.math.round(value * multiplier) / multiplier
-    if (decimals == 0) rounded.toInt().toString() else rounded.toString()
+    if (!value.isFinite()) return@let ""
+    val factor = (0 until decimals).fold(1L) { result, _ -> result * 10L }
+    val scaled = kotlin.math.round(value * factor).toLong()
+    val sign = if (scaled < 0L) "-" else ""
+    val unsigned = kotlin.math.abs(scaled)
+    val groupSeparator = if (LocalizationManager.currentLanguage == Language.EN) "," else " "
+    val decimalSeparator = if (LocalizationManager.currentLanguage == Language.EN) "." else ","
+    val groupedWhole = (unsigned / factor).toString().reversed().chunked(3).joinToString(groupSeparator).reversed()
+    if (decimals == 0) "$sign$groupedWhole"
+    else "$sign$groupedWhole$decimalSeparator${(unsigned % factor).toString().padStart(decimals, '0')}"
 }.orEmpty()
 
 private fun Double?.formatFixed(decimals: Int): String = this?.let { value ->

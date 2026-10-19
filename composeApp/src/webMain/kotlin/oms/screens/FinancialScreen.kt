@@ -469,7 +469,7 @@ fun FinancialScreen(
         ) {
                     if (!loading && !loadFailed && visibleActs.isEmpty()) Text(LocalizationManager.t(emptyRecordsMessage))
                     pageRows.forEach { row ->
-                        Row(Modifier.width(1_681.dp).padding(vertical = 8.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                        Row(Modifier.width(1_681.dp).padding(vertical = 4.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                             Text(LocalizationManager.t("record_type_${row.act.recordType}"), Modifier.width(95.dp))
                             Box(Modifier.width(210.dp)) { FinancialPaymentPurposeBadge(row.act.recordType, row.act.paymentPurpose) }
                             Text(row.trancheNumber.financialTrancheCode(), Modifier.width(95.dp))

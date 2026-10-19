@@ -291,7 +291,7 @@ fun ReportsScreen(
             ) {
                 if (!loading && !loadFailed && visible.isEmpty()) Text(LocalizationManager.t("no_reports"))
                 visible.forEach { row ->
-                    Row(Modifier.width(1_115.dp).padding(vertical = 8.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                    Row(Modifier.width(1_115.dp).padding(vertical = 4.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                         Text(row.report.inspectionDate.toOmsDate(), Modifier.width(105.dp))
                         ExpandableTableText(row.localizedSubprojectName() ?: "—", Modifier.width(220.dp), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Text(row.subprojectCode ?: "—", Modifier.width(150.dp), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)

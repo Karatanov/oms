@@ -2,6 +2,7 @@ package oms.umitaf.service
 
 import oms.umitaf.domain.ProcurementRecord
 import org.apache.pdfbox.pdmodel.PDDocument
+import org.apache.pdfbox.text.PDFTextStripper
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -29,6 +30,11 @@ class ProcurementTablePdfExportServiceTest {
         )
 
         assertTrue(pdf.decodeToString(0, 4).startsWith("%PDF"))
-        PDDocument.load(pdf).use { document -> assertEquals(2, document.numberOfPages) }
+        PDDocument.load(pdf).use { document ->
+            assertEquals(2, document.numberOfPages)
+            val text = PDFTextStripper().getText(document)
+            assertTrue(text.contains("Contract link"))
+            assertTrue(text.contains("https://example.test/contract"))
+        }
     }
 }

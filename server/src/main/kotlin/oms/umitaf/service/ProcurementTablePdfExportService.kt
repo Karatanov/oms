@@ -24,13 +24,14 @@ class ProcurementTablePdfExportService(
             title = labels["overview"],
             columns = listOf(
                 "code" to 74f, "tranche" to 36f, "name" to 255f, "promotor" to 130f,
-                "method" to 120f, "status" to 130f, "attempts" to 54f, "pig" to 135f, "prozorro" to 150f
+                "method" to 120f, "status" to 130f, "attempts" to 54f, "pig" to 135f, "prozorro" to 120f,
+                "contract_link" to 150f
             ),
             records = records.map { record -> listOf(
                 record.subProjectId, tranche(record.batchId), localized(record.subprojectNameUk, record.subprojectNameEn, language),
                 localized(record.fbName, record.promotorName, language), localizedValue(record.procurementMethod, language),
                 procurementStatus(record.purchaseStatus, language), record.tenderAttemptCount?.toString().orEmpty(),
-                localizedValue(record.pigViolations, language), record.prozorroTenderId.orEmpty()
+                localizedValue(record.pigViolations, language), record.prozorroTenderId.orEmpty(), record.contractLink.orEmpty()
             ) }, labels = labels, filterSummary = filterSummary
         )
         val contracts = section(
@@ -39,14 +40,14 @@ class ProcurementTablePdfExportService(
                 "code" to 70f, "contract_date" to 66f, "contract_end" to 75f, "actual_end" to 84f,
                 "contractor_id" to 86f, "contractor" to 190f, "with_vat" to 92f, "without_vat" to 96f,
                 "dream" to 66f, "estimated_eib" to 96f, "local" to 74f, "actual_eib" to 96f,
-                "guarantee" to 68f, "contract_link" to 138f
+                "guarantee" to 68f
             ),
             records = records.map { record -> listOf(
                 record.subProjectId, date(record.contractDate), date(record.contractEndDate), date(record.actualisedContractEndDate),
                 record.contractorId.orEmpty(), localized(record.contractorNameUkr, record.contractorNameEng, language),
                 number(record.contractAmountUah, language), number(record.contractAmountUahWithoutVat, language), percent(record.dreamCoFinancingPct, language),
                 number(record.estimatedEibUah, language), percent(record.realLocalCoFinancingPct, language),
-                number(record.realEibFinancingUah, language), percent(record.bankGuarantee, language), record.contractLink.orEmpty()
+                number(record.realEibFinancingUah, language), percent(record.bankGuarantee, language)
             ) }, labels = labels, filterSummary = filterSummary
         )
         return merge(listOf(overview, contracts))

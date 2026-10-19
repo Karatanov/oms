@@ -192,7 +192,7 @@ fun DocumentsScreen(canManageDocuments: Boolean = true) {
             ) {
                 if (!loading && !loadFailed && visibleDocuments.isEmpty()) Text(LocalizationManager.t("no_documents"))
                 pageDocuments.forEach { row ->
-                    Row(Modifier.width(1_370.dp).padding(vertical = 8.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                    Row(Modifier.width(1_370.dp).padding(vertical = 4.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                         Text(row.fileName, Modifier.width(260.dp))
                         ExpandableTableText(row.projectName, Modifier.width(210.dp))
                         Text(row.subprojectPartCode ?: "—", Modifier.width(165.dp))

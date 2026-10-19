@@ -199,7 +199,7 @@ fun AdminScreen() {
                 }
             ) {
                 sortedUsers.forEach { user ->
-                    Row(Modifier.width(2046.dp).padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Row(Modifier.width(2046.dp).padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                         Text(user.username, Modifier.width(130.dp))
                         TableActionIconButton(LocalizationManager.t("edit_user"), Icons.Default.Edit) {
                             editUserError = null
