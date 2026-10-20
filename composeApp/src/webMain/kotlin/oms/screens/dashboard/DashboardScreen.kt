@@ -16,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.input.key.*
 import kotlinx.coroutines.CancellationException
@@ -206,7 +207,7 @@ private fun NationalPortfolioSummary(summary: ApiDashboardNationalSummary) {
             )
             FlowRow(
                 Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(18.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 SummaryMetric("national_subprojects", summary.subprojectsCount.toString())
@@ -215,14 +216,15 @@ private fun NationalPortfolioSummary(summary: ApiDashboardNationalSummary) {
                 SummaryMetric("national_settlements", summary.settlementsCount.toString())
                 SummaryMetric(
                     "national_approved_financing",
-                    "€ ${summary.approvedFundingEur.roundToLong().grouped()} · ${summary.approvedFundingUah.roundToLong().grouped()} UAH"
+                    "€ ${summary.approvedFundingEur.roundToLong().grouped()}",
+                    uahEquivalent = "${summary.approvedFundingUah.roundToLong().grouped()} UAH"
                 )
                 SummaryMetric("national_signed_contracts", summary.signedContractsCount.toString())
                 SummaryMetric("national_signed_contract_value", "${summary.signedContractsAmountUah.roundToLong().grouped()} UAH")
                 SummaryMetric(
                     "national_services_paid",
-                    "€ ${summary.servicesPaidEurCents.toEuroAmount()}" +
-                        (summary.servicesPaidUahCents?.let { " · ${it.toUahAmount()} UAH" }.orEmpty())
+                    "€ ${summary.servicesPaidEurCents.toEuroAmount()}",
+                    uahEquivalent = summary.servicesPaidUahCents?.let { "${it.toUahAmount()} UAH" }
                 )
             }
         }
@@ -230,10 +232,39 @@ private fun NationalPortfolioSummary(summary: ApiDashboardNationalSummary) {
 }
 
 @Composable
-private fun SummaryMetric(labelKey: String, value: String) {
-    Column(Modifier.widthIn(min = 126.dp)) {
-        Text(LocalizationManager.t(labelKey), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(value, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+private fun SummaryMetric(labelKey: String, value: String, uahEquivalent: String? = null) {
+    // A summary should be scannable at a glance.  Each metric gets its own
+    // compact card, while the secondary UAH figure remains available on hover
+    // or press instead of making the main number compete with a second currency.
+    OmsTooltipBox(
+        enabled = uahEquivalent != null,
+        openOnPress = true,
+        tooltip = {
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(LocalizationManager.t("national_uah_equivalent"), style = MaterialTheme.typography.labelMedium)
+                Text(uahEquivalent.orEmpty(), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+            }
+        }
+    ) {
+        Card(
+            Modifier.widthIn(min = 148.dp, max = 208.dp).heightIn(min = 88.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        ) {
+            Column(
+                Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(7.dp)
+            ) {
+                Text(
+                    LocalizationManager.t(labelKey),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(value, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, maxLines = 2)
+            }
+        }
     }
 }
 
