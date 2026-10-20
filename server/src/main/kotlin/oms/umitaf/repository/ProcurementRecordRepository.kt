@@ -2,8 +2,8 @@ package oms.umitaf.repository
 
 import oms.umitaf.database.tables.ProcurementRecordTable
 import oms.umitaf.domain.ProcurementRecord
+import org.jetbrains.exposed.v1.jdbc.batchInsert
 import org.jetbrains.exposed.v1.jdbc.selectAll
-import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.jetbrains.exposed.v1.jdbc.deleteAll
 import org.jetbrains.exposed.v1.core.eq
@@ -31,8 +31,8 @@ class ExposedProcurementRecordRepository : ProcurementRecordRepository {
     override fun replaceAll(records: List<ProcurementRecord>): Int = transaction {
         require(records.isNotEmpty()) { "Approved source contains no procurement records." }
         ProcurementRecordTable.deleteAll()
-        records.forEach { record ->
-            ProcurementRecordTable.insert { row -> row.applyRecord(record) }
+        ProcurementRecordTable.batchInsert(records, shouldReturnGeneratedValues = false) { record ->
+            applyRecord(record)
         }
         records.size
     }
