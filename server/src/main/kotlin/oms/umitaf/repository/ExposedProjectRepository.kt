@@ -106,53 +106,7 @@ class ExposedProjectRepository : ProjectRepository {
         val amountsByProject = ProjectAmountTable.selectAll().groupBy { it[ProjectAmountTable.projectId].value }
         ProjectTable
             .selectAll()
-            .map { row ->
-                Project(
-                    id = row[ProjectTable.id].value,
-                    uuid = UUID.fromString(row[ProjectTable.uuid]),
-                    projectType = row[ProjectTable.projectType].toProjectType(),
-                    trancheNumber = row[ProjectTable.trancheNumber],
-                    parentProjectId = row[ProjectTable.parentProjectId]?.value,
-                    name = row[ProjectTable.name],
-                    siteName = row[ProjectTable.siteName],
-                    siteNumber = row[ProjectTable.siteNumber],
-                    description = row[ProjectTable.description],
-                    address = row[ProjectTable.address],
-                    region = row[ProjectTable.region],
-                    city = row[ProjectTable.city],
-                    latitude = row[ProjectTable.latitude]?.toDouble(),
-                    longitude = row[ProjectTable.longitude]?.toDouble(),
-                    status = ProjectStatus.valueOf(row[ProjectTable.status].uppercase()),
-                    sector = row[ProjectTable.sector],
-                    constructionType = row[ProjectTable.constructionType],
-                    budgetPlanned = row[ProjectTable.budgetPlanned],
-                    engineerConsultantContractAmount = row[ProjectTable.engineerConsultantContractAmount],
-                    technicalSupervisionAmount = row[ProjectTable.technicalSupervisionAmount],
-                    subprojectContractAmount = row[ProjectTable.subprojectContractAmount],
-                    startDate = row[ProjectTable.startDate],
-                    endDate = row[ProjectTable.endDate],
-                    contractSignedDate = row[ProjectTable.contractSignedDate],
-                    plannedEndDate = row[ProjectTable.plannedEndDate],
-                    constructionContractSigningDate = row[ProjectTable.constructionContractSigningDate],
-                    constructionStartDate = row[ProjectTable.constructionStartDate],
-                    projectedCompletionTime = row[ProjectTable.projectedCompletionTime],
-                    currency = row[ProjectTable.currency],
-                    contractorName = row[ProjectTable.contractorName],
-                    constructionContractNumber = row[ProjectTable.constructionContractNumber],
-                    technicalSupervisionName = row[ProjectTable.technicalSupervisionName],
-                    technicalSupervisionContractNumber = row[ProjectTable.technicalSupervisionContractNumber],
-                    technicalSupervisionContractDate = row[ProjectTable.technicalSupervisionContractDate],
-                    technicalSupervisionStartDate = row[ProjectTable.technicalSupervisionStartDate],
-                    technicalSupervisionPlannedEndDate = row[ProjectTable.technicalSupervisionPlannedEndDate],
-                    engineerConsultantName = row[ProjectTable.engineerConsultantName],
-                    engineerConsultantContractNumber = row[ProjectTable.engineerConsultantContractNumber],
-                    engineerConsultantContractDate = row[ProjectTable.engineerConsultantContractDate],
-                    engineerConsultantStartDate = row[ProjectTable.engineerConsultantStartDate],
-                    engineerConsultantPlannedEndDate = row[ProjectTable.engineerConsultantPlannedEndDate],
-                    amounts = amountsByProject[row[ProjectTable.id].value].orEmpty().toAmounts(),
-                    isArchived = row[ProjectTable.isArchived], archivedAt = row[ProjectTable.archivedAt], archivedBy = row[ProjectTable.archivedBy]?.value
-                )
-            }
+            .map { row -> row.toProject(amountsByProject[row[ProjectTable.id].value].orEmpty().toAmounts()) }
     }
 
     /**
@@ -167,115 +121,11 @@ class ExposedProjectRepository : ProjectRepository {
             .selectAll()
             .where { ProjectTable.uuid eq uuid }.firstOrNull()
             ?.let { row ->
-
-                Project(
-
-                    id = row[ProjectTable.id].value,
-
-                    uuid = UUID.fromString(
-                        row[ProjectTable.uuid]
-                    ),
-
-                    projectType = row[ProjectTable.projectType].toProjectType(),
-
-                    trancheNumber = row[ProjectTable.trancheNumber],
-
-                    parentProjectId =
-                        row[ProjectTable.parentProjectId]
-                            ?.value,
-
-                    name =
-                        row[ProjectTable.name],
-
-                    siteName =
-                        row[ProjectTable.siteName],
-
-                    siteNumber =
-                        row[ProjectTable.siteNumber],
-
-                    description =
-                        row[ProjectTable.description],
-
-                    address =
-                        row[ProjectTable.address],
-
-                    region =
-                        row[ProjectTable.region],
-
-                    city =
-                        row[ProjectTable.city],
-
-                    latitude =
-                        row[ProjectTable.latitude]
-                            ?.toDouble(),
-
-                    longitude =
-                        row[ProjectTable.longitude]
-                            ?.toDouble(),
-
-                    status =
-                        ProjectStatus.valueOf(
-                            row[ProjectTable.status]
-                                .uppercase()
-                        ),
-
-                    sector =
-                        row[ProjectTable.sector],
-
-                    constructionType =
-                        row[ProjectTable.constructionType],
-
-                    budgetPlanned =
-                        row[ProjectTable.budgetPlanned],
-
-                    engineerConsultantContractAmount =
-                        row[ProjectTable.engineerConsultantContractAmount],
-
-                    technicalSupervisionAmount =
-                        row[ProjectTable.technicalSupervisionAmount],
-
-                    subprojectContractAmount =
-                        row[ProjectTable.subprojectContractAmount],
-
-                    startDate =
-                        row[ProjectTable.startDate],
-
-                    endDate =
-                        row[ProjectTable.endDate],
-
-                    contractSignedDate =
-                        row[ProjectTable.contractSignedDate],
-
-                    plannedEndDate =
-                        row[ProjectTable.plannedEndDate],
-
-                    constructionContractSigningDate =
-                        row[ProjectTable.constructionContractSigningDate],
-
-                    constructionStartDate =
-                        row[ProjectTable.constructionStartDate],
-
-                    projectedCompletionTime =
-                        row[ProjectTable.projectedCompletionTime],
-
-                    currency =
-                        row[ProjectTable.currency],
-
-                    contractorName = row[ProjectTable.contractorName],
-                    constructionContractNumber = row[ProjectTable.constructionContractNumber],
-                    technicalSupervisionName = row[ProjectTable.technicalSupervisionName],
-                    technicalSupervisionContractNumber = row[ProjectTable.technicalSupervisionContractNumber],
-                    technicalSupervisionContractDate = row[ProjectTable.technicalSupervisionContractDate],
-                    technicalSupervisionStartDate = row[ProjectTable.technicalSupervisionStartDate],
-                    technicalSupervisionPlannedEndDate = row[ProjectTable.technicalSupervisionPlannedEndDate],
-                    engineerConsultantName = row[ProjectTable.engineerConsultantName],
-                    engineerConsultantContractNumber = row[ProjectTable.engineerConsultantContractNumber],
-                    engineerConsultantContractDate = row[ProjectTable.engineerConsultantContractDate],
-                    engineerConsultantStartDate = row[ProjectTable.engineerConsultantStartDate],
-                    engineerConsultantPlannedEndDate = row[ProjectTable.engineerConsultantPlannedEndDate],
-                    amounts = ProjectAmountTable.selectAll().where { ProjectAmountTable.projectId eq row[ProjectTable.id] }.toList().toAmounts(),
-                    isArchived = row[ProjectTable.isArchived], archivedAt = row[ProjectTable.archivedAt], archivedBy = row[ProjectTable.archivedBy]?.value
-                )
+                val amounts = ProjectAmountTable.selectAll()
+                    .where { ProjectAmountTable.projectId eq row[ProjectTable.id] }
+                    .toList()
+                    .toAmounts()
+                row.toProject(amounts)
             }
     }
 
@@ -486,6 +336,55 @@ private fun String.toProjectType(): ProjectType = when (this) {
     "subproject_part" -> ProjectType.SUBPROJECT_PART
     else -> error("Unknown project type: $this")
 }
+
+/** Maps a project row consistently for both list and single-project reads. */
+private fun ResultRow.toProject(amounts: Map<String, ProjectAmount>): Project = Project(
+    id = this[ProjectTable.id].value,
+    uuid = UUID.fromString(this[ProjectTable.uuid]),
+    projectType = this[ProjectTable.projectType].toProjectType(),
+    trancheNumber = this[ProjectTable.trancheNumber],
+    parentProjectId = this[ProjectTable.parentProjectId]?.value,
+    name = this[ProjectTable.name],
+    siteName = this[ProjectTable.siteName],
+    siteNumber = this[ProjectTable.siteNumber],
+    description = this[ProjectTable.description],
+    address = this[ProjectTable.address],
+    region = this[ProjectTable.region],
+    city = this[ProjectTable.city],
+    latitude = this[ProjectTable.latitude]?.toDouble(),
+    longitude = this[ProjectTable.longitude]?.toDouble(),
+    status = ProjectStatus.valueOf(this[ProjectTable.status].uppercase()),
+    sector = this[ProjectTable.sector],
+    constructionType = this[ProjectTable.constructionType],
+    budgetPlanned = this[ProjectTable.budgetPlanned],
+    engineerConsultantContractAmount = this[ProjectTable.engineerConsultantContractAmount],
+    technicalSupervisionAmount = this[ProjectTable.technicalSupervisionAmount],
+    subprojectContractAmount = this[ProjectTable.subprojectContractAmount],
+    startDate = this[ProjectTable.startDate],
+    endDate = this[ProjectTable.endDate],
+    contractSignedDate = this[ProjectTable.contractSignedDate],
+    plannedEndDate = this[ProjectTable.plannedEndDate],
+    constructionContractSigningDate = this[ProjectTable.constructionContractSigningDate],
+    constructionStartDate = this[ProjectTable.constructionStartDate],
+    projectedCompletionTime = this[ProjectTable.projectedCompletionTime],
+    currency = this[ProjectTable.currency],
+    contractorName = this[ProjectTable.contractorName],
+    constructionContractNumber = this[ProjectTable.constructionContractNumber],
+    technicalSupervisionName = this[ProjectTable.technicalSupervisionName],
+    technicalSupervisionContractNumber = this[ProjectTable.technicalSupervisionContractNumber],
+    technicalSupervisionContractDate = this[ProjectTable.technicalSupervisionContractDate],
+    technicalSupervisionStartDate = this[ProjectTable.technicalSupervisionStartDate],
+    technicalSupervisionPlannedEndDate = this[ProjectTable.technicalSupervisionPlannedEndDate],
+    engineerConsultantName = this[ProjectTable.engineerConsultantName],
+    engineerConsultantContractNumber = this[ProjectTable.engineerConsultantContractNumber],
+    engineerConsultantContractDate = this[ProjectTable.engineerConsultantContractDate],
+    engineerConsultantStartDate = this[ProjectTable.engineerConsultantStartDate],
+    engineerConsultantPlannedEndDate = this[ProjectTable.engineerConsultantPlannedEndDate],
+    amounts = amounts,
+    isArchived = this[ProjectTable.isArchived],
+    archivedAt = this[ProjectTable.archivedAt],
+    archivedBy = this[ProjectTable.archivedBy]?.value
+)
 
 private fun List<ResultRow>.toAmounts(): Map<String, ProjectAmount> = associate { row ->
     row[ProjectAmountTable.kind] to ProjectAmount(
