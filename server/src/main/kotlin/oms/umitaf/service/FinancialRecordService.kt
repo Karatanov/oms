@@ -12,8 +12,34 @@ class FinancialRecordService(
     private val repository: FinancialRecordRepository,
     private val exchangeRateService: NbuExchangeRateService
 ) {
-    fun getAll() = repository.findAll()
-    fun getAll(projectId: Long) = repository.findByProjectId(projectId)
+    /**
+     * Financial charts, the project map and the registry can request the same
+     * immutable ledger during one page load. Keep a very short snapshot to
+     * avoid repeated full-table reads, and invalidate it on every mutation so
+     * a user never has to wait for the TTL after saving a record.
+     */
+    private val ledgerCacheLock = Any()
+    @Volatile private var cachedLedger: List<FinancialRecord>? = null
+    @Volatile private var ledgerCacheExpiresAt = 0L
+
+    private fun invalidateLedgerCache() = synchronized(ledgerCacheLock) {
+        cachedLedger = null
+        ledgerCacheExpiresAt = 0L
+    }
+
+    fun getAll(): List<FinancialRecord> {
+        val now = System.currentTimeMillis()
+        cachedLedger?.takeIf { now < ledgerCacheExpiresAt }?.let { return it }
+        return synchronized(ledgerCacheLock) {
+            val current = System.currentTimeMillis()
+            cachedLedger?.takeIf { current < ledgerCacheExpiresAt } ?: repository.findAll().also { records ->
+                cachedLedger = records
+                ledgerCacheExpiresAt = current + 15_000L
+            }
+        }
+    }
+
+    fun getAll(projectId: Long) = getAll().filter { it.projectId == projectId }
     fun filtered(projectId: Long, recordType: String?, dateFrom: String?, dateTo: String?): List<FinancialRecord> {
         val type = recordType?.trim()?.takeIf { it.isNotEmpty() }?.let(::validatedType)
         val from = dateFrom?.trim()?.takeIf { it.isNotEmpty() }?.let(::date)?.let(java.time.LocalDate::parse)
@@ -34,6 +60,7 @@ class FinancialRecordService(
         val normalizedAmount = positive(amount)
         val conversion = exchangeRateService.convertToEur(normalizedAmount, normalizedCurrency, java.time.LocalDate.parse(normalizedDate))
         return repository.create(projectId, validatedType(type), required(reference, "Reference number"), normalizedAmount, normalizedCurrency, normalizedDate, null, optional(description) ?: optional(milestone), null, paymentPurpose(paymentPurpose), conversion.rate, conversion.effectiveDate.toString(), conversion.amountEurCents, 1L)
+            .also { invalidateLedgerCache() }
     }
     fun update(projectId: Long, uuid: String, type: String, reference: String, amount: Double, currency: String, date: String, paymentDate: String?, description: String?, milestone: String?, paymentPurpose: String = "works"): FinancialRecord? {
         val normalizedCurrency = currency(currency)
@@ -41,18 +68,24 @@ class FinancialRecordService(
         val normalizedAmount = positive(amount)
         val conversion = exchangeRateService.convertToEur(normalizedAmount, normalizedCurrency, java.time.LocalDate.parse(normalizedDate))
         return repository.update(projectId, uuid.trim(), validatedType(type), required(reference, "Reference number"), normalizedAmount, normalizedCurrency, normalizedDate, null, optional(description) ?: optional(milestone), null, paymentPurpose(paymentPurpose), conversion.rate, conversion.effectiveDate.toString(), conversion.amountEurCents)
+            ?.also { invalidateLedgerCache() }
     }
     fun move(projectId: Long, uuid: String, targetProjectId: Long) = repository.move(projectId, uuid.trim(), targetProjectId)
+        .also { moved -> if (moved) invalidateLedgerCache() }
     /** One-time safe upgrade for existing UAH rows created before EUR storage existed. */
     fun backfillMissingEurEquivalents() {
-        repository.findAll().filter { it.amountEurCents == null }.forEach { record ->
+        var changed = false
+        getAll().filter { it.amountEurCents == null }.forEach { record ->
             runCatching {
                 val conversion = exchangeRateService.convertToEur(record.amount, record.currency, record.recordDate)
                 repository.updateEurConversion(record.uuid.toString(), conversion.rate, conversion.effectiveDate.toString(), conversion.amountEurCents)
+                    .also { updated -> changed = changed || updated }
             }
         }
+        if (changed) invalidateLedgerCache()
     }
     fun delete(projectId: Long, uuid: String) = repository.delete(projectId, uuid.trim())
+        .also { deleted -> if (deleted) invalidateLedgerCache() }
     fun importWorkbook(projectId: Long, input: InputStream): FinancialImportResult {
         WorkbookFactory.create(input).use { workbook ->
             val sheet = workbook.getSheetAt(0) ?: throw IllegalArgumentException("Workbook must contain a financials sheet.")
