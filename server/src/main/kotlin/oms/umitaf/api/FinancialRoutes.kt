@@ -95,9 +95,13 @@ fun Route.financialRoutes() {
             }
             return current
         }
-        val completedBySubprojectId = AppContainer.financialRecordService.getAll()
+        // Financial execution is cash disbursed against the subproject budget.
+        // ACT records evidence completed works but do not mean that money was
+        // paid; including them produced zeros for regions that had payments
+        // only and also overstated regions that had both an act and its payment.
+        val disbursedBySubprojectId = AppContainer.financialRecordService.getAll()
             .asSequence()
-            .filter { it.recordType == FinancialRecordType.ACT }
+            .filter { it.recordType == FinancialRecordType.PAYMENT || it.recordType == FinancialRecordType.ADVANCE }
             .mapNotNull { record ->
                 val subproject = parentSubproject(record.projectId) ?: return@mapNotNull null
                 val uah = when (record.currency.uppercase()) {
@@ -116,7 +120,7 @@ fun Route.financialRoutes() {
                 val key = label(subproject).trim().ifBlank { "Unspecified" }
                 val totals = rows.getOrPut(key) { Aggregate() }
                 totals.contract += (subproject.subprojectContractAmount ?: subproject.budgetPlanned).toDouble()
-                totals.completed += completedBySubprojectId[subproject.id] ?: 0.0
+                totals.completed += disbursedBySubprojectId[subproject.id] ?: 0.0
             }
             return rows.map { (label, totals) ->
                 FinancialProgressItemResponse(
