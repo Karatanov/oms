@@ -17,6 +17,7 @@ import io.ktor.client.request.setBody
 import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
+import io.ktor.http.HttpStatusCode
 import io.ktor.http.encodeURLParameter
 import io.ktor.http.contentType
 import io.ktor.http.isSuccess
@@ -25,6 +26,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.coroutines.delay
 import kotlin.js.ExperimentalWasmJsInterop
 import kotlin.js.JsName
 import kotlin.js.unsafeCast
@@ -307,11 +309,18 @@ object OmsApiClient {
     suspend fun healthSafetyObservations(projectUuid: String): ApiHealthSafetyObservations =
         client.get("$baseUrl/projects/$projectUuid/health-safety-observations").body()
 
-    suspend fun inspectionPhotos(reportUuid: String): List<ApiInspectionPhoto> =
-        // An imported SIR can need a one-time extraction of embedded photos.
-        // The report form has its own inline state, so do not cover the whole
-        // SPA with the global loading overlay while evidence is prepared.
-        client.get("$baseUrl/inspection-reports/$reportUuid/photos?background=true").body()
+    suspend fun inspectionPhotos(reportUuid: String): List<ApiInspectionPhoto> {
+        // Older imported SIR workbooks may need one background extraction of
+        // embedded photos. A 202 response means the report itself remains
+        // usable and this independent request may poll without blocking it.
+        repeat(30) {
+            val response = client.get("$baseUrl/inspection-reports/$reportUuid/photos?background=true")
+            val photos = response.body<List<ApiInspectionPhoto>>()
+            if (response.status != HttpStatusCode.Accepted) return photos
+            delay(1_000)
+        }
+        return emptyList()
+    }
 
     suspend fun createAndSubmitInspectionReport(
         projectUuid: String,

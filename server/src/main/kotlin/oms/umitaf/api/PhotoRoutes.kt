@@ -7,27 +7,30 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.utils.io.readRemaining
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import kotlinx.io.readByteArray
 import oms.umitaf.config.AppContainer
 import oms.umitaf.domain.InspectionReport
 import oms.umitaf.domain.InspectionReportStatus
 import oms.umitaf.dto.ErrorResponse
 import oms.umitaf.dto.toResponse
+import org.slf4j.LoggerFactory
 import java.nio.file.Files
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.Executors
 
 fun Route.photoRoutes() = route("/api/v1/inspection-reports/{reportUuid}/photos") {
     get {
         val report = call.photoReport() ?: return@get
-        // An imported workbook may contain many high-resolution images. Its
-        // first photo request materialises thumbnails and files, which is
-        // deliberately slow IO/CPU work. Do it on the IO pool so opening a
-        // report remains responsive while the evidence is prepared.
-        val photos = withContext(Dispatchers.IO) {
-            hydrateEmbeddedSirPhotos(report)
+        val photos = AppContainer.inspectionPhotoService.list(report.id)
+        if (photos.isNotEmpty() || !EmbeddedSirPhotoHydration.schedule(report)) {
+            call.respond(photos.map { it.toResponse(report.uuid.toString()) })
+        } else {
+            // Photo extraction from an older XLSX can involve 30 high-resolution
+            // images and thumbnail generation. Return immediately so report
+            // preview/edit remains usable; the browser retries this metadata
+            // endpoint while the bounded background job runs.
+            call.respond(HttpStatusCode.Accepted, emptyList<oms.umitaf.dto.InspectionPhotoResponse>())
         }
-        call.respond(photos.map { it.toResponse(report.uuid.toString()) })
     }
 
     post {
@@ -115,6 +118,37 @@ internal fun hydrateEmbeddedSirPhotos(report: InspectionReport): List<oms.umitaf
             }
         }
     return photoService.list(report.id)
+}
+
+/**
+ * Materialises embedded photographs at most once per report and process.
+ *
+ * The completion marker intentionally also covers a workbook with no images:
+ * otherwise every opening of such a report would reopen and parse its XLSX.
+ * A manually uploaded photo is always returned directly from the repository.
+ */
+private object EmbeddedSirPhotoHydration {
+    private val logger = LoggerFactory.getLogger("EmbeddedSirPhotoHydration")
+    private val inProgress = ConcurrentHashMap.newKeySet<Long>()
+    private val completed = ConcurrentHashMap.newKeySet<Long>()
+    private val executor = Executors.newSingleThreadExecutor { runnable ->
+        Thread(runnable, "sir-photo-hydration").apply { isDaemon = true }
+    }
+
+    /** Returns true only when the caller should respond with 202/pending. */
+    fun schedule(report: InspectionReport): Boolean {
+        if (completed.contains(report.id)) return false
+        if (!inProgress.add(report.id)) return true
+        executor.execute {
+            val result = runCatching {
+                hydrateEmbeddedSirPhotos(report)
+            }
+            inProgress.remove(report.id)
+            if (result.isSuccess) completed.add(report.id)
+            else logger.warn("Could not hydrate embedded SIR photos for report {}.", report.uuid, result.exceptionOrNull())
+        }
+        return true
+    }
 }
 
 private suspend fun ApplicationCall.photoReport(): InspectionReport? {
