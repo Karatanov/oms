@@ -22,6 +22,7 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SortByAlpha
 import oms.components.toOmsDateTime
 import oms.components.buttonHandCursor
+import oms.components.safeTextInput
 import oms.localization.LocalizationManager
 import oms.data.ApiActivity
 import oms.data.ApiUser
@@ -79,7 +80,7 @@ fun ActivitySection(activities: List<ApiActivity>, users: List<ApiUser>) {
             ) {
                 OutlinedTextField(
                     value = userSearch,
-                    onValueChange = { userSearch = it },
+                    onValueChange = { userSearch = it.safeTextInput(200) },
                     modifier = Modifier.weight(1f),
                     singleLine = true,
                     label = { Text(LocalizationManager.t("activity_user_search")) },

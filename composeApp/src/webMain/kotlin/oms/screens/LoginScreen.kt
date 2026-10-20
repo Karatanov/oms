@@ -26,6 +26,7 @@ import kotlinx.coroutines.launch
 import oms.components.FeatureItem
 import oms.components.AutocompleteField
 import oms.components.WasmSafeOverlay
+import oms.components.safeTextInput
 import oms.data.BrowserCredentialStorage
 import oms.data.OmsApiClient
 import oms.data.ApiUser
@@ -205,7 +206,7 @@ fun LoginScreen(
                     AutocompleteField(
                         value = username,
                         onValueChange = {
-                            username = it
+                            username = it.safeTextInput(320)
                             errorMessage = null
                         },
                         label = LocalizationManager.t("login_or_email"),
@@ -220,7 +221,7 @@ fun LoginScreen(
                     OutlinedTextField(
                         value = password,
                         onValueChange = {
-                            password = it
+                            password = it.safeTextInput(256)
                             errorMessage = null
                         },
                         label = { Text(LocalizationManager.t("password")) },
@@ -360,7 +361,7 @@ private fun PasswordResetDialog(initialIdentifier: String, onDismiss: () -> Unit
             Text(LocalizationManager.t("password_reset_hint"), color = MaterialTheme.colorScheme.onSurfaceVariant)
             OutlinedTextField(
                 value = identifier,
-                onValueChange = { identifier = it; error = null },
+                onValueChange = { identifier = it.safeTextInput(320); error = null },
                 label = { Text(LocalizationManager.t("login_or_email")) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
