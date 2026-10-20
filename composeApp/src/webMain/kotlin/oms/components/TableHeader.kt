@@ -13,7 +13,7 @@ import oms.screens.SortColumn
 
 @Composable
 fun TableHeader(currentSort: SortColumn, ascending: Boolean, onSort: (SortColumn) -> Unit) {
-    Row(Modifier.width(ProjectTableColumns.totalWidth).padding(vertical = 8.dp)) {
+    Row(Modifier.width(ProjectTableColumns.totalWidth).padding(vertical = 4.dp)) {
         Spacer(Modifier.width(ProjectTableColumns.selection + ProjectTableColumns.hierarchy))
         ProjectTableColumns.columns.forEach { column ->
             val labelKey = when (column) {

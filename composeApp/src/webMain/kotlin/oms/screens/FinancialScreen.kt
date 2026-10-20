@@ -1081,7 +1081,7 @@ private fun PaymentMonitoringHeader() {
 
 @Composable
 private fun PaymentMonitoringRow(row: oms.data.ApiPaymentMonitoringItem) {
-    Row(Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
+    Row(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
         PaymentMonitoringCell(row.code, 130.dp)
         PaymentMonitoringCell(row.totalInvestmentUah.asUah(), 165.dp)
         PaymentMonitoringCell(row.eibInvestmentUah.asUah(), 180.dp)

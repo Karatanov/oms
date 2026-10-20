@@ -708,7 +708,7 @@ private fun ProjectFinancialsTab(financials: ApiFinancialRecords?) {
                     }
                 ) {
                     records.forEach { record ->
-                        Row(Modifier.width(910.dp).padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Row(Modifier.width(910.dp).padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                             Text(record.referenceNumber, Modifier.width(150.dp))
                             Text(LocalizationManager.t("record_type_${record.recordType}"), Modifier.width(110.dp))
                             Text(
