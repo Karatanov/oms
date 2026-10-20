@@ -7,6 +7,8 @@
 .idea
 .kotlin
 **/build
+!frontend-dist/
+!frontend-dist/**
 **/node_modules
 server/uploads
 documentation

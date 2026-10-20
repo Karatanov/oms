@@ -18,7 +18,51 @@ env:
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
+  frontend-build:
+    name: Build cached production frontend
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    # Stop an obsolete Kotlin/Webpack compilation before it consumes another
+    # runner for 20+ minutes. The later commit will produce the only artifact
+    # that a publish job is allowed to use.
+    concurrency:
+      group: oms-frontend-build-${{ github.ref }}
+      cancel-in-progress: true
+    steps:
+      - uses: actions/checkout@v6
+
+      # setup-gradle keeps the Gradle User Home (including task/build caches)
+      # across runners.  Unlike the old in-Docker Gradle invocation, that
+      # cache remains available after a frontend source change.
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@v6
+
+      - name: Compile production Compose frontend
+        run: bash gradlew -PrenderJsOnly :composeApp:jsBrowserProductionWebpack --no-daemon --max-workers=1
+
+      - name: Assemble frontend hand-off
+        run: |
+          set -euo pipefail
+          mkdir -p frontend-dist/processed frontend-dist/executable frontend-dist/source-resources
+          cp -a composeApp/build/processedResources/js/main/. frontend-dist/processed/
+          cp -a composeApp/build/kotlin-webpack/js/productionExecutable/. frontend-dist/executable/
+          cp composeApp/src/webMain/resources/login.html frontend-dist/source-resources/login.html
+          cp composeApp/src/webMain/resources/favicon.svg frontend-dist/source-resources/favicon.svg
+          cp composeApp/src/webMain/resources/social-preview.png frontend-dist/source-resources/social-preview.png
+
+      - name: Upload production frontend
+        uses: actions/upload-artifact@v6
+        with:
+          name: oms-production-frontend
+          path: frontend-dist/
+          if-no-files-found: error
+          retention-days: 1
+
   publish:
+    needs: frontend-build
     runs-on: ubuntu-latest
     # A newer commit supersedes an image that is still being built. Keep this
     # separate from deployment concurrency so a live rollout is never killed.
@@ -34,6 +78,12 @@ jobs:
     steps:
       - name: Check out source
         uses: actions/checkout@v6
+
+      - name: Download compiled frontend
+        uses: actions/download-artifact@v7
+        with:
+          name: oms-production-frontend
+          path: frontend-dist
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
@@ -68,6 +118,7 @@ jobs:
           tags: ${{ steps.metadata.outputs.tags }}
           labels: ${{ steps.metadata.outputs.labels }}
           build-args: |
+            FRONTEND_SOURCE=frontend-prebuilt
             OMS_GIT_SHA=${{ github.sha }}
             OMS_BUILD_DATE=${{ github.event.head_commit.timestamp }}
           cache-from: type=gha,scope=oms-production-container

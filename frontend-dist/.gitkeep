@@ -1,0 +1,3 @@
+# CI replaces this directory with the compiled production frontend artifact.
+# Keeping the empty directory in Git lets the self-contained local Dockerfile
+# parse its optional artifact stage even outside GitHub Actions.
