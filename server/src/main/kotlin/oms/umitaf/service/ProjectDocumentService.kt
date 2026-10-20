@@ -11,13 +11,44 @@ import java.nio.file.StandardCopyOption
 import java.util.UUID
 
 class ProjectDocumentService(private val repository: ProjectDocumentRepository) {
-    fun listAll() = repository.findAll()
-    fun list(projectId: Long) = repository.findByProjectId(projectId)
+    /**
+     * The Documents registry and export-oriented project screens can request
+     * the same metadata in quick succession. File bytes are never cached here;
+     * this is only a short-lived database snapshot of document descriptors.
+     */
+    private val documentCacheLock = Any()
+    @Volatile private var cachedDocuments: List<ProjectDocument>? = null
+    @Volatile private var documentCacheExpiresAt = 0L
+
+    private fun invalidateDocumentCache() = synchronized(documentCacheLock) {
+        cachedDocuments = null
+        documentCacheExpiresAt = 0L
+    }
+
+    private fun currentDocumentSnapshot(): List<ProjectDocument>? =
+        cachedDocuments?.takeIf { System.currentTimeMillis() < documentCacheExpiresAt }
+
+    fun listAll(): List<ProjectDocument> {
+        currentDocumentSnapshot()?.let { return it }
+        return synchronized(documentCacheLock) {
+            val current = System.currentTimeMillis()
+            cachedDocuments?.takeIf { current < documentCacheExpiresAt } ?: repository.findAll().also { documents ->
+                cachedDocuments = documents
+                documentCacheExpiresAt = current + 15_000L
+            }
+        }
+    }
+
+    fun list(projectId: Long) = currentDocumentSnapshot()?.filter { it.projectId == projectId }
+        ?: repository.findByProjectId(projectId)
     fun get(projectId: Long, uuid: String) = repository.findByUuid(projectId, uuid)
     fun delete(projectId: Long, uuid: String): Boolean {
         val document = get(projectId, uuid) ?: return false
         val deleted = repository.delete(projectId, uuid)
-        if (deleted) DurableFileStorage.delete(document.storagePath)
+        if (deleted) {
+            DurableFileStorage.delete(document.storagePath)
+            invalidateDocumentCache()
+        }
         return deleted
     }
     fun upload(projectId: Long, type: String, name: String, contentType: String?, input: InputStream, relatedEntity: String? = null, relatedId: Long? = null, description: String? = null): ProjectDocument {
@@ -39,7 +70,10 @@ class ProjectDocumentService(private val repository: ProjectDocumentRepository) 
             require(size in 1..limit) { "File size exceeds the limit for this format." }
             require(matchesDeclaredFormat(target, extension)) { "File content does not match its declared format." }
             DurableFileStorage.persist(target)
-            return ProjectDocument(0, uuid, projectId, entity, relatedId, documentType, description?.trim()?.takeIf { it.isNotEmpty() }, originalName, target.toString(), contentType ?: "application/octet-stream", size).also(repository::create)
+            val document = ProjectDocument(0, uuid, projectId, entity, relatedId, documentType, description?.trim()?.takeIf { it.isNotEmpty() }, originalName, target.toString(), contentType ?: "application/octet-stream", size)
+            repository.create(document)
+            invalidateDocumentCache()
+            return document
         } catch (e: Exception) {
             runCatching { DurableFileStorage.delete(target.toString()) }
             throw e
