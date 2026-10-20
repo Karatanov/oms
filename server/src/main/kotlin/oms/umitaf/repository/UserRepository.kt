@@ -20,6 +20,9 @@ interface UserRepository {
      */
     fun findAll(): List<User>
 
+    /** Returns one user together with their role for authorization checks. */
+    fun findById(id: Long): User? = findAll().firstOrNull { it.id == id }
+
     /**
      * Створює нового користувача.
      */

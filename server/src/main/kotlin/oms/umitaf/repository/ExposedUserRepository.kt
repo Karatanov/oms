@@ -60,6 +60,17 @@ class ExposedUserRepository : UserRepository {
             }
     }
 
+    /** Avoids loading the administration user list for every protected request. */
+    override fun findById(id: Long): User? = transaction {
+        UserTable
+            .innerJoin(RoleTable)
+            .selectAll()
+            .where { UserTable.id eq id }
+            .limit(1)
+            .firstOrNull()
+            ?.toUser()
+    }
+
     /**
      * Виконує пошук користувача за логіном.
      */
@@ -291,3 +302,30 @@ class ExposedUserRepository : UserRepository {
         } > 0
     }
 }
+
+/** Maps the joined user/role record used by the focused authorization lookup. */
+private fun org.jetbrains.exposed.v1.core.ResultRow.toUser(): User = User(
+    id = this[UserTable.id].value,
+    username = this[UserTable.username],
+    email = this[UserTable.email],
+    passwordHash = this[UserTable.passwordHash],
+    role = Role(
+        id = this[RoleTable.id].value,
+        code = this[RoleTable.code],
+        name = this[RoleTable.name]
+    ),
+    firstName = this[UserTable.firstName],
+    lastName = this[UserTable.lastName],
+    status = this[UserTable.status],
+    region = this[UserTable.region],
+    department = this[UserTable.department],
+    preferredLang = this[UserTable.preferredLang],
+    lastLoginAt = this[UserTable.lastLoginAt],
+    failedLoginCount = this[UserTable.failedLoginCount],
+    lockedUntil = this[UserTable.lockedUntil],
+    createdAt = this[UserTable.createdAt],
+    updatedAt = this[UserTable.updatedAt],
+    isArchived = this[UserTable.isArchived],
+    archivedAt = this[UserTable.archivedAt],
+    archivedBy = this[UserTable.archivedBy]?.value
+)

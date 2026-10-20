@@ -20,7 +20,7 @@ internal suspend fun ApplicationCall.requireRole(vararg roles: String): UserSess
         respond(HttpStatusCode.Forbidden, ErrorResponse("FORBIDDEN", "Guest access is limited to public screens."))
         return null
     }
-    val user = AppContainer.userService.getAllUsers().firstOrNull { it.id == session.userId }
+    val user = AppContainer.userService.findById(session.userId)
     if (user == null || !user.status.equals("active", ignoreCase = true)) {
         sessions.clear<UserSession>()
         respond(HttpStatusCode.Unauthorized, ErrorResponse("ACCOUNT_INACTIVE", "This account is not active."))

@@ -24,6 +24,9 @@ class UserService(
         return userRepository.findAll()
     }
 
+    /** Returns one user for request authorization without loading the user directory. */
+    fun findById(id: Long): User? = userRepository.findById(id)
+
     /**
      * Повертає користувача за логіном.
      */
@@ -115,7 +118,7 @@ class UserService(
     }
 
     fun updateUser(id: Long, request: UpdateUserRequest): User? {
-        val current = getAllUsers().firstOrNull { it.id == id } ?: return null
+        val current = findById(id) ?: return null
         val username = request.username?.trim() ?: current.username
         val email = request.email?.trim() ?: current.email
         val password = request.password?.trim()?.takeIf { it.isNotBlank() }

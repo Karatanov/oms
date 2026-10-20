@@ -33,7 +33,7 @@ fun Route.authRoutes() {
                 GuestSessionResponse(guest = true)
             )
         }
-        val user = AppContainer.userService.getAllUsers().firstOrNull { it.id == session.userId }
+        val user = AppContainer.userService.findById(session.userId)
             ?: return@get call.respond(HttpStatusCode.Unauthorized)
         call.respond(user.toResponse())
     }
