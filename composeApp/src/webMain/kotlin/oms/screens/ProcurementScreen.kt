@@ -177,6 +177,25 @@ fun ProcurementScreen(
         .eachCount()
         .map { ApiDashboardMetric(it.key, it.value.toLong()) }
         .sortedBy { it.label }
+    // Keep the count chart and the monetary chart separate: a contract count
+    // cannot be used as a proxy for the signed value, especially where TS/CSC
+    // agreements are much smaller than Works contracts. The registry stores
+    // the signed amount in UAH with VAT, which is the authoritative amount for
+    // this procurement-only aggregation.
+    val signedContractValueMetrics = trancheRecords
+        .asSequence()
+        .filter { sameProcurementStatus(it.purchaseStatus, procurementStatuses[3]) }
+        .mapNotNull { record ->
+            val month = (record.contractDate ?: record.estimatedContractDate)
+                ?.takeIf { date -> date.length >= 7 }
+                ?.take(7)
+            val amount = record.contractAmountUah
+            if (month == null || amount == null || !amount.isFinite()) null
+            else month to kotlin.math.round(amount * 100.0).toLong()
+        }
+        .groupBy({ it.first }, { it.second })
+        .map { (month, amounts) -> oms.screens.MonthlyMoneyAmount(month, amounts.sum()) }
+        .sortedBy { it.month }
     fun scrollBy(delta: Float) = scope.launch { contentScrollState.animateScrollBy(delta) }
     Box(Modifier.fillMaxSize()) {
     Column(
@@ -228,6 +247,14 @@ fun ProcurementScreen(
                     onItemClick = ::applySignedContractMonthFilter
                 )
             }
+        )
+        Spacer(Modifier.height(8.dp))
+        oms.screens.MonthlyMoneyChart(
+            titleKey = "signed_contract_value_by_month",
+            hintKey = "signed_contract_value_by_month_hint",
+            payments = signedContractValueMetrics,
+            currency = "UAH",
+            onMonthClick = ::applySignedContractMonthFilter
         )
         Spacer(Modifier.height(4.dp))
         val visibleRecords = records.orEmpty().filter { record ->
