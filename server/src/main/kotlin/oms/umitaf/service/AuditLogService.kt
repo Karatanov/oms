@@ -3,6 +3,7 @@ package oms.umitaf.service
 import oms.umitaf.database.tables.AuditLogTable
 import oms.umitaf.database.tables.UserTable
 import org.jetbrains.exposed.v1.core.SortOrder
+import org.jetbrains.exposed.v1.core.inList
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
@@ -36,7 +37,10 @@ class AuditLogService {
             .orderBy(AuditLogTable.createdAt, SortOrder.DESC)
             .limit(limit)
             .toList()
-        val usernamesById = UserTable.selectAll().associate { it[UserTable.id].value to it[UserTable.username] }
+        val authorIds = rows.mapNotNull { it[AuditLogTable.userId]?.value }.distinct()
+        val usernamesById = if (authorIds.isEmpty()) emptyMap() else UserTable.selectAll()
+            .where { UserTable.id inList authorIds }
+            .associate { it[UserTable.id].value to it[UserTable.username] }
         rows.map {
             ActivityEntry(
                 it[AuditLogTable.action], it[AuditLogTable.entityType], it[AuditLogTable.entityId],
