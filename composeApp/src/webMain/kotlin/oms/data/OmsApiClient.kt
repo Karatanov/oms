@@ -313,7 +313,11 @@ object OmsApiClient {
         // Older imported SIR workbooks may need one background extraction of
         // embedded photos. A 202 response means the report itself remains
         // usable and this independent request may poll without blocking it.
-        repeat(30) {
+        // A report can contain up to 30 high-resolution pictures and several
+        // reports can be queued for the single server-side extractor. Keep
+        // retrying long enough for that bounded background job to finish;
+        // callers run this independently from the preview/editor payload.
+        repeat(90) {
             val response = client.get("$baseUrl/inspection-reports/$reportUuid/photos?background=true")
             val photos = response.body<List<ApiInspectionPhoto>>()
             if (response.status != HttpStatusCode.Accepted) return photos
