@@ -82,14 +82,35 @@ fun Route.projectRoutes() {
         val total = projects.size.toLong()
         val pagedProjects = projects.drop((page - 1) * pageSize).take(pageSize)
 
-        val projectUuidById = projects.associate { project -> project.id to project.uuid.toString() }
+        // The response may be a filtered/paginated slice, but resolving a
+        // payment on a subproject part needs its parent outside that slice.
+        val hierarchy = projectService.getAllProjects()
+        val projectsById = hierarchy.associateBy { it.id }
+        val projectUuidById = projectsById.mapValues { (_, project) -> project.uuid.toString() }
         val monitoringByProjectId = projectService.monitoringDetailsByProjectIds(pagedProjects.map { it.id })
         // Build this once for the page, rather than performing a financial
         // query per map marker/project card. Payment and advance records are
         // actual disbursements; ACT rows describe completed work, not cash paid.
-        val disbursedEurCentsByProjectId = AppContainer.financialRecordService.getAll()
+        fun owningSubprojectId(projectId: Long): Long? {
+            var current = projectsById[projectId] ?: return null
+            while (current.projectType != ProjectType.SUBPROJECT) {
+                current = current.parentProjectId?.let(projectsById::get) ?: return null
+            }
+            return current.id
+        }
+        val disbursements = AppContainer.financialRecordService.getAll()
             .asSequence()
             .filter { it.recordType == FinancialRecordType.PAYMENT || it.recordType == FinancialRecordType.ADVANCE }
+            .toList()
+        val disbursedEurCentsBySubprojectId = disbursements
+            .asSequence()
+            .mapNotNull { record ->
+                val subprojectId = owningSubprojectId(record.projectId) ?: return@mapNotNull null
+                record.amountEurCents?.let { subprojectId to it }
+            }
+            .groupBy({ it.first }, { it.second })
+            .mapValues { (_, cents) -> cents.sum() }
+        val disbursedEurCentsByProjectId = disbursements
             .mapNotNull { record -> record.amountEurCents?.let { record.projectId to it } }
             .groupBy({ it.first }, { it.second })
             .mapValues { (_, cents) -> cents.sum() }
@@ -102,7 +123,11 @@ fun Route.projectRoutes() {
                         project.toResponse(
                             parentProjectUuid = projectUuidById[project.parentProjectId],
                             monitoring = monitoringByProjectId[project.id],
-                            financingDisbursedEurCents = disbursedEurCentsByProjectId[project.id] ?: 0L
+                            financingDisbursedEurCents = when (project.projectType) {
+                                ProjectType.SUBPROJECT -> disbursedEurCentsBySubprojectId[project.id] ?: 0L
+                                ProjectType.SUBPROJECT_PART -> disbursedEurCentsByProjectId[project.id] ?: 0L
+                                else -> 0L
+                            }
                         )
                     },
 
