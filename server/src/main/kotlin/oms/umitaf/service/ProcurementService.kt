@@ -41,8 +41,35 @@ class ProcurementService(
     @Volatile private var automaticRefreshStarted = false
     private var automaticRefreshExecutor: ScheduledExecutorService? = null
 
-    fun getAll() = repository.findAll()
-    fun getBySubProjectId(subProjectId: String) = repository.findBySubProjectId(subProjectId)
+    /**
+     * Procurement is an approved-source registry and is replaced as one
+     * transaction. Reusing a short immutable snapshot removes duplicate full
+     * reads for the table and PDF export while keeping every refresh atomic.
+     */
+    private val registryCacheLock = Any()
+    @Volatile private var cachedRegistry: List<ProcurementRecord>? = null
+    @Volatile private var registryCacheExpiresAt = 0L
+
+    private fun invalidateRegistryCache() = synchronized(registryCacheLock) {
+        cachedRegistry = null
+        registryCacheExpiresAt = 0L
+    }
+
+    fun getAll(): List<ProcurementRecord> {
+        val now = System.currentTimeMillis()
+        cachedRegistry?.takeIf { now < registryCacheExpiresAt }?.let { return it }
+        return synchronized(registryCacheLock) {
+            val current = System.currentTimeMillis()
+            cachedRegistry?.takeIf { current < registryCacheExpiresAt } ?: repository.findAll().also { records ->
+                cachedRegistry = records
+                registryCacheExpiresAt = current + 30_000L
+            }
+        }
+    }
+
+    fun getBySubProjectId(subProjectId: String) = getAll().filter {
+        it.subProjectId.equals(subProjectId.trim(), ignoreCase = true)
+    }
 
     /**
      * Keeps the procurement registry aligned with the approved DB6.3 source
@@ -227,7 +254,7 @@ class ProcurementService(
         }
         checkCancelled(shouldCancel)
         onProgress(90, "saving")
-        return repository.replaceAll(records)
+        return repository.replaceAll(records).also { invalidateRegistryCache() }
     }
 
     /**
