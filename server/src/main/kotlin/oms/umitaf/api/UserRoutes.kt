@@ -111,7 +111,7 @@ fun Route.userRoutes() {
         try {
             val request = call.receive<UpdateUserRequest>()
             require(!request.roleCode.equals("GUEST", ignoreCase = true)) { "Guest access is not a user role." }
-            val before = userService.getAllUsers().firstOrNull { it.id == id }
+            val before = userService.findById(id)
             val user = userService.updateUser(id, request)
                 ?: return@patch call.respond(HttpStatusCode.NotFound, ErrorResponse("NOT_FOUND", "User not found."))
             val action = when {
@@ -136,7 +136,7 @@ fun Route.userRoutes() {
         val id = call.parameters["id"]?.toLongOrNull()
             ?: return@post call.respond(HttpStatusCode.BadRequest, ErrorResponse("VALIDATION_ERROR", "User ID is required."))
         if (id == session.userId) return@post call.respond(HttpStatusCode.BadRequest, ErrorResponse("VALIDATION_ERROR", "You cannot archive your own account."))
-        val target = userService.getAllUsers().firstOrNull { it.id == id }
+        val target = userService.findById(id)
             ?: return@post call.respond(HttpStatusCode.NotFound, ErrorResponse("NOT_FOUND", "User not found."))
         if (!userService.archiveUser(id, session.userId)) return@post call.respond(HttpStatusCode.NotFound, ErrorResponse("NOT_FOUND", "User not found."))
         AppContainer.auditLogService.record(session.userId, "user_archived", "user", id, oldValues = "{\"username\":\"${target.username}\"}")
@@ -147,7 +147,7 @@ fun Route.userRoutes() {
         val session = call.requireRole("ADMIN") ?: return@post
         val id = call.parameters["id"]?.toLongOrNull()
             ?: return@post call.respond(HttpStatusCode.BadRequest, ErrorResponse("VALIDATION_ERROR", "User ID is required."))
-        val target = userService.getAllUsers().firstOrNull { it.id == id }
+        val target = userService.findById(id)
             ?: return@post call.respond(HttpStatusCode.NotFound, ErrorResponse("NOT_FOUND", "User not found."))
         if (!userService.restoreUser(id)) return@post call.respond(HttpStatusCode.NotFound, ErrorResponse("NOT_FOUND", "User not found."))
         AppContainer.auditLogService.record(session.userId, "user_restored", "user", id, oldValues = "{\"username\":\"${target.username}\"}")
@@ -166,7 +166,7 @@ fun Route.userRoutes() {
         val id = call.parameters["id"]?.toLongOrNull()
             ?: return@delete call.respond(HttpStatusCode.BadRequest, ErrorResponse("VALIDATION_ERROR", "User ID is required."))
         if (id == session.userId) return@delete call.respond(HttpStatusCode.BadRequest, ErrorResponse("VALIDATION_ERROR", "You cannot delete your own account."))
-        val target = userService.getAllUsers().firstOrNull { it.id == id }
+        val target = userService.findById(id)
             ?: return@delete call.respond(HttpStatusCode.NotFound, ErrorResponse("NOT_FOUND", "User not found."))
         val dependencies = userService.userDependencies(id)
         if (dependencies.isNotEmpty()) return@delete call.respond(HttpStatusCode.Conflict, ErrorResponse("HAS_DEPENDENCIES", dependencies.entries.joinToString("; ") { "${it.value} ${it.key}" }))

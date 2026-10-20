@@ -372,7 +372,7 @@ fun Route.projectRoutes() {
         val session = call.requireRole("ADMIN") ?: return@patch
         try {
             val request = call.receive<BulkProjectReassignRequest>()
-            val manager = AppContainer.userService.getAllUsers().firstOrNull { it.id == request.managerId }
+            val manager = AppContainer.userService.findById(request.managerId)
                 ?: return@patch call.respond(HttpStatusCode.BadRequest, ErrorResponse("VALIDATION_ERROR", "Project manager was not found."))
             require(manager.role.code.equals("PROJECT_MANAGER", ignoreCase = true) && manager.status.equals("active", ignoreCase = true)) {
                 "Assignee must be an active Project Manager."
