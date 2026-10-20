@@ -14,6 +14,15 @@ import oms.umitaf.security.UserSession
 import java.io.File
 
 /**
+ * Ktor exposes the common Cache-Control directives but not HTTP's `immutable`
+ * extension. It is safe only for content-addressed browser assets: each
+ * production Compose bundle gets a fresh file name whenever it changes.
+ */
+private object ImmutableAssetCacheControl : CacheControl(null) {
+    override fun toString(): String = "immutable"
+}
+
+/**
  * Реєструє всі HTTP-маршрути застосунку.
  *
  * A VPS deployment provides OMS_WEB_DIR so the browser application and API
@@ -86,7 +95,10 @@ fun Application.configureRouting() {
                     // its owning JS bundle (as a query string in the bundle),
                     // so it is safe to retain it just like a hashed asset.
                     if (fingerprinted || file.name == "skiko.wasm") {
-                        listOf(CacheControl.MaxAge(maxAgeSeconds = 31_536_000, visibility = CacheControl.Visibility.Public))
+                        listOf(
+                            CacheControl.MaxAge(maxAgeSeconds = 31_536_000, visibility = CacheControl.Visibility.Public),
+                            ImmutableAssetCacheControl
+                        )
                     } else {
                         // HTML and non-fingerprinted assets must revalidate so a
                         // release never strands browsers on stale entry points.
