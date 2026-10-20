@@ -1006,7 +1006,7 @@ private fun ReportEditorDialog(
             }
             OutlinedTextField(
                 value = summary,
-                onValueChange = { summary = it },
+                onValueChange = { summary = it.safeTextInput(500) },
                 label = { Text(LocalizationManager.t("report_title")) },
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 3
@@ -1108,7 +1108,7 @@ private fun ReviewReportDialog(
             Text(report.report.summary ?: LocalizationManager.t("inspection_report"))
             OutlinedTextField(
                 value = rejectionReason,
-                onValueChange = { rejectionReason = it },
+                onValueChange = { rejectionReason = it.safeTextInput(4_000) },
                 label = { Text(LocalizationManager.t("revision_reason")) },
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 3
