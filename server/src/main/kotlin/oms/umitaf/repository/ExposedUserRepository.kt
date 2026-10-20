@@ -232,7 +232,7 @@ class ExposedUserRepository : UserRepository {
             it[UserTable.updatedAt] = LocalDateTime.now()
             }
         }
-        return if (count == 0) null else findAll().firstOrNull { it.id == id }
+        return if (count == 0) null else findById(id)
     }
 
     override fun delete(id: Long): Boolean = transaction { UserTable.deleteWhere { UserTable.id eq id } > 0 }
