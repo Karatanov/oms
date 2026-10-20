@@ -999,7 +999,10 @@ private fun PaymentMonitoringCard(
     messageIsError: Boolean,
     onUpdate: () -> Unit
 ) {
-    var expanded by remember { mutableStateOf(false) }
+    // This is an independent source table, not an optional chart. Keep it
+    // visible on opening Financial Monitoring so users can immediately see
+    // the UR III subproject payment-monitoring data above financial records.
+    var expanded by remember { mutableStateOf(true) }
     var page by remember(snapshot.items) { mutableStateOf(0) }
     val rows = remember(snapshot.items) { snapshot.items.sortedBy { it.code } }
     val pageSize = 20
