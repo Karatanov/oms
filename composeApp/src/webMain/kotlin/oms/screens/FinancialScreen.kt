@@ -60,6 +60,7 @@ import oms.components.localizedUkraineRegion
 import oms.components.sectorLabel
 import oms.components.SearchableOptionPicker
 import oms.components.currentIsoDate
+import oms.components.safeTextInput
 import oms.components.WasmSafeOverlay
 import oms.screens.dashboard.toMonthName
 import kotlin.js.JsName
@@ -688,7 +689,7 @@ private fun ActEditorDialog(
             FinancialProjectTargetSelector(availableProjects, projectUuid, {
                 loadProjectsOnOpen().also { availableProjects = it }
             }) { projectUuid = it }
-            OutlinedTextField(reference, { reference = it }, label = { Text(LocalizationManager.t("reference_number")) }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(reference, { reference = it.safeTextInput(500) }, label = { Text(LocalizationManager.t("reference_number")) }, modifier = Modifier.fillMaxWidth())
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 listOf("invoice", "act", "payment", "advance").forEach { type -> FilterChip(selected = recordType == type, onClick = { recordType = type }, label = { Text(LocalizationManager.t("record_type_$type")) }) }
             }
@@ -714,7 +715,7 @@ private fun ActEditorDialog(
             } else if (recordType in setOf("payment", "advance")) {
                 OutlinedTextField(
                     value = description,
-                    onValueChange = { description = it },
+                    onValueChange = { description = it.safeTextInput(2_000) },
                     label = { Text(LocalizationManager.t("payment_basis")) },
                     placeholder = { Text(LocalizationManager.t("payment_basis_hint")) },
                     supportingText = if (loadingBasisActs) { { Text(LocalizationManager.t("loading_records")) } } else null,
@@ -748,7 +749,7 @@ private fun ActEditorDialog(
             if (recordType !in setOf("payment", "advance")) {
                 OutlinedTextField(
                     value = description,
-                    onValueChange = { description = it },
+                    onValueChange = { description = it.safeTextInput(8_000) },
                     label = { Text(LocalizationManager.t("description")) },
                     modifier = Modifier.fillMaxWidth(),
                     minLines = 1

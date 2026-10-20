@@ -37,6 +37,7 @@ import oms.components.RoleChip
 import oms.components.TableActionIconButton
 import oms.components.toOmsDateTime
 import oms.components.InlineOptionPicker
+import oms.components.safeTextInput
 import oms.components.WasmSafeOverlay
 import oms.localization.LocalizationManager
 import oms.screens.dashboard.ActivitySection
@@ -405,22 +406,22 @@ private fun CreateUserDialog(roles: List<ApiRole>, onDismiss: () -> Unit, onSave
                 Modifier.fillMaxWidth().heightIn(max = 510.dp).verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-            OutlinedTextField(username, { username = it }, label = { Text(LocalizationManager.t("username")) }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(email, { email = it }, label = { Text(LocalizationManager.t("email")) }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(username, { username = it.safeTextInput(100) }, label = { Text(LocalizationManager.t("username")) }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(email, { email = it.safeTextInput(320) }, label = { Text(LocalizationManager.t("email")) }, modifier = Modifier.fillMaxWidth())
             OutlinedTextField(
-                password, { password = it },
+                password, { password = it.safeTextInput(256) },
                 label = { Text(LocalizationManager.t("password")) },
                 visualTransformation = PasswordVisualTransformation(),
                 modifier = Modifier.fillMaxWidth()
             )
             Text(LocalizationManager.t("password_requirements"), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(firstName, { firstName = it }, label = { Text(LocalizationManager.t("first_name")) }, modifier = Modifier.weight(1f))
-                OutlinedTextField(lastName, { lastName = it }, label = { Text(LocalizationManager.t("last_name")) }, modifier = Modifier.weight(1f))
+                OutlinedTextField(firstName, { firstName = it.safeTextInput(200) }, label = { Text(LocalizationManager.t("first_name")) }, modifier = Modifier.weight(1f))
+                OutlinedTextField(lastName, { lastName = it.safeTextInput(200) }, label = { Text(LocalizationManager.t("last_name")) }, modifier = Modifier.weight(1f))
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(region, { region = it }, label = { Text(LocalizationManager.t("region")) }, modifier = Modifier.weight(1f))
-                OutlinedTextField(department, { department = it }, label = { Text(LocalizationManager.t("department")) }, modifier = Modifier.weight(1f))
+                OutlinedTextField(region, { region = it.safeTextInput(200) }, label = { Text(LocalizationManager.t("region")) }, modifier = Modifier.weight(1f))
+                OutlinedTextField(department, { department = it.safeTextInput(500) }, label = { Text(LocalizationManager.t("department")) }, modifier = Modifier.weight(1f))
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text(LocalizationManager.t("language"), style = MaterialTheme.typography.bodyMedium)
@@ -485,15 +486,15 @@ private fun EditUserDialog(
                 Modifier.fillMaxWidth().heightIn(max = 510.dp).verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-            OutlinedTextField(username, { username = it }, label = { Text(LocalizationManager.t("username")) }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(email, { email = it }, label = { Text(LocalizationManager.t("email")) }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(username, { username = it.safeTextInput(100) }, label = { Text(LocalizationManager.t("username")) }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(email, { email = it.safeTextInput(320) }, label = { Text(LocalizationManager.t("email")) }, modifier = Modifier.fillMaxWidth())
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(firstName, { firstName = it }, label = { Text(LocalizationManager.t("first_name")) }, modifier = Modifier.weight(1f))
-                OutlinedTextField(lastName, { lastName = it }, label = { Text(LocalizationManager.t("last_name")) }, modifier = Modifier.weight(1f))
+                OutlinedTextField(firstName, { firstName = it.safeTextInput(200) }, label = { Text(LocalizationManager.t("first_name")) }, modifier = Modifier.weight(1f))
+                OutlinedTextField(lastName, { lastName = it.safeTextInput(200) }, label = { Text(LocalizationManager.t("last_name")) }, modifier = Modifier.weight(1f))
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(region, { region = it }, label = { Text(LocalizationManager.t("region")) }, modifier = Modifier.weight(1f))
-                OutlinedTextField(department, { department = it }, label = { Text(LocalizationManager.t("department")) }, modifier = Modifier.weight(1f))
+                OutlinedTextField(region, { region = it.safeTextInput(200) }, label = { Text(LocalizationManager.t("region")) }, modifier = Modifier.weight(1f))
+                OutlinedTextField(department, { department = it.safeTextInput(500) }, label = { Text(LocalizationManager.t("department")) }, modifier = Modifier.weight(1f))
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 listOf("active", "disabled").forEach { value -> FilterChip(status == value, { status = value }, label = { Text(LocalizationManager.t("user_status_$value")) }) }
@@ -501,7 +502,7 @@ private fun EditUserDialog(
             }
             InlineOptionPicker(options = roles, selected = role, prompt = roleCode, onSelect = { roleCode = it.code }, itemLabel = { LocalizationManager.t("role_${it.code.lowercase()}") })
             role?.let { RolePermissionsHint(it.code) }
-            OutlinedTextField(password, { password = it }, label = { Text(LocalizationManager.t("new_password_optional")) }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(password, { password = it.safeTextInput(256) }, label = { Text(LocalizationManager.t("new_password_optional")) }, modifier = Modifier.fillMaxWidth())
             Text(LocalizationManager.t("password_requirements"), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             saveError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
             }
