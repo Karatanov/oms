@@ -20,7 +20,7 @@ import oms.components.TableScrollControls
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
 fun VerticalBarChart(
-    data: List<BarData>, color: Color, labelWidth: Dp = 88.dp, labelMaxLines: Int = 2,
+    data: List<BarData>, color: Color, labelWidth: Dp = 76.dp, labelMaxLines: Int = 2,
     maxVisibleItems: Int? = null, initialScrollToEnd: Boolean = false,
     valueLabel: (Float) -> String = { it.toLong().toString() }, onItemClick: ((BarData) -> Unit)? = null,
     showScrollControls: Boolean = true,
@@ -31,9 +31,10 @@ fun VerticalBarChart(
     val scroll = rememberScrollState()
     LaunchedEffect(data, initialScrollToEnd, scroll.maxValue) { if (initialScrollToEnd) scroll.scrollTo(scroll.maxValue) }
     val laneHeight = if (labelMaxLines == 1) 24.dp else 52.dp
-    // Keep adjacent columns visually distinct while using the available chart
-    // width more efficiently, especially on compact screens.
-    val columnGap = 4.dp
+    // A compact lane and wider bar make dense month/subproject charts easier
+    // to scan. The label still owns its lane, so tooltips and click targets
+    // remain reliable on touch screens.
+    val columnGap = 2.dp
     val plotWidth = labelWidth * data.size + columnGap * (data.size - 1)
     Column(Modifier.fillMaxWidth()) {
         Column(Modifier.fillMaxWidth().horizontalScroll(scroll)) {
@@ -55,7 +56,7 @@ fun VerticalBarChart(
                                     Text(displayValue, style = MaterialTheme.typography.labelMedium, maxLines = 1)
                                     Spacer(Modifier.height(6.dp))
                                 }
-                                Box(Modifier.width(28.dp).height((118f * (item.value.coerceAtLeast(0f) / maxValue)).dp)
+                                Box(Modifier.width(36.dp).height((118f * (item.value.coerceAtLeast(0f) / maxValue)).dp)
                                     .clip(MaterialTheme.shapes.extraSmall).background(item.color ?: color))
                             }
                         }
