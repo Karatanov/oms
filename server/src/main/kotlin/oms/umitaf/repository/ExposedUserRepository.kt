@@ -119,6 +119,16 @@ class ExposedUserRepository : UserRepository {
             }
     }
 
+    /** Uses the e-mail index for normal login and password-reset lookups. */
+    override fun findByEmail(email: String): User? = transaction {
+        UserTable
+            .innerJoin(RoleTable)
+            .selectAll()
+            .where { UserTable.email eq email }
+            .firstOrNull { row -> row[UserTable.email].equals(email, ignoreCase = true) }
+            ?.toUser()
+    }
+
     /**
      * Створює нового користувача.
      */

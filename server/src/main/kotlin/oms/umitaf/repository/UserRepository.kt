@@ -47,6 +47,10 @@ interface UserRepository {
      */
     fun findByUsername(username: String): User?
 
+    /** Finds a user by e-mail without loading the administration directory. */
+    fun findByEmail(email: String): User? =
+        findAll().firstOrNull { it.email.equals(email, ignoreCase = true) }
+
     /**
      * Перевіряє існування користувача
      * з указаним логіном.

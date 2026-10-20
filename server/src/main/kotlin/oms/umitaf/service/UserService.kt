@@ -45,6 +45,10 @@ class UserService(
         val normalizedValue = loginOrEmail.trim()
 
         return findByUsername(normalizedValue)
+            ?: userRepository.findByEmail(normalizedValue)
+            // The focused repository query covers normal login input. Keep a
+            // compatibility fallback for legacy databases with case-sensitive
+            // e-mail collation.
             ?: getAllUsers().firstOrNull { user ->
                 user.email.equals(normalizedValue, ignoreCase = true)
             }
