@@ -91,7 +91,7 @@ class ExposedProjectRepository : ProjectRepository {
             )
     }
     override fun managerIdForUuid(uuid: String): Long? = transaction {
-        ProjectTable.selectAll().firstOrNull { it[ProjectTable.uuid] == uuid }
+        ProjectTable.select(ProjectTable.managerId).where { ProjectTable.uuid eq uuid }.limit(1).firstOrNull()
             ?.get(ProjectTable.managerId)
             ?.value
     }
