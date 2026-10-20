@@ -27,9 +27,11 @@ class FinancialRecordService(
         ledgerCacheExpiresAt = 0L
     }
 
+    private fun currentLedgerSnapshot(): List<FinancialRecord>? =
+        cachedLedger?.takeIf { System.currentTimeMillis() < ledgerCacheExpiresAt }
+
     fun getAll(): List<FinancialRecord> {
-        val now = System.currentTimeMillis()
-        cachedLedger?.takeIf { now < ledgerCacheExpiresAt }?.let { return it }
+        currentLedgerSnapshot()?.let { return it }
         return synchronized(ledgerCacheLock) {
             val current = System.currentTimeMillis()
             cachedLedger?.takeIf { current < ledgerCacheExpiresAt } ?: repository.findAll().also { records ->
@@ -39,7 +41,9 @@ class FinancialRecordService(
         }
     }
 
-    fun getAll(projectId: Long) = getAll().filter { it.projectId == projectId }
+    /** A single project view must stay a targeted query when the list cache is cold. */
+    fun getAll(projectId: Long) = currentLedgerSnapshot()?.filter { it.projectId == projectId }
+        ?: repository.findByProjectId(projectId)
     fun filtered(projectId: Long, recordType: String?, dateFrom: String?, dateTo: String?): List<FinancialRecord> {
         val type = recordType?.trim()?.takeIf { it.isNotEmpty() }?.let(::validatedType)
         val from = dateFrom?.trim()?.takeIf { it.isNotEmpty() }?.let(::date)?.let(java.time.LocalDate::parse)
