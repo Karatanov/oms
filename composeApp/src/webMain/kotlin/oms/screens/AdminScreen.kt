@@ -59,6 +59,24 @@ private fun UserStatusChip(status: String) {
     oms.components.OmsBadge(LocalizationManager.t("user_status_${status.lowercase()}").takeIf { it != "user_status_${status.lowercase()}" } ?: status, color)
 }
 
+/**
+ * Explains the permissions that are actually enforced by the route layer.
+ * Keeping the explanation next to the role selector prevents administrators
+ * from having to infer access levels from internal role codes.
+ */
+@Composable
+private fun RolePermissionsHint(roleCode: String) {
+    val key = "role_${roleCode.lowercase()}_permissions"
+    val description = LocalizationManager.t(key)
+    if (description != key) {
+        Text(
+            description,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
 /** Uses vector drawing rather than flag emoji: emoji fonts are not consistently available in Wasm. */
 @Composable
 private fun LanguageFlag(language: String) {
@@ -409,6 +427,7 @@ private fun CreateUserDialog(roles: List<ApiRole>, onDismiss: () -> Unit, onSave
                 listOf("uk", "en").forEach { value -> FilterChip(preferredLang == value, { preferredLang = value }, label = { Text(value.uppercase()) }) }
             }
             InlineOptionPicker(options = roles, selected = role, prompt = LocalizationManager.t("select_role"), onSelect = { roleCode = it.code }, itemLabel = { LocalizationManager.t("role_${it.code.lowercase()}") })
+            role?.let { RolePermissionsHint(it.code) }
             }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
                 OutlinedButton(onClick = onDismiss) { Text(LocalizationManager.t("cancel")) }
@@ -481,6 +500,7 @@ private fun EditUserDialog(
                 listOf("uk", "en").forEach { value -> FilterChip(preferredLang == value, { preferredLang = value }, label = { Text(value.uppercase()) }) }
             }
             InlineOptionPicker(options = roles, selected = role, prompt = roleCode, onSelect = { roleCode = it.code }, itemLabel = { LocalizationManager.t("role_${it.code.lowercase()}") })
+            role?.let { RolePermissionsHint(it.code) }
             OutlinedTextField(password, { password = it }, label = { Text(LocalizationManager.t("new_password_optional")) }, modifier = Modifier.fillMaxWidth())
             Text(LocalizationManager.t("password_requirements"), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             saveError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
