@@ -726,7 +726,7 @@ private fun ActEditorDialog(
             OutlinedTextField(
                 value = amount,
                 onValueChange = { entered ->
-                    val filtered = entered
+                    val filtered = entered.take(32)
                         .filter { it.isDigit() || it == '.' || it == ',' }
                         .replace(',', '.')
                     amount = if (filtered.matches(Regex("\\d{0,13}(\\.\\d{0,2})?"))) filtered else amount

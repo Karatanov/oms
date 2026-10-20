@@ -58,6 +58,7 @@ class RegionAndAddressWebTest {
         assertEquals("+60", "+60".temperatureInput())
         assertEquals("", "letters".temperatureInput())
         assertEquals("60", "60".temperatureInput())
+        assertEquals("12.5", ("12,5" + "x".repeat(100)).temperatureInput())
 
         assertTrue("-90".isEarthTemperatureInput())
         assertTrue("+60".isEarthTemperatureInput())

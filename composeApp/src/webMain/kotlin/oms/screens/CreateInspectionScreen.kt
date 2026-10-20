@@ -1120,7 +1120,7 @@ private fun WeatherPicker(
 }
 
 internal fun String.temperatureInput(): String {
-    val normalized = replace(',', '.')
+    val normalized = take(16).replace(',', '.')
     val result = StringBuilder()
     normalized.forEach { character ->
         when {
