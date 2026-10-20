@@ -22,14 +22,26 @@ class GeocodingService(
 ) {
     private val client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build()
     private val json = Json { ignoreUnknownKeys = true }
-    private val cache = mutableMapOf<String, GeocodeAddressResponse?>()
+    /**
+     * Keep both successful and empty provider responses briefly in process.
+     * A bounded access-ordered map prevents repeated clicks on an unresolved
+     * address from needlessly waiting for the public geocoding service.
+     */
+    private data class CachedGeocode(val result: GeocodeAddressResponse?, val expiresAt: Long)
+
+    private val cache = object : LinkedHashMap<String, CachedGeocode>(MAX_CACHE_ENTRIES, 0.75f, true) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, CachedGeocode>?): Boolean =
+            size > MAX_CACHE_ENTRIES
+    }
     private var lastRequestAt = 0L
 
     @Synchronized
     fun geocode(address: String, city: String, region: String): GeocodeAddressResponse? {
         val query = composeGeocodingAddress(address, city, region)
         require(query != "Україна") { "Address, city, or region is required for coordinate lookup." }
-        cache[query]?.let { return it }
+        val now = System.currentTimeMillis()
+        cache[query]?.takeIf { now < it.expiresAt }?.let { return it.result }
+        cache.remove(query)
 
         val elapsed = System.currentTimeMillis() - lastRequestAt
         if (elapsed < MIN_REQUEST_INTERVAL_MS) Thread.sleep(MIN_REQUEST_INTERVAL_MS - elapsed)
@@ -58,7 +70,7 @@ class GeocodingService(
                 if (latitude != null && longitude != null && latitude in -90.0..90.0 && longitude in -180.0..180.0)
                     GeocodeAddressResponse(latitude, longitude) else null
             }
-        cache[query] = result
+        cache[query] = CachedGeocode(result, System.currentTimeMillis() + CACHE_TTL_MS)
         return result
     }
 
@@ -67,6 +79,8 @@ class GeocodingService(
 
     private companion object {
         const val MIN_REQUEST_INTERVAL_MS = 1_000L
+        const val MAX_CACHE_ENTRIES = 200
+        const val CACHE_TTL_MS = 5 * 60 * 1_000L
     }
 }
 
