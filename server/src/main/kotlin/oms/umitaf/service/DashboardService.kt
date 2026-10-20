@@ -245,7 +245,10 @@ class DashboardService(
         val projectIds = projects.map { it[ProjectTable.id].value }.toSet()
         val reports = if (projectIds.isEmpty()) emptyList() else InspectionReportTable.selectAll()
             .where { InspectionReportTable.projectId inList projectIds }.toList()
-        val financialRecords = FinancialRecordTable.selectAll()
+        // An empty project scope is a normal state for a freshly deployed or
+        // fully filtered workspace. Do not send an empty IN predicate to the
+        // database just to discover that there can be no ledger rows.
+        val financialRecords = if (projectIds.isEmpty()) emptyList() else FinancialRecordTable.selectAll()
             .where { FinancialRecordTable.projectId inList projectIds }.toList()
         val actRecords = financialRecords.filter { it[FinancialRecordTable.recordType] == "act" }
         val paymentRecords = financialRecords.filter {
