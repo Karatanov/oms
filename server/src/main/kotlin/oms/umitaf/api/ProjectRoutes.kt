@@ -179,7 +179,8 @@ fun Route.projectRoutes() {
         val request = call.receive<CreateProjectRequest>()
         try {
 
-            val result = transaction {
+            val result = withContext(Dispatchers.IO) {
+                transaction {
             val project =
                 projectService.createProject(
 
@@ -253,6 +254,7 @@ fun Route.projectRoutes() {
                     status = request.status
                 )
             ) ?: project
+                }
             }
 
             AppContainer.auditLogService.record(session.userId, "project_created", result.projectType.name.lowercase(), result.id)
