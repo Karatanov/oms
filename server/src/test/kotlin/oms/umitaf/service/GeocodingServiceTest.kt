@@ -12,9 +12,15 @@ class GeocodingServiceTest {
             composeGeocodingAddress("Сумська 74, м. Харків, Харківська область", "Харків", "Харківська"))
     }
 
-    private fun withProvider(body: String, status: Int = 200, test: (GeocodingService) -> Unit) {
+    private fun withProvider(
+        body: String,
+        status: Int = 200,
+        onRequest: () -> Unit = {},
+        test: (GeocodingService) -> Unit
+    ) {
         val server = HttpServer.create(InetSocketAddress("127.0.0.1", 0), 0)
         server.createContext("/search") { exchange ->
+            onRequest()
             val params = exchange.requestURI.rawQuery.split('&').associate {
                 val pair = it.split('=', limit = 2)
                 pair[0] to URLDecoder.decode(pair[1], Charsets.UTF_8)
@@ -41,5 +47,14 @@ class GeocodingServiceTest {
     }
     @Test fun `invalid coordinates are not accepted`() = withProvider("""[{"lat":"NaN","lon":"999"}]""") {
         assertNull(it.geocode("Sumska 74", "Kharkiv", ""))
+    }
+
+    @Test fun `caches unresolved addresses for the current session`() {
+        var requests = 0
+        withProvider("[]", onRequest = { requests++ }) { service ->
+            assertNull(service.geocode("Sumska 74", "Kharkiv", ""))
+            assertNull(service.geocode("Sumska 74", "Kharkiv", ""))
+        }
+        assertEquals(1, requests)
     }
 }
