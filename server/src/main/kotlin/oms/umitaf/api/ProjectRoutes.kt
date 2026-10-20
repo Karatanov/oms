@@ -15,6 +15,24 @@ import oms.umitaf.domain.FinancialRecordType
 import oms.umitaf.domain.ProcurementRecord
 import oms.umitaf.service.ProjectPdfExportService
 import oms.umitaf.service.SubprojectsTablePdfExportService
+import kotlin.math.roundToLong
+
+/**
+ * Returns the persisted EUR amount when available and reconstructs it for
+ * legacy records that were saved before EUR cents became mandatory.
+ *
+ * A UAH value is converted only when that record carries the exchange rate
+ * used at the time of saving. Guessing a current rate here would make map
+ * financial indicators historically inaccurate.
+ */
+private fun oms.umitaf.domain.FinancialRecord.disbursedEurCents(): Long? =
+    amountEurCents ?: when (currency.trim().uppercase()) {
+        "EUR" -> (amount * 100).roundToLong()
+        "UAH" -> eurExchangeRate
+            ?.takeIf { it > 0.0 }
+            ?.let { rate -> (amount / rate * 100).roundToLong() }
+        else -> null
+    }
 
 /**
  * Маршрути роботи з проєктами.
@@ -106,12 +124,12 @@ fun Route.projectRoutes() {
             .asSequence()
             .mapNotNull { record ->
                 val subprojectId = owningSubprojectId(record.projectId) ?: return@mapNotNull null
-                record.amountEurCents?.let { subprojectId to it }
+                record.disbursedEurCents()?.let { subprojectId to it }
             }
             .groupBy({ it.first }, { it.second })
             .mapValues { (_, cents) -> cents.sum() }
         val disbursedEurCentsByProjectId = disbursements
-            .mapNotNull { record -> record.amountEurCents?.let { record.projectId to it } }
+            .mapNotNull { record -> record.disbursedEurCents()?.let { record.projectId to it } }
             .groupBy({ it.first }, { it.second })
             .mapValues { (_, cents) -> cents.sum() }
         val response =
