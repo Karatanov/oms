@@ -78,13 +78,14 @@ fun <T> SearchableOptionPicker(
     OutlinedTextField(
         value = query,
         onValueChange = { entered ->
-            query = entered
+            val safeQuery = entered.safeTextInput(200)
+            query = safeQuery
             if (loadOptionsOnInput == null) {
-                showMatches(entered, availableOptions)
+                showMatches(safeQuery, availableOptions)
             } else {
                 scope.launch {
                     availableOptions = loadOptionsOnInput()
-                    showMatches(entered, availableOptions)
+                    showMatches(safeQuery, availableOptions)
                 }
             }
         },

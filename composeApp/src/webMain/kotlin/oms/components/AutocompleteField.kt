@@ -23,9 +23,10 @@ fun AutocompleteField(value: String, onValueChange: (String) -> Unit, label: Str
     var query by remember(value, options) { mutableStateOf(options.firstOrNull { it.first == value }?.second ?: value) }
     DisposableEffect(id) { onDispose { host.dismiss(id) } }
     OutlinedTextField(query, { entered ->
-        query = entered
-        onValueChange(entered)
-        val matches = options.filter { entered.isNotBlank() && (it.first.contains(entered, true) || it.second.contains(entered, true)) }
+        val safeQuery = entered.safeTextInput(200)
+        query = safeQuery
+        onValueChange(safeQuery)
+        val matches = options.filter { safeQuery.isNotBlank() && (it.first.contains(safeQuery, true) || it.second.contains(safeQuery, true)) }
         if (matches.isEmpty()) host.dismiss(id) else host.menu = OptionMenu(id, anchor, matches.map { it.second }, 0,
             onChoose = { index -> host.dismiss(id); query = matches[index].second; onValueChange(matches[index].first) },
             onDismiss = { host.dismiss(id) }, focusOnOpen = false)
