@@ -46,6 +46,34 @@ fun Route.financialRoutes() {
         }
     }
 
+    post("/api/v1/financials/payment-monitoring/import") {
+        val session = call.requireRole("ADMIN") ?: return@post
+        var workbook: ByteArray? = null
+        try {
+            call.receiveMultipart().forEachPart { part ->
+                if (part is PartData.FileItem && part.name == "file") {
+                    val fileName = part.originalFileName.orEmpty()
+                    require(fileName.endsWith(".xlsx", true) || fileName.endsWith(".xls", true)) {
+                        "Select an XLS or XLSX payment monitoring workbook."
+                    }
+                    val bytes = part.provider().readRemaining(20_000_001).readByteArray()
+                    require(bytes.size <= 20_000_000) { "The payment monitoring workbook must not exceed 20 MB." }
+                    workbook = bytes
+                }
+                part.dispose()
+            }
+            val snapshot = withContext(Dispatchers.IO) {
+                AppContainer.paymentMonitoringService.importWorkbook(
+                    workbook ?: throw IllegalArgumentException("Multipart field 'file' is required.")
+                )
+            }
+            AppContainer.auditLogService.record(session.userId, "payment_monitoring_imported", "payment_monitoring", 0L)
+            call.respond(PaymentMonitoringImportResponse(snapshot.items.size, snapshot.refreshedAt))
+        } catch (error: IllegalArgumentException) {
+            call.respond(HttpStatusCode.BadRequest, ErrorResponse("VALIDATION_ERROR", error.message ?: "Invalid payment monitoring workbook."))
+        }
+    }
+
     get("/api/v1/financials/progress") {
         call.requireRole("ADMIN", "PROJECT_MANAGER") ?: return@get
         val requestedRegion = call.request.queryParameters["region"]

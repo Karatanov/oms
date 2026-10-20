@@ -197,6 +197,7 @@ fun AppLayout(appState: AppState) {
                 is Screen.Financial -> if (appState.roleCode in setOf("ADMIN", "PROJECT_MANAGER")) FinancialScreen(
                     canAccessFinancials = appState.roleCode in setOf("ADMIN", "PROJECT_MANAGER"),
                     canManageFinancials = appState.roleCode in setOf("ADMIN", "PROJECT_MANAGER"),
+                    canUpdatePaymentMonitoring = appState.roleCode == "ADMIN",
                     requestedSubprojectUuid = target.financialSubproject,
                     requestedRegion = target.financialRegion,
                     requestedMonth = target.financialMonth,

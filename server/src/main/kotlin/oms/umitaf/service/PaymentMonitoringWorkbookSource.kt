@@ -1,6 +1,11 @@
 package oms.umitaf.service
 
 import java.util.Locale
+import java.io.ByteArrayInputStream
+import org.apache.poi.ss.usermodel.CellType
+import org.apache.poi.ss.usermodel.DataFormatter
+import org.apache.poi.ss.usermodel.Row
+import org.apache.poi.ss.usermodel.WorkbookFactory
 
 /**
  * Reads the approved UR III SP Payment Monitoring workbook without turning its
@@ -34,30 +39,60 @@ object PaymentMonitoringWorkbookSource {
         return parseCsv(csv)
     }
 
+    /** Parses an administrator-uploaded copy of the approved source workbook. */
+    fun parseWorkbook(bytes: ByteArray): List<Item> {
+        WorkbookFactory.create(ByteArrayInputStream(bytes)).use { workbook ->
+            val sheet = workbook.getSheet(SHEET_NAME)
+                ?: throw IllegalArgumentException("The workbook has no '$SHEET_NAME' sheet.")
+            val headerIndex = (sheet.firstRowNum..sheet.lastRowNum).firstOrNull { index ->
+                workbookHeaders(sheet.getRow(index)).containsKey("id")
+            } ?: throw IllegalArgumentException("The workbook has no ID header on '$SHEET_NAME'.")
+            val headers = workbookHeaders(sheet.getRow(headerIndex))
+            requireHeaders(headers)
+            return (headerIndex + 1..sheet.lastRowNum).mapNotNull { index ->
+                val row = sheet.getRow(index) ?: return@mapNotNull null
+                val code = workbookText(row, headers.getValue("id")).trim()
+                if (code.isBlank() || code.equals("TOTAL", true) || code.equals("TOTAL:", true)) return@mapNotNull null
+                item(
+                    code = code,
+                    number = { heading -> headers[heading]?.let { workbookNumber(row, it) } },
+                    text = { heading -> headers[heading]?.let { workbookText(row, it).trim().takeIf(String::isNotBlank) } }
+                )
+            }.filter(::hasIndicator)
+        }
+    }
+
     internal fun parseCsv(csv: String): List<Item> {
         val rows = csv.lineSequence().filter(String::isNotBlank).map(::csvCells).toList()
         val headerIndex = rows.indexOfFirst { row -> headerMap(row).containsKey("id") }
         require(headerIndex >= 0) { "The payment monitoring snapshot has no ID header." }
         val headers = headerMap(rows[headerIndex])
-        val required = setOf("id", "amount paid, total uah", "remaining payment under sp, uah")
-        required.forEach { header -> require(headers.containsKey(header)) { "The payment monitoring snapshot is missing '$header'." } }
+        requireHeaders(headers)
         return rows.drop(headerIndex + 1).mapNotNull { row ->
             val code = cell(row, headers.getValue("id")).trim()
-            if (code.isBlank() || code.equals("TOTAL:", true)) return@mapNotNull null
-            Item(
-                code = code,
-                totalInvestmentUah = number(row, headers["total investment cost, uah"]),
-                eibInvestmentUah = number(row, headers["investment cost, uah (excl. local co-financing)"]),
-                localCoFinancingUah = number(row, headers["local co-financing, uah"]),
-                paidAndInProgressUah = number(row, headers["amount paid + in progress, total uah"]),
-                paidUah = number(row, headers["amount paid, total uah"]),
-                remainingUah = number(row, headers["remaining payment under sp, uah"]),
-                plannedEibSharePct = number(row, headers["eib share planned, %"]),
-                factualEibSharePct = number(row, headers["eib share factual, %"]),
-                eibShareCompliance = headers["eib share compliance"]?.let { cell(row, it).trim().takeIf(String::isNotBlank) }
-            )
-        }.filter { item ->
-            item.totalInvestmentUah != null || item.paidAndInProgressUah != null || item.paidUah != null
+            if (code.isBlank() || code.equals("TOTAL", true) || code.equals("TOTAL:", true)) return@mapNotNull null
+            item(code, { heading -> headers[heading]?.let { number(row, it) } }, { heading -> headers[heading]?.let { cell(row, it).trim().takeIf(String::isNotBlank) } })
+        }.filter(::hasIndicator)
+    }
+
+    private fun item(code: String, number: (String) -> Double?, text: (String) -> String?) = Item(
+        code = code,
+        totalInvestmentUah = number("total investment cost, uah"),
+        eibInvestmentUah = number("investment cost, uah (excl. local co-financing)"),
+        localCoFinancingUah = number("local co-financing, uah"),
+        paidAndInProgressUah = number("amount paid + in progress, total uah"),
+        paidUah = number("amount paid, total uah"),
+        remainingUah = number("remaining payment under sp, uah"),
+        plannedEibSharePct = number("eib share planned, %"),
+        factualEibSharePct = number("eib share factual, %"),
+        eibShareCompliance = text("eib share compliance")
+    )
+
+    private fun hasIndicator(item: Item) = item.totalInvestmentUah != null || item.paidAndInProgressUah != null || item.paidUah != null
+
+    private fun requireHeaders(headers: Map<String, Int>) {
+        setOf("id", "amount paid, total uah", "remaining payment under sp, uah").forEach { header ->
+            require(headers.containsKey(header)) { "The payment monitoring workbook is missing '$header'." }
         }
     }
 
@@ -70,8 +105,44 @@ object PaymentMonitoringWorkbookSource {
     private fun cell(row: List<String>, column: Int): String = row.getOrElse(column) { "" }
 
     private fun number(row: List<String>, column: Int?): Double? = column?.let { index ->
-        cell(row, index).replace("\u00A0", "").replace(" ", "").removeSuffix("%").replace(',', '.')
-            .trim().takeIf(String::isNotBlank)?.toDoubleOrNull()
+        parseNumber(cell(row, index))
+    }
+
+    private fun workbookHeaders(row: Row?): Map<String, Int> = buildMap {
+        row ?: return@buildMap
+        for (index in row.firstCellNum.coerceAtLeast(0) until row.lastCellNum.coerceAtLeast(0)) {
+            workbookText(row, index).trim().takeIf(String::isNotBlank)?.let { put(normalize(it), index) }
+        }
+    }
+
+    private fun workbookText(row: Row, index: Int): String = row.getCell(index)?.let { cell ->
+        when (cell.cellType) {
+            CellType.FORMULA -> when (cell.cachedFormulaResultType) {
+                CellType.NUMERIC -> DATA_FORMATTER.formatRawCellContents(cell.numericCellValue, cell.cellStyle.dataFormat.toInt(), cell.cellStyle.dataFormatString)
+                CellType.STRING -> cell.stringCellValue
+                else -> ""
+            }
+            else -> DATA_FORMATTER.formatCellValue(cell)
+        }
+    }.orEmpty()
+
+    private fun workbookNumber(row: Row, index: Int): Double? = row.getCell(index)?.let { cell ->
+        when (cell.cellType) {
+            CellType.NUMERIC -> cell.numericCellValue
+            CellType.FORMULA -> if (cell.cachedFormulaResultType == CellType.NUMERIC) cell.numericCellValue else parseNumber(workbookText(row, index))
+            else -> parseNumber(workbookText(row, index))
+        }
+    }
+
+    private fun parseNumber(value: String): Double? {
+        val normalized = value.replace("\u00A0", "").replace(" ", "").removeSuffix("%").trim()
+        if (normalized.isBlank()) return null
+        val decimal = when {
+            normalized.contains(',') && normalized.contains('.') -> normalized.replace(",", "")
+            normalized.contains(',') -> normalized.replace(',', '.')
+            else -> normalized
+        }
+        return decimal.toDoubleOrNull()
     }
 
     /** Minimal RFC-4180 compatible reader for the quoted CSV snapshot. */
@@ -95,4 +166,6 @@ object PaymentMonitoringWorkbookSource {
     private fun normalize(value: String): String = value.replace(Regex("\\s+"), " ").trim().lowercase(Locale.US)
 
     private const val RESOURCE_PATH = "payment-monitoring/ur-iii-sp-payment-monitoring.csv"
+    private const val SHEET_NAME = "UR III SP Payment Monitoring"
+    private val DATA_FORMATTER = DataFormatter(Locale.US)
 }

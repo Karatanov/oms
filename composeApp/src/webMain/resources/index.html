@@ -85,25 +85,25 @@
                 importReportError: "Не вдалося імпортувати інспекційний звіт",
                 uploadFileError: "Не вдалося завантажити файл",
                 documentUploaded: "Документ успішно завантажено.", photoUploaded: "Фото успішно завантажено.", sirSourceReplaced: "Вихідний файл SIR успішно замінено.",
-                financialImported: "Фінансові записи успішно імпортовано.", photoTitle: "Фотографії інспекції",
+                financialImported: "Фінансові записи успішно імпортовано.", paymentMonitoringImported: "Моніторинг платежів оновлено.", photoTitle: "Фотографії інспекції",
                 photoRules: "Перетягніть фотографії сюди або виберіть файли. Лише JPEG/PNG, до 10 МБ кожен, максимум 30 фотографій.",
                 photoDrop: "Перетягніть фотографії сюди або натисніть для вибору", done: "Готово", remove: "Видалити",
                 invalidPhoto: "дозволені лише JPEG/PNG-файли розміром до 10 МБ.", maxPhotos: "Можна прикріпити максимум 30 фотографій.",
                 lastInspection: "Остання інспекція", inspectionCode: "Код інспекції", subprojectCode: "Код субпроєкту", noReports: "Інспекційних звітів ще немає", noPhotos: "В останній інспекції немає фотографій.",
                 open: "Відкрити", previewReport: "Переглянути звіт", closeFullscreenPhoto: "Закрити повноекранне фото", details: "Деталі",
-                loading: "Завантаження даних…", uploadingFile: "Завантаження файлу…", importingInspection: "Імпорт інспекційного звіту…", importingFinancial: "Імпорт фінансових записів…",
+                loading: "Завантаження даних…", uploadingFile: "Завантаження файлу…", importingInspection: "Імпорт інспекційного звіту…", importingFinancial: "Імпорт фінансових записів…", importingPaymentMonitoring: "Оновлення моніторингу платежів…",
                 pasteTruncated: "Текст не вставлено: максимум {limit} символів за раз. Вставте менший фрагмент."
             },
             en: {
                 importReportError: "Could not import inspection report", uploadFileError: "Could not upload file",
                 documentUploaded: "Document uploaded successfully.", photoUploaded: "Photo uploaded successfully.", sirSourceReplaced: "The SIR source file was replaced successfully.",
-                financialImported: "Financial records imported successfully.", photoTitle: "Inspection photos",
+                financialImported: "Financial records imported successfully.", paymentMonitoringImported: "Payment monitoring was updated.", photoTitle: "Inspection photos",
                 photoRules: "Drag photos here or choose files. JPEG/PNG only, up to 10 MB each, maximum 30 photos.",
                 photoDrop: "Drag photos here or click to select", done: "Done", remove: "Remove",
                 invalidPhoto: "only JPEG/PNG files up to 10 MB are allowed.", maxPhotos: "You can attach up to 30 photos.",
                 lastInspection: "Latest inspection", inspectionCode: "Inspection code", subprojectCode: "Subproject code", noReports: "No Inspection Reports yet", noPhotos: "No photos in the latest inspection.",
                 open: "Open", previewReport: "Preview report", closeFullscreenPhoto: "Close full-screen photo", details: "Details",
-                loading: "Loading data…", uploadingFile: "Uploading file…", importingInspection: "Importing inspection report…", importingFinancial: "Importing financial records…",
+                loading: "Loading data…", uploadingFile: "Uploading file…", importingInspection: "Importing inspection report…", importingFinancial: "Importing financial records…", importingPaymentMonitoring: "Updating payment monitoring…",
                 pasteTruncated: "Text was not pasted: maximum {limit} characters at a time. Paste a smaller fragment."
             }
         };
@@ -613,6 +613,16 @@
             input.click();
         }
 
+        async function omsUploadError(response) {
+            const text = await response.text();
+            try {
+                const payload = JSON.parse(text);
+                return payload.message || payload.error || text;
+            } catch (_) {
+                return text;
+            }
+        }
+
         function uploadWithDialog(accept, url, extraFields, successMessage, onComplete = null, loadingMessage = omsText("uploadingFile"), method = "POST") {
             const input = document.createElement("input");
             input.type = "file";
@@ -631,7 +641,7 @@
                 showOmsLoading(loadingMessage);
                 try {
                     const response = await omsAuthenticatedFetch(url, { method, body: formData, credentials: "include" });
-                    if (!response.ok) throw new Error(await response.text());
+                    if (!response.ok) throw new Error(await omsUploadError(response));
                     window.alert(successMessage);
                     if (onComplete) onComplete("");
                     else window.location.reload();
@@ -674,6 +684,17 @@
                 omsText("financialImported"),
                 onComplete,
                 omsText("importingFinancial")
+            );
+        }
+
+        function openPaymentMonitoringImport(onComplete) {
+            uploadWithDialog(
+                ".xls,.xlsx,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                omsApiUrl("/financials/payment-monitoring/import"),
+                {},
+                omsText("paymentMonitoringImported"),
+                onComplete,
+                omsText("importingPaymentMonitoring")
             );
         }
 

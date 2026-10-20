@@ -69,6 +69,9 @@ import kotlin.math.roundToLong
 @JsName("openFinancialImport")
 external fun openFinancialImport(projectUuid: String, onComplete: (String) -> Unit)
 
+@JsName("openPaymentMonitoringImport")
+external fun openPaymentMonitoringImport(onComplete: (String) -> Unit)
+
 @JsName("downloadFinancialExport")
 external fun downloadFinancialExport(projectUuid: String)
 
@@ -90,6 +93,7 @@ private enum class FinancialSort { Type, Purpose, Tranche, Subproject, Subprojec
 fun FinancialScreen(
     canAccessFinancials: Boolean = true,
     canManageFinancials: Boolean = true,
+    canUpdatePaymentMonitoring: Boolean = false,
     requestedSubprojectUuid: String? = null,
     requestedRegion: String? = null,
     requestedMonth: String? = null,
@@ -105,6 +109,8 @@ fun FinancialScreen(
     var acts by remember { mutableStateOf<List<ProjectActRow>>(emptyList()) }
     var financialProgress by remember { mutableStateOf<ApiFinancialProgress?>(null) }
     var paymentMonitoring by remember { mutableStateOf<ApiPaymentMonitoring?>(null) }
+    var paymentMonitoringMessage by remember { mutableStateOf<String?>(null) }
+    var paymentMonitoringMessageIsError by remember { mutableStateOf(false) }
     var displayCurrency by remember { mutableStateOf("EUR") }
     var displayRates by remember { mutableStateOf<Map<String, Double>>(emptyMap()) }
     var loadingRates by remember { mutableStateOf(false) }
@@ -380,7 +386,28 @@ fun FinancialScreen(
             )
             FinancialProgressCard("financial_progress_by_sector", progress.bySector)
         }
-        paymentMonitoring?.let { snapshot -> PaymentMonitoringCard(snapshot) }
+        paymentMonitoring?.let { snapshot ->
+            PaymentMonitoringCard(
+                snapshot = snapshot,
+                canUpdate = canUpdatePaymentMonitoring,
+                message = paymentMonitoringMessage,
+                messageIsError = paymentMonitoringMessageIsError,
+                onUpdate = {
+                    paymentMonitoringMessage = null
+                    openPaymentMonitoringImport { importError ->
+                        if (importError.isBlank()) {
+                            paymentMonitoringMessage = LocalizationManager.t("payment_monitoring_imported")
+                            paymentMonitoringMessageIsError = false
+                            reloadKey++
+                        } else {
+                            paymentMonitoringMessage = LocalizationManager.t("error_payment_monitoring_import")
+                                .replace("{message}", importError)
+                            paymentMonitoringMessageIsError = true
+                        }
+                    }
+                }
+            )
+        }
 
         BoxWithConstraints(Modifier.fillMaxWidth()) {
             if (maxWidth >= 620.dp) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
@@ -965,7 +992,13 @@ private fun FinancialProgressCard(titleKey: String, items: List<ApiFinancialProg
 }
 
 @Composable
-private fun PaymentMonitoringCard(snapshot: ApiPaymentMonitoring) {
+private fun PaymentMonitoringCard(
+    snapshot: ApiPaymentMonitoring,
+    canUpdate: Boolean,
+    message: String?,
+    messageIsError: Boolean,
+    onUpdate: () -> Unit
+) {
     var expanded by remember { mutableStateOf(false) }
     var page by remember(snapshot.items) { mutableStateOf(0) }
     val rows = remember(snapshot.items) { snapshot.items.sortedBy { it.code } }
@@ -983,10 +1016,22 @@ private fun PaymentMonitoringCard(snapshot: ApiPaymentMonitoring) {
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
+                if (canUpdate) {
+                    OutlinedButton(onClick = onUpdate) {
+                        Text(LocalizationManager.t("payment_monitoring_update"))
+                    }
+                }
                 TableActionIconButton(
                     tooltip = LocalizationManager.t(if (expanded) "collapse" else "expand"),
                     icon = if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown
                 ) { expanded = !expanded }
+            }
+            message?.let {
+                Text(
+                    it,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (messageIsError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+                )
             }
             if (expanded) {
                 if (rows.isEmpty()) {

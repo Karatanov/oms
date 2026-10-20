@@ -48,3 +48,9 @@ data class PaymentMonitoringResponse(
     val refreshedAt: String,
     val items: List<PaymentMonitoringItemResponse> = emptyList()
 )
+
+@Serializable
+data class PaymentMonitoringImportResponse(
+    val imported: Int,
+    val refreshedAt: String
+)
