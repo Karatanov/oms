@@ -136,7 +136,10 @@ object OmsApiClient {
         // The complete project tree is a shared in-memory client snapshot.
         // A single moderately sized response avoids serial round-trips once
         // the registry exceeds the former 100-row page size.
-        val pageSize = 250
+        // The shared snapshot currently contains just over 300 rows. One
+        // request avoids rebuilding the server-side financial/map metadata a
+        // second time before a user can navigate to another workspace.
+        val pageSize = 500
         val projects = mutableListOf<ApiProject>()
         var page = 1
         do {

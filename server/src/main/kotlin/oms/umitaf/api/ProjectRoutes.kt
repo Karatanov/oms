@@ -89,8 +89,8 @@ fun Route.projectRoutes() {
         val session = call.requireRole("ADMIN", "PROJECT_MANAGER", "INSPECTOR", "VIEWER", "GUEST") ?: return@get
         val page = call.request.queryParameters["page"]?.toIntOrNull() ?: 1
         val pageSize = call.request.queryParameters["pageSize"]?.toIntOrNull() ?: 20
-        if (page < 1 || pageSize !in 1..250) {
-            return@get call.respond(HttpStatusCode.BadRequest, ErrorResponse("VALIDATION_ERROR", "page must be positive and pageSize must be between 1 and 250."))
+        if (page < 1 || pageSize !in 1..500) {
+            return@get call.respond(HttpStatusCode.BadRequest, ErrorResponse("VALIDATION_ERROR", "page must be positive and pageSize must be between 1 and 500."))
         }
         val projects = projectService.searchProjects(
             status = call.request.queryParameters["status"],
