@@ -28,36 +28,7 @@ class ExposedUserRepository : UserRepository {
         UserTable
             .innerJoin(RoleTable)
             .selectAll()
-            .map { row ->
-
-                User(
-                    id = row[UserTable.id].value,
-
-                    username = row[UserTable.username],
-
-                    email = row[UserTable.email],
-
-                    passwordHash = row[UserTable.passwordHash],
-
-                    role = Role(
-                        id = row[RoleTable.id].value,
-                        code = row[RoleTable.code],
-                        name = row[RoleTable.name]
-                    ),
-                    firstName = row[UserTable.firstName],
-                    lastName = row[UserTable.lastName],
-                    status = row[UserTable.status],
-                    region = row[UserTable.region],
-                    department = row[UserTable.department],
-                    preferredLang = row[UserTable.preferredLang],
-                    lastLoginAt = row[UserTable.lastLoginAt],
-                    failedLoginCount = row[UserTable.failedLoginCount],
-                    lockedUntil = row[UserTable.lockedUntil],
-                    createdAt = row[UserTable.createdAt],
-                    updatedAt = row[UserTable.updatedAt],
-                    isArchived = row[UserTable.isArchived], archivedAt = row[UserTable.archivedAt], archivedBy = row[UserTable.archivedBy]?.value
-                )
-            }
+            .map { it.toUser() }
     }
 
     /** Avoids loading the administration user list for every protected request. */
@@ -87,36 +58,7 @@ class ExposedUserRepository : UserRepository {
 
                 row[UserTable.username] == username
             }
-            ?.let { row ->
-
-                User(
-                    id = row[UserTable.id].value,
-
-                    username = row[UserTable.username],
-
-                    email = row[UserTable.email],
-
-                    passwordHash = row[UserTable.passwordHash],
-
-                    role = Role(
-                        id = row[RoleTable.id].value,
-                        code = row[RoleTable.code],
-                        name = row[RoleTable.name]
-                    ),
-                    firstName = row[UserTable.firstName],
-                    lastName = row[UserTable.lastName],
-                    status = row[UserTable.status],
-                    region = row[UserTable.region],
-                    department = row[UserTable.department],
-                    preferredLang = row[UserTable.preferredLang],
-                    lastLoginAt = row[UserTable.lastLoginAt],
-                    failedLoginCount = row[UserTable.failedLoginCount],
-                    lockedUntil = row[UserTable.lockedUntil],
-                    createdAt = row[UserTable.createdAt],
-                    updatedAt = row[UserTable.updatedAt],
-                    isArchived = row[UserTable.isArchived], archivedAt = row[UserTable.archivedAt], archivedBy = row[UserTable.archivedBy]?.value
-                )
-            }
+            ?.toUser()
     }
 
     /** Uses the e-mail index for normal login and password-reset lookups. */
