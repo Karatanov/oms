@@ -27,9 +27,11 @@ class InspectionReportService(
         reportCacheExpiresAt = 0L
     }
 
+    private fun currentReportSnapshot(): List<InspectionReport>? =
+        cachedReports?.takeIf { System.currentTimeMillis() < reportCacheExpiresAt }
+
     fun getAllReports(): List<InspectionReport> {
-        val now = System.currentTimeMillis()
-        cachedReports?.takeIf { now < reportCacheExpiresAt }?.let { return it }
+        currentReportSnapshot()?.let { return it }
         return synchronized(reportCacheLock) {
             val current = System.currentTimeMillis()
             cachedReports?.takeIf { current < reportCacheExpiresAt } ?: repository.findAll().also { reports ->
@@ -46,7 +48,8 @@ class InspectionReportService(
         projectId: Long
     ): List<InspectionReport> {
 
-        return getAllReports().filter { it.projectId == projectId }
+        return currentReportSnapshot()?.filter { it.projectId == projectId }
+            ?: repository.findByProjectId(projectId)
     }
     
     /**
@@ -57,7 +60,10 @@ class InspectionReportService(
         uuid: String
     ): InspectionReport? {
 
-        return getAllReports().firstOrNull { it.uuid.toString() == uuid.trim() }
+        val normalizedUuid = uuid.trim()
+        return currentReportSnapshot()
+            ?.firstOrNull { it.uuid.toString() == normalizedUuid }
+            ?: repository.findByUuid(normalizedUuid)
     }
 
     /**
