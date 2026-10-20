@@ -353,23 +353,27 @@ class DashboardService(
                 it[ProjectTable.trancheNumber].matchesTrancheFilter(trancheNumber)
         }
         val projectIds = projects.map { it[ProjectTable.id].value }.toSet()
-        val reports = InspectionReportTable.selectAll().toList().filter { it[InspectionReportTable.projectId].value in projectIds }
+        val reports = if (projectIds.isEmpty()) emptyList() else InspectionReportTable.selectAll()
+            .where { InspectionReportTable.projectId inList projectIds }.toList()
         val reportIds = reports.map { it[InspectionReportTable.id].value }.toSet()
-        val actRecords = FinancialRecordTable.selectAll().filter {
-            it[FinancialRecordTable.projectId].value in projectIds && it[FinancialRecordTable.recordType] == "act"
-        }
-        val paymentRecords = FinancialRecordTable.selectAll().filter {
-            it[FinancialRecordTable.projectId].value in projectIds &&
-                it[FinancialRecordTable.recordType] in setOf("payment", "advance")
+        // Read this table once for the scoped dashboard. The former two full
+        // scans (acts and payments) were especially wasteful for the admin
+        // screen, which also requests activity data.
+        val financialRecords = if (projectIds.isEmpty()) emptyList() else FinancialRecordTable.selectAll()
+            .where { FinancialRecordTable.projectId inList projectIds }.toList()
+        val actRecords = financialRecords.filter { it[FinancialRecordTable.recordType] == "act" }
+        val paymentRecords = financialRecords.filter {
+            it[FinancialRecordTable.recordType] in setOf("payment", "advance")
         }
         val spent = actRecords.sumOf { it[FinancialRecordTable.amount] }.toDouble()
         val monthlyActPayments = monthlyPayments(paymentRecords)
         val projectsById = projects.associateBy { it[ProjectTable.id].value }
-        val nameEnByProjectId = ProjectMonitoringDetailTable.selectAll().associate {
-            it[ProjectMonitoringDetailTable.projectId].value to it[ProjectMonitoringDetailTable.nameEn]
-        }
+        val nameEnByProjectId = if (projectIds.isEmpty()) emptyMap() else ProjectMonitoringDetailTable.selectAll()
+            .where { ProjectMonitoringDetailTable.projectId inList projectIds }
+            .associate { it[ProjectMonitoringDetailTable.projectId].value to it[ProjectMonitoringDetailTable.nameEn] }
         val subprojects = projects.filter { it[ProjectTable.projectType] == "subproject" }
-        val amountsByProject = ProjectAmountTable.selectAll()
+        val amountsByProject = if (projectIds.isEmpty()) emptyMap() else ProjectAmountTable.selectAll()
+            .where { ProjectAmountTable.projectId inList projectIds }
             .groupBy { it[ProjectAmountTable.projectId].value }
             .mapValues { (_, rows) -> rows.associate { it[ProjectAmountTable.kind] to ProjectAmount(
                 it[ProjectAmountTable.amount], it[ProjectAmountTable.currency], it[ProjectAmountTable.convertedAmount],
@@ -401,8 +405,9 @@ class DashboardService(
         val monthlyInspectionCounts = reports.groupBy { month(it[InspectionReportTable.inspectionDate]) }
             .map { DashboardMetric(it.key, it.value.size.toLong()) }.sortedBy { it.label }
         val reportMonthById = reports.associate { it[InspectionReportTable.id].value to month(it[InspectionReportTable.inspectionDate]) }
-        val monthlyEshsViolations = InspectionFindingTable.selectAll().toList()
-            .filter { it[InspectionFindingTable.inspectionReportId].value in reportIds }
+        val findingsRows = if (reportIds.isEmpty()) emptyList() else InspectionFindingTable.selectAll()
+            .where { InspectionFindingTable.inspectionReportId inList reportIds }.toList()
+        val monthlyEshsViolations = findingsRows
             .filter { finding ->
                 val category = finding[InspectionFindingTable.category].lowercase()
                 category.contains("hse") || category.contains("eshs") || category.contains("health") || category.contains("safety") || category.contains("environment") || category.contains("social")
@@ -410,8 +415,8 @@ class DashboardService(
             .groupBy { reportMonthById[it[InspectionFindingTable.inspectionReportId].value] }
             .filterKeys { it != null }
             .map { DashboardMetric(it.key!!, it.value.size.toLong()) }.sortedBy { it.label }
-        val monthlyEquipmentPayments = monthlyPayments(FinancialRecordTable.selectAll().toList()
-            .filter { it[FinancialRecordTable.projectId].value in projectIds && it[FinancialRecordTable.paymentPurpose] == "equipment" && it[FinancialRecordTable.recordType] in setOf("payment", "advance") }
+        val monthlyEquipmentPayments = monthlyPayments(financialRecords
+            .filter { it[FinancialRecordTable.paymentPurpose] == "equipment" && it[FinancialRecordTable.recordType] in setOf("payment", "advance") }
         )
         // Procurement reference rows do not carry a project foreign key. Do not
         // expose their global aggregate to a manager whose dashboard is scoped.
@@ -420,7 +425,7 @@ class DashboardService(
             .filter { isConstructionContractSigned(it[ProcurementRecordTable.purchaseStatus]) }
             .mapNotNull { row -> (row[ProcurementRecordTable.contractDate] ?: row[ProcurementRecordTable.estimatedContractDate])?.let(::month) }
             .groupingBy { it }.eachCount().map { DashboardMetric(it.key, it.value.toLong()) }.sortedBy { it.label }
-        val findings = InspectionFindingTable.selectAll().count { it[InspectionFindingTable.inspectionReportId].value in reportIds }
+        val findings = findingsRows.size
         // The admin activity panel filters and sorts locally, so return a useful
         // recent window without introducing a separate request for every user.
         val activities = if (allowedProjectIds == null) auditLogService.recent(limit = 100) else emptyList()
