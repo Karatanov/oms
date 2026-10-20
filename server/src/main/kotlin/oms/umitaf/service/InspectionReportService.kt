@@ -13,7 +13,31 @@ class InspectionReportService(
     InspectionReportRepository
 ) {
 
-    fun getAllReports(): List<InspectionReport> = repository.findAll()
+    /**
+     * The registry and dashboard analytics commonly read the same report
+     * metadata within one screen load. Cache only that lightweight metadata
+     * briefly and invalidate it on every workflow or placement mutation.
+     */
+    private val reportCacheLock = Any()
+    @Volatile private var cachedReports: List<InspectionReport>? = null
+    @Volatile private var reportCacheExpiresAt = 0L
+
+    private fun invalidateReportCache() = synchronized(reportCacheLock) {
+        cachedReports = null
+        reportCacheExpiresAt = 0L
+    }
+
+    fun getAllReports(): List<InspectionReport> {
+        val now = System.currentTimeMillis()
+        cachedReports?.takeIf { now < reportCacheExpiresAt }?.let { return it }
+        return synchronized(reportCacheLock) {
+            val current = System.currentTimeMillis()
+            cachedReports?.takeIf { current < reportCacheExpiresAt } ?: repository.findAll().also { reports ->
+                cachedReports = reports
+                reportCacheExpiresAt = current + 15_000L
+            }
+        }
+    }
 
     /**
      * Повертає всі інспекції проєкту.
@@ -22,9 +46,7 @@ class InspectionReportService(
         projectId: Long
     ): List<InspectionReport> {
 
-        return repository.findByProjectId(
-            projectId
-        )
+        return getAllReports().filter { it.projectId == projectId }
     }
     
     /**
@@ -35,9 +57,7 @@ class InspectionReportService(
         uuid: String
     ): InspectionReport? {
 
-        return repository.findByUuid(
-            uuid.trim()
-        )
+        return getAllReports().firstOrNull { it.uuid.toString() == uuid.trim() }
     }
 
     /**
@@ -68,7 +88,7 @@ class InspectionReportService(
             inspectionType = validateType(inspectionType),
             latitude = validateLatitude(latitude),
             longitude = validateLongitude(longitude)
-        )
+        ).also { invalidateReportCache() }
     }
 
     fun updateReport(
@@ -90,7 +110,7 @@ class InspectionReportService(
             // UI field. Preserve it when a metadata update omits it.
             reportCode?.trim()?.takeIf(String::isNotBlank) ?: existing.reportCode, validateType(inspectionType),
             validateLatitude(latitude), validateLongitude(longitude)
-        )
+        )?.also { invalidateReportCache() }
     }
 
     fun submitReport(uuid: String): InspectionReport? {
@@ -99,6 +119,7 @@ class InspectionReportService(
             "Only draft inspection reports can be submitted."
         }
         return repository.changeStatus(uuid.trim(), "pending_review", null)
+            ?.also { invalidateReportCache() }
     }
 
     /**
@@ -112,6 +133,7 @@ class InspectionReportService(
         }
         getByUuid(uuid) ?: return null
         return repository.changeStatus(uuid.trim(), normalizedStatus, null)
+            ?.also { invalidateReportCache() }
     }
 
     fun reviewReport(
@@ -125,21 +147,25 @@ class InspectionReportService(
         }
         return when (action.trim().lowercase()) {
             "approve" -> repository.changeStatus(uuid.trim(), "completed", null)
+                ?.also { invalidateReportCache() }
             "reject" -> {
                 val reason = rejectionReason?.trim()
                 require(!reason.isNullOrBlank()) { "Rejection reason is required." }
                 repository.changeStatus(uuid.trim(), "draft", reason)
+                    ?.also { invalidateReportCache() }
             }
             else -> throw IllegalArgumentException("Action must be either approve or reject.")
         }
     }
 
     fun deleteReport(uuid: String): Boolean = repository.delete(uuid.trim())
+        .also { deleted -> if (deleted) invalidateReportCache() }
 
     fun moveToProject(uuid: String, targetProjectId: Long): InspectionReport? {
         val report = getByUuid(uuid) ?: return null
         if (report.projectId == targetProjectId) return report
         return repository.moveToProject(uuid.trim(), targetProjectId)
+            ?.also { invalidateReportCache() }
     }
 
     private fun validateDate(inspectionDate: String) {
