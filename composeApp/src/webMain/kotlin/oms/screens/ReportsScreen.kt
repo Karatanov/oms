@@ -1200,12 +1200,12 @@ private fun FindingEditorDialog(
     Card(Modifier.widthIn(max = 720.dp).fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
         Column(Modifier.padding(20.dp).heightIn(max = 560.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text(if (finding == null) LocalizationManager.t("add_finding") else LocalizationManager.t("edit_finding"), style = MaterialTheme.typography.titleLarge)
-                OutlinedTextField(category, { category = it.safePastedText(200) }, label = { Text(LocalizationManager.t("category")) }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(category, { category = it.safeTextInput(200) }, label = { Text(LocalizationManager.t("category")) }, modifier = Modifier.fillMaxWidth())
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     listOf("low", "medium", "high", "critical").forEach { value -> FilterChip(selected = severity == value, onClick = { severity = value }, label = { Text(LocalizationManager.t("severity_$value")) }) }
                 }
-                OutlinedTextField(description, { description = it.safePastedText(8_000) }, label = { Text(LocalizationManager.t("description")) }, minLines = 3, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(recommendation, { recommendation = it.safePastedText(8_000) }, label = { Text(LocalizationManager.t("recommendation")) }, minLines = 2, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(description, { description = it.safeTextInput(8_000) }, label = { Text(LocalizationManager.t("description")) }, minLines = 3, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(recommendation, { recommendation = it.safeTextInput(8_000) }, label = { Text(LocalizationManager.t("recommendation")) }, minLines = 2, modifier = Modifier.fillMaxWidth())
                 if (finding != null) Row(verticalAlignment = Alignment.CenterVertically) { Checkbox(isResolved, { isResolved = it }); Text(LocalizationManager.t("resolved")) }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
                 OutlinedButton(onClick = onDismiss) { Text(LocalizationManager.t("cancel")) }
@@ -1214,9 +1214,6 @@ private fun FindingEditorDialog(
         }
     }
 }
-
-private fun String.safePastedText(maxLength: Int): String =
-    replace("\u0000", "").take(maxLength)
 
 @Composable
 private fun ReportTableHeader(

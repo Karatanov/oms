@@ -33,7 +33,7 @@ internal fun ProjectForm(
         } ?: options.firstOrNull { it.projectType.equals("project", true) }
     fun field(key: String, label: String, modifier: Modifier = Modifier, lines: Int = 1) = @Composable {
         ProjectFieldValidation(state, key, modifier) {
-            OutlinedTextField(state[key], { state[key] = it }, label = { Text(L.t(label)) }, modifier = Modifier.fillMaxWidth(),
+            OutlinedTextField(state[key], { state[key] = it.safeTextInput(if (lines > 1) 8_000 else 500) }, label = { Text(L.t(label)) }, modifier = Modifier.fillMaxWidth(),
                 isError = state.validationAttempt > 0 && key in state.errors(), singleLine = lines == 1, minLines = lines)
         }
     }
@@ -146,8 +146,8 @@ internal fun ProjectForm(
     ContractInformationCard(
         state = state, prefix = "technicalSupervision",
         title = L.t("technical_supervision_information"), icon = Icons.Default.Visibility,
-        name = state["technicalSupervisionName"], onNameChange = { state["technicalSupervisionName"] = it },
-        contractNumber = state["technicalSupervisionContractNumber"], onContractNumberChange = { state["technicalSupervisionContractNumber"] = it },
+        name = state["technicalSupervisionName"], onNameChange = { state["technicalSupervisionName"] = it.safeTextInput(500) },
+        contractNumber = state["technicalSupervisionContractNumber"], onContractNumberChange = { state["technicalSupervisionContractNumber"] = it.safeTextInput(500) },
         contractDate = state["technicalSupervisionContractDate"], onContractDateChange = { state["technicalSupervisionContractDate"] = it },
         startDate = state["technicalSupervisionStartDate"], onStartDateChange = { state["technicalSupervisionStartDate"] = it },
         plannedEndDate = state["technicalSupervisionPlannedEndDate"], onPlannedEndDateChange = { state["technicalSupervisionPlannedEndDate"] = it },
@@ -156,8 +156,8 @@ internal fun ProjectForm(
     ContractInformationCard(
         state = state, prefix = "engineerConsultant",
         title = L.t("engineer_consultant_information"), icon = Icons.Default.SupportAgent,
-        name = state["engineerConsultantName"], onNameChange = { state["engineerConsultantName"] = it },
-        contractNumber = state["engineerConsultantContractNumber"], onContractNumberChange = { state["engineerConsultantContractNumber"] = it },
+        name = state["engineerConsultantName"], onNameChange = { state["engineerConsultantName"] = it.safeTextInput(500) },
+        contractNumber = state["engineerConsultantContractNumber"], onContractNumberChange = { state["engineerConsultantContractNumber"] = it.safeTextInput(500) },
         contractDate = state["engineerConsultantContractDate"], onContractDateChange = { state["engineerConsultantContractDate"] = it },
         startDate = state["engineerConsultantStartDate"], onStartDateChange = { state["engineerConsultantStartDate"] = it },
         plannedEndDate = state["engineerConsultantPlannedEndDate"], onPlannedEndDateChange = { state["engineerConsultantPlannedEndDate"] = it },
