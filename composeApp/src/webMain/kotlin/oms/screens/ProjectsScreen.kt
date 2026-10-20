@@ -50,6 +50,7 @@ import oms.components.TableHeader
 import oms.components.ProjectTableColumns
 import oms.components.TableActionIconButton
 import oms.components.ExpandableTableText
+import oms.components.safeTextInput
 import oms.data.ProjectRepository
 import oms.localization.LocalizationManager
 import oms.model.Project
@@ -274,7 +275,7 @@ fun ProjectsScreen(
         ProjectsTable(
             projects = filteredProjects,
             searchText = searchText,
-            onSearchTextChange = { searchText = it },
+            onSearchTextChange = { searchText = it.safeTextInput(200) },
             pageScrollState = pageScrollState,
             filters = {
                 ProjectsFilters(regionFilter, {

@@ -31,6 +31,7 @@ import oms.components.ExpandableTableText
 import oms.components.InlineOptionPicker
 import oms.components.SearchableOptionPicker
 import oms.components.WasmSafeOverlay
+import oms.components.safeTextInput
 import oms.localization.LocalizationManager
 import oms.model.localizedName
 import kotlin.js.JsName
@@ -172,7 +173,7 @@ fun DocumentsScreen(canManageDocuments: Boolean = true) {
                 Text(LocalizationManager.t("upload_document"))
             }
         }
-        OutlinedTextField(search, { search = it }, singleLine = true, label = { Text(LocalizationManager.t("documents_search")) }, leadingIcon = { Icon(Icons.Default.Search, null) }, modifier = Modifier.fillMaxWidth())
+        OutlinedTextField(search, { search = it.safeTextInput(200) }, singleLine = true, label = { Text(LocalizationManager.t("documents_search")) }, leadingIcon = { Icon(Icons.Default.Search, null) }, modifier = Modifier.fillMaxWidth())
         if (loading) oms.components.ContentState(LocalizationManager.t("loading_records"), loading = true)
         if (loadFailed) oms.components.ContentState(LocalizationManager.t("load_records_error"), error = true, onRetry = { reloadKey++ })
         LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {

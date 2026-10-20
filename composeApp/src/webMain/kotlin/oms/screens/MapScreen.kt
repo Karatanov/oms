@@ -121,7 +121,7 @@ fun MapScreen(onOpenProject: (Project) -> Unit = {}) {
         }
         BoxWithConstraints(Modifier.fillMaxWidth()) {
             val controls: @Composable (Modifier) -> Unit = { modifier ->
-                OutlinedTextField(search, { search = it }, singleLine = true,
+                OutlinedTextField(search, { search = it.safeTextInput(200) }, singleLine = true,
                     label = { Text(LocalizationManager.t("search_project")) }, leadingIcon = { Icon(Icons.Default.Search, null) }, modifier = modifier)
             }
             val regionFilter: @Composable (Modifier) -> Unit = { modifier ->

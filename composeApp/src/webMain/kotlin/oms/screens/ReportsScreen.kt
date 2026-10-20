@@ -61,6 +61,7 @@ import oms.components.ExpandableTableText
 import oms.components.OmsDateField
 import oms.components.toOmsDate
 import oms.components.WasmSafeOverlay
+import oms.components.safeTextInput
 import oms.localization.Language
 import oms.localization.LocalizationManager
 import oms.model.localizedName
@@ -244,7 +245,7 @@ fun ReportsScreen(
         oms.components.PageHeading(LocalizationManager.t("reports_title"), Icons.Default.FactCheck) {
             if (canCreateReports) Button(onClick = onNewInspection) { Icon(Icons.Default.Add, null); Spacer(Modifier.width(8.dp)); Text(LocalizationManager.t("new_inspection")) }
         }
-        OutlinedTextField(search, { search = it }, singleLine = true, label = { Text(LocalizationManager.t("reports_search")) }, leadingIcon = { Icon(Icons.Default.Search, null) }, modifier = Modifier.fillMaxWidth())
+        OutlinedTextField(search, { search = it.safeTextInput(200) }, singleLine = true, label = { Text(LocalizationManager.t("reports_search")) }, leadingIcon = { Icon(Icons.Default.Search, null) }, modifier = Modifier.fillMaxWidth())
         if (loading) oms.components.ContentState(LocalizationManager.t("loading_records"), loading = true)
         if (loadFailed) oms.components.ContentState(LocalizationManager.t("load_records_error"), error = true, onRetry = { reloadKey++ })
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {

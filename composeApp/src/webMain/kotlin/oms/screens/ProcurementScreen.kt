@@ -44,6 +44,7 @@ import oms.components.InlineOptionPicker
 import oms.components.WasmSafeOverlay
 import oms.components.toOmsDate
 import oms.components.localizedUkraineRegion
+import oms.components.safeTextInput
 import oms.model.localizedName
 import oms.localization.Language
 import oms.localization.LocalizationManager
@@ -312,7 +313,7 @@ fun ProcurementScreen(
             else -> {
                 BoxWithConstraints(Modifier.fillMaxWidth()) {
                     @Composable fun SearchField(modifier: Modifier) = OutlinedTextField(
-                        value = search, onValueChange = { search = it }, singleLine = true,
+                        value = search, onValueChange = { search = it.safeTextInput(200) }, singleLine = true,
                         label = { Text(LocalizationManager.t("procurement_search")) },
                         leadingIcon = { Icon(Icons.Default.Search, null) }, modifier = modifier
                     )
