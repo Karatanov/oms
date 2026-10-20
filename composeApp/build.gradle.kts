@@ -7,6 +7,14 @@ plugins {
     alias(libs.plugins.composeCompiler)
 }
 
+// Source-location strings are useful while inspecting Compose code locally, but
+// they are shipped verbatim in the Kotlin/JS bundle.  They are not needed in a
+// production browser and noticeably increase the first-load download/parse
+// cost, especially on constrained connections.
+composeCompiler {
+    includeSourceInformation.set(false)
+}
+
 kotlin {
     js {
         browser {
@@ -41,7 +49,6 @@ kotlin {
             implementation(libs.compose.material3)
             implementation(libs.compose.ui)
             implementation(libs.compose.components.resources)
-            implementation(libs.compose.uiToolingPreview)
             implementation(libs.androidx.lifecycle.viewmodelCompose)
             implementation(libs.androidx.lifecycle.runtimeCompose)
             implementation(projects.shared)
