@@ -26,6 +26,8 @@ import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import java.time.LocalDateTime
 import java.util.*
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.decodeFromString
 
 /** Iterative child-first traversal; validate the complete subtree before deleting anything. */
 internal fun projectDeletionOrder(root: Long, children: Map<Long?, List<Long>>): List<Long> {
@@ -87,7 +89,16 @@ class ExposedProjectRepository : ProjectRepository {
                 row[ProjectMonitoringDetailTable.constructionWorkStatus], row[ProjectMonitoringDetailTable.geocodeAccuracy],
                 row[ProjectMonitoringDetailTable.geocodeQuery], row[ProjectMonitoringDetailTable.geocodeDisplayName],
                 row[ProjectMonitoringDetailTable.sourceRows],
-                row[ProjectMonitoringDetailTable.sourceWorkbook]
+                row[ProjectMonitoringDetailTable.sourceWorkbook],
+                row[ProjectMonitoringDetailTable.contractorNameEn], row[ProjectMonitoringDetailTable.dedUrl],
+                row[ProjectMonitoringDetailTable.estimateUrl], row[ProjectMonitoringDetailTable.expertiseUrl],
+                row[ProjectMonitoringDetailTable.permitUrl], row[ProjectMonitoringDetailTable.constructionActNumber],
+                row[ProjectMonitoringDetailTable.constructionActDate], row[ProjectMonitoringDetailTable.completedWorkPct],
+                row[ProjectMonitoringDetailTable.financingUsedPct], row[ProjectMonitoringDetailTable.paidFinancingPct],
+                row[ProjectMonitoringDetailTable.constructionWorkSummary], row[ProjectMonitoringDetailTable.constructionWorkComments],
+                row[ProjectMonitoringDetailTable.registryJson]?.let { raw ->
+                    runCatching { Json.decodeFromString<Map<String, String>>(raw) }.getOrDefault(emptyMap())
+                }.orEmpty()
             )
     }
     override fun managerIdForUuid(uuid: String): Long? = transaction {

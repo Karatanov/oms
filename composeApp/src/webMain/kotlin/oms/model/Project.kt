@@ -47,6 +47,9 @@ data class Project(
     val financingCurrency: String? = null,
     val financingDisbursedEurCents: Long = 0L,
 
+    /** Source-aligned values for the monitoring registry table. */
+    val registry: Map<String, String> = emptyMap(),
+
     val contractorName: String? = null,
 
     val startDate: String? = null,

@@ -51,6 +51,7 @@ object ProjectRepository {
                     financingAmount = api.amounts["eib_financing"]?.amount,
                     financingCurrency = api.amounts["eib_financing"]?.currency,
                     financingDisbursedEurCents = api.financingDisbursedEurCents,
+                    registry = api.registry,
                     contractorName = api.contractorName,
                     startDate = api.startDate,
                     plannedEndDate = api.plannedEndDate,

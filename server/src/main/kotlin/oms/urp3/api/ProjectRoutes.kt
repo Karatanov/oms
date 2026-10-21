@@ -16,6 +16,7 @@ import oms.urp3.domain.ProcurementRecord
 import oms.urp3.service.ProjectPdfExportService
 import oms.urp3.service.SubprojectsTablePdfExportService
 import kotlin.math.roundToLong
+import java.math.BigDecimal
 
 /**
  * Returns the persisted EUR amount when available and reconstructs it for
@@ -33,6 +34,13 @@ private fun oms.urp3.domain.FinancialRecord.disbursedEurCents(): Long? =
             ?.let { rate -> (amount / rate * 100).roundToLong() }
         else -> null
     }
+
+/** Returns the stored UAH amount without applying a current-day exchange rate. */
+private fun oms.urp3.domain.FinancialRecord.disbursedUah(): BigDecimal? = when (currency.trim().uppercase()) {
+    "UAH" -> BigDecimal.valueOf(amount)
+    "EUR" -> eurExchangeRate?.takeIf { it > 0.0 }?.let { BigDecimal.valueOf(amount * it) }
+    else -> null
+}
 
 /**
  * Маршрути роботи з проєктами.
@@ -137,6 +145,21 @@ fun Route.projectRoutes() {
             .mapNotNull { record -> record.disbursedEurCents()?.let { record.projectId to it } }
             .groupBy({ it.first }, { it.second })
             .mapValues { (_, cents) -> cents.sum() }
+        val paidConstructionUahBySubprojectId = disbursements
+            .asSequence()
+            .filter { it.paymentPurpose.equals("works", ignoreCase = true) }
+            .mapNotNull { record ->
+                val subprojectId = owningSubprojectId(record.projectId) ?: return@mapNotNull null
+                record.disbursedUah()?.let { subprojectId to it }
+            }
+            .groupBy({ it.first }, { it.second })
+            .mapValues { (_, amounts) -> amounts.fold(BigDecimal.ZERO) { total, amount -> total.add(amount) } }
+        val paidConstructionUahByProjectId = disbursements
+            .asSequence()
+            .filter { it.paymentPurpose.equals("works", ignoreCase = true) }
+            .mapNotNull { record -> record.disbursedUah()?.let { record.projectId to it } }
+            .groupBy({ it.first }, { it.second })
+            .mapValues { (_, amounts) -> amounts.fold(BigDecimal.ZERO) { total, amount -> total.add(amount) } }
             ProjectListResponse(
 
                 data =
@@ -149,6 +172,11 @@ fun Route.projectRoutes() {
                                 ProjectType.SUBPROJECT -> disbursedEurCentsBySubprojectId[project.id] ?: 0L
                                 ProjectType.SUBPROJECT_PART -> disbursedEurCentsByProjectId[project.id] ?: 0L
                                 else -> 0L
+                            },
+                            financingDisbursedUah = when (project.projectType) {
+                                ProjectType.SUBPROJECT -> paidConstructionUahBySubprojectId[project.id] ?: BigDecimal.ZERO
+                                ProjectType.SUBPROJECT_PART -> paidConstructionUahByProjectId[project.id] ?: BigDecimal.ZERO
+                                else -> BigDecimal.ZERO
                             }
                         )
                     },

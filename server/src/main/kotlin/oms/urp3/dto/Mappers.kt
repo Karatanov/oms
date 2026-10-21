@@ -11,6 +11,7 @@ package oms.urp3.dto
 import oms.urp3.domain.*
 import java.time.LocalDateTime
 import java.time.ZoneOffset
+import java.math.BigDecimal
 
 private fun LocalDateTime.toUtcIsoString(): String = atOffset(ZoneOffset.UTC).toString()
 
@@ -70,7 +71,8 @@ fun User.toResponse(): UserResponse {
 fun Project.toResponse(
     parentProjectUuid: String? = null,
     monitoring: oms.urp3.domain.ProjectMonitoringDetails? = null,
-    financingDisbursedEurCents: Long = 0L
+    financingDisbursedEurCents: Long = 0L,
+    financingDisbursedUah: BigDecimal = BigDecimal.ZERO
 ): ProjectResponse {
 
     return ProjectResponse(
@@ -196,8 +198,83 @@ fun Project.toResponse(
             value.uahPerEur.stripTrailingZeros().toPlainString(), value.rateDate.toString(), value.conversionEdited
         ) },
 
-        financingDisbursedEurCents = financingDisbursedEurCents
+        financingDisbursedEurCents = financingDisbursedEurCents,
+        registry = registryValues(monitoring, financingDisbursedUah)
     )
+}
+
+/**
+ * A stable, string-only table projection for the subproject registry.  It is
+ * deliberately derived while the list is assembled, so opening the registry
+ * never triggers an N+1 request pattern in the browser.
+ */
+private fun Project.registryValues(
+    monitoring: oms.urp3.domain.ProjectMonitoringDetails?,
+    financingDisbursedUah: BigDecimal
+): Map<String, String> {
+    fun amount(kind: String) = amounts[kind]?.amount?.stripTrailingZeros()?.toPlainString().orEmpty()
+    fun decimal(value: Long?) = value?.toString().orEmpty()
+    fun value(item: String?) = item?.trim().orEmpty()
+    val contracted = subprojectContractAmount ?: 0L
+    val approved = budgetPlanned
+    val approvedShare = if (approved > 0) {
+        BigDecimal(contracted).multiply(BigDecimal(100)).divide(BigDecimal(approved), 2, java.math.RoundingMode.HALF_UP).toPlainString()
+    } else ""
+    return buildMap {
+        // Spreadsheet formula errors are not customer-facing values.  Keep
+        // their cells empty until the authoritative workbook provides data.
+        putAll(monitoring?.registryValues.orEmpty().filterValues { value ->
+            value.isNotBlank() && !value.trim().startsWith("#")
+        })
+        putIfAbsent("pool", monitoring?.sourceBatchId?.toString() ?: trancheNumber.toString())
+        putIfAbsent("dreamUrl", value(monitoring?.dreamProjectUrl))
+        putIfAbsent("community", value(monitoring?.municipalityNameUk))
+        putIfAbsent("communityEn", value(monitoring?.municipalityNameEn))
+        putIfAbsent("priority", value(monitoring?.priorityAreaSource))
+        putIfAbsent("implementer", value(monitoring?.projectManagerNameUk))
+        putIfAbsent("implementerEn", value(monitoring?.projectManagerNameEn))
+        putIfAbsent("fundingTotal", amount("budget").ifBlank { budgetPlanned.toString() })
+        putIfAbsent("fundingWorks", amount("planned_works"))
+        putIfAbsent("fundingTs", amount("planned_supervision"))
+        putIfAbsent("fundingCsc", amount("planned_engineer"))
+        putIfAbsent("eibCost", amount("eib_financing"))
+        putIfAbsent("localCost", amount("local_financing"))
+        putIfAbsent("contractedTotal", decimal(subprojectContractAmount))
+        putIfAbsent("contractedEib", amount("contracted_eib"))
+        putIfAbsent("contractedLocal", amount("contracted_local"))
+        putIfAbsent("approvedFundingPct", approvedShare)
+        putIfAbsent("contractor", value(contractorName))
+        putIfAbsent("contractorEn", value(monitoring?.contractorNameEn))
+        putIfAbsent("contractDate", constructionContractSigningDate?.toString().orEmpty())
+        putIfAbsent("contractEndDate", plannedEndDate?.toString().orEmpty())
+        putIfAbsent("contractDuration", contractDurationDays?.let { kotlin.math.ceil(it / 30.44).toInt().toString() }.orEmpty())
+        putIfAbsent("constructionAmount", decimal(subprojectContractAmount))
+        putIfAbsent("constructionEib", amount("construction_eib"))
+        putIfAbsent("constructionLocal", amount("construction_local"))
+        putIfAbsent("paidConstruction", financingDisbursedUah.stripTrailingZeros().toPlainString())
+        putIfAbsent("dedUrl", value(monitoring?.dedUrl))
+        putIfAbsent("estimateUrl", value(monitoring?.estimateUrl))
+        putIfAbsent("expertiseUrl", value(monitoring?.expertiseUrl))
+        putIfAbsent("permitUrl", value(monitoring?.permitUrl))
+        putIfAbsent("workStatus", value(monitoring?.constructionWorkStatus))
+        putIfAbsent("actNumber", value(monitoring?.constructionActNumber))
+        putIfAbsent("actDate", value(monitoring?.constructionActDate))
+        putIfAbsent("completedWorkPct", value(monitoring?.completedWorkPct))
+        putIfAbsent("financingUsedPct", value(monitoring?.financingUsedPct))
+        putIfAbsent("paidFinancingPct", value(monitoring?.paidFinancingPct))
+        putIfAbsent("workSummary", value(monitoring?.constructionWorkSummary))
+        putIfAbsent("workComments", value(monitoring?.constructionWorkComments))
+        // Excel's HYPERLINK cells expose the visible DREAM identifier in
+        // data-only mode.  Convert that identifier back to the stable public
+        // URL so the table always opens a real DREAM page.
+        this["dreamUrl"] = this["dreamUrl"].orEmpty().let { source ->
+            when {
+                source.startsWith("https://", ignoreCase = true) -> source
+                source.isNotBlank() -> "https://dream.gov.ua/ua/project/DREAM-UA-$source/profile"
+                else -> ""
+            }
+        }
+    }
 }
 
 /**

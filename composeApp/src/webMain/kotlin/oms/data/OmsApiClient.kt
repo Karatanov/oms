@@ -783,6 +783,7 @@ data class ApiProject(
     val currency: String = "UAH",
     val amounts: Map<String, ProjectAmountDto> = emptyMap(),
     val financingDisbursedEurCents: Long = 0L,
+    val registry: Map<String, String> = emptyMap(),
     val contractorName: String? = null,
     val startDate: String? = null,
     val plannedEndDate: String? = null,

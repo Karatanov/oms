@@ -13,5 +13,11 @@ data class ProjectMonitoringDetails(
     val dreamProjectId: String?, val dreamProjectUrl: String?, val applicationId: String?,
     val dreamApplicationId: String?, val constructionProcurementStatus: String?,
     val constructionWorkStatus: String?, val geocodeAccuracy: String?, val geocodeQuery: String?,
-    val geocodeDisplayName: String?, val sourceRows: String, val sourceWorkbook: String
+    val geocodeDisplayName: String?, val sourceRows: String, val sourceWorkbook: String,
+    val contractorNameEn: String? = null, val dedUrl: String? = null, val estimateUrl: String? = null,
+    val expertiseUrl: String? = null, val permitUrl: String? = null, val constructionActNumber: String? = null,
+    val constructionActDate: String? = null, val completedWorkPct: String? = null,
+    val financingUsedPct: String? = null, val paidFinancingPct: String? = null,
+    val constructionWorkSummary: String? = null, val constructionWorkComments: String? = null,
+    val registryValues: Map<String, String> = emptyMap()
 )

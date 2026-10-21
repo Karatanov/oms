@@ -14,43 +14,58 @@ import oms.screens.SortColumn
 @Composable
 fun TableHeader(currentSort: SortColumn, ascending: Boolean, onSort: (SortColumn) -> Unit) {
     Row(Modifier.width(ProjectTableColumns.totalWidth).padding(vertical = 4.dp)) {
-        Spacer(Modifier.width(ProjectTableColumns.selection + ProjectTableColumns.hierarchy))
         ProjectTableColumns.columns.forEach { column ->
             val labelKey = when (column) {
                 SortColumn.ID -> "project_code"
-                SortColumn.TRANCHE -> "tranche"
+                SortColumn.POOL -> "pool_number"
+                SortColumn.DREAM -> "dream_project_link"
                 SortColumn.NAME -> "subproject_name"
                 SortColumn.REGION -> "region"
-                SortColumn.CITY -> "city"
-                SortColumn.SECTOR -> "sector"
+                SortColumn.COMMUNITY -> "community"
+                SortColumn.PRIORITY -> "priority_area"
                 SortColumn.CONSTRUCTION_TYPE -> "construction_type"
-                SortColumn.STATUS -> "status"
-                SortColumn.BUDGET -> "budget"
-                SortColumn.START_DATE -> "start_date"
-                SortColumn.PLANNED_END_DATE -> "planned_end_date"
-                SortColumn.IMPLEMENTATION_DURATION -> "implementation_duration"
+                SortColumn.IMPLEMENTER -> "project_implementer"
+                SortColumn.BENEFICIARY -> "beneficiary"
+                SortColumn.FUNDING_TOTAL -> "funding_total_uah"
+                SortColumn.FUNDING_WORKS -> "funding_works_uah"
+                SortColumn.FUNDING_TS -> "funding_ts_uah"
+                SortColumn.FUNDING_CSC -> "funding_csc_uah"
+                SortColumn.EIB_COST -> "eib_financing_uah"
+                SortColumn.LOCAL_COST -> "local_financing_uah"
+                SortColumn.CONTRACTED_TOTAL -> "contracted_total_uah"
+                SortColumn.CONTRACTED_EIB -> "contracted_eib_uah"
+                SortColumn.CONTRACTED_LOCAL -> "contracted_local_uah"
+                SortColumn.APPROVED_FUNDING_PCT -> "approved_funding_pct"
                 SortColumn.CONTRACTOR -> "contractor"
+                SortColumn.CONTRACT_DATE -> "contract_date"
+                SortColumn.CONTRACT_END_DATE -> "contract_end_date"
+                SortColumn.CONTRACT_DURATION -> "contract_duration_months"
+                SortColumn.CONSTRUCTION_AMOUNT -> "construction_contract_uah"
+                SortColumn.CONSTRUCTION_EIB -> "construction_eib_uah"
+                SortColumn.CONSTRUCTION_LOCAL -> "construction_local_uah"
+                SortColumn.PAID_CONSTRUCTION -> "paid_construction_uah"
+                SortColumn.DED -> "ded_documentation"
+                SortColumn.ESTIMATE -> "estimate_documentation"
+                SortColumn.EXPERTISE -> "project_expertise"
+                SortColumn.PERMIT -> "construction_permit"
+                SortColumn.WORK_STATUS -> "construction_work_status"
+                SortColumn.ACT_NUMBER -> "act_number"
+                SortColumn.ACT_DATE -> "act_date"
+                SortColumn.COMPLETED_WORK_PCT -> "completed_work_pct"
+                SortColumn.FINANCING_USED_PCT -> "financing_used_pct"
+                SortColumn.PAID_FINANCING_PCT -> "paid_financing_pct"
+                SortColumn.WORK_SUMMARY -> "construction_work_summary"
+                SortColumn.WORK_COMMENTS -> "construction_work_comments"
+                // Legacy enum entries are excluded from ProjectTableColumns.columns.
+                SortColumn.TRANCHE, SortColumn.CITY, SortColumn.SECTOR, SortColumn.STATUS,
+                SortColumn.BUDGET, SortColumn.START_DATE, SortColumn.PLANNED_END_DATE,
+                SortColumn.IMPLEMENTATION_DURATION -> ""
             }
-            if (column == SortColumn.STATUS) {
-                Box(
-                    Modifier.width(ProjectTableColumns.width(column)).height(oms.theme.OmsDimensions.TableHeaderHeight)
-                        .background(MaterialTheme.colorScheme.surfaceContainerLow),
-                    contentAlignment = Alignment.CenterStart
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        SortableTableHeader(
-                            title = LocalizationManager.t(labelKey),
-                            selected = currentSort == column,
-                            ascending = ascending,
-                            onClick = { onSort(column) },
-                            modifier = Modifier.wrapContentWidth()
-                        )
-                        ProjectStatusInfoButton()
-                    }
-                }
-            } else {
-                SortableHeader(LocalizationManager.t(labelKey), column, currentSort, ascending, onSort,
-                    Modifier.width(ProjectTableColumns.width(column)))
+            SortableHeader(LocalizationManager.t(labelKey), column, currentSort, ascending, onSort,
+                Modifier.width(ProjectTableColumns.width(column)))
+            if (column == SortColumn.ID) {
+                // Tree/selection controls follow the frozen code column.
+                Spacer(Modifier.width(ProjectTableColumns.selection + ProjectTableColumns.hierarchy))
             }
         }
         Box(Modifier.width(ProjectTableColumns.actions).height(oms.theme.OmsDimensions.TableHeaderHeight),

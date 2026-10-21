@@ -547,12 +547,11 @@ private fun ProjectFrozenCodeHeader(
         Box(Modifier.fillMaxWidth().height(64.dp), contentAlignment = Alignment.CenterStart) {
             Text(
                 LocalizationManager.t("filters"),
-                modifier = Modifier.padding(start = ProjectTableColumns.selection + ProjectTableColumns.hierarchy),
+                modifier = Modifier.padding(start = ProjectTableColumns.width(SortColumn.ID)),
                 style = MaterialTheme.typography.labelLarge
             )
         }
         Row(Modifier.fillMaxWidth().height(oms.theme.OmsDimensions.TableHeaderHeight)) {
-            Spacer(Modifier.width(ProjectTableColumns.selection + ProjectTableColumns.hierarchy))
             oms.components.SortableHeader(
                 LocalizationManager.t("project_code"),
                 SortColumn.ID,
@@ -561,6 +560,7 @@ private fun ProjectFrozenCodeHeader(
                 onSort,
                 Modifier.width(ProjectTableColumns.width(SortColumn.ID))
             )
+            Spacer(Modifier.width(ProjectTableColumns.selection + ProjectTableColumns.hierarchy))
         }
         HorizontalDivider()
     }
@@ -586,13 +586,13 @@ private fun ProjectFrozenCodeRow(
             .background(background),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Spacer(Modifier.width(ProjectTableColumns.selection + ProjectTableColumns.hierarchy))
         Text(
             project.siteNumber,
             modifier = Modifier.width(ProjectTableColumns.width(SortColumn.ID)),
             fontWeight = if (isProject) FontWeight.Bold else FontWeight.Normal,
             maxLines = 1
         )
+        Spacer(Modifier.width(ProjectTableColumns.selection + ProjectTableColumns.hierarchy))
     }
     HorizontalDivider()
 }
@@ -644,7 +644,6 @@ private fun ProjectsFilters(
 ) {
     Row(Modifier.width(ProjectTableColumns.totalWidth).padding(vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically) {
-        Spacer(Modifier.width(ProjectTableColumns.selection + ProjectTableColumns.hierarchy))
         ProjectTableColumns.columns.forEach { column ->
             Box(Modifier.width(ProjectTableColumns.width(column)).padding(end = 6.dp)) {
                 when (column) {
@@ -656,20 +655,16 @@ private fun ProjectsFilters(
                         LocalizationManager.t("region"),
                         ProjectRepository.projects.map { it.region }.filter { it.isNotBlank() }.map(::canonicalUkraineRegion).distinct().sorted(),
                         regionFilter, onRegionChange, ::localizedUkraineRegion)
-                    SortColumn.TRANCHE -> ProjectFilterDropdown(
+                    SortColumn.POOL -> ProjectFilterDropdown(
                         LocalizationManager.t("tranche"), listOf(1, 2), trancheFilter, onTrancheChange,
                         { LocalizationManager.t(if (it == 1) "tranche_a" else "tranche_b") })
-                    SortColumn.SECTOR -> ProjectFilterDropdown(
-                        LocalizationManager.t("sector"), sectors, sectorFilter, onSectorChange, String::sectorLabel)
                     SortColumn.CONSTRUCTION_TYPE -> ProjectFilterDropdown(
                         LocalizationManager.t("construction_type"), constructionTypes, constructionTypeFilter,
                         onConstructionTypeChange, String::constructionTypeLabel)
-                    SortColumn.STATUS -> ProjectFilterDropdown(
-                        LocalizationManager.t("status"), ProjectStatus.entries, statusFilter, onStatusChange,
-                        { LocalizationManager.t("project_status_${it.name.lowercase()}") })
                     else -> Unit
                 }
             }
+            if (column == SortColumn.ID) Spacer(Modifier.width(ProjectTableColumns.selection + ProjectTableColumns.hierarchy))
         }
         Box(
             Modifier.width(ProjectTableColumns.actions),
@@ -703,24 +698,79 @@ private fun <T> ProjectFilterDropdown(
 
 
 enum class SortColumn {
-    ID, TRANCHE, NAME, REGION, CITY, SECTOR, CONSTRUCTION_TYPE, STATUS, BUDGET, START_DATE, PLANNED_END_DATE, IMPLEMENTATION_DURATION, CONTRACTOR
+    ID, POOL, REGION, DREAM, NAME, COMMUNITY, PRIORITY, CONSTRUCTION_TYPE, IMPLEMENTER, BENEFICIARY,
+    FUNDING_TOTAL, FUNDING_WORKS, FUNDING_TS, FUNDING_CSC, EIB_COST, LOCAL_COST,
+    CONTRACTED_TOTAL, CONTRACTED_EIB, CONTRACTED_LOCAL, APPROVED_FUNDING_PCT, CONTRACTOR,
+    CONTRACT_DATE, CONTRACT_END_DATE, CONTRACT_DURATION, CONSTRUCTION_AMOUNT, CONSTRUCTION_EIB,
+    CONSTRUCTION_LOCAL, PAID_CONSTRUCTION, DED, ESTIMATE, EXPERTISE, PERMIT, WORK_STATUS,
+    ACT_NUMBER, ACT_DATE, COMPLETED_WORK_PCT, FINANCING_USED_PCT, PAID_FINANCING_PCT,
+    WORK_SUMMARY, WORK_COMMENTS,
+    /** Kept for decoding saved local sort state from pre-registry versions. */
+    TRANCHE, CITY, SECTOR, STATUS, BUDGET, START_DATE, PLANNED_END_DATE, IMPLEMENTATION_DURATION
 }
 
 private fun sortKey(project: Project, column: SortColumn): String = when (column) {
     SortColumn.ID -> project.siteNumber
-    SortColumn.TRANCHE -> project.trancheNumber.toString().padStart(10, '0')
-    SortColumn.NAME -> project.localizedName()
+    SortColumn.POOL, SortColumn.TRANCHE -> project.registryValue("pool", project.trancheNumber.toString()).numericSortKey()
     SortColumn.REGION -> localizedUkraineRegion(project.region)
+    SortColumn.DREAM -> project.registryValue("dreamUrl")
+    SortColumn.NAME -> project.localizedRegistryValue("name", project.localizedName())
+    SortColumn.COMMUNITY -> project.localizedRegistryValue("community")
+    SortColumn.PRIORITY -> project.sourceBilingualValue("priority", ukrainianBeforeSlash = true)
+    SortColumn.CONSTRUCTION_TYPE -> project.sourceBilingualValue("constructionType", ukrainianBeforeSlash = false, fallback = project.constructionType)
+    SortColumn.IMPLEMENTER -> project.localizedRegistryValue("implementer")
+    SortColumn.BENEFICIARY -> project.localizedRegistryValue("beneficiary", project.localizedBeneficiary())
+    SortColumn.FUNDING_TOTAL -> project.registryValue("fundingTotal").numericSortKey()
+    SortColumn.FUNDING_WORKS -> project.registryValue("fundingWorks").numericSortKey()
+    SortColumn.FUNDING_TS -> project.registryValue("fundingTs").numericSortKey()
+    SortColumn.FUNDING_CSC -> project.registryValue("fundingCsc").numericSortKey()
+    SortColumn.EIB_COST -> project.registryValue("eibCost").numericSortKey()
+    SortColumn.LOCAL_COST -> project.registryValue("localCost").numericSortKey()
+    SortColumn.CONTRACTED_TOTAL -> project.registryValue("contractedTotal").numericSortKey()
+    SortColumn.CONTRACTED_EIB -> project.registryValue("contractedEib").numericSortKey()
+    SortColumn.CONTRACTED_LOCAL -> project.registryValue("contractedLocal").numericSortKey()
+    SortColumn.APPROVED_FUNDING_PCT -> project.registryValue("approvedFundingPct").numericSortKey()
+    SortColumn.CONTRACTOR -> project.localizedRegistryValue("contractor", project.contractorName.orEmpty())
+    SortColumn.CONTRACT_DATE -> project.registryValue("contractDate")
+    SortColumn.CONTRACT_END_DATE -> project.registryValue("contractEndDate")
+    SortColumn.CONTRACT_DURATION -> project.registryValue("contractDuration").numericSortKey()
+    SortColumn.CONSTRUCTION_AMOUNT -> project.registryValue("constructionAmount").numericSortKey()
+    SortColumn.CONSTRUCTION_EIB -> project.registryValue("constructionEib").numericSortKey()
+    SortColumn.CONSTRUCTION_LOCAL -> project.registryValue("constructionLocal").numericSortKey()
+    SortColumn.PAID_CONSTRUCTION -> project.registryValue("paidConstruction").numericSortKey()
+    SortColumn.DED -> project.registryValue("dedUrl")
+    SortColumn.ESTIMATE -> project.registryValue("estimateUrl")
+    SortColumn.EXPERTISE -> project.registryValue("expertiseUrl")
+    SortColumn.PERMIT -> project.registryValue("permitUrl")
+    SortColumn.WORK_STATUS -> project.sourceBilingualValue("workStatus", ukrainianBeforeSlash = true)
+    SortColumn.ACT_NUMBER -> project.registryValue("actNumber")
+    SortColumn.ACT_DATE -> project.registryValue("actDate")
+    SortColumn.COMPLETED_WORK_PCT -> project.registryValue("completedWorkPct").numericSortKey()
+    SortColumn.FINANCING_USED_PCT -> project.registryValue("financingUsedPct").numericSortKey()
+    SortColumn.PAID_FINANCING_PCT -> project.registryValue("paidFinancingPct").numericSortKey()
+    SortColumn.WORK_SUMMARY -> project.registryValue("workSummary")
+    SortColumn.WORK_COMMENTS -> project.registryValue("workComments")
     SortColumn.CITY -> project.localizedCity()
     SortColumn.SECTOR -> project.sector
-    SortColumn.CONSTRUCTION_TYPE -> project.constructionType
     SortColumn.STATUS -> project.status.name
     SortColumn.BUDGET -> project.budgetPlanned.toString().padStart(20, '0')
     SortColumn.START_DATE -> project.startDate.orEmpty()
     SortColumn.PLANNED_END_DATE -> project.plannedEndDate.orEmpty()
     SortColumn.IMPLEMENTATION_DURATION -> project.contractDurationDays?.toString()?.padStart(12, '0').orEmpty()
-    SortColumn.CONTRACTOR -> project.contractorName.orEmpty()
 }
+
+private fun Project.registryValue(key: String, fallback: String = ""): String = registry[key]?.takeIf(String::isNotBlank) ?: fallback
+private fun Project.localizedRegistryValue(key: String, fallback: String = ""): String =
+    if (LocalizationManager.currentLanguage.name == "EN") registryValue("${key}En", registryValue(key, fallback)) else registryValue(key, fallback)
+private fun Project.sourceBilingualValue(key: String, ukrainianBeforeSlash: Boolean, fallback: String = ""): String {
+    val raw = registryValue(key, fallback)
+    val parts = raw.split("/").map(String::trim).filter(String::isNotBlank)
+    if (parts.size < 2) return raw
+    val ukrainian = if (ukrainianBeforeSlash) parts.first() else parts.last()
+    val english = if (ukrainianBeforeSlash) parts.last() else parts.first()
+    return if (LocalizationManager.currentLanguage.name == "EN") english else ukrainian
+}
+private fun String.numericSortKey(): String = toDoubleOrNull()?.toString()?.padStart(30, '0') ?: ""
 
 private fun compareBusinessIds(left: String, right: String): Int {
     val leftParts = Regex("(\\d+|\\D+)").findAll(left).map { it.value }.toList()
@@ -807,6 +857,10 @@ fun ProjectRow(
 
         val rowFontWeight = if (!isSubproject) FontWeight.Bold else FontWeight.Normal
 
+        // The source identifier is the primary key of the monitoring registry,
+        // so it is deliberately the first and frozen value in every row.
+        Text(project.siteNumber, modifier = Modifier.width(ProjectTableColumns.width(SortColumn.ID)), fontWeight = rowFontWeight)
+
         if (canManageProjects) Checkbox(
             checked = isSelected,
             onCheckedChange = onSelectedChange,
@@ -870,33 +924,9 @@ fun ProjectRow(
             }
         }
 
-        Text(project.siteNumber, modifier = Modifier.width(ProjectTableColumns.width(SortColumn.ID)), fontWeight = rowFontWeight)
-        Text(project.trancheNumber.trancheLabel(), modifier = Modifier.width(ProjectTableColumns.width(SortColumn.TRANCHE)), fontWeight = rowFontWeight)
-
-        ExpandableTableText(
-            project.localizedName(),
-            modifier = Modifier.width(ProjectTableColumns.width(SortColumn.NAME)),
-            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = rowFontWeight),
-            color = if (isSubproject) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface
-        )
-
-        Text(localizedUkraineRegion(project.region), modifier = Modifier.width(ProjectTableColumns.width(SortColumn.REGION)), fontWeight = rowFontWeight)
-
-        Text(project.localizedCity(), modifier = Modifier.width(ProjectTableColumns.width(SortColumn.CITY)), fontWeight = rowFontWeight)
-        Box(modifier = Modifier.width(ProjectTableColumns.width(SortColumn.SECTOR))) { SectorChip(project.sector, rowFontWeight) }
-        Box(modifier = Modifier.width(ProjectTableColumns.width(SortColumn.CONSTRUCTION_TYPE))) { ConstructionTypeChip(project.constructionType, rowFontWeight) }
-
-        Box(
-            modifier = Modifier.width(ProjectTableColumns.width(SortColumn.STATUS))
-        ) {
-            StatusChip(project.status, rowFontWeight)
+        ProjectTableColumns.columns.filterNot { it == SortColumn.ID }.forEach { column ->
+            RegistryTableCell(project, column, rowFontWeight, isSubproject)
         }
-
-        Text(project.budgetLabel(), modifier = Modifier.width(ProjectTableColumns.width(SortColumn.BUDGET)), fontWeight = rowFontWeight)
-        Text(project.startDate.toOmsDate(), modifier = Modifier.width(ProjectTableColumns.width(SortColumn.START_DATE)), fontWeight = rowFontWeight)
-        Text(project.plannedEndDate.toOmsDate(), modifier = Modifier.width(ProjectTableColumns.width(SortColumn.PLANNED_END_DATE)), fontWeight = rowFontWeight)
-        Text(project.contractDurationDays?.let(::durationMonthsLabel).orEmpty(), modifier = Modifier.width(ProjectTableColumns.width(SortColumn.IMPLEMENTATION_DURATION)), fontWeight = rowFontWeight)
-        Text(project.contractorName.orEmpty(), modifier = Modifier.width(ProjectTableColumns.width(SortColumn.CONTRACTOR)), fontWeight = rowFontWeight)
 
         // Keep the icon group centred in the exact same 144dp cell as the
         // "Actions" heading.  This also keeps view-only rows aligned.
@@ -916,6 +946,76 @@ fun ProjectRow(
     }
 
     HorizontalDivider()
+}
+
+@OptIn(ExperimentalComposeUiApi::class)
+@Composable
+private fun RegistryTableCell(project: Project, column: SortColumn, fontWeight: FontWeight, isSubproject: Boolean) {
+    val width = ProjectTableColumns.width(column)
+    val sourceReference = when (column) {
+        SortColumn.DREAM -> project.registryValue("dreamUrl")
+        SortColumn.DED -> project.registryValue("dedUrl")
+        SortColumn.ESTIMATE -> project.registryValue("estimateUrl")
+        SortColumn.EXPERTISE -> project.registryValue("expertiseUrl")
+        SortColumn.PERMIT -> project.registryValue("permitUrl")
+        else -> ""
+    }
+    val link = sourceReference.takeIf { it.startsWith("https://", ignoreCase = true) || it.startsWith("http://", ignoreCase = true) }.orEmpty()
+    val value = when (column) {
+        SortColumn.POOL -> project.registryValue("pool", project.trancheNumber.trancheLabel())
+        SortColumn.REGION -> localizedUkraineRegion(project.region)
+        SortColumn.DREAM, SortColumn.DED, SortColumn.ESTIMATE, SortColumn.EXPERTISE, SortColumn.PERMIT ->
+            link.takeIf(String::isNotBlank)?.let { LocalizationManager.t("open") } ?: sourceReference
+        SortColumn.NAME -> project.localizedRegistryValue("name", project.localizedName())
+        SortColumn.COMMUNITY -> project.localizedRegistryValue("community")
+        SortColumn.PRIORITY -> project.sourceBilingualValue("priority", ukrainianBeforeSlash = true)
+        SortColumn.CONSTRUCTION_TYPE -> project.sourceBilingualValue("constructionType", ukrainianBeforeSlash = false, fallback = project.constructionType.constructionTypeLabel())
+        SortColumn.IMPLEMENTER -> project.localizedRegistryValue("implementer")
+        SortColumn.BENEFICIARY -> project.localizedRegistryValue("beneficiary", project.localizedBeneficiary())
+        SortColumn.FUNDING_TOTAL -> project.registryValue("fundingTotal")
+        SortColumn.FUNDING_WORKS -> project.registryValue("fundingWorks")
+        SortColumn.FUNDING_TS -> project.registryValue("fundingTs")
+        SortColumn.FUNDING_CSC -> project.registryValue("fundingCsc")
+        SortColumn.EIB_COST -> project.registryValue("eibCost")
+        SortColumn.LOCAL_COST -> project.registryValue("localCost")
+        SortColumn.CONTRACTED_TOTAL -> project.registryValue("contractedTotal")
+        SortColumn.CONTRACTED_EIB -> project.registryValue("contractedEib")
+        SortColumn.CONTRACTED_LOCAL -> project.registryValue("contractedLocal")
+        SortColumn.APPROVED_FUNDING_PCT -> project.registryValue("approvedFundingPct").takeIf(String::isNotBlank)?.plus(" %").orEmpty()
+        SortColumn.CONTRACTOR -> project.localizedRegistryValue("contractor", project.contractorName.orEmpty())
+        SortColumn.CONTRACT_DATE -> project.registryValue("contractDate").toOmsDate()
+        SortColumn.CONTRACT_END_DATE -> project.registryValue("contractEndDate").toOmsDate()
+        SortColumn.CONTRACT_DURATION -> project.registryValue("contractDuration").takeIf(String::isNotBlank)?.let { "$it ${LocalizationManager.t("months_short")}" }.orEmpty()
+        SortColumn.CONSTRUCTION_AMOUNT -> project.registryValue("constructionAmount")
+        SortColumn.CONSTRUCTION_EIB -> project.registryValue("constructionEib")
+        SortColumn.CONSTRUCTION_LOCAL -> project.registryValue("constructionLocal")
+        SortColumn.PAID_CONSTRUCTION -> project.registryValue("paidConstruction")
+        SortColumn.WORK_STATUS -> project.sourceBilingualValue("workStatus", ukrainianBeforeSlash = true)
+        SortColumn.ACT_NUMBER -> project.registryValue("actNumber")
+        SortColumn.ACT_DATE -> project.registryValue("actDate").toOmsDate()
+        SortColumn.COMPLETED_WORK_PCT -> project.registryValue("completedWorkPct").takeIf(String::isNotBlank)?.plus(" %").orEmpty()
+        SortColumn.FINANCING_USED_PCT -> project.registryValue("financingUsedPct").takeIf(String::isNotBlank)?.plus(" %").orEmpty()
+        SortColumn.PAID_FINANCING_PCT -> project.registryValue("paidFinancingPct").takeIf(String::isNotBlank)?.plus(" %").orEmpty()
+        SortColumn.WORK_SUMMARY -> project.registryValue("workSummary")
+        SortColumn.WORK_COMMENTS -> project.registryValue("workComments")
+        else -> ""
+    }
+    if (link.isNotBlank()) {
+        Text(
+            value,
+            modifier = Modifier.width(width).clickable { window.open(link, "_blank") }
+                .pointerHoverIcon(PointerIcon.Hand),
+            color = MaterialTheme.colorScheme.primary,
+            fontWeight = fontWeight
+        )
+    } else {
+        ExpandableTableText(
+            value,
+            modifier = Modifier.width(width),
+            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = fontWeight),
+            color = if (isSubproject) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface
+        )
+    }
 }
 
 private fun Project.budgetLabel(): String {
