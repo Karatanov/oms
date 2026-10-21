@@ -92,13 +92,18 @@ fun Route.projectRoutes() {
         if (page < 1 || pageSize !in 1..500) {
             return@get call.respond(HttpStatusCode.BadRequest, ErrorResponse("VALIDATION_ERROR", "page must be positive and pageSize must be between 1 and 500."))
         }
-        val projects = projectService.searchProjects(
-            status = call.request.queryParameters["status"],
-            region = call.request.queryParameters["region"],
-            search = call.request.queryParameters["search"]
-        )
-        val total = projects.size.toLong()
-        val pagedProjects = projects.drop((page - 1) * pageSize).take(pageSize)
+        // This shared registry enriches every row with hierarchy, monitoring,
+        // and payment data.  All three repositories use synchronous JDBC, so
+        // calculate it on the IO dispatcher rather than occupying Ktor's
+        // request dispatcher while the initial workspace snapshot is loading.
+        val response = withContext(Dispatchers.IO) {
+            val projects = projectService.searchProjects(
+                status = call.request.queryParameters["status"],
+                region = call.request.queryParameters["region"],
+                search = call.request.queryParameters["search"]
+            )
+            val total = projects.size.toLong()
+            val pagedProjects = projects.drop((page - 1) * pageSize).take(pageSize)
 
         // The response may be a filtered/paginated slice, but resolving a
         // payment on a subproject part needs its parent outside that slice.
@@ -132,8 +137,7 @@ fun Route.projectRoutes() {
             .mapNotNull { record -> record.disbursedEurCents()?.let { record.projectId to it } }
             .groupBy({ it.first }, { it.second })
             .mapValues { (_, cents) -> cents.sum() }
-        val response =
-                    ProjectListResponse(
+            ProjectListResponse(
 
                 data =
                     pagedProjects.map { project ->
@@ -166,6 +170,7 @@ fun Route.projectRoutes() {
                         }
                 )
             )
+        }
 
         call.respond(response)
     }
