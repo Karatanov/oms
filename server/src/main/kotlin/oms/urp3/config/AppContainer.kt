@@ -100,6 +100,7 @@ object AppContainer {
 
     val procurementRecordRepository: ProcurementRecordRepository = ExposedProcurementRecordRepository()
     val procurementService = ProcurementService(procurementRecordRepository, projectService, userRepository)
+    val subprojectRegistryRefreshService = SubprojectRegistryRefreshService(userRepository, projectService)
 
     val inspectionReportFileRepository: InspectionReportFileRepository = ExposedInspectionReportFileRepository()
     val inspectionReportFileService = InspectionReportFileService(inspectionReportFileRepository, inspectionReportService)

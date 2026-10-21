@@ -132,6 +132,7 @@ fun AppLayout(appState: AppState) {
                     onCreateProject = { appState.openCreateProject() },
                     onEditProject = { appState.openEditProject(it) },
                     canManageProjects = appState.roleCode in setOf("ADMIN", "PROJECT_MANAGER"),
+                    canRefreshSubprojectRegistry = appState.roleCode == "ADMIN",
                     canPermanentlyDeleteProjects = appState.roleCode == "ADMIN",
                     canBulkReassign = appState.roleCode == "ADMIN",
                     requestedRegionFilter = target.region,

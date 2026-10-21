@@ -294,6 +294,12 @@ object OmsApiClient {
     suspend fun cancelProcurementRefresh(id: String): ApiProcurementRefresh =
         client.post("$baseUrl/procurements/refresh/$id/cancel").body()
 
+    suspend fun subprojectRegistryRefresh(id: String): ApiSubprojectRegistryRefresh =
+        client.get("$baseUrl/projects/registry/refresh/$id").body()
+
+    suspend fun cancelSubprojectRegistryRefresh(id: String): ApiSubprojectRegistryRefresh =
+        client.post("$baseUrl/projects/registry/refresh/$id/cancel").body()
+
     suspend fun projectDetails(uuid: String): ApiProjectDetails =
         client.get("$baseUrl/projects/$uuid").body()
 
@@ -954,6 +960,16 @@ data class ApiProcurementRecord(
 
 @Serializable
 data class ApiProcurementRefresh(
+    val id: String,
+    val status: String,
+    val progress: Int,
+    val phase: String,
+    val importedCount: Int? = null,
+    val error: String? = null
+)
+
+@Serializable
+data class ApiSubprojectRegistryRefresh(
     val id: String,
     val status: String,
     val progress: Int,

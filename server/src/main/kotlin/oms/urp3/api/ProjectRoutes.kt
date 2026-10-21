@@ -1,6 +1,8 @@
 package oms.urp3.api
 
 import io.ktor.http.*
+import io.ktor.http.content.PartData
+import io.ktor.http.content.forEachPart
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
@@ -17,6 +19,22 @@ import oms.urp3.service.ProjectPdfExportService
 import oms.urp3.service.SubprojectsTablePdfExportService
 import kotlin.math.roundToLong
 import java.math.BigDecimal
+import io.ktor.utils.io.readRemaining
+import kotlinx.io.readByteArray
+import kotlinx.serialization.Serializable
+
+@Serializable
+private data class SubprojectRegistryRefreshResponse(
+    val id: String,
+    val status: String,
+    val progress: Int,
+    val phase: String,
+    val importedCount: Int? = null,
+    val error: String? = null
+)
+
+private fun oms.urp3.service.SubprojectRegistryRefreshService.RefreshStatus.toResponse() =
+    SubprojectRegistryRefreshResponse(id, status, progress, phase, importedCount, error)
 
 /**
  * Returns the persisted EUR amount when available and reconstructs it for
@@ -51,6 +69,54 @@ fun Route.projectRoutes() {
         AppContainer.projectService
     val projectPdfExportService = ProjectPdfExportService()
     val subprojectsTablePdfExportService = SubprojectsTablePdfExportService()
+
+    // The monitoring workbook is maintained outside OMS.  Its upload is
+    // intentionally administrator-only and starts a background job so the
+    // browser remains responsive while a full registry snapshot is parsed.
+    post("/api/v1/projects/registry/refresh/upload") {
+        call.requireRole("ADMIN") ?: return@post
+        var workbook: ByteArray? = null
+        try {
+            call.receiveMultipart().forEachPart { part ->
+                if (part is PartData.FileItem && part.name == "file") {
+                    val name = part.originalFileName.orEmpty()
+                    require(name.endsWith(".xlsx", true) || name.endsWith(".xls", true)) {
+                        "Select an XLS or XLSX subproject monitoring workbook."
+                    }
+                    val bytes = part.provider().readRemaining(20_000_001).readByteArray()
+                    require(bytes.size <= 20_000_000) { "The subproject monitoring workbook must not exceed 20 MB." }
+                    workbook = bytes
+                }
+                part.dispose()
+            }
+            call.respond(
+                HttpStatusCode.Accepted,
+                AppContainer.subprojectRegistryRefreshService.startWorkbookRefresh(
+                    workbook ?: throw IllegalArgumentException("Multipart field 'file' is required.")
+                ).toResponse()
+            )
+        } catch (exception: IllegalArgumentException) {
+            call.respond(HttpStatusCode.BadRequest, ErrorResponse("VALIDATION_ERROR", exception.message ?: "Invalid subproject monitoring workbook."))
+        } catch (exception: IllegalStateException) {
+            call.respond(HttpStatusCode.Conflict, ErrorResponse("CONFLICT", exception.message ?: "A subproject registry refresh is already running."))
+        }
+    }
+
+    get("/api/v1/projects/registry/refresh/{id}") {
+        call.requireRole("ADMIN") ?: return@get
+        val id = call.parameters["id"] ?: return@get call.respond(HttpStatusCode.BadRequest, ErrorResponse("VALIDATION_ERROR", "Refresh ID is required."))
+        val status = AppContainer.subprojectRegistryRefreshService.refresh(id)
+            ?: return@get call.respond(HttpStatusCode.NotFound, ErrorResponse("NOT_FOUND", "Subproject registry refresh not found."))
+        call.respond(status.toResponse())
+    }
+
+    post("/api/v1/projects/registry/refresh/{id}/cancel") {
+        call.requireRole("ADMIN") ?: return@post
+        val id = call.parameters["id"] ?: return@post call.respond(HttpStatusCode.BadRequest, ErrorResponse("VALIDATION_ERROR", "Refresh ID is required."))
+        val status = AppContainer.subprojectRegistryRefreshService.cancel(id)
+            ?: return@post call.respond(HttpStatusCode.NotFound, ErrorResponse("NOT_FOUND", "Subproject registry refresh not found."))
+        call.respond(status.toResponse())
+    }
 
     get("/api/v1/exchange-rates/eur") {
         call.requireRole("ADMIN", "PROJECT_MANAGER") ?: return@get

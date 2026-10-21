@@ -29,6 +29,9 @@ class ProjectService(
         projectCacheExpiresAt = 0L
     }
 
+    /** Called by authoritative registry imports that bypass ordinary form edits. */
+    fun invalidateRegistryCache() = invalidateProjectCache()
+
     fun isManagedBy(uuid: String, userId: Long): Boolean = projectRepository.managerIdForUuid(uuid) == userId
     fun managerIdForProject(uuid: String): Long? = projectRepository.managerIdForUuid(uuid)
     fun managedProjectIds(userId: Long): Set<Long> = projectRepository.managedProjectIds(userId)

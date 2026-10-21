@@ -24,6 +24,7 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.PictureAsPdf
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -45,6 +46,11 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.text.font.FontWeight
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.decodeFromString
+import kotlin.js.JsName
+import kotlin.time.TimeSource
 import oms.components.StatusChip
 import oms.components.TableHeader
 import oms.components.ProjectTableColumns
@@ -71,6 +77,12 @@ import oms.components.sectorLabel
 import oms.data.ApiUser
 import kotlinx.browser.window
 
+@JsName("openSubprojectMonitoringWorkbookUpload")
+external fun openSubprojectMonitoringWorkbookUpload(onComplete: (String, String) -> Unit)
+
+private const val subprojectMonitoringWorkbookUrl =
+    "https://docs.google.com/spreadsheets/d/1-RQLaRuWT7_VYYXdxJM3cfTOUqVuGSZYuWc03heVvfw/edit?gid=1116614736#gid=1116614736"
+
 // ... existing code ...
 
 private const val PROGRAMME_ROOT_CODE = "URP-III"
@@ -87,6 +99,7 @@ fun ProjectsScreen(
     onCreateProject: () -> Unit = {},
     onEditProject: (Project) -> Unit = {},
     canManageProjects: Boolean = false,
+    canRefreshSubprojectRegistry: Boolean = false,
     canPermanentlyDeleteProjects: Boolean = false,
     canBulkReassign: Boolean = false,
     requestedRegionFilter: String? = null,
@@ -108,6 +121,11 @@ fun ProjectsScreen(
     var managers by remember { mutableStateOf<List<ApiUser>>(emptyList()) }
     var managersLoaded by remember { mutableStateOf(false) }
     var showReassign by remember { mutableStateOf(false) }
+    var registryRefreshConfirmationOpen by remember { mutableStateOf(false) }
+    var registryRefreshJob by remember { mutableStateOf<oms.data.ApiSubprojectRegistryRefresh?>(null) }
+    var registryRefreshElapsedSeconds by remember { mutableStateOf(0) }
+    var registryRefreshMessage by remember { mutableStateOf<String?>(null) }
+    val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
     val pageScrollState = rememberScrollState()
     fun scrollPageBy(delta: Float) = scope.launch { pageScrollState.animateScrollBy(delta) }
 
@@ -129,6 +147,35 @@ fun ProjectsScreen(
                     .filter { it.role.code == "PROJECT_MANAGER" && it.status == "active" }
                 managersLoaded = true
             }
+        }
+    }
+
+    LaunchedEffect(registryRefreshJob?.id) {
+        val id = registryRefreshJob?.id ?: return@LaunchedEffect
+        registryRefreshElapsedSeconds = 0
+        val startedAt = TimeSource.Monotonic.markNow()
+        while (registryRefreshJob?.status in setOf("RUNNING", "CANCELLING")) {
+            delay(400)
+            registryRefreshElapsedSeconds = startedAt.elapsedNow().inWholeSeconds.toInt()
+            runCatching { oms.data.OmsApiClient.subprojectRegistryRefresh(id) }
+                .onSuccess { updated ->
+                    registryRefreshJob = updated
+                    when (updated.status) {
+                        "COMPLETED" -> {
+                            ProjectRepository.refresh(force = true)
+                            registryRefreshMessage = LocalizationManager.t("subproject_registry_refresh_success")
+                                .replace("{count}", updated.importedCount?.toString().orEmpty())
+                        }
+                        "FAILED" -> registryRefreshMessage = LocalizationManager.t("subproject_registry_refresh_error")
+                            .replace("{message}", updated.error.orEmpty())
+                        "CANCELLED" -> registryRefreshMessage = LocalizationManager.t("subproject_registry_refresh_cancelled")
+                    }
+                }
+                .onFailure { failure ->
+                    registryRefreshJob = registryRefreshJob?.copy(status = "FAILED", error = failure.message)
+                    registryRefreshMessage = LocalizationManager.t("subproject_registry_refresh_error")
+                        .replace("{message}", failure.message.orEmpty())
+                }
         }
     }
 
@@ -220,10 +267,23 @@ fun ProjectsScreen(
                         modifier = Modifier.align(Alignment.Center).widthIn(max = 360.dp)
                     )
                 }
-                if (canManageProjects) Button(onClick = onCreateProject, modifier = Modifier.align(Alignment.CenterEnd)) {
-                    Icon(Icons.Default.Add, null)
-                    Spacer(Modifier.width(8.dp))
-                    Text(LocalizationManager.t("create_project"))
+                if (canManageProjects || canRefreshSubprojectRegistry) Row(
+                    modifier = Modifier.align(Alignment.CenterEnd),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    if (canRefreshSubprojectRegistry) OutlinedButton(
+                        enabled = registryRefreshJob?.status !in setOf("RUNNING", "CANCELLING"),
+                        onClick = { registryRefreshMessage = null; registryRefreshConfirmationOpen = true }
+                    ) {
+                        Icon(Icons.Default.Refresh, null)
+                        Spacer(Modifier.width(6.dp))
+                        Text(LocalizationManager.t("refresh_subproject_registry"))
+                    }
+                    if (canManageProjects) Button(onClick = onCreateProject) {
+                        Icon(Icons.Default.Add, null)
+                        Spacer(Modifier.width(8.dp))
+                        Text(LocalizationManager.t("create_project"))
+                    }
                 }
             } else oms.components.PageHeading(LocalizationManager.t("projects_title"), Icons.Default.FolderOpen) {
                 Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -233,8 +293,16 @@ fun ProjectsScreen(
                         Spacer(Modifier.width(8.dp))
                         Text(LocalizationManager.t("create_project"))
                     }
+                    if (canRefreshSubprojectRegistry) OutlinedButton(
+                        enabled = registryRefreshJob?.status !in setOf("RUNNING", "CANCELLING"),
+                        onClick = { registryRefreshMessage = null; registryRefreshConfirmationOpen = true }
+                    ) { Icon(Icons.Default.Refresh, null); Spacer(Modifier.width(6.dp)); Text(LocalizationManager.t("refresh_subproject_registry")) }
                 }
             }
+        }
+
+        registryRefreshMessage?.let { message ->
+            Text(message, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
 
         Spacer(Modifier.height(8.dp))
@@ -349,6 +417,57 @@ fun ProjectsScreen(
         Spacer(Modifier.height(16.dp))
 
     }
+    if (registryRefreshConfirmationOpen) oms.components.WasmSafeOverlay(onDismiss = { registryRefreshConfirmationOpen = false }) {
+        Card(Modifier.widthIn(max = 520.dp).fillMaxWidth()) {
+            Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                Text(LocalizationManager.t("subproject_registry_refresh_confirm_title"), style = MaterialTheme.typography.titleLarge)
+                Text(LocalizationManager.t("subproject_registry_refresh_confirm_message"), style = MaterialTheme.typography.bodyMedium)
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(LocalizationManager.t("subproject_registry_refresh_instruction_step_1"), style = MaterialTheme.typography.bodyMedium)
+                    Text(
+                        subprojectMonitoringWorkbookUrl,
+                        color = MaterialTheme.colorScheme.primary,
+                        textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.clickable { uriHandler.openUri(subprojectMonitoringWorkbookUrl) }
+                    )
+                    Text(LocalizationManager.t("subproject_registry_refresh_instruction_step_2"), style = MaterialTheme.typography.bodyMedium)
+                    Text(LocalizationManager.t("subproject_registry_refresh_instruction_step_3"), style = MaterialTheme.typography.bodyMedium)
+                }
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
+                    OutlinedButton(onClick = { registryRefreshConfirmationOpen = false }) { Text(LocalizationManager.t("cancel")) }
+                    Button(onClick = {
+                        registryRefreshConfirmationOpen = false
+                        openSubprojectMonitoringWorkbookUpload { uploadError, refreshJson ->
+                            if (uploadError.isNotBlank()) {
+                                registryRefreshMessage = LocalizationManager.t("subproject_registry_refresh_error").replace("{message}", uploadError)
+                            } else runCatching {
+                                Json { ignoreUnknownKeys = true }.decodeFromString<oms.data.ApiSubprojectRegistryRefresh>(refreshJson)
+                            }.onSuccess { registryRefreshJob = it }
+                                .onFailure { registryRefreshMessage = LocalizationManager.t("subproject_registry_refresh_error").replace("{message}", it.message.orEmpty()) }
+                        }
+                    }) { Text(LocalizationManager.t("subproject_registry_refresh_continue")) }
+                }
+            }
+        }
+    }
+    registryRefreshJob?.takeIf { it.status in setOf("RUNNING", "CANCELLING") }?.let { job ->
+        oms.components.WasmSafeOverlay(onDismiss = {}) {
+            Card(Modifier.widthIn(max = 520.dp).fillMaxWidth()) {
+                Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Text(LocalizationManager.t("subproject_registry_refresh_progress_title"), style = MaterialTheme.typography.titleLarge)
+                    Text(subprojectRegistryRefreshPhaseLabel(job.phase), style = MaterialTheme.typography.bodyMedium)
+                    LinearProgressIndicator(progress = { (job.progress / 100f).coerceIn(0f, 1f) }, modifier = Modifier.fillMaxWidth())
+                    Text("${job.progress}% · ${formatSubprojectRefreshElapsed(registryRefreshElapsedSeconds)}", style = MaterialTheme.typography.bodySmall)
+                    OutlinedButton(
+                        enabled = job.status == "RUNNING",
+                        onClick = { scope.launch { runCatching { oms.data.OmsApiClient.cancelSubprojectRegistryRefresh(job.id) }.onSuccess { registryRefreshJob = it } } },
+                        modifier = Modifier.align(Alignment.End)
+                    ) { Text(LocalizationManager.t("subproject_registry_refresh_cancel")) }
+                }
+            }
+        }
+    }
     if (!oms.layout.LocalMobileLayout.current) Surface(
         modifier = Modifier.align(Alignment.CenterEnd).padding(end = 16.dp).zIndex(10f),
         shape = MaterialTheme.shapes.large,
@@ -380,6 +499,19 @@ fun ProjectsScreen(
 }
 
 // ... existing code ...
+
+private fun formatSubprojectRefreshElapsed(seconds: Int): String =
+    "${(seconds / 60).toString().padStart(2, '0')}:${(seconds % 60).toString().padStart(2, '0')}"
+
+private fun subprojectRegistryRefreshPhaseLabel(phase: String): String = when (phase) {
+    "opening_workbook" -> LocalizationManager.t("subproject_registry_refresh_phase_opening_workbook")
+    "reading_headers" -> LocalizationManager.t("subproject_registry_refresh_phase_reading_headers")
+    "reading_rows" -> LocalizationManager.t("subproject_registry_refresh_phase_reading_rows")
+    "validating" -> LocalizationManager.t("subproject_registry_refresh_phase_validating")
+    "saving" -> LocalizationManager.t("subproject_registry_refresh_phase_saving")
+    "cancelling" -> LocalizationManager.t("subproject_registry_refresh_phase_cancelling")
+    else -> LocalizationManager.t("loading_records")
+}
 
 @Composable
 fun ProjectsTable(
