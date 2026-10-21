@@ -1,5 +1,10 @@
 # syntax=docker/dockerfile:1.7
 
+# `FROM` can interpolate only global build arguments. Keeping this declaration
+# before the first stage lets CI choose the downloaded frontend hand-off while
+# local builds retain the self-contained Gradle stage.
+ARG FRONTEND_SOURCE=frontend-built-layout
+
 # Keep JVM dependency resolution separate from both application build targets.
 # The CI workflow exports this stage to BuildKit's GitHub Actions cache, so an
 # unchanged Gradle graph does not have to be downloaded on every deployment.
@@ -45,7 +50,6 @@ COPY server/src server/src
 RUN gradle :server:installDist --no-daemon --max-workers=1
 
 # Select either the local Gradle stage or the artifact downloaded by CI.
-ARG FRONTEND_SOURCE=frontend-built-layout
 FROM ${FRONTEND_SOURCE} AS frontend-source
 
 # The VPS serves the browser bundle and API from one origin.  This small
