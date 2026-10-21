@@ -7,6 +7,8 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.utils.io.readRemaining
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.io.readByteArray
 import oms.urp3.config.AppContainer
 import oms.urp3.domain.InspectionReport
@@ -42,10 +44,15 @@ fun Route.photoRoutes() = route("/api/v1/inspection-reports/{reportUuid}/photos"
             multipart.forEachPart { part ->
                 if (part is PartData.FileItem && part.name == "file") {
                     val name = part.originalFileName ?: throw IllegalArgumentException("File name is required.")
-                    uploaded += AppContainer.inspectionPhotoService.upload(
-                        report.id, name, part.contentType?.toString(),
-                        part.provider().readRemaining(10_000_001).readByteArray()
-                    )
+                    val bytes = part.provider().readRemaining(10_000_001).readByteArray()
+                    // EXIF normalization, thumbnailing and durable storage can
+                    // be CPU and disk intensive for full-resolution images.
+                    // Do not let one upload stall unrelated browser requests.
+                    uploaded += withContext(Dispatchers.IO) {
+                        AppContainer.inspectionPhotoService.upload(
+                            report.id, name, part.contentType?.toString(), bytes
+                        )
+                    }
                 }
                 part.dispose()
             }
@@ -54,11 +61,13 @@ fun Route.photoRoutes() = route("/api/v1/inspection-reports/{reportUuid}/photos"
             // per photo) removes repeated workbook parsing/writing and durable
             // blob persistence from the critical upload path.
             val photo = uploaded.firstOrNull() ?: throw IllegalArgumentException("Field file is required.")
-            AppContainer.inspectionReportFileService.synchronizeManualPhotoSheet(
-                report,
-                AppContainer.inspectionPhotoService.list(report.id)
-            ) { item ->
-                AppContainer.inspectionPhotoService.resolveFile(item, thumbnail = false)
+            withContext(Dispatchers.IO) {
+                AppContainer.inspectionReportFileService.synchronizeManualPhotoSheet(
+                    report,
+                    AppContainer.inspectionPhotoService.list(report.id)
+                ) { item ->
+                    AppContainer.inspectionPhotoService.resolveFile(item, thumbnail = false)
+                }
             }
             call.respond(HttpStatusCode.Created, photo.toResponse(report.uuid.toString()))
         } catch (exception: IllegalArgumentException) {
