@@ -12,6 +12,8 @@ import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.utils.io.readRemaining
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.io.readByteArray
 import oms.urp3.config.AppContainer
 import oms.urp3.domain.ProcurementRecord
@@ -23,7 +25,10 @@ import kotlinx.serialization.Serializable
 fun Route.procurementRoutes() {
     get("/api/v1/procurements") {
         call.requireRole("ADMIN", "PROJECT_MANAGER", "INSPECTOR", "VIEWER") ?: return@get
-        call.respond(AppContainer.procurementService.getAll().map(ProcurementRecord::toResponse))
+        val response = withContext(Dispatchers.IO) {
+            AppContainer.procurementService.getAll().map(ProcurementRecord::toResponse)
+        }
+        call.respond(response)
     }
 
     /**
@@ -38,16 +43,20 @@ fun Route.procurementRoutes() {
             .orEmpty()
         val hasExplicitSelection = requestedIds.isNotEmpty() ||
             call.request.queryParameters["empty"]?.toBooleanStrictOrNull() == true
-        val allRecords = AppContainer.procurementService.getAll()
-        val recordsById = allRecords.associateBy { it.id }
-        val records = if (hasExplicitSelection) requestedIds.mapNotNull(recordsById::get) else allRecords
         val language = if (call.request.queryParameters["lang"].equals("en", ignoreCase = true)) {
             ProcurementTablePdfExportService.Language.EN
         } else {
             ProcurementTablePdfExportService.Language.UK
         }
         val filterSummary = call.request.queryParameters["filters"]?.take(500)
-        val pdf = ProcurementTablePdfExportService().export(records, language, filterSummary)
+        // PDFBox layout and the registry lookup are blocking operations.
+        // Isolate them so exporting a large table cannot stall navigation.
+        val pdf = withContext(Dispatchers.IO) {
+            val allRecords = AppContainer.procurementService.getAll()
+            val recordsById = allRecords.associateBy { it.id }
+            val records = if (hasExplicitSelection) requestedIds.mapNotNull(recordsById::get) else allRecords
+            ProcurementTablePdfExportService().export(records, language, filterSummary)
+        }
         call.response.header("Content-Disposition", "attachment; filename=oms-procurement.pdf")
         call.respondBytes(pdf, ContentType.Application.Pdf)
     }
