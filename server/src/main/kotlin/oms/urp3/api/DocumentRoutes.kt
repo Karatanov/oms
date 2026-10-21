@@ -17,6 +17,8 @@ import oms.urp3.dto.toResponse
 import java.io.ByteArrayInputStream
 import java.net.URLEncoder
 
+private const val MAX_DOCUMENT_SIZE_BYTES = 50_000_000
+
 fun Route.documentRoutes() {
     get("/api/v1/documents") {
         call.requireRole("ADMIN", "PROJECT_MANAGER", "INSPECTOR", "VIEWER") ?: return@get
@@ -74,7 +76,13 @@ fun Route.documentRoutes() {
                     is PartData.FileItem -> if (part.name == "file") {
                         fileName = part.originalFileName ?: throw IllegalArgumentException("File name is required.")
                         contentType = part.contentType?.toString()
-                        bytes = part.provider().readRemaining(50_000_001).readByteArray()
+                        val uploadedBytes = part.provider()
+                            .readRemaining(MAX_DOCUMENT_SIZE_BYTES.toLong() + 1)
+                            .readByteArray()
+                        require(uploadedBytes.size <= MAX_DOCUMENT_SIZE_BYTES) {
+                            "Document size must not exceed 50 MB."
+                        }
+                        bytes = uploadedBytes
                     }
                     else -> Unit
                 }
