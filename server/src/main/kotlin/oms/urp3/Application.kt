@@ -48,6 +48,9 @@ fun Application.module(
      */
     configureSerialization()
 
+    // Large dynamic registry responses benefit from HTTP gzip compression.
+    configureCompression()
+
     configureCors()
 
     configureSessions()
