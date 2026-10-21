@@ -128,6 +128,9 @@ fun ActivitySection(activities: List<ApiActivity>, users: List<ApiUser>) {
 private fun String.toActivityLabel(): String = when (this) {
     "project_created" -> LocalizationManager.t("activity_project_created")
     "project_deleted" -> LocalizationManager.t("activity_project_deleted")
+    "project_archived" -> LocalizationManager.t("activity_project_archived")
+    "project_restored" -> LocalizationManager.t("activity_project_restored")
+    "permanent_delete" -> LocalizationManager.t("activity_permanent_delete")
     "inspection_imported" -> LocalizationManager.t("activity_inspection_imported")
     "inspection_manual_created" -> LocalizationManager.t("activity_inspection_manual_created")
     "inspection_manual_updated" -> LocalizationManager.t("activity_inspection_manual_updated")
@@ -145,6 +148,8 @@ private fun String.toActivityLabel(): String = when (this) {
     "user_role_changed" -> LocalizationManager.t("activity_user_role_changed")
     "user_password_reset" -> LocalizationManager.t("activity_user_password_reset")
     "user_deleted" -> LocalizationManager.t("activity_user_deleted")
+    "user_archived" -> LocalizationManager.t("activity_user_archived")
+    "user_restored" -> LocalizationManager.t("activity_user_restored")
     "user_activated" -> LocalizationManager.t("activity_user_activated")
     else -> this
 }
