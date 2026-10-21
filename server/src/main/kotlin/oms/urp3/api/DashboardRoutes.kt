@@ -4,6 +4,8 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.request.*
 import oms.urp3.config.AppContainer
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import oms.urp3.dto.DashboardResponse
 import oms.urp3.dto.DashboardOverviewResponse
 import oms.urp3.dto.ActivityResponse
@@ -20,7 +22,12 @@ fun Route.dashboardRoutes() {
     get("/api/v1/dashboard/overview") {
         val session = call.requireRole("ADMIN", "PROJECT_MANAGER", "INSPECTOR", "VIEWER", "GUEST") ?: return@get
         val trancheNumber = call.request.queryParameters["tranche"]?.toIntOrNull()?.takeIf { it in 1..2 }
-        val overview = AppContainer.dashboardService.getOverview(null, trancheNumber)
+        // Dashboard aggregation opens several database registries.  Keep that
+        // synchronous JDBC work off Ktor's request dispatcher so a slow
+        // overview never stalls login, navigation, or lightweight API calls.
+        val overview = withContext(Dispatchers.IO) {
+            AppContainer.dashboardService.getOverview(null, trancheNumber)
+        }
         call.respond(
             DashboardOverviewResponse(
                 recentInspections = overview.recentInspections.map { it.report.toResponse(it.subprojectCode) },
@@ -50,7 +57,9 @@ fun Route.dashboardRoutes() {
     get("/api/v1/dashboard") {
         val session = call.requireRole("ADMIN", "PROJECT_MANAGER", "INSPECTOR", "VIEWER") ?: return@get
         val trancheNumber = call.request.queryParameters["tranche"]?.toIntOrNull()?.takeIf { it in 1..2 }
-        val d = AppContainer.dashboardService.get(null, trancheNumber)
+        val d = withContext(Dispatchers.IO) {
+            AppContainer.dashboardService.get(null, trancheNumber)
+        }
         val activities = if (session.roleCode.equals("ADMIN", ignoreCase = true)) {
             d.activities.map {
                 ActivityResponse(
