@@ -7,6 +7,8 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.utils.io.readRemaining
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.io.readByteArray
 import oms.urp3.config.AppContainer
 import oms.urp3.domain.ProjectDocument
@@ -78,16 +80,21 @@ fun Route.documentRoutes() {
                 }
                 part.dispose()
             }
-            val uploaded = AppContainer.projectDocumentService.upload(
-                project.id,
-                documentType ?: throw IllegalArgumentException("Field docType is required."),
-                fileName ?: throw IllegalArgumentException("Field file is required."),
-                contentType,
-                ByteArrayInputStream(bytes ?: throw IllegalArgumentException("Field file is required.")),
-                relatedEntity,
-                relatedId,
-                description
-            )
+            // File copying and metadata persistence may block on the storage
+            // volume. Keep the server request dispatcher free for navigation
+            // and API reads while a user uploads a document.
+            val uploaded = withContext(Dispatchers.IO) {
+                AppContainer.projectDocumentService.upload(
+                    project.id,
+                    documentType ?: throw IllegalArgumentException("Field docType is required."),
+                    fileName ?: throw IllegalArgumentException("Field file is required."),
+                    contentType,
+                    ByteArrayInputStream(bytes ?: throw IllegalArgumentException("Field file is required.")),
+                    relatedEntity,
+                    relatedId,
+                    description
+                )
+            }
             call.respond(HttpStatusCode.Created, uploaded.toResponse())
         } catch (exception: IllegalArgumentException) {
             call.respond(HttpStatusCode.BadRequest, ErrorResponse("VALIDATION_ERROR", exception.message ?: "Invalid request."))
