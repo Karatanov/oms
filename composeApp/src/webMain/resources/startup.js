@@ -7,6 +7,7 @@
             opening: "Відкриваємо робочий простір…",
             session: "Перевірка сеансу…",
             interface: "Запуск інтерфейсу…",
+            slowConnection: "Завантаження триває — повільне з’єднання…",
             ready: "Готово",
             elapsed: "Час завантаження",
             failed: "Не вдалося запустити інтерфейс. Перевірте з’єднання та повторіть спробу.",
@@ -18,6 +19,7 @@
             opening: "Opening your workspace…",
             session: "Checking your session…",
             interface: "Starting the interface…",
+            slowConnection: "Loading is taking longer on a slow connection…",
             ready: "Ready",
             elapsed: "Loading time",
             failed: "The interface could not be started. Check your connection and try again.",
@@ -33,6 +35,7 @@
     let timer = null;
     let watchdog = null;
     let failed = false;
+    let messageKey = "preparing";
 
     const stored = (() => {
         try { return JSON.parse(sessionStorage.getItem(storageKey) || "{}"); }
@@ -83,7 +86,7 @@
         if (!active) return;
         sessionStorage.setItem(storageKey, JSON.stringify({ active, startedAt, progress, locale }));
     };
-    const render = (messageKey) => {
+    const render = (nextMessageKey) => {
         const container = document.getElementById("oms-startup-status");
         if (!container) return;
         localizeShell();
@@ -99,7 +102,9 @@
             bar.parentElement?.setAttribute("aria-valuenow", String(value));
         }
         if (percent) percent.textContent = `${value}%`;
-        if (message && messageKey) message.textContent = text(messageKey);
+        if (nextMessageKey) messageKey = nextMessageKey;
+        const slowConnection = !failed && Date.now() - startedAt >= 60_000 && progress < 100;
+        if (message) message.textContent = text(slowConnection ? "slowConnection" : messageKey);
         if (elapsed) elapsed.textContent = `${text("elapsed")}: ${elapsedText()}`;
         const retry = document.getElementById("oms-startup-retry");
         if (retry) {
