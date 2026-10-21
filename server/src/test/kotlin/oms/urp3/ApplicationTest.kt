@@ -4,6 +4,8 @@ import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.ktor.server.testing.*
+import io.ktor.server.routing.get
+import io.ktor.server.routing.routing
 import oms.urp3.module
 import kotlin.test.*
 
@@ -23,6 +25,22 @@ class ApplicationTest {
         val version = client.get("/version")
         assertEquals(HttpStatusCode.OK, version.status)
         assertTrue(version.bodyAsText().contains("\"revision\":\"local\""))
+    }
+
+    @Test fun unexpectedErrorsDoNotExposeInternalExceptionDetails() = testApplication {
+        application {
+            module(configureDatabase = false)
+            routing {
+                get("/test/unexpected-error") {
+                    throw IllegalStateException("database password must stay private")
+                }
+            }
+        }
+
+        val response = client.get("/test/unexpected-error")
+        assertEquals(HttpStatusCode.InternalServerError, response.status)
+        assertTrue(response.bodyAsText().contains("An unexpected server error occurred."))
+        assertFalse(response.bodyAsText().contains("database password"))
     }
 
     @Test fun manualProcurementCreationRouteIsUnavailable() = testApplication {
