@@ -320,14 +320,13 @@ fun Route.projectRoutes() {
         }
         if (!call.requireProjectAccess(session, uuid)) return@get
 
-        val monitoring = AppContainer.projectRepository.monitoringDetails(project.id)
-        val contractorNameEn = monitoring?.sourceSubprojectId?.let { sourceId ->
-            AppContainer.procurementService.getBySubProjectId(sourceId)
-                .firstOrNull { !it.contractorNameEng.isNullOrBlank() }
-                ?.contractorNameEng
-        }
-
-        call.respond(
+        val response = withContext(Dispatchers.IO) {
+            val monitoring = AppContainer.projectRepository.monitoringDetails(project.id)
+            val contractorNameEn = monitoring?.sourceSubprojectId?.let { sourceId ->
+                AppContainer.procurementService.getBySubProjectId(sourceId)
+                    .firstOrNull { !it.contractorNameEng.isNullOrBlank() }
+                    ?.contractorNameEng
+            }
 
             ProjectDetailsResponse(
 
@@ -360,7 +359,8 @@ fun Route.projectRoutes() {
                 },
                 contractorNameEn = contractorNameEn
             )
-        )
+        }
+        call.respond(response)
     }
 
     patch("/api/v1/projects/bulk-status") {
