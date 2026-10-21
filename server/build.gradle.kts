@@ -42,13 +42,13 @@ tasks.named<ProcessResources>("processResources") {
     from(layout.buildDirectory.dir("generated/tidb-migrations"))
 }
 
-group = "oms.umitaf.ua.umitaf"
+group = "ua.urp3.oms"
 version = "1.0.0"
 kotlin {
     jvmToolchain(21)
 }
 application {
-    mainClass.set("oms.umitaf.ApplicationKt")
+    mainClass.set("oms.urp3.ApplicationKt")
 
     val isDevelopment: Boolean = project.ext.has("development")
     applicationDefaultJvmArgs = listOf("-Dio.ktor.development=$isDevelopment")

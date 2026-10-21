@@ -1,4 +1,4 @@
-rootProject.name = "umitaf"
+rootProject.name = "urp3"
 enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 
 pluginManagement {

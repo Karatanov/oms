@@ -129,12 +129,12 @@ fun LoginScreen(
                 ) {
                     Column(Modifier.padding(horizontal = 12.dp, vertical = 6.dp)) {
                         Text(
-                            text = "UMITAF",
+                            text = "URP III",
                             color = androidx.compose.ui.graphics.Color.White,
                             style = MaterialTheme.typography.labelMedium
                         )
                         Text(
-                            text = "TA to the implementation\nof UR III Programme",
+                            text = "TA to the implementation\nof URP III Programme",
                             color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.88f),
                             style = MaterialTheme.typography.labelSmall
                         )

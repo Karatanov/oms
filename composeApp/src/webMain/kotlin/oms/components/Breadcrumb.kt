@@ -25,7 +25,7 @@ fun Breadcrumb(screen: Screen) {
 
         // 🔹 Назва системи (root)
         Text(
-            text = "UMITAF",
+            text = "URP III",
             style = MaterialTheme.typography.bodyMedium
         )
 

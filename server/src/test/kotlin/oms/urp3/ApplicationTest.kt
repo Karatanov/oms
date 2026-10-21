@@ -1,0 +1,74 @@
+package oms.urp3
+
+import io.ktor.client.request.*
+import io.ktor.client.statement.*
+import io.ktor.http.*
+import io.ktor.server.testing.*
+import oms.urp3.module
+import kotlin.test.*
+
+class ApplicationTest {
+
+    @Test fun healthAndVersionEndpointsRemainAvailableWithoutDatabase() = testApplication {
+        application { module(configureDatabase = false) }
+
+        val health = client.get("/health")
+        assertEquals(HttpStatusCode.OK, health.status)
+        assertEquals("nosniff", health.headers["X-Content-Type-Options"])
+        assertEquals("strict-origin-when-cross-origin", health.headers["Referrer-Policy"])
+        assertEquals("SAMEORIGIN", health.headers["X-Frame-Options"])
+        val readiness = client.get("/ready")
+        assertEquals(HttpStatusCode.ServiceUnavailable, readiness.status)
+        assertTrue(readiness.bodyAsText().contains("\"status\":\"NOT_READY\""))
+        val version = client.get("/version")
+        assertEquals(HttpStatusCode.OK, version.status)
+        assertTrue(version.bodyAsText().contains("\"revision\":\"local\""))
+    }
+
+    @Test fun manualProcurementCreationRouteIsUnavailable() = testApplication {
+        application { module(configureDatabase = false) }
+        // The collection remains readable, so Ktor correctly reports a
+        // disallowed write method instead of a missing resource.
+        assertEquals(HttpStatusCode.MethodNotAllowed, client.post("/api/v1/procurements").status)
+    }
+
+    @Test fun manualProcurementMutationRoutesAreUnavailable() = testApplication {
+        application { module(configureDatabase = false) }
+        assertEquals(HttpStatusCode.NotFound, client.patch("/api/v1/procurements/1").status)
+        assertEquals(HttpStatusCode.NotFound, client.delete("/api/v1/procurements/1").status)
+    }
+
+    @Test fun guestBearerRestoresSessionWithoutCookiesAndCorsAllowsAuthorization() = testApplication {
+        application { module(configureDatabase = false) }
+        val guest = client.post("/api/v1/auth/guest")
+        assertEquals(HttpStatusCode.OK, guest.status)
+        assertEquals("private, no-store", guest.headers[HttpHeaders.CacheControl])
+        val json = kotlinx.serialization.json.Json.parseToJsonElement(guest.bodyAsText()) as kotlinx.serialization.json.JsonObject
+        val token = (json.getValue("accessToken") as kotlinx.serialization.json.JsonPrimitive).content
+        val anonymousSession = client.get("/api/v1/auth/session")
+        assertEquals(HttpStatusCode.Unauthorized, anonymousSession.status)
+        assertEquals("private, no-store", anonymousSession.headers[HttpHeaders.CacheControl])
+        val restored = client.get("/api/v1/auth/session") { bearerAuth(token) }
+        assertEquals(HttpStatusCode.OK, restored.status)
+        assertEquals("private, no-store", restored.headers[HttpHeaders.CacheControl])
+        assertTrue(restored.bodyAsText().contains("\"guest\":true"))
+        assertEquals(HttpStatusCode.Unauthorized, client.get("/api/v1/auth/session") { bearerAuth("invalid") }.status)
+        val preflight = client.options("/api/v1/auth/session") {
+            header(HttpHeaders.Origin, "https://karatanov.github.io")
+            header(HttpHeaders.AccessControlRequestMethod, "GET")
+            header(HttpHeaders.AccessControlRequestHeaders, "authorization")
+        }
+        assertEquals(HttpStatusCode.OK, preflight.status)
+        assertTrue(preflight.headers[HttpHeaders.AccessControlAllowHeaders].orEmpty().contains("authorization", true))
+    }
+
+    @Test
+    fun testRoot() = testApplication {
+        application {
+            module(configureDatabase = false)
+        }
+        val response = createClient { followRedirects = false }.get("/")
+        assertEquals(HttpStatusCode.Found, response.status)
+        assertEquals("https://ua-oms.com/", response.headers[HttpHeaders.Location])
+    }
+}

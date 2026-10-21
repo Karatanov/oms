@@ -3,16 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>UMITAF OMS — Система онлайн-моніторингу</title>
-    <meta name="description" content="UMITAF OMS — система онлайн-моніторингу субпроєктів, інспекційних звітів, закупівель і фінансового контролю Програми відновлення України III.">
+    <title>URP III OMS — Система онлайн-моніторингу</title>
+    <meta name="description" content="URP III OMS — система онлайн-моніторингу субпроєктів, інспекційних звітів, закупівель і фінансового контролю Програми відновлення України III.">
     <meta name="robots" content="noindex, nofollow, noarchive">
     <meta name="theme-color" content="#278DAD">
     <link rel="icon" href="/favicon.svg" type="image/svg+xml">
     <link rel="shortcut icon" href="/favicon.svg" type="image/svg+xml">
     <link rel="canonical" href="https://ua-oms.com/app.html">
     <meta property="og:type" content="website">
-    <meta property="og:site_name" content="UMITAF OMS">
-    <meta property="og:title" content="UMITAF OMS — Online Monitoring System">
+    <meta property="og:site_name" content="URP III OMS">
+    <meta property="og:title" content="URP III OMS — Online Monitoring System">
     <meta property="og:description" content="Online monitoring of subprojects, inspections, procurement and financial control for Ukraine Recovery Programme III.">
     <meta property="og:url" content="https://ua-oms.com/app.html">
     <meta property="og:image" content="https://ua-oms.com/social-preview.png">
@@ -20,9 +20,9 @@
     <meta property="og:image:type" content="image/png">
     <meta property="og:image:width" content="1440">
     <meta property="og:image:height" content="1024">
-    <meta property="og:image:alt" content="UMITAF OMS online monitoring system">
+    <meta property="og:image:alt" content="URP III OMS online monitoring system">
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="UMITAF OMS — Online Monitoring System">
+    <meta name="twitter:title" content="URP III OMS — Online Monitoring System">
     <meta name="twitter:description" content="Online monitoring of subprojects, inspections, procurement and financial control for Ukraine Recovery Programme III.">
     <meta name="twitter:image" content="https://ua-oms.com/social-preview.png">
     <!-- The production build replaces this with Webpack's hashed renderer
@@ -34,7 +34,7 @@
          native helpers defined below.  Start its transfer here nevertheless:
          this keeps its download parallel with Skiko instead of waiting for
          the HTML parser to reach the closing body tag. -->
-    <link rel="preload" href="composeApp.js?v=20261003-umitaf-programme-brand" as="script" fetchpriority="high">
+    <link rel="preload" href="composeApp.js?v=20261003-urp3-programme-brand" as="script" fetchpriority="high">
     <link type="text/css" rel="stylesheet" href="styles.css?v=20261002-content-navigation">
     <script src="auth.js?v=20260925-safari"></script>
     <script src="chart-export.js?v=20261015-chart-png"></script>
@@ -61,20 +61,20 @@
             return `${base}${path}`;
         }
 
-        let umitafLeafletMap = null;
-        let umitafMarkersLayer = null;
-        let umitafOnProjectClick = null;
-        let umitafLeafletLoading = null;
-        let umitafMapPaneBounds = null;
-        let umitafMapFullscreenFallback = false;
-        let umitafMapFullscreenButton = null;
-        let umitafMapLayerControl = null;
-        let umitafMapBaseLayers = null;
-        let umitafMapFullscreenLabels = {
+        let urp3LeafletMap = null;
+        let urp3MarkersLayer = null;
+        let urp3OnProjectClick = null;
+        let urp3LeafletLoading = null;
+        let urp3MapPaneBounds = null;
+        let urp3MapFullscreenFallback = false;
+        let urp3MapFullscreenButton = null;
+        let urp3MapLayerControl = null;
+        let urp3MapBaseLayers = null;
+        let urp3MapFullscreenLabels = {
             enter: "Open map in full screen",
             exit: "Exit full-screen mode"
         };
-        let umitafMapLayerLabels = {
+        let urp3MapLayerLabels = {
             title: "Map layers",
             openStreetMap: "OpenStreetMap",
             satellite: "Satellite"
@@ -320,8 +320,8 @@
             if (window.L && typeof L.map === "function" && typeof L.markerClusterGroup === "function") {
                 return Promise.resolve(true);
             }
-            if (umitafLeafletLoading) return umitafLeafletLoading;
-            umitafLeafletLoading = Promise.all([
+            if (urp3LeafletLoading) return urp3LeafletLoading;
+            urp3LeafletLoading = Promise.all([
                 loadStyle("https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"),
                 loadStyle("https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"),
                 loadStyle("https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css")
@@ -329,7 +329,7 @@
                 .then(() => loadScript("https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"))
                 .then(() => true)
                 .catch(() => false);
-            return umitafLeafletLoading;
+            return urp3LeafletLoading;
         }
 
         // Leaflet calculates the zoom from the current element size.  The map host is
@@ -337,9 +337,9 @@
         // initialisation can calculate a zoom for a zero-sized element.  Always reset
         // the overview after the host becomes visible and has been measured.
         function fitUkraineOverview() {
-            if (!umitafLeafletMap) return;
-            umitafLeafletMap.invalidateSize();
-            umitafLeafletMap.fitBounds(ukraineBounds, { padding: [24, 24] });
+            if (!urp3LeafletMap) return;
+            urp3LeafletMap.invalidateSize();
+            urp3LeafletMap.fitBounds(ukraineBounds, { padding: [24, 24] });
         }
 
         function nativeMapFullscreenActive() {
@@ -349,35 +349,35 @@
 
         function restoreMapPaneBounds() {
             const pane = document.getElementById("map-pane");
-            if (!pane || !umitafMapPaneBounds) return;
-            const { x, y, width, height } = umitafMapPaneBounds;
+            if (!pane || !urp3MapPaneBounds) return;
+            const { x, y, width, height } = urp3MapPaneBounds;
             Object.assign(pane.style, { left: x + "px", top: y + "px", width: width + "px", height: height + "px", right: "auto", bottom: "auto" });
         }
 
         function refreshMapFullscreenState() {
             const pane = document.getElementById("map-pane");
             if (!pane) return;
-            const active = nativeMapFullscreenActive() || umitafMapFullscreenFallback;
+            const active = nativeMapFullscreenActive() || urp3MapFullscreenFallback;
             pane.classList.toggle("oms-map-fullscreen", active);
             document.body.classList.toggle("map-fullscreen-open", active);
             if (!active) restoreMapPaneBounds();
-            if (umitafMapFullscreenButton) {
-                const label = active ? umitafMapFullscreenLabels.exit : umitafMapFullscreenLabels.enter;
-                umitafMapFullscreenButton.title = label;
-                umitafMapFullscreenButton.setAttribute("aria-label", label);
-                umitafMapFullscreenButton.dataset.fullscreen = active ? "true" : "false";
-                umitafMapFullscreenButton.innerHTML = active
+            if (urp3MapFullscreenButton) {
+                const label = active ? urp3MapFullscreenLabels.exit : urp3MapFullscreenLabels.enter;
+                urp3MapFullscreenButton.title = label;
+                urp3MapFullscreenButton.setAttribute("aria-label", label);
+                urp3MapFullscreenButton.dataset.fullscreen = active ? "true" : "false";
+                urp3MapFullscreenButton.innerHTML = active
                     ? '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3v5H3M16 3v5h5M8 21v-5H3M16 21v-5h5"/></svg>'
                     : '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3H3v5M16 3h5v5M8 21H3v-5M16 21h5v-5"/></svg>';
             }
-            if (umitafLeafletMap) {
-                requestAnimationFrame(() => umitafLeafletMap?.invalidateSize({ pan: false }));
-                setTimeout(() => umitafLeafletMap?.invalidateSize({ pan: false }), 180);
+            if (urp3LeafletMap) {
+                requestAnimationFrame(() => urp3LeafletMap?.invalidateSize({ pan: false }));
+                setTimeout(() => urp3LeafletMap?.invalidateSize({ pan: false }), 180);
             }
         }
 
         function useMapFullscreenFallback() {
-            umitafMapFullscreenFallback = true;
+            urp3MapFullscreenFallback = true;
             refreshMapFullscreenState();
         }
 
@@ -389,14 +389,14 @@
                     if (result && typeof result.catch === "function") result.catch(() => {});
                 }
             }
-            umitafMapFullscreenFallback = false;
+            urp3MapFullscreenFallback = false;
             refreshMapFullscreenState();
         }
 
         function toggleLeafletMapFullscreen() {
             const pane = document.getElementById("map-pane");
             if (!pane) return;
-            if (nativeMapFullscreenActive() || umitafMapFullscreenFallback) {
+            if (nativeMapFullscreenActive() || urp3MapFullscreenFallback) {
                 exitLeafletMapFullscreen();
                 return;
             }
@@ -420,7 +420,7 @@
         }
 
         function setLeafletFullscreenLabels(enterLabel, exitLabel) {
-            umitafMapFullscreenLabels = { enter: enterLabel, exit: exitLabel };
+            urp3MapFullscreenLabels = { enter: enterLabel, exit: exitLabel };
             refreshMapFullscreenState();
         }
 
@@ -428,27 +428,27 @@
         // changes. The tile layer instances stay attached to the existing map, so
         // the selected base map, view, markers and open popup are all preserved.
         function refreshLeafletLayerControl() {
-            if (!umitafLeafletMap || !umitafMapBaseLayers || !window.L) return;
-            if (umitafMapLayerControl) umitafLeafletMap.removeControl(umitafMapLayerControl);
-            umitafMapLayerControl = L.control.layers({
-                [umitafMapLayerLabels.openStreetMap]: umitafMapBaseLayers.openStreetMap,
-                [umitafMapLayerLabels.satellite]: umitafMapBaseLayers.satellite
+            if (!urp3LeafletMap || !urp3MapBaseLayers || !window.L) return;
+            if (urp3MapLayerControl) urp3LeafletMap.removeControl(urp3MapLayerControl);
+            urp3MapLayerControl = L.control.layers({
+                [urp3MapLayerLabels.openStreetMap]: urp3MapBaseLayers.openStreetMap,
+                [urp3MapLayerLabels.satellite]: urp3MapBaseLayers.satellite
             }, null, { position: "topright", collapsed: true });
-            umitafMapLayerControl.addTo(umitafLeafletMap);
-            const controlElement = umitafMapLayerControl.getContainer();
+            urp3MapLayerControl.addTo(urp3LeafletMap);
+            const controlElement = urp3MapLayerControl.getContainer();
             if (controlElement) {
-                controlElement.setAttribute("aria-label", umitafMapLayerLabels.title);
-                controlElement.setAttribute("title", umitafMapLayerLabels.title);
+                controlElement.setAttribute("aria-label", urp3MapLayerLabels.title);
+                controlElement.setAttribute("title", urp3MapLayerLabels.title);
                 const toggle = controlElement.querySelector(".leaflet-control-layers-toggle");
                 if (toggle) {
-                    toggle.setAttribute("aria-label", umitafMapLayerLabels.title);
-                    toggle.setAttribute("title", umitafMapLayerLabels.title);
+                    toggle.setAttribute("aria-label", urp3MapLayerLabels.title);
+                    toggle.setAttribute("title", urp3MapLayerLabels.title);
                 }
             }
         }
 
         function setLeafletLayerLabels(title, openStreetMapLabel, satelliteLabel) {
-            umitafMapLayerLabels = {
+            urp3MapLayerLabels = {
                 title: title || "Map layers",
                 openStreetMap: openStreetMapLabel || "OpenStreetMap",
                 satellite: satelliteLabel || "Satellite"
@@ -457,24 +457,24 @@
         }
 
         document.addEventListener("fullscreenchange", () => {
-            if (!nativeMapFullscreenActive()) umitafMapFullscreenFallback = false;
+            if (!nativeMapFullscreenActive()) urp3MapFullscreenFallback = false;
             refreshMapFullscreenState();
         });
         document.addEventListener("webkitfullscreenchange", () => {
-            if (!nativeMapFullscreenActive()) umitafMapFullscreenFallback = false;
+            if (!nativeMapFullscreenActive()) urp3MapFullscreenFallback = false;
             refreshMapFullscreenState();
         });
         document.addEventListener("keydown", event => {
-            if (event.key === "Escape" && umitafMapFullscreenFallback) exitLeafletMapFullscreen();
+            if (event.key === "Escape" && urp3MapFullscreenFallback) exitLeafletMapFullscreen();
         });
 
         function initLeafletMap() {
             const mapHost = document.getElementById("map-host");
             if (!mapHost) return false;
-            if (umitafLeafletMap) return true;
+            if (urp3LeafletMap) return true;
             if (!window.L || typeof L.map !== "function" || typeof L.markerClusterGroup !== "function") return false;
 
-            umitafLeafletMap = L.map("map-host", {
+            urp3LeafletMap = L.map("map-host", {
                 zoomControl: true,
                 minZoom: 5,
                 maxZoom: 18,
@@ -499,11 +499,11 @@
                     attribution: "Tiles © Esri"
                 }
             );
-            umitafMapBaseLayers = { openStreetMap: openStreetMapLayer, satellite: satelliteLayer };
-            openStreetMapLayer.addTo(umitafLeafletMap);
+            urp3MapBaseLayers = { openStreetMap: openStreetMapLayer, satellite: satelliteLayer };
+            openStreetMapLayer.addTo(urp3LeafletMap);
             refreshLeafletLayerControl();
 
-            umitafMarkersLayer = L.markerClusterGroup({
+            urp3MarkersLayer = L.markerClusterGroup({
                 showCoverageOnHover: false,
                 spiderfyOnMaxZoom: true,
                 zoomToBoundsOnClick: true,
@@ -514,7 +514,7 @@
                     iconSize: L.point(52, 52),
                     iconAnchor: L.point(26, 26)
                 })
-            }).addTo(umitafLeafletMap);
+            }).addTo(urp3LeafletMap);
             const FullscreenControl = L.Control.extend({
                 options: { position: "topright" },
                 onAdd: () => {
@@ -523,12 +523,12 @@
                     L.DomEvent.disableClickPropagation(button);
                     L.DomEvent.disableScrollPropagation(button);
                     L.DomEvent.on(button, "click", toggleLeafletMapFullscreen);
-                    umitafMapFullscreenButton = button;
+                    urp3MapFullscreenButton = button;
                     refreshMapFullscreenState();
                     return button;
                 }
             });
-            umitafLeafletMap.addControl(new FullscreenControl());
+            urp3LeafletMap.addControl(new FullscreenControl());
             fitUkraineOverview();
             return true;
         }
@@ -546,13 +546,13 @@
             }
             if (!pane) return;
             if (id === "map-pane") {
-                umitafMapPaneBounds = { x, y, width, height };
-                if (nativeMapFullscreenActive() || umitafMapFullscreenFallback) return;
+                urp3MapPaneBounds = { x, y, width, height };
+                if (nativeMapFullscreenActive() || urp3MapFullscreenFallback) return;
             }
             if (id !== "oms-route-transition") pane.inert = !document.getElementById("oms-route-transition")?.hidden;
             pane.classList.toggle("oms-pane-clipped", height <= 0 || width <= 0);
             Object.assign(pane.style, { left: x + "px", top: y + "px", width: width + "px", height: height + "px", right: "auto", bottom: "auto" });
-            if (id === "map-pane" && umitafLeafletMap) umitafLeafletMap.invalidateSize({pan: false});
+            if (id === "map-pane" && urp3LeafletMap) urp3LeafletMap.invalidateSize({pan: false});
         }
 
         function setOmsCanvasOverlay(active) {
@@ -577,7 +577,7 @@
         }
 
         function setLeafletProjectClickHandler(handler) {
-            umitafOnProjectClick = handler;
+            urp3OnProjectClick = handler;
         }
 
         function openSirImportDialog(projectUuid, onComplete) {
@@ -737,18 +737,18 @@
             openOmsDownload(omsApiUrl(`/projects/${projectUuid}/financials/export`));
         }
 
-        const umitafPendingInspectionPhotos = new Map();
-        const umitafPendingInspectionPhotoDescriptions = new Map();
-        let umitafPendingInspectionPhotoUrls = new WeakMap();
-        const umitafPendingInspectionPreviewRequests = new Map();
+        const urp3PendingInspectionPhotos = new Map();
+        const urp3PendingInspectionPhotoDescriptions = new Map();
+        let urp3PendingInspectionPhotoUrls = new WeakMap();
+        const urp3PendingInspectionPreviewRequests = new Map();
 
         function pendingInspectionPhotos(activityKey) {
-            if (!umitafPendingInspectionPhotos.has(activityKey)) umitafPendingInspectionPhotos.set(activityKey, []);
-            return umitafPendingInspectionPhotos.get(activityKey);
+            if (!urp3PendingInspectionPhotos.has(activityKey)) urp3PendingInspectionPhotos.set(activityKey, []);
+            return urp3PendingInspectionPhotos.get(activityKey);
         }
 
         function pendingInspectionPhotoTotal() {
-            return Array.from(umitafPendingInspectionPhotos.values()).reduce((total, files) => total + files.length, 0);
+            return Array.from(urp3PendingInspectionPhotos.values()).reduce((total, files) => total + files.length, 0);
         }
 
         function pendingInspectionPhotoPane(activityKey) {
@@ -756,28 +756,28 @@
         }
 
         function setPendingInspectionPhotoDescription(activityKey, description) {
-            umitafPendingInspectionPhotoDescriptions.set(activityKey, String(description || "").trim());
+            urp3PendingInspectionPhotoDescriptions.set(activityKey, String(description || "").trim());
         }
 
         function pendingInspectionPhotoUrl(file) {
-            let url = umitafPendingInspectionPhotoUrls.get(file);
+            let url = urp3PendingInspectionPhotoUrls.get(file);
             if (!url) {
                 url = URL.createObjectURL(file);
-                umitafPendingInspectionPhotoUrls.set(file, url);
+                urp3PendingInspectionPhotoUrls.set(file, url);
             }
             return url;
         }
 
         function releasePendingInspectionPhoto(file) {
-            const url = umitafPendingInspectionPhotoUrls.get(file);
+            const url = urp3PendingInspectionPhotoUrls.get(file);
             if (url) URL.revokeObjectURL(url);
-            umitafPendingInspectionPhotoUrls.delete(file);
+            urp3PendingInspectionPhotoUrls.delete(file);
         }
 
         function hidePendingInspectionPhotoPreviews(activityKey) {
             // Invalidate a queued layout-frame render before the native pane
             // disappears with its Compose anchor.
-            umitafPendingInspectionPreviewRequests.set(activityKey, (umitafPendingInspectionPreviewRequests.get(activityKey) || 0) + 1);
+            urp3PendingInspectionPreviewRequests.set(activityKey, (urp3PendingInspectionPreviewRequests.get(activityKey) || 0) + 1);
             const pane = pendingInspectionPhotoPane(activityKey);
             if (pane) {
                 pane.classList.remove("visible");
@@ -786,14 +786,14 @@
         }
 
         function showPendingInspectionPhotoPreviews(activityKey, onSelectionChanged) {
-            const requestId = (umitafPendingInspectionPreviewRequests.get(activityKey) || 0) + 1;
-            umitafPendingInspectionPreviewRequests.set(activityKey, requestId);
+            const requestId = (urp3PendingInspectionPreviewRequests.get(activityKey) || 0) + 1;
+            urp3PendingInspectionPreviewRequests.set(activityKey, requestId);
             // The DOM pane is created by NativePaneAnchor after Compose has
             // laid out this frame. Render on the next frame so a newly picked
             // photo is visible immediately, rather than requiring reopening
             // the activity section.
             const render = (attempt = 0) => {
-                if (umitafPendingInspectionPreviewRequests.get(activityKey) !== requestId) return;
+                if (urp3PendingInspectionPreviewRequests.get(activityKey) !== requestId) return;
                 const pane = pendingInspectionPhotoPane(activityKey);
                 if (!pane) {
                     if (attempt < 3) requestAnimationFrame(() => render(attempt + 1));
@@ -937,8 +937,8 @@
                 // and a complete XLSX rebuild, making a 10–30-photo report
                 // appear to save indefinitely on a remote deployment.
                 const formData = new FormData();
-                for (const [activityKey, photos] of umitafPendingInspectionPhotos.entries()) {
-                    const description = umitafPendingInspectionPhotoDescriptions.get(activityKey) || "photo";
+                for (const [activityKey, photos] of urp3PendingInspectionPhotos.entries()) {
+                    const description = urp3PendingInspectionPhotoDescriptions.get(activityKey) || "photo";
                     const baseName = description.replace(/[\\/:*?"<>|\u0000-\u001f]+/g, " ").replace(/\s+/g, " ").trim().slice(0, 220) || "photo";
                     // The visible caption can legitimately repeat in different SIR
                     // sections. Persist the row key in the filename as invisible
@@ -958,9 +958,9 @@
                     const response = await omsAuthenticatedFetch(omsApiUrl(`/inspection-reports/${reportUuid}/photos`), { method: "POST", body: formData, credentials: "include" });
                     if (!response.ok) throw new Error(await response.text());
                 }
-                umitafPendingInspectionPhotos.forEach(files => files.forEach(releasePendingInspectionPhoto));
-                umitafPendingInspectionPhotos.clear();
-                umitafPendingInspectionPhotoDescriptions.clear();
+                urp3PendingInspectionPhotos.forEach(files => files.forEach(releasePendingInspectionPhoto));
+                urp3PendingInspectionPhotos.clear();
+                urp3PendingInspectionPhotoDescriptions.clear();
                 onComplete("");
             } catch (error) {
                 onComplete(error.message || String(error));
@@ -1077,10 +1077,10 @@
             if (photos.length) openPhotoLightbox(photos, photos[0].uuid);
         }
 
-        const umitafNativePhotoGalleryRequests = new Map();
+        const urp3NativePhotoGalleryRequests = new Map();
 
         function hideNativePhotoGallery(paneId) {
-            umitafNativePhotoGalleryRequests.set(paneId, (umitafNativePhotoGalleryRequests.get(paneId) || 0) + 1);
+            urp3NativePhotoGalleryRequests.set(paneId, (urp3NativePhotoGalleryRequests.get(paneId) || 0) + 1);
             const pane = document.getElementById(paneId);
             if (pane) {
                 pane.classList.remove("visible");
@@ -1097,14 +1097,14 @@
         }
 
         function showNativePhotoGallery(paneId, photosJson) {
-            const requestId = (umitafNativePhotoGalleryRequests.get(paneId) || 0) + 1;
-            umitafNativePhotoGalleryRequests.set(paneId, requestId);
+            const requestId = (urp3NativePhotoGalleryRequests.get(paneId) || 0) + 1;
+            urp3NativePhotoGalleryRequests.set(paneId, requestId);
             const photos = JSON.parse(photosJson || "[]");
             // NativePaneAnchor creates its target after the Compose layout pass.
             // Retrying in the next frame prevents an empty report preview on
             // the first visit to a screen.
             const render = (attempt = 0) => {
-                if (umitafNativePhotoGalleryRequests.get(paneId) !== requestId) return;
+                if (urp3NativePhotoGalleryRequests.get(paneId) !== requestId) return;
                 const pane = document.getElementById(paneId);
                 if (!pane) {
                     if (attempt < 3) requestAnimationFrame(() => render(attempt + 1));
@@ -1179,8 +1179,8 @@
         }
 
         function fitLeafletResults() {
-            if (umitafLeafletMap && umitafMarkersLayer && umitafMarkersLayer.getLayers().length) {
-                umitafLeafletMap.fitBounds(umitafMarkersLayer.getBounds(), { padding: [40, 40], maxZoom: 13 });
+            if (urp3LeafletMap && urp3MarkersLayer && urp3MarkersLayer.getLayers().length) {
+                urp3LeafletMap.fitBounds(urp3MarkersLayer.getBounds(), { padding: [40, 40], maxZoom: 13 });
             }
         }
 
@@ -1192,9 +1192,9 @@
                 return;
             }
 
-            if (!umitafLeafletMap || !umitafMarkersLayer) return;
+            if (!urp3LeafletMap || !urp3MarkersLayer) return;
 
-            umitafMarkersLayer.clearLayers();
+            urp3MarkersLayer.clearLayers();
 
             const projects = JSON.parse(projectsJson);
 
@@ -1248,7 +1248,7 @@
                 const open = document.createElement("button");
                 open.type = "button";
                 open.textContent = omsText("details");
-                open.onclick = () => umitafOnProjectClick && umitafOnProjectClick(project.id);
+                open.onclick = () => urp3OnProjectClick && urp3OnProjectClick(project.id);
                 popupHtml.append(name, subprojectCode, region, beneficiary, projectCost, financingAmount, financingDisbursed, status, open);
 
                 // Several facilities may share one postal address. Spread only
@@ -1278,7 +1278,7 @@
                         maxWidth: 340,
                         minWidth: 220
                     })
-                    .addTo(umitafMarkersLayer);
+                    .addTo(urp3MarkersLayer);
             });
 
             // Filter updates replace only marker data. The initial map lifecycle
@@ -1346,13 +1346,13 @@
 <div id="oms-loading-overlay" class="visible" role="status" aria-live="polite">
     <main class="oms-startup-login">
         <section class="oms-startup-brand">
-            <div><span class="oms-startup-badge"><strong>UMITAF</strong><small>TA to the implementation<br>of UR III Programme</small></span><h1>Система онлайн-моніторингу.</h1><p>Єдина система для відстеження проєктів, інспекцій і фінансового контролю.</p><ul class="oms-startup-features"><li>Моніторинг проєктів у реальному часі</li><li>Інспекційні звіти та контроль робіт</li><li>Фінансовий моніторинг</li></ul></div>
+            <div><span class="oms-startup-badge"><strong>URP III</strong><small>TA to the implementation<br>of URP III Programme</small></span><h1>Система онлайн-моніторингу.</h1><p>Єдина система для відстеження проєктів, інспекцій і фінансового контролю.</p><ul class="oms-startup-features"><li>Моніторинг проєктів у реальному часі</li><li>Інспекційні звіти та контроль робіт</li><li>Фінансовий моніторинг</li></ul></div>
             <span class="oms-startup-language">EN</span>
         </section>
         <section class="oms-startup-form">
             <div class="oms-startup-auth-ghost" aria-hidden="true"><h2>З поверненням</h2><p>Будь ласка, увійдіть до свого облікового запису.</p><span class="oms-startup-label">Логін або електронна пошта</span><div class="oms-startup-field"></div><span class="oms-startup-label">Пароль</span><div class="oms-startup-field"></div><div class="oms-startup-options"><span>□ Запам’ятати мене</span><span>Забули пароль?</span></div><div class="oms-startup-button">Увійти</div><div class="oms-startup-button secondary">Продовжити як гість</div></div>
             <div class="oms-startup-status" id="oms-startup-status">
-                <div class="oms-startup-heading"><strong>UMITAF OMS</strong><span id="oms-startup-percent">0%</span></div>
+                <div class="oms-startup-heading"><strong>URP III OMS</strong><span id="oms-startup-percent">0%</span></div>
                 <div class="oms-progress-track" role="progressbar" aria-label="Завантаження" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div id="oms-startup-progress-bar"></div></div>
                 <div id="oms-startup-message">Підготовка системи…</div>
                 <div id="oms-startup-timer">Час завантаження: 00:00</div>
@@ -1379,6 +1379,6 @@
 <!--suppress HtmlUnknownTarget -->
 <script>performance.mark("oms-shell-visible");</script>
 <script>window.reportOmsStartupProgress?.(93, "interface");</script>
-<script type="application/javascript" src="composeApp.js?v=20261003-umitaf-programme-brand"></script>
+<script type="application/javascript" src="composeApp.js?v=20261003-urp3-programme-brand"></script>
 </body>
 </html>

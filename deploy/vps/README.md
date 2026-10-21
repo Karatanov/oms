@@ -1,4 +1,4 @@
-# UMITAF OMS VPS deployment
+# URP III OMS VPS deployment
 
 This Compose file is intended for `/docker/oms` on the production VPS. It uses
 MySQL 8.4, named volumes `oms-mysql-data` and `oms-uploads`, and exposes no

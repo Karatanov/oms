@@ -147,7 +147,7 @@ def source_rows(path: Path) -> list[dict]:
             "costUah": amount_uah, "costEur": amount_eur,
             "submissionStatus": values[16], "undpChecklistUrl": values[17],
             "undpRiskComments": values[18], "undpConclusions": values[19],
-            "umitafChecklistUrl": values[20], "umitafComments": values[21],
+            "urp3ChecklistUrl": values[20], "urp3Comments": values[21],
             "screeningColumns": {chr(65 + index): value for index, value in enumerate(values)},
             "latitude": latitude, "longitude": longitude,
             "sector": sector(values[11]), "constructionType": construction_type(values[13]),

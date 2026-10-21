@@ -4,7 +4,7 @@ from pathlib import Path
 FILES = [
     Path(r"D:\2026\OMS\OMS Functional Specification.docx"),
     Path(r"D:\2026\OMS\OMS_Supplementary_Specification.docx"),
-    Path(r"D:\2026\OMS\UMITAF-OMS-July26.docx"),
+    Path(r"D:\2026\OMS\URP III-OMS-July26.docx"),
 ]
 
 for path in FILES:

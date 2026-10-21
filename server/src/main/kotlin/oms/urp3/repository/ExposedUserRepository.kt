@@ -1,0 +1,283 @@
+package oms.urp3.repository
+
+import oms.urp3.database.tables.RoleTable
+import oms.urp3.database.tables.UserTable
+import oms.urp3.domain.Role
+import oms.urp3.domain.User
+import org.jetbrains.exposed.v1.jdbc.insertAndGetId
+import org.jetbrains.exposed.v1.jdbc.selectAll
+import org.jetbrains.exposed.v1.jdbc.transactions.transaction
+import org.jetbrains.exposed.v1.jdbc.update
+import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.core.and
+import org.jetbrains.exposed.v1.jdbc.deleteWhere
+import java.time.LocalDateTime
+import java.util.UUID
+
+/**
+ * Реалізація репозиторію користувачів на базі Exposed.
+ */
+class ExposedUserRepository : UserRepository {
+
+    override fun findAll(): List<User> = transaction {
+
+        /**
+         * Виконуємо INNER JOIN між таблицями
+         * користувачів та ролей.
+         */
+        UserTable
+            .innerJoin(RoleTable)
+            .selectAll()
+            .map { it.toUser() }
+    }
+
+    /** Avoids loading the administration user list for every protected request. */
+    override fun findById(id: Long): User? = transaction {
+        UserTable
+            .innerJoin(RoleTable)
+            .selectAll()
+            .where { UserTable.id eq id }
+            .limit(1)
+            .firstOrNull()
+            ?.toUser()
+    }
+
+    /**
+     * Виконує пошук користувача за логіном.
+     */
+    override fun findByUsername(
+        username: String
+    ): User? = transaction {
+
+        UserTable
+            .innerJoin(RoleTable)
+            .selectAll()
+            .where { UserTable.username eq username }
+            // Keep exact Kotlin matching even with a case-insensitive SQL collation.
+            .firstOrNull { row ->
+
+                row[UserTable.username] == username
+            }
+            ?.toUser()
+    }
+
+    /** Uses the e-mail index for normal login and password-reset lookups. */
+    override fun findByEmail(email: String): User? = transaction {
+        UserTable
+            .innerJoin(RoleTable)
+            .selectAll()
+            .where { UserTable.email eq email }
+            .firstOrNull { row -> row[UserTable.email].equals(email, ignoreCase = true) }
+            ?.toUser()
+    }
+
+    /**
+     * Створює нового користувача.
+     */
+    override fun create(
+        username: String,
+        email: String,
+        password: String,
+        roleId: Long,
+        firstName: String,
+        lastName: String,
+        status: String,
+        region: String?,
+        department: String?,
+        preferredLang: String
+    ): User = transaction {
+
+        val userId = UserTable.insertAndGetId {
+
+            it[UserTable.uuid] = UUID.randomUUID().toString()
+            it[UserTable.username] = username
+            it[UserTable.email] = email
+            it[UserTable.passwordHash] = password
+            it[UserTable.roleId] = roleId
+            it[UserTable.firstName] = firstName
+            it[UserTable.lastName] = lastName
+            it[UserTable.status] = status
+            it[UserTable.region] = region
+            it[UserTable.department] = department
+            it[UserTable.preferredLang] = preferredLang
+        }
+
+        val role = RoleTable
+            .selectAll()
+            .where { RoleTable.id eq roleId }.limit(1).first()
+
+        User(
+            id = userId.value,
+
+            username = username,
+
+            email = email,
+
+            passwordHash = password,
+
+            role = Role(
+                id = role[RoleTable.id].value,
+                code = role[RoleTable.code],
+                name = role[RoleTable.name]
+            )
+        )
+
+    }
+
+    /**
+     * Перевіряє наявність користувача
+     * з указаним логіном.
+     */
+    override fun existsByUsername(
+        username: String
+    ): Boolean = transaction {
+
+        UserTable
+            .selectAll()
+            .where { UserTable.username eq username }
+            .any { row ->
+
+                row[UserTable.username] == username
+            }
+    }
+
+    /**
+     * Перевіряє наявність користувача
+     * з указаною електронною поштою.
+     */
+    override fun existsByEmail(
+        email: String
+    ): Boolean = transaction {
+
+        UserTable
+            .selectAll()
+            .where { UserTable.email eq email }
+            .any { row ->
+
+                row[UserTable.email] == email
+            }
+    }
+
+    override fun update(id: Long, username: String, email: String, passwordHash: String, roleId: Long, firstName: String, lastName: String, status: String, region: String?, department: String?, preferredLang: String): User? {
+        val count = transaction {
+            UserTable.update({ UserTable.id eq id }) {
+            it[UserTable.username] = username
+            it[UserTable.email] = email
+            it[UserTable.passwordHash] = passwordHash
+            it[UserTable.roleId] = roleId
+            it[UserTable.firstName] = firstName
+            it[UserTable.lastName] = lastName
+            it[UserTable.status] = status
+            it[UserTable.region] = region
+            it[UserTable.department] = department
+            it[UserTable.preferredLang] = preferredLang
+            it[UserTable.updatedAt] = LocalDateTime.now()
+            }
+        }
+        return if (count == 0) null else findById(id)
+    }
+
+    override fun delete(id: Long): Boolean = transaction { UserTable.deleteWhere { UserTable.id eq id } > 0 }
+
+    override fun archive(id: Long, archivedBy: Long): Boolean = transaction {
+        UserTable.update({ (UserTable.id eq id) and (UserTable.isArchived eq false) }) {
+            it[isArchived] = true; it[archivedAt] = LocalDateTime.now(); it[UserTable.archivedBy] = archivedBy
+            it[status] = "disabled"; it[updatedAt] = LocalDateTime.now()
+        } > 0
+    }
+
+    override fun restore(id: Long): Boolean = transaction {
+        UserTable.update({ (UserTable.id eq id) and (UserTable.isArchived eq true) }) {
+            it[isArchived] = false; it[archivedAt] = null; it[UserTable.archivedBy] = null
+            it[status] = "active"; it[updatedAt] = LocalDateTime.now()
+        } > 0
+    }
+
+    override fun dependencyCounts(id: Long): Map<String, Long> = transaction {
+        linkedMapOf(
+            "projects as manager" to oms.urp3.database.tables.ProjectTable.selectAll().where { oms.urp3.database.tables.ProjectTable.managerId eq id }.count(),
+            "projects as creator" to oms.urp3.database.tables.ProjectTable.selectAll().where { oms.urp3.database.tables.ProjectTable.createdBy eq id }.count(),
+            "documents" to oms.urp3.database.tables.ProjectDocumentTable.selectAll().where { oms.urp3.database.tables.ProjectDocumentTable.createdBy eq id }.count(),
+            "inspection reports" to oms.urp3.database.tables.InspectionReportTable.selectAll().where { oms.urp3.database.tables.InspectionReportTable.createdBy eq id }.count(),
+            "audit records" to oms.urp3.database.tables.AuditLogTable.selectAll().where { oms.urp3.database.tables.AuditLogTable.userId eq id }.count()
+        ).filterValues { it > 0 }
+    }
+
+    override fun authenticationState(userId: Long): UserRepository.AuthenticationState? = transaction {
+        UserTable.selectAll().where { UserTable.id eq userId }.limit(1).firstOrNull()?.let { row ->
+            UserRepository.AuthenticationState(
+                status = row[UserTable.status],
+                failedLoginCount = row[UserTable.failedLoginCount],
+                lockedUntil = row[UserTable.lockedUntil]
+            )
+        }
+    }
+
+    override fun recordFailedLogin(userId: Long, lockedUntil: LocalDateTime?) = transaction {
+        val current = UserTable.selectAll().where { UserTable.id eq userId }.limit(1).firstOrNull() ?: return@transaction
+        UserTable.update({ UserTable.id eq userId }) {
+            it[failedLoginCount] = current[UserTable.failedLoginCount] + 1
+            it[UserTable.lockedUntil] = lockedUntil
+        }
+    }
+
+    override fun recordSuccessfulLogin(userId: Long, at: LocalDateTime) = transaction {
+        UserTable.update({ UserTable.id eq userId }) {
+            it[lastLoginAt] = at
+            it[failedLoginCount] = 0
+            it[lockedUntil] = null
+        }
+        Unit
+    }
+
+    override fun storePasswordResetToken(userId: Long, tokenHash: String, expiresAt: LocalDateTime) = transaction {
+        UserTable.update({ UserTable.id eq userId }) {
+            it[activationTokenHash] = tokenHash
+            it[activationTokenExpiresAt] = expiresAt
+        }
+        Unit
+    }
+
+    override fun activationState(tokenHash: String): UserRepository.ActivationState? = transaction {
+        UserTable.selectAll().where { UserTable.activationTokenHash eq tokenHash }
+            .firstOrNull { it[UserTable.activationTokenHash] == tokenHash }?.let {
+            UserRepository.ActivationState(it[UserTable.id].value, it[UserTable.activationTokenExpiresAt])
+        }
+    }
+
+    override fun resetPassword(userId: Long, passwordHash: String, at: LocalDateTime): Boolean = transaction {
+        UserTable.update({ UserTable.id eq userId }) {
+            it[UserTable.passwordHash] = passwordHash
+            it[activationTokenHash] = null
+            it[activationTokenExpiresAt] = null
+            it[updatedAt] = at
+        } > 0
+    }
+}
+
+/** Maps the joined user/role record used by the focused authorization lookup. */
+private fun org.jetbrains.exposed.v1.core.ResultRow.toUser(): User = User(
+    id = this[UserTable.id].value,
+    username = this[UserTable.username],
+    email = this[UserTable.email],
+    passwordHash = this[UserTable.passwordHash],
+    role = Role(
+        id = this[RoleTable.id].value,
+        code = this[RoleTable.code],
+        name = this[RoleTable.name]
+    ),
+    firstName = this[UserTable.firstName],
+    lastName = this[UserTable.lastName],
+    status = this[UserTable.status],
+    region = this[UserTable.region],
+    department = this[UserTable.department],
+    preferredLang = this[UserTable.preferredLang],
+    lastLoginAt = this[UserTable.lastLoginAt],
+    failedLoginCount = this[UserTable.failedLoginCount],
+    lockedUntil = this[UserTable.lockedUntil],
+    createdAt = this[UserTable.createdAt],
+    updatedAt = this[UserTable.updatedAt],
+    isArchived = this[UserTable.isArchived],
+    archivedAt = this[UserTable.archivedAt],
+    archivedBy = this[UserTable.archivedBy]?.value
+)
