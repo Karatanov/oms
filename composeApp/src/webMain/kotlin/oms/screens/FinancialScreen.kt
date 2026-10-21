@@ -234,6 +234,9 @@ fun FinancialScreen(
         row.subprojectUuid?.takeIf { row.subprojectCode != null }?.let { uuid -> uuid to row.subprojectCode!! }
     }.distinctBy { (uuid, _) -> uuid }.sortedBy { (_, code) -> code }
     val regionFilterOptions = acts.map { it.region }.filter(String::isNotBlank).distinct().sorted()
+    // A region deep link is context, not merely a hidden table filter. Keep it
+    // visible in the page title and every financial chart caption.
+    val selectedRegionLabel = regionFilter?.let(::localizedUkraineRegion)
     val visibleActs = acts.filter {
         (recordTypeFilter == null || it.act.recordType == recordTypeFilter) &&
             (paymentPurposeFilter == null || it.act.paymentPurpose == paymentPurposeFilter) &&
@@ -322,7 +325,11 @@ fun FinancialScreen(
             .verticalScroll(pageScrollState).padding(oms.layout.workspacePadding(withScrollControls = true)),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        oms.components.PageHeading(LocalizationManager.t("financial_monitoring"), Icons.Default.AccountBalance, iconText = "€") {
+        oms.components.PageHeading(
+            listOfNotNull(LocalizationManager.t("financial_monitoring"), selectedRegionLabel).joinToString(" — "),
+            Icons.Default.AccountBalance,
+            iconText = "€"
+        ) {
             if (canManageFinancials) {
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedButton(onClick = { showTransferDialog = true }) {
@@ -373,19 +380,19 @@ fun FinancialScreen(
         // This is especially important for the CSC chart, whose valid payment
         // rows may coexist with unrelated legacy records.
         oms.components.AdaptiveChartRow(
-            first = { MonthlyPaymentsChart(financialChartRecords, displayRates) { month -> selectChartMonth(month, "works") } },
-            second = { MonthlyTechnicalSupervisionPaymentsChart(financialChartRecords, displayRates) { month -> selectChartMonth(month, "technical_supervision") } }
+            first = { MonthlyPaymentsChart(financialChartRecords, displayRates, selectedRegionLabel) { month -> selectChartMonth(month, "works") } },
+            second = { MonthlyTechnicalSupervisionPaymentsChart(financialChartRecords, displayRates, selectedRegionLabel) { month -> selectChartMonth(month, "technical_supervision") } }
         )
         oms.components.AdaptiveChartRow(
-            first = { MonthlyEquipmentPaymentsChart(financialChartRecords, displayRates) { month -> selectChartMonth(month, "equipment") } },
-            second = { MonthlyEngineerConsultantPaymentsChart(financialChartRecords, displayRates) { month -> selectChartMonth(month, "engineer_consultant") } }
+            first = { MonthlyEquipmentPaymentsChart(financialChartRecords, displayRates, selectedRegionLabel) { month -> selectChartMonth(month, "equipment") } },
+            second = { MonthlyEngineerConsultantPaymentsChart(financialChartRecords, displayRates, selectedRegionLabel) { month -> selectChartMonth(month, "engineer_consultant") } }
         )
         financialProgress?.let { progress ->
             oms.components.AdaptiveChartRow(
-                first = { FinancialProgressCard("financial_progress_by_region", progress.byRegion) },
-                second = { FinancialProgressCard("financial_progress_by_construction_type", progress.byConstructionType) }
+                first = { FinancialProgressCard("financial_progress_by_region", progress.byRegion, selectedRegionLabel) },
+                second = { FinancialProgressCard("financial_progress_by_construction_type", progress.byConstructionType, selectedRegionLabel) }
             )
-            FinancialProgressCard("financial_progress_by_sector", progress.bySector)
+            FinancialProgressCard("financial_progress_by_sector", progress.bySector, selectedRegionLabel)
         }
         paymentMonitoring?.let { snapshot ->
             PaymentMonitoringCard(
@@ -945,7 +952,11 @@ private fun Int.isFinancialTranche(filter: Int): Boolean = when (filter) {
 private fun Int.financialTrancheCode(): String = if (this == 2 || this == 9) "B" else "A"
 
 @Composable
-private fun FinancialProgressCard(titleKey: String, items: List<ApiFinancialProgressItem>) {
+private fun FinancialProgressCard(
+    titleKey: String,
+    items: List<ApiFinancialProgressItem>,
+    titleSuffix: String? = null
+) {
     var expanded by remember { mutableStateOf(true) }
     Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -954,7 +965,7 @@ private fun FinancialProgressCard(titleKey: String, items: List<ApiFinancialProg
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    LocalizationManager.t(titleKey),
+                    listOfNotNull(LocalizationManager.t(titleKey), titleSuffix).joinToString(" — "),
                     modifier = Modifier.weight(1f),
                     style = MaterialTheme.typography.titleMedium
                 )

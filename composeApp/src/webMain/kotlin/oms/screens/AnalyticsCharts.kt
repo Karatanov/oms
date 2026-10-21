@@ -424,6 +424,7 @@ fun MonthlyMoneyChart(
     hintKey: String?,
     payments: List<MonthlyMoneyAmount>,
     currency: String,
+    titleSuffix: String? = null,
     tooltipByMonth: Map<String, String> = emptyMap(),
     currencySelector: (@Composable () -> Unit)? = null,
     expanded: Boolean = true,
@@ -445,6 +446,7 @@ fun MonthlyMoneyChart(
         titleKey, hintKey, data, { formatChartAmount(it / 100.0, currency) }, labelMaxLines = 1,
         filterContent = currencySelector, expanded = expanded, onExpandedChange = onExpandedChange,
         currency = currency,
+        titleSuffix = titleSuffix,
         onItemClick = { bar -> bar.id?.let(onMonthClick) }, orientation = orientation
     )
 }
@@ -464,7 +466,8 @@ private fun AnalyticsCard(
     onExpandedChange: ((Boolean) -> Unit)? = null,
     orientation: BarChartOrientation = BarChartOrientation.Vertical,
     sortEnabled: Boolean = false,
-    currency: String? = null
+    currency: String? = null,
+    titleSuffix: String? = null
 ) {
     var sortCriterion by remember { mutableStateOf<ChartSortCriterion?>(null) }
     var sortAscending by remember { mutableStateOf(true) }
@@ -480,7 +483,8 @@ private fun AnalyticsCard(
     Card(cardModifier, shape = RoundedCornerShape(12.dp),
         colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
         Column(Modifier.padding(16.dp)) {
-            OmsChartHeader(LocalizationManager.t(titleKey)) {
+            val title = listOfNotNull(LocalizationManager.t(titleKey), titleSuffix).joinToString(" — ")
+            OmsChartHeader(title) {
                 if (sortEnabled) ChartSortControls(
                     criterion = sortCriterion,
                     ascending = sortAscending,
@@ -489,7 +493,7 @@ private fun AnalyticsCard(
                 )
                 if (data.isNotEmpty()) ChartDataLabelsToggle(showDataLabels) { showDataLabels = it }
                 if (displayData.isNotEmpty()) ChartPngExportButton(
-                    title = LocalizationManager.t(titleKey),
+                    title = title,
                     filenameStem = titleKey,
                     data = displayData,
                     orientation = orientation,
