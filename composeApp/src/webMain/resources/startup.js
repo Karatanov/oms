@@ -135,10 +135,14 @@
     };
     const ensureWatchdog = () => {
         if (watchdog || failed) return;
-        // The production renderer is large and may need tens of seconds on a
-        // cold connection. This is a failure screen, not an auto-dismissal:
-        // a user must explicitly retry if mounting never completes.
-        watchdog = setTimeout(() => failStartup(new Error("Startup did not complete within 90 seconds")), 90_000);
+        // The production renderer is large and is intentionally downloaded
+        // only after authentication. On a constrained corporate connection
+        // its JS and WASM assets can legitimately take longer than 90 seconds.
+        // Do not present that normal transfer as a failed application start;
+        // resource errors are still reported immediately by the global error
+        // handlers below. Five minutes remains a final escape hatch for a
+        // genuinely stalled browser/runtime.
+        watchdog = setTimeout(() => failStartup(new Error("Startup did not complete within five minutes")), 300_000);
     };
     const reportWarmup = value => {
         warmProgress = Math.max(warmProgress, value);
