@@ -135,6 +135,7 @@ private fun String.toActivityLabel(): String = when (this) {
     "inspection_source_file_replaced" -> LocalizationManager.t("activity_inspection_source_file_replaced")
     "financial_record_created" -> LocalizationManager.t("activity_financial_created")
     "financial_records_imported" -> LocalizationManager.t("activity_financial_imported")
+    "payment_monitoring_imported" -> LocalizationManager.t("activity_payment_monitoring_imported")
     "financial_record_moved" -> LocalizationManager.t("activity_financial_moved")
     "projects_bulk_status_updated" -> LocalizationManager.t("activity_projects_bulk_status_updated")
     "projects_bulk_reassigned" -> LocalizationManager.t("activity_projects_bulk_reassigned")
