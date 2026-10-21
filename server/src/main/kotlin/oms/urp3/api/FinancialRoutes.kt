@@ -80,6 +80,10 @@ fun Route.financialRoutes() {
             ?.trim()
             ?.replace(Regex("\\s+(область|oblast|region)$", RegexOption.IGNORE_CASE), "")
             ?.takeIf(String::isNotBlank)
+        // Region/sector progress reads both the hierarchy and the complete
+        // ledger.  It is an aggregate, not a latency-sensitive mutation, so
+        // keep its synchronous repository work off the request dispatcher.
+        val response = withContext(Dispatchers.IO) {
         val projects = AppContainer.projectService.getAllProjects()
         val byId = projects.associateBy { it.id }
         val subprojects = projects.filter { project ->
@@ -131,33 +135,35 @@ fun Route.financialRoutes() {
                 )
             }.sortedBy { it.label }
         }
-        call.respond(
-            FinancialProgressResponse(
+        FinancialProgressResponse(
                 byRegion = aggregate { it.region.orEmpty() },
                 byConstructionType = aggregate { it.constructionType.orEmpty() },
                 bySector = aggregate { it.sector.orEmpty() }
-            )
         )
+        }
+        call.respond(response)
     }
 
     get("/api/v1/financials") {
         call.requireRole("ADMIN", "PROJECT_MANAGER") ?: return@get
-        val records = AppContainer.financialRecordService.getAll()
-        // An empty registry needs no project lookup.  This is common in a new
-        // deployment and avoids loading the full project tree just to return [].
-        if (records.isEmpty()) {
-            call.respond(emptyList<FinancialRecordListItemResponse>())
-            return@get
-        }
-        val accessibleProjects = AppContainer.projectService.getAllProjects()
-        val projectUuidsById = accessibleProjects.associate { it.id to it.uuid.toString() }
-        call.respond(
-            records.mapNotNull { record ->
-                projectUuidsById[record.projectId]?.let { projectUuid ->
-                    FinancialRecordListItemResponse(projectUuid, record.toResponse())
+        val response = withContext(Dispatchers.IO) {
+            val records = AppContainer.financialRecordService.getAll()
+            // An empty registry needs no project lookup.  This is common in a
+            // new deployment and avoids loading the full project tree just to
+            // return an empty result.
+            if (records.isEmpty()) {
+                emptyList<FinancialRecordListItemResponse>()
+            } else {
+                val accessibleProjects = AppContainer.projectService.getAllProjects()
+                val projectUuidsById = accessibleProjects.associate { it.id to it.uuid.toString() }
+                records.mapNotNull { record ->
+                    projectUuidsById[record.projectId]?.let { projectUuid ->
+                        FinancialRecordListItemResponse(projectUuid, record.toResponse())
+                    }
                 }
             }
-        )
+        }
+        call.respond(response)
     }
 
     /**
@@ -179,6 +185,7 @@ fun Route.financialRoutes() {
         val month = call.request.queryParameters["month"]?.takeIf { it.matches(Regex("\\d{4}-\\d{2}")) }
         val sort = call.request.queryParameters["sort"].orEmpty()
         val ascending = call.request.queryParameters["ascending"]?.toBooleanStrictOrNull() ?: false
+        val pdf = withContext(Dispatchers.IO) {
         val projectsById = AppContainer.projectService.getAllProjects().associateBy { it.id }
         fun rowFor(record: oms.urp3.domain.FinancialRecord): FinancialTablePdfExportService.Row? {
             val project = projectsById[record.projectId] ?: return null
@@ -234,7 +241,6 @@ fun Route.financialRoutes() {
                 }
             }.let { if (ascending) it else it.reversed() })
         val filterSummary = call.request.queryParameters["filters"]?.take(500)
-        val pdf = withContext(Dispatchers.IO) {
             financialTablePdfExportService.export(rows, language, currency, filterSummary)
         }
         call.response.header(HttpHeaders.ContentDisposition, "attachment; filename=oms-financial-monitoring.pdf")
@@ -292,10 +298,12 @@ fun Route.financialRoutes() {
                         require((part.originalFileName ?: "").substringAfterLast('.', "").lowercase() in setOf("xls", "xlsx")) { "Only XLS or XLSX files are supported." }
                         val bytes = part.provider().readRemaining(20_000_001).readByteArray()
                         require(bytes.size <= 20_000_000) { "File size must not exceed 20 MB." }
-                        imported = AppContainer.financialRecordService.importWorkbook(
-                            project.id,
-                            java.io.ByteArrayInputStream(bytes)
-                        )
+                        imported = withContext(Dispatchers.IO) {
+                            AppContainer.financialRecordService.importWorkbook(
+                                project.id,
+                                java.io.ByteArrayInputStream(bytes)
+                            )
+                        }
                     }
                     part.dispose()
                 }
