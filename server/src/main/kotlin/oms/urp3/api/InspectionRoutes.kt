@@ -67,12 +67,19 @@ fun Route.inspectionRoutes() {
         if (!call.requireProjectAccess(session, projectUuid)) return@post
         try {
             val request = call.receive<CreateManualInspectionReportRequest>()
-            val draft = AppContainer.inspectionReportFileService.createManual(project, request, session.userId)
+            // Creating a manual report writes an XLSX workbook and can embed
+            // uploaded images. Keep that blocking file work off Ktor's
+            // request dispatcher so the rest of the UI remains responsive.
+            val draft = withContext(Dispatchers.IO) {
+                AppContainer.inspectionReportFileService.createManual(project, request, session.userId)
+            }
             // A completed manual form is submitted immediately.  The separate
             // "Save draft" action creates a draft through its own endpoint.
             val report = AppContainer.inspectionReportService.submitReport(draft.uuid.toString())
                 ?: error("Created inspection report is unavailable.")
-            synchronizeManualHseFindings(report.id, request.hseObservations)
+            withContext(Dispatchers.IO) {
+                synchronizeManualHseFindings(report.id, request.hseObservations)
+            }
             AppContainer.auditLogService.record(session.userId, "inspection_manual_created", "inspection_report", report.id)
             call.respond(HttpStatusCode.Created, report.toResponse())
         } catch (exception: IllegalArgumentException) { call.validationError(exception) }
@@ -97,8 +104,10 @@ fun Route.inspectionRoutes() {
                     // persisting them here turns one upload into dozens of
                     // slow storage writes. The photo endpoint materialises
                     // them lazily on the first edit/preview instead.
-                    imported = AppContainer.inspectionReportFileService
-                        .import(project.id, name, part.contentType?.toString(), java.io.ByteArrayInputStream(bytes), session.userId)
+                    imported = withContext(Dispatchers.IO) {
+                        AppContainer.inspectionReportFileService
+                            .import(project.id, name, part.contentType?.toString(), java.io.ByteArrayInputStream(bytes), session.userId)
+                    }
                 }
                 part.dispose()
             }
@@ -108,10 +117,14 @@ fun Route.inspectionRoutes() {
             // rows into the analytics finding set.  This keeps the ESHS chart
             // consistent with manually created reports without making every
             // dashboard read reopen XLSX files.
-            val importedHse = AppContainer.inspectionReportFileService
-                .healthSafetyObservations(report.id)
-                .map { ManualHseObservation(it.observation, it.answer, it.comment) }
-            synchronizeManualHseFindings(report.id, importedHse)
+            val importedHse = withContext(Dispatchers.IO) {
+                AppContainer.inspectionReportFileService
+                    .healthSafetyObservations(report.id)
+                    .map { ManualHseObservation(it.observation, it.answer, it.comment) }
+            }
+            withContext(Dispatchers.IO) {
+                synchronizeManualHseFindings(report.id, importedHse)
+            }
             AppContainer.auditLogService.record(session.userId, "inspection_imported", "inspection_report", report.id)
             call.respond(HttpStatusCode.Created, report.toResponse())
         } catch (exception: IllegalArgumentException) {
@@ -190,20 +203,26 @@ fun Route.inspectionRoutes() {
                     val name = part.originalFileName ?: throw IllegalArgumentException("File name is required.")
                     val bytes = part.provider().readRemaining(20_000_001).readByteArray()
                     require(bytes.size <= 20_000_000) { "File size must not exceed 20 MB." }
-                    replacement = AppContainer.inspectionReportFileService.replace(
-                        report,
-                        name,
-                        part.contentType?.toString(),
-                        java.io.ByteArrayInputStream(bytes)
-                    )
+                    replacement = withContext(Dispatchers.IO) {
+                        AppContainer.inspectionReportFileService.replace(
+                            report,
+                            name,
+                            part.contentType?.toString(),
+                            java.io.ByteArrayInputStream(bytes)
+                        )
+                    }
                 }
                 part.dispose()
             }
             replacement ?: throw IllegalArgumentException("Multipart field 'file' is required.")
-            val replacementHse = AppContainer.inspectionReportFileService
-                .healthSafetyObservations(report.id)
-                .map { ManualHseObservation(it.observation, it.answer, it.comment) }
-            synchronizeManualHseFindings(report.id, replacementHse)
+            val replacementHse = withContext(Dispatchers.IO) {
+                AppContainer.inspectionReportFileService
+                    .healthSafetyObservations(report.id)
+                    .map { ManualHseObservation(it.observation, it.answer, it.comment) }
+            }
+            withContext(Dispatchers.IO) {
+                synchronizeManualHseFindings(report.id, replacementHse)
+            }
             AppContainer.auditLogService.record(session.userId, "inspection_source_file_replaced", "inspection_report", report.id)
             call.respond(HttpStatusCode.NoContent)
         } catch (exception: IllegalArgumentException) {
