@@ -126,7 +126,7 @@ fun ProjectDetailScreen(
                 documents.value = OmsApiClient.projectDocuments(project.id)
             }
             ProjectDetailTab.Procurement -> load(ProjectDetailResource.Procurement) {
-                val siteCode = project.siteName.trim()
+                val siteCode = project.siteNumber.trim()
                 val subprojectCode = siteCode.substringBefore('#').trim()
                 procurements.value = OmsApiClient.procurements(
                     subprojectCode = subprojectCode,
