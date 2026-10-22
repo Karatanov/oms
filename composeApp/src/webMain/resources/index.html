@@ -162,7 +162,7 @@
             button.hidden = !failed;
             button.textContent = english ? "Retry" : "Повторити";
             button.onclick = retry;
-            document.querySelectorAll("#map-pane, .inspection-photo-preview-pane")
+            document.querySelectorAll("#map-pane, #dashboard-photo-slider, .inspection-photo-preview-pane")
                 .forEach(element => { element.inert = busy; });
         }
 
@@ -1005,6 +1005,72 @@
             }
         }
 
+        function hideDashboardPhotoSlider() {
+            const pane = document.getElementById("dashboard-photo-slider");
+            if (pane) pane.classList.remove("visible");
+        }
+
+        let omsDashboardInspectionPreviewHandler = () => {};
+        function setDashboardInspectionPreviewHandler(handler) {
+            omsDashboardInspectionPreviewHandler = typeof handler === "function" ? handler : () => {};
+        }
+
+        function showDashboardPhotoSlider(reportUuid, inspectionDate, subprojectCode, photosJson) {
+            const pane = document.getElementById("dashboard-photo-slider");
+            if (!pane) return;
+            const photos = JSON.parse(photosJson);
+            pane.replaceChildren();
+            pane.classList.add("visible");
+
+            const title = document.createElement(reportUuid ? "button" : "div");
+            title.className = "photo-slider-title";
+            if (reportUuid) {
+                title.type = "button";
+                title.setAttribute("aria-label", omsText("previewReport"));
+                title.onclick = () => omsDashboardInspectionPreviewHandler(reportUuid);
+            }
+            title.textContent = inspectionDate
+                ? `${omsText("lastInspection")}: ${formatOmsDate(inspectionDate)}${subprojectCode ? ` · ${omsText("subprojectCode")}: ${subprojectCode}` : ""}`
+                : omsText("noReports");
+            pane.append(title);
+            if (!inspectionDate) return;
+
+            if (!photos.length) {
+                const empty = document.createElement("div");
+                empty.className = "photo-slider-empty";
+                empty.textContent = omsText("noPhotos");
+                pane.append(empty);
+                return;
+            }
+
+            const track = document.createElement("div");
+            track.className = "photo-slider-track";
+            photos.forEach(photo => {
+                const button = document.createElement("button");
+                button.type = "button";
+                button.className = "photo-slider-item";
+                button.setAttribute("aria-label", `${omsText("open")} ${photo.fileName}`);
+                const image = document.createElement("img");
+                image.alt = photo.fileName;
+                image.loading = "lazy";
+                image.addEventListener("error", () => {
+                    if (image.dataset.originalAttempted !== "true") {
+                        image.dataset.originalAttempted = "true";
+                        omsSetImageSource(image, photo.downloadUrl);
+                    } else {
+                        image.remove();
+                        button.classList.add("photo-slider-item-unavailable");
+                        button.textContent = omsText("noPhotos");
+                    }
+                });
+                omsSetImageSource(image, photo.thumbnailUrl);
+                button.append(image);
+                button.addEventListener("click", () => openPhotoLightbox(photos, photo.uuid));
+                track.append(button);
+            });
+            pane.append(track);
+        }
+
         function openPhotoLightbox(photos, selectedUuid) {
             let index = Math.max(0, photos.findIndex(photo => photo.uuid === selectedUuid));
             const overlay = document.createElement("div");
@@ -1333,6 +1399,7 @@
 </div>
 <div id="app-shell">
     <div id="compose-host"></div>
+    <section id="dashboard-photo-slider" aria-live="polite"></section>
     <section id="inspection-photo-preview-pane" aria-live="polite"></section>
     <div id="map-pane">
         <div id="map-host"></div>
