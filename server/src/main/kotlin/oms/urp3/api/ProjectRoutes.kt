@@ -673,6 +673,11 @@ fun Route.projectRoutes() {
         val safeCode = project.siteNumber.replace(Regex("[^A-Za-z0-9._-]"), "_").ifBlank { "subproject" }
         val bytes = withContext(Dispatchers.IO) {
             val inspectionReports = AppContainer.inspectionReportService.getProjectReports(project.id)
+            val subprojectCode = project.siteNumber.substringBefore('#').trim()
+            val procurementRecords = AppContainer.procurementService.getAll().filter { record ->
+                record.subProjectId.substringBefore('#').trim().equals(subprojectCode, ignoreCase = true) ||
+                    record.subProjectLotId?.substringBefore('#')?.trim()?.equals(subprojectCode, ignoreCase = true) == true
+            }
             val inspectionPhotos = inspectionReports.flatMap { report ->
                 AppContainer.inspectionPhotoService.list(report.id).mapNotNull { photo ->
                     val thumbnail = AppContainer.inspectionPhotoService.resolveFile(photo, thumbnail = true)
@@ -695,6 +700,7 @@ fun Route.projectRoutes() {
                 financialRecords = AppContainer.financialRecordService.filtered(project.id, null, null, null),
                 inspectionReports = inspectionReports,
                 inspectionPhotos = inspectionPhotos,
+                procurementRecords = procurementRecords,
                 documents = AppContainer.projectDocumentService.list(project.id)
             )
         }

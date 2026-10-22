@@ -3,6 +3,7 @@ package oms.urp3.service
 import oms.urp3.domain.Project
 import oms.urp3.domain.ProjectStatus
 import oms.urp3.domain.ProjectType
+import oms.urp3.domain.ProcurementRecord
 import org.apache.pdfbox.pdmodel.PDDocument
 import org.apache.pdfbox.text.PDFTextStripper
 import java.awt.image.BufferedImage
@@ -26,6 +27,18 @@ class ProjectPdfExportServiceTest {
             language = ProjectPdfExportService.Language.UK,
             inspectionPhotos = listOf(
                 ProjectPdfExportService.PhotoEvidence("SIR-001 · 22.10.2026 · roof.jpg", thumbnail)
+            ),
+            procurementRecords = listOf(
+                ProcurementRecord(
+                    id = 2L, batchId = 8, oblastName = "Харківська", oblastId = "UA63",
+                    subProjectId = "TS01", subProjectLotId = null,
+                    purchaseStatus = "Договір укладено / Contract signed",
+                    tenderId = "T-1", prozorroTenderId = null,
+                    contractorNameUkr = "Підрядник", contractorNameEng = "Contractor", contractorId = null,
+                    contractDate = null, contractEndDate = null, contractDurationMonths = null,
+                    contractAmountUah = 1_250_000.0, contractAmountEur = null,
+                    financingContractDifferencePct = null, sourceContractType = "Роботи / Works"
+                )
             )
         )
 
@@ -34,6 +47,8 @@ class ProjectPdfExportServiceTest {
             val text = PDFTextStripper().getText(document)
             assertTrue(text.contains("Фото інспекцій"))
             assertTrue(text.contains("SIR-001"))
+            assertTrue(text.contains("Закупівлі"))
+            assertTrue(text.contains("Підрядник"))
         }
     }
 
