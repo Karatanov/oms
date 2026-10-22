@@ -157,8 +157,7 @@ object OmsApiClient {
             // size-based fallback during a rolling deploy, but avoid a known
             // redundant empty request whenever the registry has exactly a
             // multiple of the configured page size.
-            hasNextPage = payload.meta?.let { page < it.totalPages }
-                ?: (payload.data.size == pageSize)
+            hasNextPage = hasNextProjectPage(page, payload, pageSize)
             page += 1
         }
         return projects
@@ -812,6 +811,10 @@ data class ProjectPageMetadata(
     val total: Long,
     val totalPages: Int
 )
+
+/** Exact server metadata wins; the size check keeps mixed-version clients working. */
+internal fun hasNextProjectPage(page: Int, payload: ProjectListPayload, pageSize: Int): Boolean =
+    payload.meta?.let { page < it.totalPages } ?: (payload.data.size == pageSize)
 
 @Serializable
 data class ApiProject(
