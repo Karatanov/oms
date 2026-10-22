@@ -674,10 +674,13 @@ fun Route.projectRoutes() {
             projectPdfExportService.export(
                 project = project,
                 monitoring = AppContainer.projectRepository.monitoringDetails(project.id),
-                language = language
+                language = language,
+                financialRecords = AppContainer.financialRecordService.filtered(project.id, null, null, null),
+                inspectionReports = AppContainer.inspectionReportService.getProjectReports(project.id),
+                documents = AppContainer.projectDocumentService.list(project.id)
             )
         }
-        call.response.header(HttpHeaders.ContentDisposition, "attachment; filename=\"$safeCode-general-info-and-financials.pdf\"")
+        call.response.header(HttpHeaders.ContentDisposition, "attachment; filename=\"OMS_$safeCode-subproject-card.pdf\"")
         call.respondBytes(bytes, ContentType.Application.Pdf)
     }
 

@@ -6,6 +6,9 @@ import org.apache.pdfbox.pdmodel.PDPageContentStream
 import org.apache.pdfbox.pdmodel.common.PDRectangle
 import org.apache.pdfbox.pdmodel.font.PDType0Font
 import oms.urp3.domain.Project
+import oms.urp3.domain.ProjectDocument
+import oms.urp3.domain.FinancialRecord
+import oms.urp3.domain.InspectionReport
 import oms.urp3.domain.ProjectMonitoringDetails
 import java.io.ByteArrayOutputStream
 import java.math.BigDecimal
@@ -20,7 +23,14 @@ import java.time.LocalDate
 class ProjectPdfExportService {
     enum class Language { UK, EN }
 
-    fun export(project: Project, monitoring: ProjectMonitoringDetails? = null, language: Language = Language.UK): ByteArray = PDDocument().use { document ->
+    fun export(
+        project: Project,
+        monitoring: ProjectMonitoringDetails? = null,
+        language: Language = Language.UK,
+        financialRecords: List<FinancialRecord> = emptyList(),
+        inspectionReports: List<InspectionReport> = emptyList(),
+        documents: List<ProjectDocument> = emptyList()
+    ): ByteArray = PDDocument().use { document ->
         val fontBytes = requireNotNull(javaClass.getResourceAsStream("/fonts/DejaVuSans.ttf")) { "PDF export font is unavailable." }
         val font = fontBytes.use { PDType0Font.load(document, it, true) }
         val writer = PdfWriter(document, font, language)
@@ -53,6 +63,36 @@ class ProjectPdfExportService {
             row(writer.label("name"), project.engineerConsultantName); row(writer.label("contract_number"), project.engineerConsultantContractNumber); row(writer.label("contract_date"), project.engineerConsultantContractDate)
             row(writer.label("contract_start_date"), project.engineerConsultantStartDate); row(writer.label("contract_planned_end_date"), project.engineerConsultantPlannedEndDate); row(writer.label("contract_duration"), project.engineerConsultantDurationDays?.let(writer::months))
         }
+        if (financialRecords.isNotEmpty()) writer.section(writer.label("financial_records"), Icon.FINANCE) {
+            financialRecords.sortedByDescending { it.recordDate }.forEach { record ->
+                row(
+                    "${record.recordDate} · ${writer.recordType(record.recordType.name)}",
+                    listOfNotNull(
+                        record.referenceNumber.takeIf(String::isNotBlank),
+                        money(record.amount, record.currency),
+                        record.description?.takeIf(String::isNotBlank)
+                    ).joinToString(" — ")
+                )
+            }
+        }
+        if (inspectionReports.isNotEmpty()) writer.section(writer.label("inspection_reports_tab"), Icon.INFO) {
+            inspectionReports.sortedByDescending { it.inspectionDate }.forEach { report ->
+                row(
+                    report.inspectionDate,
+                    listOfNotNull(
+                        report.reportCode?.takeIf(String::isNotBlank),
+                        writer.status(report.status.name),
+                        report.summary?.takeIf(String::isNotBlank)
+                    ).joinToString(" — ")
+                )
+            }
+        }
+        val standaloneDocuments = documents.filterNot { it.relatedEntity == "financial_record" }
+        if (standaloneDocuments.isNotEmpty()) writer.section(writer.label("documents"), Icon.INFO) {
+            standaloneDocuments.forEach { document ->
+                row(writer.documentType(document.docType), document.originalName)
+            }
+        }
         ByteArrayOutputStream().use { output -> writer.close(); document.save(output); output.toByteArray() }
     }
 
@@ -82,6 +122,8 @@ class ProjectPdfExportService {
         fun label(key: String) = translations[key]?.get(language) ?: key
         fun months(days: Long): String { val value = kotlin.math.round(days / 30.44).toInt().coerceAtLeast(1); return if (language == Language.UK) "$value міс." else "$value months" }
         fun status(value: String) = when (value.lowercase()) { "planned" -> if (language == Language.UK) "Заплановано" else "Planned"; "active" -> if (language == Language.UK) "Активний" else "Active"; "suspended" -> if (language == Language.UK) "Призупинено" else "Suspended"; "completed" -> if (language == Language.UK) "Завершено" else "Completed"; "archived" -> if (language == Language.UK) "Архівовано" else "Archived"; "dlp" -> "DLP"; else -> value }
+        fun recordType(value: String) = when (value.lowercase()) { "invoice" -> if (language == Language.UK) "Рахунок" else "Invoice"; "act" -> if (language == Language.UK) "Акт" else "Act"; "payment" -> if (language == Language.UK) "Платіж" else "Payment"; "advance" -> if (language == Language.UK) "Аванс" else "Advance"; else -> value }
+        fun documentType(value: String) = when (value.lowercase()) { "contract" -> if (language == Language.UK) "Договір" else "Contract"; "design" -> if (language == Language.UK) "Проєктна документація" else "Design document"; "estimate" -> if (language == Language.UK) "Кошторис" else "Estimate"; "invoice" -> if (language == Language.UK) "Рахунок" else "Invoice"; "act" -> if (language == Language.UK) "Акт" else "Act"; "photo" -> if (language == Language.UK) "Фото" else "Photo"; else -> if (language == Language.UK) "Інший документ" else "Other document" }
         fun sector(value: String?) = when (value?.lowercase()) { "education" -> if (language == Language.UK) "Освіта" else "Education"; "health", "healthcare" -> if (language == Language.UK) "Охорона здоров’я" else "Healthcare"; "housing" -> if (language == Language.UK) "Житло" else "Housing"; "water_supply" -> if (language == Language.UK) "Водопостачання" else "Water supply"; "sewerage" -> if (language == Language.UK) "Водовідведення" else "Sewerage"; "heat_supply" -> if (language == Language.UK) "Теплопостачання" else "Heat supply"; "shelter" -> if (language == Language.UK) "Укриття" else "Shelter"; null, "" -> null; else -> value.replace('_', ' ').replaceFirstChar(Char::uppercase) }
         fun constructionType(value: String?) = when (value?.lowercase()) { "reconstruction" -> if (language == Language.UK) "Реконструкція" else "Reconstruction"; "capital_repair" -> if (language == Language.UK) "Капітальний ремонт" else "Capital repair"; "new_construction" -> if (language == Language.UK) "Нове будівництво" else "New construction"; null, "" -> null; else -> value.replace('_', ' ').replaceFirstChar(Char::uppercase) }
         fun close() { stream?.close() }
@@ -93,7 +135,7 @@ class ProjectPdfExportService {
         private fun drawIcon(icon: Icon, x: Float, centerY: Float) { fillColor(primary); when (icon) { Icon.LOCATION -> { stream!!.addRect(x - 4f, centerY - 5f, 8f, 10f); stream!!.fill(); stream!!.setNonStrokingColor(1f,1f,1f); stream!!.addRect(x - 1f, centerY + 1f, 2f, 2f); stream!!.fill() }; Icon.FINANCE -> { stream!!.addRect(x - 5f, centerY - 5f, 3f, 10f); stream!!.addRect(x, centerY - 2f, 3f, 7f); stream!!.addRect(x + 5f, centerY - 7f, 3f, 12f); stream!!.fill() }; Icon.CONSTRUCTION -> { stream!!.addRect(x - 7f, centerY - 2f, 14f, 3f); stream!!.addRect(x - 1.5f, centerY - 7f, 3f, 12f); stream!!.fill() }; else -> { stream!!.addRect(x - 5f, centerY - 5f, 10f, 10f); stream!!.fill() } } }
         companion object {
             private val translations = mapOf(
-                "basic_information" to mapOf(Language.UK to "Основна інформація", Language.EN to "Basic information"), "parameters_and_location" to mapOf(Language.UK to "Параметри та розташування", Language.EN to "Parameters and location"), "section_finance" to mapOf(Language.UK to "Фінансування та контракти", Language.EN to "Financing and contracts"), "construction_contractor_information" to mapOf(Language.UK to "Інформація про підрядника будівельних робіт", Language.EN to "Construction contractor information"), "technical_supervision_information" to mapOf(Language.UK to "Інформація про технічний нагляд", Language.EN to "Technical supervision information"), "engineer_consultant_information" to mapOf(Language.UK to "Інформація про інженера-консультанта", Language.EN to "Engineer-consultant information"),
+                "basic_information" to mapOf(Language.UK to "Основна інформація", Language.EN to "Basic information"), "parameters_and_location" to mapOf(Language.UK to "Параметри та розташування", Language.EN to "Parameters and location"), "section_finance" to mapOf(Language.UK to "Фінансування та контракти", Language.EN to "Financing and contracts"), "construction_contractor_information" to mapOf(Language.UK to "Інформація про підрядника будівельних робіт", Language.EN to "Construction contractor information"), "technical_supervision_information" to mapOf(Language.UK to "Інформація про технічний нагляд", Language.EN to "Technical supervision information"), "engineer_consultant_information" to mapOf(Language.UK to "Інформація про інженера-консультанта", Language.EN to "Engineer-consultant information"), "financial_records" to mapOf(Language.UK to "Фінансові записи", Language.EN to "Financial records"), "inspection_reports_tab" to mapOf(Language.UK to "Інспекційні звіти", Language.EN to "Inspection reports"), "documents" to mapOf(Language.UK to "Документи", Language.EN to "Documents"),
                 "name" to mapOf(Language.UK to "Назва", Language.EN to "Name"), "subproject_code" to mapOf(Language.UK to "Код субпроєкту", Language.EN to "Subproject code"), "tranche" to mapOf(Language.UK to "Транш", Language.EN to "Tranche"), "status" to mapOf(Language.UK to "Статус", Language.EN to "Status"), "beneficiary" to mapOf(Language.UK to "Бенефіціар", Language.EN to "Beneficiary"), "description" to mapOf(Language.UK to "Опис", Language.EN to "Description"), "sector" to mapOf(Language.UK to "Сектор", Language.EN to "Sector"), "construction_type" to mapOf(Language.UK to "Тип будівництва", Language.EN to "Construction type"), "address" to mapOf(Language.UK to "Адреса", Language.EN to "Address"), "city" to mapOf(Language.UK to "Населений пункт", Language.EN to "City"), "region" to mapOf(Language.UK to "Область", Language.EN to "Region"), "municipality" to mapOf(Language.UK to "Муніципалітет", Language.EN to "Municipality"), "coordinates" to mapOf(Language.UK to "Координати", Language.EN to "Coordinates"), "planned_end_date" to mapOf(Language.UK to "Планова дата завершення", Language.EN to "Planned completion date"), "implementation_duration" to mapOf(Language.UK to "Строк реалізації", Language.EN to "Implementation duration"),
                 "budget" to mapOf(Language.UK to "Загальна вартість проєкту", Language.EN to "Total project cost"), "subproject_cost_eib_financing" to mapOf(Language.UK to "Вартість проєкту, фінансування ЄІБ", Language.EN to "Subproject cost, EIB financing"), "subproject_cost_local_financing" to mapOf(Language.UK to "Вартість проєкту, місцеве фінансування", Language.EN to "Subproject cost, local financing"), "subproject_contract_amount" to mapOf(Language.UK to "Сума контракту субпроєкту", Language.EN to "Subproject contract amount"), "technical_supervision_contract_amount" to mapOf(Language.UK to "Сума договору технічного нагляду", Language.EN to "Technical supervision contract amount"), "engineer_consultant_contract_amount" to mapOf(Language.UK to "Сума договору інженера-консультанта", Language.EN to "Engineer-consultant contract amount"),
                 "contractor" to mapOf(Language.UK to "Підрядник", Language.EN to "Contractor"), "contract_number" to mapOf(Language.UK to "Номер договору", Language.EN to "Contract number"), "contract_start_date" to mapOf(Language.UK to "Дата початку", Language.EN to "Start date"), "contract_planned_end_date" to mapOf(Language.UK to "Планова дата завершення", Language.EN to "Planned completion date"), "construction_contract_date" to mapOf(Language.UK to "Дата договору", Language.EN to "Contract date"), "construction_start_date" to mapOf(Language.UK to "Початок будівництва", Language.EN to "Construction start"), "projected_completion_date" to mapOf(Language.UK to "Планова дата завершення", Language.EN to "Planned completion date"), "contract_duration" to mapOf(Language.UK to "Тривалість контракту", Language.EN to "Contract duration"), "contract_date" to mapOf(Language.UK to "Дата договору", Language.EN to "Contract date")
