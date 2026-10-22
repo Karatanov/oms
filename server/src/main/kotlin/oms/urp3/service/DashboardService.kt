@@ -4,6 +4,7 @@ import oms.urp3.database.tables.*
 import oms.urp3.domain.InspectionReport
 import oms.urp3.domain.InspectionReportStatus
 import oms.urp3.domain.ProjectAmount
+import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.core.inList
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
@@ -296,8 +297,14 @@ class DashboardService(
     fun getOverview(allowedProjectIds: Set<Long>? = null, trancheNumber: Int? = null): DashboardOverviewData = transaction {
         val projects = dashboardProjects(allowedProjectIds, trancheNumber)
         val projectIds = projects.map { it[ProjectTable.id].value }.toSet()
+        // The overview renders only the five newest reports.  Apply that
+        // window in SQL instead of transferring the full report history and
+        // sorting it in application memory on every dashboard visit.
         val reports = if (projectIds.isEmpty()) emptyList() else InspectionReportTable.selectAll()
-            .where { InspectionReportTable.projectId inList projectIds }.toList()
+            .where { InspectionReportTable.projectId inList projectIds }
+            .orderBy(InspectionReportTable.inspectionDate, SortOrder.DESC)
+            .limit(5)
+            .toList()
         // An empty project scope is a normal state for a freshly deployed or
         // fully filtered workspace. Do not send an empty IN predicate to the
         // database just to discover that there can be no ledger rows.
@@ -407,7 +414,7 @@ class DashboardService(
             row[InspectionReportTable.rejectionReason], row[InspectionReportTable.latitude]?.toDouble(), row[InspectionReportTable.longitude]?.toDouble(), row[InspectionReportTable.createdBy].value
         )
         DashboardOverviewData(
-            reports.sortedByDescending { it[InspectionReportTable.inspectionDate] }.take(5).map { row ->
+            reports.map { row ->
                 val inspection = report(row)
                 DashboardRecentInspection(
                     inspection,
