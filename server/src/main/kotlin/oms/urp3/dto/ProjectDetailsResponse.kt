@@ -22,5 +22,17 @@ data class ProjectMonitoringDetailsResponse(
     val beneficiaryNameUk: String? = null,
     val beneficiaryNameEn: String? = null,
     val constructionProcurementStatus: String? = null,
-    val constructionWorkStatus: String? = null
+    val constructionWorkStatus: String? = null,
+    val dreamProjectUrl: String? = null,
+    val dedUrl: String? = null,
+    val estimateUrl: String? = null,
+    val expertiseUrl: String? = null,
+    val permitUrl: String? = null,
+    val constructionActNumber: String? = null,
+    val constructionActDate: String? = null,
+    val completedWorkPct: String? = null,
+    val financingUsedPct: String? = null,
+    val paidFinancingPct: String? = null,
+    val constructionWorkSummary: String? = null,
+    val constructionWorkComments: String? = null
 )

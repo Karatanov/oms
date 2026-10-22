@@ -458,7 +458,19 @@ fun Route.projectRoutes() {
                         beneficiaryNameUk = it.beneficiaryNameUk,
                         beneficiaryNameEn = it.beneficiaryNameEn,
                         constructionProcurementStatus = it.constructionProcurementStatus,
-                        constructionWorkStatus = it.constructionWorkStatus
+                        constructionWorkStatus = it.constructionWorkStatus,
+                        dreamProjectUrl = it.dreamProjectUrl,
+                        dedUrl = it.dedUrl,
+                        estimateUrl = it.estimateUrl,
+                        expertiseUrl = it.expertiseUrl,
+                        permitUrl = it.permitUrl,
+                        constructionActNumber = it.constructionActNumber,
+                        constructionActDate = it.constructionActDate,
+                        completedWorkPct = it.completedWorkPct,
+                        financingUsedPct = it.financingUsedPct,
+                        paidFinancingPct = it.paidFinancingPct,
+                        constructionWorkSummary = it.constructionWorkSummary,
+                        constructionWorkComments = it.constructionWorkComments
                     )
                 },
                 contractorNameEn = contractorNameEn

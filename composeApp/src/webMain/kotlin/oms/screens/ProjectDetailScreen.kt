@@ -585,6 +585,22 @@ private fun ProjectGeneralInfoTab(details: oms.data.ApiProjectDetails?) {
                     LocalizationManager.t("work_status") to (it.constructionWorkStatus ?: "—")
                 )
             }.orEmpty()
+            val engineering = details.monitoringDetails?.let { source ->
+                listOfNotNull(
+                    source.dreamProjectUrl?.takeIf(String::isNotBlank)?.let { LocalizationManager.t("dream_project_link") to it },
+                    source.dedUrl?.takeIf(String::isNotBlank)?.let { LocalizationManager.t("ded_documentation") to it },
+                    source.estimateUrl?.takeIf(String::isNotBlank)?.let { LocalizationManager.t("estimate_documentation") to it },
+                    source.expertiseUrl?.takeIf(String::isNotBlank)?.let { LocalizationManager.t("project_expertise") to it },
+                    source.permitUrl?.takeIf(String::isNotBlank)?.let { LocalizationManager.t("construction_permit") to it },
+                    source.constructionActNumber?.takeIf(String::isNotBlank)?.let { LocalizationManager.t("act_number") to it },
+                    source.constructionActDate?.takeIf(String::isNotBlank)?.let { LocalizationManager.t("act_date") to it },
+                    source.completedWorkPct?.takeIf(String::isNotBlank)?.let { LocalizationManager.t("completed_work_pct") to "$it %" },
+                    source.financingUsedPct?.takeIf(String::isNotBlank)?.let { LocalizationManager.t("financing_used_pct") to "$it %" },
+                    source.paidFinancingPct?.takeIf(String::isNotBlank)?.let { LocalizationManager.t("paid_financing_pct") to "$it %" },
+                    source.constructionWorkSummary?.takeIf(String::isNotBlank)?.let { LocalizationManager.t("construction_work_summary") to it },
+                    source.constructionWorkComments?.takeIf(String::isNotBlank)?.let { LocalizationManager.t("construction_work_comments") to it }
+                )
+            }.orEmpty()
             Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 CollapsibleProjectSection(
                     LocalizationManager.t("basic_information"),
@@ -599,6 +615,7 @@ private fun ProjectGeneralInfoTab(details: oms.data.ApiProjectDetails?) {
                 CollapsibleProjectSection(LocalizationManager.t("technical_supervision_information"), Icons.Default.Info, technical)
                 CollapsibleProjectSection(LocalizationManager.t("engineer_consultant_information"), Icons.Default.Info, engineer)
                 if (procurement.isNotEmpty()) CollapsibleProjectSection(LocalizationManager.t("procurement_title"), Icons.Default.Info, procurement)
+                if (engineering.isNotEmpty()) CollapsibleProjectSection(LocalizationManager.t("engineering_information"), Icons.Default.Info, engineering)
             }
         }
     }
@@ -641,7 +658,15 @@ private fun CollapsibleProjectSection(
                     } else {
                         Text(label, modifier = Modifier.width(210.dp), color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
-                    Text(value, modifier = Modifier.weight(1f))
+                    if (value.startsWith("https://", ignoreCase = true) || value.startsWith("http://", ignoreCase = true)) {
+                        TextButton(
+                            onClick = { uriHandler.openUri(value) },
+                            modifier = Modifier.weight(1f).pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true),
+                            contentPadding = PaddingValues(0.dp)
+                        ) { Text(value, textAlign = TextAlign.Start, modifier = Modifier.fillMaxWidth()) }
+                    } else {
+                        Text(value, modifier = Modifier.weight(1f))
+                    }
                 }
                 HorizontalDivider()
             }
