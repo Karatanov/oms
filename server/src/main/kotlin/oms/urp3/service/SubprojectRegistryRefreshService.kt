@@ -148,7 +148,7 @@ class SubprojectRegistryRefreshService(
                 val contractDate = row.date("contractDate")
                 val contractEnd = row.date("contractEndDate")
                 val name = row.value("name").ifBlank { row.value("nameEn") }.ifBlank { code }
-                if (existing == null) {
+                return if (existing == null) {
                     val id = ProjectTable.insertAndGetId {
                         it[ProjectTable.uuid] = UUID.randomUUID().toString()
                         it[ProjectTable.projectType] = type.name.lowercase()
