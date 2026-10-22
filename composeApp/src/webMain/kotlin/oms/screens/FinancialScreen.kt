@@ -1134,12 +1134,12 @@ private fun PaymentMonitoringHeader() {
 private fun PaymentMonitoringRow(row: oms.data.ApiPaymentMonitoringItem) {
     Row(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
         PaymentMonitoringCell(row.code, 130.dp)
-        PaymentMonitoringCell(row.totalInvestmentUah.asUah(), 165.dp)
-        PaymentMonitoringCell(row.eibInvestmentUah.asUah(), 180.dp)
-        PaymentMonitoringCell(row.localCoFinancingUah.asUah(), 170.dp)
-        PaymentMonitoringCell(row.paidAndInProgressUah.asUah(), 190.dp)
-        PaymentMonitoringCell(row.paidUah.asUah(), 150.dp)
-        PaymentMonitoringCell(row.remainingUah.asUah(), 160.dp)
+        PaymentMonitoringCell(row.totalInvestmentUah.asUahTableValue(), 165.dp)
+        PaymentMonitoringCell(row.eibInvestmentUah.asUahTableValue(), 180.dp)
+        PaymentMonitoringCell(row.localCoFinancingUah.asUahTableValue(), 170.dp)
+        PaymentMonitoringCell(row.paidAndInProgressUah.asUahTableValue(), 190.dp)
+        PaymentMonitoringCell(row.paidUah.asUahTableValue(), 150.dp)
+        PaymentMonitoringCell(row.remainingUah.asUahTableValue(), 160.dp)
         PaymentMonitoringCell(row.plannedEibSharePct.asPercent(), 130.dp)
         PaymentMonitoringCell(row.factualEibSharePct.asPercent(), 130.dp)
         PaymentMonitoringCell(row.eibShareCompliance ?: "—", 160.dp)
@@ -1156,7 +1156,8 @@ private fun PaymentMonitoringCell(value: String, width: androidx.compose.ui.unit
     )
 }
 
-private fun Double?.asUah(): String = this?.let { "${it.formatUiAmount()} UAH" } ?: "—"
+/** The column header already identifies these values as UAH. */
+private fun Double?.asUahTableValue(): String = this?.let(Double::formatUiAmount) ?: "—"
 private fun Double?.asPercent(): String = this?.let { "${it.formatUiAmount()}%" } ?: "—"
 
 @Composable
