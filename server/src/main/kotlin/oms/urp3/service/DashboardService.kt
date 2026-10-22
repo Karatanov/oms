@@ -207,6 +207,34 @@ private fun procurementBatchIdsForTranche(filter: Int?): List<Int>? = when (filt
     else -> emptyList()
 }
 
+/**
+ * Fetch only the project scope needed by a dashboard request.  The final
+ * in-memory predicate preserves the established A/B mapping for legacy data,
+ * while the common manager and tranche filters now narrow the database read.
+ */
+private fun dashboardProjects(
+    allowedProjectIds: Set<Long>?,
+    trancheNumber: Int?
+): List<org.jetbrains.exposed.v1.core.ResultRow> {
+    if (allowedProjectIds?.isEmpty() == true) return emptyList()
+    val trancheValues = procurementBatchIdsForTranche(trancheNumber)
+    if (trancheValues?.isEmpty() == true) return emptyList()
+
+    val rows = when {
+        allowedProjectIds != null -> ProjectTable.selectAll()
+            .where { ProjectTable.id inList allowedProjectIds.toList() }
+            .toList()
+        trancheValues != null -> ProjectTable.selectAll()
+            .where { ProjectTable.trancheNumber inList trancheValues }
+            .toList()
+        else -> ProjectTable.selectAll().toList()
+    }
+    return rows.filter { row ->
+        (allowedProjectIds == null || row[ProjectTable.id].value in allowedProjectIds) &&
+            row[ProjectTable.trancheNumber].matchesTrancheFilter(trancheNumber)
+    }
+}
+
 private fun org.jetbrains.exposed.v1.core.ResultRow.amountUahCents(): Long? {
     val amount = this[FinancialRecordTable.amount].toDouble()
     return when (this[FinancialRecordTable.currency].uppercase()) {
@@ -249,11 +277,7 @@ class DashboardService(
      * not wait for audit history, inspection findings or unused financial cuts.
      */
     fun getOverview(allowedProjectIds: Set<Long>? = null, trancheNumber: Int? = null): DashboardOverviewData = transaction {
-        val projects = ProjectTable.selectAll().toList()
-            .filter {
-                (allowedProjectIds == null || it[ProjectTable.id].value in allowedProjectIds) &&
-                    it[ProjectTable.trancheNumber].matchesTrancheFilter(trancheNumber)
-            }
+        val projects = dashboardProjects(allowedProjectIds, trancheNumber)
         val projectIds = projects.map { it[ProjectTable.id].value }.toSet()
         val reports = if (projectIds.isEmpty()) emptyList() else InspectionReportTable.selectAll()
             .where { InspectionReportTable.projectId inList projectIds }.toList()
@@ -377,10 +401,7 @@ class DashboardService(
 
     fun get(allowedProjectIds: Set<Long>? = null, trancheNumber: Int? = null): DashboardData {
         return transaction {
-        val projects = ProjectTable.selectAll().toList().filter {
-            (allowedProjectIds == null || it[ProjectTable.id].value in allowedProjectIds) &&
-                it[ProjectTable.trancheNumber].matchesTrancheFilter(trancheNumber)
-        }
+        val projects = dashboardProjects(allowedProjectIds, trancheNumber)
         val projectIds = projects.map { it[ProjectTable.id].value }.toSet()
         val reports = if (projectIds.isEmpty()) emptyList() else InspectionReportTable.selectAll()
             .where { InspectionReportTable.projectId inList projectIds }.toList()
