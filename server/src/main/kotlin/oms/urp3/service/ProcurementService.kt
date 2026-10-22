@@ -67,8 +67,15 @@ class ProcurementService(
         }
     }
 
-    fun getBySubProjectId(subProjectId: String) = getAll().filter {
-        it.subProjectId.equals(subProjectId.trim(), ignoreCase = true)
+    /**
+     * Detail cards need only one small slice of the approved registry.  Query
+     * it directly instead of deserialising the complete register and sending
+     * it back through the API for every opened subproject.
+     */
+    fun getForProjectCard(subprojectCode: String?, lotCode: String?): List<ProcurementRecord> = when {
+        !lotCode.isNullOrBlank() -> repository.findBySubProjectLotId(lotCode.trim())
+        !subprojectCode.isNullOrBlank() -> repository.findBySubProjectId(subprojectCode.trim())
+        else -> emptyList()
     }
 
     /**

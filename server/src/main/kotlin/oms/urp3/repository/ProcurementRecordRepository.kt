@@ -13,6 +13,7 @@ import java.math.BigDecimal
 interface ProcurementRecordRepository {
     fun findAll(): List<ProcurementRecord>
     fun findBySubProjectId(subProjectId: String): List<ProcurementRecord>
+    fun findBySubProjectLotId(subProjectLotId: String): List<ProcurementRecord>
     /** Replaces the complete procurement registry from the approved source, atomically. */
     fun replaceAll(records: List<ProcurementRecord>): Int
 }
@@ -25,6 +26,12 @@ class ExposedProcurementRecordRepository : ProcurementRecordRepository {
     override fun findBySubProjectId(subProjectId: String): List<ProcurementRecord> = transaction {
         ProcurementRecordTable.selectAll()
             .where { ProcurementRecordTable.subProjectId eq subProjectId }
+            .map(::map)
+    }
+
+    override fun findBySubProjectLotId(subProjectLotId: String): List<ProcurementRecord> = transaction {
+        ProcurementRecordTable.selectAll()
+            .where { ProcurementRecordTable.subProjectLotId eq subProjectLotId }
             .map(::map)
     }
 

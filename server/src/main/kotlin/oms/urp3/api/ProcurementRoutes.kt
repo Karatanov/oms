@@ -28,19 +28,11 @@ fun Route.procurementRoutes() {
         val subprojectCode = call.request.queryParameters["subprojectCode"]?.trim()?.takeIf(String::isNotEmpty)
         val lotCode = call.request.queryParameters["lotCode"]?.trim()?.takeIf(String::isNotEmpty)
         val response = withContext(Dispatchers.IO) {
-            AppContainer.procurementService.getAll()
-                .asSequence()
-                .filter { record ->
-                    when {
-                        lotCode != null -> record.subProjectLotId?.trim()?.equals(lotCode, ignoreCase = true) == true
-                        subprojectCode != null ->
-                            record.subProjectId.substringBefore('#').trim().equals(subprojectCode, ignoreCase = true) ||
-                                record.subProjectLotId?.substringBefore('#')?.trim()?.equals(subprojectCode, ignoreCase = true) == true
-                        else -> true
-                    }
-                }
-                .map(ProcurementRecord::toResponse)
-                .toList()
+            if (subprojectCode == null && lotCode == null) {
+                AppContainer.procurementService.getAll()
+            } else {
+                AppContainer.procurementService.getForProjectCard(subprojectCode, lotCode)
+            }.map(ProcurementRecord::toResponse)
         }
         call.respond(response)
     }
