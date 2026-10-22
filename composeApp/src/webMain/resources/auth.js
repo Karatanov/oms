@@ -42,10 +42,10 @@
             if (image.omsGeneration === generation) image.dispatchEvent(new Event('error'));
         }
     };
-    window.openOmsDownload = async url => {
+    const downloadOmsResponse = async (url, options = {}) => {
         if (!apiUrl(url)) return;
         try {
-            const response = await omsAuthenticatedFetch(url);
+            const response = await omsAuthenticatedFetch(url, options);
             if (!response.ok) {
                 let message = '';
                 try {
@@ -73,4 +73,10 @@
             alert(error instanceof Error && error.message ? error.message : fallback);
         }
     };
+    window.openOmsDownload = url => downloadOmsResponse(url);
+    window.openOmsJsonDownload = (url, jsonBody) => downloadOmsResponse(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: jsonBody
+    });
 })();

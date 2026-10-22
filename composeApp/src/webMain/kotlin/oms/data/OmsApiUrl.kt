@@ -7,6 +7,14 @@ import kotlin.js.JsName
 external fun openOmsDownload(url: String)
 
 /**
+ * Downloads an authenticated file generated from a JSON request body.  Table
+ * exports use this path so a fully filtered registry never has to squeeze a
+ * long list of UUIDs into a browser URL.
+ */
+@JsName("openOmsJsonDownload")
+external fun openOmsJsonDownload(url: String, jsonBody: String)
+
+/**
  * Production at ua-oms.com serves the browser client and API from the same
  * HTTPS origin. The legacy GitHub Pages build uses that same public API.
  */

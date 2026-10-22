@@ -1,6 +1,7 @@
 package oms.urp3.api
 
 import io.ktor.http.*
+import io.ktor.server.application.ApplicationCall
 import io.ktor.http.content.PartData
 import io.ktor.http.content.forEachPart
 import io.ktor.server.request.*
@@ -31,6 +32,14 @@ private data class SubprojectRegistryRefreshResponse(
     val phase: String,
     val importedCount: Int? = null,
     val error: String? = null
+)
+
+/** Ordered client-side table selection used by the printable subproject registry. */
+@Serializable
+private data class SubprojectsTablePdfRequest(
+    val projectUuids: List<String> = emptyList(),
+    val language: String = "uk",
+    val filterSummary: String? = null
 )
 
 private fun oms.urp3.service.SubprojectRegistryRefreshService.RefreshStatus.toResponse() =
@@ -579,22 +588,47 @@ fun Route.projectRoutes() {
      * sorted in the browser. Keeping that ordered selection avoids reapplying
      * UI-only search and tree rules on the server or losing rows to pagination.
      */
-    get("/api/v1/projects/export-table-pdf") {
-        call.requireRole("ADMIN", "PROJECT_MANAGER") ?: return@get
-        val requestedUuids = call.request.queryParameters.getAll("uuid")
-            ?.map(String::trim)?.filter(String::isNotEmpty).orEmpty()
+    suspend fun exportSubprojectsTablePdf(
+        targetCall: ApplicationCall,
+        requestedUuids: List<String>,
+        requestedLanguage: String,
+        requestedFilterSummary: String?
+    ) {
         val allProjects = projectService.getAllProjects()
         val projectsByUuid = allProjects.associateBy { it.uuid.toString() }
         val projects = if (requestedUuids.isEmpty()) allProjects else requestedUuids.mapNotNull(projectsByUuid::get)
-        val language = if (call.request.queryParameters["lang"].equals("en", ignoreCase = true)) {
+        val language = if (requestedLanguage.equals("en", ignoreCase = true)) {
             SubprojectsTablePdfExportService.Language.EN
         } else SubprojectsTablePdfExportService.Language.UK
-        val filterSummary = call.request.queryParameters["filters"]?.take(500)
+        val filterSummary = requestedFilterSummary?.take(500)
         val monitoring = projectService.monitoringDetailsByProjectIds(projects.map { it.id })
-        call.response.header(HttpHeaders.ContentDisposition, "attachment; filename=oms-subprojects.pdf")
-        call.respondOutputStream(ContentType.Application.Pdf) {
+        targetCall.response.header(HttpHeaders.ContentDisposition, "attachment; filename=oms-subprojects.pdf")
+        targetCall.respondOutputStream(ContentType.Application.Pdf) {
             write(subprojectsTablePdfExportService.export(projects, monitoring, language, filterSummary))
         }
+    }
+
+    // Keep the legacy GET endpoint for previously deployed browser bundles.
+    get("/api/v1/projects/export-table-pdf") {
+        call.requireRole("ADMIN", "PROJECT_MANAGER") ?: return@get
+        exportSubprojectsTablePdf(
+            targetCall = call,
+            requestedUuids = call.request.queryParameters.getAll("uuid")
+                ?.map(String::trim)?.filter(String::isNotEmpty).orEmpty(),
+            requestedLanguage = call.request.queryParameters["lang"].orEmpty(),
+            requestedFilterSummary = call.request.queryParameters["filters"]
+        )
+    }
+
+    post("/api/v1/projects/export-table-pdf") {
+        call.requireRole("ADMIN", "PROJECT_MANAGER") ?: return@post
+        val request = call.receive<SubprojectsTablePdfRequest>()
+        exportSubprojectsTablePdf(
+            targetCall = call,
+            requestedUuids = request.projectUuids.map(String::trim).filter(String::isNotEmpty).distinct(),
+            requestedLanguage = request.language,
+            requestedFilterSummary = request.filterSummary
+        )
     }
 
     patch("/api/v1/projects/{uuid}") {

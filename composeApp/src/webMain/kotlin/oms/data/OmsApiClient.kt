@@ -25,6 +25,10 @@ import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.delay
 import kotlin.js.ExperimentalWasmJsInterop
@@ -225,10 +229,19 @@ object OmsApiClient {
     fun projectExportUrl(projectUuids: Collection<String>): String =
         "$baseUrl/projects/export" + projectUuids.joinToString(prefix = "?", separator = "&") { "uuid=$it" }
 
-    /** The browser supplies the fully filtered/sorted table order for PDF export. */
-    fun projectTablePdfExportUrl(projectUuids: Collection<String>, language: String, filterSummary: String): String =
-        "$baseUrl/projects/export-table-pdf?lang=$language&filters=${filterSummary.encodeURLParameter()}" +
-            projectUuids.joinToString(separator = "", prefix = "") { "&uuid=$it" }
+    /**
+     * Sends the filtered table order in the request body rather than the URL.
+     * A registry can contain hundreds of UUIDs, exceeding common proxy URL
+     * limits when a status or construction-type filter selects many rows.
+     */
+    fun downloadProjectTablePdf(projectUuids: Collection<String>, language: String, filterSummary: String) {
+        val body = buildJsonObject {
+            put("projectUuids", JsonArray(projectUuids.map(::JsonPrimitive)))
+            put("language", language)
+            put("filterSummary", filterSummary)
+        }.toString()
+        openOmsJsonDownload("$baseUrl/projects/export-table-pdf", body)
+    }
 
     /** Mirrors the active Financial Monitoring view without serializing every record UUID into the URL. */
     fun financialTablePdfExportUrl(

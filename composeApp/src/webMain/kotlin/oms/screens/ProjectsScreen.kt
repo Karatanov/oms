@@ -386,7 +386,7 @@ fun ProjectsScreen(
             onSelectionChange = { id, selected -> selectedProjectIds = if (selected) selectedProjectIds + id else selectedProjectIds - id },
             onExportPdf = if (canManageProjects) { orderedIds ->
                 val language = if (oms.localization.LocalizationManager.currentLanguage == oms.localization.Language.EN) "en" else "uk"
-                oms.data.openOmsDownload(oms.data.OmsApiClient.projectTablePdfExportUrl(orderedIds, language, exportFilterSummary))
+                oms.data.OmsApiClient.downloadProjectTablePdf(orderedIds, language, exportFilterSummary)
             } else null
         )
 
