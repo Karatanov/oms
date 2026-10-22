@@ -253,6 +253,7 @@ object OmsApiClient {
         subprojectUuid: String?,
         region: String?,
         month: String?,
+        year: Int?,
         sort: String,
         ascending: Boolean,
         filterSummary: String
@@ -266,6 +267,7 @@ object OmsApiClient {
             subprojectUuid?.let { add("subproject=${it.encodeURLParameter()}") }
             region?.let { add("region=${it.encodeURLParameter()}") }
             month?.let { add("month=${it.encodeURLParameter()}") }
+            year?.let { add("year=$it") }
             add("sort=${sort.encodeURLParameter()}")
             add("ascending=$ascending")
             filterSummary.takeIf(String::isNotBlank)?.let { add("filters=${it.encodeURLParameter()}") }
@@ -469,12 +471,14 @@ object OmsApiClient {
     suspend fun financialProgress(
         region: String? = null,
         tranche: Int? = null,
-        subprojectUuid: String? = null
+        subprojectUuid: String? = null,
+        year: Int? = null
     ): ApiFinancialProgress =
         client.get("$baseUrl/financials/progress") {
             region?.takeIf(String::isNotBlank)?.let { parameter("region", it) }
             tranche?.let { parameter("tranche", it) }
             subprojectUuid?.takeIf(String::isNotBlank)?.let { parameter("subprojectUuid", it) }
+            year?.let { parameter("year", it) }
         }.body()
 
     /** Returns source-level aggregate indicators without importing financial records. */

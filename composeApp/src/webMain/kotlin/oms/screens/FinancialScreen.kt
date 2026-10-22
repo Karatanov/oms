@@ -144,6 +144,7 @@ fun FinancialScreen(
     var subprojectFilter by remember { mutableStateOf<String?>(null) }
     var regionFilter by remember { mutableStateOf<String?>(null) }
     var chartMonthFilter by remember { mutableStateOf<String?>(null) }
+    var yearFilter by remember { mutableStateOf<Int?>(null) }
     var sort by remember { mutableStateOf(FinancialSort.ActDate) }
     var ascending by remember { mutableStateOf(false) }
     var reloadKey by remember { mutableStateOf(0) }
@@ -217,9 +218,9 @@ fun FinancialScreen(
     // These filters intentionally scope both the register and financial
     // charts. Otherwise a user could select a tranche or subproject and still
     // see a progress denominator from every subproject in the programme.
-    LaunchedEffect(reloadKey, regionFilter, trancheFilter, subprojectFilter) {
+    LaunchedEffect(reloadKey, regionFilter, trancheFilter, subprojectFilter, yearFilter) {
         financialProgress = runCatching {
-            OmsApiClient.financialProgress(regionFilter, trancheFilter, subprojectFilter)
+            OmsApiClient.financialProgress(regionFilter, trancheFilter, subprojectFilter, yearFilter)
         }.getOrNull()
     }
     // The external workbook is supplemental. It must not hold up the main
@@ -236,12 +237,15 @@ fun FinancialScreen(
         row.subprojectUuid?.takeIf { row.subprojectCode != null }?.let { uuid -> uuid to row.subprojectCode!! }
     }.distinctBy { (uuid, _) -> uuid }.sortedBy { (_, code) -> code }
     val regionFilterOptions = acts.map { it.region }.filter(String::isNotBlank).distinct().sorted()
+    val yearFilterOptions = acts.map { (it.act.paymentDate ?: it.act.recordDate).take(4).toIntOrNull() }
+        .filterNotNull().distinct().sortedDescending()
     // A region deep link is context, not merely a hidden table filter. Keep it
     // visible in the page title and every financial chart caption.
     val selectedRegionLabel = regionFilter?.let(::localizedUkraineRegion)
     val selectedChartScopeLabel = buildList {
         selectedRegionLabel?.let(::add)
         trancheFilter?.let { add("${LocalizationManager.t("tranche")} ${it.financialTrancheCode()}") }
+        yearFilter?.let { add(it.toString()) }
         subprojectFilter?.let { selected ->
             subprojectFilterOptions.firstOrNull { it.first == selected }?.second?.let(::add)
         }
@@ -252,7 +256,8 @@ fun FinancialScreen(
             (trancheFilter == null || it.trancheNumber.isFinancialTranche(trancheFilter!!)) &&
             (subprojectFilter == null || it.subprojectUuid == subprojectFilter) &&
             (regionFilter == null || it.region == regionFilter) &&
-            (chartMonthFilter == null || (it.act.paymentDate ?: it.act.recordDate).take(7) == chartMonthFilter)
+            (chartMonthFilter == null || (it.act.paymentDate ?: it.act.recordDate).take(7) == chartMonthFilter) &&
+            (yearFilter == null || (it.act.paymentDate ?: it.act.recordDate).take(4).toIntOrNull() == yearFilter)
     }.sortedWith(compareBy<ProjectActRow> {
         when (sort) {
             FinancialSort.Type -> it.act.recordType
@@ -272,7 +277,7 @@ fun FinancialScreen(
     else (visibleActs.size + pageSize - 1) / pageSize
     // Filters change the data set just like on the Subprojects screen: start
     // from page one so the pagination status always describes visible rows.
-    LaunchedEffect(recordTypeFilter, paymentPurposeFilter, trancheFilter, subprojectFilter, regionFilter, chartMonthFilter, pageSize) {
+    LaunchedEffect(recordTypeFilter, paymentPurposeFilter, trancheFilter, subprojectFilter, regionFilter, chartMonthFilter, yearFilter, pageSize) {
         currentPage = 0
     }
     LaunchedEffect(visibleActs.size, pageSize) { currentPage = currentPage.coerceIn(0, pageCount - 1) }
@@ -284,6 +289,7 @@ fun FinancialScreen(
         subprojectFilter?.let { selected -> subprojectFilterOptions.firstOrNull { it.first == selected }?.second?.let { add("${LocalizationManager.t("subproject_code")}: $it") } }
         regionFilter?.let { add("${LocalizationManager.t("region")}: ${localizedUkraineRegion(it)}") }
         chartMonthFilter?.let { add("${LocalizationManager.t("date")}: ${it.toMonthName()} ${it.take(4)}") }
+        yearFilter?.let { add("${LocalizationManager.t("date")}: $it") }
     }.joinToString(" · ")
     val emptyRecordsMessage = when (recordTypeFilter) {
         "invoice" -> "no_invoices"
@@ -384,7 +390,8 @@ fun FinancialScreen(
 
         val chartScopedActs = regionScopedActs.filter {
             (trancheFilter == null || it.trancheNumber.isFinancialTranche(trancheFilter!!)) &&
-                (subprojectFilter == null || it.subprojectUuid == subprojectFilter)
+                (subprojectFilter == null || it.subprojectUuid == subprojectFilter) &&
+                (yearFilter == null || (it.act.paymentDate ?: it.act.recordDate).take(4).toIntOrNull() == yearFilter)
         }
         val financialChartRecords = chartScopedActs.map { FinancialChartRecord(it.act, it.subprojectCode.orEmpty()) }
         // An old record without a frozen exchange rate must not hide every
@@ -446,6 +453,7 @@ fun FinancialScreen(
                                 subprojectUuid = subprojectFilter,
                                 region = regionFilter,
                                 month = chartMonthFilter,
+                                year = yearFilter,
                                 sort = sort.name.replaceFirstChar { it.lowercase() },
                                 ascending = ascending,
                                 filterSummary = financialPdfFilterSummary
@@ -462,7 +470,7 @@ fun FinancialScreen(
                         onClick = {
                             oms.data.openOmsDownload(OmsApiClient.financialTablePdfExportUrl(
                                 if (oms.localization.LocalizationManager.currentLanguage == oms.localization.Language.EN) "en" else "uk", displayCurrency,
-                                recordTypeFilter, paymentPurposeFilter, trancheFilter, subprojectFilter, regionFilter, chartMonthFilter,
+                                recordTypeFilter, paymentPurposeFilter, trancheFilter, subprojectFilter, regionFilter, chartMonthFilter, yearFilter,
                                 sort.name.replaceFirstChar { it.lowercase() }, ascending, financialPdfFilterSummary
                             ))
                         }, enabled = visibleActs.isNotEmpty()
@@ -508,6 +516,13 @@ fun FinancialScreen(
                 onSelect = { regionFilter = it },
                 itemLabel = ::localizedUkraineRegion
             )
+            FilterDropdown(
+                label = LocalizationManager.t("date"),
+                options = yearFilterOptions,
+                selected = yearFilter,
+                onSelect = { yearFilter = it },
+                itemLabel = Int::toString
+            )
             chartMonthFilter?.let { month ->
                 AssistChip(
                     onClick = { chartMonthFilter = null },
@@ -521,6 +536,7 @@ fun FinancialScreen(
                 subprojectFilter = null
                 regionFilter = null
                 chartMonthFilter = null
+                yearFilter = null
             }) { Text(LocalizationManager.t("reset_filters")) }
         }
         oms.components.ScrollableTable(

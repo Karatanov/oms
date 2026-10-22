@@ -84,6 +84,8 @@ fun Route.financialRoutes() {
         val requestedSubprojectUuid = call.request.queryParameters["subprojectUuid"]
             ?.trim()
             ?.takeIf(String::isNotBlank)
+        val requestedYear = call.request.queryParameters["year"]?.toIntOrNull()
+            ?.takeIf { it in 2000..2100 }
         // Region/sector progress reads both the hierarchy and the complete
         // ledger.  It is an aggregate, not a latency-sensitive mutation, so
         // keep its synchronous repository work off the request dispatcher.
@@ -112,6 +114,7 @@ fun Route.financialRoutes() {
         val disbursedBySubprojectId = AppContainer.financialRecordService.getAll()
             .asSequence()
             .filter { it.recordType == FinancialRecordType.PAYMENT || it.recordType == FinancialRecordType.ADVANCE }
+            .filter { requestedYear == null || (it.paymentDate ?: it.recordDate).year == requestedYear }
             .mapNotNull { record ->
                 val subproject = parentSubproject(record.projectId) ?: return@mapNotNull null
                 val uah = when (record.currency.uppercase()) {
@@ -197,6 +200,7 @@ fun Route.financialRoutes() {
         val subprojectUuid = call.request.queryParameters["subproject"]?.trim()?.takeIf(String::isNotEmpty)
         val region = call.request.queryParameters["region"]?.trim()?.takeIf(String::isNotEmpty)
         val month = call.request.queryParameters["month"]?.takeIf { it.matches(Regex("\\d{4}-\\d{2}")) }
+        val year = call.request.queryParameters["year"]?.toIntOrNull()?.takeIf { it in 2000..2100 }
         val sort = call.request.queryParameters["sort"].orEmpty()
         val ascending = call.request.queryParameters["ascending"]?.toBooleanStrictOrNull() ?: false
         val pdf = withContext(Dispatchers.IO) {
@@ -236,7 +240,8 @@ fun Route.financialRoutes() {
                     isRequestedTranche(row.trancheNumber) &&
                     (subprojectUuid == null || row.subprojectUuid == subprojectUuid) &&
                     (region == null || sameRegion(region, row.region)) &&
-                    (month == null || (row.record.paymentDate ?: row.record.recordDate).toString().take(7) == month)
+                    (month == null || (row.record.paymentDate ?: row.record.recordDate).toString().take(7) == month) &&
+                    (year == null || (row.record.paymentDate ?: row.record.recordDate).year == year)
             }
             .sortedByDescending { it.record.recordDate }
             .sortedWith(compareBy<FinancialTablePdfExportService.Row> {
