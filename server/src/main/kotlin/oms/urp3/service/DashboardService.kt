@@ -286,11 +286,9 @@ class DashboardService(
         // database just to discover that there can be no ledger rows.
         val financialRecords = if (projectIds.isEmpty()) emptyList() else FinancialRecordTable.selectAll()
             .where { FinancialRecordTable.projectId inList projectIds }.toList()
-        val actRecords = financialRecords.filter { it[FinancialRecordTable.recordType] == "act" }
         val paymentRecords = financialRecords.filter {
             it[FinancialRecordTable.recordType] in setOf("payment", "advance")
         }
-        fun month(date: java.time.LocalDate) = date.toString().take(7)
         val monthlyActPayments = monthlyPayments(paymentRecords)
         val projectsById = projects.associateBy { it[ProjectTable.id].value }
         val monitoringByProjectId = if (projectIds.isEmpty()) emptyMap() else ProjectMonitoringDetailTable.selectAll()
