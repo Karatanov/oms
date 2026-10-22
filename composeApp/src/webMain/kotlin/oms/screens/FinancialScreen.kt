@@ -1142,7 +1142,7 @@ private fun PaymentMonitoringRow(row: oms.data.ApiPaymentMonitoringItem) {
         PaymentMonitoringCell(row.remainingUah.asUahTableValue(), 160.dp)
         PaymentMonitoringCell(row.plannedEibSharePct.asPercent(), 130.dp)
         PaymentMonitoringCell(row.factualEibSharePct.asPercent(), 130.dp)
-        PaymentMonitoringCell(row.eibShareCompliance ?: "—", 160.dp)
+        PaymentMonitoringCell(row.eibShareCompliance.asReadableComplianceStatus(), 160.dp)
     }
 }
 
@@ -1159,6 +1159,15 @@ private fun PaymentMonitoringCell(value: String, width: androidx.compose.ui.unit
 /** The column header already identifies these values as UAH. */
 private fun Double?.asUahTableValue(): String = this?.let(Double::formatUiAmount) ?: "—"
 private fun Double?.asPercent(): String = this?.let { "${it.formatUiAmount()}%" } ?: "—"
+
+/** Imported workbook statuses may start with emoji that are not supported by every browser font. */
+private fun String?.asReadableComplianceStatus(): String = this
+    ?.replace("✓", "")
+    ?.replace("✅", "")
+    ?.replace("🔴", "")
+    ?.trim()
+    ?.takeIf(String::isNotBlank)
+    ?: "—"
 
 @Composable
 private fun FinancialPaymentPurposeBadge(recordType: String, purpose: String) {
