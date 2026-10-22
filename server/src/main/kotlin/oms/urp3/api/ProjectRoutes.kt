@@ -193,53 +193,55 @@ fun Route.projectRoutes() {
             val pagedProjects = if (offset >= projects.size) emptyList() else
                 projects.drop(offset.toInt()).take(pageSize)
 
-        // The response may be a filtered/paginated slice, but resolving a
-        // payment on a subproject part needs its parent outside that slice.
-        val hierarchy = projectService.getAllProjects()
-        val projectsById = hierarchy.associateBy { it.id }
-        val projectUuidById = projectsById.mapValues { (_, project) -> project.uuid.toString() }
-        val monitoringByProjectId = projectService.monitoringDetailsByProjectIds(pagedProjects.map { it.id })
-        // Build this once for the page, rather than performing a financial
-        // query per map marker/project card. Payment and advance records are
-        // actual disbursements; ACT rows describe completed work, not cash paid.
-        fun owningSubprojectId(projectId: Long): Long? {
-            var current = projectsById[projectId] ?: return null
-            while (current.projectType != ProjectType.SUBPROJECT) {
-                current = current.parentProjectId?.let(projectsById::get) ?: return null
+            // The response may be a filtered/paginated slice, but resolving a
+            // payment on a subproject part needs its parent outside that slice.
+            val hierarchy = projectService.getAllProjects()
+            val projectsById = hierarchy.associateBy { it.id }
+            val projectUuidById = projectsById.mapValues { (_, project) -> project.uuid.toString() }
+            val monitoringByProjectId = projectService.monitoringDetailsByProjectIds(pagedProjects.map { it.id })
+            // Build this once for the page, rather than performing a financial
+            // query per map marker/project card. Payment and advance records are
+            // actual disbursements; ACT rows describe completed work, not cash paid.
+            fun owningSubprojectId(projectId: Long): Long? {
+                var current = projectsById[projectId] ?: return null
+                while (current.projectType != ProjectType.SUBPROJECT) {
+                    current = current.parentProjectId?.let(projectsById::get) ?: return null
+                }
+                return current.id
             }
-            return current.id
-        }
-        val disbursements = AppContainer.financialRecordService.getAll()
-            .asSequence()
-            .filter { it.recordType == FinancialRecordType.PAYMENT || it.recordType == FinancialRecordType.ADVANCE }
-            .toList()
-        val disbursedEurCentsBySubprojectId = disbursements
-            .asSequence()
-            .mapNotNull { record ->
-                val subprojectId = owningSubprojectId(record.projectId) ?: return@mapNotNull null
-                record.disbursedEurCents()?.let { subprojectId to it }
+
+            val disbursements = AppContainer.financialRecordService.getAll()
+                .asSequence()
+                .filter { it.recordType == FinancialRecordType.PAYMENT || it.recordType == FinancialRecordType.ADVANCE }
+                .toList()
+            // Produce all four presentation totals in one pass. Previously the
+            // same ledger was grouped four times and the hierarchy walk was
+            // repeated for every construction payment.
+            val disbursedEurCentsBySubprojectId = mutableMapOf<Long, Long>()
+            val disbursedEurCentsByProjectId = mutableMapOf<Long, Long>()
+            val paidConstructionUahBySubprojectId = mutableMapOf<Long, BigDecimal>()
+            val paidConstructionUahByProjectId = mutableMapOf<Long, BigDecimal>()
+            disbursements.forEach { record ->
+                val subprojectId = owningSubprojectId(record.projectId)
+                record.disbursedEurCents()?.let { cents ->
+                    disbursedEurCentsByProjectId[record.projectId] =
+                        (disbursedEurCentsByProjectId[record.projectId] ?: 0L) + cents
+                    subprojectId?.let { id ->
+                        disbursedEurCentsBySubprojectId[id] =
+                            (disbursedEurCentsBySubprojectId[id] ?: 0L) + cents
+                    }
+                }
+                if (record.paymentPurpose.equals("works", ignoreCase = true)) {
+                    record.disbursedUah()?.let { amount ->
+                        paidConstructionUahByProjectId[record.projectId] =
+                            (paidConstructionUahByProjectId[record.projectId] ?: BigDecimal.ZERO).add(amount)
+                        subprojectId?.let { id ->
+                            paidConstructionUahBySubprojectId[id] =
+                                (paidConstructionUahBySubprojectId[id] ?: BigDecimal.ZERO).add(amount)
+                        }
+                    }
+                }
             }
-            .groupBy({ it.first }, { it.second })
-            .mapValues { (_, cents) -> cents.sum() }
-        val disbursedEurCentsByProjectId = disbursements
-            .mapNotNull { record -> record.disbursedEurCents()?.let { record.projectId to it } }
-            .groupBy({ it.first }, { it.second })
-            .mapValues { (_, cents) -> cents.sum() }
-        val paidConstructionUahBySubprojectId = disbursements
-            .asSequence()
-            .filter { it.paymentPurpose.equals("works", ignoreCase = true) }
-            .mapNotNull { record ->
-                val subprojectId = owningSubprojectId(record.projectId) ?: return@mapNotNull null
-                record.disbursedUah()?.let { subprojectId to it }
-            }
-            .groupBy({ it.first }, { it.second })
-            .mapValues { (_, amounts) -> amounts.fold(BigDecimal.ZERO) { total, amount -> total.add(amount) } }
-        val paidConstructionUahByProjectId = disbursements
-            .asSequence()
-            .filter { it.paymentPurpose.equals("works", ignoreCase = true) }
-            .mapNotNull { record -> record.disbursedUah()?.let { record.projectId to it } }
-            .groupBy({ it.first }, { it.second })
-            .mapValues { (_, amounts) -> amounts.fold(BigDecimal.ZERO) { total, amount -> total.add(amount) } }
             ProjectListResponse(
 
                 data =
