@@ -398,13 +398,22 @@ class DashboardService(
             var current = projectId
             while (true) {
                 val project = projectsById[current] ?: return null
-                if (project[ProjectTable.projectType] == "subproject") return current
+                if (project[ProjectTable.projectType] == "subproject") {
+                    val siteCode = project[ProjectTable.siteNumber].orEmpty().trim()
+                    val baseCode = siteCode.substringBefore('#').trim()
+                    return if (baseCode.equals(siteCode, ignoreCase = true)) current else
+                        subprojects.firstOrNull { candidate ->
+                            candidate[ProjectTable.siteNumber].orEmpty().trim().equals(baseCode, ignoreCase = true)
+                        }?.get(ProjectTable.id)?.value ?: current
+                }
                 current = project[ProjectTable.parentProjectId]?.value ?: return null
             }
         }
         val actualBySubproject = actRecords.groupBy { subprojectFor(it[FinancialRecordTable.projectId].value) }
             .filterKeys { it != null }
-            .mapValues { (_, records) -> records.sumOf { it[FinancialRecordTable.amount] }.toDouble() }
+            .mapValues { (_, records) ->
+                records.sumOf { (it.amountUahCents() ?: 0L).toDouble() / 100.0 }
+            }
         val procurementProjectCodes = projects.mapNotNull { it[ProjectTable.siteNumber]?.trim()?.lowercase()?.takeIf(String::isNotBlank) }.toSet() +
             projects.map { it[ProjectTable.uuid].lowercase() }.toSet()
         val procurementRecords = if (allowedProjectIds == null) ProcurementRecordTable.selectAll().toList().filter { record ->
