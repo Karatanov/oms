@@ -195,6 +195,18 @@ private fun Int.matchesTrancheFilter(filter: Int?): Boolean = filter == null || 
     else -> false
 }
 
+/**
+ * Procurement workbooks use batch IDs 8 and 9, while legacy application rows
+ * use 1 and 2.  Filtering at the database boundary avoids reading the whole
+ * procurement registry just to discard the other tranche in memory.
+ */
+private fun procurementBatchIdsForTranche(filter: Int?): List<Int>? = when (filter) {
+    null -> null
+    1 -> listOf(1, 8)
+    2 -> listOf(2, 9)
+    else -> emptyList()
+}
+
 private fun org.jetbrains.exposed.v1.core.ResultRow.amountUahCents(): Long? {
     val amount = this[FinancialRecordTable.amount].toDouble()
     return when (this[FinancialRecordTable.currency].uppercase()) {
@@ -299,10 +311,11 @@ class DashboardService(
         val actualBySubproject = actRecords.groupBy { subprojectFor(it[FinancialRecordTable.projectId].value) }
             .filterKeys { it != null }
             .mapValues { (_, rows) -> rows.sumOf { (it.amountUahCents() ?: 0L).toDouble() / 100.0 } }
-        val procurementProjectCodes = projects.mapNotNull { it[ProjectTable.siteNumber]?.trim()?.lowercase()?.takeIf(String::isNotBlank) }.toSet() +
-            projects.map { it[ProjectTable.uuid].lowercase() }.toSet()
-        val procurementRecords = if (allowedProjectIds == null) ProcurementRecordTable.selectAll().toList().filter { record ->
-            trancheNumber == null || record[ProcurementRecordTable.subProjectId].trim().lowercase() in procurementProjectCodes
+        val procurementRecords = if (allowedProjectIds == null) {
+            procurementBatchIdsForTranche(trancheNumber)?.let { batchIds ->
+                if (batchIds.isEmpty()) emptyList() else ProcurementRecordTable.selectAll()
+                    .where { ProcurementRecordTable.batchId inList batchIds }.toList()
+            } ?: ProcurementRecordTable.selectAll().toList()
         } else emptyList()
         val signedWorksAmountBySubprojectCode = procurementRecords.asSequence()
             .filter { record ->
@@ -418,10 +431,11 @@ class DashboardService(
             .mapValues { (_, records) ->
                 records.sumOf { (it.amountUahCents() ?: 0L).toDouble() / 100.0 }
             }
-        val procurementProjectCodes = projects.mapNotNull { it[ProjectTable.siteNumber]?.trim()?.lowercase()?.takeIf(String::isNotBlank) }.toSet() +
-            projects.map { it[ProjectTable.uuid].lowercase() }.toSet()
-        val procurementRecords = if (allowedProjectIds == null) ProcurementRecordTable.selectAll().toList().filter { record ->
-            trancheNumber == null || record[ProcurementRecordTable.subProjectId].trim().lowercase() in procurementProjectCodes
+        val procurementRecords = if (allowedProjectIds == null) {
+            procurementBatchIdsForTranche(trancheNumber)?.let { batchIds ->
+                if (batchIds.isEmpty()) emptyList() else ProcurementRecordTable.selectAll()
+                    .where { ProcurementRecordTable.batchId inList batchIds }.toList()
+            } ?: ProcurementRecordTable.selectAll().toList()
         } else emptyList()
         val subprojectProgress = subprojects.map { row ->
             val id = row[ProjectTable.id].value
