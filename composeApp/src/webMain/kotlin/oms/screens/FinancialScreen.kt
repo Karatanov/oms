@@ -214,11 +214,13 @@ fun FinancialScreen(
             loadFailed = true
         } finally { loading = false }
     }
-    // Region is intentionally global on this screen: summaries and every
-    // financial chart must describe the same geographic selection as the
-    // table, rather than only filtering its rows.
-    LaunchedEffect(reloadKey, regionFilter) {
-        financialProgress = runCatching { OmsApiClient.financialProgress(regionFilter) }.getOrNull()
+    // These filters intentionally scope both the register and financial
+    // charts. Otherwise a user could select a tranche or subproject and still
+    // see a progress denominator from every subproject in the programme.
+    LaunchedEffect(reloadKey, regionFilter, trancheFilter, subprojectFilter) {
+        financialProgress = runCatching {
+            OmsApiClient.financialProgress(regionFilter, trancheFilter, subprojectFilter)
+        }.getOrNull()
     }
     // The external workbook is supplemental. It must not hold up the main
     // financial register when its source is temporarily unavailable.
@@ -237,6 +239,13 @@ fun FinancialScreen(
     // A region deep link is context, not merely a hidden table filter. Keep it
     // visible in the page title and every financial chart caption.
     val selectedRegionLabel = regionFilter?.let(::localizedUkraineRegion)
+    val selectedChartScopeLabel = buildList {
+        selectedRegionLabel?.let(::add)
+        trancheFilter?.let { add("${LocalizationManager.t("tranche")} ${it.financialTrancheCode()}") }
+        subprojectFilter?.let { selected ->
+            subprojectFilterOptions.firstOrNull { it.first == selected }?.second?.let(::add)
+        }
+    }.joinToString(" · ").ifBlank { null }
     val visibleActs = acts.filter {
         (recordTypeFilter == null || it.act.recordType == recordTypeFilter) &&
             (paymentPurposeFilter == null || it.act.paymentPurpose == paymentPurposeFilter) &&
@@ -373,26 +382,30 @@ fun FinancialScreen(
             }
         }
 
-        val financialChartRecords = regionScopedActs.map { FinancialChartRecord(it.act, it.subprojectCode.orEmpty()) }
+        val chartScopedActs = regionScopedActs.filter {
+            (trancheFilter == null || it.trancheNumber.isFinancialTranche(trancheFilter!!)) &&
+                (subprojectFilter == null || it.subprojectUuid == subprojectFilter)
+        }
+        val financialChartRecords = chartScopedActs.map { FinancialChartRecord(it.act, it.subprojectCode.orEmpty()) }
         // An old record without a frozen exchange rate must not hide every
         // financial chart. Each chart omits only the rows it cannot convert;
         // the warning above still tells the user which totals are incomplete.
         // This is especially important for the CSC chart, whose valid payment
         // rows may coexist with unrelated legacy records.
         oms.components.AdaptiveChartRow(
-            first = { MonthlyPaymentsChart(financialChartRecords, displayRates, selectedRegionLabel) { month -> selectChartMonth(month, "works") } },
-            second = { MonthlyTechnicalSupervisionPaymentsChart(financialChartRecords, displayRates, selectedRegionLabel) { month -> selectChartMonth(month, "technical_supervision") } }
+            first = { MonthlyPaymentsChart(financialChartRecords, displayRates, selectedChartScopeLabel) { month -> selectChartMonth(month, "works") } },
+            second = { MonthlyTechnicalSupervisionPaymentsChart(financialChartRecords, displayRates, selectedChartScopeLabel) { month -> selectChartMonth(month, "technical_supervision") } }
         )
         oms.components.AdaptiveChartRow(
-            first = { MonthlyEquipmentPaymentsChart(financialChartRecords, displayRates, selectedRegionLabel) { month -> selectChartMonth(month, "equipment") } },
-            second = { MonthlyEngineerConsultantPaymentsChart(financialChartRecords, displayRates, selectedRegionLabel) { month -> selectChartMonth(month, "engineer_consultant") } }
+            first = { MonthlyEquipmentPaymentsChart(financialChartRecords, displayRates, selectedChartScopeLabel) { month -> selectChartMonth(month, "equipment") } },
+            second = { MonthlyEngineerConsultantPaymentsChart(financialChartRecords, displayRates, selectedChartScopeLabel) { month -> selectChartMonth(month, "engineer_consultant") } }
         )
         financialProgress?.let { progress ->
             oms.components.AdaptiveChartRow(
-                first = { FinancialProgressCard("financial_progress_by_region", progress.byRegion, selectedRegionLabel) },
-                second = { FinancialProgressCard("financial_progress_by_construction_type", progress.byConstructionType, selectedRegionLabel) }
+                first = { FinancialProgressCard("financial_progress_by_region", progress.byRegion, selectedChartScopeLabel) },
+                second = { FinancialProgressCard("financial_progress_by_construction_type", progress.byConstructionType, selectedChartScopeLabel) }
             )
-            FinancialProgressCard("financial_progress_by_sector", progress.bySector, selectedRegionLabel)
+            FinancialProgressCard("financial_progress_by_sector", progress.bySector, selectedChartScopeLabel)
         }
         paymentMonitoring?.let { snapshot ->
             PaymentMonitoringCard(

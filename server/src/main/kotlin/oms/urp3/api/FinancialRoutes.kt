@@ -80,6 +80,10 @@ fun Route.financialRoutes() {
             ?.trim()
             ?.replace(Regex("\\s+(область|oblast|region)$", RegexOption.IGNORE_CASE), "")
             ?.takeIf(String::isNotBlank)
+        val requestedTranche = call.request.queryParameters["tranche"]?.toIntOrNull()
+        val requestedSubprojectUuid = call.request.queryParameters["subprojectUuid"]
+            ?.trim()
+            ?.takeIf(String::isNotBlank)
         // Region/sector progress reads both the hierarchy and the complete
         // ledger.  It is an aggregate, not a latency-sensitive mutation, so
         // keep its synchronous repository work off the request dispatcher.
@@ -90,7 +94,9 @@ fun Route.financialRoutes() {
             project.projectType == ProjectType.SUBPROJECT &&
                 (requestedRegion == null || project.region.orEmpty()
                     .replace(Regex("\\s+(область|oblast|region)$", RegexOption.IGNORE_CASE), "")
-                    .equals(requestedRegion, ignoreCase = true))
+                    .equals(requestedRegion, ignoreCase = true)) &&
+                (requestedTranche == null || project.trancheNumber.matchesFinancialTranche(requestedTranche)) &&
+                (requestedSubprojectUuid == null || project.uuid.toString() == requestedSubprojectUuid)
         }
         fun parentSubproject(projectId: Long): oms.urp3.domain.Project? {
             var current = byId[projectId] ?: return null
@@ -376,6 +382,13 @@ fun Route.financialRoutes() {
             call.respond(HttpStatusCode.NoContent)
         }
     }
+}
+
+/** DB imports use both 1/8 for tranche A and 2/9 for tranche B. */
+private fun Int.matchesFinancialTranche(filter: Int): Boolean = when (filter) {
+    1 -> this == 1 || this == 8
+    2 -> this == 2 || this == 9
+    else -> this == filter
 }
 
 private suspend fun io.ktor.server.application.ApplicationCall.project() = parameters["projectUuid"]?.let { AppContainer.projectService.getProjectByUuid(it) } ?: run { financeNotFound("Project not found."); null }

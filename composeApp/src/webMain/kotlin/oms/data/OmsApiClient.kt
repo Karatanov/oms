@@ -466,9 +466,15 @@ object OmsApiClient {
     suspend fun allFinancialRecords(): List<ApiProjectFinancialRecord> =
         client.get("$baseUrl/financials").body()
 
-    suspend fun financialProgress(region: String? = null): ApiFinancialProgress =
+    suspend fun financialProgress(
+        region: String? = null,
+        tranche: Int? = null,
+        subprojectUuid: String? = null
+    ): ApiFinancialProgress =
         client.get("$baseUrl/financials/progress") {
             region?.takeIf(String::isNotBlank)?.let { parameter("region", it) }
+            tranche?.let { parameter("tranche", it) }
+            subprojectUuid?.takeIf(String::isNotBlank)?.let { parameter("subprojectUuid", it) }
         }.body()
 
     /** Returns source-level aggregate indicators without importing financial records. */
