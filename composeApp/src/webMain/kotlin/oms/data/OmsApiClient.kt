@@ -293,7 +293,11 @@ object OmsApiClient {
     suspend fun inspectionAnalytics(): ApiInspectionAnalytics =
         client.get("$baseUrl/inspection-reports/analytics").body()
 
-    suspend fun procurements(): List<ApiProcurementRecord> = client.get("$baseUrl/procurements").body()
+    suspend fun procurements(subprojectCode: String? = null, lotCode: String? = null): List<ApiProcurementRecord> =
+        client.get("$baseUrl/procurements") {
+            subprojectCode?.takeIf(String::isNotBlank)?.let { parameter("subprojectCode", it) }
+            lotCode?.takeIf(String::isNotBlank)?.let { parameter("lotCode", it) }
+        }.body()
 
     /** Ordered IDs retain the exact filtered/sorted procurement table in the PDF. */
     fun procurementTablePdfExportUrl(recordIds: Collection<Long>, language: String, filterSummary: String): String =

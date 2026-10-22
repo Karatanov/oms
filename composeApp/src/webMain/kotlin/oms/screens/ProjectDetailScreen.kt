@@ -128,14 +128,10 @@ fun ProjectDetailScreen(
             ProjectDetailTab.Procurement -> load(ProjectDetailResource.Procurement) {
                 val siteCode = project.siteName.trim()
                 val subprojectCode = siteCode.substringBefore('#').trim()
-                procurements.value = OmsApiClient.procurements().filter { record ->
-                    if ('#' in siteCode) {
-                        record.subProjectLotId?.trim()?.equals(siteCode, ignoreCase = true) == true
-                    } else {
-                        record.subProjectId.substringBefore('#').trim().equals(subprojectCode, ignoreCase = true) ||
-                            record.subProjectLotId?.substringBefore('#')?.trim()?.equals(subprojectCode, ignoreCase = true) == true
-                    }
-                }
+                procurements.value = OmsApiClient.procurements(
+                    subprojectCode = subprojectCode,
+                    lotCode = siteCode.takeIf { '#' in it }
+                )
             }
             ProjectDetailTab.Incidents -> load(ProjectDetailResource.Incidents) {
                 healthSafetyObservations.value = OmsApiClient.healthSafetyObservations(project.id)

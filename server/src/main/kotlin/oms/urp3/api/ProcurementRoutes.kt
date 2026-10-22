@@ -25,8 +25,22 @@ import kotlinx.serialization.Serializable
 fun Route.procurementRoutes() {
     get("/api/v1/procurements") {
         call.requireRole("ADMIN", "PROJECT_MANAGER", "INSPECTOR", "VIEWER") ?: return@get
+        val subprojectCode = call.request.queryParameters["subprojectCode"]?.trim()?.takeIf(String::isNotEmpty)
+        val lotCode = call.request.queryParameters["lotCode"]?.trim()?.takeIf(String::isNotEmpty)
         val response = withContext(Dispatchers.IO) {
-            AppContainer.procurementService.getAll().map(ProcurementRecord::toResponse)
+            AppContainer.procurementService.getAll()
+                .asSequence()
+                .filter { record ->
+                    when {
+                        lotCode != null -> record.subProjectLotId?.trim()?.equals(lotCode, ignoreCase = true) == true
+                        subprojectCode != null ->
+                            record.subProjectId.substringBefore('#').trim().equals(subprojectCode, ignoreCase = true) ||
+                                record.subProjectLotId?.substringBefore('#')?.trim()?.equals(subprojectCode, ignoreCase = true) == true
+                        else -> true
+                    }
+                }
+                .map(ProcurementRecord::toResponse)
+                .toList()
         }
         call.respond(response)
     }
