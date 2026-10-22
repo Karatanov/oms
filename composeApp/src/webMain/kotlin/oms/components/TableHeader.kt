@@ -64,9 +64,11 @@ fun TableHeader(currentSort: SortColumn, ascending: Boolean, onSort: (SortColumn
                 SortColumn.IMPLEMENTATION_DURATION -> ""
             }
             SortableHeader(LocalizationManager.t(labelKey), column, currentSort, ascending, onSort,
-                Modifier.width(ProjectTableColumns.width(column)))
+                Modifier.width(ProjectTableColumns.width(column)),
+                height = ProjectTableColumns.headerHeight,
+                maxLines = 3)
         }
-        Box(Modifier.width(ProjectTableColumns.actions).height(oms.theme.OmsDimensions.TableHeaderHeight),
+        Box(Modifier.width(ProjectTableColumns.actions).height(ProjectTableColumns.headerHeight),
             contentAlignment = Alignment.Center) {
             Text(LocalizationManager.t("actions"), style = MaterialTheme.typography.labelLarge)
         }

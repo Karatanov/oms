@@ -8,6 +8,8 @@ object ProjectTableColumns {
     val selection = 32.dp
     val hierarchy = 30.dp
     val actions = 144.dp
+    /** Registry headings have deliberately long source-data labels. */
+    val headerHeight = 68.dp
     private val widths = linkedMapOf(
         SortColumn.ID to 130.dp,
         SortColumn.POOL to 72.dp,

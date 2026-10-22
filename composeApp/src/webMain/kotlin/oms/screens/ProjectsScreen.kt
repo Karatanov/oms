@@ -705,7 +705,7 @@ private fun ProjectFrozenCodeHeader(
                 style = MaterialTheme.typography.labelLarge
             )
         }
-        Row(Modifier.fillMaxWidth().height(oms.theme.OmsDimensions.TableHeaderHeight)) {
+        Row(Modifier.fillMaxWidth().height(ProjectTableColumns.headerHeight)) {
             Spacer(Modifier.width(ProjectTableColumns.selection + ProjectTableColumns.hierarchy))
             oms.components.SortableHeader(
                 LocalizationManager.t("project_code"),
@@ -713,7 +713,9 @@ private fun ProjectFrozenCodeHeader(
                 sortColumn,
                 ascending,
                 onSort,
-                Modifier.width(ProjectTableColumns.width(SortColumn.ID))
+                Modifier.width(ProjectTableColumns.width(SortColumn.ID)),
+                height = ProjectTableColumns.headerHeight,
+                maxLines = 3
             )
         }
         HorizontalDivider()
