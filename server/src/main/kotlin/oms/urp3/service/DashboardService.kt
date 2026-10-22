@@ -247,17 +247,34 @@ private fun org.jetbrains.exposed.v1.core.ResultRow.amountUahCents(): Long? {
     }
 }
 
-private fun monthlyPayments(rows: List<org.jetbrains.exposed.v1.core.ResultRow>): List<MonthlyActPayment> = rows
-    .filter { it[FinancialRecordTable.amountEurCents] != null }
-    .groupBy { it[FinancialRecordTable.recordDate].toString().take(7) }
-    .map { (month, monthRows) ->
+private fun monthlyPayments(rows: List<org.jetbrains.exposed.v1.core.ResultRow>): List<MonthlyActPayment> {
+    data class MonthlyTotal(
+        var amountEurCents: Long = 0L,
+        var amountUahCents: Long = 0L,
+        var hasCompleteUahAmounts: Boolean = true
+    )
+
+    // A dashboard response can cover several payment categories. Aggregate
+    // directly instead of allocating a list of rows for every month, while
+    // retaining the rule that UAH is displayed only when every row has a
+    // reliable conversion.
+    val totalsByMonth = linkedMapOf<String, MonthlyTotal>()
+    rows.forEach { row ->
+        val eurCents = row[FinancialRecordTable.amountEurCents] ?: return@forEach
+        val month = row[FinancialRecordTable.recordDate].toString().take(7)
+        val total = totalsByMonth.getOrPut(month, ::MonthlyTotal)
+        total.amountEurCents += eurCents
+        row.amountUahCents()?.let { total.amountUahCents += it }
+            ?: run { total.hasCompleteUahAmounts = false }
+    }
+    return totalsByMonth.map { (month, total) ->
         MonthlyActPayment(
             month = month,
-            amountEurCents = monthRows.sumOf { it[FinancialRecordTable.amountEurCents] ?: 0L },
-            amountUahCents = monthRows.mapNotNull { it.amountUahCents() }.takeIf { it.size == monthRows.size }?.sum()
+            amountEurCents = total.amountEurCents,
+            amountUahCents = total.amountUahCents.takeIf { total.hasCompleteUahAmounts }
         )
-    }
-    .sortedBy { it.month }
+    }.sortedBy { it.month }
+}
 data class DashboardData(
     val projectsTotal:Long, val projectsActive:Long, val projectsCompletedThisMonth:Long, val budgetPlanned:Long,
     val amountSpent:Long, val inspectionsTotal:Long, val pendingInspections:Long, val findingsTotal:Long,
