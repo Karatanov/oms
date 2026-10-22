@@ -48,6 +48,7 @@ import oms.data.ApiInspectionReport
 import oms.data.ApiFinancialRecords
 import oms.data.ApiProjectDocument
 import oms.data.ApiHealthSafetyObservations
+import oms.data.ApiProcurementRecord
 import oms.data.OmsApiClient
 import oms.data.ProjectRepository
 import oms.data.omsApiUrl
@@ -80,6 +81,7 @@ fun ProjectDetailScreen(
     val reports = remember(project.id) { mutableStateOf<List<ApiInspectionReport>>(emptyList()) }
     val financials = remember(project.id) { mutableStateOf<ApiFinancialRecords?>(null) }
     val documents = remember(project.id) { mutableStateOf<List<ApiProjectDocument>>(emptyList()) }
+    val procurements = remember(project.id) { mutableStateOf<List<ApiProcurementRecord>>(emptyList()) }
     val healthSafetyObservations = remember(project.id) { mutableStateOf<ApiHealthSafetyObservations?>(null) }
     var loadedResources by remember(project.id) { mutableStateOf<Set<ProjectDetailResource>>(emptySet()) }
     var loadError by remember { mutableStateOf(false) }
@@ -122,6 +124,18 @@ fun ProjectDetailScreen(
             }
             ProjectDetailTab.Documents -> load(ProjectDetailResource.Documents) {
                 documents.value = OmsApiClient.projectDocuments(project.id)
+            }
+            ProjectDetailTab.Procurement -> load(ProjectDetailResource.Procurement) {
+                val siteCode = project.siteName.trim()
+                val subprojectCode = siteCode.substringBefore('#').trim()
+                procurements.value = OmsApiClient.procurements().filter { record ->
+                    if ('#' in siteCode) {
+                        record.subProjectLotId?.trim()?.equals(siteCode, ignoreCase = true) == true
+                    } else {
+                        record.subProjectId.substringBefore('#').trim().equals(subprojectCode, ignoreCase = true) ||
+                            record.subProjectLotId?.substringBefore('#')?.trim()?.equals(subprojectCode, ignoreCase = true) == true
+                    }
+                }
             }
             ProjectDetailTab.Incidents -> load(ProjectDetailResource.Incidents) {
                 healthSafetyObservations.value = OmsApiClient.healthSafetyObservations(project.id)
@@ -322,6 +336,7 @@ fun ProjectDetailScreen(
                     ProjectDetailTab.InspectionReports -> ProjectReportsTab(reports.value)
                     ProjectDetailTab.Financials -> ProjectFinancialsTab(financials.value)
                     ProjectDetailTab.Documents -> ProjectDocumentsTab(project.id, documents.value)
+                    ProjectDetailTab.Procurement -> ProjectProcurementTab(procurements.value)
                     ProjectDetailTab.Incidents -> ProjectHealthSafetyTab(healthSafetyObservations.value)
                 }
             }
@@ -334,10 +349,11 @@ private enum class ProjectDetailTab(val titleKey: String) {
     InspectionReports("inspection_reports_tab"),
     Financials("financials"),
     Documents("documents"),
+    Procurement("procurement_title"),
     Incidents("incidents_hse")
 }
 
-private enum class ProjectDetailResource { Details, Reports, Financials, Documents, Incidents }
+private enum class ProjectDetailResource { Details, Reports, Financials, Documents, Procurement, Incidents }
 
 @Composable
 private fun ProjectHealthSafetyTab(data: ApiHealthSafetyObservations?) {
@@ -769,6 +785,56 @@ private fun FinancialDetailHeader(key: String, width: androidx.compose.ui.unit.D
         textAlign = if (numeric) TextAlign.End else TextAlign.Start
     )
 }
+
+@Composable
+private fun ProjectProcurementTab(records: List<ApiProcurementRecord>) {
+    val uriHandler = LocalUriHandler.current
+    Card(Modifier.fillMaxSize()) {
+        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            if (records.isEmpty()) {
+                Text(LocalizationManager.t("no_procurement_records"), color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            records.forEach { record ->
+                val contractor = if (LocalizationManager.currentLanguage == Language.EN) {
+                    record.contractorNameEng ?: record.contractorNameUkr
+                } else {
+                    record.contractorNameUkr ?: record.contractorNameEng
+                }.orEmpty().ifBlank { "—" }
+                val values = listOfNotNull(
+                    record.sourceContractType?.takeIf(String::isNotBlank)?.let { LocalizationManager.t("proc_source_contract_type") to LocalizationManager.procurementValue(it) },
+                    record.procurementMethod?.takeIf(String::isNotBlank)?.let { LocalizationManager.t("proc_method") to LocalizationManager.procurementValue(it) },
+                    record.purchaseStatus?.takeIf(String::isNotBlank)?.let { LocalizationManager.t("procurement_status") to LocalizationManager.procurementStatus(it) },
+                    record.contractDate?.takeIf(String::isNotBlank)?.let { LocalizationManager.t("proc_contract_date") to it },
+                    record.contractEndDate?.takeIf(String::isNotBlank)?.let { LocalizationManager.t("proc_contract_end_date") to it },
+                    record.contractAmountUah?.let { LocalizationManager.t("proc_contract_amount_uah") to it.toMoney() },
+                    LocalizationManager.t("contractor") to contractor
+                )
+                Text(record.subProjectLotId ?: record.subProjectId, style = MaterialTheme.typography.titleMedium)
+                values.forEach { (label, value) ->
+                    Row(Modifier.fillMaxWidth().padding(vertical = 3.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Text(label, Modifier.width(210.dp), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(value, Modifier.weight(1f))
+                    }
+                }
+                record.prozorroTenderId?.takeIf(String::isNotBlank)?.let { tender ->
+                    TextButton(
+                        onClick = { uriHandler.openUri(tender.toProjectProzorroUrl()) },
+                        modifier = Modifier.pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true),
+                        contentPadding = PaddingValues(0.dp)
+                    ) {
+                        Icon(Icons.Default.OpenInNew, null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text("${LocalizationManager.t("proc_prozorro_tender_id")}: $tender")
+                    }
+                }
+                HorizontalDivider()
+            }
+        }
+    }
+}
+
+private fun String.toProjectProzorroUrl(): String =
+    if (startsWith("http://", true) || startsWith("https://", true)) this else "https://prozorro.gov.ua/uk/tender/$this"
 
 @Composable
 private fun ProjectDocumentsTab(projectUuid: String, documents: List<ApiProjectDocument>) {
