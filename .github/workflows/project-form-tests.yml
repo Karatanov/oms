@@ -20,9 +20,19 @@ jobs:
       - uses: gradle/actions/setup-gradle@v6
       - name: Kotlin form validation in Chrome Headless
         run: bash gradlew -PrenderJsOnly :composeApp:jsBrowserTest --no-daemon --max-workers=1
+
+      # Browser downloads are much larger and slower than the small test
+      # scripts. Keep them between runs so deployment does not spend several
+      # minutes re-downloading identical Chromium/WebKit/Firefox binaries.
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-1.63.0
+
       - name: Install isolated browser test tools
         run: |
-          npm install --prefix build/date-picker-test playwright
+          npm install --prefix build/date-picker-test playwright@1.63.0
           build/date-picker-test/node_modules/.bin/playwright install --with-deps chromium webkit firefox
       - name: Date overlay in Chromium and WebKit
         run: node tools/test-date-picker.cjs
