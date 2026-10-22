@@ -129,7 +129,11 @@ jobs:
     needs: publish
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    # Browser regression checks run in parallel with image publication and can
+    # legitimately take close to their own 20-minute limit.  Give the deploy
+    # job enough time to wait for those checks instead of rejecting an image
+    # that has already been built successfully.
+    timeout-minutes: 25
     # Serialize production changes independently from cancellable image builds.
     concurrency:
       group: oms-production-vps
@@ -160,7 +164,7 @@ jobs:
           )
           for workflow in "${required_workflows[@]}"; do
             verified=false
-            for _ in $(seq 1 30); do
+            for _ in $(seq 1 120); do
               state="$({
                 curl --fail --silent --show-error \
                   -H 'Accept: application/vnd.github+json' \
@@ -273,7 +277,11 @@ jobs:
       - name: Remove temporary registry credentials
         if: always()
         run: |
-          ssh -i ~/.ssh/oms_vps \
-            -o BatchMode=yes -o IdentitiesOnly=yes \
-            "$DEPLOY_USER@$DEPLOY_HOST" \
-            'docker logout ghcr.io >/dev/null 2>&1 || true'
+          # A failed pre-flight check intentionally skips SSH setup.  Do not
+          # turn that expected path into a misleading second workflow error.
+          if [[ -f ~/.ssh/oms_vps ]]; then
+            ssh -i ~/.ssh/oms_vps \
+              -o BatchMode=yes -o IdentitiesOnly=yes \
+              "$DEPLOY_USER@$DEPLOY_HOST" \
+              'docker logout ghcr.io >/dev/null 2>&1 || true'
+          fi
