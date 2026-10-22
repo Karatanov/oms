@@ -100,6 +100,17 @@ fun Route.financialRoutes() {
                 (requestedTranche == null || project.trancheNumber.matchesFinancialTranche(requestedTranche)) &&
                 (requestedSubprojectUuid == null || project.uuid.toString() == requestedSubprojectUuid)
         }
+        // Legacy lot records may use CODE#LotN while payments belong to the
+        // base subproject. Build this lookup once: resolving each payment by
+        // repeatedly scanning all subprojects becomes expensive as both the
+        // financial registry and the subproject register grow.
+        val subprojectByBaseCode = linkedMapOf<String, oms.urp3.domain.Project>()
+        subprojects.forEach { subproject ->
+            subprojectByBaseCode.putIfAbsent(
+                subproject.siteNumber.substringBefore('#').trim().uppercase(),
+                subproject
+            )
+        }
         fun parentSubproject(projectId: Long): oms.urp3.domain.Project? {
             var current = byId[projectId] ?: return null
             while (current.projectType != ProjectType.SUBPROJECT) {
@@ -111,9 +122,7 @@ fun Route.financialRoutes() {
             // its region, sector and approved/contract amount are retained.
             val baseCode = current.siteNumber.substringBefore('#').trim()
             return if (baseCode.equals(current.siteNumber.trim(), ignoreCase = true)) current else
-                subprojects.firstOrNull { candidate ->
-                    candidate.siteNumber.equals(baseCode, ignoreCase = true)
-                } ?: current
+                subprojectByBaseCode[baseCode.uppercase()] ?: current
         }
         // Financial execution is cash disbursed against the subproject budget.
         // ACT records evidence completed works but do not mean that money was
