@@ -427,7 +427,7 @@ fun Route.projectRoutes() {
         val response = withContext(Dispatchers.IO) {
             val monitoring = AppContainer.projectRepository.monitoringDetails(project.id)
             val contractorNameEn = monitoring?.sourceSubprojectId?.let { sourceId ->
-                AppContainer.procurementService.getBySubProjectId(sourceId)
+                AppContainer.procurementService.getForProjectCard(sourceId, null)
                     .firstOrNull { !it.contractorNameEng.isNullOrBlank() }
                     ?.contractorNameEng
             }
