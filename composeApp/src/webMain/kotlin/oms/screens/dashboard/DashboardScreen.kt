@@ -32,10 +32,12 @@ import kotlin.math.roundToLong
 @Composable
 @OptIn(ExperimentalLayoutApi::class)
 fun DashboardScreen(
+    onOpenProject: (oms.model.Project) -> Unit = {},
     onOpenFinancialByMonth: (String) -> Unit = {},
     onOpenFinancialByRegion: (String) -> Unit = {},
     onOpenFinancialBySubproject: (String) -> Unit = {},
-    onOpenProcurementsByStatus: (String) -> Unit = {}
+    onOpenProcurementsByStatus: (String) -> Unit = {},
+    onOpenInspectionPreview: (String) -> Unit = {}
 ) {
     var dashboard by remember { mutableStateOf<ApiDashboardOverview?>(null) }
     var loading by remember { mutableStateOf(true) }
@@ -46,6 +48,7 @@ fun DashboardScreen(
     // render the charts' own updating state until the request completes.
     oms.navigation.ReportRouteReadiness(loading = false)
     var reload by remember { mutableStateOf(0) }
+    var latestPhotos by remember { mutableStateOf<List<ApiInspectionPhoto>?>(null) }
     var chartOrientation by remember { mutableStateOf(BarChartOrientation.Vertical) }
     var trancheNumber by remember { mutableStateOf<Int?>(null) }
     val scrollState = rememberLazyListState()
@@ -67,6 +70,11 @@ fun DashboardScreen(
         } finally {
             loading = false
         }
+    }
+    val latest = dashboard?.recentInspections?.maxByOrNull { it.inspectionDate }
+    LaunchedEffect(latest?.uuid) {
+        latestPhotos = null
+        latestPhotos = latest?.let { runCatching { OmsApiClient.inspectionPhotos(it.uuid) }.getOrDefault(emptyList()) } ?: emptyList()
     }
     Box(Modifier.fillMaxSize()) {
         LazyColumn(state = scrollState, modifier = Modifier.fillMaxSize().onKeyEvent { event ->
@@ -174,6 +182,7 @@ fun DashboardScreen(
                         }
                     )
                 }
+                item { DashboardPhotoSlider(latest?.uuid, latest?.inspectionDate, latest?.subprojectCode, latestPhotos, onOpenInspectionPreview) }
             }
         }
         if (!oms.layout.LocalMobileLayout.current) Column(Modifier.align(Alignment.CenterEnd).padding(end = 8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
