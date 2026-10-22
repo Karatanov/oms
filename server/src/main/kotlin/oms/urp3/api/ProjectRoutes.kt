@@ -679,7 +679,13 @@ fun Route.projectRoutes() {
                     record.subProjectLotId?.substringBefore('#')?.trim()?.equals(subprojectCode, ignoreCase = true) == true
             }
             val inspectionPhotos = inspectionReports.flatMap { report ->
-                AppContainer.inspectionPhotoService.list(report.id).mapNotNull { photo ->
+                // Older imported SIR workbooks can contain images only in their
+                // Photo Attachment sheet.  The report screen hydrates those
+                // asynchronously, but an explicit PDF export must include
+                // them on its first run as well.
+                val reportPhotos = AppContainer.inspectionPhotoService.list(report.id)
+                    .ifEmpty { hydrateEmbeddedSirPhotos(report) }
+                reportPhotos.mapNotNull { photo ->
                     val thumbnail = AppContainer.inspectionPhotoService.resolveFile(photo, thumbnail = true)
                         ?.let { path -> runCatching { Files.readAllBytes(path) }.getOrNull() }
                         ?: return@mapNotNull null
