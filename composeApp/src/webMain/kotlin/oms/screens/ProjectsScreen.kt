@@ -642,7 +642,8 @@ fun ProjectsTable(
                             expandedParentIds = if (id in current) current - id else current + id
                         },
                         onExpandRow = onExpandRow,
-                        onSelectedChange = { onSelectionChange(row.project.id, it) }
+                        onSelectedChange = { onSelectionChange(row.project.id, it) },
+                        onOpen = { onOpenProject(row.project) }
                     )
                 }
             },
@@ -733,7 +734,8 @@ private fun ProjectFrozenCodeRow(
     canManageProjects: Boolean,
     onToggleChildren: (String) -> Unit,
     onExpandRow: (Float) -> Unit,
-    onSelectedChange: (Boolean) -> Unit
+    onSelectedChange: (Boolean) -> Unit,
+    onOpen: () -> Unit
 ) {
     var rowTopInRoot by remember { mutableStateOf(0f) }
     val background = when {
@@ -798,7 +800,10 @@ private fun ProjectFrozenCodeRow(
         }
         Text(
             project.siteNumber,
-            modifier = Modifier.width(ProjectTableColumns.width(SortColumn.ID)),
+            modifier = Modifier
+                .width(ProjectTableColumns.width(SortColumn.ID))
+                .clickable(onClick = onOpen)
+                .pointerHoverIcon(PointerIcon.Hand),
             fontWeight = if (isProject) FontWeight.Bold else FontWeight.Normal,
             maxLines = 1
         )
