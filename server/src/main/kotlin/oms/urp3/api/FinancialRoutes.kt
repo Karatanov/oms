@@ -123,7 +123,15 @@ fun Route.financialRoutes() {
             subprojects.forEach { subproject ->
                 val key = label(subproject).trim().ifBlank { "Unspecified" }
                 val totals = rows.getOrPut(key) { Aggregate() }
-                totals.contract += (subproject.subprojectContractAmount ?: subproject.budgetPlanned).toDouble()
+                // A source may explicitly store a zero/blank construction
+                // contract while payments have already been imported.  Zero
+                // must not become the denominator in that case: use the
+                // approved subproject funding as the documented fallback.
+                val executionBase = subproject.subprojectContractAmount
+                    ?.takeIf { it > 0L }
+                    ?: subproject.budgetPlanned.takeIf { it > 0L }
+                    ?: 0L
+                totals.contract += executionBase.toDouble()
                 totals.completed += disbursedBySubprojectId[subproject.id] ?: 0.0
             }
             return rows.map { (label, totals) ->
