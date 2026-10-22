@@ -6,6 +6,7 @@ import oms.urp3.domain.ProjectType
 import oms.urp3.domain.ProcurementRecord
 import oms.urp3.domain.FinancialRecord
 import oms.urp3.domain.FinancialRecordType
+import oms.urp3.domain.ProjectDocument
 import org.apache.pdfbox.pdmodel.PDDocument
 import org.apache.pdfbox.text.PDFTextStripper
 import java.awt.image.BufferedImage
@@ -45,6 +46,9 @@ class ProjectPdfExportServiceTest {
                     contractAmountUah = 1_250_000.0, contractAmountEur = null,
                     financingContractDifferencePct = null, sourceContractType = "Роботи / Works"
                 )
+            ),
+            documents = listOf(
+                ProjectDocument(1L, UUID.randomUUID(), 1L, "financial_record", 1L, "act", null, "act.pdf", "stored/act.pdf", "application/pdf", 1_024L)
             )
         )
 
@@ -56,6 +60,8 @@ class ProjectPdfExportServiceTest {
             assertTrue(text.contains("Закупівлі"))
             assertTrue(text.contains("Підрядник"))
             assertTrue(text.contains("Фінансове виконання"))
+            assertTrue(text.contains("Прикріплені файли"))
+            assertTrue(text.contains("act.pdf"))
         }
     }
 
