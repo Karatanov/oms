@@ -44,6 +44,10 @@
     };
     const downloadOmsResponse = async (url, options = {}) => {
         if (!apiUrl(url)) return;
+        const canShowProgress = typeof window.showOmsLoading === 'function';
+        if (canShowProgress) window.showOmsLoading(
+            typeof window.omsText === 'function' ? window.omsText('downloadingFile') : 'Preparing file…'
+        );
         try {
             const response = await omsAuthenticatedFetch(url, options);
             if (!response.ok) {
@@ -71,6 +75,8 @@
         } catch (error) {
             const fallback = omsLanguage === 'en' ? 'Could not download the file. Please retry.' : 'Не вдалося завантажити файл. Повторіть спробу.';
             alert(error instanceof Error && error.message ? error.message : fallback);
+        } finally {
+            if (canShowProgress) window.hideOmsLoading();
         }
     };
     window.openOmsDownload = url => downloadOmsResponse(url);

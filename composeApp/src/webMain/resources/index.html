@@ -91,7 +91,7 @@
                 invalidPhoto: "дозволені лише JPEG/PNG-файли розміром до 10 МБ.", maxPhotos: "Можна прикріпити максимум 30 фотографій.",
                 lastInspection: "Остання інспекція", inspectionCode: "Код інспекції", subprojectCode: "Код субпроєкту", noReports: "Інспекційних звітів ще немає", noPhotos: "В останній інспекції немає фотографій.",
                 open: "Відкрити", previewReport: "Переглянути звіт", closeFullscreenPhoto: "Закрити повноекранне фото", details: "Деталі",
-                loading: "Завантаження даних…", uploadingFile: "Завантаження файлу…", importingInspection: "Імпорт інспекційного звіту…", importingFinancial: "Імпорт фінансових записів…", importingPaymentMonitoring: "Оновлення моніторингу платежів…",
+                loading: "Завантаження даних…", downloadingFile: "Підготовка файлу…", uploadingFile: "Завантаження файлу…", importingInspection: "Імпорт інспекційного звіту…", importingFinancial: "Імпорт фінансових записів…", importingPaymentMonitoring: "Оновлення моніторингу платежів…", importingProcurement: "Оновлення реєстру закупівель…", importingSubprojects: "Оновлення реєстру субпроєктів…",
                 pasteTruncated: "Текст не вставлено: максимум {limit} символів за раз. Вставте менший фрагмент."
             },
             en: {
@@ -103,7 +103,7 @@
                 invalidPhoto: "only JPEG/PNG files up to 10 MB are allowed.", maxPhotos: "You can attach up to 30 photos.",
                 lastInspection: "Latest inspection", inspectionCode: "Inspection code", subprojectCode: "Subproject code", noReports: "No Inspection Reports yet", noPhotos: "No photos in the latest inspection.",
                 open: "Open", previewReport: "Preview report", closeFullscreenPhoto: "Close full-screen photo", details: "Details",
-                loading: "Loading data…", uploadingFile: "Uploading file…", importingInspection: "Importing inspection report…", importingFinancial: "Importing financial records…", importingPaymentMonitoring: "Updating payment monitoring…",
+                loading: "Loading data…", downloadingFile: "Preparing file…", uploadingFile: "Uploading file…", importingInspection: "Importing inspection report…", importingFinancial: "Importing financial records…", importingPaymentMonitoring: "Updating payment monitoring…", importingProcurement: "Updating procurement register…", importingSubprojects: "Updating subproject registry…",
                 pasteTruncated: "Text was not pasted: maximum {limit} characters at a time. Paste a smaller fragment."
             }
         };
@@ -713,6 +713,7 @@
                 if (file.size > 20_000_000) { onComplete("The approved procurement workbook must not exceed 20 MB.", ""); input.remove(); return; }
                 const formData = new FormData();
                 formData.append("file", file, file.name);
+                showOmsLoading(omsText("importingProcurement"));
                 try {
                     const response = await omsAuthenticatedFetch(omsApiUrl("/procurements/refresh/upload"), {
                         method: "POST", body: formData, credentials: "include"
@@ -727,6 +728,7 @@
                 } catch (error) {
                     onComplete(error.message || String(error), "");
                 } finally {
+                    hideOmsLoading();
                     input.remove();
                 }
             };
@@ -745,6 +747,7 @@
                 if (file.size > 20_000_000) { onComplete("The subproject monitoring workbook must not exceed 20 MB.", ""); input.remove(); return; }
                 const formData = new FormData();
                 formData.append("file", file, file.name);
+                showOmsLoading(omsText("importingSubprojects"));
                 try {
                     const response = await omsAuthenticatedFetch(omsApiUrl("/projects/registry/refresh/upload"), {
                         method: "POST", body: formData, credentials: "include"
@@ -759,6 +762,7 @@
                 } catch (error) {
                     onComplete(error.message || String(error), "");
                 } finally {
+                    hideOmsLoading();
                     input.remove();
                 }
             };
