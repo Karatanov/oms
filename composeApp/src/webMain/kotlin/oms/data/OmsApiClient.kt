@@ -148,13 +148,19 @@ object OmsApiClient {
         val pageSize = 500
         val projects = mutableListOf<ApiProject>()
         var page = 1
-        do {
-            val batch = client.get("$baseUrl/projects?page=$page&pageSize=$pageSize")
+        var hasNextPage = true
+        while (hasNextPage) {
+            val payload = client.get("$baseUrl/projects?page=$page&pageSize=$pageSize")
                 .body<ProjectListPayload>()
-                .data
-            projects += batch
+            projects += payload.data
+            // Newer OMS servers provide an exact page count. Keep the old
+            // size-based fallback during a rolling deploy, but avoid a known
+            // redundant empty request whenever the registry has exactly a
+            // multiple of the configured page size.
+            hasNextPage = payload.meta?.let { page < it.totalPages }
+                ?: (payload.data.size == pageSize)
             page += 1
-        } while (batch.size == pageSize)
+        }
         return projects
     }
 
@@ -794,7 +800,18 @@ data class CreateUserRequest(
 )
 
 @Serializable
-data class ProjectListPayload(val data: List<ApiProject>)
+data class ProjectListPayload(
+    val data: List<ApiProject>,
+    val meta: ProjectPageMetadata? = null
+)
+
+@Serializable
+data class ProjectPageMetadata(
+    val page: Int,
+    val perPage: Int,
+    val total: Long,
+    val totalPages: Int
+)
 
 @Serializable
 data class ApiProject(
