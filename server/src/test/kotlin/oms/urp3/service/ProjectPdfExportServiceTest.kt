@@ -7,6 +7,7 @@ import oms.urp3.domain.ProcurementRecord
 import oms.urp3.domain.FinancialRecord
 import oms.urp3.domain.FinancialRecordType
 import oms.urp3.domain.ProjectDocument
+import oms.urp3.domain.ProjectMonitoringDetails
 import org.apache.pdfbox.pdmodel.PDDocument
 import org.apache.pdfbox.text.PDFTextStripper
 import java.awt.image.BufferedImage
@@ -28,6 +29,7 @@ class ProjectPdfExportServiceTest {
 
         val pdf = ProjectPdfExportService().export(
             project = testSubproject(),
+            monitoring = testMonitoringDetails(),
             language = ProjectPdfExportService.Language.UK,
             inspectionPhotos = listOf(
                 ProjectPdfExportService.PhotoEvidence("SIR-001 · 22.10.2026 · roof.jpg", thumbnail)
@@ -62,8 +64,40 @@ class ProjectPdfExportServiceTest {
             assertTrue(text.contains("Фінансове виконання"))
             assertTrue(text.contains("Прикріплені файли"))
             assertTrue(text.contains("act.pdf"))
+            assertTrue(text.contains("Інженерна інформація"))
+            assertTrue(text.contains("Будівельні роботи виконуються"))
         }
     }
+
+    private fun testMonitoringDetails() = ProjectMonitoringDetails(
+        sourceBatchId = 8,
+        sourceSubprojectId = "TS01",
+        sourceLotId = "TS01",
+        nameEn = null,
+        oblastCode = null,
+        municipalityNameUk = null,
+        municipalityNameEn = null,
+        settlementNameEn = null,
+        priorityAreaSource = null,
+        projectManagerNameUk = null,
+        projectManagerNameEn = null,
+        projectManagerOrgId = null,
+        beneficiaryNameUk = null,
+        beneficiaryNameEn = null,
+        beneficiaryOrgId = null,
+        dreamProjectId = null,
+        dreamProjectUrl = "https://dream.gov.ua/projects/TS01",
+        applicationId = null,
+        dreamApplicationId = null,
+        constructionProcurementStatus = null,
+        constructionWorkStatus = "Будівельні роботи виконуються / Construction work is underway",
+        geocodeAccuracy = null,
+        geocodeQuery = null,
+        geocodeDisplayName = null,
+        sourceRows = "2",
+        sourceWorkbook = "monitoring.xlsx",
+        completedWorkPct = "42"
+    )
 
     private fun testSubproject() = Project(
         id = 1L,
