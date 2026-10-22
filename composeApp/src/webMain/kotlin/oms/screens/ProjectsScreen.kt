@@ -1214,7 +1214,14 @@ private fun RegistryTableCell(project: Project, column: SortColumn, fontWeight: 
         SortColumn.WORK_COMMENTS -> project.registryValue("workComments")
         else -> ""
     }
-    if (link.isNotBlank()) {
+    if (column == SortColumn.CONSTRUCTION_TYPE) {
+        // Construction types are a small, closed set.  Keep their visual
+        // treatment consistent with status and sector values instead of
+        // rendering an easily overlooked plain-text value in a wide table.
+        Box(Modifier.width(width)) {
+            ConstructionTypeChip(project.constructionType, fontWeight)
+        }
+    } else if (link.isNotBlank()) {
         Text(
             value,
             modifier = Modifier.width(width).clickable { window.open(link, "_blank") }
