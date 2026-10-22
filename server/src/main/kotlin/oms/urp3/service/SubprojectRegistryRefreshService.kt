@@ -129,7 +129,12 @@ class SubprojectRegistryRefreshService(
                 ?: throw IllegalStateException("No active administrator is available to own imported subprojects.")
 
             val projects = ProjectTable.selectAll().toList()
-            val byCode = projects.associateBy { it[ProjectTable.siteNumber].trim().uppercase() }.toMutableMap()
+            // The refresh only needs a stable project ID for a source code.
+            // Keeping complete ResultRows made each newly inserted row issue a
+            // second SELECT merely to rebuild this lookup.
+            val projectIdByCode = projects.associate {
+                it[ProjectTable.siteNumber].trim().uppercase() to it[ProjectTable.id].value
+            }.toMutableMap()
             val monitoringByLot = ProjectMonitoringDetailTable.selectAll()
                 .associateBy { it[ProjectMonitoringDetailTable.sourceLotId].trim().uppercase() }
             val monitoringByProjectId = ProjectMonitoringDetailTable.selectAll()
@@ -141,14 +146,14 @@ class SubprojectRegistryRefreshService(
                 parentId: Long?,
                 row: MonitoringWorkbookSource.Row
             ): Long {
-                val existing = byCode[code.uppercase()]
+                val existingProjectId = projectIdByCode[code.uppercase()]
                 val tranche = row.trancheNumber()
                 val budget = row.number("fundingTotal").coerceAtLeast(0.0).toLong()
                 val contract = row.number("contractedTotal").takeIf { it > 0 }?.toLong()
                 val contractDate = row.date("contractDate")
                 val contractEnd = row.date("contractEndDate")
                 val name = row.value("name").ifBlank { row.value("nameEn") }.ifBlank { code }
-                return if (existing == null) {
+                return if (existingProjectId == null) {
                     val id = ProjectTable.insertAndGetId {
                         it[ProjectTable.uuid] = UUID.randomUUID().toString()
                         it[ProjectTable.projectType] = type.name.lowercase()
@@ -176,10 +181,9 @@ class SubprojectRegistryRefreshService(
                         it[ProjectTable.contractorName] = row.value("contractor").ifBlank { null }
                         it[ProjectTable.managerId] = managerId
                     }
-                    byCode[code.uppercase()] = ProjectTable.selectAll().where { ProjectTable.id eq id }.first()
-                    id.value
+                    id.value.also { createdId -> projectIdByCode[code.uppercase()] = createdId }
                 } else if (!row.isAllocationSnapshot) {
-                    val id = existing[ProjectTable.id].value
+                    val id = existingProjectId
                     ProjectTable.update({ ProjectTable.id eq id }) {
                         it[ProjectTable.name] = name
                         it[ProjectTable.trancheNumber] = tranche
@@ -195,7 +199,7 @@ class SubprojectRegistryRefreshService(
                         it[ProjectTable.isArchived] = false
                     }
                     id
-                } else existing[ProjectTable.id].value
+                } else existingProjectId
             }
 
             val subprojectRows = rows.groupBy { it.subprojectCode.uppercase() }
