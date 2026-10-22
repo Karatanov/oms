@@ -195,7 +195,7 @@ class SubprojectRegistryRefreshService(
                         it[ProjectTable.isArchived] = false
                     }
                     id
-                } else id
+                } else existing[ProjectTable.id].value
             }
 
             val subprojectRows = rows.groupBy { it.subprojectCode.uppercase() }
