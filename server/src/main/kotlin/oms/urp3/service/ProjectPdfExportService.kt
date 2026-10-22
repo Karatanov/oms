@@ -5,15 +5,19 @@ import org.apache.pdfbox.pdmodel.PDPage
 import org.apache.pdfbox.pdmodel.PDPageContentStream
 import org.apache.pdfbox.pdmodel.common.PDRectangle
 import org.apache.pdfbox.pdmodel.font.PDType0Font
+import org.apache.pdfbox.pdmodel.graphics.image.LosslessFactory
 import oms.urp3.domain.Project
 import oms.urp3.domain.ProjectDocument
 import oms.urp3.domain.FinancialRecord
 import oms.urp3.domain.InspectionReport
 import oms.urp3.domain.ProjectMonitoringDetails
 import java.io.ByteArrayOutputStream
+import java.io.ByteArrayInputStream
 import java.math.BigDecimal
 import java.text.DecimalFormat
 import java.time.LocalDate
+import javax.imageio.ImageIO
+import kotlin.math.min
 
 /**
  * A printable, localized subproject card mirroring the General information tab.
@@ -23,12 +27,16 @@ import java.time.LocalDate
 class ProjectPdfExportService {
     enum class Language { UK, EN }
 
+    /** A compact inspection photo supplied by the route after access checks. */
+    data class PhotoEvidence(val caption: String, val thumbnail: ByteArray)
+
     fun export(
         project: Project,
         monitoring: ProjectMonitoringDetails? = null,
         language: Language = Language.UK,
         financialRecords: List<FinancialRecord> = emptyList(),
         inspectionReports: List<InspectionReport> = emptyList(),
+        inspectionPhotos: List<PhotoEvidence> = emptyList(),
         documents: List<ProjectDocument> = emptyList()
     ): ByteArray = PDDocument().use { document ->
         val fontBytes = requireNotNull(javaClass.getResourceAsStream("/fonts/DejaVuSans.ttf")) { "PDF export font is unavailable." }
@@ -87,6 +95,7 @@ class ProjectPdfExportService {
                 )
             }
         }
+        if (inspectionPhotos.isNotEmpty()) writer.photoEvidenceSection(writer.label("inspection_photos"), inspectionPhotos)
         val standaloneDocuments = documents.filterNot { it.relatedEntity == "financial_record" }
         if (standaloneDocuments.isNotEmpty()) writer.section(writer.label("documents"), Icon.INFO) {
             standaloneDocuments.forEach { document ->
@@ -112,6 +121,39 @@ class ProjectPdfExportService {
         init { newPage() }
         fun cover(name: String, code: String) { ensure(78f); fillColor(primary); stream!!.addRect(margin, y - 46f, width, 46f); stream!!.fill(); text(name, margin + 15f, y - 21f, 17f, floatArrayOf(1f, 1f, 1f)); text("${label("subproject_code")}: $code", margin + 15f, y - 38f, 9.5f, floatArrayOf(0.92f, 0.98f, 1f)); y -= 60f }
         fun section(title: String, icon: Icon, content: PdfWriter.() -> Unit) { ensure(32f); rowIndex = 0; stream!!.setNonStrokingColor(0.91f, 0.97f, 0.98f); stream!!.addRect(margin, y - 24f, width, 24f); stream!!.fill(); drawIcon(icon, margin + 13f, y - 12f); text(title, margin + 29f, y - 16f, 11.5f, primary); y -= 29f; content(); y -= 8f }
+        /** Prints photo evidence as a two-column contact sheet, using saved thumbnails only. */
+        fun photoEvidenceSection(title: String, photos: List<PhotoEvidence>) {
+            section(title, Icon.INFO) {
+                photos.chunked(2).forEach { pair ->
+                    val renderable = pair.mapNotNull { evidence ->
+                        runCatching { ImageIO.read(ByteArrayInputStream(evidence.thumbnail)) }
+                            .getOrNull()
+                            ?.let { image -> evidence to image }
+                    }
+                    if (renderable.isEmpty()) return@forEach
+
+                    val gap = 10f
+                    val cellWidth = (width - gap) / 2f
+                    val maxImageHeight = 138f
+                    val captionHeight = 25f
+                    ensure(maxImageHeight + captionHeight + 8f)
+                    renderable.forEachIndexed { index, (evidence, image) ->
+                        val scale = min(cellWidth / image.width.toFloat(), maxImageHeight / image.height.toFloat())
+                        val imageWidth = image.width * scale
+                        val imageHeight = image.height * scale
+                        val x = margin + index * (cellWidth + gap) + (cellWidth - imageWidth) / 2f
+                        val imageY = y - imageHeight
+                        stream!!.drawImage(LosslessFactory.createFromImage(document, image), x, imageY, imageWidth, imageHeight)
+                        wrap(evidence.caption, 8f, cellWidth)
+                            .take(2)
+                            .forEachIndexed { lineIndex, line ->
+                                text(line, margin + index * (cellWidth + gap), y - maxImageHeight - 10f - lineIndex * 10f, 8f, ink)
+                            }
+                    }
+                    y -= maxImageHeight + captionHeight + 8f
+                }
+            }
+        }
         fun row(label: String, rawValue: Any?) {
             val value = when (rawValue) { null -> return; is LocalDate -> rawValue.format(java.time.format.DateTimeFormatter.ofPattern("dd.MM.yyyy")); else -> rawValue.toString().trim().takeIf(String::isNotEmpty) ?: return }
             val labelWidth = 178f; val valueWidth = width - labelWidth - 20f; val labelLines = wrap(label, 9f, labelWidth - 14f); val valueLines = wrap(value, 9.5f, valueWidth - 14f); val lines = maxOf(labelLines.size, valueLines.size); val height = 12f + lines * 13f
@@ -135,7 +177,7 @@ class ProjectPdfExportService {
         private fun drawIcon(icon: Icon, x: Float, centerY: Float) { fillColor(primary); when (icon) { Icon.LOCATION -> { stream!!.addRect(x - 4f, centerY - 5f, 8f, 10f); stream!!.fill(); stream!!.setNonStrokingColor(1f,1f,1f); stream!!.addRect(x - 1f, centerY + 1f, 2f, 2f); stream!!.fill() }; Icon.FINANCE -> { stream!!.addRect(x - 5f, centerY - 5f, 3f, 10f); stream!!.addRect(x, centerY - 2f, 3f, 7f); stream!!.addRect(x + 5f, centerY - 7f, 3f, 12f); stream!!.fill() }; Icon.CONSTRUCTION -> { stream!!.addRect(x - 7f, centerY - 2f, 14f, 3f); stream!!.addRect(x - 1.5f, centerY - 7f, 3f, 12f); stream!!.fill() }; else -> { stream!!.addRect(x - 5f, centerY - 5f, 10f, 10f); stream!!.fill() } } }
         companion object {
             private val translations = mapOf(
-                "basic_information" to mapOf(Language.UK to "Основна інформація", Language.EN to "Basic information"), "parameters_and_location" to mapOf(Language.UK to "Параметри та розташування", Language.EN to "Parameters and location"), "section_finance" to mapOf(Language.UK to "Фінансування та контракти", Language.EN to "Financing and contracts"), "construction_contractor_information" to mapOf(Language.UK to "Інформація про підрядника будівельних робіт", Language.EN to "Construction contractor information"), "technical_supervision_information" to mapOf(Language.UK to "Інформація про технічний нагляд", Language.EN to "Technical supervision information"), "engineer_consultant_information" to mapOf(Language.UK to "Інформація про інженера-консультанта", Language.EN to "Engineer-consultant information"), "financial_records" to mapOf(Language.UK to "Фінансові записи", Language.EN to "Financial records"), "inspection_reports_tab" to mapOf(Language.UK to "Інспекційні звіти", Language.EN to "Inspection reports"), "documents" to mapOf(Language.UK to "Документи", Language.EN to "Documents"),
+                "basic_information" to mapOf(Language.UK to "Основна інформація", Language.EN to "Basic information"), "parameters_and_location" to mapOf(Language.UK to "Параметри та розташування", Language.EN to "Parameters and location"), "section_finance" to mapOf(Language.UK to "Фінансування та контракти", Language.EN to "Financing and contracts"), "construction_contractor_information" to mapOf(Language.UK to "Інформація про підрядника будівельних робіт", Language.EN to "Construction contractor information"), "technical_supervision_information" to mapOf(Language.UK to "Інформація про технічний нагляд", Language.EN to "Technical supervision information"), "engineer_consultant_information" to mapOf(Language.UK to "Інформація про інженера-консультанта", Language.EN to "Engineer-consultant information"), "financial_records" to mapOf(Language.UK to "Фінансові записи", Language.EN to "Financial records"), "inspection_reports_tab" to mapOf(Language.UK to "Інспекційні звіти", Language.EN to "Inspection reports"), "inspection_photos" to mapOf(Language.UK to "Фото інспекцій", Language.EN to "Inspection photos"), "documents" to mapOf(Language.UK to "Документи", Language.EN to "Documents"),
                 "name" to mapOf(Language.UK to "Назва", Language.EN to "Name"), "subproject_code" to mapOf(Language.UK to "Код субпроєкту", Language.EN to "Subproject code"), "tranche" to mapOf(Language.UK to "Транш", Language.EN to "Tranche"), "status" to mapOf(Language.UK to "Статус", Language.EN to "Status"), "beneficiary" to mapOf(Language.UK to "Бенефіціар", Language.EN to "Beneficiary"), "description" to mapOf(Language.UK to "Опис", Language.EN to "Description"), "sector" to mapOf(Language.UK to "Сектор", Language.EN to "Sector"), "construction_type" to mapOf(Language.UK to "Тип будівництва", Language.EN to "Construction type"), "address" to mapOf(Language.UK to "Адреса", Language.EN to "Address"), "city" to mapOf(Language.UK to "Населений пункт", Language.EN to "City"), "region" to mapOf(Language.UK to "Область", Language.EN to "Region"), "municipality" to mapOf(Language.UK to "Муніципалітет", Language.EN to "Municipality"), "coordinates" to mapOf(Language.UK to "Координати", Language.EN to "Coordinates"), "planned_end_date" to mapOf(Language.UK to "Планова дата завершення", Language.EN to "Planned completion date"), "implementation_duration" to mapOf(Language.UK to "Строк реалізації", Language.EN to "Implementation duration"),
                 "budget" to mapOf(Language.UK to "Загальна вартість проєкту", Language.EN to "Total project cost"), "subproject_cost_eib_financing" to mapOf(Language.UK to "Вартість проєкту, фінансування ЄІБ", Language.EN to "Subproject cost, EIB financing"), "subproject_cost_local_financing" to mapOf(Language.UK to "Вартість проєкту, місцеве фінансування", Language.EN to "Subproject cost, local financing"), "subproject_contract_amount" to mapOf(Language.UK to "Сума контракту субпроєкту", Language.EN to "Subproject contract amount"), "technical_supervision_contract_amount" to mapOf(Language.UK to "Сума договору технічного нагляду", Language.EN to "Technical supervision contract amount"), "engineer_consultant_contract_amount" to mapOf(Language.UK to "Сума договору інженера-консультанта", Language.EN to "Engineer-consultant contract amount"),
                 "contractor" to mapOf(Language.UK to "Підрядник", Language.EN to "Contractor"), "contract_number" to mapOf(Language.UK to "Номер договору", Language.EN to "Contract number"), "contract_start_date" to mapOf(Language.UK to "Дата початку", Language.EN to "Start date"), "contract_planned_end_date" to mapOf(Language.UK to "Планова дата завершення", Language.EN to "Planned completion date"), "construction_contract_date" to mapOf(Language.UK to "Дата договору", Language.EN to "Contract date"), "construction_start_date" to mapOf(Language.UK to "Початок будівництва", Language.EN to "Construction start"), "projected_completion_date" to mapOf(Language.UK to "Планова дата завершення", Language.EN to "Planned completion date"), "contract_duration" to mapOf(Language.UK to "Тривалість контракту", Language.EN to "Contract duration"), "contract_date" to mapOf(Language.UK to "Дата договору", Language.EN to "Contract date")

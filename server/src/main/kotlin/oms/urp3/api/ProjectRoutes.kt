@@ -23,6 +23,7 @@ import java.math.BigDecimal
 import io.ktor.utils.io.readRemaining
 import kotlinx.io.readByteArray
 import kotlinx.serialization.Serializable
+import java.nio.file.Files
 
 @Serializable
 private data class SubprojectRegistryRefreshResponse(
@@ -671,12 +672,29 @@ fun Route.projectRoutes() {
         }
         val safeCode = project.siteNumber.replace(Regex("[^A-Za-z0-9._-]"), "_").ifBlank { "subproject" }
         val bytes = withContext(Dispatchers.IO) {
+            val inspectionReports = AppContainer.inspectionReportService.getProjectReports(project.id)
+            val inspectionPhotos = inspectionReports.flatMap { report ->
+                AppContainer.inspectionPhotoService.list(report.id).mapNotNull { photo ->
+                    val thumbnail = AppContainer.inspectionPhotoService.resolveFile(photo, thumbnail = true)
+                        ?.let { path -> runCatching { Files.readAllBytes(path) }.getOrNull() }
+                        ?: return@mapNotNull null
+                    ProjectPdfExportService.PhotoEvidence(
+                        caption = listOfNotNull(
+                            report.reportCode?.takeIf(String::isNotBlank),
+                            report.inspectionDate.toString(),
+                            photo.originalName.takeIf(String::isNotBlank)
+                        ).joinToString(" · "),
+                        thumbnail = thumbnail
+                    )
+                }
+            }
             projectPdfExportService.export(
                 project = project,
                 monitoring = AppContainer.projectRepository.monitoringDetails(project.id),
                 language = language,
                 financialRecords = AppContainer.financialRecordService.filtered(project.id, null, null, null),
-                inspectionReports = AppContainer.inspectionReportService.getProjectReports(project.id),
+                inspectionReports = inspectionReports,
+                inspectionPhotos = inspectionPhotos,
                 documents = AppContainer.projectDocumentService.list(project.id)
             )
         }
