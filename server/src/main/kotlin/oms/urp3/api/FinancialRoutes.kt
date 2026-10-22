@@ -105,7 +105,15 @@ fun Route.financialRoutes() {
             while (current.projectType != ProjectType.SUBPROJECT) {
                 current = current.parentProjectId?.let(byId::get) ?: return null
             }
-            return current
+            // Early payment imports could create a temporary subproject with
+            // a lot code (for example KH08_11#Lot1) before the real part was
+            // available. Attribute that legacy row to its base subproject so
+            // its region, sector and approved/contract amount are retained.
+            val baseCode = current.siteNumber.substringBefore('#').trim()
+            return if (baseCode.equals(current.siteNumber.trim(), ignoreCase = true)) current else
+                subprojects.firstOrNull { candidate ->
+                    candidate.siteNumber.equals(baseCode, ignoreCase = true)
+                } ?: current
         }
         // Financial execution is cash disbursed against the subproject budget.
         // ACT records evidence completed works but do not mean that money was

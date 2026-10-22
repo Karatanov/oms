@@ -275,7 +275,18 @@ class DashboardService(
             var current = projectId
             while (true) {
                 val project = projectsById[current] ?: return null
-                if (project[ProjectTable.projectType] == "subproject") return current
+                if (project[ProjectTable.projectType] == "subproject") {
+                    // Some legacy payment imports predate lot-to-part mapping
+                    // and point at a temporary "CODE#LotN" subproject. Map
+                    // it to CODE when present so Dashboard progress uses the
+                    // real region and contract amount instead of a zero stub.
+                    val siteCode = project[ProjectTable.siteNumber].orEmpty().trim()
+                    val baseCode = siteCode.substringBefore('#').trim()
+                    return if (baseCode.equals(siteCode, ignoreCase = true)) current else
+                        subprojects.firstOrNull { candidate ->
+                            candidate[ProjectTable.siteNumber].orEmpty().trim().equals(baseCode, ignoreCase = true)
+                        }?.get(ProjectTable.id)?.value ?: current
+                }
                 current = project[ProjectTable.parentProjectId]?.value ?: return null
             }
         }
