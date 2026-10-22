@@ -137,7 +137,7 @@ class ProjectPdfExportService {
         if (inspectionReports.isNotEmpty()) writer.section(writer.label("inspection_reports_tab"), Icon.INFO) {
             inspectionReports.sortedByDescending { it.inspectionDate }.forEach { report ->
                 row(
-                    report.inspectionDate,
+                    report.inspectionDate.toString(),
                     listOfNotNull(
                         report.reportCode?.takeIf(String::isNotBlank),
                         writer.status(report.status.name),
