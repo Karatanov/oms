@@ -303,6 +303,10 @@ class DashboardService(
         // database just to discover that there can be no ledger rows.
         val financialRecords = if (projectIds.isEmpty()) emptyList() else FinancialRecordTable.selectAll()
             .where { FinancialRecordTable.projectId inList projectIds }.toList()
+        // Acts represent completed construction work and are used for the
+        // subproject-completion chart below. Payments are a separate cash
+        // flow used by the monthly disbursement chart.
+        val actRecords = financialRecords.filter { it[FinancialRecordTable.recordType] == "act" }
         val paymentRecords = financialRecords.filter {
             it[FinancialRecordTable.recordType] in setOf("payment", "advance")
         }
