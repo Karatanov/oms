@@ -21,6 +21,7 @@ import java.io.ByteArrayInputStream
 import java.time.LocalDate
 import java.util.UUID
 import kotlinx.serialization.encodeToString
+import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 
 /**
@@ -177,7 +178,7 @@ class SubprojectRegistryRefreshService(
                     }
                     byCode[code.uppercase()] = ProjectTable.selectAll().where { ProjectTable.id eq id }.first()
                     id.value
-                } else {
+                } else if (!row.isAllocationSnapshot) {
                     val id = existing[ProjectTable.id].value
                     ProjectTable.update({ ProjectTable.id eq id }) {
                         it[ProjectTable.name] = name
@@ -194,7 +195,7 @@ class SubprojectRegistryRefreshService(
                         it[ProjectTable.isArchived] = false
                     }
                     id
-                }
+                } else id
             }
 
             val subprojectRows = rows.groupBy { it.subprojectCode.uppercase() }
@@ -211,15 +212,24 @@ class SubprojectRegistryRefreshService(
                 val projectId = if (code.equals(row.subprojectCode, true)) parentId else
                     saveProject(code, ProjectType.SUBPROJECT_PART, parentId, row)
                 val old = monitoringByLot[code.uppercase()] ?: monitoringByProjectId[projectId]
-                val values = row.values + mapOf("sourceWorkbook" to SOURCE_WORKBOOK)
+                // Allocation workbooks intentionally contain fewer columns than
+                // DB Table.  Merge them into the previous source payload so
+                // a refresh never erases existing contracts, links or work
+                // progress merely because that source does not publish them.
+                val previousValues = old?.get(ProjectMonitoringDetailTable.registryJson)
+                    ?.let { runCatching { Json.decodeFromString<Map<String, String>>(it) }.getOrDefault(emptyMap()) }
+                    .orEmpty()
+                val values = (previousValues + row.values.filterValues(String::isNotBlank)) +
+                    mapOf("sourceWorkbook" to row.sourceWorkbook)
+                val mergedRow = row.copy(values = values)
                 if (old == null) {
                     ProjectMonitoringDetailTable.insert {
                         it[ProjectMonitoringDetailTable.projectId] = EntityID(projectId, ProjectTable)
-                        applyMonitoring(row, values)
+                        applyMonitoring(mergedRow, values)
                     }
                 } else {
                     ProjectMonitoringDetailTable.update({ ProjectMonitoringDetailTable.projectId eq projectId }) {
-                        applyMonitoring(row, values)
+                        applyMonitoring(mergedRow, values)
                     }
                 }
             }
@@ -267,7 +277,7 @@ class SubprojectRegistryRefreshService(
         this[ProjectMonitoringDetailTable.constructionWorkComments] = row.value("workComments").ifBlank { null }
         this[ProjectMonitoringDetailTable.registryJson] = Json.encodeToString(values)
         this[ProjectMonitoringDetailTable.sourceRows] = row.sourceRows
-        this[ProjectMonitoringDetailTable.sourceWorkbook] = SOURCE_WORKBOOK
+        this[ProjectMonitoringDetailTable.sourceWorkbook] = row.sourceWorkbook
     }
 
     private fun RefreshJob.snapshot() = RefreshStatus(id, status, progress, phase, importedCount, error)
@@ -276,7 +286,6 @@ class SubprojectRegistryRefreshService(
 
     companion object {
         private const val PROGRAMME_CODE = "URP-III"
-        private const val SOURCE_WORKBOOK = "DB_Monitoring table.xlsx"
         private const val MAX_WORKBOOK_BYTES = 20_000_000
     }
 }
@@ -291,7 +300,9 @@ private object MonitoringWorkbookSource {
         val subprojectCode: String,
         val lotCode: String,
         val values: Map<String, String>,
-        val sourceRows: String
+        val sourceRows: String,
+        val sourceWorkbook: String = "DB_Monitoring table.xlsx",
+        val isAllocationSnapshot: Boolean = false
     ) {
         fun value(key: String) = values[key].orEmpty()
         fun number(key: String) = value(key).replace(Regex("\\s"), "").replace(',', '.').toDoubleOrNull() ?: 0.0
@@ -309,7 +320,7 @@ private object MonitoringWorkbookSource {
         progress(12, "opening_workbook")
         WorkbookFactory.create(ByteArrayInputStream(workbook)).use { book ->
             val sheet = book.getSheet("DB Table")
-                ?: throw IllegalArgumentException("The workbook must contain the 'DB Table' sheet.")
+            if (sheet == null) return parseAllocationWorkbook(book, progress)
             progress(18, "reading_headers")
             val header = sheet.getRow(HEADER_ROW - 1) ?: throw IllegalArgumentException("The monitoring workbook does not contain its header row.")
             fun column(title: String): Int = (0 until header.lastCellNum).firstOrNull { index ->
@@ -348,6 +359,78 @@ private object MonitoringWorkbookSource {
                 val lastRow = rows.last().first
                 Row(first.getValue("subprojectCode").trim(), first.getValue("lotCode").trim().ifBlank { first.getValue("subprojectCode").trim() }, merged, "$firstRow-$lastRow")
             }.also { require(it.isNotEmpty()) { "The monitoring workbook contains no subproject rows." } }
+        }
+    }
+
+    /**
+     * The approved Allocation workbook has Batch 8/9 sheets rather than the
+     * DB Table sheet.  It is an intentionally narrower source, so its rows
+     * are marked as snapshots and merge with existing registry properties.
+     */
+    private fun parseAllocationWorkbook(
+        book: org.apache.poi.ss.usermodel.Workbook,
+        progress: (Int, String) -> Unit
+    ): List<Row> {
+        val allocationSheets = (0 until book.numberOfSheets)
+            .map(book::getSheetAt)
+            .filter { sheet ->
+                sheet.sheetName.contains("allocation", ignoreCase = true) &&
+                    (0..minOf(12, sheet.lastRowNum)).any { rowIndex ->
+                        sheet.getRow(rowIndex)?.let { row ->
+                            (0 until row.lastCellNum).any { column -> text(row.getCell(column)).equals("Sub-Project ID", true) }
+                        } ?: false
+                    }
+            }
+        require(allocationSheets.isNotEmpty()) {
+            "The workbook must contain either the 'DB Table' sheet or an Allocation Table with 'Sub-Project ID'."
+        }
+        val rows = mutableListOf<Row>()
+        allocationSheets.forEachIndexed { sheetIndex, sheet ->
+            val headerIndex = (0..minOf(15, sheet.lastRowNum)).firstOrNull { index ->
+                val row = sheet.getRow(index) ?: return@firstOrNull false
+                (0 until row.lastCellNum).any { column -> text(row.getCell(column)).equals("Sub-Project ID", true) } &&
+                    (0 until row.lastCellNum).any { column -> text(row.getCell(column)).equals("Batch ID", true) }
+            } ?: return@forEachIndexed
+            val header = sheet.getRow(headerIndex) ?: return@forEachIndexed
+            val columns = (0 until header.lastCellNum).associate { index ->
+                text(header.getCell(index)).trim().lowercase().replace(Regex("\\s+"), " ") to index
+            }
+            fun column(title: String) = columns[title.lowercase().replace(Regex("\\s+"), " ")]
+            val subprojectColumn = column("Sub-Project ID") ?: return@forEachIndexed
+            val batchColumn = column("Batch ID") ?: return@forEachIndexed
+            val workRows = (headerIndex + 1..sheet.lastRowNum).mapNotNull { index ->
+                val row = sheet.getRow(index) ?: return@mapNotNull null
+                val code = value(row.getCell(subprojectColumn)).trim()
+                if (!code.matches(Regex("[A-Za-z]{2}\\d{2}_\\d{2}(?:#.+)?"))) return@mapNotNull null
+                val field = { title: String -> column(title)?.let { value(row.getCell(it)).trim() }.orEmpty() }
+                val batch = value(row.getCell(batchColumn)).trim()
+                val values = mapOf(
+                    "pool" to batch,
+                    "region" to field("Oblast ID"),
+                    "name" to field("Scheme Name ukr"),
+                    "nameEn" to field("Scheme Name eng"),
+                    "community" to field("Local Municipality"),
+                    "priority" to field("Responsible Sector"),
+                    "fundingTotal" to field("Total Investment Cost, UAH"),
+                    "eibCost" to field("Total Investment Cost, UAH (excl. local co-financing)"),
+                    "localCost" to field("Local co-financing, UAH"),
+                    "beneficiaryEn" to field("Promotor / Final Beneficiary"),
+                    "beneficiary" to field("FB Name")
+                )
+                Row(
+                    subprojectCode = code.substringBefore('#'),
+                    lotCode = code,
+                    values = values,
+                    sourceRows = "${sheet.sheetName}:${index + 1}",
+                    sourceWorkbook = "UR III AT&PP Allocation Table.xlsx",
+                    isAllocationSnapshot = true
+                )
+            }
+            rows += workRows
+            progress(20 + ((sheetIndex + 1) * 35 / allocationSheets.size), "reading_rows")
+        }
+        return rows.distinctBy { it.lotCode.uppercase() }.also {
+            require(it.isNotEmpty()) { "The Allocation Table contains no subproject records." }
         }
     }
 

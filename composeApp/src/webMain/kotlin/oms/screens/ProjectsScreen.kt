@@ -82,6 +82,8 @@ external fun openSubprojectMonitoringWorkbookUpload(onComplete: (String, String)
 
 private const val subprojectMonitoringWorkbookUrl =
     "https://docs.google.com/spreadsheets/d/1-RQLaRuWT7_VYYXdxJM3cfTOUqVuGSZYuWc03heVvfw/edit?gid=1116614736#gid=1116614736"
+private const val allocationWorkbookUrl =
+    "https://docs.google.com/spreadsheets/d/1QVniQDv_2iFBQr1NqsuXs6GM6rrQPpDf/edit?gid=1331578786#gid=1331578786"
 
 // ... existing code ...
 
@@ -430,6 +432,14 @@ fun ProjectsScreen(
                         textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline,
                         style = MaterialTheme.typography.bodySmall,
                         modifier = Modifier.clickable { uriHandler.openUri(subprojectMonitoringWorkbookUrl) }
+                    )
+                    Text(LocalizationManager.t("subproject_registry_refresh_allocation_source"), style = MaterialTheme.typography.bodySmall)
+                    Text(
+                        allocationWorkbookUrl,
+                        color = MaterialTheme.colorScheme.primary,
+                        textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.clickable { uriHandler.openUri(allocationWorkbookUrl) }
                     )
                     Text(LocalizationManager.t("subproject_registry_refresh_instruction_step_2"), style = MaterialTheme.typography.bodyMedium)
                     Text(LocalizationManager.t("subproject_registry_refresh_instruction_step_3"), style = MaterialTheme.typography.bodyMedium)
