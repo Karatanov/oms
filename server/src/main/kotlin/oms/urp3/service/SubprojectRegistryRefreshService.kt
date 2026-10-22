@@ -225,11 +225,11 @@ class SubprojectRegistryRefreshService(
                 if (old == null) {
                     ProjectMonitoringDetailTable.insert {
                         it[ProjectMonitoringDetailTable.projectId] = EntityID(projectId, ProjectTable)
-                        applyMonitoring(mergedRow, values)
+                        it.applyMonitoring(mergedRow, values)
                     }
                 } else {
                     ProjectMonitoringDetailTable.update({ ProjectMonitoringDetailTable.projectId eq projectId }) {
-                        applyMonitoring(mergedRow, values)
+                        it.applyMonitoring(mergedRow, values)
                     }
                 }
             }

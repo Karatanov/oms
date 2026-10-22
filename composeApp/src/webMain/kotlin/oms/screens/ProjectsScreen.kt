@@ -63,6 +63,7 @@ import oms.model.Project
 import oms.model.ProjectStatus
 import oms.model.localizedName
 import oms.model.localizedCity
+import oms.model.localizedBeneficiary
 import oms.components.localizedUkraineRegion
 import oms.components.canonicalUkraineRegion
 import oms.theme.Primary
