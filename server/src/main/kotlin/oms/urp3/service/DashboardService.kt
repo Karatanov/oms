@@ -263,6 +263,10 @@ class DashboardService(
             }
         val nameEnByProjectId = monitoringByProjectId.mapValues { (_, row) -> row[ProjectMonitoringDetailTable.nameEn] }
         val subprojects = projects.filter { it[ProjectTable.projectType] == "subproject" }
+        val subprojectIdByCode = subprojects.mapNotNull { row ->
+            row[ProjectTable.siteNumber].orEmpty().trim().takeIf(String::isNotBlank)?.lowercase()
+                ?.let { code -> code to row[ProjectTable.id].value }
+        }.toMap()
         val amountsByProject = if (projectIds.isEmpty()) emptyMap() else ProjectAmountTable.selectAll()
             .where { ProjectAmountTable.projectId inList projectIds }
             .groupBy { it[ProjectAmountTable.projectId].value }
@@ -283,9 +287,7 @@ class DashboardService(
                     val siteCode = project[ProjectTable.siteNumber].orEmpty().trim()
                     val baseCode = siteCode.substringBefore('#').trim()
                     return if (baseCode.equals(siteCode, ignoreCase = true)) current else
-                        subprojects.firstOrNull { candidate ->
-                            candidate[ProjectTable.siteNumber].orEmpty().trim().equals(baseCode, ignoreCase = true)
-                        }?.get(ProjectTable.id)?.value ?: current
+                        subprojectIdByCode[baseCode.lowercase()] ?: current
                 }
                 current = project[ProjectTable.parentProjectId]?.value ?: return null
             }
@@ -386,6 +388,10 @@ class DashboardService(
             .where { ProjectMonitoringDetailTable.projectId inList projectIds }
             .associate { it[ProjectMonitoringDetailTable.projectId].value to it[ProjectMonitoringDetailTable.nameEn] }
         val subprojects = projects.filter { it[ProjectTable.projectType] == "subproject" }
+        val subprojectIdByCode = subprojects.mapNotNull { row ->
+            row[ProjectTable.siteNumber].orEmpty().trim().takeIf(String::isNotBlank)?.lowercase()
+                ?.let { code -> code to row[ProjectTable.id].value }
+        }.toMap()
         val amountsByProject = if (projectIds.isEmpty()) emptyMap() else ProjectAmountTable.selectAll()
             .where { ProjectAmountTable.projectId inList projectIds }
             .groupBy { it[ProjectAmountTable.projectId].value }
@@ -402,9 +408,7 @@ class DashboardService(
                     val siteCode = project[ProjectTable.siteNumber].orEmpty().trim()
                     val baseCode = siteCode.substringBefore('#').trim()
                     return if (baseCode.equals(siteCode, ignoreCase = true)) current else
-                        subprojects.firstOrNull { candidate ->
-                            candidate[ProjectTable.siteNumber].orEmpty().trim().equals(baseCode, ignoreCase = true)
-                        }?.get(ProjectTable.id)?.value ?: current
+                        subprojectIdByCode[baseCode.lowercase()] ?: current
                 }
                 current = project[ProjectTable.parentProjectId]?.value ?: return null
             }
