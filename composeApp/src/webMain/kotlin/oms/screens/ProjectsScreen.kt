@@ -56,6 +56,7 @@ import oms.components.TableHeader
 import oms.components.ProjectTableColumns
 import oms.components.TableActionIconButton
 import oms.components.ExpandableTableText
+import oms.components.OmsBadge
 import oms.components.safeTextInput
 import oms.data.ProjectRepository
 import oms.localization.LocalizationManager
@@ -1220,6 +1221,12 @@ private fun RegistryTableCell(project: Project, column: SortColumn, fontWeight: 
         // rendering an easily overlooked plain-text value in a wide table.
         Box(Modifier.width(width)) {
             ConstructionTypeChip(project.constructionType, fontWeight)
+        }
+    } else if (column == SortColumn.PRIORITY) {
+        // Priority areas are controlled programme categories as well.  A chip
+        // makes the value scannable without making it look like an action.
+        Box(Modifier.width(width)) {
+            OmsBadge(value, Primary, fontWeight)
         }
     } else if (link.isNotBlank()) {
         Text(
