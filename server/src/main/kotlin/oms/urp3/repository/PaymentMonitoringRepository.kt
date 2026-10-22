@@ -5,7 +5,7 @@ import oms.urp3.service.PaymentMonitoringWorkbookSource
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.statements.UpdateBuilder
 import org.jetbrains.exposed.v1.jdbc.deleteAll
-import org.jetbrains.exposed.v1.jdbc.insert
+import org.jetbrains.exposed.v1.jdbc.batchInsert
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import java.math.BigDecimal
@@ -33,7 +33,12 @@ class ExposedPaymentMonitoringRepository : PaymentMonitoringRepository {
         require(items.isNotEmpty()) { "The payment monitoring workbook contains no usable rows." }
         require(items.map { it.code.uppercase() }.toSet().size == items.size) { "The payment monitoring workbook contains duplicate IDs." }
         PaymentMonitoringRowTable.deleteAll()
-        items.forEach { item -> PaymentMonitoringRowTable.insert { row -> row.applyItem(item, updatedAt) } }
+        // The workbook replaces the complete read-only snapshot. Use a batch
+        // rather than one INSERT per row so a remote database pays one round
+        // trip for the replacement transaction instead of hundreds.
+        PaymentMonitoringRowTable.batchInsert(items, shouldReturnGeneratedValues = false) { item ->
+            applyItem(item, updatedAt)
+        }
         PaymentMonitoringSnapshot(updatedAt, items)
     }
 
