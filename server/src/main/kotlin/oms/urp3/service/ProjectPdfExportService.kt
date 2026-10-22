@@ -9,6 +9,7 @@ import org.apache.pdfbox.pdmodel.graphics.image.LosslessFactory
 import oms.urp3.domain.Project
 import oms.urp3.domain.ProjectDocument
 import oms.urp3.domain.FinancialRecord
+import oms.urp3.domain.FinancialRecordType
 import oms.urp3.domain.InspectionReport
 import oms.urp3.domain.ProjectMonitoringDetails
 import oms.urp3.domain.ProcurementRecord
@@ -44,6 +45,17 @@ class ProjectPdfExportService {
         val fontBytes = requireNotNull(javaClass.getResourceAsStream("/fonts/DejaVuSans.ttf")) { "PDF export font is unavailable." }
         val font = fontBytes.use { PDType0Font.load(document, it, true) }
         val writer = PdfWriter(document, font, language)
+        val financialExecutionBase = (project.subprojectContractAmount ?: project.budgetPlanned).toDouble()
+        val paidUah = financialRecords.asSequence()
+            .filter { it.recordType == FinancialRecordType.PAYMENT || it.recordType == FinancialRecordType.ADVANCE }
+            .mapNotNull { record ->
+                when (record.currency.uppercase()) {
+                    "UAH" -> record.amount
+                    "EUR" -> record.eurExchangeRate?.takeIf { it > 0.0 }?.let { record.amount * it }
+                    else -> null
+                }
+            }
+            .sum()
         writer.cover(project.localizedName(monitoring, language), project.siteNumber)
         writer.section(writer.label("basic_information"), Icon.INFO) {
             row(writer.label("name"), project.localizedName(monitoring, language)); row(writer.label("subproject_code"), project.siteName.ifBlank { project.siteNumber })
@@ -60,6 +72,7 @@ class ProjectPdfExportService {
             row(writer.label("budget"), money(project.budgetPlanned, project.currency)); row(writer.label("subproject_cost_eib_financing"), project.amounts["eib_financing"]?.let { money(it.amount, it.currency) })
             row(writer.label("subproject_cost_local_financing"), project.amounts["local_financing"]?.let { money(it.amount, it.currency) }); row(writer.label("subproject_contract_amount"), project.subprojectContractAmount?.let { money(it, project.currency) })
             row(writer.label("technical_supervision_contract_amount"), project.technicalSupervisionAmount?.let { money(it, project.currency) }); row(writer.label("engineer_consultant_contract_amount"), project.engineerConsultantContractAmount?.let { money(it, project.currency) })
+            if (financialExecutionBase > 0.0) progress(writer.label("financial_execution"), paidUah, financialExecutionBase)
         }
         writer.section(writer.label("construction_contractor_information"), Icon.CONSTRUCTION) {
             row(writer.label("contractor"), project.contractorName); row(writer.label("contract_number"), project.constructionContractNumber); row(writer.label("construction_contract_date"), project.constructionContractSigningDate)
@@ -181,6 +194,30 @@ class ProjectPdfExportService {
             stream!!.setStrokingColor(0.83f, 0.88f, 0.90f); stream!!.addRect(margin, y - height, width, height); stream!!.moveTo(margin + labelWidth, y); stream!!.lineTo(margin + labelWidth, y - height); stream!!.stroke()
             labelLines.forEachIndexed { index, line -> text(line, margin + 7f, y - 13f - index * 13f, 9f, floatArrayOf(0.28f, 0.36f, 0.40f)) }; valueLines.forEachIndexed { index, line -> text(line, margin + labelWidth + 7f, y - 13f - index * 13f, 9.5f, ink) }; y -= height
         }
+        /** A compact, printable progress bar based on stored UAH payment values. */
+        fun progress(label: String, completed: Double, total: Double) {
+            val percentage = (completed * 100.0 / total).coerceIn(0.0, 100.0)
+            val height = 38f
+            ensure(height + 4f)
+            stream!!.setStrokingColor(0.83f, 0.88f, 0.90f)
+            stream!!.addRect(margin, y - height, width, height)
+            stream!!.stroke()
+            text(label, margin + 7f, y - 13f, 9f, floatArrayOf(0.28f, 0.36f, 0.40f))
+            text("${DecimalFormat("#,##0.00").format(completed)} / ${DecimalFormat("#,##0.00").format(total)} UAH", margin + 158f, y - 13f, 8.5f, ink)
+            text("${DecimalFormat("#,##0.0").format(percentage)}%", margin + width - 40f, y - 13f, 9.5f, ink)
+            val barX = margin + 7f
+            val barY = y - 28f
+            val barWidth = width - 14f
+            stream!!.setNonStrokingColor(0.91f, 0.94f, 0.95f)
+            stream!!.addRect(barX, barY, barWidth, 7f)
+            stream!!.fill()
+            if (percentage > 0.0) {
+                fillColor(primary)
+                stream!!.addRect(barX, barY, (barWidth * (percentage / 100.0)).toFloat(), 7f)
+                stream!!.fill()
+            }
+            y -= height
+        }
         fun label(key: String) = translations[key]?.get(language) ?: key
         fun months(days: Long): String { val value = kotlin.math.round(days / 30.44).toInt().coerceAtLeast(1); return if (language == Language.UK) "$value міс." else "$value months" }
         fun status(value: String) = when (value.lowercase()) { "planned" -> if (language == Language.UK) "Заплановано" else "Planned"; "active" -> if (language == Language.UK) "Активний" else "Active"; "suspended" -> if (language == Language.UK) "Призупинено" else "Suspended"; "completed" -> if (language == Language.UK) "Завершено" else "Completed"; "archived" -> if (language == Language.UK) "Архівовано" else "Archived"; "dlp" -> "DLP"; else -> value }
@@ -208,7 +245,7 @@ class ProjectPdfExportService {
             private val translations = mapOf(
                 "basic_information" to mapOf(Language.UK to "Основна інформація", Language.EN to "Basic information"), "parameters_and_location" to mapOf(Language.UK to "Параметри та розташування", Language.EN to "Parameters and location"), "section_finance" to mapOf(Language.UK to "Фінансування та контракти", Language.EN to "Financing and contracts"), "construction_contractor_information" to mapOf(Language.UK to "Інформація про підрядника будівельних робіт", Language.EN to "Construction contractor information"), "technical_supervision_information" to mapOf(Language.UK to "Інформація про технічний нагляд", Language.EN to "Technical supervision information"), "engineer_consultant_information" to mapOf(Language.UK to "Інформація про інженера-консультанта", Language.EN to "Engineer-consultant information"), "financial_records" to mapOf(Language.UK to "Фінансові записи", Language.EN to "Financial records"), "inspection_reports_tab" to mapOf(Language.UK to "Інспекційні звіти", Language.EN to "Inspection reports"), "inspection_photos" to mapOf(Language.UK to "Фото інспекцій", Language.EN to "Inspection photos"), "procurement" to mapOf(Language.UK to "Закупівлі", Language.EN to "Procurement"), "documents" to mapOf(Language.UK to "Документи", Language.EN to "Documents"),
                 "name" to mapOf(Language.UK to "Назва", Language.EN to "Name"), "subproject_code" to mapOf(Language.UK to "Код субпроєкту", Language.EN to "Subproject code"), "tranche" to mapOf(Language.UK to "Транш", Language.EN to "Tranche"), "status" to mapOf(Language.UK to "Статус", Language.EN to "Status"), "beneficiary" to mapOf(Language.UK to "Бенефіціар", Language.EN to "Beneficiary"), "description" to mapOf(Language.UK to "Опис", Language.EN to "Description"), "sector" to mapOf(Language.UK to "Сектор", Language.EN to "Sector"), "construction_type" to mapOf(Language.UK to "Тип будівництва", Language.EN to "Construction type"), "address" to mapOf(Language.UK to "Адреса", Language.EN to "Address"), "city" to mapOf(Language.UK to "Населений пункт", Language.EN to "City"), "region" to mapOf(Language.UK to "Область", Language.EN to "Region"), "municipality" to mapOf(Language.UK to "Муніципалітет", Language.EN to "Municipality"), "coordinates" to mapOf(Language.UK to "Координати", Language.EN to "Coordinates"), "planned_end_date" to mapOf(Language.UK to "Планова дата завершення", Language.EN to "Planned completion date"), "implementation_duration" to mapOf(Language.UK to "Строк реалізації", Language.EN to "Implementation duration"),
-                "budget" to mapOf(Language.UK to "Загальна вартість проєкту", Language.EN to "Total project cost"), "subproject_cost_eib_financing" to mapOf(Language.UK to "Вартість проєкту, фінансування ЄІБ", Language.EN to "Subproject cost, EIB financing"), "subproject_cost_local_financing" to mapOf(Language.UK to "Вартість проєкту, місцеве фінансування", Language.EN to "Subproject cost, local financing"), "subproject_contract_amount" to mapOf(Language.UK to "Сума контракту субпроєкту", Language.EN to "Subproject contract amount"), "technical_supervision_contract_amount" to mapOf(Language.UK to "Сума договору технічного нагляду", Language.EN to "Technical supervision contract amount"), "engineer_consultant_contract_amount" to mapOf(Language.UK to "Сума договору інженера-консультанта", Language.EN to "Engineer-consultant contract amount"),
+                "budget" to mapOf(Language.UK to "Загальна вартість проєкту", Language.EN to "Total project cost"), "subproject_cost_eib_financing" to mapOf(Language.UK to "Вартість проєкту, фінансування ЄІБ", Language.EN to "Subproject cost, EIB financing"), "subproject_cost_local_financing" to mapOf(Language.UK to "Вартість проєкту, місцеве фінансування", Language.EN to "Subproject cost, local financing"), "subproject_contract_amount" to mapOf(Language.UK to "Сума контракту субпроєкту", Language.EN to "Subproject contract amount"), "technical_supervision_contract_amount" to mapOf(Language.UK to "Сума договору технічного нагляду", Language.EN to "Technical supervision contract amount"), "engineer_consultant_contract_amount" to mapOf(Language.UK to "Сума договору інженера-консультанта", Language.EN to "Engineer-consultant contract amount"), "financial_execution" to mapOf(Language.UK to "Фінансове виконання", Language.EN to "Financial execution"),
                 "contractor" to mapOf(Language.UK to "Підрядник", Language.EN to "Contractor"), "contract_number" to mapOf(Language.UK to "Номер договору", Language.EN to "Contract number"), "contract_start_date" to mapOf(Language.UK to "Дата початку", Language.EN to "Start date"), "contract_planned_end_date" to mapOf(Language.UK to "Планова дата завершення", Language.EN to "Planned completion date"), "construction_contract_date" to mapOf(Language.UK to "Дата договору", Language.EN to "Contract date"), "construction_start_date" to mapOf(Language.UK to "Початок будівництва", Language.EN to "Construction start"), "projected_completion_date" to mapOf(Language.UK to "Планова дата завершення", Language.EN to "Planned completion date"), "contract_duration" to mapOf(Language.UK to "Тривалість контракту", Language.EN to "Contract duration"), "contract_date" to mapOf(Language.UK to "Дата договору", Language.EN to "Contract date")
             )
         }

@@ -4,10 +4,13 @@ import oms.urp3.domain.Project
 import oms.urp3.domain.ProjectStatus
 import oms.urp3.domain.ProjectType
 import oms.urp3.domain.ProcurementRecord
+import oms.urp3.domain.FinancialRecord
+import oms.urp3.domain.FinancialRecordType
 import org.apache.pdfbox.pdmodel.PDDocument
 import org.apache.pdfbox.text.PDFTextStripper
 import java.awt.image.BufferedImage
 import java.io.ByteArrayOutputStream
+import java.time.LocalDate
 import java.util.UUID
 import javax.imageio.ImageIO
 import kotlin.test.Test
@@ -27,6 +30,9 @@ class ProjectPdfExportServiceTest {
             language = ProjectPdfExportService.Language.UK,
             inspectionPhotos = listOf(
                 ProjectPdfExportService.PhotoEvidence("SIR-001 · 22.10.2026 · roof.jpg", thumbnail)
+            ),
+            financialRecords = listOf(
+                FinancialRecord(1L, UUID.randomUUID(), 1L, FinancialRecordType.PAYMENT, "PMT-1", 100.0, "UAH", LocalDate.of(2026, 10, 22), null, null, null)
             ),
             procurementRecords = listOf(
                 ProcurementRecord(
@@ -49,6 +55,7 @@ class ProjectPdfExportServiceTest {
             assertTrue(text.contains("SIR-001"))
             assertTrue(text.contains("Закупівлі"))
             assertTrue(text.contains("Підрядник"))
+            assertTrue(text.contains("Фінансове виконання"))
         }
     }
 
