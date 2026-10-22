@@ -163,11 +163,10 @@ fun Route.projectRoutes() {
     }
 
     /**
-     * Повертає перелік проєктів.
-     *
-     * На поточному етапі
-     * підтримується лише
-     * перша сторінка.
+     * Returns a filtered page of the project hierarchy together with stable
+     * pagination metadata. The client may request up to 500 rows per page for
+     * its shared navigation snapshot, while table screens retain their own UI
+     * pagination without repeatedly rebuilding this response.
      */
     get("/api/v1/projects") {
         val session = call.requireRole("ADMIN", "PROJECT_MANAGER", "INSPECTOR", "VIEWER", "GUEST") ?: return@get
