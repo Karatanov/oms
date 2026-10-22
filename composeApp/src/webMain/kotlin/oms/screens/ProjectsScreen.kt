@@ -631,7 +631,18 @@ fun ProjectsTable(
                         project = row.project,
                         isProject = row.project.projectType.equals("project", ignoreCase = true),
                         isSelected = row.project.id in selectedProjectIds,
-                        highlightSearchMatch = searchText.isNotBlank() && row.project.matchesProjectSearch(searchText)
+                        highlightSearchMatch = searchText.isNotBlank() && row.project.matchesProjectSearch(searchText),
+                        childCount = row.childCount,
+                        expanded = row.expanded,
+                        canManageProjects = canManageProjects,
+                        onToggleChildren = { id ->
+                            val childParentIds = projects.filter { !it.projectType.equals("project", true) }.mapNotNull { it.parentProjectUuid }.toSet()
+                            val parentIds = projects.filter { it.id in childParentIds }.map { it.id }.toSet()
+                            val current = expandedParentIds ?: parentIds
+                            expandedParentIds = if (id in current) current - id else current + id
+                        },
+                        onExpandRow = onExpandRow,
+                        onSelectedChange = { onSelectionChange(row.project.id, it) }
                     )
                 }
             },
@@ -690,11 +701,12 @@ private fun ProjectFrozenCodeHeader(
         Box(Modifier.fillMaxWidth().height(64.dp), contentAlignment = Alignment.CenterStart) {
             Text(
                 LocalizationManager.t("filters"),
-                modifier = Modifier.padding(start = ProjectTableColumns.width(SortColumn.ID)),
+                modifier = Modifier.padding(start = ProjectTableColumns.selection + ProjectTableColumns.hierarchy),
                 style = MaterialTheme.typography.labelLarge
             )
         }
         Row(Modifier.fillMaxWidth().height(oms.theme.OmsDimensions.TableHeaderHeight)) {
+            Spacer(Modifier.width(ProjectTableColumns.selection + ProjectTableColumns.hierarchy))
             oms.components.SortableHeader(
                 LocalizationManager.t("project_code"),
                 SortColumn.ID,
@@ -703,7 +715,6 @@ private fun ProjectFrozenCodeHeader(
                 onSort,
                 Modifier.width(ProjectTableColumns.width(SortColumn.ID))
             )
-            Spacer(Modifier.width(ProjectTableColumns.selection + ProjectTableColumns.hierarchy))
         }
         HorizontalDivider()
     }
@@ -714,8 +725,15 @@ private fun ProjectFrozenCodeRow(
     project: Project,
     isProject: Boolean,
     isSelected: Boolean,
-    highlightSearchMatch: Boolean
+    highlightSearchMatch: Boolean,
+    childCount: Int,
+    expanded: Boolean,
+    canManageProjects: Boolean,
+    onToggleChildren: (String) -> Unit,
+    onExpandRow: (Float) -> Unit,
+    onSelectedChange: (Boolean) -> Unit
 ) {
+    var rowTopInRoot by remember { mutableStateOf(0f) }
     val background = when {
         isSelected -> MaterialTheme.colorScheme.primaryContainer
         highlightSearchMatch -> MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.50f)
@@ -726,16 +744,62 @@ private fun ProjectFrozenCodeRow(
         Modifier
             .width(ProjectTableColumns.frozenStartWidth)
             .height(44.dp)
-            .background(background),
+            .background(background)
+            .onGloballyPositioned { rowTopInRoot = it.positionInRoot().y },
         verticalAlignment = Alignment.CenterVertically
     ) {
+        if (canManageProjects) Checkbox(
+            checked = isSelected,
+            onCheckedChange = onSelectedChange,
+            modifier = Modifier.width(ProjectTableColumns.selection)
+        ) else Spacer(Modifier.width(ProjectTableColumns.selection))
+        Box(
+            modifier = Modifier.width(ProjectTableColumns.hierarchy).height(32.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            if (childCount > 0) {
+                Box(
+                    modifier = Modifier.fillMaxSize()
+                        .clickable { onToggleChildren(project.id); onExpandRow(rowTopInRoot) }
+                        .pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = if (expanded) Icons.Default.KeyboardArrowDown else Icons.Default.KeyboardArrowUp,
+                        contentDescription = if (expanded) LocalizationManager.t("collapse") else LocalizationManager.t("expand"),
+                        tint = Primary,
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
+            } else if (isProject) {
+                Icon(
+                    imageVector = Icons.Default.Folder,
+                    contentDescription = LocalizationManager.t("project"),
+                    tint = Primary,
+                    modifier = Modifier.size(20.dp)
+                )
+            } else if (project.projectType.equals("subproject_part", ignoreCase = true)) {
+                Icon(
+                    imageVector = Icons.Default.Layers,
+                    contentDescription = LocalizationManager.t("subproject_part"),
+                    tint = Primary,
+                    modifier = Modifier.size(19.dp)
+                )
+            } else {
+                Icon(
+                    imageVector = Icons.Default.FolderOpen,
+                    contentDescription = LocalizationManager.t("subproject"),
+                    tint = Primary,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+        }
         Text(
             project.siteNumber,
             modifier = Modifier.width(ProjectTableColumns.width(SortColumn.ID)),
             fontWeight = if (isProject) FontWeight.Bold else FontWeight.Normal,
             maxLines = 1
         )
-        Spacer(Modifier.width(ProjectTableColumns.selection + ProjectTableColumns.hierarchy))
     }
     HorizontalDivider()
 }
@@ -787,6 +851,7 @@ private fun ProjectsFilters(
 ) {
     Row(Modifier.width(ProjectTableColumns.totalWidth).padding(vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically) {
+        Spacer(Modifier.width(ProjectTableColumns.selection + ProjectTableColumns.hierarchy))
         ProjectTableColumns.columns.forEach { column ->
             Box(Modifier.width(ProjectTableColumns.width(column)).padding(end = 6.dp)) {
                 when (column) {
@@ -807,7 +872,6 @@ private fun ProjectsFilters(
                     else -> Unit
                 }
             }
-            if (column == SortColumn.ID) Spacer(Modifier.width(ProjectTableColumns.selection + ProjectTableColumns.hierarchy))
         }
         Box(
             Modifier.width(ProjectTableColumns.actions),
@@ -1000,10 +1064,6 @@ fun ProjectRow(
 
         val rowFontWeight = if (!isSubproject) FontWeight.Bold else FontWeight.Normal
 
-        // The source identifier is the primary key of the monitoring registry,
-        // so it is deliberately the first and frozen value in every row.
-        Text(project.siteNumber, modifier = Modifier.width(ProjectTableColumns.width(SortColumn.ID)), fontWeight = rowFontWeight)
-
         if (canManageProjects) Checkbox(
             checked = isSelected,
             onCheckedChange = onSelectedChange,
@@ -1066,6 +1126,10 @@ fun ProjectRow(
                 }
             }
         }
+
+        // The source identifier is the primary frozen value; selection and
+        // hierarchy controls stay immediately to its left.
+        Text(project.siteNumber, modifier = Modifier.width(ProjectTableColumns.width(SortColumn.ID)), fontWeight = rowFontWeight)
 
         ProjectTableColumns.columns.filterNot { it == SortColumn.ID }.forEach { column ->
             RegistryTableCell(project, column, rowFontWeight, isSubproject)

@@ -60,7 +60,7 @@ object ProjectTableColumns {
         SortColumn.IMPLEMENTATION_DURATION to 1.dp
     )
     val columns = widths.filterValues { it > 1.dp }.keys.toList()
-    /** Selection/tree controls plus the stable subproject code column. */
+    /** Selection/tree controls followed by the stable subproject code column. */
     val frozenStartWidth = selection + hierarchy + widths.getValue(SortColumn.ID)
     val totalWidth = columns.fold(selection + hierarchy + actions) { total, column -> total + widths.getValue(column) }
     fun width(column: SortColumn) = widths.getValue(column)

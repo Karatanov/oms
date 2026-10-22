@@ -14,6 +14,8 @@ import oms.screens.SortColumn
 @Composable
 fun TableHeader(currentSort: SortColumn, ascending: Boolean, onSort: (SortColumn) -> Unit) {
     Row(Modifier.width(ProjectTableColumns.totalWidth).padding(vertical = 4.dp)) {
+        // Selection and hierarchy controls precede the stable code column.
+        Spacer(Modifier.width(ProjectTableColumns.selection + ProjectTableColumns.hierarchy))
         ProjectTableColumns.columns.forEach { column ->
             val labelKey = when (column) {
                 SortColumn.ID -> "project_code"
@@ -63,10 +65,6 @@ fun TableHeader(currentSort: SortColumn, ascending: Boolean, onSort: (SortColumn
             }
             SortableHeader(LocalizationManager.t(labelKey), column, currentSort, ascending, onSort,
                 Modifier.width(ProjectTableColumns.width(column)))
-            if (column == SortColumn.ID) {
-                // Tree/selection controls follow the frozen code column.
-                Spacer(Modifier.width(ProjectTableColumns.selection + ProjectTableColumns.hierarchy))
-            }
         }
         Box(Modifier.width(ProjectTableColumns.actions).height(oms.theme.OmsDimensions.TableHeaderHeight),
             contentAlignment = Alignment.Center) {
