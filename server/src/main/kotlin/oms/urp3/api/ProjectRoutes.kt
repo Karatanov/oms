@@ -186,7 +186,12 @@ fun Route.projectRoutes() {
                 search = call.request.queryParameters["search"]
             )
             val total = projects.size.toLong()
-            val pagedProjects = projects.drop((page - 1) * pageSize).take(pageSize)
+            // Keep an out-of-range page a normal empty result. Calculating
+            // the offset as Int could overflow for a malformed very large
+            // page query and turn a harmless request into a 500 response.
+            val offset = (page.toLong() - 1L) * pageSize.toLong()
+            val pagedProjects = if (offset >= projects.size) emptyList() else
+                projects.drop(offset.toInt()).take(pageSize)
 
         // The response may be a filtered/paginated slice, but resolving a
         // payment on a subproject part needs its parent outside that slice.
