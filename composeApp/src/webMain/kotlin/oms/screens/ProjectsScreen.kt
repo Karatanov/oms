@@ -748,7 +748,7 @@ private fun ProjectFrozenCodeRow(
     Row(
         Modifier
             .width(ProjectTableColumns.frozenStartWidth)
-            .height(44.dp)
+            .height(ProjectTableColumns.rowHeight)
             .background(background)
             .onGloballyPositioned { rowTopInRoot = it.positionInRoot().y },
         verticalAlignment = Alignment.CenterVertically
@@ -1036,6 +1036,10 @@ fun ProjectRow(
     Row(
         modifier = Modifier
             .width(ProjectTableColumns.totalWidth)
+            // The leading frozen strip mirrors this row. A shared fixed
+            // height prevents checkbox minimum sizes or cell contents from
+            // moving the overlay out of alignment while scrolling sideways.
+            .height(ProjectTableColumns.rowHeight)
             .onGloballyPositioned { rowTopInRoot = it.positionInRoot().y }
 
             // hover detection
@@ -1064,9 +1068,7 @@ fun ProjectRow(
                     !isSubproject -> MaterialTheme.colorScheme.surfaceContainerLow
                     else -> MaterialTheme.colorScheme.surface
                 }
-            )
-
-            .padding(vertical = 4.dp),
+            ),
         verticalAlignment = Alignment.CenterVertically
     ) {
 

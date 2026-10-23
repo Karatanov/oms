@@ -8,6 +8,8 @@ object ProjectTableColumns {
     val selection = 32.dp
     val hierarchy = 30.dp
     val actions = 144.dp
+    /** Main and frozen registry rows must share this exact height. */
+    val rowHeight = 44.dp
     /** Registry headings have deliberately long source-data labels. */
     val headerHeight = 68.dp
     private val widths = linkedMapOf(
