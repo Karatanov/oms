@@ -223,8 +223,10 @@ private fun NationalPortfolioSummary(summary: ApiDashboardNationalSummary) {
                 SummaryMetric("national_signed_contract_value", "${summary.signedContractsAmountUah.roundToLong().grouped()} UAH")
                 SummaryMetric(
                     "national_services_paid",
-                    "€ ${summary.servicesPaidEurCents.toEuroAmount()}",
-                    uahEquivalent = summary.servicesPaidUahCents?.let { "${it.toUahAmount()} UAH" }
+                    // This programme indicator is maintained in hryvnias;
+                    // presenting its EUR conversion as the primary figure made
+                    // it inconsistent with the source financial register.
+                    summary.servicesPaidUahCents?.let { "${it.toUahAmount()} UAH" } ?: "—"
                 )
             }
         }
