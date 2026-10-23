@@ -345,23 +345,7 @@ fun FinancialScreen(
             listOfNotNull(LocalizationManager.t("financial_monitoring"), selectedRegionLabel).joinToString(" — "),
             Icons.Default.AccountBalance,
             iconText = "€"
-        ) {
-            if (canManageFinancials) {
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(onClick = { showTransferDialog = true }) {
-                        Text(LocalizationManager.t("import_export_xlsx"))
-                    }
-                    Button(onClick = {
-                        errorMessage = null
-                        addAct = true
-                    }) {
-                        Icon(Icons.Default.Add, null)
-                        Spacer(Modifier.width(8.dp))
-                        Text(LocalizationManager.t("add_record"))
-                    }
-                }
-            }
-        }
+        )
         if (loading) oms.components.ContentState(LocalizationManager.t("loading_records"), loading = true)
         if (loadFailed) oms.components.ContentState(LocalizationManager.t("load_records_error"), error = true, onRetry = { reloadKey++ })
         if (loadingRates) oms.components.ContentState(LocalizationManager.t("financial_rates_loading"), loading = true)
@@ -446,6 +430,12 @@ fun FinancialScreen(
             )
         }
 
+        /*
+         * The editable financial-record registry is intentionally retired from
+         * the Financial Monitoring screen. The service and its editor remain
+         * below for a controlled migration of existing data, but this view is
+         * now the read-only programme monitoring source above.
+         *
         BoxWithConstraints(Modifier.fillMaxWidth()) {
             if (maxWidth >= 620.dp) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                 Text(LocalizationManager.t("financial_records"), style = MaterialTheme.typography.titleLarge)
@@ -589,6 +579,7 @@ fun FinancialScreen(
         }
 
         errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+        */
     }
     if (!oms.layout.LocalMobileLayout.current) Surface(
         modifier = Modifier.align(Alignment.CenterEnd).padding(end = 16.dp).zIndex(10f),
