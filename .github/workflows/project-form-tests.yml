@@ -36,11 +36,11 @@ jobs:
       - name: Install isolated browser test tools
         run: |
           npm install --prefix build/date-picker-test playwright@1.63.0
-          # ubuntu-latest already provides the shared libraries needed by the
-          # supported Playwright browsers. `--with-deps` forces a large apt
-          # transaction on every run (and exhausted this workflow's timeout),
-          # while the cached browser binaries only need a normal install.
-          build/date-picker-test/node_modules/.bin/playwright install chromium webkit firefox
+          # The browser cache contains executables, not the shared libraries
+          # required by WebKit on a fresh GitHub runner. Keep --with-deps so
+          # the Safari-compatible test actually starts; cached binaries still
+          # avoid downloading all browser archives again.
+          build/date-picker-test/node_modules/.bin/playwright install --with-deps chromium webkit firefox
       - name: Date overlay in Chromium and WebKit
         run: node tools/test-date-picker.cjs
       - name: Cookie-free authentication in Chromium, WebKit and Firefox
