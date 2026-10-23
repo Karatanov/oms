@@ -34,7 +34,7 @@ fun VerticalBarChart(
     // A compact lane and wider bar make dense month/subproject charts easier
     // to scan. The label still owns its lane, so tooltips and click targets
     // remain reliable on touch screens.
-    val columnGap = 2.dp
+    val columnGap = 1.dp
     val plotWidth = labelWidth * data.size + columnGap * (data.size - 1)
     Column(Modifier.fillMaxWidth()) {
         Column(Modifier.fillMaxWidth().horizontalScroll(scroll)) {

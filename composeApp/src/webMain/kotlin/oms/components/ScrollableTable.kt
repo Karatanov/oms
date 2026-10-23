@@ -152,7 +152,7 @@ fun TableScrollControls(scroll: ScrollState, showWhenStationary: Boolean = false
             scrollState = scroll,
             direction = -1,
             clickDistance = 500f,
-            continuousPixelsPerFrame = 10f,
+            continuousPixelsPerFrame = 16f,
             enabled = canScroll
         )
         Text(
@@ -167,7 +167,7 @@ fun TableScrollControls(scroll: ScrollState, showWhenStationary: Boolean = false
             scrollState = scroll,
             direction = 1,
             clickDistance = 500f,
-            continuousPixelsPerFrame = 10f,
+            continuousPixelsPerFrame = 16f,
             enabled = canScroll
         )
     }

@@ -57,9 +57,9 @@ fun HorizontalBarChart(
             }
         }
         if (scroll.maxValue > 0) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
-            HoldToScrollButton("Scroll up", Icons.Default.KeyboardArrowUp, scroll, -1, clickDistance = 300f, continuousPixelsPerFrame = 8f)
+            HoldToScrollButton("Scroll up", Icons.Default.KeyboardArrowUp, scroll, -1, clickDistance = 300f, continuousPixelsPerFrame = 14f)
             Text("${((scroll.value.toFloat() / scroll.maxValue) * 100).toInt()}%", Modifier.width(56.dp), textAlign = TextAlign.Center, style = MaterialTheme.typography.labelMedium)
-            HoldToScrollButton("Scroll down", Icons.Default.KeyboardArrowDown, scroll, 1, clickDistance = 300f, continuousPixelsPerFrame = 8f)
+            HoldToScrollButton("Scroll down", Icons.Default.KeyboardArrowDown, scroll, 1, clickDistance = 300f, continuousPixelsPerFrame = 14f)
         }
     }
 }
