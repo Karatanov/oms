@@ -10,7 +10,10 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    # The browser checks share a cold cache only on their first run. Give that
+    # legitimate download time, rather than having Actions report it as a
+    # cancelled test suite.
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-java@v6
@@ -33,7 +36,11 @@ jobs:
       - name: Install isolated browser test tools
         run: |
           npm install --prefix build/date-picker-test playwright@1.63.0
-          build/date-picker-test/node_modules/.bin/playwright install --with-deps chromium webkit firefox
+          # ubuntu-latest already provides the shared libraries needed by the
+          # supported Playwright browsers. `--with-deps` forces a large apt
+          # transaction on every run (and exhausted this workflow's timeout),
+          # while the cached browser binaries only need a normal install.
+          build/date-picker-test/node_modules/.bin/playwright install chromium webkit firefox
       - name: Date overlay in Chromium and WebKit
         run: node tools/test-date-picker.cjs
       - name: Cookie-free authentication in Chromium, WebKit and Firefox
