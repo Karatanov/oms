@@ -14,6 +14,7 @@ import oms.urp3.dto.*
 import oms.urp3.domain.FinancialRecordType
 import oms.urp3.domain.ProjectType
 import oms.urp3.service.FinancialTablePdfExportService
+import oms.urp3.service.PaymentMonitoringPdfExportService
 import kotlin.math.roundToLong
 
 fun Route.financialRoutes() {
