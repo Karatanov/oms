@@ -18,11 +18,17 @@ import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.jetbrains.exposed.v1.jdbc.update
 import java.io.ByteArrayInputStream
+import java.net.HttpURLConnection
+import java.net.URI
 import java.time.LocalDate
 import java.util.UUID
+import java.util.concurrent.Executors
+import java.util.concurrent.ScheduledExecutorService
+import java.util.concurrent.TimeUnit
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
+import org.slf4j.LoggerFactory
 
 /**
  * Imports the approved monitoring workbook as one coherent registry snapshot.
@@ -36,6 +42,7 @@ class SubprojectRegistryRefreshService(
     private val userRepository: UserRepository,
     private val projectService: ProjectService
 ) {
+    private val logger = LoggerFactory.getLogger(javaClass)
     data class RefreshStatus(
         val id: String,
         val status: String,
@@ -56,6 +63,46 @@ class SubprojectRegistryRefreshService(
 
     private val lock = Any()
     @Volatile private var activeRefresh: RefreshJob? = null
+    @Volatile private var automaticRefreshStarted = false
+    private var automaticRefreshExecutor: ScheduledExecutorService? = null
+
+    /**
+     * Refreshes the approved public monitoring workbook in the background.
+     * Validation completes before the registry transaction, so a failed
+     * download never replaces the last known-good subproject snapshot.
+     */
+    fun startAutomaticSourceRefresh(
+        initialDelayMinutes: Long,
+        intervalHours: Long,
+        sourceUrl: String? = null
+    ) = synchronized(lock) {
+        if (automaticRefreshStarted) return
+        automaticRefreshStarted = true
+        automaticRefreshExecutor = Executors.newSingleThreadScheduledExecutor { runnable ->
+            Thread(runnable, "subproject-auto-refresh").apply { isDaemon = true }
+        }.also { executor ->
+            executor.scheduleWithFixedDelay({
+                try {
+                    startWorkbookRefresh(MonitoringWorkbookSource.downloadApprovedWorkbook(sourceUrl))
+                    logger.info("Scheduled subproject registry refresh started.")
+                } catch (error: IllegalStateException) {
+                    logger.info("Scheduled subproject registry refresh skipped: {}", error.message)
+                } catch (error: Exception) {
+                    logger.warn("Scheduled subproject registry refresh could not start.", error)
+                }
+            }, initialDelayMinutes.coerceAtLeast(1), intervalHours.coerceAtLeast(1) * 60, TimeUnit.MINUTES)
+        }
+        logger.info(
+            "Scheduled subproject registry refresh enabled: every {} hour(s), first run in {} minute(s).",
+            intervalHours.coerceAtLeast(1), initialDelayMinutes.coerceAtLeast(1)
+        )
+    }
+
+    fun stopAutomaticSourceRefresh() = synchronized(lock) {
+        automaticRefreshExecutor?.shutdownNow()
+        automaticRefreshExecutor = null
+        automaticRefreshStarted = false
+    }
 
     fun startWorkbookRefresh(workbook: ByteArray): RefreshStatus = synchronized(lock) {
         require(workbook.isNotEmpty()) { "Select a subproject monitoring workbook." }
@@ -298,7 +345,46 @@ class SubprojectRegistryRefreshService(
 private object MonitoringWorkbookSource {
     private const val HEADER_ROW = 12
     private const val FIRST_DATA_ROW = 16
+    private const val DEFAULT_SOURCE_URL =
+        "https://docs.google.com/spreadsheets/d/1-RQLaRuWT7_VYYXdxJM3cfTOUqVuGSZYuWc03heVvfw/export?format=xlsx&gid=1116614736"
     private val formatter = DataFormatter()
+
+    /** Downloads the approved source without inheriting browser cookies. */
+    fun downloadApprovedWorkbook(overrideUrl: String? = null): ByteArray {
+        val url = overrideUrl?.trim()?.takeIf(String::isNotBlank)
+            ?: System.getenv("SUBPROJECT_SOURCE_URL")?.trim()?.takeIf(String::isNotBlank)
+            ?: DEFAULT_SOURCE_URL
+        try {
+            val connection = URI(url).toURL().openConnection() as HttpURLConnection
+            try {
+                connection.apply {
+                    instanceFollowRedirects = true
+                    connectTimeout = 15_000
+                    readTimeout = 60_000
+                    setRequestProperty("Accept", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+                }
+                require(connection.responseCode in 200..299) {
+                    "Subproject source download failed (HTTP ${connection.responseCode})."
+                }
+                require(!connection.contentType.orEmpty().contains("text/html", ignoreCase = true)) {
+                    "The subproject source returned a sign-in page instead of an XLSX workbook."
+                }
+                return connection.inputStream.use { input ->
+                    val bytes = input.readBytes()
+                    require(bytes.size >= 2 && bytes[0] == 0x50.toByte() && bytes[1] == 0x4b.toByte()) {
+                        "The subproject source did not return an XLSX workbook."
+                    }
+                    bytes
+                }
+            } finally {
+                connection.disconnect()
+            }
+        } catch (error: IllegalArgumentException) {
+            throw error
+        } catch (_: Exception) {
+            throw IllegalArgumentException("The approved subproject source is unavailable.")
+        }
+    }
 
     data class Row(
         val subprojectCode: String,

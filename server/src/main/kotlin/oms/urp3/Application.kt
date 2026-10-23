@@ -67,6 +67,7 @@ fun Application.module(
     if (configureDatabase) {
         configureDatabase()
         configureProcurementAutoRefresh()
+        configureSubprojectAutoRefresh()
     }
 
     /**
@@ -87,5 +88,18 @@ private fun Application.configureProcurementAutoRefresh() {
     AppContainer.procurementService.startAutomaticApprovedSourceRefresh(initialDelay, intervalHours)
     environment.monitor.subscribe(ApplicationStopping) {
         AppContainer.procurementService.stopAutomaticApprovedSourceRefresh()
+    }
+}
+
+/** The approved public monitoring workbook is refreshed off the startup path. */
+private fun Application.configureSubprojectAutoRefresh() {
+    if (System.getenv("SUBPROJECT_AUTO_REFRESH_ENABLED").equals("false", ignoreCase = true)) return
+    val initialDelay = System.getenv("SUBPROJECT_AUTO_REFRESH_INITIAL_DELAY_MINUTES")
+        ?.toLongOrNull()?.coerceAtLeast(1) ?: 10L
+    val intervalHours = System.getenv("SUBPROJECT_AUTO_REFRESH_INTERVAL_HOURS")
+        ?.toLongOrNull()?.coerceAtLeast(1) ?: 24L
+    AppContainer.subprojectRegistryRefreshService.startAutomaticSourceRefresh(initialDelay, intervalHours)
+    environment.monitor.subscribe(ApplicationStopping) {
+        AppContainer.subprojectRegistryRefreshService.stopAutomaticSourceRefresh()
     }
 }
