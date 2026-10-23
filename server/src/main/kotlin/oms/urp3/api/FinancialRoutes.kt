@@ -18,6 +18,7 @@ import kotlin.math.roundToLong
 
 fun Route.financialRoutes() {
     val financialTablePdfExportService = FinancialTablePdfExportService()
+    val paymentMonitoringPdfExportService = PaymentMonitoringPdfExportService()
     get("/api/v1/financials/payment-monitoring") {
         call.requireRole("ADMIN", "PROJECT_MANAGER") ?: return@get
         try {
@@ -44,6 +45,25 @@ fun Route.financialRoutes() {
         } catch (error: IllegalArgumentException) {
             call.respond(HttpStatusCode.ServiceUnavailable, mapOf("error" to error.message.orEmpty()))
         }
+    }
+
+    get("/api/v1/financials/payment-monitoring/export-pdf") {
+        call.requireRole("ADMIN", "PROJECT_MANAGER") ?: return@get
+        val language = when (call.request.queryParameters["lang"]?.lowercase()) {
+            "en" -> PaymentMonitoringPdfExportService.Language.EN
+            else -> PaymentMonitoringPdfExportService.Language.UK
+        }
+        val snapshot = try {
+            withContext(Dispatchers.IO) { AppContainer.paymentMonitoringService.current() }
+        } catch (error: IllegalArgumentException) {
+            call.respond(HttpStatusCode.ServiceUnavailable, mapOf("error" to error.message.orEmpty()))
+            return@get
+        }
+        val pdf = withContext(Dispatchers.IO) {
+            paymentMonitoringPdfExportService.export(snapshot.items.sortedBy { it.code }, language)
+        }
+        call.response.header(HttpHeaders.ContentDisposition, "attachment; filename=oms-payment-monitoring.pdf")
+        call.respondBytes(pdf, ContentType.Application.Pdf)
     }
 
     post("/api/v1/financials/payment-monitoring/import") {

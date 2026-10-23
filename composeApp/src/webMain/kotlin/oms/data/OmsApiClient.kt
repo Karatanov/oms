@@ -494,6 +494,10 @@ object OmsApiClient {
     suspend fun paymentMonitoring(): ApiPaymentMonitoring =
         client.get("$baseUrl/financials/payment-monitoring").body()
 
+    /** URL keeps the browser's authenticated download flow for the read-only payment register. */
+    fun paymentMonitoringPdfExportUrl(language: String): String =
+        "$baseUrl/financials/payment-monitoring/export-pdf?lang=${language.encodeURLParameter()}"
+
     suspend fun createFinancialRecord(projectUuid: String, request: FinancialRecordRequest): ApiFinancialRecord =
         client.post("$baseUrl/projects/$projectUuid/financials") {
             contentType(ContentType.Application.Json)

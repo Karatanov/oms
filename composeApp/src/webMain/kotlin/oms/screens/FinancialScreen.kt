@@ -88,6 +88,7 @@ private data class ProjectActRow(
 )
 
 private enum class FinancialSort { Type, Purpose, Tranche, Subproject, SubprojectCode, SubprojectPart, ActDate, Amount, Currency, Description, Author }
+private enum class PaymentMonitoringSort { Code, Total, Eib, Local, PaidAndInProgress, Paid, Remaining, PlannedShare, FactualShare, Compliance }
 
 @Composable
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
@@ -1055,7 +1056,28 @@ private fun PaymentMonitoringCard(
     // the UR III subproject payment-monitoring data above financial records.
     var expanded by remember { mutableStateOf(true) }
     var page by remember(snapshot.items) { mutableStateOf(0) }
-    val rows = remember(snapshot.items) { snapshot.items.sortedBy { it.code } }
+    var sort by remember { mutableStateOf(PaymentMonitoringSort.Code) }
+    var ascending by remember { mutableStateOf(true) }
+    fun selectSort(column: PaymentMonitoringSort) {
+        if (sort == column) ascending = !ascending else { sort = column; ascending = true }
+        page = 0
+    }
+    val rows = remember(snapshot.items, sort, ascending) {
+        snapshot.items.sortedWith(compareBy<oms.data.ApiPaymentMonitoringItem> {
+            when (sort) {
+                PaymentMonitoringSort.Code -> it.code
+                PaymentMonitoringSort.Total -> it.totalInvestmentUah ?: Double.NEGATIVE_INFINITY
+                PaymentMonitoringSort.Eib -> it.eibInvestmentUah ?: Double.NEGATIVE_INFINITY
+                PaymentMonitoringSort.Local -> it.localCoFinancingUah ?: Double.NEGATIVE_INFINITY
+                PaymentMonitoringSort.PaidAndInProgress -> it.paidAndInProgressUah ?: Double.NEGATIVE_INFINITY
+                PaymentMonitoringSort.Paid -> it.paidUah ?: Double.NEGATIVE_INFINITY
+                PaymentMonitoringSort.Remaining -> it.remainingUah ?: Double.NEGATIVE_INFINITY
+                PaymentMonitoringSort.PlannedShare -> it.plannedEibSharePct ?: Double.NEGATIVE_INFINITY
+                PaymentMonitoringSort.FactualShare -> it.factualEibSharePct ?: Double.NEGATIVE_INFINITY
+                PaymentMonitoringSort.Compliance -> it.eibShareCompliance.orEmpty()
+            }
+        }.let { if (ascending) it else it.reversed() })
+    }
     val pageSize = 20
     val pageCount = maxOf(1, (rows.size + pageSize - 1) / pageSize)
     val visibleRows = rows.drop(page.coerceIn(0, pageCount - 1) * pageSize).take(pageSize)
@@ -1075,6 +1097,17 @@ private fun PaymentMonitoringCard(
                         Text(LocalizationManager.t("payment_monitoring_update"))
                     }
                 }
+                OutlinedButton(onClick = {
+                    oms.data.openOmsDownload(
+                        OmsApiClient.paymentMonitoringPdfExportUrl(
+                            if (LocalizationManager.currentLanguage == oms.localization.Language.EN) "en" else "uk"
+                        )
+                    )
+                }, enabled = rows.isNotEmpty()) {
+                    Icon(Icons.Default.PictureAsPdf, null)
+                    Spacer(Modifier.width(6.dp))
+                    Text(LocalizationManager.t("export_pdf"))
+                }
                 TableActionIconButton(
                     tooltip = LocalizationManager.t(if (expanded) "collapse" else "expand"),
                     icon = if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown
@@ -1091,11 +1124,11 @@ private fun PaymentMonitoringCard(
                 if (rows.isEmpty()) {
                     Text(LocalizationManager.t("no_chart_data"), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 } else {
-                    Box(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
-                        Column(Modifier.width(1_565.dp)) {
-                            PaymentMonitoringHeader()
-                            visibleRows.forEach { row -> PaymentMonitoringRow(row) }
-                        }
+                    oms.components.ScrollableTable(
+                        modifier = Modifier.fillMaxWidth(),
+                        header = { PaymentMonitoringHeader(sort, ascending, ::selectSort) }
+                    ) {
+                        visibleRows.forEach { row -> PaymentMonitoringRow(row) }
                     }
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
                         Text(
@@ -1115,24 +1148,28 @@ private fun PaymentMonitoringCard(
 }
 
 @Composable
-private fun PaymentMonitoringHeader() {
-    Row(Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
-        PaymentMonitoringCell(LocalizationManager.t("subproject_code"), 130.dp, true)
-        PaymentMonitoringCell(LocalizationManager.t("payment_monitoring_total_cost"), 165.dp, true)
-        PaymentMonitoringCell(LocalizationManager.t("payment_monitoring_eib_cost"), 180.dp, true)
-        PaymentMonitoringCell(LocalizationManager.t("payment_monitoring_local_cost"), 170.dp, true)
-        PaymentMonitoringCell(LocalizationManager.t("payment_monitoring_paid_progress"), 190.dp, true)
-        PaymentMonitoringCell(LocalizationManager.t("payment_monitoring_paid"), 150.dp, true)
-        PaymentMonitoringCell(LocalizationManager.t("remaining"), 160.dp, true)
-        PaymentMonitoringCell(LocalizationManager.t("payment_monitoring_eib_planned"), 130.dp, true)
-        PaymentMonitoringCell(LocalizationManager.t("payment_monitoring_eib_factual"), 130.dp, true)
-        PaymentMonitoringCell(LocalizationManager.t("payment_monitoring_eib_compliance"), 160.dp, true)
+private fun PaymentMonitoringHeader(
+    sort: PaymentMonitoringSort,
+    ascending: Boolean,
+    selectSort: (PaymentMonitoringSort) -> Unit
+) {
+    Row(Modifier.width(1_565.dp)) {
+        PaymentMonitoringHeaderCell("subproject_code", 130.dp, PaymentMonitoringSort.Code, sort, ascending, selectSort)
+        PaymentMonitoringHeaderCell("payment_monitoring_total_cost", 165.dp, PaymentMonitoringSort.Total, sort, ascending, selectSort, true)
+        PaymentMonitoringHeaderCell("payment_monitoring_eib_cost", 180.dp, PaymentMonitoringSort.Eib, sort, ascending, selectSort, true)
+        PaymentMonitoringHeaderCell("payment_monitoring_local_cost", 170.dp, PaymentMonitoringSort.Local, sort, ascending, selectSort, true)
+        PaymentMonitoringHeaderCell("payment_monitoring_paid_progress", 190.dp, PaymentMonitoringSort.PaidAndInProgress, sort, ascending, selectSort, true)
+        PaymentMonitoringHeaderCell("payment_monitoring_paid", 150.dp, PaymentMonitoringSort.Paid, sort, ascending, selectSort, true)
+        PaymentMonitoringHeaderCell("remaining", 160.dp, PaymentMonitoringSort.Remaining, sort, ascending, selectSort, true)
+        PaymentMonitoringHeaderCell("payment_monitoring_eib_planned", 130.dp, PaymentMonitoringSort.PlannedShare, sort, ascending, selectSort, true)
+        PaymentMonitoringHeaderCell("payment_monitoring_eib_factual", 130.dp, PaymentMonitoringSort.FactualShare, sort, ascending, selectSort, true)
+        PaymentMonitoringHeaderCell("payment_monitoring_eib_compliance", 160.dp, PaymentMonitoringSort.Compliance, sort, ascending, selectSort)
     }
 }
 
 @Composable
 private fun PaymentMonitoringRow(row: oms.data.ApiPaymentMonitoringItem) {
-    Row(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+    Row(Modifier.width(1_565.dp).padding(vertical = 4.dp)) {
         PaymentMonitoringCell(row.code, 130.dp)
         PaymentMonitoringCell(row.totalInvestmentUah.asUahTableValue(), 165.dp)
         PaymentMonitoringCell(row.eibInvestmentUah.asUahTableValue(), 180.dp)
@@ -1144,6 +1181,27 @@ private fun PaymentMonitoringRow(row: oms.data.ApiPaymentMonitoringItem) {
         PaymentMonitoringCell(row.factualEibSharePct.asPercent(), 130.dp)
         PaymentMonitoringCell(row.eibShareCompliance.asReadableComplianceStatus(), 160.dp)
     }
+}
+
+@Composable
+private fun PaymentMonitoringHeaderCell(
+    labelKey: String,
+    width: androidx.compose.ui.unit.Dp,
+    column: PaymentMonitoringSort,
+    sort: PaymentMonitoringSort,
+    ascending: Boolean,
+    selectSort: (PaymentMonitoringSort) -> Unit,
+    numeric: Boolean = false
+) {
+    SortableTableHeader(
+        title = LocalizationManager.t(labelKey),
+        selected = sort == column,
+        ascending = ascending,
+        onClick = { selectSort(column) },
+        modifier = Modifier.width(width),
+        numeric = numeric,
+        maxLines = 3
+    )
 }
 
 @Composable
