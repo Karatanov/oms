@@ -1230,6 +1230,12 @@ private fun RegistryTableCell(project: Project, column: SortColumn, fontWeight: 
         Box(Modifier.width(width)) {
             OmsBadge(value, Primary, fontWeight)
         }
+    } else if (column == SortColumn.WORK_STATUS) {
+        // The construction-work status is a programme state, not free-form
+        // prose.  Render it consistently with the other registry categories.
+        Box(Modifier.width(width)) {
+            OmsBadge(value, Primary, fontWeight)
+        }
     } else if (link.isNotBlank()) {
         Text(
             value,
