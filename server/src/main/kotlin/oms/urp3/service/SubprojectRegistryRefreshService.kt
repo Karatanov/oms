@@ -446,7 +446,12 @@ private object MonitoringWorkbookSource {
         cell == null -> ""
         cell.cellType == CellType.FORMULA && cell.cachedFormulaResultType == CellType.NUMERIC && DateUtil.isCellDateFormatted(cell) ->
             DateUtil.getLocalDateTime(cell.numericCellValue).toLocalDate().toString()
-        DateUtil.isCellDateFormatted(cell) -> cell.localDateTimeCellValue.toLocalDate().toString()
+        // Apache POI's date-style probe reads the numeric value.  Allocation
+        // workbooks also contain styled text cells, for which that probe throws
+        // instead of simply returning false.  Only numeric cells can be Excel
+        // dates, so guard the probe with the cell type first.
+        cell.cellType == CellType.NUMERIC && DateUtil.isCellDateFormatted(cell) ->
+            cell.localDateTimeCellValue.toLocalDate().toString()
         cell.hyperlink?.address?.isNotBlank() == true -> cell.hyperlink.address.trim()
         else -> text(cell)
     }
