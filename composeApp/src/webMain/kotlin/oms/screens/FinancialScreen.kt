@@ -402,18 +402,26 @@ fun FinancialScreen(
         // rows may coexist with unrelated legacy records.
         oms.components.AdaptiveChartRow(
             first = { MonthlyPaymentsChart(financialChartRecords, displayRates, selectedChartScopeLabel) { month -> selectChartMonth(month, "works") } },
-            second = { MonthlyTechnicalSupervisionPaymentsChart(financialChartRecords, displayRates, selectedChartScopeLabel) { month -> selectChartMonth(month, "technical_supervision") } }
+            second = {
+                financialProgress?.let { progress ->
+                    FinancialProgressCard("financial_progress_by_construction_type", progress.byConstructionType, selectedChartScopeLabel)
+                }
+            }
+        )
+        oms.components.AdaptiveChartRow(
+            first = { MonthlyTechnicalSupervisionPaymentsChart(financialChartRecords, displayRates, selectedChartScopeLabel) { month -> selectChartMonth(month, "technical_supervision") } },
+            second = {
+                financialProgress?.let { progress ->
+                    FinancialProgressCard("financial_progress_by_sector", progress.bySector, selectedChartScopeLabel, compactInitially = true)
+                }
+            }
         )
         oms.components.AdaptiveChartRow(
             first = { MonthlyEquipmentPaymentsChart(financialChartRecords, displayRates, selectedChartScopeLabel) { month -> selectChartMonth(month, "equipment") } },
             second = { MonthlyEngineerConsultantPaymentsChart(financialChartRecords, displayRates, selectedChartScopeLabel) { month -> selectChartMonth(month, "engineer_consultant") } }
         )
         financialProgress?.let { progress ->
-            oms.components.AdaptiveChartRow(
-                first = { FinancialProgressCard("financial_progress_by_region", progress.byRegion, selectedChartScopeLabel) },
-                second = { FinancialProgressCard("financial_progress_by_construction_type", progress.byConstructionType, selectedChartScopeLabel) }
-            )
-            FinancialProgressCard("financial_progress_by_sector", progress.bySector, selectedChartScopeLabel)
+            FinancialProgressCard("financial_progress_by_region", progress.byRegion, selectedChartScopeLabel)
         }
         paymentMonitoring?.let { snapshot ->
             PaymentMonitoringCard(
@@ -985,9 +993,14 @@ private fun Int.financialTrancheCode(): String = if (this == 2 || this == 9) "B"
 private fun FinancialProgressCard(
     titleKey: String,
     items: List<ApiFinancialProgressItem>,
-    titleSuffix: String? = null
+    titleSuffix: String? = null,
+    compactInitially: Boolean = false
 ) {
     var expanded by remember { mutableStateOf(true) }
+    var showAllItems by remember { mutableStateOf(!compactInitially) }
+    val sortedItems = items.sortedBy { it.label }
+    val initialItemCount = maxOf(1, (sortedItems.size + 5) / 6)
+    val visibleItems = if (compactInitially && !showAllItems) sortedItems.take(initialItemCount) else sortedItems
     Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(
@@ -1006,7 +1019,7 @@ private fun FinancialProgressCard(
             }
             if (expanded && items.isEmpty()) {
                 Text(LocalizationManager.t("no_chart_data"), color = MaterialTheme.colorScheme.onSurfaceVariant)
-            } else if (expanded) items.sortedBy { it.label }.forEach { item ->
+            } else if (expanded) visibleItems.forEach { item ->
                 val label = when (titleKey) {
                     "financial_progress_by_region" -> item.label
                         .takeUnless { it.equals("Unspecified", ignoreCase = true) }
@@ -1037,6 +1050,11 @@ private fun FinancialProgressCard(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                }
+            }
+            if (expanded && compactInitially && sortedItems.size > initialItemCount) {
+                TextButton(onClick = { showAllItems = !showAllItems }) {
+                    Text(LocalizationManager.t(if (showAllItems) "collapse" else "expand"))
                 }
             }
         }
