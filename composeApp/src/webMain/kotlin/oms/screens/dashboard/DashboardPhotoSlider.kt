@@ -19,7 +19,8 @@ external fun showDashboardPhotoSlider(
     subprojectCode: String?,
     photosJson: String,
     hasNewerInspection: Boolean,
-    hasOlderInspection: Boolean
+    hasOlderInspection: Boolean,
+    photosLoading: Boolean
 )
 
 @JsName("hideDashboardPhotoSlider")
@@ -41,6 +42,7 @@ fun DashboardPhotoSlider(
     inspectionDate: String?,
     subprojectCode: String?,
     photos: List<ApiInspectionPhoto>?,
+    photosLoading: Boolean,
     hasNewerInspection: Boolean,
     hasOlderInspection: Boolean,
     onOpenNewerInspection: () -> Unit,
@@ -54,6 +56,7 @@ fun DashboardPhotoSlider(
         inspectionDate,
         subprojectCode,
         photos,
+        photosLoading,
         hasNewerInspection,
         hasOlderInspection,
         oms.localization.LocalizationManager.currentLanguage
@@ -75,7 +78,8 @@ fun DashboardPhotoSlider(
             subprojectCode,
             Json.encodeToString(sliderPhotos),
             hasNewerInspection,
-            hasOlderInspection
+            hasOlderInspection,
+            photosLoading
         )
         onDispose {
             setDashboardInspectionPreviewHandler { _ -> }

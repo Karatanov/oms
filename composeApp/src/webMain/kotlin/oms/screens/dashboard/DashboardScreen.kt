@@ -49,6 +49,7 @@ fun DashboardScreen(
     oms.navigation.ReportRouteReadiness(loading = false)
     var reload by remember { mutableStateOf(0) }
     var latestPhotos by remember { mutableStateOf<List<ApiInspectionPhoto>?>(null) }
+    var latestPhotosLoading by remember { mutableStateOf(false) }
     var chartOrientation by remember { mutableStateOf(BarChartOrientation.Vertical) }
     var trancheNumber by remember { mutableStateOf<Int?>(null) }
     val scrollState = rememberLazyListState()
@@ -86,9 +87,14 @@ fun DashboardScreen(
     val selectedInspection = recentInspections.getOrNull(selectedInspectionIndex)
     LaunchedEffect(selectedInspection?.uuid) {
         latestPhotos = null
-        latestPhotos = selectedInspection?.let {
-            runCatching { OmsApiClient.inspectionPhotos(it.uuid) }.getOrDefault(emptyList())
-        } ?: emptyList()
+        latestPhotosLoading = selectedInspection != null
+        try {
+            latestPhotos = selectedInspection?.let {
+                runCatching { OmsApiClient.inspectionPhotos(it.uuid) }.getOrDefault(emptyList())
+            } ?: emptyList()
+        } finally {
+            latestPhotosLoading = false
+        }
     }
     Box(Modifier.fillMaxSize()) {
         LazyColumn(state = scrollState, modifier = Modifier.fillMaxSize().onKeyEvent { event ->
@@ -202,6 +208,7 @@ fun DashboardScreen(
                         inspectionDate = selectedInspection?.inspectionDate,
                         subprojectCode = selectedInspection?.subprojectCode,
                         photos = latestPhotos,
+                        photosLoading = latestPhotosLoading,
                         hasNewerInspection = selectedInspectionIndex > 0,
                         hasOlderInspection = selectedInspectionIndex < recentInspections.lastIndex,
                         onOpenNewerInspection = {

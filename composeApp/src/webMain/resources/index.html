@@ -1022,7 +1022,7 @@
             omsDashboardOlderInspectionHandler = typeof onOlder === "function" ? onOlder : () => {};
         }
 
-        function showDashboardPhotoSlider(reportUuid, inspectionDate, subprojectCode, photosJson, hasNewerInspection, hasOlderInspection) {
+        function showDashboardPhotoSlider(reportUuid, inspectionDate, subprojectCode, photosJson, hasNewerInspection, hasOlderInspection, photosLoading) {
             const pane = document.getElementById("dashboard-photo-slider");
             if (!pane) return;
             const photos = JSON.parse(photosJson);
@@ -1059,6 +1059,14 @@
             heading.append(newer, title, older);
             pane.append(heading);
             if (!inspectionDate) return;
+
+            if (photosLoading) {
+                const loading = document.createElement("div");
+                loading.className = "photo-slider-empty";
+                loading.textContent = omsText("loading");
+                pane.append(loading);
+                return;
+            }
 
             if (!photos.length) {
                 const empty = document.createElement("div");
