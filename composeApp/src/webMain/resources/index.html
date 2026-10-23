@@ -1015,12 +1015,29 @@
             omsDashboardInspectionPreviewHandler = typeof handler === "function" ? handler : () => {};
         }
 
-        function showDashboardPhotoSlider(reportUuid, inspectionDate, subprojectCode, photosJson) {
+        let omsDashboardNewerInspectionHandler = () => {};
+        let omsDashboardOlderInspectionHandler = () => {};
+        function setDashboardInspectionNavigationHandlers(onNewer, onOlder) {
+            omsDashboardNewerInspectionHandler = typeof onNewer === "function" ? onNewer : () => {};
+            omsDashboardOlderInspectionHandler = typeof onOlder === "function" ? onOlder : () => {};
+        }
+
+        function showDashboardPhotoSlider(reportUuid, inspectionDate, subprojectCode, photosJson, hasNewerInspection, hasOlderInspection) {
             const pane = document.getElementById("dashboard-photo-slider");
             if (!pane) return;
             const photos = JSON.parse(photosJson);
             pane.replaceChildren();
             pane.classList.add("visible");
+
+            const heading = document.createElement("div");
+            heading.className = "photo-slider-heading";
+            const newer = document.createElement("button");
+            newer.type = "button";
+            newer.className = "photo-slider-report-nav";
+            newer.textContent = "‹";
+            newer.disabled = !hasNewerInspection;
+            newer.setAttribute("aria-label", omsLanguage === "uk" ? "Новіший звіт" : "Newer report");
+            newer.onclick = () => omsDashboardNewerInspectionHandler();
 
             const title = document.createElement(reportUuid ? "button" : "div");
             title.className = "photo-slider-title";
@@ -1032,7 +1049,15 @@
             title.textContent = inspectionDate
                 ? `${omsText("lastInspection")}: ${formatOmsDate(inspectionDate)}${subprojectCode ? ` · ${omsText("subprojectCode")}: ${subprojectCode}` : ""}`
                 : omsText("noReports");
-            pane.append(title);
+            const older = document.createElement("button");
+            older.type = "button";
+            older.className = "photo-slider-report-nav";
+            older.textContent = "›";
+            older.disabled = !hasOlderInspection;
+            older.setAttribute("aria-label", omsLanguage === "uk" ? "Попередній звіт" : "Older report");
+            older.onclick = () => omsDashboardOlderInspectionHandler();
+            heading.append(newer, title, older);
+            pane.append(heading);
             if (!inspectionDate) return;
 
             if (!photos.length) {

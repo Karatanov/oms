@@ -13,13 +13,26 @@ import androidx.compose.ui.unit.dp
 import oms.components.NativePaneAnchor
 
 @JsName("showDashboardPhotoSlider")
-external fun showDashboardPhotoSlider(reportUuid: String?, inspectionDate: String?, subprojectCode: String?, photosJson: String)
+external fun showDashboardPhotoSlider(
+    reportUuid: String?,
+    inspectionDate: String?,
+    subprojectCode: String?,
+    photosJson: String,
+    hasNewerInspection: Boolean,
+    hasOlderInspection: Boolean
+)
 
 @JsName("hideDashboardPhotoSlider")
 external fun hideDashboardPhotoSlider()
 
 @JsName("setDashboardInspectionPreviewHandler")
 private external fun setDashboardInspectionPreviewHandler(handler: (String) -> Unit)
+
+@JsName("setDashboardInspectionNavigationHandlers")
+private external fun setDashboardInspectionNavigationHandlers(
+    onOpenNewerInspection: () -> Unit,
+    onOpenOlderInspection: () -> Unit
+)
 
 /** Browser-native image element is used here so remote thumbnails work in both JS and Wasm builds. */
 @Composable
@@ -28,11 +41,23 @@ fun DashboardPhotoSlider(
     inspectionDate: String?,
     subprojectCode: String?,
     photos: List<ApiInspectionPhoto>?,
+    hasNewerInspection: Boolean,
+    hasOlderInspection: Boolean,
+    onOpenNewerInspection: () -> Unit,
+    onOpenOlderInspection: () -> Unit,
     onOpenReport: (String) -> Unit = {}
 ) {
     NativePaneAnchor("dashboard-photo-slider", Modifier.fillMaxWidth().height(232.dp))
     if (!oms.navigation.LocalRouteVisible.current) return
-    DisposableEffect(reportUuid, inspectionDate, subprojectCode, photos, oms.localization.LocalizationManager.currentLanguage) {
+    DisposableEffect(
+        reportUuid,
+        inspectionDate,
+        subprojectCode,
+        photos,
+        hasNewerInspection,
+        hasOlderInspection,
+        oms.localization.LocalizationManager.currentLanguage
+    ) {
         val sliderPhotos = photos.orEmpty()
             .sortedByDescending { it.isMain }
             .take(7)
@@ -43,9 +68,18 @@ fun DashboardPhotoSlider(
                 )
             }
         setDashboardInspectionPreviewHandler(onOpenReport)
-        showDashboardPhotoSlider(reportUuid, inspectionDate, subprojectCode, Json.encodeToString(sliderPhotos))
+        setDashboardInspectionNavigationHandlers(onOpenNewerInspection, onOpenOlderInspection)
+        showDashboardPhotoSlider(
+            reportUuid,
+            inspectionDate,
+            subprojectCode,
+            Json.encodeToString(sliderPhotos),
+            hasNewerInspection,
+            hasOlderInspection
+        )
         onDispose {
             setDashboardInspectionPreviewHandler { _ -> }
+            setDashboardInspectionNavigationHandlers({}, {})
             hideDashboardPhotoSlider()
         }
     }

@@ -136,8 +136,12 @@ body {
 .inspection-report-photo-gallery-item:focus-visible { outline: 2px solid #278dad; outline-offset: 2px; }
 .inspection-report-photo-gallery-item.unavailable, .inspection-report-photo-gallery-empty { display: grid; min-height: 140px; place-items: center; padding: 12px; color: #64748b; font: inherit; text-align: center; }
 
-.photo-slider-title { display: block; margin: 0 0 12px; padding: 0; border: 0; color: #1e293b; background: transparent; font: inherit; font-size: 16px; font-weight: 700; text-align: left; }
+.photo-slider-heading { display: flex; align-items: center; gap: 6px; margin: 0 0 12px; }
+.photo-slider-title { display: block; flex: 1; min-width: 0; margin: 0; padding: 0; border: 0; color: #1e293b; background: transparent; font: inherit; font-size: 16px; font-weight: 700; text-align: left; }
 .photo-slider-title[type="button"]:hover, .photo-slider-title[type="button"]:focus-visible { color: #278dad; text-decoration: underline; }
+.photo-slider-report-nav { width: 30px; height: 30px; flex: 0 0 30px; padding: 0; border: 1px solid #cbd5e1; border-radius: 7px; color: #176b84; background: #fff; font-size: 24px; line-height: 20px; cursor: pointer; }
+.photo-slider-report-nav:hover:not(:disabled), .photo-slider-report-nav:focus-visible:not(:disabled) { border-color: #278dad; background: #f0f9fc; }
+.photo-slider-report-nav:disabled { cursor: default; opacity: .38; }
 .photo-slider-empty { display: grid; min-height: 150px; place-items: center; color: #64748b; }
 .photo-slider-track { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 4px; scrollbar-color: #94a3b8 transparent; }
 .photo-slider-item { flex: 0 0 180px; height: 145px; padding: 0; overflow: hidden; border: 0; border-radius: 10px; background: #e2e8f0; cursor: pointer; }

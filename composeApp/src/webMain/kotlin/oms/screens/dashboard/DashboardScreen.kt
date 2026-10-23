@@ -71,10 +71,24 @@ fun DashboardScreen(
             loading = false
         }
     }
-    val latest = dashboard?.recentInspections?.maxByOrNull { it.inspectionDate }
-    LaunchedEffect(latest?.uuid) {
+    // The overview deliberately returns only a compact recent-inspections list.
+    // Keep navigation local to this list so browsing reports never re-fetches the
+    // complete dashboard or loses the currently selected dashboard filters.
+    val recentInspections = dashboard?.recentInspections
+        .orEmpty()
+        .sortedByDescending { it.inspectionDate }
+    var selectedInspectionUuid by remember(dashboard?.recentInspections) {
+        mutableStateOf<String?>(null)
+    }
+    val selectedInspectionIndex = recentInspections.indexOfFirst { it.uuid == selectedInspectionUuid }
+        .takeIf { it >= 0 }
+        ?: 0
+    val selectedInspection = recentInspections.getOrNull(selectedInspectionIndex)
+    LaunchedEffect(selectedInspection?.uuid) {
         latestPhotos = null
-        latestPhotos = latest?.let { runCatching { OmsApiClient.inspectionPhotos(it.uuid) }.getOrDefault(emptyList()) } ?: emptyList()
+        latestPhotos = selectedInspection?.let {
+            runCatching { OmsApiClient.inspectionPhotos(it.uuid) }.getOrDefault(emptyList())
+        } ?: emptyList()
     }
     Box(Modifier.fillMaxSize()) {
         LazyColumn(state = scrollState, modifier = Modifier.fillMaxSize().onKeyEvent { event ->
@@ -182,7 +196,27 @@ fun DashboardScreen(
                         }
                     )
                 }
-                item { DashboardPhotoSlider(latest?.uuid, latest?.inspectionDate, latest?.subprojectCode, latestPhotos, onOpenInspectionPreview) }
+                item {
+                    DashboardPhotoSlider(
+                        reportUuid = selectedInspection?.uuid,
+                        inspectionDate = selectedInspection?.inspectionDate,
+                        subprojectCode = selectedInspection?.subprojectCode,
+                        photos = latestPhotos,
+                        hasNewerInspection = selectedInspectionIndex > 0,
+                        hasOlderInspection = selectedInspectionIndex < recentInspections.lastIndex,
+                        onOpenNewerInspection = {
+                            recentInspections.getOrNull(selectedInspectionIndex - 1)?.let {
+                                selectedInspectionUuid = it.uuid
+                            }
+                        },
+                        onOpenOlderInspection = {
+                            recentInspections.getOrNull(selectedInspectionIndex + 1)?.let {
+                                selectedInspectionUuid = it.uuid
+                            }
+                        },
+                        onOpenReport = onOpenInspectionPreview
+                    )
+                }
             }
         }
         if (!oms.layout.LocalMobileLayout.current) Column(Modifier.align(Alignment.CenterEnd).padding(end = 8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
