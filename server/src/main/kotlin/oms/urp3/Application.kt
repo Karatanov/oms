@@ -68,6 +68,7 @@ fun Application.module(
         configureDatabase()
         configureProcurementAutoRefresh()
         configureSubprojectAutoRefresh()
+        configurePaymentMonitoringAutoRefresh()
     }
 
     /**
@@ -101,5 +102,18 @@ private fun Application.configureSubprojectAutoRefresh() {
     AppContainer.subprojectRegistryRefreshService.startAutomaticSourceRefresh(initialDelay, intervalHours)
     environment.monitor.subscribe(ApplicationStopping) {
         AppContainer.subprojectRegistryRefreshService.stopAutomaticSourceRefresh()
+    }
+}
+
+/** A protected Google source is polled only after an operator enables it. */
+private fun Application.configurePaymentMonitoringAutoRefresh() {
+    if (!System.getenv("PAYMENT_MONITORING_AUTO_REFRESH_ENABLED").equals("true", ignoreCase = true)) return
+    val initialDelay = System.getenv("PAYMENT_MONITORING_AUTO_REFRESH_INITIAL_DELAY_MINUTES")
+        ?.toLongOrNull()?.coerceAtLeast(1) ?: 15L
+    val intervalHours = System.getenv("PAYMENT_MONITORING_AUTO_REFRESH_INTERVAL_HOURS")
+        ?.toLongOrNull()?.coerceAtLeast(1) ?: 24L
+    AppContainer.paymentMonitoringService.startAutomaticSourceRefresh(initialDelay, intervalHours)
+    environment.monitor.subscribe(ApplicationStopping) {
+        AppContainer.paymentMonitoringService.stopAutomaticSourceRefresh()
     }
 }

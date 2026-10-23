@@ -2,6 +2,10 @@ package oms.urp3.service
 
 import java.util.Locale
 import java.io.ByteArrayInputStream
+import java.io.File
+import java.net.HttpURLConnection
+import java.net.URI
+import com.google.auth.oauth2.ServiceAccountCredentials
 import org.apache.poi.ss.usermodel.CellType
 import org.apache.poi.ss.usermodel.DataFormatter
 import org.apache.poi.ss.usermodel.Row
@@ -14,6 +18,8 @@ import org.apache.poi.ss.usermodel.WorkbookFactory
  * and payments.
  */
 object PaymentMonitoringWorkbookSource {
+    private const val SOURCE_FILE_ID = "1DDhqbcsF57uwQYwVAgG5kGZUvIr5_9yyCu2eFsvc5UI"
+    private const val XLSX_MIME_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     data class Item(
         val code: String,
         val totalInvestmentUah: Double?,
@@ -59,6 +65,53 @@ object PaymentMonitoringWorkbookSource {
                     text = { heading -> headers[heading]?.let { workbookText(row, it).trim().takeIf(String::isNotBlank) } }
                 )
             }.filter(::hasIndicator)
+        }
+    }
+
+    /**
+     * Downloads the approved Google workbook using a service account when one
+     * is configured. A custom URL stays anonymous, which makes it suitable for
+     * a separately hosted approved XLSX snapshot.
+     */
+    internal fun downloadWorkbook(
+        overrideUrl: String? = System.getenv("PAYMENT_MONITORING_SOURCE_URL")?.trim()?.takeIf(String::isNotBlank),
+        credentialsPath: String? = System.getenv("GOOGLE_APPLICATION_CREDENTIALS")?.trim()?.takeIf(String::isNotBlank),
+        readToken: (String) -> String = ::serviceAccountToken,
+        openConnection: (URI) -> HttpURLConnection = { it.toURL().openConnection() as HttpURLConnection }
+    ): ByteArray {
+        val authenticated = overrideUrl == null && credentialsPath != null
+        val url = overrideUrl ?: "https://www.googleapis.com/drive/v3/files/$SOURCE_FILE_ID/export?mimeType=$XLSX_MIME_TYPE"
+        try {
+            val token = if (authenticated) readToken(requireNotNull(credentialsPath)) else null
+            val connection = openConnection(URI(url))
+            try {
+                connection.apply {
+                    instanceFollowRedirects = !authenticated
+                    connectTimeout = 15_000
+                    readTimeout = 60_000
+                    setRequestProperty("Accept", XLSX_MIME_TYPE)
+                    token?.let { setRequestProperty("Authorization", "Bearer $it") }
+                }
+                require(connection.responseCode in 200..299) {
+                    "Payment-monitoring workbook download failed (HTTP ${connection.responseCode}). Check Google Drive sharing or the source URL."
+                }
+                require(!connection.contentType.orEmpty().contains("text/html", ignoreCase = true)) {
+                    "The payment-monitoring source returned a sign-in page instead of an XLSX workbook."
+                }
+                return connection.inputStream.use { input ->
+                    val bytes = input.readBytes()
+                    require(bytes.size >= 2 && bytes[0] == 0x50.toByte() && bytes[1] == 0x4b.toByte()) {
+                        "The payment-monitoring source did not return an XLSX workbook."
+                    }
+                    bytes
+                }
+            } finally {
+                connection.disconnect()
+            }
+        } catch (error: IllegalArgumentException) {
+            throw error
+        } catch (_: Exception) {
+            throw IllegalArgumentException("The approved payment-monitoring source is unavailable.")
         }
     }
 
@@ -168,4 +221,14 @@ object PaymentMonitoringWorkbookSource {
     private const val RESOURCE_PATH = "payment-monitoring/ur-iii-sp-payment-monitoring.csv"
     private const val SHEET_NAME = "UR III SP Payment Monitoring"
     private val DATA_FORMATTER = DataFormatter(Locale.US)
+
+    private fun serviceAccountToken(path: String): String = try {
+        File(path).inputStream().use {
+            ServiceAccountCredentials.fromStream(it)
+                .createScoped(listOf("https://www.googleapis.com/auth/drive.readonly"))
+                .refreshAccessToken().tokenValue
+        }
+    } catch (_: Exception) {
+        throw IllegalArgumentException("Google Drive authentication failed. Check GOOGLE_APPLICATION_CREDENTIALS.")
+    }
 }
