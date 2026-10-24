@@ -27,7 +27,7 @@ class ProcurementService(
         val error: String? = null
     )
 
-    private class RefreshJob(val id: String, val uploadedWorkbook: ByteArray? = null) {
+    private class RefreshJob(val id: String, val uploadedWorkbook: ByteArray? = null, var googleToken: String? = null) {
         @Volatile var status = "RUNNING"
         @Volatile var progress = 5
         @Volatile var phase = "downloading"
@@ -140,11 +140,15 @@ class ProcurementService(
         startRefresh(workbook)
     }
 
-    private fun startRefresh(uploadedWorkbook: ByteArray?): RefreshStatus {
+    fun startGoogleSourceRefresh(token: String): RefreshStatus = synchronized(refreshLock) {
+        startRefresh(null, token)
+    }
+
+    private fun startRefresh(uploadedWorkbook: ByteArray?, googleToken: String? = null): RefreshStatus {
         activeRefresh?.takeIf { it.status in setOf("RUNNING", "CANCELLING") }?.let {
             throw IllegalStateException("A procurement refresh is already running.")
         }
-        val job = RefreshJob(UUID.randomUUID().toString(), uploadedWorkbook)
+        val job = RefreshJob(UUID.randomUUID().toString(), uploadedWorkbook, googleToken)
         if (uploadedWorkbook != null) {
             job.progress = 10
             job.phase = "opening_workbook"
@@ -176,6 +180,7 @@ class ProcurementService(
         try {
             val imported = refreshFromApprovedSource(
                 uploadedWorkbook = job.uploadedWorkbook,
+                googleToken = job.googleToken,
                 shouldCancel = { job.cancelRequested },
                 onProgress = { progress, phase -> job.progress = progress; job.phase = phase }
             )
@@ -192,6 +197,8 @@ class ProcurementService(
             job.phase = "failed"
             job.status = "FAILED"
             job.error = error.message ?: "The procurement registry could not be refreshed."
+        } finally {
+            job.googleToken = null
         }
     }
 
@@ -201,12 +208,14 @@ class ProcurementService(
 
     fun refreshFromApprovedSource(
         uploadedWorkbook: ByteArray? = null,
+        googleToken: String? = null,
         shouldCancel: () -> Boolean = { false },
         onProgress: (Int, String) -> Unit = { _, _ -> }
     ): Int {
         if (uploadedWorkbook == null) onProgress(10, "downloading")
         val parseProgress: (Int, String) -> Unit = { progress, phase -> onProgress(progress, phase) }
         val sourceRows = uploadedWorkbook?.let { ProcurementWorkbookSource.parseApprovedWorkbook(it, parseProgress) }
+            ?: googleToken?.let { ProcurementWorkbookSource.parseApprovedWorkbook(ProcurementWorkbookSource.downloadWithUserToken(it), parseProgress) }
             ?: ProcurementWorkbookSource.downloadAndParse(parseProgress)
         checkCancelled(shouldCancel)
         require(sourceRows.isNotEmpty()) { "The approved procurement workbook contains no records." }

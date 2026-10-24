@@ -23,6 +23,8 @@ fun Application.configureMonitoring() {
          * щоб не перевантажувати консоль.
          */
         level = Level.INFO
+        // OAuth callback query parameters contain an authorization code.
+        filter { !it.request.local.uri.startsWith("/api/v1/auth/google/callback") }
 
         /**
          * У майбутньому тут можна буде додати:

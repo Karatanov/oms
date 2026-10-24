@@ -44,6 +44,7 @@ fun Application.configureRouting() {
 
         // Маршрути автентифікації.
         authRoutes()
+        googleDriveOAuthRoutes()
 
         // Маршрути роботи з проєктами.
         projectRoutes()

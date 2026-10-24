@@ -1,0 +1,14 @@
+# Enable with: docker compose -f docker-compose.yml -f docker-compose.google-drive.yml up -d
+services:
+  oms:
+    environment:
+      OMS_GOOGLE_OAUTH_CLIENT_FILE: /run/secrets/google-oauth-client.json
+      OMS_GOOGLE_REDIRECT_URI: https://ua-oms.com/api/v1/auth/google/callback
+      PROCUREMENT_AUTO_REFRESH_ENABLED: "false"
+    secrets:
+      - source: google-oauth-client
+        target: google-oauth-client.json
+
+secrets:
+  google-oauth-client:
+    file: ${GOOGLE_OAUTH_CLIENT_FILE:?set absolute path to OAuth web-client JSON outside the repository}

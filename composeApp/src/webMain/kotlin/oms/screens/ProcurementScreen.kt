@@ -58,6 +58,9 @@ import kotlin.time.TimeSource
 @JsName("openProcurementWorkbookUpload")
 external fun openProcurementWorkbookUpload(onComplete: (String, String) -> Unit)
 
+@JsName("openGoogleProcurementRefresh")
+external fun openGoogleProcurementRefresh(onComplete: (String, String) -> Unit)
+
 private const val procurementSourceWorkbookUrl =
     "https://docs.google.com/spreadsheets/d/1tN1kbjw94g3zHKLRNDjgryuBXbYWuk2j/edit?gid=1331483415#gid=1331483415"
 
@@ -385,7 +388,7 @@ fun ProcurementScreen(
                 Text(LocalizationManager.t("procurement_refresh_confirm_title"), style = MaterialTheme.typography.titleLarge)
                 Text(LocalizationManager.t("procurement_refresh_confirm_message"), style = MaterialTheme.typography.bodyMedium)
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text(LocalizationManager.t("procurement_refresh_instruction_step_1"), style = MaterialTheme.typography.bodyMedium)
+                    Text(LocalizationManager.t("procurement_refresh_direct_help"), style = MaterialTheme.typography.bodyMedium)
                     Text(
                         procurementSourceWorkbookUrl,
                         color = MaterialTheme.colorScheme.primary,
@@ -393,12 +396,10 @@ fun ProcurementScreen(
                         style = MaterialTheme.typography.bodySmall,
                         modifier = Modifier.clickable { refreshUriHandler.openUri(procurementSourceWorkbookUrl) }
                     )
-                    Text(LocalizationManager.t("procurement_refresh_instruction_step_2"), style = MaterialTheme.typography.bodyMedium)
-                    Text(LocalizationManager.t("procurement_refresh_instruction_step_3"), style = MaterialTheme.typography.bodyMedium)
                 }
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
                     OutlinedButton(onClick = { refreshConfirmationOpen = false }) { Text(LocalizationManager.t("cancel")) }
-                    Button(onClick = {
+                    OutlinedButton(onClick = {
                         refreshConfirmationOpen = false
                         openProcurementWorkbookUpload { uploadError, refreshJson ->
                             if (uploadError.isNotBlank()) {
@@ -413,8 +414,22 @@ fun ProcurementScreen(
                                     }
                             }
                         }
-                    }) { Text(LocalizationManager.t("procurement_refresh_continue")) }
+                    }) { Text(LocalizationManager.t("procurement_refresh_manual")) }
                 }
+                Button(modifier = Modifier.fillMaxWidth(), onClick = {
+                    refreshConfirmationOpen = false
+                    openGoogleProcurementRefresh { connectionError, refreshJson ->
+                        if (connectionError.isNotBlank()) {
+                            registryRefreshMessage = LocalizationManager.t("procurement_refresh_error")
+                                .replace("{message}", connectionError)
+                        } else {
+                            runCatching { Json { ignoreUnknownKeys = true }.decodeFromString<oms.data.ApiProcurementRefresh>(refreshJson) }
+                                .onSuccess { refreshJob = it }
+                                .onFailure { failure -> registryRefreshMessage = LocalizationManager.t("procurement_refresh_error")
+                                    .replace("{message}", failure.message.orEmpty()) }
+                        }
+                    }
+                }) { Text(LocalizationManager.t("procurement_refresh_direct")) }
             }
         }
     }

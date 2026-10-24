@@ -47,6 +47,8 @@ jobs:
         run: node tools/test-browser-auth.cjs
       - name: Lightweight login routing for VPS and Pages
         run: node tools/test-login-entrypoint.cjs
+      - name: Google procurement OAuth popup protections
+        run: node tools/test-google-procurement.cjs
       - name: Authenticated startup shell in Chromium
         run: node tools/test-startup-shell.cjs
       - name: Post-login progress and handoff in Chromium

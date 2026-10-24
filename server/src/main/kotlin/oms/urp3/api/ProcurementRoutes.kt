@@ -5,6 +5,8 @@ import io.ktor.http.ContentType
 import io.ktor.http.content.PartData
 import io.ktor.http.content.forEachPart
 import io.ktor.server.request.receiveMultipart
+import io.ktor.server.request.receive
+import oms.urp3.service.GoogleDriveOAuth
 import io.ktor.server.response.respond
 import io.ktor.server.response.respondBytes
 import io.ktor.server.response.header
@@ -74,6 +76,16 @@ fun Route.procurementRoutes() {
         }
     }
 
+    post("/api/v1/procurements/refresh/google") {
+        val user = call.requireRole("ADMIN") ?: return@post
+        val request = call.receive<GoogleRefreshRequest>()
+        call.respondRefreshSafely(HttpStatusCode.Accepted) {
+            require(call.request.headers["Origin"] == GoogleDriveOAuth.origin) { "Start the update on the OMS website." }
+            val token = GoogleDriveOAuth.consume(user.userId, call.request.cookies[googleBrowserCookie].orEmpty(), request.ticket)
+            AppContainer.procurementService.startGoogleSourceRefresh(token).toResponse()
+        }
+    }
+
     post("/api/v1/procurements/refresh/upload") {
         call.requireRole("ADMIN") ?: return@post
         var workbook: ByteArray? = null
@@ -115,6 +127,9 @@ fun Route.procurementRoutes() {
         call.respond(status.toResponse())
     }
 }
+
+@Serializable
+private data class GoogleRefreshRequest(val ticket: String)
 
 @Serializable
 private data class ProcurementRefreshResponse(

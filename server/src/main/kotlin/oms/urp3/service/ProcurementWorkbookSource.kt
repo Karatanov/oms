@@ -14,6 +14,8 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeParseException
 import java.util.Locale
+import com.google.auth.oauth2.ServiceAccountCredentials
+import java.io.File
 
 /** Reader for the approved DB6.3 Initial Contracts register. Header names, not positions, define the mapping. */
 object ProcurementWorkbookSource {
@@ -122,24 +124,64 @@ object ProcurementWorkbookSource {
     private fun rowHasHeader(row: Row?, heading: String, evaluator: FormulaEvaluator) = headers(row, evaluator).containsKey(normalizeHeader(heading))
     private fun normalizeHeader(value: String): String = value.replace(Regex("\\s+"), " ").trim().lowercase(Locale.US)
 
-    private fun download(): ByteArray {
-        val url = System.getenv("PROCUREMENT_SOURCE_URL")?.trim()?.takeIf { it.isNotEmpty() }
-            ?: "https://drive.google.com/uc?export=download&id=$sourceFileId"
+    fun downloadWithUserToken(token: String): ByteArray = download(null, "user-oauth", { token })
+
+    internal fun download(
+        overrideUrl: String? = System.getenv("PROCUREMENT_SOURCE_URL")?.trim()?.takeIf { it.isNotEmpty() },
+        credentialsPath: String? = System.getenv("GOOGLE_APPLICATION_CREDENTIALS")?.trim()?.takeIf { it.isNotEmpty() },
+        readToken: (String) -> String = ::serviceAccountToken,
+        openConnection: (URI) -> HttpURLConnection = { it.toURL().openConnection() as HttpURLConnection }
+    ): ByteArray {
+        // Custom sources never receive Google credentials.
+        val authenticated = overrideUrl == null && credentialsPath != null
+        val url = overrideUrl ?: if (authenticated) {
+            "https://www.googleapis.com/drive/v3/files/$sourceFileId?alt=media&supportsAllDrives=true"
+        } else {
+            "https://drive.google.com/uc?export=download&id=$sourceFileId"
+        }
         try {
-            val connection = (URI(url).toURL().openConnection() as HttpURLConnection).apply {
-                instanceFollowRedirects = true; connectTimeout = 15_000; readTimeout = 60_000
-                setRequestProperty("Accept", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-            }
-            connection.inputStream.use { input ->
-                val bytes = input.readBytes(); val contentType = connection.contentType.orEmpty()
-                require(connection.responseCode in 200..299 && bytes.take(2).toByteArray().contentEquals(byteArrayOf(0x50, 0x4b))) {
-                    "The approved procurement source is unavailable. Configure PROCUREMENT_SOURCE_URL with a server-readable XLSX download URL."
+            val token = if (authenticated) readToken(requireNotNull(credentialsPath)) else null
+            val connection = openConnection(URI(url))
+            try {
+                connection.apply {
+                    instanceFollowRedirects = !authenticated
+                    connectTimeout = 15_000
+                    readTimeout = 60_000
+                    setRequestProperty("Accept", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+                    token?.let { setRequestProperty("Authorization", "Bearer $it") }
                 }
-                require(!contentType.contains("text/html", true)) { "The procurement source returned a sign-in page instead of an XLSX file." }
-                return bytes
+                require(connection.responseCode in 200..299) {
+                    "Workbook download failed (HTTP ${connection.responseCode}). Check Drive API, file sharing and download permissions, or upload the XLSX manually."
+                }
+                require(!connection.contentType.orEmpty().contains("text/html", true)) {
+                    "The procurement source returned a sign-in page instead of an XLSX file. Configure service-account access or upload the XLSX manually."
+                }
+                return connection.inputStream.use { input ->
+                    val bytes = input.readNBytes(20_000_001)
+                    require(bytes.size <= 20_000_000) { "The approved procurement workbook must not exceed 20 MB." }
+                    require(bytes.size >= 2 && bytes[0] == 0x50.toByte() && bytes[1] == 0x4b.toByte()) {
+                        "The procurement source did not return an XLSX file. Check the source or upload the XLSX manually."
+                    }
+                    bytes
+                }
+            } finally {
+                connection.disconnect()
             }
-        } catch (error: IllegalArgumentException) { throw error
-        } catch (_: Exception) { throw IllegalArgumentException("The approved procurement source is unavailable. Configure PROCUREMENT_SOURCE_URL with a server-readable XLSX download URL.") }
+        } catch (error: IllegalArgumentException) {
+            throw error
+        } catch (_: Exception) {
+            throw IllegalArgumentException("The approved procurement source is unavailable. Check server connectivity and Google Drive access, or upload the XLSX manually.")
+        }
+    }
+
+    private fun serviceAccountToken(path: String): String = try {
+        File(path).inputStream().use {
+            ServiceAccountCredentials.fromStream(it)
+                .createScoped(listOf("https://www.googleapis.com/auth/drive.readonly"))
+                .refreshAccessToken().tokenValue
+        }
+    } catch (_: Exception) {
+        throw IllegalArgumentException("Google Drive authentication failed. Check the server service-account key in GOOGLE_APPLICATION_CREDENTIALS.")
     }
 
     private data class SourceCellValue(val text: String? = null, val number: Double? = null, val date: LocalDate? = null)
