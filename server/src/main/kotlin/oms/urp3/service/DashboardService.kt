@@ -392,6 +392,11 @@ class DashboardService(
             isConstructionContractSigned(record[ProcurementRecordTable.purchaseStatus])
         }
         val servicesPaidUah = paymentRecords.mapNotNull { it.amountUahCents() }
+        // The regional funding chart may present the construction-contract
+        // value where one exists. The programme summary has a different,
+        // source-defined meaning: it must always show approved subproject
+        // funding (DB Monitoring Table: fundingTotal), never a later contract.
+        val approvedFundingUah = subprojects.sumOf { it[ProjectTable.budgetPlanned].toDouble() }
         val nationalSummary = DashboardNationalSummary(
             subprojectsCount = subprojects.size.toLong(),
             regionsCount = subprojects.mapNotNull { canonicalUkraineOblast(it[ProjectTable.region]) }.distinct().size.toLong(),
@@ -400,8 +405,10 @@ class DashboardService(
                     ?.trim()?.takeIf(String::isNotBlank)
             }.distinct().size.toLong(),
             settlementsCount = subprojects.map { it[ProjectTable.city].orEmpty().trim() }.filter(String::isNotBlank).distinct().size.toLong(),
-            approvedFundingUah = subprojectFunding.sumOf { it.amountUah },
-            approvedFundingEur = subprojectFunding.sumOf { it.amountEur },
+            approvedFundingUah = approvedFundingUah,
+            approvedFundingEur = approvedFundingUah.toBigDecimal()
+                .divide(DASHBOARD_UAH_PER_EUR, 2, RoundingMode.HALF_UP)
+                .toDouble(),
             signedContractsCount = signedContracts.size.toLong(),
             signedContractsAmountUah = signedContracts.sumOf { it[ProcurementRecordTable.contractAmountUah]?.toDouble() ?: 0.0 },
             servicesPaidEurCents = paymentRecords.sumOf { it[FinancialRecordTable.amountEurCents] ?: 0L },
