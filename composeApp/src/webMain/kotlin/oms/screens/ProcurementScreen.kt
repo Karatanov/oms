@@ -1,6 +1,7 @@
 package oms.screens
 
 import androidx.compose.foundation.ScrollState
+import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
@@ -524,8 +525,14 @@ private fun ProcurementTable(
     sortAscending: Boolean,
     onSort: (Int) -> Unit
 ) {
-    Column(Modifier.fillMaxWidth()) {
-        oms.components.ScrollableTable(pageScrollState = pageScrollState, header = {
+    // Keep the wide registry on an opaque light surface. Without this wrapper
+    // the horizontally-scrolled body inherits the workspace background while
+    // its sticky header uses `surface`, unlike the other OMS tables.
+    Box(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface)) {
+        oms.components.ScrollableTable(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+            pageScrollState = pageScrollState,
+            header = {
                 ProcurementFilters(allRecords, trancheFilter, onTrancheChange, oblastFilter, onOblastChange, subprojectFilter, onSubprojectChange,
                     contractTypeFilter, onContractTypeChange, procurementMethodFilter, onProcurementMethodChange, statusFilter, onStatusChange,
                     canResetFilters, onResetFilters)
@@ -538,7 +545,8 @@ private fun ProcurementTable(
                 ProcurementRow(record.displayValues(), record)
                 HorizontalDivider()
             }
-        }
+            }
+        )
     }
 }
 
