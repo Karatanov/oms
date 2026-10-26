@@ -61,6 +61,17 @@ fun Application.configureRouting() {
         photoRoutes()
         dashboardRoutes()
 
+        // URLs published by early GitHub Pages and API-only deployments. They
+        // were never public documents: the auth endpoints are POST-only now,
+        // and the `/oms/` prefix belonged to the former Pages site. Redirect
+        // crawler GET requests to the single public entry point so Search
+        // Console no longer records these historical routes as 404 pages.
+        listOf("/auth/login", "/auth/guest", "/oms/app.html").forEach { legacyPath ->
+            get(legacyPath) {
+                call.respondRedirect("https://ua-oms.com/", permanent = true)
+            }
+        }
+
         val frontendDirectory = System.getenv("OMS_WEB_DIR")
             ?.trim()
             ?.takeIf(String::isNotEmpty)
