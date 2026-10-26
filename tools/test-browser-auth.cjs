@@ -32,8 +32,12 @@ const api = 'https://api.oms-other.test/api/v1';
             contentType: 'application/json', body: JSON.stringify({ accessToken: token, user: { username: 'fixture' } }) });
           if (pathname.endsWith('/auth/logout')) return route.fulfill({ headers, status: 204 });
           if (request.headers().authorization !== `Bearer ${token}`) return route.fulfill({ headers, status: 401, body: 'Login required' });
-          if (pathname.endsWith('/photo')) return route.fulfill({ headers, contentType: 'image/png', body: Buffer.from(
-            'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl6WQ0AAAAASUVORK5CYII=', 'base64') });
+          // A minimal SVG remains decodable when loaded from the authenticated
+          // object URL in Chromium, WebKit and Firefox. The former one-pixel
+          // PNG fixture intermittently failed Firefox decoding on Ubuntu
+          // runners even though production image downloads were unaffected.
+          if (pathname.endsWith('/photo')) return route.fulfill({ headers, contentType: 'image/svg+xml', body:
+            '<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1" viewBox="0 0 1 1"><rect width="1" height="1" fill="#000"/></svg>' });
           if (pathname.endsWith('/download')) return route.fulfill({ headers: { ...headers, 'Content-Disposition': "attachment; filename*=UTF-8''report.csv" }, contentType: 'text/csv', body: 'fixture,data' });
           return route.fulfill({ headers, contentType: 'application/json', body: '{"data":[1]}' });
         });
