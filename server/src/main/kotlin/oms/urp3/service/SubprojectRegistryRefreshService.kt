@@ -254,7 +254,6 @@ class SubprojectRegistryRefreshService(
                     // operational data untouched.
                     val id = existingProjectId
                     ProjectTable.update({ ProjectTable.id eq id }) {
-                        it[ProjectTable.name] = name
                         it[ProjectTable.trancheNumber] = tranche
                         it[ProjectTable.region] = row.region()
                         it[ProjectTable.sector] = row.value("priority")
@@ -426,7 +425,10 @@ private object MonitoringWorkbookSource {
                 raw.contains("транш b", true) || Regex("(^|\\D)9(\\D|$)").containsMatchIn(raw)
             ) 2 else 1
         }
-        fun region(): String = value("region").replace(Regex("\\s+(область|oblast)$", RegexOption.IGNORE_CASE), "").trim()
+        fun region(): String {
+            val raw = value("region").replace(Regex("\\s+(область|oblast)$", RegexOption.IGNORE_CASE), "").trim()
+            return oblastNamesByCode[raw.uppercase()] ?: raw
+        }
         fun constructionType(): String = when (value("constructionType").lowercase()) {
             "new construction", "нове будівництво" -> "new_construction"
             "capital repair", "капітальний ремонт" -> "capital_repair"
@@ -583,5 +585,14 @@ private object MonitoringWorkbookSource {
         "fundingTotal", "fundingWorks", "fundingTs", "fundingCsc", "eibCost", "localCost", "contractedTotal", "contractedEib", "contractedLocal",
         "approvedFundingPct", "contractor", "contractorEn", "contractDate", "contractEndDate", "contractDuration", "constructionAmount", "constructionEib",
         "constructionLocal", "paidConstruction", "workStatus", "actNumber", "actDate", "completedWorkPct", "financingUsedPct", "paidFinancingPct", "workSummary", "workComments"
+    )
+
+    /** Allocation Tables use short oblast codes while OMS stores displayable names. */
+    private val oblastNamesByCode = mapOf(
+        "VN" to "Vinnytsia", "VO" to "Volyn", "DP" to "Dnipropetrovsk", "DT" to "Donetsk",
+        "ZH" to "Zhytomyr", "ZK" to "Zakarpattia", "ZP" to "Zaporizhzhia", "IF" to "Ivano-Frankivsk",
+        "KV" to "Kyiv", "KR" to "Kirovohrad", "LV" to "Lviv", "MY" to "Mykolaiv", "OD" to "Odesa",
+        "PL" to "Poltava", "RV" to "Rivne", "SM" to "Sumy", "TR" to "Ternopil", "KH" to "Kharkiv",
+        "KS" to "Kherson", "KM" to "Khmelnytskyi", "CK" to "Cherkasy", "CV" to "Chernivtsi", "CH" to "Chernihiv"
     )
 }
