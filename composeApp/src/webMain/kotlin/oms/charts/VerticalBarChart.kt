@@ -35,7 +35,11 @@ fun VerticalBarChart(
     // to scan. The label still owns its lane, so tooltips and click targets
     // remain reliable on touch screens.
     val columnGap = 1.dp
-    val plotWidth = labelWidth * data.size + columnGap * (data.size - 1)
+    // Hiding values is also a density control.  Without the value lane each
+    // bar can use a narrower column, so more categories fit before the
+    // horizontal navigator is needed.
+    val effectiveLabelWidth = if (showDataLabels) labelWidth else (labelWidth * .74f)
+    val plotWidth = effectiveLabelWidth * data.size + columnGap * (data.size - 1)
     Column(Modifier.fillMaxWidth()) {
         Column(Modifier.fillMaxWidth().horizontalScroll(scroll)) {
         Row(Modifier.width(plotWidth), horizontalArrangement = Arrangement.spacedBy(columnGap)) {
@@ -43,7 +47,7 @@ fun VerticalBarChart(
                 val displayValue = item.formattedValue ?: valueLabel(item.value)
                 val tooltip = listOf(item.label + ": " + displayValue, item.tooltip).filterNotNull().joinToString("\n")
                 oms.components.OmsTooltipBox(tooltip = { Text(tooltip) }) {
-                    Column(Modifier.width(labelWidth).semantics { contentDescription = tooltip }
+                    Column(Modifier.width(effectiveLabelWidth).semantics { contentDescription = tooltip }
                         .then(
                             if (onItemClick == null) Modifier.focusable()
                             else Modifier.clickable { onItemClick(item) }
@@ -78,7 +82,7 @@ fun VerticalBarChart(
             }
             Row(horizontalArrangement = Arrangement.spacedBy(columnGap)) {
                 groups.forEach { (year, count) ->
-                    Text(year.orEmpty(), Modifier.width(labelWidth * count + columnGap * (count - 1)),
+                    Text(year.orEmpty(), Modifier.width(effectiveLabelWidth * count + columnGap * (count - 1)),
                         textAlign = TextAlign.Center, style = MaterialTheme.typography.labelMedium)
                 }
             }
@@ -90,7 +94,7 @@ fun VerticalBarChart(
         if (showScrollControls && scroll.maxValue > 0) {
             Box(Modifier.fillMaxWidth().padding(top = 8.dp), contentAlignment = Alignment.Center) {
                 Surface(
-                    modifier = Modifier.width(208.dp),
+                    modifier = Modifier.width(176.dp),
                     shape = MaterialTheme.shapes.medium,
                     color = MaterialTheme.colorScheme.surfaceContainerLow
                 ) {

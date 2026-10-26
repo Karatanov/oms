@@ -397,7 +397,18 @@ private object MonitoringWorkbookSource {
         fun value(key: String) = values[key].orEmpty()
         fun number(key: String) = value(key).replace(Regex("\\s"), "").replace(',', '.').toDoubleOrNull() ?: 0.0
         fun date(key: String) = value(key).let { raw -> runCatching { LocalDate.parse(raw) }.getOrNull() }
-        fun trancheNumber() = if (value("pool").trim().let { it == "9" || it.equals("B", true) }) 2 else 1
+        /**
+         * Source workbooks use several equivalent captions for Batch 9:
+         * `9`, `B`, `Batch 9` and `Транш B`.  Treat them all as tranche B;
+         * otherwise valid B rows were stored as A and disappeared when the
+         * registry was filtered by tranche.
+         */
+        fun trancheNumber(): Int {
+            val raw = value("pool").trim()
+            return if (raw.equals("B", true) || raw.contains("tranche b", true) ||
+                raw.contains("транш b", true) || Regex("(^|\\D)9(\\D|$)").containsMatchIn(raw)
+            ) 2 else 1
+        }
         fun region(): String = value("region").replace(Regex("\\s+(область|oblast)$", RegexOption.IGNORE_CASE), "").trim()
         fun constructionType(): String = when (value("constructionType").lowercase()) {
             "new construction", "нове будівництво" -> "new_construction"

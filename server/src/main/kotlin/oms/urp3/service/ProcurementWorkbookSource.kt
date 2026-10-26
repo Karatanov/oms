@@ -21,6 +21,10 @@ import java.io.File
 object ProcurementWorkbookSource {
     private const val sourceFileId = "1tN1kbjw94g3zHKLRNDjgryuBXbYWuk2j"
     private const val sheetName = "DB6.3 Initial Contracts"
+    // DB6.3 is the fixed, approved tab.  The Sheets export endpoint remains a
+    // usable public fallback when a deployment service account was not shared
+    // with the Drive file (Drive returns HTTP 404 in that situation).
+    private const val approvedSheetGid = "1331483415"
 
     data class SourceRow(
         val sourceId: String, val subprojectCode: String, val partCode: String?, val batchId: Int, val oblastId: String,
@@ -67,7 +71,10 @@ object ProcurementWorkbookSource {
             }
             val valuesByHeader = linkedMapOf<String, List<SourceCellValue>>()
             sourceColumns.forEachIndexed { columnIndex, heading ->
-                val column = headers[normalizeHeader(heading)] ?: return@forEachIndexed
+                val column = headers[normalizeHeader(heading)]
+                    ?: headerAliases[heading]
+                        ?.firstNotNullOfOrNull { alias -> headers[normalizeHeader(alias)] }
+                    ?: return@forEachIndexed
                 // Reserve a visible part of the operation for every source
                 // column so the progress counter advances throughout parsing.
                 onProgress(13 + ((columnIndex + 1) * 32 / sourceColumns.size), "column:$heading")
@@ -139,38 +146,61 @@ object ProcurementWorkbookSource {
         } else {
             "https://drive.google.com/uc?export=download&id=$sourceFileId"
         }
+        val publicExportUrl = "https://docs.google.com/spreadsheets/d/$sourceFileId/export?format=xlsx&gid=$approvedSheetGid"
         try {
             val token = if (authenticated) readToken(requireNotNull(credentialsPath)) else null
-            val connection = openConnection(URI(url))
-            try {
-                connection.apply {
-                    instanceFollowRedirects = !authenticated
-                    connectTimeout = 15_000
-                    readTimeout = 60_000
-                    setRequestProperty("Accept", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-                    token?.let { setRequestProperty("Authorization", "Bearer $it") }
+            return try {
+                downloadFrom(url, token, !authenticated, openConnection)
+            } catch (primaryError: IllegalArgumentException) {
+                // An explicitly configured source is authoritative and must
+                // not be silently replaced.  The built-in source, however,
+                // is published as a Google Sheet and can safely fall back to
+                // its dedicated XLSX-export URL.
+                if (overrideUrl != null) throw primaryError
+                try {
+                    downloadFrom(publicExportUrl, null, true, openConnection)
+                } catch (_: IllegalArgumentException) {
+                    throw primaryError
                 }
-                require(connection.responseCode in 200..299) {
-                    "Workbook download failed (HTTP ${connection.responseCode}). Check Drive API, file sharing and download permissions, or upload the XLSX manually."
-                }
-                require(!connection.contentType.orEmpty().contains("text/html", true)) {
-                    "The procurement source returned a sign-in page instead of an XLSX file. Configure service-account access or upload the XLSX manually."
-                }
-                return connection.inputStream.use { input ->
-                    val bytes = input.readNBytes(20_000_001)
-                    require(bytes.size <= 20_000_000) { "The approved procurement workbook must not exceed 20 MB." }
-                    require(bytes.size >= 2 && bytes[0] == 0x50.toByte() && bytes[1] == 0x4b.toByte()) {
-                        "The procurement source did not return an XLSX file. Check the source or upload the XLSX manually."
-                    }
-                    bytes
-                }
-            } finally {
-                connection.disconnect()
             }
         } catch (error: IllegalArgumentException) {
             throw error
         } catch (_: Exception) {
             throw IllegalArgumentException("The approved procurement source is unavailable. Check server connectivity and Google Drive access, or upload the XLSX manually.")
+        }
+    }
+
+    private fun downloadFrom(
+        url: String,
+        token: String?,
+        followRedirects: Boolean,
+        openConnection: (URI) -> HttpURLConnection
+    ): ByteArray {
+        val connection = openConnection(URI(url))
+        try {
+            connection.apply {
+                instanceFollowRedirects = followRedirects
+                connectTimeout = 15_000
+                readTimeout = 60_000
+                setRequestProperty("Accept", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+                token?.let { setRequestProperty("Authorization", "Bearer $it") }
+            }
+            require(connection.responseCode in 200..299) {
+                "Workbook download failed (HTTP ${connection.responseCode}). Check Drive API, file sharing and download permissions, or upload the XLSX manually."
+            }
+            require(!connection.contentType.orEmpty().contains("text/html", true)) {
+                "The procurement source returned a sign-in page instead of an XLSX file. Configure service-account access or upload the XLSX manually."
+            }
+            return connection.inputStream.use { input ->
+                val bytes = input.readNBytes(20_000_001)
+                require(bytes.size <= 20_000_000) { "The approved procurement workbook must not exceed 20 MB." }
+                require(bytes.size >= 2 && bytes[0] == 0x50.toByte() && bytes[1] == 0x4b.toByte()) {
+                    "The procurement source did not return an XLSX file. Check the source or upload the XLSX manually."
+                }
+                bytes
+            }
+        } finally {
+            connection.disconnect()
         }
     }
 
@@ -271,5 +301,9 @@ object ProcurementWorkbookSource {
     // The contract URL was added after the first approved template. It stays
     // optional so a historic approved export remains importable.
     private val requiredHeaders = sourceColumns.filterNot { it in setOf("Comments (if any)", "Link to Contract") }.toSet()
+    /** Historic approved exports use both Ukrainian and English captions for the contract URL. */
+    private val headerAliases = mapOf(
+        "Link to Contract" to listOf("Contract link", "Link to the Contract", "Посилання на договір", "Посилання на контракт")
+    )
     private val contractTypes = mapOf("W" to "Роботи / Works", "TS" to "Технічний нагляд / TS", "CSC" to "Інженер-консультант / CSC")
 }

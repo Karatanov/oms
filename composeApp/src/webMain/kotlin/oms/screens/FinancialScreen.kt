@@ -401,11 +401,13 @@ fun FinancialScreen(
             }
         )
         oms.components.AdaptiveChartRow(
-            first = { MonthlyEquipmentPaymentsChart(financialChartRecords, displayRates, selectedChartScopeLabel) { month -> selectChartMonth(month, "equipment") } },
-            second = { MonthlyEngineerConsultantPaymentsChart(financialChartRecords, displayRates, selectedChartScopeLabel) { month -> selectChartMonth(month, "engineer_consultant") } }
+            // Keep the CSC chart on the left, directly following Works and
+            // Technical Supervision in the reading order.
+            first = { MonthlyEngineerConsultantPaymentsChart(financialChartRecords, displayRates, selectedChartScopeLabel) { month -> selectChartMonth(month, "engineer_consultant") } },
+            second = { MonthlyEquipmentPaymentsChart(financialChartRecords, displayRates, selectedChartScopeLabel) { month -> selectChartMonth(month, "equipment") } }
         )
         financialProgress?.let { progress ->
-            FinancialProgressCard("financial_progress_by_region", progress.byRegion, selectedChartScopeLabel)
+            FinancialProgressCard("financial_progress_by_region", progress.byRegion, selectedChartScopeLabel, compactInitially = true)
         }
         paymentMonitoring?.let { snapshot ->
             PaymentMonitoringCard(
@@ -992,7 +994,13 @@ private fun FinancialProgressCard(
     val sortedItems = items.sortedBy { it.label }
     val initialItemCount = maxOf(1, (sortedItems.size + 5) / 6)
     val visibleItems = if (compactInitially && !showAllItems) sortedItems.take(initialItemCount) else sortedItems
-    Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+    val progressModifier = Modifier.fillMaxWidth().then(
+        // Sector progress is paired with the TS monthly chart.  A stable
+        // minimum height keeps both cards visually aligned on desktop while
+        // still allowing the list to grow after the user expands it.
+        if (titleKey == "financial_progress_by_sector" && expanded) Modifier.heightIn(min = 392.dp) else Modifier
+    )
+    Card(progressModifier, colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -1209,7 +1217,10 @@ private fun PaymentMonitoringHeaderCell(
         onClick = { selectSort(column) },
         modifier = Modifier.width(width),
         numeric = numeric,
-        maxLines = 3
+        // Payment-monitoring captions are intentionally explicit.  Give the
+        // header an extra line rather than truncating their meaning.
+        height = 76.dp,
+        maxLines = 4
     )
 }
 

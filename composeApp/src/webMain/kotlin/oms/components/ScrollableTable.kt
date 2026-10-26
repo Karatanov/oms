@@ -153,11 +153,12 @@ fun TableScrollControls(scroll: ScrollState, showWhenStationary: Boolean = false
             direction = -1,
             clickDistance = 500f,
             continuousPixelsPerFrame = 16f,
-            enabled = canScroll
+            enabled = canScroll,
+            modifier = Modifier.size(30.dp)
         )
         Text(
             "$percentage%",
-            modifier = Modifier.width(64.dp).semantics { contentDescription = LocalizationManager.t("table_scroll") },
+            modifier = Modifier.width(48.dp).semantics { contentDescription = LocalizationManager.t("table_scroll") },
             style = MaterialTheme.typography.labelMedium,
             textAlign = androidx.compose.ui.text.style.TextAlign.Center
         )
@@ -168,7 +169,8 @@ fun TableScrollControls(scroll: ScrollState, showWhenStationary: Boolean = false
             direction = 1,
             clickDistance = 500f,
             continuousPixelsPerFrame = 16f,
-            enabled = canScroll
+            enabled = canScroll,
+            modifier = Modifier.size(30.dp)
         )
     }
 }

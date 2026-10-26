@@ -46,4 +46,14 @@ class ProcurementWorkbookDownloadTest {
             assertTrue(response.disconnected)
         }
     }
+
+    @Test fun `built in source falls back to the approved Sheets export when Drive access returns 404`() {
+        val hosts = mutableListOf<String>()
+        val bytes = ProcurementWorkbookSource.download(null, "key.json", { "test-token" }) { uri ->
+            hosts += uri.host
+            if (uri.host == "www.googleapis.com") Response(status = 404) else Response()
+        }
+        assertContentEquals(byteArrayOf(0x50, 0x4b), bytes)
+        assertEquals(listOf("www.googleapis.com", "docs.google.com"), hosts)
+    }
 }

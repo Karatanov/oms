@@ -1232,9 +1232,11 @@ private fun RegistryTableCell(project: Project, column: SortColumn, fontWeight: 
         }
     } else if (column == SortColumn.WORK_STATUS) {
         // The construction-work status is a programme state, not free-form
-        // prose.  Render it consistently with the other registry categories.
+        // prose.  Render it consistently with the other registry categories,
+        // while colour-coding the state so delayed and completed work can be
+        // scanned without opening the details card.
         Box(Modifier.width(width)) {
-            OmsBadge(value, Primary, fontWeight)
+            OmsBadge(value, constructionWorkStatusColor(value), fontWeight)
         }
     } else if (link.isNotBlank()) {
         Text(
@@ -1276,6 +1278,17 @@ private fun Project.matchesProjectSearch(query: String): Boolean =
         siteNumber.contains(query, ignoreCase = true) ||
         region.contains(query, ignoreCase = true) ||
         city.contains(query, ignoreCase = true)
+
+private fun constructionWorkStatusColor(status: String): Color {
+    val normalized = status.lowercase()
+    return when {
+        normalized.contains("completed") || normalized.contains("заверш") || normalized.contains("виконано") -> oms.theme.OmsColors.Success
+        normalized.contains("delay") || normalized.contains("затрим") || normalized.contains("проблем") -> Color(0xFFC62828)
+        normalized.contains("suspend") || normalized.contains("призуп") || normalized.contains("hold") -> oms.theme.OmsColors.Warning
+        normalized.contains("progress") || normalized.contains("виконан") || normalized.contains("construction") -> Primary
+        else -> Color(0xFF546E7A)
+    }
+}
 /*
    ---------- PAGINATION ----------
 */
