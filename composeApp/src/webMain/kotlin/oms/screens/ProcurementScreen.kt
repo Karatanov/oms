@@ -545,8 +545,7 @@ private fun ProcurementTable(
                 ProcurementRow(record.displayValues(), record)
                 HorizontalDivider()
             }
-            }
-        )
+        }
     }
 }
 
