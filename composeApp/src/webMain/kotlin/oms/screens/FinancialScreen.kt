@@ -992,7 +992,14 @@ private fun FinancialProgressCard(
     var expanded by remember { mutableStateOf(true) }
     var showAllItems by remember { mutableStateOf(!compactInitially) }
     val sortedItems = items.sortedBy { it.label }
-    val initialItemCount = maxOf(1, (sortedItems.size + 5) / 6)
+    // The compact sector card must still give a meaningful overview. Four
+    // sectors fit without making its paired row taller, while the remaining
+    // items stay available through the existing expand control.
+    val initialItemCount = if (titleKey == "financial_progress_by_sector") {
+        minOf(4, sortedItems.size)
+    } else {
+        maxOf(1, (sortedItems.size + 5) / 6)
+    }
     val visibleItems = if (compactInitially && !showAllItems) sortedItems.take(initialItemCount) else sortedItems
     val progressModifier = Modifier.fillMaxWidth().then(
         // Sector progress is paired with the TS monthly chart.  A stable
