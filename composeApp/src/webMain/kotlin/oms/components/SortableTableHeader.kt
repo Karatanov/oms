@@ -10,6 +10,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.*
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import oms.localization.LocalizationManager
@@ -35,7 +36,8 @@ fun SortableTableHeader(
         colors = ButtonDefaults.textButtonColors(contentColor = if (selected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant)
     ) {
         Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-            Text(title, Modifier.fillMaxWidth().padding(horizontal = 16.dp), style = MaterialTheme.typography.labelLarge, maxLines = maxLines,
+            Text(title, Modifier.fillMaxWidth().padding(horizontal = 16.dp), style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Bold, maxLines = maxLines,
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center)
             if (selected) {
                 Icon(
