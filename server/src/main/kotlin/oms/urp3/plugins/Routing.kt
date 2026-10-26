@@ -97,7 +97,7 @@ fun Application.configureRouting() {
                 // seeing `noindex` and leads Search Console to report a
                 // misleading "blocked by robots.txt" exclusion. The heavy
                 // authenticated workspace must remain out of search results.
-                call.response.header("X-Robots-Tag", "noindex, nofollow, noarchive")
+                call.response.headers.append("X-Robots-Tag", "noindex, nofollow, noarchive")
                 // Keep the application shell in step with its fingerprinted
                 // assets after a deployment. The assets themselves remain
                 // immutable and are cached for a year below.
@@ -109,7 +109,7 @@ fun Application.configureRouting() {
             // crawlers fetch this legacy URL only to receive an unambiguous
             // noindex response.
             get("/index.html") {
-                call.response.header("X-Robots-Tag", "noindex, nofollow, noarchive")
+                call.response.headers.append("X-Robots-Tag", "noindex, nofollow, noarchive")
                 call.response.headers.append(HttpHeaders.CacheControl, "public, no-cache")
                 call.respondFile(File(frontendDirectory, "index.html"))
             }
