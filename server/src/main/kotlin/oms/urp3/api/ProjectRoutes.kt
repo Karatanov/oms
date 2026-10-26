@@ -170,6 +170,10 @@ fun Route.projectRoutes() {
      */
     get("/api/v1/projects") {
         val session = call.requireRole("ADMIN", "PROJECT_MANAGER", "INSPECTOR", "VIEWER", "GUEST") ?: return@get
+        // Project registry content can be replaced by a workbook import.  A
+        // cached GET response would make a successfully imported tranche look
+        // absent even after the client requests a fresh snapshot.
+        call.response.header(HttpHeaders.CacheControl, "private, no-store")
         val page = call.request.queryParameters["page"]?.toIntOrNull() ?: 1
         val pageSize = call.request.queryParameters["pageSize"]?.toIntOrNull() ?: 20
         if (page < 1 || pageSize !in 1..500) {

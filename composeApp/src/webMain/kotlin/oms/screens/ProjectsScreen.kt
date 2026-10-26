@@ -184,7 +184,11 @@ fun ProjectsScreen(
     }
 
     var initialLoad by remember { mutableStateOf(true) }
-    LaunchedEffect(Unit) { ProjectRepository.refresh(); initialLoad = false }
+    // The registry is maintained through server-side workbook imports.  Do not
+    // reuse the process-wide snapshot when this screen is opened: otherwise a
+    // user who navigated here before an import can keep seeing the previous
+    // registry until a complete browser reload.
+    LaunchedEffect(Unit) { ProjectRepository.refresh(force = true); initialLoad = false }
     oms.navigation.ReportRouteReadiness(initialLoad, ProjectRepository.errorMessage != null)
     val projects = ProjectRepository.projects
     val programme = projects.firstOrNull(Project::isProgrammeRoot)
