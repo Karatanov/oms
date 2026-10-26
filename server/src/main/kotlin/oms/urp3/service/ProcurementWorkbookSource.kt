@@ -159,7 +159,23 @@ object ProcurementWorkbookSource {
                 if (overrideUrl != null) throw primaryError
                 try {
                     downloadFrom(publicExportUrl, null, true, openConnection)
-                } catch (_: IllegalArgumentException) {
+                } catch (exportError: IllegalArgumentException) {
+                    // A Sheets export that is also denied proves that this is
+                    // an access issue, not a malformed workbook.  Tell the
+                    // administrator which supported update path can actually
+                    // grant access instead of exposing a bare HTTP 404.
+                    if (primaryError.message?.contains("HTTP 404") == true &&
+                        (exportError.message?.contains("HTTP 401") == true ||
+                            exportError.message?.contains("HTTP 403") == true)
+                    ) {
+                        throw IllegalArgumentException(
+                            if (credentialsPath == "user-oauth") {
+                                "The connected Google account cannot access the approved procurement workbook. Connect an account that has access, or upload the XLSX manually."
+                            } else {
+                                "The approved procurement workbook is private. Use ‘Refresh from Google Drive’ with an account that has access, share it with the server service account, or upload the XLSX manually."
+                            }
+                        )
+                    }
                     throw primaryError
                 }
             }

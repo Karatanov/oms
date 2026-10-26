@@ -56,4 +56,13 @@ class ProcurementWorkbookDownloadTest {
         assertContentEquals(byteArrayOf(0x50, 0x4b), bytes)
         assertEquals(listOf("www.googleapis.com", "docs.google.com"), hosts)
     }
+
+    @Test fun `private source gives an actionable Google access message`() {
+        val error = assertFailsWith<IllegalArgumentException> {
+            ProcurementWorkbookSource.download(null, "key.json", { "test-token" }) { uri ->
+                if (uri.host == "www.googleapis.com") Response(status = 404) else Response(status = 401)
+            }
+        }
+        assertTrue(error.message.orEmpty().contains("Refresh from Google Drive"))
+    }
 }
