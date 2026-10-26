@@ -151,8 +151,12 @@ fun TableScrollControls(scroll: ScrollState, showWhenStationary: Boolean = false
             icon = Icons.Default.KeyboardArrowLeft,
             scrollState = scroll,
             direction = -1,
-            clickDistance = 500f,
-            continuousPixelsPerFrame = 16f,
+            clickDistance = 720f,
+            // A long table/chart can span several thousand pixels.  At the
+            // former 16 px/frame rate a held arrow felt unresponsive; keep
+            // the motion smooth but make continuous horizontal navigation
+            // materially faster across every shared table and bar chart.
+            continuousPixelsPerFrame = 32f,
             enabled = canScroll,
             modifier = Modifier.size(30.dp)
         )
@@ -167,8 +171,8 @@ fun TableScrollControls(scroll: ScrollState, showWhenStationary: Boolean = false
             icon = Icons.Default.KeyboardArrowRight,
             scrollState = scroll,
             direction = 1,
-            clickDistance = 500f,
-            continuousPixelsPerFrame = 16f,
+            clickDistance = 720f,
+            continuousPixelsPerFrame = 32f,
             enabled = canScroll,
             modifier = Modifier.size(30.dp)
         )
