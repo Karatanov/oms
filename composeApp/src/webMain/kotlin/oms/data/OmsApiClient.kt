@@ -494,6 +494,15 @@ object OmsApiClient {
     suspend fun paymentMonitoring(): ApiPaymentMonitoring =
         client.get("$baseUrl/financials/payment-monitoring").body()
 
+    suspend fun startPaymentMonitoringRefresh(): ApiPaymentMonitoringRefresh =
+        client.post("$baseUrl/financials/payment-monitoring/refresh").body()
+
+    suspend fun paymentMonitoringRefresh(id: String): ApiPaymentMonitoringRefresh =
+        client.get("$baseUrl/financials/payment-monitoring/refresh/$id").body()
+
+    suspend fun cancelPaymentMonitoringRefresh(id: String): ApiPaymentMonitoringRefresh =
+        client.post("$baseUrl/financials/payment-monitoring/refresh/$id/cancel").body()
+
     /** URL keeps the browser's authenticated download flow for the read-only payment register. */
     fun paymentMonitoringPdfExportUrl(language: String): String =
         "$baseUrl/financials/payment-monitoring/export-pdf?lang=${language.encodeURLParameter()}"
@@ -973,6 +982,14 @@ data class ApiMonthlyActPayment(val month: String, val amountEurCents: Long, val
 @Serializable data class ApiPaymentMonitoring(
     val refreshedAt: String,
     val items: List<ApiPaymentMonitoringItem> = emptyList()
+)
+@Serializable data class ApiPaymentMonitoringRefresh(
+    val id: String,
+    val status: String,
+    val progress: Int,
+    val phase: String,
+    val importedCount: Int? = null,
+    val error: String? = null
 )
 @Serializable data class ApiInspectionAnalytics(
     val monthlyInspectionCounts: List<ApiDashboardMetric> = emptyList(),

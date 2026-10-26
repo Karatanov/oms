@@ -76,13 +76,14 @@ object PaymentMonitoringWorkbookSource {
     internal fun downloadWorkbook(
         overrideUrl: String? = System.getenv("PAYMENT_MONITORING_SOURCE_URL")?.trim()?.takeIf(String::isNotBlank),
         credentialsPath: String? = System.getenv("GOOGLE_APPLICATION_CREDENTIALS")?.trim()?.takeIf(String::isNotBlank),
+        accessToken: String? = null,
         readToken: (String) -> String = ::serviceAccountToken,
         openConnection: (URI) -> HttpURLConnection = { it.toURL().openConnection() as HttpURLConnection }
     ): ByteArray {
-        val authenticated = overrideUrl == null && credentialsPath != null
+        val authenticated = overrideUrl == null && (credentialsPath != null || accessToken != null)
         val url = overrideUrl ?: "https://www.googleapis.com/drive/v3/files/$SOURCE_FILE_ID/export?mimeType=$XLSX_MIME_TYPE"
         try {
-            val token = if (authenticated) readToken(requireNotNull(credentialsPath)) else null
+            val token = accessToken ?: if (authenticated) readToken(requireNotNull(credentialsPath)) else null
             val connection = openConnection(URI(url))
             try {
                 connection.apply {
@@ -114,6 +115,10 @@ object PaymentMonitoringWorkbookSource {
             throw IllegalArgumentException("The approved payment-monitoring source is unavailable.")
         }
     }
+
+    /** Uses the administrator's temporary Google OAuth token for one refresh. */
+    internal fun downloadWithUserToken(accessToken: String): ByteArray =
+        downloadWorkbook(accessToken = accessToken)
 
     internal fun parseCsv(csv: String): List<Item> {
         val rows = csv.lineSequence().filter(String::isNotBlank).map(::csvCells).toList()

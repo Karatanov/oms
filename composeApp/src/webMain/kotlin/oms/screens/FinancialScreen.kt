@@ -39,6 +39,7 @@ import oms.data.ApiFinancialRecord
 import oms.data.ApiFinancialProgress
 import oms.data.ApiFinancialProgressItem
 import oms.data.ApiPaymentMonitoring
+import oms.data.ApiPaymentMonitoringRefresh
 import oms.data.displayAmountCents
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -66,12 +67,17 @@ import oms.screens.dashboard.toMonthName
 import kotlin.js.JsName
 import kotlin.math.roundToInt
 import kotlin.math.roundToLong
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.decodeFromString
 
 @JsName("openFinancialImport")
 external fun openFinancialImport(projectUuid: String, onComplete: (String) -> Unit)
 
-@JsName("openPaymentMonitoringImport")
-external fun openPaymentMonitoringImport(onComplete: (String) -> Unit)
+@JsName("openPaymentMonitoringWorkbookUpload")
+external fun openPaymentMonitoringWorkbookUpload(onComplete: (String, String) -> Unit)
+
+@JsName("openGooglePaymentMonitoringRefresh")
+external fun openGooglePaymentMonitoringRefresh(onComplete: (String, String) -> Unit)
 
 @JsName("downloadFinancialExport")
 external fun downloadFinancialExport(projectUuid: String)
@@ -149,6 +155,9 @@ fun FinancialScreen(
     var sort by remember { mutableStateOf(FinancialSort.ActDate) }
     var ascending by remember { mutableStateOf(false) }
     var reloadKey by remember { mutableStateOf(0) }
+    var paymentMonitoringRefreshConfirmationOpen by remember { mutableStateOf(false) }
+    var paymentMonitoringRefreshJob by remember { mutableStateOf<ApiPaymentMonitoringRefresh?>(null) }
+    var paymentMonitoringRefreshElapsedSeconds by remember { mutableStateOf(0) }
     var editAct by remember { mutableStateOf<ProjectActRow?>(null) }
     var addAct by remember { mutableStateOf(false) }
     var showTransferDialog by remember { mutableStateOf(false) }
@@ -163,6 +172,42 @@ fun FinancialScreen(
     val scope = rememberCoroutineScope()
     val pageScrollState = rememberScrollState()
     val tableTopPaddingPx = with(LocalDensity.current) { 24.dp.toPx() }
+
+    LaunchedEffect(paymentMonitoringRefreshJob?.id) {
+        val id = paymentMonitoringRefreshJob?.id ?: return@LaunchedEffect
+        val startedAt = kotlin.time.TimeSource.Monotonic.markNow()
+        paymentMonitoringRefreshElapsedSeconds = 0
+        while (paymentMonitoringRefreshJob?.status in setOf("RUNNING", "CANCELLING")) {
+            delay(400)
+            paymentMonitoringRefreshElapsedSeconds = startedAt.elapsedNow().inWholeSeconds.toInt()
+            runCatching { OmsApiClient.paymentMonitoringRefresh(id) }
+                .onSuccess { updated ->
+                    paymentMonitoringRefreshJob = updated
+                    when (updated.status) {
+                        "COMPLETED" -> {
+                            paymentMonitoringMessage = LocalizationManager.t("payment_monitoring_imported")
+                            paymentMonitoringMessageIsError = false
+                            reloadKey++
+                        }
+                        "FAILED" -> {
+                            paymentMonitoringMessage = LocalizationManager.t("error_payment_monitoring_import")
+                                .replace("{message}", updated.error.orEmpty())
+                            paymentMonitoringMessageIsError = true
+                        }
+                        "CANCELLED" -> {
+                            paymentMonitoringMessage = LocalizationManager.t("payment_monitoring_refresh_cancelled")
+                            paymentMonitoringMessageIsError = false
+                        }
+                    }
+                }
+                .onFailure { failure ->
+                    paymentMonitoringRefreshJob = paymentMonitoringRefreshJob?.copy(status = "FAILED", error = failure.message)
+                    paymentMonitoringMessage = LocalizationManager.t("error_payment_monitoring_import")
+                        .replace("{message}", failure.message.orEmpty())
+                    paymentMonitoringMessageIsError = true
+                }
+        }
+    }
 
     LaunchedEffect(requestedSubprojectUuid) {
         requestedSubprojectUuid?.let {
@@ -409,28 +454,19 @@ fun FinancialScreen(
         financialProgress?.let { progress ->
             FinancialProgressCard("financial_progress_by_region", progress.byRegion, selectedChartScopeLabel, compactInitially = true)
         }
-        paymentMonitoring?.let { snapshot ->
-            PaymentMonitoringCard(
-                snapshot = snapshot,
-                canUpdate = canUpdatePaymentMonitoring,
-                message = paymentMonitoringMessage,
-                messageIsError = paymentMonitoringMessageIsError,
-                onUpdate = {
-                    paymentMonitoringMessage = null
-                    openPaymentMonitoringImport { importError ->
-                        if (importError.isBlank()) {
-                            paymentMonitoringMessage = LocalizationManager.t("payment_monitoring_imported")
-                            paymentMonitoringMessageIsError = false
-                            reloadKey++
-                        } else {
-                            paymentMonitoringMessage = LocalizationManager.t("error_payment_monitoring_import")
-                                .replace("{message}", importError)
-                            paymentMonitoringMessageIsError = true
-                        }
-                    }
-                }
-            )
-        }
+        // Keep the update action available even when the last source snapshot
+        // cannot be read, so an administrator can repair it without leaving
+        // Financial Monitoring.
+        PaymentMonitoringCard(
+            snapshot = paymentMonitoring ?: ApiPaymentMonitoring(refreshedAt = ""),
+            canUpdate = canUpdatePaymentMonitoring,
+            message = paymentMonitoringMessage,
+            messageIsError = paymentMonitoringMessageIsError,
+            onUpdate = {
+                paymentMonitoringMessage = null
+                paymentMonitoringRefreshConfirmationOpen = true
+            }
+        )
 
         /*
          * The editable financial-record registry is intentionally retired from
@@ -636,8 +672,76 @@ fun FinancialScreen(
             )
         }
         }
+    if (paymentMonitoringRefreshConfirmationOpen) { WasmSafeOverlay(onDismiss = { paymentMonitoringRefreshConfirmationOpen = false }) {
+            Card(Modifier.widthIn(max = 520.dp).fillMaxWidth()) {
+                Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Text(LocalizationManager.t("payment_monitoring_refresh_confirm_title"), style = MaterialTheme.typography.titleLarge)
+                    Text(LocalizationManager.t("payment_monitoring_refresh_confirm_message"), style = MaterialTheme.typography.bodyMedium)
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
+                        OutlinedButton(onClick = { paymentMonitoringRefreshConfirmationOpen = false }) { Text(LocalizationManager.t("cancel")) }
+                        OutlinedButton(onClick = {
+                            paymentMonitoringRefreshConfirmationOpen = false
+                            openPaymentMonitoringWorkbookUpload { uploadError, refreshJson ->
+                                if (uploadError.isNotBlank()) {
+                                    paymentMonitoringMessage = LocalizationManager.t("error_payment_monitoring_import").replace("{message}", uploadError)
+                                    paymentMonitoringMessageIsError = true
+                                } else {
+                                    runCatching { Json { ignoreUnknownKeys = true }.decodeFromString<ApiPaymentMonitoringRefresh>(refreshJson) }
+                                        .onSuccess { paymentMonitoringRefreshJob = it }
+                                        .onFailure { error ->
+                                            paymentMonitoringMessage = LocalizationManager.t("error_payment_monitoring_import").replace("{message}", error.message.orEmpty())
+                                            paymentMonitoringMessageIsError = true
+                                        }
+                                }
+                            }
+                        }) { Text(LocalizationManager.t("payment_monitoring_refresh_manual")) }
+                    }
+                    Button(modifier = Modifier.fillMaxWidth(), onClick = {
+                        paymentMonitoringRefreshConfirmationOpen = false
+                        openGooglePaymentMonitoringRefresh { connectionError, refreshJson ->
+                            if (connectionError.isNotBlank()) {
+                                paymentMonitoringMessage = LocalizationManager.t("error_payment_monitoring_import").replace("{message}", connectionError)
+                                paymentMonitoringMessageIsError = true
+                            } else {
+                                runCatching { Json { ignoreUnknownKeys = true }.decodeFromString<ApiPaymentMonitoringRefresh>(refreshJson) }
+                                    .onSuccess { paymentMonitoringRefreshJob = it }
+                                    .onFailure { error ->
+                                        paymentMonitoringMessage = LocalizationManager.t("error_payment_monitoring_import").replace("{message}", error.message.orEmpty())
+                                        paymentMonitoringMessageIsError = true
+                                    }
+                            }
+                        }
+                    }) { Text(LocalizationManager.t("payment_monitoring_refresh_direct")) }
+                }
+            }
+        } }
+    paymentMonitoringRefreshJob?.takeIf { it.status in setOf("RUNNING", "CANCELLING") }?.let { job ->
+        WasmSafeOverlay(onDismiss = {}) {
+            Card(Modifier.widthIn(max = 520.dp).fillMaxWidth()) {
+                Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Text(LocalizationManager.t("payment_monitoring_refresh_progress_title"), style = MaterialTheme.typography.titleLarge)
+                    Text(paymentMonitoringRefreshPhaseLabel(job.phase), style = MaterialTheme.typography.bodyMedium)
+                    LinearProgressIndicator(progress = { (job.progress / 100f).coerceIn(0f, 1f) }, modifier = Modifier.fillMaxWidth())
+                    Text("${job.progress}% · ${formatPaymentMonitoringRefreshElapsed(paymentMonitoringRefreshElapsedSeconds)}", style = MaterialTheme.typography.bodySmall)
+                    OutlinedButton(
+                        enabled = job.status == "RUNNING",
+                        onClick = { scope.launch { runCatching { OmsApiClient.cancelPaymentMonitoringRefresh(job.id) }.onSuccess { paymentMonitoringRefreshJob = it } } },
+                        modifier = Modifier.align(Alignment.End)
+                    ) { Text(LocalizationManager.t("payment_monitoring_refresh_cancel")) }
+                }
+            }
+        }
+    }
     }
 }
+
+private fun formatPaymentMonitoringRefreshElapsed(seconds: Int): String =
+    "${(seconds / 60).toString().padStart(2, '0')}:${(seconds % 60).toString().padStart(2, '0')}"
+
+private fun paymentMonitoringRefreshPhaseLabel(phase: String): String =
+    LocalizationManager.t("payment_monitoring_refresh_phase_$phase")
+        .takeUnless { it == "payment_monitoring_refresh_phase_$phase" }
+        ?: phase
 
 @Composable
 private fun FinancialTransferDialog(

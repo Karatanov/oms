@@ -698,6 +698,43 @@
             );
         }
 
+        // The source may be private. The server first tries its configured
+        // service-account download; this is the administrator XLS/XLSX
+        // fallback and returns a refresh job, like Procurement does.
+        function openPaymentMonitoringWorkbookUpload(onComplete) {
+            const input = document.createElement("input");
+            input.type = "file";
+            input.accept = ".xls,.xlsx,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+            input.style.display = "none";
+            document.body.appendChild(input);
+            input.onchange = async () => {
+                const file = input.files && input.files[0];
+                if (!file) { input.remove(); return; }
+                if (file.size > 20_000_000) { onComplete("The payment monitoring workbook must not exceed 20 MB.", ""); input.remove(); return; }
+                const formData = new FormData();
+                formData.append("file", file, file.name);
+                showOmsLoading(omsText("importingPaymentMonitoring"));
+                try {
+                    const response = await omsAuthenticatedFetch(omsApiUrl("/financials/payment-monitoring/refresh/upload"), {
+                        method: "POST", body: formData, credentials: "include"
+                    });
+                    const responseText = await response.text();
+                    if (!response.ok) {
+                        let message = responseText;
+                        try { message = JSON.parse(responseText).message || responseText; } catch (_) { }
+                        throw new Error(message || "Could not upload the payment monitoring workbook.");
+                    }
+                    onComplete("", responseText);
+                } catch (error) {
+                    onComplete(error.message || String(error), "");
+                } finally {
+                    hideOmsLoading();
+                    input.remove();
+                }
+            };
+            input.click();
+        }
+
         // Procurement's source workbook is private to the team.  Uploading a
         // copy through the authenticated admin session avoids pretending the
         // backend can anonymously download a Google Drive sign-in page.
@@ -725,6 +762,53 @@
                 showOmsLoading(omsText("importingProcurement"));
                 try {
                     const response = await omsAuthenticatedFetch(omsApiUrl("/procurements/refresh/google"), {
+                        method: "POST", credentials: "include", headers: {"Content-Type":"application/json"},
+                        body: JSON.stringify({ticket:event.data.ticket})
+                    });
+                    const text = await response.text();
+                    if (!response.ok) { let message; try { message = JSON.parse(text).message; } catch (_) {} throw new Error(message || "Could not start Google import."); }
+                    finish("", text);
+                } catch (error) { finish(error.message || String(error), ""); }
+            };
+            window.addEventListener("message", receive);
+            const started = Date.now();
+            timer = setInterval(() => {
+                if (popup.closed || Date.now() - started > 600000) finish(english ? "Google connection cancelled or expired." : "Підключення Google скасовано або час очікування минув.", "");
+            }, 1000);
+            (async () => {
+                try {
+                    const response = await omsAuthenticatedFetch(omsApiUrl("/auth/google/start"), {method:"POST", credentials:"include"});
+                    const data = await response.json();
+                    if (!response.ok) throw new Error(data.message || "Google connection unavailable.");
+                    if (!finished) popup.location.href = data.url;
+                } catch (error) { finish(error.message || String(error), ""); }
+            })();
+        }
+
+        function openGooglePaymentMonitoringRefresh(onComplete) {
+            const english = document.documentElement.lang === "en";
+            const popup = window.open("about:blank", "omsGoogleDrive", "width=600,height=760");
+            if (!popup) { onComplete(english ? "Allow popups to connect Google." : "Дозвольте спливні вікна для підключення Google.", ""); return; }
+            const origin = window.location.origin;
+            let finished = false;
+            let timer;
+            const finish = (error, result) => {
+                if (finished) return;
+                finished = true;
+                clearInterval(timer);
+                window.removeEventListener("message", receive);
+                popup.close();
+                hideOmsLoading();
+                onComplete(error, result);
+            };
+            const receive = async event => {
+                if (event.origin !== origin || event.source !== popup || event.data?.type !== "oms-google-drive" || finished) return;
+                window.removeEventListener("message", receive);
+                clearInterval(timer);
+                if (event.data.error || !event.data.ticket) { finish(event.data.error || "Google connection failed.", ""); return; }
+                showOmsLoading(omsText("importingPaymentMonitoring"));
+                try {
+                    const response = await omsAuthenticatedFetch(omsApiUrl("/financials/payment-monitoring/refresh/google"), {
                         method: "POST", credentials: "include", headers: {"Content-Type":"application/json"},
                         body: JSON.stringify({ticket:event.data.ticket})
                     });

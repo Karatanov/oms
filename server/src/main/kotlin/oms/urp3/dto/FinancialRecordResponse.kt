@@ -54,3 +54,14 @@ data class PaymentMonitoringImportResponse(
     val imported: Int,
     val refreshedAt: String
 )
+
+/** Progress payload for a cancellable payment-monitoring workbook refresh. */
+@Serializable
+data class PaymentMonitoringRefreshResponse(
+    val id: String,
+    val status: String,
+    val progress: Int,
+    val phase: String,
+    val importedCount: Int? = null,
+    val error: String? = null
+)

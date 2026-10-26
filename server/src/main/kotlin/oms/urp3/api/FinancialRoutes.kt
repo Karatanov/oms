@@ -15,7 +15,12 @@ import oms.urp3.domain.FinancialRecordType
 import oms.urp3.domain.ProjectType
 import oms.urp3.service.FinancialTablePdfExportService
 import oms.urp3.service.PaymentMonitoringPdfExportService
+import oms.urp3.service.GoogleDriveOAuth
 import kotlin.math.roundToLong
+import kotlinx.serialization.Serializable
+
+@Serializable
+private data class PaymentMonitoringGoogleRefreshRequest(val ticket: String)
 
 fun Route.financialRoutes() {
     val financialTablePdfExportService = FinancialTablePdfExportService()
@@ -65,6 +70,65 @@ fun Route.financialRoutes() {
         }
         call.response.header(HttpHeaders.ContentDisposition, "attachment; filename=oms-payment-monitoring.pdf")
         call.respondBytes(pdf, ContentType.Application.Pdf)
+    }
+
+    post("/api/v1/financials/payment-monitoring/refresh") {
+        call.requireRole("ADMIN") ?: return@post
+        call.respondPaymentMonitoringRefresh(HttpStatusCode.Accepted) {
+            AppContainer.paymentMonitoringService.startApprovedSourceRefresh().toResponse()
+        }
+    }
+
+    post("/api/v1/financials/payment-monitoring/refresh/google") {
+        val user = call.requireRole("ADMIN") ?: return@post
+        val request = call.receive<PaymentMonitoringGoogleRefreshRequest>()
+        call.respondPaymentMonitoringRefresh(HttpStatusCode.Accepted) {
+            require(call.request.headers["Origin"] == GoogleDriveOAuth.origin) { "Start the update on the OMS website." }
+            val token = GoogleDriveOAuth.consume(user.userId, call.request.cookies[googleBrowserCookie].orEmpty(), request.ticket)
+            AppContainer.paymentMonitoringService.startGoogleSourceRefresh(token).toResponse()
+        }
+    }
+
+    post("/api/v1/financials/payment-monitoring/refresh/upload") {
+        call.requireRole("ADMIN") ?: return@post
+        var workbook: ByteArray? = null
+        try {
+            call.receiveMultipart().forEachPart { part ->
+                if (part is PartData.FileItem && part.name == "file") {
+                    val fileName = part.originalFileName.orEmpty()
+                    require(fileName.endsWith(".xlsx", true) || fileName.endsWith(".xls", true)) {
+                        "Select an XLS or XLSX payment monitoring workbook."
+                    }
+                    val bytes = part.provider().readRemaining(20_000_001).readByteArray()
+                    require(bytes.size <= 20_000_000) { "The payment monitoring workbook must not exceed 20 MB." }
+                    workbook = bytes
+                }
+                part.dispose()
+            }
+            call.respondPaymentMonitoringRefresh(HttpStatusCode.Accepted) {
+                AppContainer.paymentMonitoringService.startWorkbookRefresh(
+                    workbook ?: throw IllegalArgumentException("Multipart field 'file' is required.")
+                ).toResponse()
+            }
+        } catch (error: IllegalArgumentException) {
+            call.respond(HttpStatusCode.BadRequest, ErrorResponse("VALIDATION_ERROR", error.message ?: "Invalid payment monitoring workbook."))
+        }
+    }
+
+    get("/api/v1/financials/payment-monitoring/refresh/{id}") {
+        call.requireRole("ADMIN") ?: return@get
+        val id = call.parameters["id"] ?: return@get call.respond(HttpStatusCode.BadRequest, ErrorResponse("VALIDATION_ERROR", "Refresh ID is required."))
+        val status = AppContainer.paymentMonitoringService.getRefresh(id)
+            ?: return@get call.respond(HttpStatusCode.NotFound, ErrorResponse("NOT_FOUND", "Payment-monitoring refresh not found."))
+        call.respond(status.toResponse())
+    }
+
+    post("/api/v1/financials/payment-monitoring/refresh/{id}/cancel") {
+        call.requireRole("ADMIN") ?: return@post
+        val id = call.parameters["id"] ?: return@post call.respond(HttpStatusCode.BadRequest, ErrorResponse("VALIDATION_ERROR", "Refresh ID is required."))
+        val status = AppContainer.paymentMonitoringService.cancelRefresh(id)
+            ?: return@post call.respond(HttpStatusCode.NotFound, ErrorResponse("NOT_FOUND", "Payment-monitoring refresh not found."))
+        call.respond(status.toResponse())
     }
 
     post("/api/v1/financials/payment-monitoring/import") {
@@ -424,6 +488,22 @@ fun Route.financialRoutes() {
             if (!AppContainer.financialRecordService.delete(project.id, uuid)) return@delete call.financeNotFound("Financial record not found.")
             call.respond(HttpStatusCode.NoContent)
         }
+    }
+}
+
+private fun oms.urp3.service.PaymentMonitoringService.RefreshStatus.toResponse() =
+    PaymentMonitoringRefreshResponse(id, status, progress, phase, importedCount, error)
+
+private suspend fun io.ktor.server.application.ApplicationCall.respondPaymentMonitoringRefresh(
+    success: HttpStatusCode,
+    block: () -> PaymentMonitoringRefreshResponse
+) {
+    try {
+        respond(success, block())
+    } catch (exception: IllegalStateException) {
+        respond(HttpStatusCode.Conflict, ErrorResponse("CONFLICT", exception.message ?: "Payment-monitoring refresh is already running."))
+    } catch (exception: IllegalArgumentException) {
+        respond(HttpStatusCode.BadRequest, ErrorResponse("VALIDATION_ERROR", exception.message ?: "Invalid payment monitoring data."))
     }
 }
 
