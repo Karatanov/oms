@@ -594,7 +594,7 @@ private fun ProjectGeneralInfoTab(details: oms.data.ApiProjectDetails?) {
             val procurement = details.monitoringDetails?.let {
                 listOf(
                     LocalizationManager.t("procurement_status") to (it.constructionProcurementStatus?.let(LocalizationManager::procurementStatus) ?: "—"),
-                    LocalizationManager.t("work_status") to (it.constructionWorkStatus ?: "—")
+                    LocalizationManager.t("work_status") to it.constructionWorkStatus.localizedSourceValue()
                 )
             }.orEmpty()
             val engineering = details.monitoringDetails?.let { source ->
@@ -631,6 +631,16 @@ private fun ProjectGeneralInfoTab(details: oms.data.ApiProjectDetails?) {
             }
         }
     }
+}
+
+/** Source work-status cells may contain the Ukrainian and English texts joined by `/`. */
+private fun String?.localizedSourceValue(): String {
+    val raw = this?.trim().orEmpty()
+    if (raw.isBlank()) return "—"
+    val values = raw.split(Regex("\\s*/\\s*")).filter(String::isNotBlank)
+    return if (values.size >= 2) {
+        if (LocalizationManager.currentLanguage == Language.EN) values.last() else values.first()
+    } else raw
 }
 
 @Composable
