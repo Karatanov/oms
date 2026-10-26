@@ -1,7 +1,5 @@
 User-agent: *
 Allow: /
 Disallow: /api/
-Disallow: /app.html
-Disallow: /index.html
 
 Sitemap: https://ua-oms.com/sitemap.xml

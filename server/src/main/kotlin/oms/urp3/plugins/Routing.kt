@@ -81,11 +81,26 @@ fun Application.configureRouting() {
             // receive app.html and download the WASM application.
             get("/app.html") {
                 val page = if (call.sessions.get<UserSession>() == null) "login.html" else "app.html"
+                // Let search crawlers read this directive instead of blocking
+                // the URL in robots.txt. A disallow rule prevents Google from
+                // seeing `noindex` and leads Search Console to report a
+                // misleading "blocked by robots.txt" exclusion. The heavy
+                // authenticated workspace must remain out of search results.
+                call.response.header("X-Robots-Tag", "noindex, nofollow, noarchive")
                 // Keep the application shell in step with its fingerprinted
                 // assets after a deployment. The assets themselves remain
                 // immutable and are cached for a year below.
                 call.response.headers.append(HttpHeaders.CacheControl, "public, no-cache")
                 call.respondFile(File(frontendDirectory, page))
+            }
+            // `index.html` is the static Compose shell retained for existing
+            // bookmarks. The public canonical entry point is `/`, so let
+            // crawlers fetch this legacy URL only to receive an unambiguous
+            // noindex response.
+            get("/index.html") {
+                call.response.header("X-Robots-Tag", "noindex, nofollow, noarchive")
+                call.response.headers.append(HttpHeaders.CacheControl, "public, no-cache")
+                call.respondFile(File(frontendDirectory, "index.html"))
             }
             staticFiles("/", frontendDirectory, index = "index.html") {
                 preCompressed(CompressedFileType.BROTLI, CompressedFileType.GZIP)
