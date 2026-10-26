@@ -246,7 +246,24 @@ class SubprojectRegistryRefreshService(
                         it[ProjectTable.isArchived] = false
                     }
                     id
-                } else existingProjectId
+                } else {
+                    // Allocation workbooks are authoritative for the current
+                    // approved scope and its funding.  They deliberately do
+                    // not publish contracts, payments or documents, so update
+                    // only their shared registry attributes and leave all
+                    // operational data untouched.
+                    val id = existingProjectId
+                    ProjectTable.update({ ProjectTable.id eq id }) {
+                        it[ProjectTable.name] = name
+                        it[ProjectTable.trancheNumber] = tranche
+                        it[ProjectTable.region] = row.region()
+                        it[ProjectTable.sector] = row.value("priority")
+                        it[ProjectTable.budgetPlanned] = budget
+                        it[ProjectTable.status] = "active"
+                        it[ProjectTable.isArchived] = false
+                    }
+                    id
+                }
             }
 
             val subprojectRows = rows.groupBy { it.subprojectCode.uppercase() }

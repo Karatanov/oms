@@ -325,6 +325,11 @@ class DashboardService(
             }
         val nameEnByProjectId = monitoringByProjectId.mapValues { (_, row) -> row[ProjectMonitoringDetailTable.nameEn] }
         val subprojects = projects.filter { it[ProjectTable.projectType] == "subproject" }
+        // The portfolio headline describes the approved programme scope, not
+        // the wider screening register.  Screening candidates are retained in
+        // OMS for traceability, but only active subprojects belong in funding
+        // and national summary indicators.
+        val portfolioSubprojects = subprojects.filter { it[ProjectTable.status] == "active" }
         val subprojectIdByCode = subprojects.mapNotNull { row ->
             row[ProjectTable.siteNumber].orEmpty().trim().takeIf(String::isNotBlank)?.lowercase()
                 ?.let { code -> code to row[ProjectTable.id].value }
@@ -336,7 +341,7 @@ class DashboardService(
                 it[ProjectAmountTable.amount], it[ProjectAmountTable.currency], it[ProjectAmountTable.convertedAmount],
                 it[ProjectAmountTable.uahPerEur], it[ProjectAmountTable.rateDate], it[ProjectAmountTable.conversionEdited]
             ) } }
-        val subprojectFunding = subprojects.map { row -> row.toFunding(amountsByProject[row[ProjectTable.id].value]) }
+        val subprojectFunding = portfolioSubprojects.map { row -> row.toFunding(amountsByProject[row[ProjectTable.id].value]) }
         fun subprojectFor(projectId: Long): Long? {
             var current = projectId
             while (true) {
@@ -377,7 +382,7 @@ class DashboardService(
         // Progress must cover every subproject.  A missing or unsigned
         // construction contract simply results in 0%, rather than hiding its
         // region from the dashboard filter.
-        val subprojectProgress = subprojects.filter { it[ProjectTable.status] == "active" }.map { row ->
+        val subprojectProgress = portfolioSubprojects.map { row ->
             val id = row[ProjectTable.id].value
             val contract = signedWorksAmountBySubprojectCode[row[ProjectTable.siteNumber].orEmpty().trim().lowercase()]
                 ?: (row[ProjectTable.subprojectContractAmount] ?: row[ProjectTable.budgetPlanned]).toDouble()
@@ -396,15 +401,15 @@ class DashboardService(
         // value where one exists. The programme summary has a different,
         // source-defined meaning: it must always show approved subproject
         // funding (DB Monitoring Table: fundingTotal), never a later contract.
-        val approvedFundingUah = subprojects.sumOf { it[ProjectTable.budgetPlanned].toDouble() }
+        val approvedFundingUah = portfolioSubprojects.sumOf { it[ProjectTable.budgetPlanned].toDouble() }
         val nationalSummary = DashboardNationalSummary(
-            subprojectsCount = subprojects.size.toLong(),
-            regionsCount = subprojects.mapNotNull { canonicalUkraineOblast(it[ProjectTable.region]) }.distinct().size.toLong(),
-            municipalitiesCount = subprojects.mapNotNull { row ->
+            subprojectsCount = portfolioSubprojects.size.toLong(),
+            regionsCount = portfolioSubprojects.mapNotNull { canonicalUkraineOblast(it[ProjectTable.region]) }.distinct().size.toLong(),
+            municipalitiesCount = portfolioSubprojects.mapNotNull { row ->
                 monitoringByProjectId[row[ProjectTable.id].value]?.get(ProjectMonitoringDetailTable.municipalityNameUk)
                     ?.trim()?.takeIf(String::isNotBlank)
             }.distinct().size.toLong(),
-            settlementsCount = subprojects.map { it[ProjectTable.city].orEmpty().trim() }.filter(String::isNotBlank).distinct().size.toLong(),
+            settlementsCount = portfolioSubprojects.map { it[ProjectTable.city].orEmpty().trim() }.filter(String::isNotBlank).distinct().size.toLong(),
             approvedFundingUah = approvedFundingUah,
             approvedFundingEur = approvedFundingUah.toBigDecimal()
                 .divide(DASHBOARD_UAH_PER_EUR, 2, RoundingMode.HALF_UP)
