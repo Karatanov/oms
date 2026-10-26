@@ -319,7 +319,9 @@ object ProcurementWorkbookSource {
     private val requiredHeaders = sourceColumns.filterNot { it in setOf("Comments (if any)", "Link to Contract") }.toSet()
     /** Historic approved exports use both Ukrainian and English captions for the contract URL. */
     private val headerAliases = mapOf(
-        "Link to Contract" to listOf("Contract link", "Link to the Contract", "Посилання на договір", "Посилання на контракт")
+        // DB6.3 currently uses the plural "Link to Contracts". Earlier
+        // approved exports use the singular wording, so retain both names.
+        "Link to Contract" to listOf("Link to Contracts", "Contract link", "Link to the Contract", "Посилання на договір", "Посилання на контракт")
     )
     private val contractTypes = mapOf("W" to "Роботи / Works", "TS" to "Технічний нагляд / TS", "CSC" to "Інженер-консультант / CSC")
 }
