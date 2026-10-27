@@ -248,9 +248,7 @@ fun ProjectsScreen(
                 }
             }
             .verticalScroll(pageScrollState)
-            // Leave a fixed lane for the page-scroll controls, as on the
-            // procurement and inspection-report screens.
-            .padding(oms.layout.workspacePadding(withScrollControls = true, desktop = 16.dp))
+            .padding(oms.layout.workspacePadding(desktop = 16.dp))
     ) {
 
         // The programme is contextual information, not a table row.  Keep it
@@ -483,32 +481,6 @@ fun ProjectsScreen(
                     ) { Text(LocalizationManager.t("subproject_registry_refresh_cancel")) }
                 }
             }
-        }
-    }
-    if (!oms.layout.LocalMobileLayout.current) Surface(
-        modifier = Modifier.align(Alignment.CenterEnd).padding(end = 16.dp).zIndex(10f),
-        shape = MaterialTheme.shapes.large,
-        color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 6.dp,
-        shadowElevation = 6.dp
-    ) {
-        Column(
-            modifier = Modifier.padding(4.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            oms.components.HoldToScrollButton(
-                LocalizationManager.t("dashboard_scroll_up"),
-                Icons.Default.KeyboardArrowUp,
-                pageScrollState,
-                -1
-            )
-            oms.components.HoldToScrollButton(
-                LocalizationManager.t("dashboard_scroll_down"),
-                Icons.Default.KeyboardArrowDown,
-                pageScrollState,
-                1
-            )
         }
     }
     }

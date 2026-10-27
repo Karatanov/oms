@@ -954,7 +954,8 @@ data class ApiMonthlyActPayment(val month: String, val amountEurCents: Long, val
     val signedContractsCount: Long,
     val signedContractsAmountUah: Double,
     val servicesPaidEurCents: Long,
-    val servicesPaidUahCents: Long? = null
+    val servicesPaidUahCents: Long? = null,
+    val eibPaidUnderContractsUah: Double? = null
 )
 @Serializable data class ApiFinancialProgressItem(
     val label: String,

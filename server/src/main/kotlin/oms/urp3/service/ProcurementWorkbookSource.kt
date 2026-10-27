@@ -111,7 +111,7 @@ object ProcurementWorkbookSource {
                     value(rowIndex, "Contract amount, UAH with VAT").number, value(rowIndex, "Contract amount, UAH without VAT").number,
                     value(rowIndex, "DREAM co-financing (%)").number, value(rowIndex, "Estimated amount and Financing (EIB financing, UAH)").number,
                     value(rowIndex, "Real local co-financing according to contract (%)").number, value(rowIndex, "Real EIB financing according contract data (UAH)").number,
-                    value(rowIndex, "Bank guarantee").number, value(rowIndex, "Link to Contract").text,
+                    value(rowIndex, "Bank guarantee").number, contractLink(rows[rowIndex].second, headers, evaluator),
                     value(rowIndex, "Comments (if any)").text
                 )
             }
@@ -277,6 +277,26 @@ object ProcurementWorkbookSource {
         number = cellNumber(row, index, evaluator),
         date = cellDate(row, index, evaluator)
     )
+
+    /**
+     * Excel/Google Sheets can display friendly text while keeping the actual
+     * contract URL in a hyperlink relationship or HYPERLINK formula.  The
+     * registry must store the target, not just the displayed caption.
+     */
+    private fun contractLink(row: Row, headers: Map<String, Int>, evaluator: FormulaEvaluator): String? {
+        val index = headers[normalizeHeader("Link to Contract")]
+            ?: headerAliases.getValue("Link to Contract")
+                .firstNotNullOfOrNull { alias -> headers[normalizeHeader(alias)] }
+            ?: return null
+        val cell = row.getCell(index) ?: return null
+        cell.hyperlink?.address?.trim()?.takeIf(String::isNotBlank)?.let { return it }
+        if (cell.cellType == CellType.FORMULA) {
+            Regex("""(?i)HYPERLINK\s*\(\s*"([^"]+)"""")
+                .find(cell.cellFormula)
+                ?.groupValues?.getOrNull(1)?.trim()?.takeIf(String::isNotBlank)?.let { return it }
+        }
+        return cellText(row, index, evaluator).trim().takeIf(String::isNotBlank)
+    }
     private fun parseDate(value: String): LocalDate? {
         val normalized = value.trim()
         if (normalized.isBlank() || normalized.equals("n/a", true) || normalized.equals("not applicable", true) || normalized.equals("no", true)) return null

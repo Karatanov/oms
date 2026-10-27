@@ -12,10 +12,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -27,7 +23,6 @@ import oms.charts.BarChartOrientation
 import oms.data.ApiMonthlyActPayment
 import oms.localization.LocalizationManager
 import oms.components.CurrencySelector
-import oms.components.ChartDataLabelsToggle
 import oms.components.ChartPngExportButton
 import oms.components.OmsChartHeader
 import kotlin.math.roundToInt
@@ -35,7 +30,6 @@ import kotlin.math.roundToInt
 @Composable
 fun MonthlyActPaymentsChart(primary: Color, payments: List<ApiMonthlyActPayment>, onOpenFinancialByMonth: (String) -> Unit = {}, orientation: BarChartOrientation = BarChartOrientation.Vertical) {
     var currency by remember { mutableStateOf("EUR") }
-    var showDataLabels by remember { mutableStateOf(true) }
     val sortedPayments = payments.sortedBy { it.month }
     val data = sortedPayments
         .map { payment ->
@@ -53,13 +47,12 @@ fun MonthlyActPaymentsChart(primary: Color, payments: List<ApiMonthlyActPayment>
         Column(modifier = Modifier.padding(16.dp)) {
             OmsChartHeader(LocalizationManager.t("monthly_act_payments")) {
                 if (data.isNotEmpty()) {
-                    ChartDataLabelsToggle(showDataLabels) { showDataLabels = it }
                     ChartPngExportButton(
                         title = LocalizationManager.t("monthly_act_payments"),
                         filenameStem = "monthly-act-payments",
                         data = data,
                         orientation = orientation,
-                        showDataLabels = showDataLabels,
+                        showDataLabels = true,
                         valueLabel = { formatActAmount(it.toLong(), currency) },
                         currency = currency
                     )
@@ -72,8 +65,8 @@ fun MonthlyActPaymentsChart(primary: Color, payments: List<ApiMonthlyActPayment>
             if (data.isEmpty()) Text(LocalizationManager.t("no_payments_yet"))
             else if (orientation == BarChartOrientation.Vertical) VerticalBarChart(
                 data = data, color = primary, valueLabel = { formatActAmount(it.toLong(), currency) }, labelMaxLines = 1,
-                onItemClick = { bar -> bar.id?.let(onOpenFinancialByMonth) }, showDataLabels = showDataLabels
-            ) else HorizontalBarChart(data, primary, valueLabel = { formatActAmount(it.toLong(), currency) }, onItemClick = { bar -> bar.id?.let(onOpenFinancialByMonth) }, showDataLabels = showDataLabels)
+                onItemClick = { bar -> bar.id?.let(onOpenFinancialByMonth) }
+            ) else HorizontalBarChart(data, primary, valueLabel = { formatActAmount(it.toLong(), currency) }, onItemClick = { bar -> bar.id?.let(onOpenFinancialByMonth) })
         }
     }
 }

@@ -1,6 +1,7 @@
 package oms.urp3.service
 
 import oms.urp3.database.tables.*
+import oms.urp3.config.AppContainer
 import oms.urp3.domain.InspectionReport
 import oms.urp3.domain.InspectionReportStatus
 import oms.urp3.domain.ProjectAmount
@@ -40,7 +41,9 @@ data class DashboardNationalSummary(
     val signedContractsCount: Long,
     val signedContractsAmountUah: Double,
     val servicesPaidEurCents: Long,
-    val servicesPaidUahCents: Long?
+    val servicesPaidUahCents: Long?,
+    /** Actual paid amount multiplied by the factual EIB share from the approved payment-monitoring register. */
+    val eibPaidUnderContractsUah: Double? = null
 )
 /**
  * Signed-contract indicators mirrored from the engineering dashboard.  The
@@ -397,6 +400,30 @@ class DashboardService(
             isConstructionContractSigned(record[ProcurementRecordTable.purchaseStatus])
         }
         val servicesPaidUah = paymentRecords.mapNotNull { it.amountUahCents() }
+        // The payment-monitoring register is the only approved source that
+        // carries both the amount actually paid and the factual EIB share.
+        // Do not derive an EIB contribution from all ledger records: payments
+        // for TS/CSC/equipment use different financing bases.
+        val selectedSubprojectCodes = portfolioSubprojects
+            .map { it[ProjectTable.siteNumber].substringBefore('#').trim().uppercase() }
+            .toSet()
+        val eibPaidUnderContractsUah = runCatching {
+            val monitoringSnapshot = AppContainer.paymentMonitoringService.currentIfAvailable()
+                ?: return@runCatching null
+            monitoringSnapshot.items
+                .asSequence()
+                // The workbook has supporting `_W`, `_TS` and `_CSC` rows
+                // in addition to the primary SP line. They are not separate
+                // subprojects and must never be added to the KPI a second time.
+                .filter { isPrimaryPaymentMonitoringSubprojectCode(it.code) }
+                .filter { it.code.substringBefore('#').substringBefore('$').trim().uppercase() in selectedSubprojectCodes }
+                .mapNotNull { item ->
+                    val paid = item.paidUah?.takeIf { it.isFinite() } ?: return@mapNotNull null
+                    val eibShare = item.factualEibSharePct?.takeIf { it.isFinite() } ?: return@mapNotNull null
+                    paid * eibShare / 100.0
+                }
+                .sum()
+        }.getOrNull()
         // The regional funding chart may present the construction-contract
         // value where one exists. The programme summary has a different,
         // source-defined meaning: it must always show approved subproject
@@ -417,7 +444,8 @@ class DashboardService(
             signedContractsCount = signedContracts.size.toLong(),
             signedContractsAmountUah = signedContracts.sumOf { it[ProcurementRecordTable.contractAmountUah]?.toDouble() ?: 0.0 },
             servicesPaidEurCents = paymentRecords.sumOf { it[FinancialRecordTable.amountEurCents] ?: 0L },
-            servicesPaidUahCents = servicesPaidUah.takeIf { it.size == paymentRecords.size }?.sum()
+            servicesPaidUahCents = servicesPaidUah.takeIf { it.size == paymentRecords.size }?.sum(),
+            eibPaidUnderContractsUah = eibPaidUnderContractsUah
         )
         fun report(row: org.jetbrains.exposed.v1.core.ResultRow) = InspectionReport(
             row[InspectionReportTable.id].value, UUID.fromString(row[InspectionReportTable.uuid]), row[InspectionReportTable.projectId].value,
@@ -534,6 +562,10 @@ class DashboardService(
         }
     }
 }
+
+/** Supporting payment-monitoring rows describe works/TS/CSC components, not standalone SPs. */
+internal fun isPrimaryPaymentMonitoringSubprojectCode(code: String): Boolean =
+    !code.trim().uppercase().matches(Regex(".*_(W|TS|CSC)$"))
 
 private fun org.jetbrains.exposed.v1.core.ResultRow.toFunding(
     amounts: Map<String, ProjectAmount>?

@@ -61,7 +61,6 @@ import oms.screens.dashboard.toMonthName
 import oms.components.FilterDropdown
 import oms.components.OmsTooltipBox
 import oms.components.ChartSortControls
-import oms.components.ChartDataLabelsToggle
 import oms.components.ChartPngExportButton
 import oms.components.OmsChartHeader
 import oms.components.localizedUkraineRegion
@@ -471,9 +470,6 @@ private fun AnalyticsCard(
 ) {
     var sortCriterion by remember { mutableStateOf<ChartSortCriterion?>(null) }
     var sortAscending by remember { mutableStateOf(true) }
-    // This is intentionally local to a chart card. Sorting, orientation,
-    // filters and currency recompositions therefore retain the user's choice.
-    var showDataLabels by remember { mutableStateOf(true) }
     val displayData = sortCriterion?.let { sortBarData(data, it, sortAscending) } ?: data
     val cardModifier = Modifier.fillMaxWidth().then(
         if (!expanded) Modifier
@@ -491,13 +487,12 @@ private fun AnalyticsCard(
                     onCriterionChange = { sortCriterion = it },
                     onDirectionToggle = { sortAscending = !sortAscending }
                 )
-                if (data.isNotEmpty()) ChartDataLabelsToggle(showDataLabels) { showDataLabels = it }
                 if (displayData.isNotEmpty()) ChartPngExportButton(
                     title = title,
                     filenameStem = titleKey,
                     data = displayData,
                     orientation = orientation,
-                    showDataLabels = showDataLabels,
+                    showDataLabels = true,
                     valueLabel = valueLabel,
                     subtitle = hintKey?.let(LocalizationManager::t),
                     currency = currency
@@ -528,8 +523,8 @@ private fun AnalyticsCard(
                 }
                 Spacer(Modifier.height(if (compact) 6.dp else 8.dp))
                 if (displayData.isEmpty()) Text(LocalizationManager.t("no_chart_data"), color = MaterialTheme.colorScheme.onSurfaceVariant)
-                else if (orientation == BarChartOrientation.Vertical) VerticalBarChart(displayData, MaterialTheme.colorScheme.primary, labelMaxLines = labelMaxLines, maxVisibleItems = 6, valueLabel = valueLabel, onItemClick = onItemClick, showScrollControls = showScrollControls, showDataLabels = showDataLabels)
-                else HorizontalBarChart(displayData, MaterialTheme.colorScheme.primary, valueLabel = valueLabel, onItemClick = onItemClick, showDataLabels = showDataLabels)
+                else if (orientation == BarChartOrientation.Vertical) VerticalBarChart(displayData, MaterialTheme.colorScheme.primary, labelMaxLines = labelMaxLines, maxVisibleItems = 6, valueLabel = valueLabel, onItemClick = onItemClick, showScrollControls = showScrollControls)
+                else HorizontalBarChart(displayData, MaterialTheme.colorScheme.primary, valueLabel = valueLabel, onItemClick = onItemClick)
             }
         }
     }

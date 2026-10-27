@@ -7,8 +7,6 @@ import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.focusable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Dashboard
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -106,7 +104,7 @@ fun DashboardScreen(
                 else -> false
             }
         }.focusable(),
-            contentPadding = oms.layout.workspacePadding(withScrollControls = true),
+            contentPadding = oms.layout.workspacePadding(),
             verticalArrangement = Arrangement.spacedBy(16.dp)) {
             item {
                 PageHeading(LocalizationManager.t("dashboard"), Icons.Default.Dashboard,
@@ -226,10 +224,6 @@ fun DashboardScreen(
                 }
             }
         }
-        if (!oms.layout.LocalMobileLayout.current) Column(Modifier.align(Alignment.CenterEnd).padding(end = 8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            oms.components.HoldToScrollButton(LocalizationManager.t("dashboard_scroll_up"), Icons.Default.KeyboardArrowUp, scrollState, -1, clickDistance = 500f)
-            oms.components.HoldToScrollButton(LocalizationManager.t("dashboard_scroll_down"), Icons.Default.KeyboardArrowDown, scrollState, 1, clickDistance = 500f)
-        }
     }
 }
 
@@ -263,11 +257,8 @@ private fun NationalPortfolioSummary(summary: ApiDashboardNationalSummary) {
                 SummaryMetric("national_signed_contracts", summary.signedContractsCount.toString())
                 SummaryMetric("national_signed_contract_value", "${summary.signedContractsAmountUah.roundToLong().grouped()} UAH")
                 SummaryMetric(
-                    "national_services_paid",
-                    // This programme indicator is maintained in hryvnias;
-                    // presenting its EUR conversion as the primary figure made
-                    // it inconsistent with the source financial register.
-                    summary.servicesPaidUahCents?.let { "${it.toUahAmount()} UAH" } ?: "—"
+                    "eib_paid_under_contracts",
+                    summary.eibPaidUnderContractsUah?.roundToLong()?.let { "${it.grouped()} грн" } ?: "—"
                 )
             }
         }

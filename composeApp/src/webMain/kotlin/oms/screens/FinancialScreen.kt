@@ -383,7 +383,7 @@ fun FinancialScreen(
                     else -> false
                 }
             }
-            .verticalScroll(pageScrollState).padding(oms.layout.workspacePadding(withScrollControls = true)),
+            .verticalScroll(pageScrollState).padding(oms.layout.workspacePadding()),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         oms.components.PageHeading(
@@ -447,13 +447,16 @@ fun FinancialScreen(
         )
         oms.components.AdaptiveChartRow(
             // Keep the CSC chart on the left, directly following Works and
-            // Technical Supervision in the reading order.
+            // Technical Supervision in the reading order. Regional execution
+            // belongs beside it so both monitoring views share one desktop row.
             first = { MonthlyEngineerConsultantPaymentsChart(financialChartRecords, displayRates, selectedChartScopeLabel) { month -> selectChartMonth(month, "engineer_consultant") } },
-            second = { MonthlyEquipmentPaymentsChart(financialChartRecords, displayRates, selectedChartScopeLabel) { month -> selectChartMonth(month, "equipment") } }
+            second = {
+                financialProgress?.let { progress ->
+                    FinancialProgressCard("financial_progress_by_region", progress.byRegion, selectedChartScopeLabel, compactInitially = true)
+                }
+            }
         )
-        financialProgress?.let { progress ->
-            FinancialProgressCard("financial_progress_by_region", progress.byRegion, selectedChartScopeLabel, compactInitially = true)
-        }
+        MonthlyEquipmentPaymentsChart(financialChartRecords, displayRates, selectedChartScopeLabel) { month -> selectChartMonth(month, "equipment") }
         // Keep the update action available even when the last source snapshot
         // cannot be read, so an administrator can repair it without leaving
         // Financial Monitoring.
@@ -618,22 +621,6 @@ fun FinancialScreen(
 
         errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error) }
         */
-    }
-    if (!oms.layout.LocalMobileLayout.current) Surface(
-        modifier = Modifier.align(Alignment.CenterEnd).padding(end = 16.dp).zIndex(10f),
-        shape = MaterialTheme.shapes.large,
-        color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 6.dp,
-        shadowElevation = 6.dp
-    ) {
-        Column(
-            modifier = Modifier.padding(4.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            oms.components.HoldToScrollButton(LocalizationManager.t("dashboard_scroll_up"), Icons.Default.KeyboardArrowUp, pageScrollState, -1)
-            oms.components.HoldToScrollButton(LocalizationManager.t("dashboard_scroll_down"), Icons.Default.KeyboardArrowDown, pageScrollState, 1)
-        }
     }
     if (addAct || editAct != null) { WasmSafeOverlay(onDismiss = { addAct = false; editAct = null }, errorMessage = errorMessage) {
             ActEditorDialog(editAct, ProjectRepository.projects, acts, {

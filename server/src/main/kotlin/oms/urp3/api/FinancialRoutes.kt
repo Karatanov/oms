@@ -209,13 +209,15 @@ fun Route.financialRoutes() {
             return if (baseCode.equals(current.siteNumber.trim(), ignoreCase = true)) current else
                 subprojectByBaseCode[baseCode.uppercase()] ?: current
         }
-        // Financial execution is cash disbursed against the subproject budget.
-        // ACT records evidence completed works but do not mean that money was
-        // paid; including them produced zeros for regions that had payments
-        // only and also overstated regions that had both an act and its payment.
+        // Financial execution is cash disbursed for construction works against
+        // the construction-contract/approved-work budget.  ACT records are
+        // evidence of delivery rather than a payment, and TS/CSC/equipment
+        // payments have different financing bases.  Mixing either of them
+        // into this numerator previously made sector progress exceed 100%.
         val disbursedBySubprojectId = AppContainer.financialRecordService.getAll()
             .asSequence()
             .filter { it.recordType == FinancialRecordType.PAYMENT || it.recordType == FinancialRecordType.ADVANCE }
+            .filter { it.paymentPurpose.equals("works", ignoreCase = true) }
             .filter { requestedYear == null || (it.paymentDate ?: it.recordDate).year == requestedYear }
             .mapNotNull { record ->
                 val subproject = parentSubproject(record.projectId) ?: return@mapNotNull null
@@ -229,10 +231,10 @@ fun Route.financialRoutes() {
             .groupBy({ it.first }, { it.second })
             .mapValues { (_, amounts) -> amounts.sum() }
         data class Aggregate(var contract: Double = 0.0, var completed: Double = 0.0)
-        fun aggregate(label: (oms.urp3.domain.Project) -> String): List<FinancialProgressItemResponse> {
+        fun aggregate(label: (oms.urp3.domain.Project) -> String, canonical: (String) -> String): List<FinancialProgressItemResponse> {
             val rows = linkedMapOf<String, Aggregate>()
             subprojects.forEach { subproject ->
-                val key = label(subproject).trim().ifBlank { "Unspecified" }
+                val key = canonical(label(subproject).trim().ifBlank { "Unspecified" })
                 val totals = rows.getOrPut(key) { Aggregate() }
                 // A source may explicitly store a zero/blank construction
                 // contract while payments have already been imported.  Zero
@@ -250,14 +252,14 @@ fun Route.financialRoutes() {
                     label = label,
                     contractAmountUah = totals.contract,
                     completedAmountUah = totals.completed,
-                    completionPct = if (totals.contract > 0) totals.completed * 100.0 / totals.contract else 0.0
+                    completionPct = financialProgressPercentage(totals.completed, totals.contract)
                 )
             }.sortedBy { it.label }
         }
         FinancialProgressResponse(
-                byRegion = aggregate { it.region.orEmpty() },
-                byConstructionType = aggregate { it.constructionType.orEmpty() },
-                bySector = aggregate { it.sector.orEmpty() }
+                byRegion = aggregate({ it.region.orEmpty() }, ::canonicalFinancialRegion),
+                byConstructionType = aggregate({ it.constructionType.orEmpty() }, ::canonicalFinancialConstructionType),
+                bySector = aggregate({ it.sector.orEmpty() }, ::canonicalFinancialSector)
         )
         }
         call.respond(response)
@@ -490,6 +492,38 @@ fun Route.financialRoutes() {
         }
     }
 }
+
+/** Source workbooks may contain a technical code or `UA / EN` display value.
+ * Aggregate them under one stable key before producing chart rows. */
+internal fun canonicalFinancialSector(value: String): String = when (value.substringBefore('/').trim().lowercase()) {
+    "education", "освіта" -> "education"
+    "health", "healthcare", "охорона здоров'я", "охорона здоров’я" -> "healthcare"
+    "housing", "житло" -> "housing"
+    "water_supply", "water supply", "водопостачання" -> "water_supply"
+    "sewerage", "водовідведення" -> "sewerage"
+    "heat_supply", "heat supply", "теплопостачання" -> "heat_supply"
+    "shelter", "укриття" -> "shelter"
+    "unspecified", "не визначено", "не вказано", "" -> "Unspecified"
+    else -> value.substringBefore('/').trim()
+}
+
+internal fun canonicalFinancialConstructionType(value: String): String = when (value.substringBefore('/').trim().lowercase()) {
+    "new_construction", "new construction", "нове будівництво" -> "new_construction"
+    "reconstruction", "реконструкція" -> "reconstruction"
+    "renovation", "капітальний ремонт" -> "renovation"
+    "repair", "поточний ремонт" -> "repair"
+    "unspecified", "не визначено", "не вказано", "" -> "Unspecified"
+    else -> value.substringBefore('/').trim()
+}
+
+internal fun canonicalFinancialRegion(value: String): String = value
+    .replace(Regex("\\s+(область|oblast|region)$", RegexOption.IGNORE_CASE), "")
+    .trim()
+    .ifBlank { "Unspecified" }
+
+/** The ratio is calculated from aggregated amounts, never averaged from per-SP percentages. */
+internal fun financialProgressPercentage(completedAmount: Double, contractAmount: Double): Double =
+    if (contractAmount > 0.0) completedAmount * 100.0 / contractAmount else 0.0
 
 private fun oms.urp3.service.PaymentMonitoringService.RefreshStatus.toResponse() =
     PaymentMonitoringRefreshResponse(id, status, progress, phase, importedCount, error)

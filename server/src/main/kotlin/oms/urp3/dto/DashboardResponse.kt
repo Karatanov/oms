@@ -68,5 +68,6 @@ data class MonthlyActPaymentResponse(
     val signedContractsCount: Long,
     val signedContractsAmountUah: Double,
     val servicesPaidEurCents: Long,
-    val servicesPaidUahCents: Long? = null
+    val servicesPaidUahCents: Long? = null,
+    val eibPaidUnderContractsUah: Double? = null
 )

@@ -38,8 +38,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.FactCheck
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Remove
-import androidx.compose.material.icons.filled.KeyboardArrowUp
-import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material.icons.filled.Cloud
@@ -348,7 +346,7 @@ fun CreateInspectionScreen(
                 }
             }
             .verticalScroll(pageScrollState)
-            .padding(oms.layout.workspacePadding(withScrollControls = true)),
+            .padding(oms.layout.workspacePadding()),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         PageHeading(
@@ -687,14 +685,6 @@ fun CreateInspectionScreen(
             }
         }
         errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-    }
-    if (!oms.layout.LocalMobileLayout.current) Column(
-        modifier = Modifier.align(Alignment.CenterEnd).padding(end = 20.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        oms.components.HoldToScrollButton(LocalizationManager.t("dashboard_scroll_up"), Icons.Default.KeyboardArrowUp, pageScrollState, -1)
-        oms.components.HoldToScrollButton(LocalizationManager.t("dashboard_scroll_down"), Icons.Default.KeyboardArrowDown, pageScrollState, 1)
     }
     }
 }

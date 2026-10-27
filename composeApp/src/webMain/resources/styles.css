@@ -63,6 +63,19 @@ body {
 #compose-host, #compose-host canvas {
     cursor: default;
 }
+/* Vertical navigation remains available through wheel, touchpad, touch and
+   keyboard.  The browser's permanent scrollbar chrome is intentionally
+   hidden so it does not compete with the application layout.  Wide tables
+   retain their dedicated horizontal navigation controls. */
+#compose-host, #compose-host * {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+#compose-host *::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+    display: none;
+}
 #compose-host input, #compose-host textarea, #compose-host [contenteditable="true"] {
     cursor: text !important;
 }

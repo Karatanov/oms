@@ -6,9 +6,6 @@ import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -19,7 +16,6 @@ import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import oms.components.HoldToScrollButton
 import oms.components.OmsTooltipBox
 
 /** Horizontal counterpart to [VerticalBarChart], with vertical navigation. */
@@ -55,11 +51,6 @@ fun HorizontalBarChart(
                     }
                 }
             }
-        }
-        if (scroll.maxValue > 0) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
-            HoldToScrollButton("Scroll up", Icons.Default.KeyboardArrowUp, scroll, -1, modifier = Modifier.size(30.dp), clickDistance = 300f, continuousPixelsPerFrame = 14f)
-            Text("${((scroll.value.toFloat() / scroll.maxValue) * 100).toInt()}%", Modifier.width(56.dp), textAlign = TextAlign.Center, style = MaterialTheme.typography.labelMedium)
-            HoldToScrollButton("Scroll down", Icons.Default.KeyboardArrowDown, scroll, 1, modifier = Modifier.size(30.dp), clickDistance = 300f, continuousPixelsPerFrame = 14f)
         }
     }
 }

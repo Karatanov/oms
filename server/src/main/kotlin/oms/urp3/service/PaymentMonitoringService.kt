@@ -56,6 +56,21 @@ class PaymentMonitoringService(
         return snapshot
     }
 
+    /**
+     * Returns the latest already-imported snapshot without seeding the bundled
+     * workbook. Dashboard reads use this variant so a request never changes
+     * production data merely to calculate a summary indicator.
+     */
+    @Synchronized
+    fun currentIfAvailable(): Snapshot? {
+        val requestedAt = now()
+        cached?.takeIf { requestedAt.isBefore(it.expiresAt) }?.let { return it.snapshot }
+        val persisted = repository.findSnapshot() ?: return null
+        val snapshot = persisted.toSnapshot()
+        cached = CachedSnapshot(snapshot, requestedAt.plus(CACHE_TTL))
+        return snapshot
+    }
+
     @Synchronized
     fun importWorkbook(bytes: ByteArray): Snapshot {
         return replaceAll(PaymentMonitoringWorkbookSource.parseWorkbook(bytes))

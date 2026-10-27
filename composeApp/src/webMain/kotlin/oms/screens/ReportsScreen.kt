@@ -18,8 +18,6 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.UploadFile
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.RateReview
@@ -239,7 +237,7 @@ fun ReportsScreen(
                 }
             }
             .verticalScroll(contentScrollState)
-            .padding(oms.layout.workspacePadding(withScrollControls = true)),
+            .padding(oms.layout.workspacePadding()),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         oms.components.PageHeading(LocalizationManager.t("reports_title"), Icons.Default.FactCheck) {
@@ -399,14 +397,6 @@ fun ReportsScreen(
             }
         )
     } }
-    if (!oms.layout.LocalMobileLayout.current) Column(
-        modifier = Modifier.align(Alignment.CenterEnd).padding(end = 20.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        oms.components.HoldToScrollButton(LocalizationManager.t("dashboard_scroll_up"), Icons.Default.KeyboardArrowUp, contentScrollState, -1)
-        oms.components.HoldToScrollButton(LocalizationManager.t("dashboard_scroll_down"), Icons.Default.KeyboardArrowDown, contentScrollState, 1)
-    }
     }
     }
 }

@@ -15,10 +15,8 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.PictureAsPdf
-import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.filled.KeyboardArrowRight
-import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -220,7 +218,7 @@ fun ProcurementScreen(
                 }
             }
             .verticalScroll(contentScrollState)
-            .padding(oms.layout.workspacePadding(withScrollControls = true))
+            .padding(oms.layout.workspacePadding())
     ) {
         oms.components.PageHeading(LocalizationManager.t("procurement_title"), Icons.Default.ShoppingCart) {
             if (canManageProcurements) {
@@ -375,14 +373,6 @@ fun ProcurementScreen(
             }
         }
     }
-    if (!oms.layout.LocalMobileLayout.current) Column(
-        modifier = Modifier.align(Alignment.CenterEnd).padding(end = 20.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        oms.components.HoldToScrollButton(LocalizationManager.t("dashboard_scroll_up"), Icons.Default.KeyboardArrowUp, contentScrollState, -1)
-        oms.components.HoldToScrollButton(LocalizationManager.t("dashboard_scroll_down"), Icons.Default.KeyboardArrowDown, contentScrollState, 1)
-    }
     if (refreshConfirmationOpen) WasmSafeOverlay(onDismiss = { refreshConfirmationOpen = false }) {
         Card(Modifier.widthIn(max = 520.dp).fillMaxWidth()) {
             Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -532,6 +522,20 @@ private fun ProcurementTable(
         oms.components.ScrollableTable(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
             pageScrollState = pageScrollState,
+            pinnedStartWidth = columnWidths.first().dp,
+            pinnedStartHeader = {
+                ProcurementFrozenCodeHeader(
+                    records = allRecords,
+                    subprojectFilter = subprojectFilter,
+                    onSubprojectChange = onSubprojectChange,
+                    sortColumnIndex = sortColumnIndex,
+                    sortAscending = sortAscending,
+                    onSort = onSort
+                )
+            },
+            pinnedStartContent = {
+                records.forEach { record -> ProcurementFrozenCodeRow(record) }
+            },
             header = {
                 ProcurementFilters(allRecords, trancheFilter, onTrancheChange, oblastFilter, onOblastChange, subprojectFilter, onSubprojectChange,
                     contractTypeFilter, onContractTypeChange, procurementMethodFilter, onProcurementMethodChange, statusFilter, onStatusChange,
@@ -546,6 +550,75 @@ private fun ProcurementTable(
                 HorizontalDivider()
             }
         }
+    }
+}
+
+/**
+ * The procurement registry is much wider than the viewport.  Mirror its
+ * first column in the shared frozen-strip facility after horizontal movement,
+ * using the same fixed header/body heights as the scrollable table so code
+ * cells cannot drift from their corresponding rows.
+ */
+@Composable
+private fun ProcurementFrozenCodeHeader(
+    records: List<ApiProcurementRecord>,
+    subprojectFilter: String?,
+    onSubprojectChange: (String?) -> Unit,
+    sortColumnIndex: Int,
+    sortAscending: Boolean,
+    onSort: (Int) -> Unit
+) {
+    Column(Modifier.width(columnWidths.first().dp).background(MaterialTheme.colorScheme.surface)) {
+        Box(Modifier.height(procurementFilterHeight).padding(horizontal = 6.dp), contentAlignment = Alignment.Center) {
+            InlineOptionPicker(
+                records.map { it.subProjectId }.filter(String::isNotBlank).distinct().sorted(),
+                subprojectFilter,
+                LocalizationManager.t("proc_subproject_id"),
+                onSubprojectChange,
+                clearLabel = LocalizationManager.t("all"),
+                onClear = { onSubprojectChange(null) }
+            )
+        }
+        SortableTableHeader(
+            procurementTableHeaderLabels().first(),
+            0 == sortColumnIndex,
+            sortAscending,
+            { onSort(0) },
+            Modifier.width(columnWidths.first().dp).height(procurementHeaderHeight)
+        )
+        HorizontalDivider()
+    }
+}
+
+@Composable
+private fun ProcurementFrozenCodeRow(record: ApiProcurementRecord) {
+    val uriHandler = LocalUriHandler.current
+    val subprojectMapUrl = ProjectRepository.projects.firstOrNull {
+        it.projectType == "subproject" && it.siteNumber.equals(record.subProjectId, ignoreCase = true)
+    }?.takeIf { project ->
+        project.latitude in -90.0..90.0 && project.longitude in -180.0..180.0 &&
+            (project.latitude != 0.0 || project.longitude != 0.0)
+    }?.let { project ->
+        "https://www.openstreetmap.org/?mlat=${project.latitude}&mlon=${project.longitude}#map=16/${project.latitude}/${project.longitude}"
+    }
+    Box(
+        Modifier
+            .width(columnWidths.first().dp)
+            .height(procurementRowHeight)
+            .padding(horizontal = 6.dp),
+        contentAlignment = Alignment.CenterStart
+    ) {
+        Text(
+            record.subProjectId,
+            Modifier.then(
+                if (subprojectMapUrl != null) Modifier.clickable { uriHandler.openUri(subprojectMapUrl) } else Modifier
+            ),
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+            style = MaterialTheme.typography.bodySmall,
+            color = if (subprojectMapUrl != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+            textDecoration = if (subprojectMapUrl != null) TextDecoration.Underline else null
+        )
     }
 }
 
@@ -568,7 +641,7 @@ private fun ProcurementFilters(
     onResetFilters: () -> Unit
 ) {
     Row(
-        Modifier.width(columnWidths.sum().dp).padding(vertical = 2.dp),
+        Modifier.width(columnWidths.sum().dp).height(procurementFilterHeight).padding(vertical = 2.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         columnWidths.forEachIndexed { index, width ->
@@ -639,6 +712,7 @@ private fun ProcurementRow(
     }
     Row(
         Modifier.width(columnWidths.sum().dp)
+            .height(if (isHeader) procurementHeaderHeight else procurementRowHeight)
             .padding(vertical = if (isHeader) 2.dp else 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -792,6 +866,9 @@ private fun procurementTableHeaderLabels(): List<String> = if (LocalizationManag
 )
 
 private val columnWidths = listOf(145, 104, 360, 220, 250, 220, 130, 240, 230, 190, 145, 165, 190, 150, 300, 210, 220, 190, 220, 220, 220, 180)
+private val procurementFilterHeight = 56.dp
+private val procurementHeaderHeight = 58.dp
+private val procurementRowHeight = 56.dp
 private val centeredProcurementColumns = setOf(1, 6, 7, 8, 9, 10, 11, 12, 13, 15, 16, 17, 18, 19, 20, 21)
 private val procurementStatuses = listOf(
     "Не розпочато / Not Started",
