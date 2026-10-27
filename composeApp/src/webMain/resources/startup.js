@@ -237,7 +237,25 @@
         }, 220);
     };
 
-    window.retryOmsStartup = () => window.location.reload();
+    window.retryOmsStartup = () => {
+        // `location.reload()` can immediately restore the same failed document
+        // from a browser cache.  Make the retry observable and request a new
+        // authenticated shell instead: a fresh query value bypasses a stale
+        // document response without changing the session or application URL.
+        failed = false;
+        active = true;
+        startedAt = Date.now();
+        progress = 3;
+        warmProgress = 0;
+        warmupPromise = null;
+        sessionStorage.removeItem(storageKey);
+        ensureTimer();
+        ensureWatchdog();
+        render("preparing");
+        const retryUrl = new URL("app.html", document.baseURI);
+        retryUrl.searchParams.set("startupRetry", String(Date.now()));
+        window.setTimeout(() => window.location.assign(retryUrl.toString()), 80);
+    };
     window.addEventListener("error", event => {
         if (!active) return;
         const target = event.target;
