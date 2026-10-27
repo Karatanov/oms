@@ -169,8 +169,9 @@ class SubprojectRegistryRefreshService(
             val programme = ProjectTable.selectAll().firstOrNull {
                 it[ProjectTable.projectType].equals("project", true) &&
                     (it[ProjectTable.siteNumber].equals(PROGRAMME_CODE, true) ||
+                        it[ProjectTable.name].equals("Ukraine Recovery III", true) ||
                         it[ProjectTable.name].equals("Ukraine Recovery Programme III", true))
-            } ?: throw IllegalStateException("The Ukraine Recovery Programme III parent project is missing.")
+            } ?: throw IllegalStateException("The Ukraine Recovery III parent project is missing.")
             val managerId = programme[ProjectTable.managerId]
                 ?: fallbackAdministratorId?.let { EntityID(it, UserTable) }
                 ?: throw IllegalStateException("No active administrator is available to own imported subprojects.")

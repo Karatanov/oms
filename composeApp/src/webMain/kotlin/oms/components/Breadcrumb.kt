@@ -25,7 +25,7 @@ fun Breadcrumb(screen: Screen) {
 
         // 🔹 Назва системи (root)
         Text(
-            text = "URP III",
+            text = "UR III",
             style = MaterialTheme.typography.bodyMedium
         )
 

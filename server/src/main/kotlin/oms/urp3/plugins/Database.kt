@@ -73,7 +73,7 @@ fun Application.configureDatabase() {
          * Ім'я пулу, яке буде видно в логах
          * та інструментах моніторингу.
          */
-        poolName = "URP III-Pool"
+        poolName = "UR III-Pool"
     }
 
     /**

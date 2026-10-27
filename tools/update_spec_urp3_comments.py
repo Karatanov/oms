@@ -5,7 +5,7 @@ from docx.enum.text import WD_BREAK
 
 
 PATH = Path("documentation/OMS_Supplementary_Specification.docx")
-TITLE = "Appendix B - URP III UI and Data Clarifications"
+TITLE = "Appendix B - UR III UI and Data Clarifications"
 
 
 def main() -> None:
@@ -55,7 +55,7 @@ def main() -> None:
     document.add_paragraph().add_run().add_break(WD_BREAK.PAGE)
     document.add_heading(TITLE, level=1)
     document.add_paragraph(
-        "This appendix records the accepted URP III review comments for the Phase 1 MVP. "
+        "This appendix records the accepted UR III review comments for the Phase 1 MVP. "
         "It is normative and supersedes conflicting prototype UI descriptions."
     )
     sections = {
@@ -82,7 +82,7 @@ def main() -> None:
         "B.5 Map data quality": [
             "Map popups use an opaque high-contrast background, stay inside the map viewport and auto-pan when necessary.",
             "Each imported subproject is geocoded once and the result is persisted. A confirmed street address is preferred; otherwise the settlement coordinate is used; only when the settlement cannot be resolved is the relevant oblast centre used as an explicit fallback.",
-            "The checked-in URP III baseline contains 134 resolved subprojects and records geocode accuracy, query, provider display name and OpenStreetMap provenance for auditability.",
+            "The checked-in UR III baseline contains 134 resolved subprojects and records geocode accuracy, query, provider display name and OpenStreetMap provenance for auditability.",
         ],
         "B.6 Financial terminology": [
             "Disbursement means programme financing allocated to screened projects and is not a synonym for money paid under certified acts.",

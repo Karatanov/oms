@@ -7,7 +7,7 @@ from docx.shared import Inches
 from docx.oxml import OxmlElement
 
 
-APPENDIX_TITLE = "Appendix A - URP III Operational Data Baseline"
+APPENDIX_TITLE = "Appendix A - UR III Operational Data Baseline"
 
 
 def mark_header(row) -> None:
@@ -56,7 +56,7 @@ def main() -> None:
     table.style = "Normal Table"
     table.autofit = False
     facts = [
-        ("Programme", "Ukraine Recovery Programme III"),
+        ("Programme", "Ukraine Recovery III"),
         ("Implementor", "Ministry for Development of Communities and Territories of Ukraine"),
         ("Financing institution", "European Investment Bank"),
         ("Finance contract", "EIB FI 97043"),
@@ -110,7 +110,7 @@ def main() -> None:
     document.add_paragraph(
         "Flyway V38 is an intentional operational-data replacement boundary. Before deployment, "
         "back up the database and upload storage. The migration deletes project-linked operational "
-        "records and loads the canonical URP III dataset, while preserving users, password hashes, "
+        "records and loads the canonical UR III dataset, while preserving users, password hashes, "
         "roles, account state and authentication data required for existing credentials to continue working."
     )
     document.add_paragraph(

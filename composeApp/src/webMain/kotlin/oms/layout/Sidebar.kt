@@ -37,14 +37,14 @@ fun Sidebar(currentScreen: Screen, onNavigate: (Screen) -> Unit, onLogout: () ->
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
-                            "URP III",
+                            "UR III",
                             modifier = Modifier.fillMaxWidth(),
                             style = MaterialTheme.typography.headlineSmall,
                             color = MaterialTheme.colorScheme.primary,
                             textAlign = TextAlign.Center
                         )
                         Text(
-                            "TA to the implementation\nof URP III Programme",
+                            "TA to the implementation\nof UR III Programme",
                             modifier = Modifier.fillMaxWidth(),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,

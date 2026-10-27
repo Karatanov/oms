@@ -85,7 +85,7 @@ fun AppLayout(appState: AppState) {
             IconButton(onClick = { optionOverlay.menu = null; navigationOpen = true }, modifier = Modifier.semantics { testTag = "mobile-navigation-toggle" }) {
                 Icon(Icons.Default.Menu, oms.localization.LocalizationManager.t("expand_navigation"))
             }
-            Text("URP III OMS", Modifier.weight(1f), style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text("UR III OMS", Modifier.weight(1f), style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
             IconButton(onClick = oms.localization.LocalizationManager::switchLanguage) {
                 Icon(Icons.Default.Language, oms.localization.LocalizationManager.t("language"))
             }

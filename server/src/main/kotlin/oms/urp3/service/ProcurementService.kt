@@ -288,8 +288,10 @@ class ProcurementService(
         var projects = projectService.getAllProjects()
         val programme = projects.firstOrNull {
             it.projectType == ProjectType.PROJECT &&
-                (it.siteNumber.equals("URP-III", true) || it.name.equals("Ukraine Recovery Programme III", true))
-        } ?: throw IllegalArgumentException("The Ukraine Recovery Programme III parent project is missing.")
+                (it.siteNumber.equals("URP-III", true) ||
+                    it.name.equals("Ukraine Recovery III", true) ||
+                    it.name.equals("Ukraine Recovery Programme III", true))
+        } ?: throw IllegalArgumentException("The Ukraine Recovery III parent project is missing.")
         // Import is a system-maintenance operation.  Older seed data may not
         // have an assignee on the root programme, but that must not prevent an
         // administrator from synchronising the approved procurement source.

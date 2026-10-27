@@ -51,7 +51,7 @@ def source_rows(path: Path) -> list[tuple[str, dict[str, str]]]:
 
     # Master identity values come from the first populated source row. Financial
     # and delivery progress values come from the latest populated row, matching
-    # the established URP III seed generator's reconciliation rule.
+    # the established UR III seed generator's reconciliation rule.
     result = []
     for lot_id, rows in groups.items():
         first, last = rows[0], rows[-1]

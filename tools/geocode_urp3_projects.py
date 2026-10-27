@@ -1,4 +1,4 @@
-"""One-time, cached URP III geocoder.
+"""One-time, cached UR III geocoder.
 
 Uses the public Nominatim endpoint conservatively: one thread, at most one
 request per second, an identifying User-Agent, and a persistent checked-in

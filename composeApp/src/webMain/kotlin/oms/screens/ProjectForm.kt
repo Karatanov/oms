@@ -29,7 +29,8 @@ internal fun ProjectForm(
     fun programmeParent(options: List<ApiProject>): ApiProject? =
         options.firstOrNull {
             it.projectType.equals("project", true) &&
-                it.name.equals("Ukraine Recovery Programme III", true)
+                it.name.equals("Ukraine Recovery III", true) ||
+                    it.name.equals("Ukraine Recovery Programme III", true)
         } ?: options.firstOrNull { it.projectType.equals("project", true) }
     fun field(key: String, label: String, modifier: Modifier = Modifier, lines: Int = 1) = @Composable {
         ProjectFieldValidation(state, key, modifier) {

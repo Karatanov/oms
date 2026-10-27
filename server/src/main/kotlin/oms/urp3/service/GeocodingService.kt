@@ -53,7 +53,7 @@ class GeocodingService(
         )
             .header("Accept", "application/json")
             .timeout(Duration.ofSeconds(12))
-            .header("User-Agent", "OMS-URP III/1.0 (manual address coordinate lookup)")
+            .header("User-Agent", "OMS-UR-III/1.0 (manual address coordinate lookup)")
             .GET()
             .build()
         lastRequestAt = System.currentTimeMillis()

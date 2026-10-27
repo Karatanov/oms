@@ -13,7 +13,7 @@ import androidx.compose.ui.unit.dp
 import oms.localization.Language
 import oms.localization.LocalizationManager
 
-/** Canonical Phase 1 sectors aligned with the URP III monitoring source. */
+/** Canonical Phase 1 sectors aligned with the UR III monitoring source. */
 val sectors = listOf("education", "health", "housing", "water_supply", "sewerage", "heat_supply", "shelter")
 
 private fun String.canonicalSectorKey(): String? = when (lowercase()) {

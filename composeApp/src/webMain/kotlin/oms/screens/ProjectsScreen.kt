@@ -95,6 +95,7 @@ private const val PROGRAMME_ROOT_CODE = "URP-III"
 private fun Project.isProgrammeRoot(): Boolean =
     projectType.equals("project", ignoreCase = true) &&
         (siteNumber.equals(PROGRAMME_ROOT_CODE, ignoreCase = true) ||
+            name.equals("Ukraine Recovery III", ignoreCase = true) ||
             name.equals("Ukraine Recovery Programme III", ignoreCase = true))
 
 @Composable
