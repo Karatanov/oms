@@ -32,7 +32,7 @@ import kotlin.math.roundToLong
 fun DashboardScreen(
     onOpenProject: (oms.model.Project) -> Unit = {},
     onOpenFinancialByMonth: (String) -> Unit = {},
-    onOpenFinancialByRegion: (String) -> Unit = {},
+    onOpenProjectsByRegion: (String) -> Unit = {},
     onOpenFinancialBySubproject: (String) -> Unit = {},
     onOpenProcurementsByStatus: (String) -> Unit = {},
     onOpenInspectionPreview: (String) -> Unit = {}
@@ -162,7 +162,7 @@ fun DashboardScreen(
             else {
                 item {
                     AdaptiveChartRow(
-                        first = { FundingByOblastChart(dashboard?.subprojectFunding.orEmpty(), onOpenFinancialByRegion, chartOrientation) },
+                        first = { FundingByOblastChart(dashboard?.subprojectFunding.orEmpty(), onOpenProjectsByRegion, chartOrientation) },
                         second = { SubprojectProgressChart(dashboard?.subprojectProgress.orEmpty(), onOpenFinancialBySubproject, chartOrientation) }
                     )
                 }

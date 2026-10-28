@@ -121,7 +121,7 @@ fun AppLayout(appState: AppState) {
                 is Screen.Dashboard -> DashboardScreen(
                     onOpenProject = if (appState.roleCode == "GUEST") ({}) else appState::openProjectDetail,
                     onOpenFinancialByMonth = if (appState.roleCode == "GUEST") ({}) else appState::openFinancialByMonth,
-                    onOpenFinancialByRegion = if (appState.roleCode == "GUEST") ({}) else appState::openFinancialByRegion,
+                    onOpenProjectsByRegion = if (appState.roleCode == "GUEST") ({}) else appState::openProjectsByRegion,
                     onOpenFinancialBySubproject = if (appState.roleCode == "GUEST") ({}) else appState::openFinancialBySubproject,
                     onOpenProcurementsByStatus = if (appState.roleCode == "GUEST") ({}) else appState::openProcurementsByStatus,
                     onOpenInspectionPreview = if (appState.roleCode == "GUEST") ({}) else appState::openInspectionPreview
