@@ -166,7 +166,9 @@ fun ProcurementScreen(
                 status,
                 trancheRecords.asSequence()
                     .filter { sameProcurementStatus(it.purchaseStatus, status) }
-                    .map { it.subProjectId }
+                    // Match the registry: a subproject may legitimately have
+                    // several lots/contracts with the same current status.
+                    .map { it.tenderId ?: it.id.toString() }
                     .distinct()
                     .count()
                     .toLong()

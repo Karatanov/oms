@@ -96,12 +96,15 @@ private fun canonicalProcurementStatus(value: String?): String? {
 private fun procurementStatusMetrics(procurementRecords: List<org.jetbrains.exposed.v1.core.ResultRow>): List<DashboardMetric> {
     val countByStatus = procurementRecords
         .mapNotNull { row -> canonicalProcurementStatus(row[ProcurementRecordTable.purchaseStatus])?.let { status ->
-            status to (row[ProcurementRecordTable.procurementId]
-                ?: row[ProcurementRecordTable.tenderId]
-                ?: row[ProcurementRecordTable.subProjectId])
+            // The visible registry has one approved DB6.3 contract row per
+            // tender ID.  Use that same stable identifier, not Procurement
+            // ID: a procurement may contain several legitimate lots/contracts
+            // and collapsing them made the dashboard disagree with the table.
+            status to (row[ProcurementRecordTable.tenderId]
+                ?: "record-${row[ProcurementRecordTable.id].value}")
         } }
         .groupBy({ it.first }, { it.second })
-        .mapValues { (_, procurementIds) -> procurementIds.distinct().size.toLong() }
+        .mapValues { (_, tenderIds) -> tenderIds.distinct().size.toLong() }
     return procurementStatusOrder.map { status -> DashboardMetric(status, countByStatus[status] ?: 0L) }
 }
 
