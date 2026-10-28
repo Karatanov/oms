@@ -45,6 +45,16 @@ fun Route.financialRoutes() {
                             factualEibSharePct = item.factualEibSharePct,
                             eibShareCompliance = item.eibShareCompliance
                         )
+                    },
+                    transactions = snapshot.transactions.map { transaction ->
+                        PaymentMonitoringTransactionResponse(
+                            sourceReference = transaction.sourceReference,
+                            code = transaction.code,
+                            batchId = transaction.batchId,
+                            paymentDate = transaction.paymentDate.toString(),
+                            amountUah = transaction.amountUah,
+                            amountEur = transaction.amountEur
+                        )
                     }
                 )
             )

@@ -24,7 +24,8 @@ class PaymentMonitoringService(
     private val logger = LoggerFactory.getLogger(javaClass)
     data class Snapshot(
         val refreshedAt: String,
-        val items: List<PaymentMonitoringWorkbookSource.Item>
+        val items: List<PaymentMonitoringWorkbookSource.Item>,
+        val transactions: List<PaymentMonitoringWorkbookSource.Transaction> = emptyList()
     )
 
     /** Status of an administrator-triggered source refresh. */
@@ -50,7 +51,7 @@ class PaymentMonitoringService(
         val requestedAt = now()
         cached?.takeIf { requestedAt.isBefore(it.expiresAt) }?.let { return it.snapshot }
         val persisted = repository.findSnapshot()
-            ?: repository.replaceAll(bundledLoader(), LocalDateTime.now())
+            ?: repository.replaceAll(bundledLoader(), emptyList(), LocalDateTime.now())
         val snapshot = persisted.toSnapshot()
         cached = CachedSnapshot(snapshot, requestedAt.plus(CACHE_TTL))
         return snapshot
@@ -73,7 +74,7 @@ class PaymentMonitoringService(
 
     @Synchronized
     fun importWorkbook(bytes: ByteArray): Snapshot {
-        return replaceAll(PaymentMonitoringWorkbookSource.parseWorkbook(bytes))
+        return replaceAll(PaymentMonitoringWorkbookSource.parseWorkbookData(bytes))
     }
 
     /**
@@ -142,11 +143,11 @@ class PaymentMonitoringService(
             checkCancelled(job)
             job.progress = 45
             job.phase = "opening_workbook"
-            val items = PaymentMonitoringWorkbookSource.parseWorkbook(workbook)
+            val data = PaymentMonitoringWorkbookSource.parseWorkbookData(workbook)
             checkCancelled(job)
             job.progress = 80
             job.phase = "replacing"
-            val snapshot = replaceAll(items)
+            val snapshot = replaceAll(data)
             job.importedCount = snapshot.items.size
             job.progress = 100
             job.phase = "completed"
@@ -165,8 +166,8 @@ class PaymentMonitoringService(
     }
 
     @Synchronized
-    private fun replaceAll(items: List<PaymentMonitoringWorkbookSource.Item>): Snapshot {
-        val snapshot = repository.replaceAll(items, LocalDateTime.now()).toSnapshot()
+    private fun replaceAll(data: PaymentMonitoringWorkbookSource.WorkbookData): Snapshot {
+        val snapshot = repository.replaceAll(data.items, data.transactions, LocalDateTime.now()).toSnapshot()
         cached = CachedSnapshot(snapshot, now().plus(CACHE_TTL))
         return snapshot
     }
@@ -223,7 +224,8 @@ class PaymentMonitoringService(
 
     private fun PaymentMonitoringSnapshot.toSnapshot() = Snapshot(
         refreshedAt = updatedAt.toString(),
-        items = items
+        items = items,
+        transactions = transactions
     )
 
     private companion object {

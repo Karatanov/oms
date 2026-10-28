@@ -8,6 +8,7 @@ import java.net.URI
 import com.google.auth.oauth2.ServiceAccountCredentials
 import org.apache.poi.ss.usermodel.CellType
 import org.apache.poi.ss.usermodel.DataFormatter
+import org.apache.poi.ss.usermodel.DateUtil
 import org.apache.poi.ss.usermodel.Row
 import org.apache.poi.ss.usermodel.WorkbookFactory
 
@@ -33,6 +34,19 @@ object PaymentMonitoringWorkbookSource {
         val eibShareCompliance: String?
     )
 
+    /** One real payment from a dated monthly worksheet in the approved book. */
+    data class Transaction(
+        val sourceReference: String,
+        val code: String,
+        val batchId: Int?,
+        val paymentDate: java.time.LocalDate,
+        val amountUah: Double,
+        val amountEur: Double?,
+        val sourceSheet: String
+    )
+
+    data class WorkbookData(val items: List<Item>, val transactions: List<Transaction>)
+
     /**
      * The first release deliberately uses a versioned bundled snapshot. The
      * source sheet is private and its public XLSX URL returns 401 to the OMS
@@ -46,7 +60,14 @@ object PaymentMonitoringWorkbookSource {
     }
 
     /** Parses an administrator-uploaded copy of the approved source workbook. */
-    fun parseWorkbook(bytes: ByteArray): List<Item> {
+    fun parseWorkbook(bytes: ByteArray): List<Item> = parseWorkbookData(bytes).items
+
+    /**
+     * Reads both the cumulative SP register and the dated payment rows.  The
+     * two are deliberately kept separate: a monthly payment is evidence for
+     * charts, not an OMS financial document.
+     */
+    fun parseWorkbookData(bytes: ByteArray): WorkbookData {
         WorkbookFactory.create(ByteArrayInputStream(bytes)).use { workbook ->
             val sheet = workbook.getSheet(SHEET_NAME)
                 ?: throw IllegalArgumentException("The workbook has no '$SHEET_NAME' sheet.")
@@ -55,7 +76,7 @@ object PaymentMonitoringWorkbookSource {
             } ?: throw IllegalArgumentException("The workbook has no ID header on '$SHEET_NAME'.")
             val headers = workbookHeaders(sheet.getRow(headerIndex))
             requireHeaders(headers)
-            return (headerIndex + 1..sheet.lastRowNum).mapNotNull { index ->
+            val items = (headerIndex + 1..sheet.lastRowNum).mapNotNull { index ->
                 val row = sheet.getRow(index) ?: return@mapNotNull null
                 val code = workbookText(row, headers.getValue("id")).trim()
                 if (code.isBlank() || code.equals("TOTAL", true) || code.equals("TOTAL:", true)) return@mapNotNull null
@@ -65,6 +86,34 @@ object PaymentMonitoringWorkbookSource {
                     text = { heading -> headers[heading]?.let { workbookText(row, it).trim().takeIf(String::isNotBlank) } }
                 )
             }.filter(::hasIndicator)
+            return WorkbookData(items, paymentTransactions(workbook))
+        }
+    }
+
+    private fun paymentTransactions(workbook: org.apache.poi.ss.usermodel.Workbook): List<Transaction> = buildList {
+        workbook.forEach { sheet ->
+            if (!sheet.sheetName.contains("payments", ignoreCase = true)) return@forEach
+            val headerIndex = (sheet.firstRowNum..sheet.lastRowNum).firstOrNull { index ->
+                val headers = workbookHeaders(sheet.getRow(index))
+                headers.containsKey("id") && headers.containsKey("date") && headers.containsKey("amount, uah")
+            } ?: return@forEach
+            val headers = workbookHeaders(sheet.getRow(headerIndex))
+            for (rowIndex in headerIndex + 1..sheet.lastRowNum) {
+                val row = sheet.getRow(rowIndex) ?: continue
+                val code = headers["id"]?.let { workbookText(row, it).trim() }.orEmpty()
+                if (code.isBlank() || code.equals("total", true) || code.equals("total:", true)) continue
+                val date = headers["date"]?.let { workbookDate(row, it) } ?: continue
+                val amountUah = headers["amount, uah"]?.let { workbookNumber(row, it) } ?: continue
+                add(Transaction(
+                    sourceReference = "${sheet.sheetName}:${rowIndex + 1}",
+                    code = code,
+                    batchId = headers["batch"]?.let { workbookNumber(row, it)?.toInt() },
+                    paymentDate = date,
+                    amountUah = amountUah,
+                    amountEur = headers["estimated amount, eur"]?.let { workbookNumber(row, it) },
+                    sourceSheet = sheet.sheetName
+                ))
+            }
         }
     }
 
@@ -189,6 +238,16 @@ object PaymentMonitoringWorkbookSource {
             CellType.NUMERIC -> cell.numericCellValue
             CellType.FORMULA -> if (cell.cachedFormulaResultType == CellType.NUMERIC) cell.numericCellValue else parseNumber(workbookText(row, index))
             else -> parseNumber(workbookText(row, index))
+        }
+    }
+
+    private fun workbookDate(row: Row, index: Int): java.time.LocalDate? = row.getCell(index)?.let { cell ->
+        when {
+            cell.cellType == CellType.NUMERIC && DateUtil.isCellDateFormatted(cell) ->
+                cell.localDateTimeCellValue.toLocalDate()
+            cell.cellType == CellType.FORMULA && cell.cachedFormulaResultType == CellType.NUMERIC && DateUtil.isCellDateFormatted(cell) ->
+                cell.localDateTimeCellValue.toLocalDate()
+            else -> runCatching { java.time.LocalDate.parse(workbookText(row, index).take(10)) }.getOrNull()
         }
     }
 

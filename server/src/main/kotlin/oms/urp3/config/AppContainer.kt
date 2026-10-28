@@ -114,5 +114,5 @@ object AppContainer {
 
     val auditLogService = AuditLogService()
     val inspectionAnalyticsService = InspectionAnalyticsService()
-    val dashboardService = DashboardService(auditLogService)
+    val dashboardService = DashboardService(auditLogService, paymentMonitoringService)
 }

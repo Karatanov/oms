@@ -296,6 +296,23 @@ private fun monthlyPayments(rows: List<org.jetbrains.exposed.v1.core.ResultRow>)
         )
     }.sortedBy { it.month }
 }
+
+/** The approved payment workbook is the preferred source for disbursement charts. */
+private fun monthlySourcePayments(
+    transactions: List<PaymentMonitoringWorkbookSource.Transaction>,
+    trancheNumber: Int?
+): List<MonthlyActPayment> = transactions
+    .asSequence()
+    .filter { trancheNumber == null || it.batchId == trancheNumber + 7 }
+    .groupBy { it.paymentDate.toString().take(7) }
+    .map { (month, rows) ->
+        MonthlyActPayment(
+            month = month,
+            amountEurCents = rows.sumOf { ((it.amountEur ?: 0.0) * 100).roundToLong() },
+            amountUahCents = rows.sumOf { (it.amountUah * 100).roundToLong() }
+        )
+    }
+    .sortedBy { it.month }
 data class DashboardData(
     val projectsTotal:Long, val projectsActive:Long, val projectsCompletedThisMonth:Long, val budgetPlanned:Long,
     val amountSpent:Long, val inspectionsTotal:Long, val pendingInspections:Long, val findingsTotal:Long,
@@ -307,14 +324,17 @@ data class DashboardData(
 )
 
 class DashboardService(
-    private val auditLogService: AuditLogService
+    private val auditLogService: AuditLogService,
+    private val paymentMonitoringService: PaymentMonitoringService? = null
 ) {
     /**
      * Data used only by the visual Dashboard.  Keep it independent from the
      * broader administrative Dashboard payload so opening the workspace does
      * not wait for audit history, inspection findings or unused financial cuts.
      */
-    fun getOverview(allowedProjectIds: Set<Long>? = null, trancheNumber: Int? = null): DashboardOverviewData = transaction {
+    fun getOverview(allowedProjectIds: Set<Long>? = null, trancheNumber: Int? = null): DashboardOverviewData {
+        val sourcedPayments = paymentMonitoringService?.currentIfAvailable()?.transactions.orEmpty()
+        return transaction {
         val projects = dashboardProjects(allowedProjectIds, trancheNumber)
         val projectIds = projects.map { it[ProjectTable.id].value }.toSet()
         // The overview renders only the five newest reports.  Apply that
@@ -337,7 +357,7 @@ class DashboardService(
         val paymentRecords = financialRecords.filter {
             it[FinancialRecordTable.recordType] in setOf("payment", "advance")
         }
-        val monthlyActPayments = monthlyPayments(paymentRecords)
+        val monthlyActPayments = monthlySourcePayments(sourcedPayments, trancheNumber).ifEmpty { monthlyPayments(paymentRecords) }
         val projectsById = projects.associateBy { it[ProjectTable.id].value }
         val monitoringByProjectId = if (projectIds.isEmpty()) emptyMap() else ProjectMonitoringDetailTable.selectAll()
             .where { ProjectMonitoringDetailTable.projectId inList projectIds }.associateBy {
@@ -480,9 +500,11 @@ class DashboardService(
             },
             monthlyActPayments, subprojectFunding, subprojectProgress, procurementStatusCounts, signedContractsByType, nationalSummary
         )
+        }
     }
 
     fun get(allowedProjectIds: Set<Long>? = null, trancheNumber: Int? = null): DashboardData {
+        val sourcedPayments = paymentMonitoringService?.currentIfAvailable()?.transactions.orEmpty()
         return transaction {
         val projects = dashboardProjects(allowedProjectIds, trancheNumber)
         val projectIds = projects.map { it[ProjectTable.id].value }.toSet()
@@ -499,7 +521,7 @@ class DashboardService(
             it[FinancialRecordTable.recordType] in setOf("payment", "advance")
         }
         val spent = actRecords.sumOf { it[FinancialRecordTable.amount] }.toDouble()
-        val monthlyActPayments = monthlyPayments(paymentRecords)
+        val monthlyActPayments = monthlySourcePayments(sourcedPayments, trancheNumber).ifEmpty { monthlyPayments(paymentRecords) }
         val projectsById = projects.associateBy { it[ProjectTable.id].value }
         val nameEnByProjectId = if (projectIds.isEmpty()) emptyMap() else ProjectMonitoringDetailTable.selectAll()
             .where { ProjectMonitoringDetailTable.projectId inList projectIds }

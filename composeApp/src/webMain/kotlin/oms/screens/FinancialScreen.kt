@@ -39,6 +39,7 @@ import oms.data.ApiFinancialRecord
 import oms.data.ApiFinancialProgress
 import oms.data.ApiFinancialProgressItem
 import oms.data.ApiPaymentMonitoring
+import oms.data.ApiPaymentMonitoringTransaction
 import oms.data.ApiPaymentMonitoringRefresh
 import oms.data.displayAmountCents
 import kotlinx.coroutines.async
@@ -462,6 +463,7 @@ fun FinancialScreen(
         // Financial Monitoring.
         PaymentMonitoringCard(
             snapshot = paymentMonitoring ?: ApiPaymentMonitoring(refreshedAt = ""),
+            selectedMonth = chartMonthFilter,
             canUpdate = canUpdatePaymentMonitoring,
             message = paymentMonitoringMessage,
             messageIsError = paymentMonitoringMessageIsError,
@@ -1186,6 +1188,7 @@ private fun FinancialProgressCard(
 @Composable
 private fun PaymentMonitoringCard(
     snapshot: ApiPaymentMonitoring,
+    selectedMonth: String?,
     canUpdate: Boolean,
     message: String?,
     messageIsError: Boolean,
@@ -1282,10 +1285,63 @@ private fun PaymentMonitoringCard(
                         TableActionIconButton(LocalizationManager.t("next_page"), Icons.Default.KeyboardArrowRight) { page = (page + 1).coerceAtMost(pageCount - 1) }
                     }
                 }
+                PaymentMonitoringTransactionTable(snapshot.transactions, selectedMonth)
             }
         }
     }
 }
+
+/**
+ * The source worksheet contains the auditable transactions behind the monthly
+ * chart.  It is shown below the cumulative register and follows a month click
+ * from the Dashboard without converting those rows into editable documents.
+ */
+@Composable
+private fun PaymentMonitoringTransactionTable(
+    transactions: List<ApiPaymentMonitoringTransaction>,
+    selectedMonth: String?
+) {
+    val rows = remember(transactions, selectedMonth) {
+        transactions.filter { selectedMonth == null || it.paymentDate.startsWith(selectedMonth) }
+            .sortedWith(compareBy<ApiPaymentMonitoringTransaction> { it.paymentDate }.thenBy { it.code })
+    }
+    if (transactions.isEmpty()) return
+    Text(
+        if (selectedMonth == null) LocalizationManager.t("payment_monitoring_title")
+        else "${LocalizationManager.t("payment_monitoring_title")} · ${selectedMonth.toMonthName()} ${selectedMonth.take(4)}",
+        style = MaterialTheme.typography.titleSmall
+    )
+    if (rows.isEmpty()) {
+        Text(LocalizationManager.t("no_chart_data"), color = MaterialTheme.colorScheme.onSurfaceVariant)
+        return
+    }
+    oms.components.ScrollableTable(
+        modifier = Modifier.fillMaxWidth(),
+        header = {
+            Row(Modifier.width(600.dp)) {
+                PaymentSourceHeader(LocalizationManager.t("date"), 110.dp)
+                PaymentSourceHeader(LocalizationManager.t("subproject_code"), 160.dp)
+                PaymentSourceHeader(LocalizationManager.t("tranche"), 90.dp)
+                PaymentSourceHeader("UAH", 130.dp)
+                PaymentSourceHeader("EUR", 110.dp)
+            }
+        }
+    ) {
+        rows.forEach { row ->
+            Row(Modifier.width(600.dp).padding(vertical = 4.dp)) {
+                PaymentMonitoringCell(row.paymentDate, 110.dp)
+                PaymentMonitoringCell(row.code, 160.dp)
+                PaymentMonitoringCell(row.batchId?.let { if (it == 8) "A" else "B" } ?: "—", 90.dp)
+                PaymentMonitoringCell(row.amountUah.asUahTableValue(), 130.dp)
+                PaymentMonitoringCell(row.amountEur?.formatUiAmount() ?: "—", 110.dp)
+            }
+        }
+    }
+}
+
+@Composable
+private fun PaymentSourceHeader(title: String, width: androidx.compose.ui.unit.Dp) =
+    Text(title, Modifier.width(width).padding(6.dp), style = MaterialTheme.typography.labelMedium, maxLines = 2)
 
 @Composable
 private fun PaymentMonitoringHeader(

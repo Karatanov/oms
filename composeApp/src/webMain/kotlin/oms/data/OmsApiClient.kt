@@ -980,9 +980,18 @@ data class ApiMonthlyActPayment(val month: String, val amountEurCents: Long, val
     val factualEibSharePct: Double? = null,
     val eibShareCompliance: String? = null
 )
+@Serializable data class ApiPaymentMonitoringTransaction(
+    val sourceReference: String,
+    val code: String,
+    val batchId: Int? = null,
+    val paymentDate: String,
+    val amountUah: Double,
+    val amountEur: Double? = null
+)
 @Serializable data class ApiPaymentMonitoring(
     val refreshedAt: String,
-    val items: List<ApiPaymentMonitoringItem> = emptyList()
+    val items: List<ApiPaymentMonitoringItem> = emptyList(),
+    val transactions: List<ApiPaymentMonitoringTransaction> = emptyList()
 )
 @Serializable data class ApiPaymentMonitoringRefresh(
     val id: String,

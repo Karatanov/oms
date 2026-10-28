@@ -43,10 +43,22 @@ data class PaymentMonitoringItemResponse(
     val eibShareCompliance: String? = null
 )
 
+/** Dated source payment, intentionally distinct from editable financial records. */
+@Serializable
+data class PaymentMonitoringTransactionResponse(
+    val sourceReference: String,
+    val code: String,
+    val batchId: Int? = null,
+    val paymentDate: String,
+    val amountUah: Double,
+    val amountEur: Double? = null
+)
+
 @Serializable
 data class PaymentMonitoringResponse(
     val refreshedAt: String,
-    val items: List<PaymentMonitoringItemResponse> = emptyList()
+    val items: List<PaymentMonitoringItemResponse> = emptyList(),
+    val transactions: List<PaymentMonitoringTransactionResponse> = emptyList()
 )
 
 @Serializable
