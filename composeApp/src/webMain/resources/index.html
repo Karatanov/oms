@@ -1168,7 +1168,14 @@
             newer.textContent = "‹";
             newer.disabled = !hasNewerInspection;
             newer.setAttribute("aria-label", omsLanguage === "uk" ? "Новіший звіт" : "Newer report");
-            newer.onclick = () => omsDashboardNewerInspectionHandler();
+            newer.onclick = event => {
+                event.preventDefault();
+                event.stopPropagation();
+                // Read the current global handler on every click. Compose may
+                // have just recomposed the selected report while this native
+                // pane stayed mounted.
+                omsDashboardNewerInspectionHandler();
+            };
 
             const title = document.createElement(reportUuid ? "button" : "div");
             title.className = "photo-slider-title";
@@ -1186,7 +1193,11 @@
             older.textContent = "›";
             older.disabled = !hasOlderInspection;
             older.setAttribute("aria-label", omsLanguage === "uk" ? "Попередній звіт" : "Older report");
-            older.onclick = () => omsDashboardOlderInspectionHandler();
+            older.onclick = event => {
+                event.preventDefault();
+                event.stopPropagation();
+                omsDashboardOlderInspectionHandler();
+            };
             heading.append(newer, title, older);
             pane.append(heading);
             if (!inspectionDate) return;

@@ -59,6 +59,8 @@ fun DashboardPhotoSlider(
         photosLoading,
         hasNewerInspection,
         hasOlderInspection,
+        onOpenNewerInspection,
+        onOpenOlderInspection,
         oms.localization.LocalizationManager.currentLanguage
     ) {
         val sliderPhotos = photos.orEmpty()
