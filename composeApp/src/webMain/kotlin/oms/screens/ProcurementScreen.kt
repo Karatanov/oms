@@ -126,6 +126,7 @@ fun ProcurementScreen(
                             reloadKey++
                             registryRefreshMessage = LocalizationManager.t("procurement_refresh_success")
                                 .replace("{count}", updated.importedCount?.toString().orEmpty())
+                                .replace("{links}", updated.contractLinksImported?.toString().orEmpty())
                         }
                         "FAILED" -> registryRefreshMessage = LocalizationManager.t("procurement_refresh_error")
                             .replace("{message}", updated.error.orEmpty())

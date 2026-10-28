@@ -1034,6 +1034,7 @@ data class ApiProcurementRefresh(
     val progress: Int,
     val phase: String,
     val importedCount: Int? = null,
+    val contractLinksImported: Int? = null,
     val error: String? = null
 )
 

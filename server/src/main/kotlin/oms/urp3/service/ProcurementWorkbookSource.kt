@@ -289,14 +289,24 @@ object ProcurementWorkbookSource {
                 .firstNotNullOfOrNull { alias -> headers[normalizeHeader(alias)] }
             ?: return null
         val cell = row.getCell(index) ?: return null
-        cell.hyperlink?.address?.trim()?.takeIf(String::isNotBlank)?.let { return it }
+        // Google Sheets exports actual links inconsistently: depending on the
+        // authoring path, the target can be an OOXML relationship, a literal
+        // HYPERLINK formula, or simply the URL displayed in the cell.  Keep
+        // the relationship target when available, but accept each supported
+        // representation rather than silently importing an empty link.
+        externalUrl(cell.hyperlink?.address)?.let { return it }
         if (cell.cellType == CellType.FORMULA) {
             Regex("""(?i)HYPERLINK\s*\(\s*"([^"]+)"""")
                 .find(cell.cellFormula)
-                ?.groupValues?.getOrNull(1)?.trim()?.takeIf(String::isNotBlank)?.let { return it }
+                ?.groupValues?.getOrNull(1)?.let(::externalUrl)?.let { return it }
         }
-        return cellText(row, index, evaluator).trim().takeIf(String::isNotBlank)
+        return externalUrl(cellText(row, index, evaluator))
     }
+
+    /** Contract links are externally opened by the web client; ignore labels and malformed values. */
+    private fun externalUrl(value: String?): String? = value
+        ?.trim()
+        ?.takeIf { it.startsWith("https://", ignoreCase = true) || it.startsWith("http://", ignoreCase = true) }
     private fun parseDate(value: String): LocalDate? {
         val normalized = value.trim()
         if (normalized.isBlank() || normalized.equals("n/a", true) || normalized.equals("not applicable", true) || normalized.equals("no", true)) return null

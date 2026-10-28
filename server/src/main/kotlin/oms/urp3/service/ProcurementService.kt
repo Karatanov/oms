@@ -24,6 +24,7 @@ class ProcurementService(
         val progress: Int,
         val phase: String,
         val importedCount: Int? = null,
+        val contractLinksImported: Int? = null,
         val error: String? = null
     )
 
@@ -32,6 +33,7 @@ class ProcurementService(
         @Volatile var progress = 5
         @Volatile var phase = "downloading"
         @Volatile var importedCount: Int? = null
+        @Volatile var contractLinksImported: Int? = null
         @Volatile var error: String? = null
         @Volatile var cancelRequested = false
     }
@@ -178,14 +180,15 @@ class ProcurementService(
 
     private fun runRefresh(job: RefreshJob) {
         try {
-            val imported = refreshFromApprovedSource(
+            val result = refreshFromApprovedSource(
                 uploadedWorkbook = job.uploadedWorkbook,
                 googleToken = job.googleToken,
                 shouldCancel = { job.cancelRequested },
                 onProgress = { progress, phase -> job.progress = progress; job.phase = phase }
             )
             if (job.cancelRequested) throw RefreshCancelled()
-            job.importedCount = imported
+            job.importedCount = result.records
+            job.contractLinksImported = result.contractLinks
             job.progress = 100
             job.phase = "completed"
             job.status = "COMPLETED"
@@ -202,16 +205,20 @@ class ProcurementService(
         }
     }
 
-    private fun RefreshJob.snapshot() = RefreshStatus(id, status, progress, phase, importedCount, error)
+    private fun RefreshJob.snapshot() = RefreshStatus(
+        id, status, progress, phase, importedCount, contractLinksImported, error
+    )
     private class RefreshCancelled : RuntimeException()
     private fun checkCancelled(shouldCancel: () -> Boolean) { if (shouldCancel()) throw RefreshCancelled() }
+
+    data class RefreshResult(val records: Int, val contractLinks: Int)
 
     fun refreshFromApprovedSource(
         uploadedWorkbook: ByteArray? = null,
         googleToken: String? = null,
         shouldCancel: () -> Boolean = { false },
         onProgress: (Int, String) -> Unit = { _, _ -> }
-    ): Int {
+    ): RefreshResult {
         if (uploadedWorkbook == null) onProgress(10, "downloading")
         val parseProgress: (Int, String) -> Unit = { progress, phase -> onProgress(progress, phase) }
         val sourceRows = uploadedWorkbook?.let { ProcurementWorkbookSource.parseApprovedWorkbook(it, parseProgress) }
@@ -219,6 +226,14 @@ class ProcurementService(
             ?: ProcurementWorkbookSource.downloadAndParse(parseProgress)
         checkCancelled(shouldCancel)
         require(sourceRows.isNotEmpty()) { "The approved procurement workbook contains no records." }
+        val contractLinks = sourceRows.count { !it.contractLink.isNullOrBlank() }
+        // A source with a populated contract-link column must never look like a
+        // successful refresh while every target was discarded.  The supplied
+        // DB6.3 source contains links, so this also gives administrators an
+        // immediately visible audit value after each refresh.
+        require(contractLinks > 0) {
+            "The approved workbook contains no usable contract links. The procurement registry was not changed."
+        }
         onProgress(47, "synchronizing_projects")
         synchronizeProjectHierarchy(sourceRows, shouldCancel, onProgress)
         checkCancelled(shouldCancel)
@@ -270,7 +285,10 @@ class ProcurementService(
         }
         checkCancelled(shouldCancel)
         onProgress(90, "saving")
-        return repository.replaceAll(records).also { invalidateRegistryCache() }
+        return RefreshResult(
+            records = repository.replaceAll(records).also { invalidateRegistryCache() },
+            contractLinks = contractLinks
+        )
     }
 
     /**

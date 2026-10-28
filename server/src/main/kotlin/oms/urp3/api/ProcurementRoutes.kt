@@ -138,11 +138,13 @@ private data class ProcurementRefreshResponse(
     val progress: Int,
     val phase: String,
     val importedCount: Int? = null,
+    val contractLinksImported: Int? = null,
     val error: String? = null
 )
 
 private fun oms.urp3.service.ProcurementService.RefreshStatus.toResponse() = ProcurementRefreshResponse(
-    id = id, status = status, progress = progress, phase = phase, importedCount = importedCount, error = error
+    id = id, status = status, progress = progress, phase = phase, importedCount = importedCount,
+    contractLinksImported = contractLinksImported, error = error
 )
 
 /**
