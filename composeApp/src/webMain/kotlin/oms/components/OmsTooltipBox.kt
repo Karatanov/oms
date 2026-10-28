@@ -1,5 +1,7 @@
 package oms.components
 
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -37,16 +39,27 @@ fun TooltipOverlayHost(content: @Composable () -> Unit) {
                     .coerceIn(8.dp, (maxWidth - width - 8.dp).coerceAtLeast(8.dp))
                 val bottom = with(density) { tooltip.bounds.bottom.toDp() }
                 val top = with(density) { tooltip.bounds.top.toDp() }
-                val below = maxHeight - bottom >= 172.dp
-                val y = if (below) bottom + 6.dp else (top - 172.dp).coerceAtLeast(8.dp)
+                // A generic tooltip fits in 164dp, but the project-status
+                // explanation deliberately lists every supported state. Give
+                // long content the larger side of the viewport and make its
+                // body scrollable instead of clipping it at the card edge.
+                val maxTooltipHeight = minOf(300.dp, (maxHeight - 16.dp).coerceAtLeast(1.dp))
+                val belowSpace = (maxHeight - bottom - 8.dp).coerceAtLeast(1.dp)
+                val aboveSpace = (top - 8.dp).coerceAtLeast(1.dp)
+                val below = belowSpace >= 172.dp || belowSpace >= aboveSpace
+                val availableHeight = (if (below) belowSpace else aboveSpace).coerceAtMost(maxTooltipHeight)
+                val y = if (below) bottom + 6.dp else (top - availableHeight - 6.dp).coerceAtLeast(8.dp)
                 Surface(
-                    Modifier.offset(x, y).widthIn(max = width).heightIn(max = 164.dp),
+                    Modifier.offset(x, y).widthIn(max = width).heightIn(max = availableHeight),
                     shape = MaterialTheme.shapes.small,
                     color = MaterialTheme.colorScheme.inverseSurface,
                     contentColor = MaterialTheme.colorScheme.inverseOnSurface,
                     shadowElevation = 4.dp
                 ) {
-                    Box(Modifier.padding(horizontal = 10.dp, vertical = 8.dp)) { tooltip.content() }
+                    Box(
+                        Modifier.padding(horizontal = 10.dp, vertical = 8.dp)
+                            .verticalScroll(rememberScrollState())
+                    ) { tooltip.content() }
                 }
             }
         }
