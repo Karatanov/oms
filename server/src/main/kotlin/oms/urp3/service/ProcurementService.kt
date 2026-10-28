@@ -286,7 +286,7 @@ class ProcurementService(
         checkCancelled(shouldCancel)
         onProgress(90, "saving")
         return RefreshResult(
-            records = repository.replaceAll(records).also { invalidateRegistryCache() },
+            records = repository.replaceAll(records, contractLinks).also { invalidateRegistryCache() },
             contractLinks = contractLinks
         )
     }

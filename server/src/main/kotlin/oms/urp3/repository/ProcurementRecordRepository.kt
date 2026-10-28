@@ -15,7 +15,11 @@ interface ProcurementRecordRepository {
     fun findBySubProjectId(subProjectId: String): List<ProcurementRecord>
     fun findBySubProjectLotId(subProjectLotId: String): List<ProcurementRecord>
     /** Replaces the complete procurement registry from the approved source, atomically. */
-    fun replaceAll(records: List<ProcurementRecord>): Int
+    /**
+     * Replaces the approved registry and verifies that contract links survived
+     * the database write before committing the transaction.
+     */
+    fun replaceAll(records: List<ProcurementRecord>, expectedContractLinkCount: Int): Int
 }
 
 class ExposedProcurementRecordRepository : ProcurementRecordRepository {
@@ -35,11 +39,17 @@ class ExposedProcurementRecordRepository : ProcurementRecordRepository {
             .map(::map)
     }
 
-    override fun replaceAll(records: List<ProcurementRecord>): Int = transaction {
+    override fun replaceAll(records: List<ProcurementRecord>, expectedContractLinkCount: Int): Int = transaction {
         require(records.isNotEmpty()) { "Approved source contains no procurement records." }
         ProcurementRecordTable.deleteAll()
         ProcurementRecordTable.batchInsert(records, shouldReturnGeneratedValues = false) { record ->
             applyRecord(record)
+        }
+        val persistedContractLinks = ProcurementRecordTable.selectAll().count {
+            !it[ProcurementRecordTable.contractLink].isNullOrBlank()
+        }
+        require(persistedContractLinks == expectedContractLinkCount) {
+            "Only $persistedContractLinks of $expectedContractLinkCount contract links were saved. The procurement registry was not changed."
         }
         records.size
     }
