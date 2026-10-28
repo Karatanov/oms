@@ -97,7 +97,7 @@
     <section class="brand">
         <div>
             <span class="badge"><strong>UR III</strong><small>TA to the implementation<br>of UR III Programme</small></span>
-            <h1>Система онлайн-моніторингу.</h1>
+            <h1>OMS — Система онлайн-моніторингу</h1>
             <p>Єдина система для відстеження проєктів, інспекцій і фінансового контролю.</p>
             <ul class="features">
                 <li>Моніторинг проєктів у реальному часі</li>
@@ -176,7 +176,7 @@
         english = !english;
         byId("language").textContent = english ? "UA" : "EN";
         translated.forEach((id, index) => { byId(id).textContent = (english ? en : uk)[index]; });
-        document.querySelector(".brand h1").textContent = english ? "Online Monitoring System" : "Система онлайн-моніторингу.";
+        document.querySelector(".brand h1").textContent = english ? "OMS — Online Monitoring System" : "OMS — Система онлайн-моніторингу";
         document.querySelector(".brand p").textContent = english ? "A unified system for project tracking, inspections and financial control." : "Єдина система для відстеження проєктів, інспекцій і фінансового контролю.";
         const features = english ? ["Real-time project monitoring", "Inspection reports and work control", "Financial monitoring"] : ["Моніторинг проєктів у реальному часі", "Інспекційні звіти та контроль робіт", "Фінансовий моніторинг"];
         document.querySelectorAll(".features li").forEach((item, index) => { item.textContent = features[index]; });
