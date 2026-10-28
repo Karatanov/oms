@@ -89,7 +89,7 @@
                 photoRules: "Перетягніть фотографії сюди або виберіть файли. Лише JPEG/PNG, до 10 МБ кожен, максимум 30 фотографій.",
                 photoDrop: "Перетягніть фотографії сюди або натисніть для вибору", done: "Готово", remove: "Видалити",
                 invalidPhoto: "дозволені лише JPEG/PNG-файли розміром до 10 МБ.", maxPhotos: "Можна прикріпити максимум 30 фотографій.",
-                lastInspection: "Остання інспекція", inspectionCode: "Код інспекції", subprojectCode: "Код субпроєкту", noReports: "Інспекційних звітів ще немає", noPhotos: "В останній інспекції немає фотографій.",
+                lastInspection: "Остання інспекція", inspection: "Інспекція", inspectionCode: "Код інспекції", subprojectCode: "Код субпроєкту", noReports: "Інспекційних звітів ще немає", noPhotos: "В останній інспекції немає фотографій.",
                 open: "Відкрити", previewReport: "Переглянути звіт", closeFullscreenPhoto: "Закрити повноекранне фото", details: "Деталі",
                 loading: "Завантаження даних…", downloadingFile: "Підготовка файлу…", uploadingFile: "Завантаження файлу…", importingInspection: "Імпорт інспекційного звіту…", importingFinancial: "Імпорт фінансових записів…", importingPaymentMonitoring: "Оновлення моніторингу платежів…", importingProcurement: "Оновлення реєстру закупівель…", importingSubprojects: "Оновлення реєстру субпроєктів…",
                 pasteTruncated: "Текст не вставлено: максимум {limit} символів за раз. Вставте менший фрагмент."
@@ -101,7 +101,7 @@
                 photoRules: "Drag photos here or choose files. JPEG/PNG only, up to 10 MB each, maximum 30 photos.",
                 photoDrop: "Drag photos here or click to select", done: "Done", remove: "Remove",
                 invalidPhoto: "only JPEG/PNG files up to 10 MB are allowed.", maxPhotos: "You can attach up to 30 photos.",
-                lastInspection: "Latest inspection", inspectionCode: "Inspection code", subprojectCode: "Subproject code", noReports: "No Inspection Reports yet", noPhotos: "No photos in the latest inspection.",
+                lastInspection: "Latest inspection", inspection: "Inspection", inspectionCode: "Inspection code", subprojectCode: "Subproject code", noReports: "No Inspection Reports yet", noPhotos: "No photos in the latest inspection.",
                 open: "Open", previewReport: "Preview report", closeFullscreenPhoto: "Close full-screen photo", details: "Details",
                 loading: "Loading data…", downloadingFile: "Preparing file…", uploadingFile: "Uploading file…", importingInspection: "Importing inspection report…", importingFinancial: "Importing financial records…", importingPaymentMonitoring: "Updating payment monitoring…", importingProcurement: "Updating procurement register…", importingSubprojects: "Updating subproject registry…",
                 pasteTruncated: "Text was not pasted: maximum {limit} characters at a time. Paste a smaller fragment."
@@ -1184,8 +1184,9 @@
                 title.setAttribute("aria-label", omsText("previewReport"));
                 title.onclick = () => omsDashboardInspectionPreviewHandler(reportUuid);
             }
+            const inspectionLabel = hasNewerInspection ? omsText("inspection") : omsText("lastInspection");
             title.textContent = inspectionDate
-                ? `${omsText("lastInspection")}: ${formatOmsDate(inspectionDate)}${subprojectCode ? ` · ${omsText("subprojectCode")}: ${subprojectCode}` : ""}`
+                ? `${inspectionLabel}: ${formatOmsDate(inspectionDate)}${subprojectCode ? ` · ${omsText("subprojectCode")}: ${subprojectCode}` : ""}`
                 : omsText("noReports");
             const older = document.createElement("button");
             older.type = "button";
