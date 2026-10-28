@@ -45,7 +45,10 @@ fun OmsChartHeader(
                 FlowRow(
                     modifier = Modifier.align(Alignment.CenterEnd),
                     horizontalArrangement = Arrangement.spacedBy(2.dp, Alignment.End),
-                    verticalArrangement = Arrangement.spacedBy(2.dp, Alignment.CenterVertically)
+                    verticalArrangement = Arrangement.spacedBy(2.dp, Alignment.CenterVertically),
+                    // Toolbar controls have intentionally different compact hit areas.
+                    // Centre each item so download, sort and collapse actions share one axis.
+                    itemVerticalAlignment = Alignment.CenterVertically
                 ) { toolbar() }
             }
         } else {
@@ -60,7 +63,8 @@ fun OmsChartHeader(
                 FlowRow(
                     Modifier.fillMaxWidth().padding(top = 2.dp),
                     horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.End),
-                    verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterVertically)
+                    verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterVertically),
+                    itemVerticalAlignment = Alignment.CenterVertically
                 ) { toolbar() }
             }
         }
