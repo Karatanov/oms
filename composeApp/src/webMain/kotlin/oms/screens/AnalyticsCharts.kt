@@ -29,7 +29,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -173,15 +172,19 @@ private fun UkraineFundingMap(
                     hoveredRegion = ukraineFundingMapRegions.firstOrNull { it.contains(point) }
                 }
                 .onPointerEvent(PointerEventType.Exit) { hoveredRegion = null }
-                .pointerInput(onOpenFinancialRegion, amounts) {
-                detectTapGestures { position ->
+                // Use the canvas' press event directly. A parent tooltip also
+                // observes pointer presses; a nested gesture detector can be
+                // cancelled by that observer in Compose/Wasm and made the
+                // funding map look clickable without navigating anywhere.
+                .onPointerEvent(PointerEventType.Press) { event ->
+                    val position = event.changes.firstOrNull()?.position ?: return@onPointerEvent
+                    if (size.width == 0 || size.height == 0) return@onPointerEvent
                     val point = UkraineMapPoint(
                         position.x / size.width * ukraineMapWidth,
                         position.y / size.height * ukraineMapHeight
                     )
                     ukraineFundingMapRegions.firstOrNull { it.contains(point) }
                         ?.let { onOpenFinancialRegion(it.name) }
-                }
                 }
         ) {
             val scaleX = size.width / ukraineMapWidth
