@@ -233,12 +233,11 @@ fun FinancialScreen(
         loading = true; loadFailed = false
         try {
         val records = OmsApiClient.allFinancialRecords()
-        // A project snapshot is necessary only to decorate actual rows.  On an
-        // empty register do not wait for the much larger project hierarchy.
-        if (records.isNotEmpty()) {
-            ProjectRepository.refresh()
-            check(ProjectRepository.errorMessage == null) { "Could not load project context" }
-        }
+        // The approved payment workbook is keyed by subproject code.  Load
+        // its light project index even when the editable record register is
+        // empty, otherwise the source charts could not be scoped by region.
+        ProjectRepository.refresh()
+        check(ProjectRepository.errorMessage == null) { "Could not load project context" }
         val projectsById = ProjectRepository.projects.associateBy { it.id }
         acts = records.mapNotNull { item ->
             projectsById[item.projectUuid]?.let { project ->
@@ -277,6 +276,35 @@ fun FinancialScreen(
     }
 
     val regionScopedActs = acts.filter { regionFilter == null || it.region == regionFilter }
+    val workbookChartRows = paymentMonitoring?.transactions.orEmpty().mapNotNull { transaction ->
+        val subprojectCode = transaction.code.paymentSubprojectCode()
+        val project = ProjectRepository.projects.firstOrNull {
+            it.projectType == "subproject" && it.siteNumber.equals(subprojectCode, ignoreCase = true)
+        } ?: return@mapNotNull null
+        val amountEur = transaction.amountEur
+        val derivedRate = amountEur?.takeIf { it > 0.0 }?.let { transaction.amountUah / it }
+        ProjectActRow(
+            projectUuid = project.id,
+            subprojectUuid = project.id,
+            subprojectName = project.name,
+            subprojectCode = project.siteNumber,
+            subprojectPartName = null,
+            trancheNumber = project.trancheNumber,
+            region = canonicalUkraineRegion(project.region),
+            act = ApiFinancialRecord(
+                uuid = transaction.sourceReference,
+                recordType = "payment",
+                referenceNumber = transaction.sourceReference,
+                amount = amountEur ?: transaction.amountUah,
+                currency = if (amountEur != null) "EUR" else "UAH",
+                recordDate = transaction.paymentDate,
+                paymentDate = transaction.paymentDate,
+                paymentPurpose = transaction.code.paymentPurpose(),
+                eurExchangeRate = derivedRate,
+                amountEurCents = amountEur?.let { (it * 100).roundToLong() }
+            )
+        )
+    }
     val completedWorksTotal = regionScopedActs
         .filter { it.act.recordType == "act" }
         .sumOf { displayCents(it.act) ?: 0L }
@@ -419,7 +447,8 @@ fun FinancialScreen(
             }
         }
 
-        val chartScopedActs = regionScopedActs.filter {
+        val chartRows = if (workbookChartRows.isNotEmpty()) workbookChartRows else acts
+        val chartScopedActs = chartRows.filter {
             (trancheFilter == null || it.trancheNumber.isFinancialTranche(trancheFilter!!)) &&
                 (subprojectFilter == null || it.subprojectUuid == subprojectFilter) &&
                 (yearFilter == null || (it.act.paymentDate ?: it.act.recordDate).take(4).toIntOrNull() == yearFilter)
@@ -1416,6 +1445,16 @@ private fun PaymentMonitoringCell(value: String, width: androidx.compose.ui.unit
 /** The column header already identifies these values as UAH. */
 private fun Double?.asUahTableValue(): String = this?.let(Double::formatUiAmount) ?: "—"
 private fun Double?.asPercent(): String = this?.let { "${it.formatUiAmount()}%" } ?: "—"
+
+/** `KH08_07#Lot1_W` belongs to subproject `KH08_07`, while its suffix is a payment purpose. */
+private fun String.paymentSubprojectCode(): String = substringBefore('#').substringBeforeLast('_')
+
+private fun String.paymentPurpose(): String = when {
+    endsWith("_TS", ignoreCase = true) -> "technical_supervision"
+    endsWith("_CSC", ignoreCase = true) -> "engineer_consultant"
+    contains("equipment", ignoreCase = true) || endsWith("_E", ignoreCase = true) -> "equipment"
+    else -> "works"
+}
 
 /** Imported workbook statuses may start with emoji that are not supported by every browser font. */
 private fun String?.asReadableComplianceStatus(): String = this
