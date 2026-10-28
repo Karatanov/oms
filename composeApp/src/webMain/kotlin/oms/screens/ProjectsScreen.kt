@@ -1257,7 +1257,7 @@ private fun Project.matchesProjectSearch(query: String): Boolean =
         city.contains(query, ignoreCase = true)
 
 private fun constructionWorkStatusColor(status: String): Color {
-    val normalized = status.lowercase()
+    val normalized = status.lowercase().replace('_', ' ').trim()
     return when {
         normalized.contains("completed") || normalized.contains("заверш") || normalized.contains("виконано") -> oms.theme.OmsColors.Success
         normalized.contains("delay") || normalized.contains("затрим") || normalized.contains("проблем") -> Color(0xFFC62828)
@@ -1265,7 +1265,12 @@ private fun constructionWorkStatusColor(status: String): Color {
         // The approved registry currently has a distinct "Not started" state.
         // Keep it visibly different from a neutral fallback, in-progress work
         // and a temporary suspension.
-        normalized.contains("not started") || normalized.contains("не розпочато") || normalized.contains("not begun") -> Color(0xFF7B1FA2)
+        normalized == "not started" ||
+            normalized == "не розпочато" ||
+            normalized.contains("not started") ||
+            normalized.contains("не розпочато") ||
+            normalized.contains("непочато") ||
+            normalized.contains("not begun") -> Color(0xFF7B1FA2)
         normalized.contains("progress") || normalized.contains("виконан") || normalized.contains("construction") -> Primary
         normalized.contains("preparation") || normalized.contains("підготов") || normalized.contains("design") || normalized.contains("проєктув") -> Color(0xFF00838F)
         else -> Color(0xFF546E7A)
