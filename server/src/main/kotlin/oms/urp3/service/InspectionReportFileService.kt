@@ -1341,7 +1341,8 @@ class InspectionReportFileService(
             value.startsWith("PHOTO ATTACHMENT", ignoreCase = true) ||
             (value.length > 12 && value == value.uppercase() && value.any(Char::isLetter))
 
-    /**
+    companion object {
+        /**
      * Source organisations do not consistently name SIR files. Keep a valid
      * supplied date, but make an otherwise valid XLS/XLSX import usable by
      * assigning today's date and appending it to the stored filename.
@@ -1361,5 +1362,6 @@ class InspectionReportFileService(
         val base = name.substringBeforeLast('.', name).trim().ifBlank { "SIR" }
         val suffix = today.format(DateTimeFormatter.ofPattern("ddMMyyyy"))
         return "${base}_$suffix.$extension" to today
+        }
     }
 }
