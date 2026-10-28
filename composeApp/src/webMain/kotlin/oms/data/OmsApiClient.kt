@@ -1019,6 +1019,7 @@ data class ApiActivity(
 data class ApiProcurementRecord(
     val id: Long, val batchId: Int,
     val oblastName: String, val oblastId: String, val subProjectId: String, val subProjectLotId: String? = null,
+    val procurementId: String? = null,
     val purchaseStatus: String? = null, val tenderId: String? = null, val prozorroTenderId: String? = null,
     val contractorNameUkr: String? = null, val contractorNameEng: String? = null, val contractorId: String? = null,
     val contractDate: String? = null, val contractEndDate: String? = null, val contractDurationMonths: Int? = null,
