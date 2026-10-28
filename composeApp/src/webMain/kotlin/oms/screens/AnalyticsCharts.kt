@@ -67,7 +67,7 @@ import oms.components.buttonHandCursor
 import kotlin.math.roundToLong
 
 @Composable
-fun FundingByOblastChart(items: List<ApiSubprojectFunding>, onOpenFinancialRegion: (String) -> Unit = {}, orientation: BarChartOrientation = BarChartOrientation.Vertical) {
+fun FundingByOblastChart(items: List<ApiSubprojectFunding>, onOpenProjectsByRegion: (String) -> Unit = {}, orientation: BarChartOrientation = BarChartOrientation.Vertical) {
     var currency by remember { mutableStateOf("EUR") }
     val fundingByRegion = items
         .groupBy { canonicalUkraineRegion(it.region) }
@@ -83,7 +83,7 @@ fun FundingByOblastChart(items: List<ApiSubprojectFunding>, onOpenFinancialRegio
         intensityAmounts = intensityByRegion,
         currency = currency,
         onCurrencyChange = { currency = it },
-        onOpenFinancialRegion = onOpenFinancialRegion
+        onOpenProjectsByRegion = onOpenProjectsByRegion
     )
 }
 
@@ -93,7 +93,7 @@ private fun UkraineFundingMapChart(
     intensityAmounts: Map<String, Double>,
     currency: String,
     onCurrencyChange: (String) -> Unit,
-    onOpenFinancialRegion: (String) -> Unit
+    onOpenProjectsByRegion: (String) -> Unit
 ) {
     val maxAmount = intensityAmounts.values.maxOrNull()?.takeIf { it > 0.0 } ?: 1.0
     Card(
@@ -121,7 +121,7 @@ private fun UkraineFundingMapChart(
                 intensityAmounts = intensityAmounts,
                 currency = currency,
                 maxAmount = maxAmount,
-                onOpenFinancialRegion = onOpenFinancialRegion
+                onOpenProjectsByRegion = onOpenProjectsByRegion
             )
         }
     }
@@ -134,7 +134,7 @@ private fun UkraineFundingMap(
     intensityAmounts: Map<String, Double>,
     currency: String,
     maxAmount: Double,
-    onOpenFinancialRegion: (String) -> Unit
+    onOpenProjectsByRegion: (String) -> Unit
 ) {
     val primary = MaterialTheme.colorScheme.primary
     val emptyRegion = MaterialTheme.colorScheme.surfaceVariant
@@ -183,7 +183,7 @@ private fun UkraineFundingMap(
                         position.y / size.height * ukraineMapHeight
                     )
                     ukraineFundingMapRegions.firstOrNull { it.contains(point) }
-                        ?.let { onOpenFinancialRegion(it.name) }
+                        ?.let { onOpenProjectsByRegion(it.name) }
                 }
         ) {
             val scaleX = size.width / ukraineMapWidth

@@ -107,6 +107,12 @@ class AppState {
     }
 
     fun openProjectsByRegion(region: String) {
+        // This action originates from the approved-funding map.  Do not let
+        // one-shot filters from a previous Financial Monitoring visit leak
+        // into the next route transition.
+        requestedFinancialSubprojectUuid = null
+        requestedFinancialRegion = null
+        requestedFinancialMonth = null
         requestedProjectRegion = region
         navigate(Screen.Projects)
     }
