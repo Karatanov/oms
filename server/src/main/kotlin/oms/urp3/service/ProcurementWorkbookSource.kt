@@ -16,6 +16,7 @@ import java.time.format.DateTimeParseException
 import java.util.Locale
 import com.google.auth.oauth2.ServiceAccountCredentials
 import java.io.File
+import oms.urp3.domain.ProcurementContractType
 
 /** Reader for the approved DB6.3 Initial Contracts register. Header names, not positions, define the mapping. */
 object ProcurementWorkbookSource {
@@ -94,19 +95,17 @@ object ProcurementWorkbookSource {
                     ?: throw IllegalArgumentException("Source row $sourceId has no Sub-Project ID.")
                 val partCode = projectReference?.partCode
                     ?: sourceSubprojectCode?.takeIf { it.contains("#LOT", true) }
-                // Some approved DB6.3 exports carry an incorrect calculated value in the
-                // Type cell. The procurement ID is authoritative in that case: its suffix
-                // is one of W, TS, or CSC (for example CH08_09_TS).
-                val type = value(rowIndex, "Type").text?.uppercase()
-                    ?.takeIf { it in contractTypes }
-                    ?: contractTypeFromSourceId(sourceId)
+                // The row identifier is the stable contract classification.
+                // It wins over the Type cell because approved exports can
+                // retain a wrong cached spreadsheet value in that cell.
+                val type = ProcurementContractType.resolve(sourceId, value(rowIndex, "Type").text)
                     ?: throw IllegalArgumentException(
                         "Source row $sourceId has an unsupported Type '${value(rowIndex, "Type").text}'."
                     )
                 SourceRow(
                     sourceId, procurementId, subprojectCode, partCode,
                     value(rowIndex, "Batch ID").number?.toInt() ?: throw IllegalArgumentException("Source row $sourceId has no Batch ID."),
-                    value(rowIndex, "Oblast ID").text.orEmpty(), contractTypes.getValue(type),
+                    value(rowIndex, "Oblast ID").text.orEmpty(), type.displayValue,
                     value(rowIndex, "Sub-Project Name (ukr)").text, value(rowIndex, "Sub-Project Name (eng)").text,
                     value(rowIndex, "Promotor Name").text, value(rowIndex, "FB Name").text, value(rowIndex, "Procurement Method").text,
                     tracker?.purchaseStatus ?: value(rowIndex, "Procurement Status").text,
@@ -322,17 +321,11 @@ object ProcurementWorkbookSource {
         return null
     }
 
-    private fun contractTypeFromSourceId(sourceId: String): String? = sourceId
-        .substringBefore('$')
-        .substringAfterLast('_')
-        .uppercase()
-        .takeIf { it in contractTypes }
-
     private data class ProjectReference(val subprojectCode: String, val partCode: String?)
 
     private fun projectReferenceFromSourceId(sourceId: String): ProjectReference? {
         val identifier = sourceId.substringBefore('$').trim()
-        if (contractTypeFromSourceId(identifier) == null) return null
+        if (ProcurementContractType.fromSourceId(identifier) == null) return null
         val projectReference = identifier.substringBeforeLast('_').trim()
         if (projectReference.isBlank()) return null
         return ProjectReference(
@@ -395,5 +388,4 @@ object ProcurementWorkbookSource {
         // approved exports use the singular wording, so retain both names.
         "Link to Contract" to listOf("Link to Contracts", "Contract link", "Link to the Contract", "Посилання на договір", "Посилання на контракт")
     )
-    private val contractTypes = mapOf("W" to "Роботи / Works", "TS" to "Технічний нагляд / TS", "CSC" to "Інженер-консультант / CSC")
 }

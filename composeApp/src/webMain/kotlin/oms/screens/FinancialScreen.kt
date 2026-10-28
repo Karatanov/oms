@@ -1446,12 +1446,13 @@ private fun PaymentMonitoringCell(value: String, width: androidx.compose.ui.unit
 private fun Double?.asUahTableValue(): String = this?.let(Double::formatUiAmount) ?: "—"
 private fun Double?.asPercent(): String = this?.let { "${it.formatUiAmount()}%" } ?: "—"
 
-/** `KH08_07#Lot1_W` belongs to subproject `KH08_07`, while its suffix is a payment purpose. */
-private fun String.paymentSubprojectCode(): String = substringBefore('#').substringBeforeLast('_')
+/** `KH08_07#Lot1_W` and `KH08_07_TS$1` both belong to `KH08_07`. */
+private fun String.paymentSubprojectCode(): String = substringBefore('$').substringBefore('#').substringBeforeLast('_').trim()
 
 private fun String.paymentPurpose(): String = when {
-    endsWith("_TS", ignoreCase = true) -> "technical_supervision"
-    endsWith("_CSC", ignoreCase = true) -> "engineer_consultant"
+    substringBefore('$').substringAfterLast('_').equals("TS", ignoreCase = true) -> "technical_supervision"
+    substringBefore('$').substringAfterLast('_').equals("CSC", ignoreCase = true) -> "engineer_consultant"
+    substringBefore('$').substringAfterLast('_').equals("W", ignoreCase = true) -> "works"
     contains("equipment", ignoreCase = true) || endsWith("_E", ignoreCase = true) -> "equipment"
     else -> "works"
 }

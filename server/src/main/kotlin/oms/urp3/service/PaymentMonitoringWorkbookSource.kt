@@ -296,3 +296,16 @@ object PaymentMonitoringWorkbookSource {
         throw IllegalArgumentException("Google Drive authentication failed. Check GOOGLE_APPLICATION_CREDENTIALS.")
     }
 }
+
+/** Handles both plain `CODE_TS` and contract-row `CODE_TS$1` identifiers. */
+internal fun String.paymentMonitoringContractType(): String? = substringBefore('$')
+    .substringAfterLast('_')
+    .trim()
+    .uppercase()
+    .takeIf { it in setOf("W", "TS", "CSC") }
+
+/** Returns the owning subproject code, omitting an optional lot and contract suffix. */
+internal fun String.paymentMonitoringSubprojectCode(): String = substringBefore('$')
+    .substringBefore('#')
+    .substringBeforeLast('_')
+    .trim()

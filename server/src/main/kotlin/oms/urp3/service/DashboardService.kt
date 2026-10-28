@@ -5,6 +5,7 @@ import oms.urp3.config.AppContainer
 import oms.urp3.domain.InspectionReport
 import oms.urp3.domain.InspectionReportStatus
 import oms.urp3.domain.ProjectAmount
+import oms.urp3.domain.ProcurementContractType
 import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.core.inList
@@ -171,9 +172,11 @@ private fun signedContractAmount(row: org.jetbrains.exposed.v1.core.ResultRow): 
         ?: row[ProcurementRecordTable.contractAmountUah]?.toDouble()
         ?: 0.0
 
-private fun isWorksContract(type: String?) = type?.let {
-    it.contains("робот", ignoreCase = true) || it.contains("works", ignoreCase = true)
-} == true
+private fun org.jetbrains.exposed.v1.core.ResultRow.contractType(): ProcurementContractType? =
+    ProcurementContractType.resolve(this[ProcurementRecordTable.tenderId], this[ProcurementRecordTable.sourceContractType])
+
+private fun isWorksContract(record: org.jetbrains.exposed.v1.core.ResultRow) =
+    record.contractType() == ProcurementContractType.WORKS
 
 private val dashboardContractTypeOrder = listOf(
     "dashboard_contract_works",
@@ -181,17 +184,11 @@ private val dashboardContractTypeOrder = listOf(
     "dashboard_contract_engineer_consultant"
 )
 
-private fun canonicalDashboardContractType(type: String?): String? {
-    val value = type?.trim()?.lowercase().orEmpty()
-    return when {
-        value == "ts" || value.contains("technical supervision") || value.contains("технічн") ->
-            "dashboard_contract_technical_supervision"
-        value == "csc" || value.contains("engineer-consultant") || value.contains("engineer consultant") ||
-            value.contains("інженер") || value.contains("консультант") ->
-            "dashboard_contract_engineer_consultant"
-        value == "w" || value.contains("works") || value.contains("робот") -> "dashboard_contract_works"
-        else -> null
-    }
+private fun canonicalDashboardContractType(record: org.jetbrains.exposed.v1.core.ResultRow): String? = when (record.contractType()) {
+    ProcurementContractType.WORKS -> "dashboard_contract_works"
+    ProcurementContractType.TECHNICAL_SUPERVISION -> "dashboard_contract_technical_supervision"
+    ProcurementContractType.ENGINEER_CONSULTANT -> "dashboard_contract_engineer_consultant"
+    null -> null
 }
 
 private fun signedContractTypeMetrics(
@@ -199,7 +196,7 @@ private fun signedContractTypeMetrics(
 ): List<DashboardContractTypeMetric> {
     val signedByType = procurementRecords.asSequence()
         .filter { isConstructionContractSigned(it[ProcurementRecordTable.purchaseStatus]) }
-        .mapNotNull { row -> canonicalDashboardContractType(row[ProcurementRecordTable.sourceContractType])?.let { it to row } }
+        .mapNotNull { row -> canonicalDashboardContractType(row)?.let { it to row } }
         .groupBy({ it.first }, { it.second })
     return dashboardContractTypeOrder.map { type ->
         val rows = signedByType[type].orEmpty().uniqueProcurements()
@@ -418,7 +415,7 @@ class DashboardService(
         val signedWorksAmountBySubprojectCode = procurementRecords.asSequence()
             .filter { record ->
                 isConstructionContractSigned(record[ProcurementRecordTable.purchaseStatus]) &&
-                    isWorksContract(record[ProcurementRecordTable.sourceContractType])
+                    isWorksContract(record)
             }
             .groupBy { it[ProcurementRecordTable.subProjectId].trim().lowercase() }
             .mapValues { (_, records) -> records.uniqueProcurements().sumOf { signedContractAmount(it) } }
@@ -592,7 +589,10 @@ class DashboardService(
         // expose their global aggregate to a manager whose dashboard is scoped.
         val procurementStatusCounts = procurementStatusMetrics(procurementRecords)
         val monthlySignedConstructionContracts = procurementRecords
-            .filter { isConstructionContractSigned(it[ProcurementRecordTable.purchaseStatus]) }
+            .filter {
+                isConstructionContractSigned(it[ProcurementRecordTable.purchaseStatus]) &&
+                    isWorksContract(it)
+            }
             .mapNotNull { row -> (row[ProcurementRecordTable.contractDate] ?: row[ProcurementRecordTable.estimatedContractDate])?.let(::month) }
             .groupingBy { it }.eachCount().map { DashboardMetric(it.key, it.value.toLong()) }.sortedBy { it.label }
         val findings = findingsRows.size
@@ -607,7 +607,7 @@ class DashboardService(
 
 /** Supporting payment-monitoring rows describe works/TS/CSC components, not standalone SPs. */
 internal fun isPrimaryPaymentMonitoringSubprojectCode(code: String): Boolean =
-    !code.trim().uppercase().matches(Regex(".*_(W|TS|CSC)$"))
+    code.paymentMonitoringContractType() == null
 
 private fun org.jetbrains.exposed.v1.core.ResultRow.toFunding(
     amounts: Map<String, ProjectAmount>?

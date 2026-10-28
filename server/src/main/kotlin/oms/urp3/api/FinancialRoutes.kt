@@ -16,6 +16,8 @@ import oms.urp3.domain.ProjectType
 import oms.urp3.service.FinancialTablePdfExportService
 import oms.urp3.service.PaymentMonitoringPdfExportService
 import oms.urp3.service.GoogleDriveOAuth
+import oms.urp3.service.paymentMonitoringContractType
+import oms.urp3.service.paymentMonitoringSubprojectCode
 import kotlin.math.roundToLong
 import kotlinx.serialization.Serializable
 
@@ -230,10 +232,10 @@ fun Route.financialRoutes() {
             // construction works; TS/CSC rows belong to different charts and
             // must not inflate construction financial progress.
             sourceTransactions.asSequence()
-                .filter { it.code.endsWith("_W", ignoreCase = true) }
+                .filter { it.code.paymentMonitoringContractType() == "W" }
                 .filter { requestedYear == null || it.paymentDate.year == requestedYear }
                 .mapNotNull { payment ->
-                    val baseCode = payment.code.substringBefore('#').substringBeforeLast('_').uppercase()
+                    val baseCode = payment.code.paymentMonitoringSubprojectCode().uppercase()
                     subprojectByBaseCode[baseCode]?.id?.let { it to payment.amountUah }
                 }
                 .groupBy({ it.first }, { it.second })
