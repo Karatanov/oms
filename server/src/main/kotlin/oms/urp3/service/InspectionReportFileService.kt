@@ -1026,8 +1026,8 @@ class InspectionReportFileService(
     fun import(projectId: Long, originalName: String, contentType: String?, input: java.io.InputStream, createdBy: Long): InspectionReport {
         val extension = originalName.substringAfterLast('.', "").lowercase()
         require(extension in setOf("xls", "xlsx")) { "Only XLS or XLSX inspection reports are supported." }
-        val date = extractDate(originalName)
-        val report = reportService.createReport(projectId, date.toString(), "Imported SIR: $originalName", createdBy)
+        val (storedName, date) = normalizedImportName(originalName)
+        val report = reportService.createReport(projectId, date.toString(), "Imported SIR: $storedName", createdBy)
         val completed = reportService.submitReport(report.uuid.toString())?.let {
             reportService.reviewReport(it.uuid.toString(), "approve", null)
         } ?: error("Could not finalize imported inspection report.")
@@ -1043,7 +1043,7 @@ class InspectionReportFileService(
                 else -> "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             }
             DurableFileStorage.persist(target)
-            fileRepository.create(InspectionReportFile(completed.id, originalName, target.toString(), detectedContentType, size))
+            fileRepository.create(InspectionReportFile(completed.id, storedName, target.toString(), detectedContentType, size))
             return completed
         } catch (exception: Exception) {
             runCatching { DurableFileStorage.delete(target.toString()) }
@@ -1341,16 +1341,25 @@ class InspectionReportFileService(
             value.startsWith("PHOTO ATTACHMENT", ignoreCase = true) ||
             (value.length > 12 && value == value.uppercase() && value.any(Char::isLetter))
 
-    private fun extractDate(name: String): LocalDate {
+    /**
+     * Source organisations do not consistently name SIR files. Keep a valid
+     * supplied date, but make an otherwise valid XLS/XLSX import usable by
+     * assigning today's date and appending it to the stored filename.
+     */
+    internal fun normalizedImportName(name: String, today: LocalDate = LocalDate.now()): Pair<String, LocalDate> {
         val date = Regex("_(\\d{2}(?:[.-]?\\d{2}){1}[.-]?\\d{4})\\.xlsx?$", RegexOption.IGNORE_CASE)
             .find(name)
             ?.groupValues
             ?.get(1)
-            ?: throw IllegalArgumentException("File name must end with _DDMMYYYY.xls/.xlsx or _DD.MM.YYYY.xls/.xlsx.")
-        return try {
-            LocalDate.parse(date.replace(".", "").replace("-", ""), DateTimeFormatter.ofPattern("ddMMyyyy"))
-        } catch (_: Exception) {
-            throw IllegalArgumentException("Invalid date in SIR file name.")
+        if (date != null) {
+            val parsed = runCatching {
+                LocalDate.parse(date.replace(".", "").replace("-", ""), DateTimeFormatter.ofPattern("ddMMyyyy"))
+            }.getOrNull()
+            if (parsed != null) return name to parsed
         }
+        val extension = name.substringAfterLast('.', "xlsx").lowercase().ifBlank { "xlsx" }
+        val base = name.substringBeforeLast('.', name).trim().ifBlank { "SIR" }
+        val suffix = today.format(DateTimeFormatter.ofPattern("ddMMyyyy"))
+        return "${base}_$suffix.$extension" to today
     }
 }
