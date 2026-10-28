@@ -224,7 +224,21 @@ fun Route.financialRoutes() {
         // evidence of delivery rather than a payment, and TS/CSC/equipment
         // payments have different financing bases.  Mixing either of them
         // into this numerator previously made sector progress exceed 100%.
-        val disbursedBySubprojectId = AppContainer.financialRecordService.getAll()
+        val sourceTransactions = AppContainer.paymentMonitoringService.currentIfAvailable()?.transactions.orEmpty()
+        val disbursedBySubprojectId = if (sourceTransactions.isNotEmpty()) {
+            // The approved workbook is a payment source.  Its W suffix marks
+            // construction works; TS/CSC rows belong to different charts and
+            // must not inflate construction financial progress.
+            sourceTransactions.asSequence()
+                .filter { it.code.endsWith("_W", ignoreCase = true) }
+                .filter { requestedYear == null || it.paymentDate.year == requestedYear }
+                .mapNotNull { payment ->
+                    val baseCode = payment.code.substringBefore('#').substringBeforeLast('_').uppercase()
+                    subprojectByBaseCode[baseCode]?.id?.let { it to payment.amountUah }
+                }
+                .groupBy({ it.first }, { it.second })
+                .mapValues { (_, amounts) -> amounts.sum() }
+        } else AppContainer.financialRecordService.getAll()
             .asSequence()
             .filter { it.recordType == FinancialRecordType.PAYMENT || it.recordType == FinancialRecordType.ADVANCE }
             .filter { it.paymentPurpose.equals("works", ignoreCase = true) }
