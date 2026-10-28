@@ -75,4 +75,45 @@ class PaymentMonitoringWorkbookSourceTest {
         assertEquals(450.0, items.single().paidUah)
         assertEquals("Yes", items.single().eibShareCompliance)
     }
+
+    @Test
+    fun `keeps dated monthly payments separate from cumulative indicators`() {
+        val workbook = XSSFWorkbook()
+        val monitoring = workbook.createSheet("UR III SP Payment Monitoring")
+        monitoring.createRow(0).apply {
+            listOf("ID", "Amount paid, Total UAH", "Remaining payment under SP, UAH").forEachIndexed { index, heading ->
+                createCell(index).setCellValue(heading)
+            }
+        }
+        monitoring.createRow(1).apply {
+            createCell(0).setCellValue("VN08_01")
+            createCell(1).setCellValue(450.0)
+            createCell(2).setCellValue(550.0)
+        }
+        val monthly = workbook.createSheet("UR III OCTOBER 2026 payments")
+        monthly.createRow(0).apply {
+            listOf("No.", "BATCH", "ID", "Date", "Amount, UAH", "Estimated Amount, EUR").forEachIndexed { index, heading ->
+                createCell(index).setCellValue(heading)
+            }
+        }
+        monthly.createRow(1).apply {
+            createCell(0).setCellValue(1.0)
+            createCell(1).setCellValue(8.0)
+            createCell(2).setCellValue("VN08_01_W")
+            createCell(3).setCellValue("2026-10-01")
+            createCell(4).setCellValue(1_000.0)
+            createCell(5).setCellValue(20.0)
+        }
+        val bytes = ByteArrayOutputStream().use { output ->
+            workbook.use { it.write(output) }
+            output.toByteArray()
+        }
+
+        val data = PaymentMonitoringWorkbookSource.parseWorkbookData(bytes)
+
+        assertEquals(1, data.items.size)
+        assertEquals(1, data.transactions.size)
+        assertEquals("VN08_01_W", data.transactions.single().code)
+        assertEquals(1_000.0, data.transactions.single().amountUah)
+    }
 }
