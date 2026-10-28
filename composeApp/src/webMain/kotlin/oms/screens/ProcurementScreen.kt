@@ -774,7 +774,7 @@ private fun ProcurementRow(
 
 /** Keeps cell rendering and sorting aligned with every displayed procurement column. */
 private fun ApiProcurementRecord.displayValues(): List<String> = listOf(
-    subProjectId, if (batchId == 8) "A" else if (batchId == 9) "B" else batchId.toString(),
+    procurementCodeLabel(), if (batchId == 8) "A" else if (batchId == 9) "B" else batchId.toString(),
     if (LocalizationManager.currentLanguage == Language.EN) subprojectNameEn ?: subprojectNameUk.orEmpty() else subprojectNameUk ?: subprojectNameEn.orEmpty(),
     localizedPromotorName(), procurementMethod.orEmpty().let(LocalizationManager::procurementValue),
     LocalizationManager.procurementStatus(purchaseStatus.orEmpty()), tenderAttemptCount?.toString().orEmpty(),
@@ -785,6 +785,13 @@ private fun ApiProcurementRecord.displayValues(): List<String> = listOf(
     contractAmountUah.format(2), contractAmountUahWithoutVat.format(2), dreamCoFinancingPct.formatPercent(),
     estimatedEibUah.format(2), realLocalCoFinancingPct.formatPercent(), realEibFinancingUah.format(2), bankGuarantee.formatPercent()
 )
+
+/** Show the SP code together with the actual lot and contract classification. */
+private fun ApiProcurementRecord.procurementCodeLabel(): String = buildList {
+    add(subProjectId)
+    subProjectLotId?.substringAfter('#', missingDelimiterValue = "")?.takeIf(String::isNotBlank)?.let(::add)
+    sourceContractType?.takeIf(String::isNotBlank)?.let(::add)
+}.joinToString(" · ")
 
 /** Promotor and FB are the same business value in the approved workbook. */
 private fun ApiProcurementRecord.localizedPromotorName(): String = if (LocalizationManager.currentLanguage == Language.EN) {
@@ -855,12 +862,12 @@ private fun procurementHeaderLabels(): List<String> = if (LocalizationManager.cu
 )
 
 private fun procurementTableHeaderLabels(): List<String> = if (LocalizationManager.currentLanguage == Language.EN) listOf(
-    "Subproject code", "Batch", "Subproject name", "Promotor name", "Procurement method", "Procurement status",
+    "Subproject code · lot · type", "Batch", "Subproject name", "Promotor name", "Procurement method", "Procurement status",
     "Tender attempts", "PIG violations", "PROZORRO reference", "Contract link", "Contract date", "Contract end date", "Actualised contract end date",
     "Contractor ID", "Contractor name", "Contract amount, UAH with VAT", "Contract amount, UAH without VAT", "DREAM co-financing, %",
     "Estimated EIB financing, UAH", "Real local co-financing, %", "Real EIB financing, UAH", "Bank guarantee, %"
 ) else listOf(
-    "Код субпроєкту", "Транш", "Назва субпроєкту", "Назва ФБ", "Метод закупівлі", "Статус закупівлі",
+    "Код субпроєкту · лот · тип", "Транш", "Назва субпроєкту", "Назва ФБ", "Метод закупівлі", "Статус закупівлі",
     "Кількість спроб", "Порушення PIG", "Посилання PROZORRO", "Посилання на договір", "Дата договору", "Дата завершення договору", "Актуалізована дата завершення",
     "ID підрядника", "Назва підрядника", "Сума договору з ПДВ, грн", "Сума договору без ПДВ, грн", "Співфінансування DREAM, %",
     "Оціночне фінансування ЄІБ, грн", "Фактичне місцеве співфінансування, %", "Фактичне фінансування ЄІБ, грн", "Банківська гарантія, %"

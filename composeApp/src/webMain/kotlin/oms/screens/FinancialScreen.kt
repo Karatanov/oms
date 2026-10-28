@@ -583,16 +583,26 @@ fun FinancialScreen(
             Modifier.fillMaxWidth()
                 .onGloballyPositioned { tableTopInRootPx = it.positionInRoot().y },
             pageScrollState = pageScrollState,
+            pinnedStartWidth = 160.dp,
+            pinnedStartHeader = { FinancialFrozenCodeHeader(sort, ascending, ::selectSort) },
+            pinnedStartContent = {
+                pageRows.forEach { row ->
+                    Row(Modifier.width(160.dp).padding(vertical = 4.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                        Text(row.subprojectCode ?: "—", Modifier.width(160.dp))
+                    }
+                    HorizontalDivider()
+                }
+            },
             header = { FinancialTableHeader(sort, ascending, ::selectSort); HorizontalDivider() }
         ) {
                     if (!loading && !loadFailed && visibleActs.isEmpty()) Text(LocalizationManager.t(emptyRecordsMessage))
                     pageRows.forEach { row ->
                         Row(Modifier.width(1_681.dp).padding(vertical = 4.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                            Text(row.subprojectCode ?: "—", Modifier.width(160.dp))
                             Text(LocalizationManager.t("record_type_${row.act.recordType}"), Modifier.width(95.dp))
                             Box(Modifier.width(210.dp)) { FinancialPaymentPurposeBadge(row.act.recordType, row.act.paymentPurpose) }
                             Text(row.trancheNumber.financialTrancheCode(), Modifier.width(95.dp))
                             ExpandableTableText(row.subprojectName, Modifier.width(200.dp))
-                            Text(row.subprojectCode ?: "—", Modifier.width(160.dp))
                             ExpandableTableText(row.subprojectPartName ?: "—", Modifier.width(200.dp))
                             Text(row.act.recordDate.toOmsDate(), Modifier.width(105.dp))
                             Text(displayCents(row.act)?.let { (it / 100.0).toMoney("").trim() } ?: "—", Modifier.width(130.dp).padding(horizontal = 8.dp), textAlign = androidx.compose.ui.text.style.TextAlign.End)
@@ -1016,11 +1026,11 @@ private fun FinancialProjectLevelDropdown(
 @Composable
 private fun FinancialTableHeader(sort: FinancialSort, ascending: Boolean, onSort: (FinancialSort) -> Unit) {
     Row(Modifier.width(1_681.dp).padding(vertical = 6.dp)) {
+        SortableTableHeader(LocalizationManager.t("subproject_code"), sort == FinancialSort.SubprojectCode, ascending, { onSort(FinancialSort.SubprojectCode) }, Modifier.width(160.dp))
         SortableTableHeader(LocalizationManager.t("type"), sort == FinancialSort.Type, ascending, { onSort(FinancialSort.Type) }, Modifier.width(95.dp))
         SortableTableHeader(LocalizationManager.t("payment_purpose"), sort == FinancialSort.Purpose, ascending, { onSort(FinancialSort.Purpose) }, Modifier.width(210.dp))
         SortableTableHeader(LocalizationManager.t("tranche"), sort == FinancialSort.Tranche, ascending, { onSort(FinancialSort.Tranche) }, Modifier.width(95.dp))
         SortableTableHeader(LocalizationManager.t("subproject"), sort == FinancialSort.Subproject, ascending, { onSort(FinancialSort.Subproject) }, Modifier.width(200.dp))
-        SortableTableHeader(LocalizationManager.t("subproject_code"), sort == FinancialSort.SubprojectCode, ascending, { onSort(FinancialSort.SubprojectCode) }, Modifier.width(160.dp))
         SortableTableHeader(LocalizationManager.t("subproject_part"), sort == FinancialSort.SubprojectPart, ascending, { onSort(FinancialSort.SubprojectPart) }, Modifier.width(200.dp))
         SortableTableHeader(LocalizationManager.t("date"), sort == FinancialSort.ActDate, ascending, { onSort(FinancialSort.ActDate) }, Modifier.width(105.dp))
         SortableTableHeader(LocalizationManager.t("amount"), sort == FinancialSort.Amount, ascending, { onSort(FinancialSort.Amount) }, Modifier.width(130.dp), numeric = true)
@@ -1029,6 +1039,21 @@ private fun FinancialTableHeader(sort: FinancialSort, ascending: Boolean, onSort
         SortableTableHeader(LocalizationManager.t("author"), sort == FinancialSort.Author, ascending, { onSort(FinancialSort.Author) }, Modifier.width(75.dp))
         Box(Modifier.width(96.dp).height(52.dp), contentAlignment = androidx.compose.ui.Alignment.Center) { Text(LocalizationManager.t("actions"), style = MaterialTheme.typography.labelMedium) }
     }
+}
+
+/** Mirrors the leading code cell only after horizontal movement in ScrollableTable. */
+@Composable
+private fun FinancialFrozenCodeHeader(sort: FinancialSort, ascending: Boolean, onSort: (FinancialSort) -> Unit) {
+    Row(Modifier.width(160.dp).padding(vertical = 6.dp)) {
+        SortableTableHeader(
+            LocalizationManager.t("subproject_code"),
+            sort == FinancialSort.SubprojectCode,
+            ascending,
+            { onSort(FinancialSort.SubprojectCode) },
+            Modifier.width(160.dp)
+        )
+    }
+    HorizontalDivider()
 }
 
 @Composable

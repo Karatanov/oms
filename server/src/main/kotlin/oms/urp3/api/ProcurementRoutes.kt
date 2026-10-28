@@ -168,11 +168,12 @@ private suspend fun io.ktor.server.application.ApplicationCall.respondRefreshSaf
 
 private fun ProcurementRecord.toResponse() = ProcurementRecordResponse(
     id = id, batchId = batchId, oblastName = oblastName, oblastId = oblastId,
-    subProjectId = subProjectId, subProjectLotId = subProjectLotId, purchaseStatus = purchaseStatus,
+    subProjectId = subProjectId, subProjectLotId = subProjectLotId, procurementId = procurementId, purchaseStatus = purchaseStatus,
     tenderId = tenderId, prozorroTenderId = prozorroTenderId, contractorNameUkr = contractorNameUkr,
     contractorNameEng = contractorNameEng, contractorId = contractorId, contractDate = contractDate?.toString(),
     contractEndDate = contractEndDate?.toString(), actualisedContractEndDate = actualisedContractEndDate?.toString(), contractDurationMonths = contractDurationMonths,
-    contractAmountUah = contractAmountUah, contractAmountUahWithoutVat = contractAmountUahWithoutVat, contractAmountEur = contractAmountEur,
+    contractAmountUah = contractAmountUah, signedContractAmountUah = signedContractAmountUah,
+    contractAmountUahWithoutVat = contractAmountUahWithoutVat, contractAmountEur = contractAmountEur,
     financingContractDifferencePct = financingContractDifferencePct, promotorName = promotorName, fbName = fbName,
     subprojectNameUk = subprojectNameUk, subprojectNameEn = subprojectNameEn,
     sourceContractType = sourceContractType,

@@ -14,6 +14,8 @@ object ProcurementRecordTable : LongIdTable("procurement_records") {
     val subprojectNameEn = text("subproject_name_en").nullable()
     val subProjectId = varchar("sub_project_id", 64)
     val subProjectLotId = varchar("sub_project_lot_id", 64).nullable()
+    /** Approved tracker identifier, retained separately from contract-level tender_id. */
+    val procurementId = varchar("procurement_id", 128).nullable()
     val sourceContractType = varchar("source_contract_type", 255).nullable()
     val subprojectTotalCostUah = decimal("subproject_total_cost_uah", 18, 2).nullable()
     val subprojectEibFinancingUah = decimal("subproject_eib_financing_uah", 18, 2).nullable()
@@ -35,6 +37,8 @@ object ProcurementRecordTable : LongIdTable("procurement_records") {
     val actualisedContractEndDate = date("actualised_contract_end_date").nullable()
     val contractDurationMonths = integer("contract_duration_months").nullable()
     val contractAmountUah = decimal("contract_amount_uah", 18, 2).nullable()
+    /** DB6 tracker AI: total signed amount for the procurement procedure. */
+    val signedContractAmountUah = decimal("signed_contract_amount_uah", 18, 2).nullable()
     val contractAmountUahWithoutVat = decimal("contract_amount_uah_without_vat", 18, 2).nullable()
     val contractAmountEur = decimal("contract_amount_eur", 18, 4).nullable()
     val financingContractDifferencePct = decimal("financing_contract_difference_pct", 14, 10).nullable()

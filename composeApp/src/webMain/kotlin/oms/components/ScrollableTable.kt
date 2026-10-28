@@ -63,7 +63,10 @@ fun ScrollableTable(
         onDispose { navigatorOverlay.dismiss(navigatorId) }
     }
 
-    Box(modifier.fillMaxWidth()) {
+    // Keep a wide table's intrinsic width inside its own viewport. Without
+    // this clip, Compose/Wasm can propagate the child width to the page and
+    // create a horizontal scrollbar above the table and its charts.
+    Box(modifier.fillMaxWidth().clipToBounds()) {
         Column(
             Modifier.fillMaxWidth()
                 .onGloballyPositioned { coordinates ->

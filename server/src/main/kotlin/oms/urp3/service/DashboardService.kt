@@ -95,9 +95,13 @@ private fun canonicalProcurementStatus(value: String?): String? {
 
 private fun procurementStatusMetrics(procurementRecords: List<org.jetbrains.exposed.v1.core.ResultRow>): List<DashboardMetric> {
     val countByStatus = procurementRecords
-        .mapNotNull { row -> canonicalProcurementStatus(row[ProcurementRecordTable.purchaseStatus])?.let { it to row[ProcurementRecordTable.subProjectId] } }
+        .mapNotNull { row -> canonicalProcurementStatus(row[ProcurementRecordTable.purchaseStatus])?.let { status ->
+            status to (row[ProcurementRecordTable.procurementId]
+                ?: row[ProcurementRecordTable.tenderId]
+                ?: row[ProcurementRecordTable.subProjectId])
+        } }
         .groupBy({ it.first }, { it.second })
-        .mapValues { (_, subprojectIds) -> subprojectIds.distinct().size.toLong() }
+        .mapValues { (_, procurementIds) -> procurementIds.distinct().size.toLong() }
     return procurementStatusOrder.map { status -> DashboardMetric(status, countByStatus[status] ?: 0L) }
 }
 
@@ -151,6 +155,19 @@ private fun canonicalUkraineOblast(value: String?): String? {
 private fun isConstructionContractSigned(status: String?) =
     status?.let { it.contains("Договір укладено", ignoreCase = true) || it.contains("Contract signed", ignoreCase = true) } == true
 
+/** A tracker procurement can have several DB6.3 contract rows but only one AI total. */
+private fun List<org.jetbrains.exposed.v1.core.ResultRow>.uniqueProcurements() =
+    distinctBy { row ->
+        row[ProcurementRecordTable.procurementId]
+            ?: row[ProcurementRecordTable.tenderId]
+            ?: "record-${row[ProcurementRecordTable.id].value}"
+    }
+
+private fun signedContractAmount(row: org.jetbrains.exposed.v1.core.ResultRow): Double =
+    row[ProcurementRecordTable.signedContractAmountUah]?.toDouble()
+        ?: row[ProcurementRecordTable.contractAmountUah]?.toDouble()
+        ?: 0.0
+
 private fun isWorksContract(type: String?) = type?.let {
     it.contains("робот", ignoreCase = true) || it.contains("works", ignoreCase = true)
 } == true
@@ -182,11 +199,11 @@ private fun signedContractTypeMetrics(
         .mapNotNull { row -> canonicalDashboardContractType(row[ProcurementRecordTable.sourceContractType])?.let { it to row } }
         .groupBy({ it.first }, { it.second })
     return dashboardContractTypeOrder.map { type ->
-        val rows = signedByType[type].orEmpty()
+        val rows = signedByType[type].orEmpty().uniqueProcurements()
         DashboardContractTypeMetric(
             type = type,
             contractsCount = rows.size.toLong(),
-            contractAmountUah = rows.sumOf { it[ProcurementRecordTable.contractAmountUah]?.toDouble() ?: 0.0 }
+            contractAmountUah = rows.sumOf(::signedContractAmount)
         )
     }
 }
@@ -381,7 +398,7 @@ class DashboardService(
                     isWorksContract(record[ProcurementRecordTable.sourceContractType])
             }
             .groupBy { it[ProcurementRecordTable.subProjectId].trim().lowercase() }
-            .mapValues { (_, records) -> records.sumOf { it[ProcurementRecordTable.contractAmountUah]?.toDouble() ?: 0.0 } }
+            .mapValues { (_, records) -> records.uniqueProcurements().sumOf { signedContractAmount(it) } }
         // Progress must cover every subproject.  A missing or unsigned
         // construction contract simply results in 0%, rather than hiding its
         // region from the dashboard filter.
@@ -441,8 +458,8 @@ class DashboardService(
             approvedFundingEur = approvedFundingUah.toBigDecimal()
                 .divide(DASHBOARD_UAH_PER_EUR, 2, RoundingMode.HALF_UP)
                 .toDouble(),
-            signedContractsCount = signedContracts.size.toLong(),
-            signedContractsAmountUah = signedContracts.sumOf { it[ProcurementRecordTable.contractAmountUah]?.toDouble() ?: 0.0 },
+            signedContractsCount = signedContracts.uniqueProcurements().size.toLong(),
+            signedContractsAmountUah = signedContracts.uniqueProcurements().sumOf(::signedContractAmount),
             servicesPaidEurCents = paymentRecords.sumOf { it[FinancialRecordTable.amountEurCents] ?: 0L },
             servicesPaidUahCents = servicesPaidUah.takeIf { it.size == paymentRecords.size }?.sum(),
             eibPaidUnderContractsUah = eibPaidUnderContractsUah

@@ -21,20 +21,22 @@ import java.io.File
 object ProcurementWorkbookSource {
     private const val sourceFileId = "1tN1kbjw94g3zHKLRNDjgryuBXbYWuk2j"
     private const val sheetName = "DB6.3 Initial Contracts"
+    private const val TRACKER_SHEET_NAME = "DB6 Procurement Tracker"
     // DB6.3 is the fixed, approved tab.  The Sheets export endpoint remains a
     // usable public fallback when a deployment service account was not shared
     // with the Drive file (Drive returns HTTP 404 in that situation).
     private const val approvedSheetGid = "1331483415"
 
     data class SourceRow(
-        val sourceId: String, val subprojectCode: String, val partCode: String?, val batchId: Int, val oblastId: String,
+        val sourceId: String, val procurementId: String?, val subprojectCode: String, val partCode: String?, val batchId: Int, val oblastId: String,
         val sourceContractType: String, val subprojectNameUk: String?, val subprojectNameEn: String?, val promotorName: String?,
         val fbName: String?, val procurementMethod: String?, val purchaseStatus: String?, val tenderAttemptCount: Int?,
         val pigViolations: String?, val prozorroUrl: String?, val contractDate: LocalDate?, val contractEndDate: LocalDate?,
         val actualisedContractEndDate: LocalDate?, val contractorId: String?, val contractorNameEng: String?,
         val contractorNameUkr: String?, val contractReference: String?, val contractAmountUah: Double?, val contractAmountUahWithoutVat: Double?,
         val dreamCoFinancingPct: Double?, val estimatedEibUah: Double?, val realLocalCoFinancingPct: Double?,
-        val realEibFinancingUah: Double?, val bankGuarantee: Double?, val contractLink: String?, val comments: String?
+        val realEibFinancingUah: Double?, val bankGuarantee: Double?, val contractLink: String?, val comments: String?,
+        val signedContractAmountUah: Double?
     )
 
     fun downloadAndParse(onProgress: (Int, String) -> Unit = { _, _ -> }): List<SourceRow> {
@@ -61,6 +63,7 @@ object ProcurementWorkbookSource {
                 ?: throw IllegalArgumentException("The approved workbook has no Procurement ID header on '$sheetName'.")
             val headers = headers(sheet.getRow(headerRowNumber), evaluator)
             requiredHeaders.forEach { heading -> require(headers.containsKey(normalizeHeader(heading))) { "The approved workbook is missing '$heading' on '$sheetName'." } }
+            val trackerByProcurementId = trackerRows(workbook, evaluator)
             val rows = (headerRowNumber + 1..sheet.lastRowNum).mapNotNull { rowNumber ->
                 val row = sheet.getRow(rowNumber) ?: return@mapNotNull null
                 // Column A is the unique line identifier (for example
@@ -84,6 +87,8 @@ object ProcurementWorkbookSource {
                 valuesByHeader[heading]?.get(rowIndex) ?: SourceCellValue()
             val parsedRows = rows.mapIndexed { rowIndex, (sourceId, _) ->
                 val projectReference = projectReferenceFromSourceId(sourceId)
+                val procurementId = value(rowIndex, "Procurement ID").text
+                val tracker = procurementId?.let { trackerByProcurementId[it] }
                 val sourceSubprojectCode = value(rowIndex, "Sub-Project ID").text
                 val subprojectCode = projectReference?.subprojectCode ?: sourceSubprojectCode?.substringBefore('#')?.trim()
                     ?: throw IllegalArgumentException("Source row $sourceId has no Sub-Project ID.")
@@ -99,12 +104,13 @@ object ProcurementWorkbookSource {
                         "Source row $sourceId has an unsupported Type '${value(rowIndex, "Type").text}'."
                     )
                 SourceRow(
-                    sourceId, subprojectCode, partCode,
+                    sourceId, procurementId, subprojectCode, partCode,
                     value(rowIndex, "Batch ID").number?.toInt() ?: throw IllegalArgumentException("Source row $sourceId has no Batch ID."),
                     value(rowIndex, "Oblast ID").text.orEmpty(), contractTypes.getValue(type),
                     value(rowIndex, "Sub-Project Name (ukr)").text, value(rowIndex, "Sub-Project Name (eng)").text,
                     value(rowIndex, "Promotor Name").text, value(rowIndex, "FB Name").text, value(rowIndex, "Procurement Method").text,
-                    value(rowIndex, "Procurement Status").text, value(rowIndex, "Number of attempt for tender procedure").number?.toInt(),
+                    tracker?.purchaseStatus ?: value(rowIndex, "Procurement Status").text,
+                    tracker?.tenderAttemptCount ?: value(rowIndex, "Number of attempt for tender procedure").number?.toInt(),
                     value(rowIndex, "PIG violations (if any)").text, value(rowIndex, "Prozorro reference").text,
                     value(rowIndex, "Contract Date").date, value(rowIndex, "Contract end date").date, value(rowIndex, "Actualised contract end date").date,
                     value(rowIndex, "Contractor ID").text, value(rowIndex, "Contractor Name eng").text, value(rowIndex, "Contractor Name ukr").text, value(rowIndex, "Contract Reference No.").text,
@@ -112,7 +118,7 @@ object ProcurementWorkbookSource {
                     value(rowIndex, "DREAM co-financing (%)").number, value(rowIndex, "Estimated amount and Financing (EIB financing, UAH)").number,
                     value(rowIndex, "Real local co-financing according to contract (%)").number, value(rowIndex, "Real EIB financing according contract data (UAH)").number,
                     value(rowIndex, "Bank guarantee").number, contractLink(rows[rowIndex].second, headers, evaluator),
-                    value(rowIndex, "Comments (if any)").text
+                    value(rowIndex, "Comments (if any)").text, tracker?.signedContractAmountUah
                 )
             }
             require(parsedRows.map { it.sourceId }.toSet().size == parsedRows.size) {
@@ -335,6 +341,42 @@ object ProcurementWorkbookSource {
         )
     }
 
+    /**
+     * DB6.3 is contract-level, while the approved tracker is procurement-level.
+     * The tracker supplies the latest-attempt status and the per-procurement
+     * signed-contract total without treating historic attempts as extra rows.
+     */
+    private data class TrackerRow(
+        val purchaseStatus: String?,
+        val tenderAttemptCount: Int?,
+        val signedContractAmountUah: Double?
+    )
+
+    private fun trackerRows(workbook: org.apache.poi.ss.usermodel.Workbook, evaluator: FormulaEvaluator): Map<String, TrackerRow> {
+        val tracker = workbook.getSheet(TRACKER_SHEET_NAME) ?: return emptyMap()
+        val headerRowNumber = (tracker.firstRowNum..tracker.lastRowNum).firstOrNull {
+            rowHasHeader(tracker.getRow(it), "Procurement ID", evaluator)
+        } ?: return emptyMap()
+        val headers = headers(tracker.getRow(headerRowNumber), evaluator)
+        val procurementIdColumn = headers[normalizeHeader("Procurement ID")] ?: return emptyMap()
+        fun trackerColumn(englishHeading: String): Int? =
+            headers[normalizeHeader(englishHeading)]
+                ?: headers.entries.firstOrNull { it.key.contains(normalizeHeader(englishHeading)) }?.value
+        val statusColumn = trackerColumn("Procurement Status (last attempt)")
+        val attemptsColumn = trackerColumn("Number of attempts")
+        val totalColumn = trackerColumn("Total contracts amount, UAH")
+        return (headerRowNumber + 1..tracker.lastRowNum).mapNotNull { rowNumber ->
+            val row = tracker.getRow(rowNumber) ?: return@mapNotNull null
+            val procurementId = cellText(row, procurementIdColumn, evaluator).trim().takeIf(String::isNotBlank)
+                ?: return@mapNotNull null
+            procurementId to TrackerRow(
+                purchaseStatus = statusColumn?.let { cellText(row, it, evaluator).trim().takeIf(String::isNotBlank) },
+                tenderAttemptCount = attemptsColumn?.let { cellNumber(row, it, evaluator)?.toInt() },
+                signedContractAmountUah = totalColumn?.let { cellNumber(row, it, evaluator) }
+            )
+        }.toMap()
+    }
+
     /** Ordered so the refresh overlay can show the actual column being read. */
     private val sourceColumns = listOf(
         "Procurement ID", "Sub-Project ID", "Batch ID", "Oblast ID", "Type", "Sub-Project Name (ukr)", "Sub-Project Name (eng)",
@@ -346,7 +388,7 @@ object ProcurementWorkbookSource {
     )
     // The contract URL was added after the first approved template. It stays
     // optional so a historic approved export remains importable.
-    private val requiredHeaders = sourceColumns.filterNot { it in setOf("Comments (if any)", "Link to Contract") }.toSet()
+    private val requiredHeaders = sourceColumns.filterNot { it in setOf("Comments (if any)", "Link to Contract", "DREAM co-financing (%)") }.toSet()
     /** Historic approved exports use both Ukrainian and English captions for the contract URL. */
     private val headerAliases = mapOf(
         // DB6.3 currently uses the plural "Link to Contracts". Earlier

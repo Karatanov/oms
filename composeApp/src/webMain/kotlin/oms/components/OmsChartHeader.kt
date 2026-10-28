@@ -1,12 +1,13 @@
 package oms.components
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.weight
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -32,18 +33,20 @@ fun OmsChartHeader(
 ) {
     BoxWithConstraints(modifier.fillMaxWidth()) {
         if (maxWidth >= 640.dp && !oms.layout.LocalMobileLayout.current) {
-            Box(Modifier.fillMaxWidth()) {
+            Row(
+                Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
                 Text(
                     title,
-                    // Symmetric padding protects the title from the trailing
-                    // controls while preserving the card's visual centre.
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 118.dp),
+                    modifier = Modifier.weight(1f),
                     style = MaterialTheme.typography.titleMedium,
-                    textAlign = TextAlign.Center,
+                    textAlign = TextAlign.Start,
                     maxLines = 3
                 )
                 FlowRow(
-                    modifier = Modifier.align(Alignment.CenterEnd),
+                    modifier = Modifier,
                     horizontalArrangement = Arrangement.spacedBy(2.dp, Alignment.End),
                     verticalArrangement = Arrangement.spacedBy(2.dp, Alignment.CenterVertically),
                     // Toolbar controls have intentionally different compact hit areas.

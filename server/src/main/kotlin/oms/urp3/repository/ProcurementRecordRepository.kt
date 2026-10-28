@@ -64,6 +64,7 @@ class ExposedProcurementRecordRepository : ProcurementRecordRepository {
         this[ProcurementRecordTable.subprojectNameEn] = record.subprojectNameEn
         this[ProcurementRecordTable.subProjectId] = record.subProjectId
         this[ProcurementRecordTable.subProjectLotId] = record.subProjectLotId
+        this[ProcurementRecordTable.procurementId] = record.procurementId
         this[ProcurementRecordTable.sourceContractType] = record.sourceContractType
         this[ProcurementRecordTable.subprojectTotalCostUah] = record.subprojectTotalCostUah?.let(BigDecimal::valueOf)
         this[ProcurementRecordTable.subprojectEibFinancingUah] = record.subprojectEibFinancingUah?.let(BigDecimal::valueOf)
@@ -85,6 +86,7 @@ class ExposedProcurementRecordRepository : ProcurementRecordRepository {
         this[ProcurementRecordTable.actualisedContractEndDate] = record.actualisedContractEndDate
         this[ProcurementRecordTable.contractDurationMonths] = record.contractDurationMonths
         this[ProcurementRecordTable.contractAmountUah] = record.contractAmountUah?.let(BigDecimal::valueOf)
+        this[ProcurementRecordTable.signedContractAmountUah] = record.signedContractAmountUah?.let(BigDecimal::valueOf)
         this[ProcurementRecordTable.contractAmountUahWithoutVat] = record.contractAmountUahWithoutVat?.let(BigDecimal::valueOf)
         this[ProcurementRecordTable.contractAmountEur] = record.contractAmountEur?.let(BigDecimal::valueOf)
         this[ProcurementRecordTable.financingContractDifferencePct] = record.financingContractDifferencePct?.let(BigDecimal::valueOf)
@@ -112,13 +114,13 @@ class ExposedProcurementRecordRepository : ProcurementRecordRepository {
         id = row[ProcurementRecordTable.id].value,
         batchId = row[ProcurementRecordTable.batchId],
         oblastName = row[ProcurementRecordTable.oblastName], oblastId = row[ProcurementRecordTable.oblastId],
-        subProjectId = row[ProcurementRecordTable.subProjectId], subProjectLotId = row[ProcurementRecordTable.subProjectLotId],
+        subProjectId = row[ProcurementRecordTable.subProjectId], subProjectLotId = row[ProcurementRecordTable.subProjectLotId], procurementId = row[ProcurementRecordTable.procurementId],
         purchaseStatus = row[ProcurementRecordTable.purchaseStatus], tenderId = row[ProcurementRecordTable.tenderId],
         prozorroTenderId = row[ProcurementRecordTable.prozorroTenderId], contractorNameUkr = row[ProcurementRecordTable.contractorNameUkr],
         contractorNameEng = row[ProcurementRecordTable.contractorNameEng], contractorId = row[ProcurementRecordTable.contractorId],
         contractDate = row[ProcurementRecordTable.contractDate], contractEndDate = row[ProcurementRecordTable.contractEndDate], actualisedContractEndDate = row[ProcurementRecordTable.actualisedContractEndDate],
         contractDurationMonths = row[ProcurementRecordTable.contractDurationMonths],
-        contractAmountUah = row[ProcurementRecordTable.contractAmountUah]?.toDouble(), contractAmountUahWithoutVat = row[ProcurementRecordTable.contractAmountUahWithoutVat]?.toDouble(), contractAmountEur = row[ProcurementRecordTable.contractAmountEur]?.toDouble(),
+        contractAmountUah = row[ProcurementRecordTable.contractAmountUah]?.toDouble(), signedContractAmountUah = row[ProcurementRecordTable.signedContractAmountUah]?.toDouble(), contractAmountUahWithoutVat = row[ProcurementRecordTable.contractAmountUahWithoutVat]?.toDouble(), contractAmountEur = row[ProcurementRecordTable.contractAmountEur]?.toDouble(),
         financingContractDifferencePct = row[ProcurementRecordTable.financingContractDifferencePct]?.toDouble(),
         promotorName = row[ProcurementRecordTable.promotorName], fbName = row[ProcurementRecordTable.fbName], subprojectNameUk = row[ProcurementRecordTable.subprojectNameUk], subprojectNameEn = row[ProcurementRecordTable.subprojectNameEn],
         sourceContractType = row[ProcurementRecordTable.sourceContractType],
