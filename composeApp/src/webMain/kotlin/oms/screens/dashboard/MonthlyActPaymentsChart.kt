@@ -46,7 +46,13 @@ fun MonthlyActPaymentsChart(primary: Color, payments: List<ApiMonthlyActPayment>
                 formattedValue = formatActAmount(amountCents, currency)
             )
         }
-    Card(modifier = Modifier.fillMaxWidth().heightIn(min = 420.dp), shape = RoundedCornerShape(12.dp),
+    // The vertical plot already owns a fixed, readable bar lane.  A 420 dp
+    // card minimum added unused space below it, especially for a short
+    // monthly series; allow the card to follow its actual chart content.
+    val cardModifier = Modifier.fillMaxWidth().then(
+        if (data.isEmpty()) Modifier else Modifier.heightIn(min = 352.dp)
+    )
+    Card(modifier = cardModifier, shape = RoundedCornerShape(12.dp),
         colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
         Column(modifier = Modifier.padding(16.dp)) {
             OmsChartHeader(LocalizationManager.t("monthly_act_payments")) {
@@ -65,7 +71,7 @@ fun MonthlyActPaymentsChart(primary: Color, payments: List<ApiMonthlyActPayment>
             Box(Modifier.fillMaxWidth().height(40.dp), contentAlignment = Alignment.Center) {
                 CurrencySelector(currency) { currency = it }
             }
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(8.dp))
             if (data.isEmpty()) Text(LocalizationManager.t("no_payments_yet"))
             else if (orientation == BarChartOrientation.Vertical) VerticalBarChart(
                 data = data, color = primary, valueLabel = { formatActAmount(it.toLong(), currency) }, labelMaxLines = 1,
