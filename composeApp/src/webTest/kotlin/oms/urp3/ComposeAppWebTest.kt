@@ -24,7 +24,7 @@ class ComposeAppWebTest {
     fun financialLabelsPreserveCentsAndLargeAmounts() {
         assertEquals("€ 0.01", formatEuroCents(1))
         assertEquals("€ 0.00", formatEuroCents(0))
-        assertEquals("€ 25 000 000.99", formatEuroCents(2_500_000_099))
+        assertEquals("€ 25\u00A0000\u00A0000.99", formatEuroCents(2_500_000_099))
         assertEquals("−€ 12.34", formatEuroCents(-1234))
     }
 
