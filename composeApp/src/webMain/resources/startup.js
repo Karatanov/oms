@@ -196,6 +196,60 @@
         return warmupPromise;
     }
 
+    /**
+     * A normal retry used to navigate back to app.html but reused the same
+     * immutable JS/WASM entries from the browser cache.  This looked like a
+     * retry to the user, while the broken or partial resource was executed
+     * again.  Reload each item under its real URL first, just as Ctrl+F5
+     * does, so the following Compose bootstrap receives fresh bytes.
+     */
+    window.omsReloadApplicationAssets = async () => {
+        warmProgress = 3;
+        if (active) report(3, "assets");
+        try {
+            const response = await fetch(new URL("assets-manifest.json", document.baseURI), {
+                cache: "reload",
+                credentials: "same-origin"
+            });
+            if (!response.ok) throw new Error(`Manifest ${response.status}`);
+            const manifest = await response.json();
+            const assets = (manifest.assets || []).filter(asset => asset.url && Number(asset.bytes) > 0);
+            if (!assets.length) throw new Error("Empty asset manifest");
+            const totals = { loaded: 0, size: assets.reduce((sum, asset) => sum + Number(asset.bytes), 0) };
+            await Promise.all(assets.map(async rawAsset => {
+                const asset = { ...rawAsset, bytes: Number(rawAsset.bytes), reported: 0 };
+                const fresh = await fetch(new URL(asset.url, document.baseURI), {
+                    cache: "reload",
+                    credentials: "same-origin"
+                });
+                if (!fresh.ok) throw new Error(`Asset ${fresh.status}`);
+                const reader = fresh.body?.getReader();
+                if (!reader) {
+                    totals.loaded += asset.bytes;
+                    reportWarmup(8 + totals.loaded / totals.size * 80);
+                    return;
+                }
+                while (true) {
+                    const chunk = await reader.read();
+                    if (chunk.done) break;
+                    const bounded = Math.min(asset.bytes, asset.reported + chunk.value.byteLength);
+                    totals.loaded += bounded - asset.reported;
+                    asset.reported = bounded;
+                    reportWarmup(8 + totals.loaded / totals.size * 80);
+                }
+                totals.loaded += asset.bytes - asset.reported;
+                asset.reported = asset.bytes;
+                reportWarmup(8 + totals.loaded / totals.size * 80);
+            }));
+            return true;
+        } catch (error) {
+            // The script tag below remains a useful fallback for a transient
+            // manifest failure. Its error event still presents the retry UI.
+            console.warn("OMS asset refresh before retry failed", error);
+            return false;
+        }
+    };
+
     window.omsWarmApplicationAssets = warmApplicationAssets;
     window.beginOmsStartup = (language, warmAssets = true) => {
         locale = language === "en" ? "en" : "uk";
@@ -228,6 +282,10 @@
         clearWatchdog();
         performance.mark("oms-dashboard-handoff");
         sessionStorage.removeItem(storageKey);
+        const url = new URL(window.location.href);
+        if (url.searchParams.delete("startupRetry")) {
+            window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`);
+        }
         setTimeout(() => {
             active = false;
             clearInterval(timer);
@@ -248,7 +306,9 @@
         progress = 3;
         warmProgress = 0;
         warmupPromise = null;
-        sessionStorage.removeItem(storageKey);
+        // Keep the reset state across the navigation. The new document then
+        // shows genuine download progress while it refreshes stale assets.
+        persist();
         ensureTimer();
         ensureWatchdog();
         render("preparing");
