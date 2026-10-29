@@ -1,6 +1,7 @@
 package oms.screens
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.animateScrollBy
@@ -96,6 +97,7 @@ private data class ProjectActRow(
 
 private enum class FinancialSort { Type, Purpose, Tranche, Subproject, SubprojectCode, SubprojectPart, ActDate, Amount, Currency, Description, Author }
 private enum class PaymentMonitoringSort { Code, Total, Eib, Local, PaidAndInProgress, Paid, Remaining, PlannedShare, FactualShare, Compliance }
+private enum class PaymentMonitoringTransactionSort { Date, Code, Tranche, Uah, Eur }
 
 @Composable
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
@@ -1230,26 +1232,39 @@ private fun PaymentMonitoringCard(
     var page by remember(snapshot.items) { mutableStateOf(0) }
     var sort by remember { mutableStateOf(PaymentMonitoringSort.Code) }
     var ascending by remember { mutableStateOf(true) }
+    var codeQuery by remember(snapshot.items) { mutableStateOf("") }
+    var complianceFilter by remember(snapshot.items) { mutableStateOf<String?>(null) }
+    var paidFromInput by remember(snapshot.items) { mutableStateOf("") }
+    var paidToInput by remember(snapshot.items) { mutableStateOf("") }
     fun selectSort(column: PaymentMonitoringSort) {
         if (sort == column) ascending = !ascending else { sort = column; ascending = true }
         page = 0
     }
-    val rows = remember(snapshot.items, sort, ascending) {
-        snapshot.items.sortedWith(compareBy<oms.data.ApiPaymentMonitoringItem> {
-            when (sort) {
-                PaymentMonitoringSort.Code -> it.code
-                PaymentMonitoringSort.Total -> it.totalInvestmentUah ?: Double.NEGATIVE_INFINITY
-                PaymentMonitoringSort.Eib -> it.eibInvestmentUah ?: Double.NEGATIVE_INFINITY
-                PaymentMonitoringSort.Local -> it.localCoFinancingUah ?: Double.NEGATIVE_INFINITY
-                PaymentMonitoringSort.PaidAndInProgress -> it.paidAndInProgressUah ?: Double.NEGATIVE_INFINITY
-                PaymentMonitoringSort.Paid -> it.paidUah ?: Double.NEGATIVE_INFINITY
-                PaymentMonitoringSort.Remaining -> it.remainingUah ?: Double.NEGATIVE_INFINITY
-                PaymentMonitoringSort.PlannedShare -> it.plannedEibSharePct ?: Double.NEGATIVE_INFINITY
-                PaymentMonitoringSort.FactualShare -> it.factualEibSharePct ?: Double.NEGATIVE_INFINITY
-                PaymentMonitoringSort.Compliance -> it.eibShareCompliance.orEmpty()
-            }
-        }.let { if (ascending) it else it.reversed() })
+    fun resetFilters() {
+        codeQuery = ""
+        complianceFilter = null
+        paidFromInput = ""
+        paidToInput = ""
+        page = 0
     }
+    val normalizedQuery = codeQuery.trim().lowercase()
+    val paidFrom = paidFromInput.paymentAmountOrNull()
+    val paidTo = paidToInput.paymentAmountOrNull()
+    val complianceOptions = remember(snapshot.items) {
+        snapshot.items.mapNotNull { it.eibShareCompliance?.trim()?.takeIf(String::isNotBlank) }.distinct().sorted()
+    }
+    val filteredRows = remember(snapshot.items, normalizedQuery, complianceFilter, paidFrom, paidTo) {
+        snapshot.items.filter { row ->
+            (normalizedQuery.isBlank() || row.code.lowercase().contains(normalizedQuery)) &&
+                (complianceFilter == null || row.eibShareCompliance == complianceFilter) &&
+                (paidFrom == null || (row.paidUah ?: Double.NEGATIVE_INFINITY) >= paidFrom) &&
+                (paidTo == null || (row.paidUah ?: Double.POSITIVE_INFINITY) <= paidTo)
+        }
+    }
+    val rows = remember(filteredRows, sort, ascending) {
+        filteredRows.sortedWith { left, right -> comparePaymentMonitoringRows(left, right, sort, ascending) }
+    }
+    LaunchedEffect(normalizedQuery, complianceFilter, paidFrom, paidTo) { page = 0 }
     val pageSize = 20
     val pageCount = maxOf(1, (rows.size + pageSize - 1) / pageSize)
     val visibleRows = rows.drop(page.coerceIn(0, pageCount - 1) * pageSize).take(pageSize)
@@ -1293,14 +1308,39 @@ private fun PaymentMonitoringCard(
                 )
             }
             if (expanded) {
+                PaymentMonitoringFilters(
+                    codeQuery = codeQuery,
+                    onCodeQueryChange = { codeQuery = it.safeTextInput(100) },
+                    complianceOptions = complianceOptions,
+                    complianceFilter = complianceFilter,
+                    onComplianceChange = { complianceFilter = it },
+                    paidFrom = paidFromInput,
+                    onPaidFromChange = { paidFromInput = it.safeTextInput(32) },
+                    paidTo = paidToInput,
+                    onPaidToChange = { paidToInput = it.safeTextInput(32) },
+                    filteredCount = rows.size,
+                    totalCount = snapshot.items.size,
+                    onReset = ::resetFilters
+                )
                 if (rows.isEmpty()) {
                     Text(LocalizationManager.t("no_chart_data"), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 } else {
                     oms.components.ScrollableTable(
                         modifier = Modifier.fillMaxWidth(),
+                        pinnedStartWidth = 130.dp,
+                        pinnedStartHeader = { PaymentMonitoringHeaderCell("subproject_code", 130.dp, PaymentMonitoringSort.Code, sort, ascending, ::selectSort) },
+                        pinnedStartContent = {
+                            visibleRows.forEach { row ->
+                                Row(Modifier.width(130.dp).padding(vertical = 4.dp)) { PaymentMonitoringCell(row.code, 130.dp) }
+                                HorizontalDivider()
+                            }
+                        },
                         header = { PaymentMonitoringHeader(sort, ascending, ::selectSort) }
                     ) {
-                        visibleRows.forEach { row -> PaymentMonitoringRow(row) }
+                        visibleRows.forEach { row ->
+                            PaymentMonitoringRow(row)
+                            HorizontalDivider()
+                        }
                     }
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
                         Text(
@@ -1320,43 +1360,207 @@ private fun PaymentMonitoringCard(
     }
 }
 
+@Composable
+@OptIn(ExperimentalLayoutApi::class)
+private fun PaymentMonitoringFilters(
+    codeQuery: String,
+    onCodeQueryChange: (String) -> Unit,
+    complianceOptions: List<String>,
+    complianceFilter: String?,
+    onComplianceChange: (String?) -> Unit,
+    paidFrom: String,
+    onPaidFromChange: (String) -> Unit,
+    paidTo: String,
+    onPaidToChange: (String) -> Unit,
+    filteredCount: Int,
+    totalCount: Int,
+    onReset: () -> Unit
+) {
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        OutlinedTextField(
+            value = codeQuery,
+            onValueChange = onCodeQueryChange,
+            singleLine = true,
+            label = { Text(LocalizationManager.t("subproject_code")) },
+            modifier = Modifier.widthIn(min = 180.dp, max = 240.dp)
+        )
+        FilterDropdown(
+            label = LocalizationManager.t("payment_monitoring_eib_compliance"),
+            options = complianceOptions,
+            selected = complianceFilter,
+            onSelect = onComplianceChange,
+            itemLabel = { it.asReadableComplianceStatus() }
+        )
+        PaymentAmountRangeField("payment_monitoring_amount_from", paidFrom, onPaidFromChange)
+        PaymentAmountRangeField("payment_monitoring_amount_to", paidTo, onPaidToChange)
+        OutlinedButton(onClick = onReset) { Text(LocalizationManager.t("reset_filters")) }
+        Text(
+            LocalizationManager.t("payment_monitoring_filtered_count")
+                .replace("{shown}", filteredCount.toString()).replace("{total}", totalCount.toString()),
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.padding(top = 14.dp)
+        )
+    }
+}
+
+@Composable
+private fun PaymentAmountRangeField(labelKey: String, value: String, onValueChange: (String) -> Unit) {
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        singleLine = true,
+        label = { Text(LocalizationManager.t(labelKey)) },
+        placeholder = { Text(LocalizationManager.t("payment_monitoring_paid")) },
+        modifier = Modifier.widthIn(min = 140.dp, max = 180.dp)
+    )
+}
+
+/** Accept both decimal separators used in Ukrainian and English interfaces. */
+private fun String.paymentAmountOrNull(): Double? = trim()
+    .takeIf(String::isNotBlank)
+    ?.replace(" ", "")
+    ?.replace(',', '.')
+    ?.toDoubleOrNull()
+
+/** Nulls consistently remain at the end in both ascending and descending views. */
+private fun compareOptionalNumber(left: Double?, right: Double?, ascending: Boolean): Int = when {
+    left == null && right == null -> 0
+    left == null -> 1
+    right == null -> -1
+    else -> left.compareTo(right).let { if (ascending) it else -it }
+}
+
+private fun compareOptionalInt(left: Int?, right: Int?, ascending: Boolean): Int = when {
+    left == null && right == null -> 0
+    left == null -> 1
+    right == null -> -1
+    else -> left.compareTo(right).let { if (ascending) it else -it }
+}
+
+private fun compareText(left: String, right: String, ascending: Boolean): Int =
+    left.lowercase().compareTo(right.lowercase()).let { if (ascending) it else -it }
+
+private fun compareOptionalText(left: String?, right: String?, ascending: Boolean): Int = when {
+    left.isNullOrBlank() && right.isNullOrBlank() -> 0
+    left.isNullOrBlank() -> 1
+    right.isNullOrBlank() -> -1
+    else -> compareText(left, right, ascending)
+}
+
+private fun comparePaymentMonitoringRows(
+    left: ApiPaymentMonitoringItem,
+    right: ApiPaymentMonitoringItem,
+    sort: PaymentMonitoringSort,
+    ascending: Boolean
+): Int = when (sort) {
+    PaymentMonitoringSort.Code -> compareText(left.code, right.code, ascending)
+    PaymentMonitoringSort.Total -> compareOptionalNumber(left.totalInvestmentUah, right.totalInvestmentUah, ascending)
+    PaymentMonitoringSort.Eib -> compareOptionalNumber(left.eibInvestmentUah, right.eibInvestmentUah, ascending)
+    PaymentMonitoringSort.Local -> compareOptionalNumber(left.localCoFinancingUah, right.localCoFinancingUah, ascending)
+    PaymentMonitoringSort.PaidAndInProgress -> compareOptionalNumber(left.paidAndInProgressUah, right.paidAndInProgressUah, ascending)
+    PaymentMonitoringSort.Paid -> compareOptionalNumber(left.paidUah, right.paidUah, ascending)
+    PaymentMonitoringSort.Remaining -> compareOptionalNumber(left.remainingUah, right.remainingUah, ascending)
+    PaymentMonitoringSort.PlannedShare -> compareOptionalNumber(left.plannedEibSharePct, right.plannedEibSharePct, ascending)
+    PaymentMonitoringSort.FactualShare -> compareOptionalNumber(left.factualEibSharePct, right.factualEibSharePct, ascending)
+    PaymentMonitoringSort.Compliance -> compareOptionalText(left.eibShareCompliance, right.eibShareCompliance, ascending)
+}
+
+private fun comparePaymentTransactions(
+    left: ApiPaymentMonitoringTransaction,
+    right: ApiPaymentMonitoringTransaction,
+    sort: PaymentMonitoringTransactionSort,
+    ascending: Boolean
+): Int = when (sort) {
+    PaymentMonitoringTransactionSort.Date -> compareText(left.paymentDate, right.paymentDate, ascending)
+    PaymentMonitoringTransactionSort.Code -> compareText(left.code, right.code, ascending)
+    PaymentMonitoringTransactionSort.Tranche -> compareOptionalInt(left.batchId, right.batchId, ascending)
+    PaymentMonitoringTransactionSort.Uah -> compareOptionalNumber(left.amountUah, right.amountUah, ascending)
+    PaymentMonitoringTransactionSort.Eur -> compareOptionalNumber(left.amountEur, right.amountEur, ascending)
+}
+
 /**
  * The source worksheet contains the auditable transactions behind the monthly
  * chart.  It is shown below the cumulative register and follows a month click
  * from the Dashboard without converting those rows into editable documents.
  */
 @Composable
+@OptIn(ExperimentalLayoutApi::class)
 private fun PaymentMonitoringTransactionTable(
     transactions: List<ApiPaymentMonitoringTransaction>,
     selectedMonth: String?
 ) {
-    val rows = remember(transactions, selectedMonth) {
-        transactions.filter { selectedMonth == null || it.paymentDate.startsWith(selectedMonth) }
-            .sortedWith(compareBy<ApiPaymentMonitoringTransaction> { it.paymentDate }.thenBy { it.code })
+    var codeQuery by remember(transactions) { mutableStateOf("") }
+    var trancheFilter by remember(transactions) { mutableStateOf<Int?>(null) }
+    var uahFromInput by remember(transactions) { mutableStateOf("") }
+    var uahToInput by remember(transactions) { mutableStateOf("") }
+    var sort by remember { mutableStateOf(PaymentMonitoringTransactionSort.Date) }
+    var ascending by remember { mutableStateOf(true) }
+    var page by remember(transactions, selectedMonth) { mutableStateOf(0) }
+    fun selectSort(column: PaymentMonitoringTransactionSort) {
+        if (sort == column) ascending = !ascending else { sort = column; ascending = true }
+        page = 0
     }
+    val normalizedQuery = codeQuery.trim().lowercase()
+    val uahFrom = uahFromInput.paymentAmountOrNull()
+    val uahTo = uahToInput.paymentAmountOrNull()
+    val scopedTransactions = remember(transactions, selectedMonth) {
+        transactions.filter { row -> selectedMonth == null || row.paymentDate.startsWith(selectedMonth) }
+    }
+    val filteredRows = remember(scopedTransactions, normalizedQuery, trancheFilter, uahFrom, uahTo) {
+        scopedTransactions.filter { row ->
+                (normalizedQuery.isBlank() || row.code.lowercase().contains(normalizedQuery)) &&
+                (trancheFilter == null || row.batchId == trancheFilter) &&
+                (uahFrom == null || row.amountUah >= uahFrom) &&
+                (uahTo == null || row.amountUah <= uahTo)
+        }
+    }
+    val rows = remember(filteredRows, sort, ascending) {
+        filteredRows.sortedWith { left, right -> comparePaymentTransactions(left, right, sort, ascending) }
+    }
+    LaunchedEffect(normalizedQuery, trancheFilter, uahFrom, uahTo, selectedMonth) { page = 0 }
     if (transactions.isEmpty()) return
     Text(
         if (selectedMonth == null) LocalizationManager.t("payment_monitoring_title")
         else "${LocalizationManager.t("payment_monitoring_title")} · ${selectedMonth.toMonthName()} ${selectedMonth.take(4)}",
         style = MaterialTheme.typography.titleSmall
     )
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        OutlinedTextField(codeQuery, { codeQuery = it.safeTextInput(100) }, singleLine = true,
+            label = { Text(LocalizationManager.t("subproject_code")) }, modifier = Modifier.widthIn(min = 180.dp, max = 240.dp))
+        FilterDropdown(LocalizationManager.t("tranche"), listOf(8, 9), trancheFilter, { trancheFilter = it },
+            itemLabel = { if (it == 8) "A" else "B" })
+        PaymentAmountRangeField("payment_monitoring_amount_from", uahFromInput) { uahFromInput = it.safeTextInput(32) }
+        PaymentAmountRangeField("payment_monitoring_amount_to", uahToInput) { uahToInput = it.safeTextInput(32) }
+        OutlinedButton(onClick = { codeQuery = ""; trancheFilter = null; uahFromInput = ""; uahToInput = ""; page = 0 }) {
+            Text(LocalizationManager.t("reset_filters"))
+        }
+        Text(
+            LocalizationManager.t("payment_monitoring_filtered_count")
+                .replace("{shown}", rows.size.toString()).replace("{total}", scopedTransactions.size.toString()),
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.padding(top = 14.dp)
+        )
+    }
     if (rows.isEmpty()) {
         Text(LocalizationManager.t("no_chart_data"), color = MaterialTheme.colorScheme.onSurfaceVariant)
         return
     }
+    val pageSize = 20
+    val pageCount = maxOf(1, (rows.size + pageSize - 1) / pageSize)
+    val visibleRows = rows.drop(page.coerceIn(0, pageCount - 1) * pageSize).take(pageSize)
     oms.components.ScrollableTable(
         modifier = Modifier.fillMaxWidth(),
         header = {
             Row(Modifier.width(600.dp)) {
-                PaymentSourceHeader(LocalizationManager.t("date"), 110.dp)
-                PaymentSourceHeader(LocalizationManager.t("subproject_code"), 160.dp)
-                PaymentSourceHeader(LocalizationManager.t("tranche"), 90.dp)
-                PaymentSourceHeader("UAH", 130.dp)
-                PaymentSourceHeader("EUR", 110.dp)
+                PaymentSourceHeader(LocalizationManager.t("date"), 110.dp, PaymentMonitoringTransactionSort.Date, sort, ascending, ::selectSort)
+                PaymentSourceHeader(LocalizationManager.t("subproject_code"), 160.dp, PaymentMonitoringTransactionSort.Code, sort, ascending, ::selectSort)
+                PaymentSourceHeader(LocalizationManager.t("tranche"), 90.dp, PaymentMonitoringTransactionSort.Tranche, sort, ascending, ::selectSort)
+                PaymentSourceHeader("UAH", 130.dp, PaymentMonitoringTransactionSort.Uah, sort, ascending, ::selectSort, true)
+                PaymentSourceHeader("EUR", 110.dp, PaymentMonitoringTransactionSort.Eur, sort, ascending, ::selectSort, true)
             }
         }
     ) {
-        rows.forEach { row ->
+        visibleRows.forEach { row ->
             Row(Modifier.width(600.dp).padding(vertical = 4.dp)) {
                 PaymentMonitoringCell(row.paymentDate, 110.dp)
                 PaymentMonitoringCell(row.code, 160.dp)
@@ -1364,13 +1568,27 @@ private fun PaymentMonitoringTransactionTable(
                 PaymentMonitoringCell(row.amountUah.asUahTableValue(), 130.dp)
                 PaymentMonitoringCell(row.amountEur?.formatUiAmount() ?: "—", 110.dp)
             }
+            HorizontalDivider()
         }
+    }
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
+        Text(LocalizationManager.t("page_of").replace("{page}", (page.coerceIn(0, pageCount - 1) + 1).toString())
+            .replace("{pages}", pageCount.toString()).replace("{total}", rows.size.toString()), style = MaterialTheme.typography.bodySmall)
+        TableActionIconButton(LocalizationManager.t("previous_page"), Icons.Default.KeyboardArrowLeft) { page = (page - 1).coerceAtLeast(0) }
+        TableActionIconButton(LocalizationManager.t("next_page"), Icons.Default.KeyboardArrowRight) { page = (page + 1).coerceAtMost(pageCount - 1) }
     }
 }
 
 @Composable
-private fun PaymentSourceHeader(title: String, width: androidx.compose.ui.unit.Dp) =
-    Text(title, Modifier.width(width).padding(6.dp), style = MaterialTheme.typography.labelMedium, maxLines = 2)
+private fun PaymentSourceHeader(
+    title: String,
+    width: androidx.compose.ui.unit.Dp,
+    column: PaymentMonitoringTransactionSort,
+    sort: PaymentMonitoringTransactionSort,
+    ascending: Boolean,
+    onSort: (PaymentMonitoringTransactionSort) -> Unit,
+    numeric: Boolean = false
+) = SortableTableHeader(title, sort == column, ascending, { onSort(column) }, Modifier.width(width), numeric = numeric)
 
 @Composable
 private fun PaymentMonitoringHeader(
