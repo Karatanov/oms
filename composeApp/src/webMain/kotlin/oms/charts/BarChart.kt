@@ -10,6 +10,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import oms.components.formatGroupedNumber
 
 /*
    Простий горизонтальний BarChart
@@ -76,7 +77,7 @@ fun BarChart(
                 */
 
                 Text(
-                    text = item.value.toInt().toString(),
+                    text = formatGroupedNumber(item.value.toLong()),
                     modifier = Modifier
                         .width(40.dp)
                         .padding(start = 8.dp),

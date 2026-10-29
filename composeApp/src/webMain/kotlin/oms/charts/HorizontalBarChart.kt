@@ -17,12 +17,13 @@ import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import oms.components.OmsTooltipBox
+import oms.components.formatGroupedNumber
 
 /** Horizontal counterpart to [VerticalBarChart], with vertical navigation. */
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
 fun HorizontalBarChart(
-    data: List<BarData>, color: Color, valueLabel: (Float) -> String = { it.toLong().toString() },
+    data: List<BarData>, color: Color, valueLabel: (Float) -> String = { formatGroupedNumber(it.toLong()) },
     onItemClick: ((BarData) -> Unit)? = null,
     showDataLabels: Boolean = true
 ) {

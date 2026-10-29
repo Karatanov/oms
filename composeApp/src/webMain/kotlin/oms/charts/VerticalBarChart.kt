@@ -15,6 +15,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import oms.components.TableScrollControls
+import oms.components.formatGroupedNumber
 
 /** Zero-based plot with a fixed baseline, equal label lanes and accessible tooltips. */
 @Composable
@@ -22,7 +23,7 @@ import oms.components.TableScrollControls
 fun VerticalBarChart(
     data: List<BarData>, color: Color, labelWidth: Dp = 76.dp, labelMaxLines: Int = 2,
     maxVisibleItems: Int? = null, initialScrollToEnd: Boolean = false,
-    valueLabel: (Float) -> String = { it.toLong().toString() }, onItemClick: ((BarData) -> Unit)? = null,
+    valueLabel: (Float) -> String = { formatGroupedNumber(it.toLong()) }, onItemClick: ((BarData) -> Unit)? = null,
     showScrollControls: Boolean = true,
     showDataLabels: Boolean = true
 ) {

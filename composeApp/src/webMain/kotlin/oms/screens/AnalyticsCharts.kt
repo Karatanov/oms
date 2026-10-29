@@ -61,6 +61,7 @@ import oms.components.OmsTooltipBox
 import oms.components.ChartSortControls
 import oms.components.ChartPngExportButton
 import oms.components.OmsChartHeader
+import oms.components.formatGroupedNumber
 import oms.components.localizedUkraineRegion
 import oms.components.canonicalUkraineRegion
 import oms.components.buttonHandCursor
@@ -542,5 +543,5 @@ private fun formatChartAmount(value: Double, currency: String): String {
     return groupedNumber(value.roundToLong())
 }
 
-private fun groupedNumber(value: Long): String = value.toString().reversed().chunked(3).joinToString(" ").reversed()
-private fun euro(cents: Long): String = "€ " + (cents / 100).toString() + "." + (cents % 100).toString().padStart(2, '0')
+private fun groupedNumber(value: Long): String = formatGroupedNumber(value)
+private fun euro(cents: Long): String = "€ " + formatGroupedNumber(cents / 100) + "." + (cents % 100).toString().padStart(2, '0')

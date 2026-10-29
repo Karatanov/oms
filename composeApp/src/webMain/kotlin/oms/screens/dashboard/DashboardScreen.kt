@@ -302,9 +302,7 @@ private fun SummaryMetric(labelKey: String, value: String, uahEquivalent: String
     }
 }
 
-private fun Long.grouped(): String = toString().removePrefix("-").reversed().chunked(3).joinToString(" ").reversed().let {
-    if (this < 0) "−$it" else it
-}
+private fun Long.grouped(): String = formatGroupedNumber(this)
 
 private fun Long.toEuroAmount(): String = "${(this / 100).grouped()}.${(this % 100).toString().padStart(2, '0')}"
 private fun Long.toUahAmount(): String = "${(this / 100).grouped()}.${(this % 100).toString().padStart(2, '0')}"

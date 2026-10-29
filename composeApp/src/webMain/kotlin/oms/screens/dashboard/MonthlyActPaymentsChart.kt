@@ -29,6 +29,7 @@ import oms.localization.LocalizationManager
 import oms.components.CurrencySelector
 import oms.components.ChartPngExportButton
 import oms.components.OmsChartHeader
+import oms.components.formatGroupedNumber
 import kotlin.math.roundToInt
 
 @Composable
@@ -82,4 +83,4 @@ fun MonthlyActPaymentsChart(primary: Color, payments: List<ApiMonthlyActPayment>
 }
 
 private fun formatActAmount(cents: Long, currency: String): String =
-    (cents / 100.0).roundToInt().toString()
+    formatGroupedNumber((cents / 100.0).roundToInt().toLong())

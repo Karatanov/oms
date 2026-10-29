@@ -8,6 +8,7 @@ import oms.model.ProjectStatus
 import oms.model.localizedName
 import oms.model.localizedBeneficiary
 import oms.components.localizedUkraineRegion
+import oms.components.formatGroupedNumber
 import kotlin.js.JsName
 import kotlin.math.abs
 import kotlin.math.roundToLong
@@ -130,7 +131,7 @@ private fun formatMapMoney(raw: String, currency: String): String {
     val roundedCents = (amount * 100).roundToLong()
     val sign = if (roundedCents < 0) "-" else ""
     val absolute = abs(roundedCents)
-    val whole = (absolute / 100).toString().reversed().chunked(3).joinToString(" ").reversed()
+    val whole = formatGroupedNumber(absolute / 100)
     val cents = absolute % 100
     return "$sign$whole${if (cents == 0L) "" else ".${cents.toString().padStart(2, '0')}"} $currency"
 }
