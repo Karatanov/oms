@@ -26,7 +26,10 @@ fun SidebarItem(title: String, icon: ImageVector, screen: Screen, current: Scree
     // Wasm can intercept hover state and leave the text-selection cursor visible.
     TextButton(
         onClick = { onNavigate(screen) }, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)
-            .pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true).semantics { selected = isSelected },
+            .pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true).semantics {
+                selected = isSelected
+                testTag = "sidebar-${screen.title.lowercase().replace(' ', '-')}"
+            },
         border = if (isSelected) BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = .24f)) else null,
         shape = MaterialTheme.shapes.medium, contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp),
         colors = ButtonDefaults.textButtonColors(

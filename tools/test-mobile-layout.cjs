@@ -62,7 +62,7 @@ const origin = 'http://127.0.0.1:18088';
         await page.waitForFunction(() => !document.body.classList.contains('mobile-navigation-open'));
         await page.mouse.click(28, 28);
         await page.waitForFunction(() => document.body.classList.contains('mobile-navigation-open'));
-        await page.mouse.click(120, 188);
+        await page.locator('#sidebar-projects').click();
         await ready('Projects');
         assert.equal(await page.evaluate(() => document.body.classList.contains('mobile-navigation-open')), false, 'Navigation closes the drawer');
         await navigate('map', 'Projects Map');
