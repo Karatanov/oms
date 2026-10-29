@@ -40,6 +40,7 @@ import oms.data.ApiFinancialRecord
 import oms.data.ApiFinancialProgress
 import oms.data.ApiFinancialProgressItem
 import oms.data.ApiPaymentMonitoring
+import oms.data.ApiPaymentMonitoringItem
 import oms.data.ApiPaymentMonitoringTransaction
 import oms.data.ApiPaymentMonitoringRefresh
 import oms.data.displayAmountCents
