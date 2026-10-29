@@ -35,11 +35,11 @@ fun ChartSortControls(
     modifier: Modifier = Modifier
 ) {
     Row(modifier, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-        OmsTooltipBox(tooltip = { Text(LocalizationManager.t("chart_sort_alphabetically")) }) {
-            SingleChoiceSegmentedButtonRow {
-                listOf(ChartSortCriterion.Label, ChartSortCriterion.Value).forEachIndexed { index, option ->
-                    val label = if (option == ChartSortCriterion.Label) "A–Z" else "123"
-                    val tooltipKey = if (option == ChartSortCriterion.Label) "chart_sort_alphabetically" else "chart_sort_by_value"
+        SingleChoiceSegmentedButtonRow {
+            listOf(ChartSortCriterion.Label, ChartSortCriterion.Value).forEachIndexed { index, option ->
+                val label = if (option == ChartSortCriterion.Label) "A–Z" else "123"
+                val tooltipKey = if (option == ChartSortCriterion.Label) "chart_sort_alphabetically" else "chart_sort_by_value"
+                OmsTooltipBox(tooltip = { Text(LocalizationManager.t(tooltipKey)) }) {
                     SegmentedButton(
                         selected = criterion == option,
                         onClick = { onCriterionChange(option) },
