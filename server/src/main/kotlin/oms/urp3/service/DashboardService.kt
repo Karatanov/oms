@@ -172,6 +172,30 @@ private fun signedContractAmount(row: org.jetbrains.exposed.v1.core.ResultRow): 
         ?: row[ProcurementRecordTable.contractAmountUah]?.toDouble()
         ?: 0.0
 
+/**
+ * Completion is measured against the value of the actual construction
+ * contract.  The tracker total is only a fallback for older imports that did
+ * not retain the per-contract value.  It must not take precedence here: the
+ * tracker can aggregate several procurement lines and distort one SP's base.
+ */
+private fun worksContractAmount(row: org.jetbrains.exposed.v1.core.ResultRow): Double =
+    row[ProcurementRecordTable.contractAmountUah]?.toDouble()
+        ?: row[ProcurementRecordTable.signedContractAmountUah]?.toDouble()
+        ?: 0.0
+
+/** DB6.3's source row id is contract-level and remains unique across lots. */
+private fun List<org.jetbrains.exposed.v1.core.ResultRow>.uniqueContracts() =
+    distinctBy { row -> row[ProcurementRecordTable.tenderId] ?: "record-${row[ProcurementRecordTable.id].value}" }
+
+/**
+ * This chart is physical work completion, not overall cash expenditure.
+ * Imported acts for equipment, technical supervision and consulting must not
+ * change the result for construction works.
+ */
+private fun isConstructionWorkAct(row: org.jetbrains.exposed.v1.core.ResultRow): Boolean =
+    row[FinancialRecordTable.recordType] == "act" &&
+        row[FinancialRecordTable.paymentPurpose].equals("works", ignoreCase = true)
+
 private fun org.jetbrains.exposed.v1.core.ResultRow.contractType(): ProcurementContractType? =
     ProcurementContractType.resolve(this[ProcurementRecordTable.tenderId], this[ProcurementRecordTable.sourceContractType])
 
@@ -353,7 +377,7 @@ class DashboardService(
         // Acts represent completed construction work and are used for the
         // subproject-completion chart below. Payments are a separate cash
         // flow used by the monthly disbursement chart.
-        val actRecords = financialRecords.filter { it[FinancialRecordTable.recordType] == "act" }
+        val actRecords = financialRecords.filter(::isConstructionWorkAct)
         val paymentRecords = financialRecords.filter {
             it[FinancialRecordTable.recordType] in setOf("payment", "advance")
         }
@@ -418,14 +442,16 @@ class DashboardService(
                     isWorksContract(record)
             }
             .groupBy { it[ProcurementRecordTable.subProjectId].trim().lowercase() }
-            .mapValues { (_, records) -> records.uniqueProcurements().sumOf { signedContractAmount(it) } }
-        // Progress must cover every subproject.  A missing or unsigned
-        // construction contract simply results in 0%, rather than hiding its
-        // region from the dashboard filter.
-        val subprojectProgress = portfolioSubprojects.map { row ->
+            .mapValues { (_, records) -> records.uniqueContracts().sumOf(::worksContractAmount) }
+        // The chart is defined as construction acts divided by a signed W
+        // contract.  Do not render unrelated, unsigned subprojects as 0%:
+        // that made the visual comparison look like incomplete data and
+        // contradicted the procurement condition selected for this chart.
+        val subprojectProgress = portfolioSubprojects.mapNotNull { row ->
             val id = row[ProjectTable.id].value
-            val contract = signedWorksAmountBySubprojectCode[row[ProjectTable.siteNumber].orEmpty().trim().lowercase()]
-                ?: (row[ProjectTable.subprojectContractAmount] ?: row[ProjectTable.budgetPlanned]).toDouble()
+            val contract = signedWorksAmountBySubprojectCode[
+                row[ProjectTable.siteNumber].orEmpty().substringBefore('#').trim().lowercase()
+            ]?.takeIf { it > 0.0 } ?: return@mapNotNull null
             DashboardSubprojectProgress(
                 row[ProjectTable.uuid], row[ProjectTable.siteNumber].orEmpty(), row[ProjectTable.name], nameEnByProjectId[id], row[ProjectTable.region].orEmpty(),
                 if (contract > 0) (actualBySubproject[id] ?: 0.0) * 100.0 / contract else 0.0
@@ -516,7 +542,7 @@ class DashboardService(
         // screen, which also requests activity data.
         val financialRecords = if (projectIds.isEmpty()) emptyList() else FinancialRecordTable.selectAll()
             .where { FinancialRecordTable.projectId inList projectIds }.toList()
-        val actRecords = financialRecords.filter { it[FinancialRecordTable.recordType] == "act" }
+        val actRecords = financialRecords.filter(::isConstructionWorkAct)
         val paymentRecords = financialRecords.filter {
             it[FinancialRecordTable.recordType] in setOf("payment", "advance")
         }
@@ -563,10 +589,22 @@ class DashboardService(
                     .where { ProcurementRecordTable.batchId inList batchIds }.toList()
             } ?: ProcurementRecordTable.selectAll().toList()
         } else emptyList()
-        val subprojectProgress = subprojects.map { row ->
+        val signedWorksAmountBySubprojectCode = procurementRecords.asSequence()
+            .filter { record ->
+                isConstructionContractSigned(record[ProcurementRecordTable.purchaseStatus]) &&
+                    isWorksContract(record)
+            }
+            .groupBy { it[ProcurementRecordTable.subProjectId].trim().lowercase() }
+            .mapValues { (_, records) -> records.uniqueContracts().sumOf(::worksContractAmount) }
+        val subprojectProgress = subprojects.mapNotNull { row ->
             val id = row[ProjectTable.id].value
-            val contract = row[ProjectTable.subprojectContractAmount] ?: row[ProjectTable.budgetPlanned]
-            DashboardSubprojectProgress(row[ProjectTable.uuid], row[ProjectTable.siteNumber].orEmpty(), row[ProjectTable.name], nameEnByProjectId[id], row[ProjectTable.region].orEmpty(), if (contract > 0) (actualBySubproject[id] ?: 0.0) * 100.0 / contract else 0.0)
+            val contract = signedWorksAmountBySubprojectCode[
+                row[ProjectTable.siteNumber].orEmpty().substringBefore('#').trim().lowercase()
+            ]?.takeIf { it > 0.0 } ?: return@mapNotNull null
+            DashboardSubprojectProgress(
+                row[ProjectTable.uuid], row[ProjectTable.siteNumber].orEmpty(), row[ProjectTable.name], nameEnByProjectId[id], row[ProjectTable.region].orEmpty(),
+                (actualBySubproject[id] ?: 0.0) * 100.0 / contract
+            )
         }.sortedBy { it.name }
         fun month(date: java.time.LocalDate) = date.toString().take(7)
         val monthlyInspectionCounts = reports.groupBy { month(it[InspectionReportTable.inspectionDate]) }
