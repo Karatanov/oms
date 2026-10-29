@@ -1165,16 +1165,19 @@
             const newer = document.createElement("button");
             newer.type = "button";
             newer.className = "photo-slider-report-nav";
+            // The left arrow always moves to the previous item in the report
+            // history.  Keep this physical direction aligned with the user
+            // expectation even though the backing list is newest-first.
             newer.textContent = "‹";
-            newer.disabled = !hasNewerInspection;
-            newer.setAttribute("aria-label", omsLanguage === "uk" ? "Новіший звіт" : "Newer report");
+            newer.disabled = !hasOlderInspection;
+            newer.setAttribute("aria-label", omsLanguage === "uk" ? "Попередній звіт" : "Previous report");
             newer.onclick = event => {
                 event.preventDefault();
                 event.stopPropagation();
                 // Read the current global handler on every click. Compose may
                 // have just recomposed the selected report while this native
                 // pane stayed mounted.
-                omsDashboardNewerInspectionHandler();
+                omsDashboardOlderInspectionHandler();
             };
 
             const title = document.createElement(reportUuid ? "button" : "div");
@@ -1192,12 +1195,12 @@
             older.type = "button";
             older.className = "photo-slider-report-nav";
             older.textContent = "›";
-            older.disabled = !hasOlderInspection;
-            older.setAttribute("aria-label", omsLanguage === "uk" ? "Попередній звіт" : "Older report");
+            older.disabled = !hasNewerInspection;
+            older.setAttribute("aria-label", omsLanguage === "uk" ? "Новіший звіт" : "Newer report");
             older.onclick = event => {
                 event.preventDefault();
                 event.stopPropagation();
-                omsDashboardOlderInspectionHandler();
+                omsDashboardNewerInspectionHandler();
             };
             heading.append(newer, title, older);
             pane.append(heading);
