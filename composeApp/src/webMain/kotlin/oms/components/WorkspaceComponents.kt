@@ -1,6 +1,8 @@
 package oms.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -35,7 +37,10 @@ fun PageHeading(
     iconText: String? = null,
     actions: @Composable () -> Unit = {}
 ) {
-    BoxWithConstraints(Modifier.fillMaxWidth()) {
+    BoxWithConstraints(Modifier.fillMaxWidth()
+        .background(MaterialTheme.colorScheme.surface, MaterialTheme.shapes.large)
+        .border(1.dp, MaterialTheme.colorScheme.outlineVariant, MaterialTheme.shapes.large)
+        .padding(if (oms.layout.LocalMobileLayout.current) 16.dp else 20.dp)) {
         @Composable fun HeadingText(textModifier: Modifier = Modifier) {
             Box(Modifier.size(42.dp).background(MaterialTheme.colorScheme.primaryContainer, MaterialTheme.shapes.medium), contentAlignment = Alignment.Center) {
                 if (iconText == null) Icon(icon, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(22.dp))
@@ -47,9 +52,9 @@ fun PageHeading(
                     fontWeight = FontWeight.Bold
                 )
             }
-            Column(textModifier) {
-                Text(title, style = if (oms.layout.LocalMobileLayout.current) MaterialTheme.typography.headlineSmall else MaterialTheme.typography.headlineMedium, maxLines = 2)
-                subtitle?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2) }
+            Column(textModifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(title, style = if (oms.layout.LocalMobileLayout.current) MaterialTheme.typography.headlineSmall else MaterialTheme.typography.headlineMedium, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                subtitle?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) }
             }
         }
         if (maxWidth >= 620.dp) {
@@ -71,7 +76,9 @@ fun PageHeading(
 fun ContentState(message: String, loading: Boolean = false, error: Boolean = false, onRetry: (() -> Unit)? = null) {
     val background = if (error) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.surfaceContainerLow
     val iconTint = if (error) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
-    BoxWithConstraints(Modifier.fillMaxWidth().background(background, MaterialTheme.shapes.medium).padding(OmsDimensions.SpaceMedium)) {
+    BoxWithConstraints(Modifier.fillMaxWidth().background(background, MaterialTheme.shapes.medium)
+        .border(1.dp, if (error) MaterialTheme.colorScheme.error.copy(alpha = .2f) else MaterialTheme.colorScheme.outlineVariant, MaterialTheme.shapes.medium)
+        .padding(OmsDimensions.SpaceMedium)) {
         if (maxWidth >= 440.dp) Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
             if (loading) CircularProgressIndicator(Modifier.size(22.dp), strokeWidth = 2.dp, color = iconTint)
             else Icon(if (error) Icons.Outlined.ErrorOutline else Icons.Outlined.Info, null, tint = iconTint)

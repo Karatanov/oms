@@ -57,11 +57,14 @@ fun MapScreen(onOpenProject: (Project) -> Unit = {}) {
     // Leave room for the heading/actions and a usable map, even on short phones.
     val filterHeight = (maxHeight * .5f).coerceAtMost((maxHeight - 400.dp).coerceAtLeast(80.dp))
     val shortViewport = maxHeight < 500.dp
+    val compactLandscapeHeader = mobile && shortViewport && maxWidth >= 600.dp
     Column(Modifier.fillMaxSize().padding(oms.layout.workspacePadding()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        if (mobile && shortViewport) Text(LocalizationManager.t("projects_map"), style = MaterialTheme.typography.titleLarge)
+        if (compactLandscapeHeader) { /* The title shares the filter row below. */ }
+        else if (mobile && shortViewport) Text(LocalizationManager.t("projects_map"), style = MaterialTheme.typography.titleLarge)
         else PageHeading(LocalizationManager.t("projects_map"), Icons.Default.Map)
         if (mobile) Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Text("${LocalizationManager.t("markers_count")} ${visible.size}", Modifier.weight(1f), style = MaterialTheme.typography.labelLarge)
+            if (compactLandscapeHeader) Text(LocalizationManager.t("projects_map"), Modifier.weight(1f), style = MaterialTheme.typography.titleLarge)
+            Text("${LocalizationManager.t("markers_count")} ${visible.size}", if (compactLandscapeHeader) Modifier.padding(end = 12.dp) else Modifier.weight(1f), style = MaterialTheme.typography.labelLarge)
             TextButton(onClick = { filtersExpanded = !filtersExpanded }) {
                 Icon(if (filtersExpanded) Icons.Default.ExpandLess else Icons.Default.FilterList, null)
                 Spacer(Modifier.width(6.dp))

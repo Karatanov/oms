@@ -1,0 +1,12 @@
+# Add to COMPOSE_FILE alongside existing overlays before deploying.
+services:
+  oms:
+    environment:
+      OMS_FEEDBACK_GOOGLE_CREDENTIALS: /run/secrets/feedback-google-service-account.json
+    secrets:
+      - source: feedback-google-service-account
+        target: feedback-google-service-account.json
+
+secrets:
+  feedback-google-service-account:
+    file: ${FEEDBACK_GOOGLE_CREDENTIALS_FILE:?set absolute host path to service-account JSON outside repository}

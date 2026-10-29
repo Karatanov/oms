@@ -1,6 +1,9 @@
 package oms.layout
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -22,11 +25,12 @@ fun SidebarItem(title: String, icon: ImageVector, screen: Screen, current: Scree
     // A direct button is intentional: wrapping sidebar links in a tooltip box on
     // Wasm can intercept hover state and leave the text-selection cursor visible.
     TextButton(
-        onClick = { onNavigate(screen) }, modifier = Modifier.fillMaxWidth().heightIn(min = 44.dp)
+        onClick = { onNavigate(screen) }, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)
             .pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true).semantics { selected = isSelected },
-        shape = MaterialTheme.shapes.small, contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp),
+        border = if (isSelected) BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = .24f)) else null,
+        shape = MaterialTheme.shapes.medium, contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp),
         colors = ButtonDefaults.textButtonColors(
-            containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface,
+            containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
             contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
         )
     ) {
@@ -44,7 +48,8 @@ fun SidebarItem(title: String, icon: ImageVector, screen: Screen, current: Scree
         }
         if (!compact) {
             Spacer(Modifier.width(12.dp))
-            Text(title, modifier = Modifier.weight(1f), style = MaterialTheme.typography.labelLarge)
+            Text(title, modifier = Modifier.weight(1f), style = MaterialTheme.typography.labelLarge,
+                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium)
         }
     }
 }

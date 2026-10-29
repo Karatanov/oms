@@ -23,12 +23,13 @@ import oms.navigation.Screen
 @Composable
 fun Sidebar(currentScreen: Screen, onNavigate: (Screen) -> Unit, onLogout: () -> Unit,
     username: String, isAdmin: Boolean, isGuest: Boolean, canAccessFinancials: Boolean,
-    compact: Boolean, onToggle: () -> Unit, toggleLabel: String? = null
+    compact: Boolean, onToggle: () -> Unit, toggleLabel: String? = null, onFeedback: () -> Unit = {}
 ) {
-    Surface(color = MaterialTheme.colorScheme.surface) {
+    Surface(color = MaterialTheme.colorScheme.surface,
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)) {
         // Keep a usable content lane on phone-sized browser windows.  The
         // compact rail retains all navigation through icons and tooltips.
-        Column(Modifier.width(if (compact) 60.dp else 232.dp).fillMaxHeight().padding(if (compact) 6.dp else 12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Column(Modifier.width(if (compact) 72.dp else 248.dp).fillMaxHeight().padding(if (compact) 12.dp else 16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Row(Modifier.fillMaxWidth().height(if (compact) 52.dp else 76.dp), verticalAlignment = Alignment.CenterVertically) {
                 if (!compact) {
                     Icon(Icons.Default.AccountBalance, null, tint = MaterialTheme.colorScheme.primary)
@@ -81,12 +82,20 @@ fun Sidebar(currentScreen: Screen, onNavigate: (Screen) -> Unit, onLogout: () ->
             HorizontalDivider(Modifier.padding(vertical = 8.dp))
             if (compact) TableActionIconButton(LocalizationManager.t("language"), Icons.Default.Language, LocalizationManager::switchLanguage)
             else LanguageSwitcher()
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(Modifier.fillMaxWidth()
+                .background(MaterialTheme.colorScheme.surfaceContainerLow, MaterialTheme.shapes.medium)
+                .padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                 if (!compact) Column(Modifier.weight(1f).padding(start = 8.dp)) {
                     Text(username, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.titleSmall)
                     Text(LocalizationManager.t(if (isGuest) "guest_access" else "signed_in"), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 TableActionIconButton(LocalizationManager.t("logout"), Icons.AutoMirrored.Filled.Logout, onLogout)
+            }
+            if (compact) TableActionIconButton(LocalizationManager.t("feedback_title"), Icons.Default.Feedback, onFeedback)
+            else OutlinedButton(onClick = onFeedback, modifier = Modifier.fillMaxWidth().heightIn(min = 44.dp)) {
+                Icon(Icons.Default.Feedback, null, Modifier.size(20.dp))
+                Spacer(Modifier.width(8.dp))
+                Text(LocalizationManager.t("feedback_title"))
             }
         }
     }

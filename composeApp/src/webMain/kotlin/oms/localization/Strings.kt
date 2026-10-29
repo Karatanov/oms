@@ -3,6 +3,24 @@ package oms.localization
 object Strings {
 
     val uk = mapOf(
+        "feedback_title" to "Зворотний зв’язок",
+        "feedback_hint" to "Повідомте про проблему або запропонуйте покращення. Звернення буде додано до трекера OMS.",
+        "feedback_page" to "Сторінка / категорія",
+        "feedback_type" to "Тип звернення",
+        "feedback_correction" to "Помилка / проблема",
+        "feedback_improvement" to "Покращення",
+        "feedback_description" to "Опишіть проблему та кроки її відтворення",
+        "feedback_date" to "Поточна дата (автоматично)",
+        "feedback_send" to "Надіслати",
+        "feedback_sending" to "Надсилання…",
+        "feedback_success" to "Звернення додано до трекера. Номер:",
+        "feedback_failed" to "Не вдалося підключитися. Спробуйте ще раз.",
+        "feedback_unconfigured" to "Надсилання ще не налаштовано. Зверніться до адміністратора OMS.",
+        "feedback_retry" to "Не вдалося підтвердити надсилання. Текст збережено в цій формі. Натисніть «Повторити»: повторне надсилання не створить дубль.",
+        "feedback_users" to "Вхід / користувачі",
+        "feedback_database" to "База даних",
+        "feedback_general" to "Загальне / система",
+
         "archive" to "Архівувати",
         "archived" to "Архівовано",
         "restore" to "Відновити",
@@ -931,6 +949,24 @@ object Strings {
     )
 
     val en = mapOf(
+        "feedback_title" to "Feedback",
+        "feedback_hint" to "Report a problem or suggest an improvement. Your message will be added to the OMS tracker.",
+        "feedback_page" to "Page / category",
+        "feedback_type" to "Type",
+        "feedback_correction" to "Error / problem",
+        "feedback_improvement" to "Improvement",
+        "feedback_description" to "Describe the problem and steps to reproduce it",
+        "feedback_date" to "Current date (automatic)",
+        "feedback_send" to "Send feedback",
+        "feedback_sending" to "Sending…",
+        "feedback_success" to "Added to the tracker. Issue:",
+        "feedback_failed" to "Could not connect. Please retry.",
+        "feedback_unconfigured" to "Feedback is not configured yet. Please contact the OMS administrator.",
+        "feedback_retry" to "Delivery could not be confirmed. Your text is retained in this form. Retry to submit the same message without creating a duplicate.",
+        "feedback_users" to "Authentication / Users",
+        "feedback_database" to "Database",
+        "feedback_general" to "General / System",
+
         "archive" to "Archive",
         "archived" to "Archived",
         "restore" to "Restore",

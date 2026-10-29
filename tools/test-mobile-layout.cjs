@@ -47,7 +47,7 @@ const origin = 'http://127.0.0.1:18088';
         x: parseFloat(el.style.left), y: parseFloat(el.style.top),
       }));
       assert.equal(content.y, mobile ? 56 : 0, 'Content starts below the mobile toolbar');
-      assert.equal(content.x, mobile ? 0 : (viewport.width < 1100 ? 60 : 232), 'Mobile content must not reserve a sidebar lane');
+      assert.equal(content.x, mobile ? 0 : (viewport.width < 1100 ? 72 : 248), 'Mobile content must not reserve a sidebar lane');
       await page.screenshot({ path: `build/mobile-layout-screenshots/map-${viewport.width}x${viewport.height}.png` });
       if (mobile) {
         // Real taps, rather than calling the state setter, verify the drawer's hit targets.
@@ -67,7 +67,7 @@ const origin = 'http://127.0.0.1:18088';
         assert.equal(await page.evaluate(() => document.body.classList.contains('mobile-navigation-open')), false, 'Navigation closes the drawer');
         await navigate('map', 'Projects Map');
         // The filter toggle remains reachable in portrait and short landscape views.
-        await page.mouse.click(viewport.width - 65, viewport.height < 500 ? 122 : 156);
+        await page.mouse.click(viewport.width - 65, viewport.height < 500 ? 96 : 188);
         if (viewport.height < 500) {
           await page.waitForFunction(() => !document.body.classList.contains('map-visible'));
         } else {
@@ -76,7 +76,7 @@ const origin = 'http://127.0.0.1:18088';
           assert.ok(expanded.height >= 100, 'Portrait filters leave a usable map');
         }
         await page.screenshot({ path: `build/mobile-layout-screenshots/filters-${viewport.width}x${viewport.height}.png` });
-        await page.mouse.click(viewport.width - 65, viewport.height < 500 ? 122 : 156);
+        await page.mouse.click(viewport.width - 65, viewport.height < 500 ? 96 : 188);
         await page.waitForFunction(() => document.body.classList.contains('map-visible'));
         // Switch language with the toolbar button and recheck translated controls.
         await page.mouse.click(viewport.width - 28, 28);

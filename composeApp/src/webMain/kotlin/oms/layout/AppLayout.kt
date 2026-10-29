@@ -6,6 +6,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.text.selection.DisableSelection
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Feedback
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material3.*
@@ -49,12 +50,13 @@ fun AppLayout(appState: AppState) {
     BoxWithConstraints(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
     val mobile = maxWidth < 768.dp || (maxHeight < 500.dp && maxWidth < 1100.dp)
     var navigationOpen by remember { mutableStateOf(false) }
+    var feedbackOpen by remember { mutableStateOf(false) }
     LaunchedEffect(appState.navigationRevision, mobile) { navigationOpen = false }
-    DisposableEffect(mobile && navigationOpen) {
-        setMobileNavigationOpen(mobile && navigationOpen)
+    DisposableEffect(mobile && navigationOpen, feedbackOpen) {
+        setMobileNavigationOpen((mobile && navigationOpen) || feedbackOpen)
         // Horizontal table controls remain available on phones; only hide
         // them while the navigation drawer itself is open.
-        tableNavigator.hidden = navigationOpen
+        tableNavigator.hidden = navigationOpen || feedbackOpen
         onDispose { setMobileNavigationOpen(false); tableNavigator.hidden = false }
     }
     var compact by remember(maxWidth < 1100.dp) { mutableStateOf(maxWidth < 1100.dp) }
@@ -74,7 +76,8 @@ fun AppLayout(appState: AppState) {
                 canAccessFinancials = appState.roleCode in setOf("ADMIN", "PROJECT_MANAGER"),
                 compact = if (mobile) false else compact,
                 onToggle = { if (mobile) navigationOpen = false else compact = !compact },
-                toggleLabel = if (mobile) oms.localization.LocalizationManager.t("close") else null
+                toggleLabel = if (mobile) oms.localization.LocalizationManager.t("close") else null,
+                onFeedback = { optionOverlay.menu = null; navigationOpen = false; feedbackOpen = true }
             )
         }
     }
@@ -224,6 +227,16 @@ fun AppLayout(appState: AppState) {
           }
         }
     }
+    // Reserve a footer lane so native map/photo panes cannot cover the feedback control.
+    // The centre remains available for the existing floating table navigator.
+    if (mobile) Surface(color = MaterialTheme.colorScheme.surface) {
+        Row(Modifier.fillMaxWidth().height(56.dp).padding(start = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+            FilledTonalIconButton(onClick = { optionOverlay.menu = null; feedbackOpen = true },
+                modifier = Modifier.size(44.dp).semantics { testTag = "mobile-feedback-toggle" }) {
+                Icon(Icons.Default.Feedback, oms.localization.LocalizationManager.t("feedback_title"))
+            }
+        }
+    }
     }
     if (mobile && navigationOpen) {
         val requester = remember { FocusRequester() }
@@ -235,6 +248,10 @@ fun AppLayout(appState: AppState) {
         }.focusable().semantics { paneTitle = oms.localization.LocalizationManager.t("expand_navigation") }) {
             NavigationSidebar()
         }
+    }
+    if (feedbackOpen) oms.components.FeedbackDialog(appState.currentScreen) {
+        optionOverlay.menu = null
+        feedbackOpen = false
     }
     }
     }

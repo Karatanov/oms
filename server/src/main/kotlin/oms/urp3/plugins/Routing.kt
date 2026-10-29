@@ -60,6 +60,7 @@ fun Application.configureRouting() {
         documentRoutes()
         photoRoutes()
         dashboardRoutes()
+        feedbackRoutes()
 
         // URLs published by early GitHub Pages and API-only deployments. They
         // were never public documents: the auth endpoints are POST-only now,

@@ -66,6 +66,10 @@ jobs:
         env:
           OMS_SMOKE_ASSETS: build/navigation-fixture
         run: node tools/test-route-transitions.cjs
+      - name: Feedback form and retry in Chromium
+        env:
+          OMS_SMOKE_ASSETS: build/navigation-fixture
+        run: node tools/test-feedback.cjs
       - name: Mobile and tablet layouts in Chromium
         env:
           OMS_SMOKE_ASSETS: build/navigation-fixture
@@ -77,3 +81,4 @@ jobs:
           path: |
             composeApp/build/reports/tests/
             build/mobile-layout-screenshots/
+            build/feedback-screenshots/

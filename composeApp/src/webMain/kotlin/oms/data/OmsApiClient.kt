@@ -74,6 +74,21 @@ object OmsApiClient {
         }
     }
 
+    suspend fun feedbackAvailability(): ApiFeedbackAvailability {
+        val response = client.get("$baseUrl/feedback")
+        check(response.status.isSuccess()) { "Feedback unavailable" }
+        return response.body()
+    }
+
+    suspend fun submitFeedback(request: ApiFeedbackRequest): ApiFeedbackReceipt {
+        val response = client.post("$baseUrl/feedback") {
+            contentType(ContentType.Application.Json)
+            setBody(request)
+        }
+        check(response.status.isSuccess()) { "Feedback could not be sent" }
+        return response.body()
+    }
+
     suspend fun login(username: String, password: String): ApiUser {
         val response = client.post("$baseUrl/auth/login") {
             contentType(ContentType.Application.Json)
@@ -1266,3 +1281,10 @@ data class ApiFinancialRecord(
     val eurExchangeDate: String? = null,
     val amountEurCents: Long? = null
 )
+
+@Serializable
+data class ApiFeedbackRequest(val requestId: String, val page: String, val type: String, val description: String)
+@Serializable
+data class ApiFeedbackReceipt(val number: Int, val date: String)
+@Serializable
+data class ApiFeedbackAvailability(val configured: Boolean, val date: String)
