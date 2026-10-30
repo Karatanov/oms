@@ -1234,38 +1234,20 @@ private fun PaymentMonitoringCard(
     var sort by remember { mutableStateOf(PaymentMonitoringSort.Code) }
     var ascending by remember { mutableStateOf(true) }
     var codeQuery by remember(snapshot.items) { mutableStateOf("") }
-    var complianceFilter by remember(snapshot.items) { mutableStateOf<String?>(null) }
-    var paidFromInput by remember(snapshot.items) { mutableStateOf("") }
-    var paidToInput by remember(snapshot.items) { mutableStateOf("") }
     fun selectSort(column: PaymentMonitoringSort) {
         if (sort == column) ascending = !ascending else { sort = column; ascending = true }
         page = 0
     }
-    fun resetFilters() {
-        codeQuery = ""
-        complianceFilter = null
-        paidFromInput = ""
-        paidToInput = ""
-        page = 0
-    }
     val normalizedQuery = codeQuery.trim().lowercase()
-    val paidFrom = paidFromInput.paymentAmountOrNull()
-    val paidTo = paidToInput.paymentAmountOrNull()
-    val complianceOptions = remember(snapshot.items) {
-        snapshot.items.mapNotNull { it.eibShareCompliance?.trim()?.takeIf(String::isNotBlank) }.distinct().sorted()
-    }
-    val filteredRows = remember(snapshot.items, normalizedQuery, complianceFilter, paidFrom, paidTo) {
+    val filteredRows = remember(snapshot.items, normalizedQuery) {
         snapshot.items.filter { row ->
-            (normalizedQuery.isBlank() || row.code.lowercase().contains(normalizedQuery)) &&
-                (complianceFilter == null || row.eibShareCompliance == complianceFilter) &&
-                (paidFrom == null || (row.paidUah ?: Double.NEGATIVE_INFINITY) >= paidFrom) &&
-                (paidTo == null || (row.paidUah ?: Double.POSITIVE_INFINITY) <= paidTo)
+            normalizedQuery.isBlank() || row.code.lowercase().contains(normalizedQuery)
         }
     }
     val rows = remember(filteredRows, sort, ascending) {
         filteredRows.sortedWith { left, right -> comparePaymentMonitoringRows(left, right, sort, ascending) }
     }
-    LaunchedEffect(normalizedQuery, complianceFilter, paidFrom, paidTo) { page = 0 }
+    LaunchedEffect(normalizedQuery) { page = 0 }
     val pageSize = 20
     val pageCount = maxOf(1, (rows.size + pageSize - 1) / pageSize)
     val visibleRows = rows.drop(page.coerceIn(0, pageCount - 1) * pageSize).take(pageSize)
@@ -1309,19 +1291,11 @@ private fun PaymentMonitoringCard(
                 )
             }
             if (expanded) {
-                PaymentMonitoringFilters(
+                PaymentMonitoringCodeSearch(
                     codeQuery = codeQuery,
                     onCodeQueryChange = { codeQuery = it.safeTextInput(100) },
-                    complianceOptions = complianceOptions,
-                    complianceFilter = complianceFilter,
-                    onComplianceChange = { complianceFilter = it },
-                    paidFrom = paidFromInput,
-                    onPaidFromChange = { paidFromInput = it.safeTextInput(32) },
-                    paidTo = paidToInput,
-                    onPaidToChange = { paidToInput = it.safeTextInput(32) },
                     filteredCount = rows.size,
-                    totalCount = snapshot.items.size,
-                    onReset = ::resetFilters
+                    totalCount = snapshot.items.size
                 )
                 if (rows.isEmpty()) {
                     Text(LocalizationManager.t("no_chart_data"), color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -1355,29 +1329,20 @@ private fun PaymentMonitoringCard(
                         TableActionIconButton(LocalizationManager.t("next_page"), Icons.Default.KeyboardArrowRight) { page = (page + 1).coerceAtMost(pageCount - 1) }
                     }
                 }
-                PaymentMonitoringTransactionTable(snapshot.transactions, selectedMonth)
+                PaymentMonitoringTransactionTable(snapshot.transactions, selectedMonth, codeQuery)
             }
         }
     }
 }
 
 @Composable
-@OptIn(ExperimentalLayoutApi::class)
-private fun PaymentMonitoringFilters(
+private fun PaymentMonitoringCodeSearch(
     codeQuery: String,
     onCodeQueryChange: (String) -> Unit,
-    complianceOptions: List<String>,
-    complianceFilter: String?,
-    onComplianceChange: (String?) -> Unit,
-    paidFrom: String,
-    onPaidFromChange: (String) -> Unit,
-    paidTo: String,
-    onPaidToChange: (String) -> Unit,
     filteredCount: Int,
-    totalCount: Int,
-    onReset: () -> Unit
+    totalCount: Int
 ) {
-    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         OutlinedTextField(
             value = codeQuery,
             onValueChange = onCodeQueryChange,
@@ -1385,16 +1350,6 @@ private fun PaymentMonitoringFilters(
             label = { Text(LocalizationManager.t("subproject_code")) },
             modifier = Modifier.widthIn(min = 180.dp, max = 240.dp)
         )
-        FilterDropdown(
-            label = LocalizationManager.t("payment_monitoring_eib_compliance"),
-            options = complianceOptions,
-            selected = complianceFilter,
-            onSelect = onComplianceChange,
-            itemLabel = { it.asReadableComplianceStatus() }
-        )
-        PaymentAmountRangeField("payment_monitoring_amount_from", paidFrom, onPaidFromChange)
-        PaymentAmountRangeField("payment_monitoring_amount_to", paidTo, onPaidToChange)
-        OutlinedButton(onClick = onReset) { Text(LocalizationManager.t("reset_filters")) }
         Text(
             LocalizationManager.t("payment_monitoring_filtered_count")
                 .replace("{shown}", filteredCount.toString()).replace("{total}", totalCount.toString()),
@@ -1403,25 +1358,6 @@ private fun PaymentMonitoringFilters(
         )
     }
 }
-
-@Composable
-private fun PaymentAmountRangeField(labelKey: String, value: String, onValueChange: (String) -> Unit) {
-    OutlinedTextField(
-        value = value,
-        onValueChange = onValueChange,
-        singleLine = true,
-        label = { Text(LocalizationManager.t(labelKey)) },
-        placeholder = { Text(LocalizationManager.t("payment_monitoring_paid")) },
-        modifier = Modifier.widthIn(min = 140.dp, max = 180.dp)
-    )
-}
-
-/** Accept both decimal separators used in Ukrainian and English interfaces. */
-private fun String.paymentAmountOrNull(): Double? = trim()
-    .takeIf(String::isNotBlank)
-    ?.replace(" ", "")
-    ?.replace(',', '.')
-    ?.toDoubleOrNull()
 
 /** Nulls consistently remain at the end in both ascending and descending views. */
 private fun compareOptionalNumber(left: Double?, right: Double?, ascending: Boolean): Int = when {
@@ -1485,15 +1421,11 @@ private fun comparePaymentTransactions(
  * from the Dashboard without converting those rows into editable documents.
  */
 @Composable
-@OptIn(ExperimentalLayoutApi::class)
 private fun PaymentMonitoringTransactionTable(
     transactions: List<ApiPaymentMonitoringTransaction>,
-    selectedMonth: String?
+    selectedMonth: String?,
+    codeQuery: String
 ) {
-    var codeQuery by remember(transactions) { mutableStateOf("") }
-    var trancheFilter by remember(transactions) { mutableStateOf<Int?>(null) }
-    var uahFromInput by remember(transactions) { mutableStateOf("") }
-    var uahToInput by remember(transactions) { mutableStateOf("") }
     var sort by remember { mutableStateOf(PaymentMonitoringTransactionSort.Date) }
     var ascending by remember { mutableStateOf(true) }
     var page by remember(transactions, selectedMonth) { mutableStateOf(0) }
@@ -1502,46 +1434,24 @@ private fun PaymentMonitoringTransactionTable(
         page = 0
     }
     val normalizedQuery = codeQuery.trim().lowercase()
-    val uahFrom = uahFromInput.paymentAmountOrNull()
-    val uahTo = uahToInput.paymentAmountOrNull()
     val scopedTransactions = remember(transactions, selectedMonth) {
         transactions.filter { row -> selectedMonth == null || row.paymentDate.startsWith(selectedMonth) }
     }
-    val filteredRows = remember(scopedTransactions, normalizedQuery, trancheFilter, uahFrom, uahTo) {
+    val filteredRows = remember(scopedTransactions, normalizedQuery) {
         scopedTransactions.filter { row ->
-                (normalizedQuery.isBlank() || row.code.lowercase().contains(normalizedQuery)) &&
-                (trancheFilter == null || row.batchId == trancheFilter) &&
-                (uahFrom == null || row.amountUah >= uahFrom) &&
-                (uahTo == null || row.amountUah <= uahTo)
+            normalizedQuery.isBlank() || row.code.lowercase().contains(normalizedQuery)
         }
     }
     val rows = remember(filteredRows, sort, ascending) {
         filteredRows.sortedWith { left, right -> comparePaymentTransactions(left, right, sort, ascending) }
     }
-    LaunchedEffect(normalizedQuery, trancheFilter, uahFrom, uahTo, selectedMonth) { page = 0 }
+    LaunchedEffect(normalizedQuery, selectedMonth) { page = 0 }
     if (transactions.isEmpty()) return
     Text(
         if (selectedMonth == null) LocalizationManager.t("payment_monitoring_title")
         else "${LocalizationManager.t("payment_monitoring_title")} · ${selectedMonth.toMonthName()} ${selectedMonth.take(4)}",
         style = MaterialTheme.typography.titleSmall
     )
-    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        OutlinedTextField(codeQuery, { codeQuery = it.safeTextInput(100) }, singleLine = true,
-            label = { Text(LocalizationManager.t("subproject_code")) }, modifier = Modifier.widthIn(min = 180.dp, max = 240.dp))
-        FilterDropdown(LocalizationManager.t("tranche"), listOf(8, 9), trancheFilter, { trancheFilter = it },
-            itemLabel = { if (it == 8) "A" else "B" })
-        PaymentAmountRangeField("payment_monitoring_amount_from", uahFromInput) { uahFromInput = it.safeTextInput(32) }
-        PaymentAmountRangeField("payment_monitoring_amount_to", uahToInput) { uahToInput = it.safeTextInput(32) }
-        OutlinedButton(onClick = { codeQuery = ""; trancheFilter = null; uahFromInput = ""; uahToInput = ""; page = 0 }) {
-            Text(LocalizationManager.t("reset_filters"))
-        }
-        Text(
-            LocalizationManager.t("payment_monitoring_filtered_count")
-                .replace("{shown}", rows.size.toString()).replace("{total}", scopedTransactions.size.toString()),
-            style = MaterialTheme.typography.bodySmall,
-            modifier = Modifier.padding(top = 14.dp)
-        )
-    }
     if (rows.isEmpty()) {
         Text(LocalizationManager.t("no_chart_data"), color = MaterialTheme.colorScheme.onSurfaceVariant)
         return
