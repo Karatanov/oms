@@ -576,7 +576,7 @@ fun ProjectsTable(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                OutlinedTextField(value = searchText, onValueChange = onSearchTextChange, label = { Text(LocalizationManager.t("search_project")) }, leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) }, singleLine = true, modifier = Modifier.weight(1f).widthIn(min = 280.dp))
+                oms.components.WorkspaceSearchField(value = searchText, onValueChange = onSearchTextChange, label = LocalizationManager.t("search_project"), modifier = Modifier.weight(1f).widthIn(min = 280.dp))
                 onExportPdf?.let { export ->
                     OutlinedButton(onClick = { export(sortedProjects.map { it.project.id }) }, enabled = sortedProjects.isNotEmpty()) {
                         Icon(Icons.Default.PictureAsPdf, contentDescription = null)
@@ -586,7 +586,7 @@ fun ProjectsTable(
                 }
                 ProjectPagination(pageSize, currentPage, pageCount, sortedProjects.size, { pageSize = it }) { currentPage = it.coerceIn(0, pageCount - 1) }
             } else Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(value = searchText, onValueChange = onSearchTextChange, label = { Text(LocalizationManager.t("search_project")) }, leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                oms.components.WorkspaceSearchField(value = searchText, onValueChange = onSearchTextChange, label = LocalizationManager.t("search_project"), modifier = Modifier.fillMaxWidth())
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
                     onExportPdf?.let { export -> OutlinedButton(onClick = { export(sortedProjects.map { it.project.id }) }, enabled = sortedProjects.isNotEmpty()) { Text(LocalizationManager.t("export_pdf")) } }
                     ProjectPagination(pageSize, currentPage, pageCount, sortedProjects.size, { pageSize = it }) { currentPage = it.coerceIn(0, pageCount - 1) }

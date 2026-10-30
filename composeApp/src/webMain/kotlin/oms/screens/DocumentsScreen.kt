@@ -2,13 +2,10 @@ package oms.screens
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.background
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
@@ -173,61 +170,89 @@ fun DocumentsScreen(canManageDocuments: Boolean = true) {
                 Text(LocalizationManager.t("upload_document"))
             }
         }
-        OutlinedTextField(search, { search = it.safeTextInput(200) }, singleLine = true, label = { Text(LocalizationManager.t("documents_search")) }, leadingIcon = { Icon(Icons.Default.Search, null) }, modifier = Modifier.fillMaxWidth())
-        if (loading) oms.components.ContentState(LocalizationManager.t("loading_records"), loading = true)
-        if (loadFailed) oms.components.ContentState(LocalizationManager.t("load_records_error"), error = true, onRetry = { reloadKey++ })
-        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            items(DocumentTypeFilter.entries, key = { it.name }) { filter ->
-                FilterChip(
-                    selected = typeFilter == filter,
-                    onClick = { typeFilter = filter },
-                    label = { Text(LocalizationManager.t(filter.labelKey)) }
-                )
-            }
-        }
-        Box(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface)) {
-            oms.components.ScrollableTable(
-                Modifier.padding(16.dp),
-                pageScrollState = pageScrollState,
-                header = { DocumentTableHeader(sort, ascending, ::selectSort); HorizontalDivider() }
-            ) {
-                if (!loading && !loadFailed && visibleDocuments.isEmpty()) Text(LocalizationManager.t("no_documents"))
-                pageDocuments.forEach { row ->
-                    Row(Modifier.width(1_370.dp).padding(vertical = 4.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                        Text(row.fileName, Modifier.width(260.dp))
-                        ExpandableTableText(row.projectName, Modifier.width(210.dp))
-                        Text(row.subprojectPartCode ?: "—", Modifier.width(165.dp))
-                        Box(Modifier.width(140.dp)) { DocumentTypeChip(row.documentType) }
-                        Text(row.date ?: "—", Modifier.width(105.dp))
-                        Text(row.fileSizeBytes?.let(::formatFileSize) ?: "—", Modifier.width(90.dp))
-                        Text("—", Modifier.width(85.dp))
-                        TableActionIconButton(if (row.isSirSource) LocalizationManager.t("open_source_file") else LocalizationManager.t("open_document"), Icons.AutoMirrored.Filled.OpenInNew) {
-                            val path = if (row.isSirSource) "/inspection-reports/${row.uuid}/source-file" else "/projects/${row.projectUuid}/documents/${row.uuid}/download"
-                            oms.data.openOmsDownload(oms.data.omsApiUrl(path))
-                        }
-                        if (row.isSirSource) TableActionIconButton(LocalizationManager.t("download_report_pdf"), Icons.Default.PictureAsPdf) {
-                            oms.data.openOmsDownload(oms.data.omsApiUrl("/inspection-reports/${row.uuid}/export-pdf"))
-                        } else Spacer(Modifier.width(48.dp))
-                        if (canManageDocuments) TableActionIconButton(LocalizationManager.t("delete"), Icons.Default.Delete) {
-                            deletion.show(row.fileName + if (row.isSirSource) "\n" + LocalizationManager.t("sir_delete_warning") else "") { scope.launch {
-                                val deleted = if (row.isSirSource) OmsApiClient.deleteInspectionReport(row.uuid)
-                                else OmsApiClient.deleteProjectDocument(row.projectUuid, row.uuid)
-                                if (deleted) {
-                                    documents = documents.filterNot { it.uuid == row.uuid && it.isSirSource == row.isSirSource }
-                                    // A SIR source deletion also removes its report.  Do not
-                                    // retain its old report count/ESHS metrics when returning
-                                    // to the inspection registry.
-                                    if (row.isSirSource) invalidateInspectionReportsScreenCache()
-                                } else errorMessage = LocalizationManager.t("delete_document_error")
-                            } }
-                        }
-                        else Spacer(Modifier.width(48.dp))
+        val hasFilters = search.isNotEmpty() || typeFilter != DocumentTypeFilter.ALL
+        Surface(shape = MaterialTheme.shapes.large, border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)) {
+            Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                oms.components.WorkspaceSearchField(search, { search = it.safeTextInput(200) }, LocalizationManager.t("documents_search"))
+                @OptIn(ExperimentalLayoutApi::class)
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    DocumentTypeFilter.entries.forEach { filter ->
+                        FilterChip(selected = typeFilter == filter, onClick = { typeFilter = filter },
+                            label = { Text(LocalizationManager.t(filter.labelKey)) })
                     }
-                    HorizontalDivider()
+                }
+                Row(Modifier.fillMaxWidth(), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                    Text(LocalizationManager.t("documents_results")
+                        .replace("{shown}", visibleDocuments.size.toString()).replace("{total}", documents.size.toString()),
+                        Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    if (hasFilters) TextButton(onClick = { search = ""; typeFilter = DocumentTypeFilter.ALL }) {
+                        Text(LocalizationManager.t("reset_filters"))
+                    }
                 }
             }
         }
-        DocumentPagination(pageSize, currentPage, pageCount, visibleDocuments.size, { pageSize = it }, { currentPage = it })
+        if (loading) oms.components.ContentState(LocalizationManager.t("loading_records"), loading = true)
+        if (loadFailed) oms.components.ContentState(LocalizationManager.t("load_records_error"), error = true, onRetry = { reloadKey++ })
+        if (!loading && !loadFailed && visibleDocuments.isEmpty()) {
+            Surface(shape = MaterialTheme.shapes.large, border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)) {
+                Column(Modifier.fillMaxWidth().padding(28.dp), horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Icon(Icons.Default.FolderOpen, null, Modifier.size(40.dp), tint = MaterialTheme.colorScheme.primary)
+                    Text(LocalizationManager.t(if (hasFilters) "documents_no_matches" else "no_documents"),
+                        style = MaterialTheme.typography.titleMedium, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                    Text(LocalizationManager.t(if (hasFilters) "documents_no_matches_hint" else "documents_empty_hint"),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                    if (hasFilters) OutlinedButton(onClick = { search = ""; typeFilter = DocumentTypeFilter.ALL }) {
+                        Text(LocalizationManager.t("reset_filters"))
+                    }
+                }
+            }
+        }
+        if (visibleDocuments.isNotEmpty()) {
+            Box(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface)) {
+                oms.components.ScrollableTable(
+                    Modifier.padding(16.dp),
+                    pageScrollState = pageScrollState,
+                    header = { DocumentTableHeader(sort, ascending, ::selectSort); HorizontalDivider() }
+                ) {
+                    pageDocuments.forEach { row ->
+                        Row(Modifier.width(1_370.dp).padding(vertical = 4.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                            Text(row.fileName, Modifier.width(260.dp))
+                            ExpandableTableText(row.projectName, Modifier.width(210.dp))
+                            Text(row.subprojectPartCode ?: "—", Modifier.width(165.dp))
+                            Box(Modifier.width(140.dp)) { DocumentTypeChip(row.documentType) }
+                            Text(row.date ?: "—", Modifier.width(105.dp))
+                            Text(row.fileSizeBytes?.let(::formatFileSize) ?: "—", Modifier.width(90.dp))
+                            Text("—", Modifier.width(85.dp))
+                            TableActionIconButton(if (row.isSirSource) LocalizationManager.t("open_source_file") else LocalizationManager.t("open_document"), Icons.AutoMirrored.Filled.OpenInNew) {
+                                val path = if (row.isSirSource) "/inspection-reports/${row.uuid}/source-file" else "/projects/${row.projectUuid}/documents/${row.uuid}/download"
+                                oms.data.openOmsDownload(oms.data.omsApiUrl(path))
+                            }
+                            if (row.isSirSource) TableActionIconButton(LocalizationManager.t("download_report_pdf"), Icons.Default.PictureAsPdf) {
+                                oms.data.openOmsDownload(oms.data.omsApiUrl("/inspection-reports/${row.uuid}/export-pdf"))
+                            } else Spacer(Modifier.width(48.dp))
+                            if (canManageDocuments) TableActionIconButton(LocalizationManager.t("delete"), Icons.Default.Delete) {
+                                deletion.show(row.fileName + if (row.isSirSource) "\n" + LocalizationManager.t("sir_delete_warning") else "") { scope.launch {
+                                    val deleted = if (row.isSirSource) OmsApiClient.deleteInspectionReport(row.uuid)
+                                    else OmsApiClient.deleteProjectDocument(row.projectUuid, row.uuid)
+                                    if (deleted) {
+                                        documents = documents.filterNot { it.uuid == row.uuid && it.isSirSource == row.isSirSource }
+                                        // A SIR source deletion also removes its report.  Do not
+                                        // retain its old report count/ESHS metrics when returning
+                                        // to the inspection registry.
+                                        if (row.isSirSource) invalidateInspectionReportsScreenCache()
+                                    } else errorMessage = LocalizationManager.t("delete_document_error")
+                                } }
+                            }
+                            else Spacer(Modifier.width(48.dp))
+                        }
+                        HorizontalDivider()
+                    }
+                }
+            }
+            DocumentPagination(pageSize, currentPage, pageCount, visibleDocuments.size, { pageSize = it }, { currentPage = it })
+        }
         errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error) }
     }
     if (showUploadDialog) WasmSafeOverlay(onDismiss = { showUploadDialog = false }) {

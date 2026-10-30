@@ -3,6 +3,11 @@ package oms.localization
 object Strings {
 
     val uk = mapOf(
+        "clear_search" to "Очистити пошук",
+        "documents_results" to "Документів: {shown} із {total}",
+        "documents_no_matches" to "Документів за цими умовами не знайдено",
+        "documents_no_matches_hint" to "Змініть пошуковий запит або скиньте фільтри.",
+        "documents_empty_hint" to "Тут з’являться документи проєктів і вихідні файли звітів SIR.",
         "feedback_title" to "Зворотний зв’язок",
         "feedback_hint" to "Повідомте про проблему або запропонуйте покращення. Звернення буде додано до трекера OMS.",
         "feedback_page" to "Сторінка / категорія",
@@ -957,6 +962,11 @@ object Strings {
     )
 
     val en = mapOf(
+        "clear_search" to "Clear search",
+        "documents_results" to "Documents: {shown} of {total}",
+        "documents_no_matches" to "No documents match these filters",
+        "documents_no_matches_hint" to "Try another search or reset the filters.",
+        "documents_empty_hint" to "Project documents and SIR source files will appear here.",
         "feedback_title" to "Feedback",
         "feedback_hint" to "Report a problem or suggest an improvement. Your message will be added to the OMS tracker.",
         "feedback_page" to "Page / category",
