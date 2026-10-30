@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.zIndex
 import oms.localization.LocalizationManager
+import kotlinx.browser.window
 
 /** One viewport with a sticky header and a permanently visible horizontal scrollbar. */
 @Composable
@@ -58,8 +59,16 @@ fun ScrollableTable(
     val surface = MaterialTheme.colorScheme.surface
 
     val interactive = oms.navigation.LocalRouteInteractive.current
-    DisposableEffect(navigatorId, showScrollControls, interactive) {
-        if (showScrollControls && interactive) navigatorOverlay.show(navigatorId, scroll)
+    // The navigator is a fixed bottom overlay.  It should belong to the
+    // currently visible table only—not to a chart above it—and only when the
+    // horizontal viewport has an actual overflow range.
+    val tableVisibleInViewport = tableHeight > 0 &&
+        liveTableTop < window.innerHeight.toFloat() &&
+        liveTableTop + tableHeight > contentTop
+    val navigatorVisible = showScrollControls && interactive && scroll.maxValue > 0 && tableVisibleInViewport
+    DisposableEffect(navigatorId, navigatorVisible) {
+        if (navigatorVisible) navigatorOverlay.show(navigatorId, scroll)
+        else navigatorOverlay.dismiss(navigatorId)
         onDispose { navigatorOverlay.dismiss(navigatorId) }
     }
 

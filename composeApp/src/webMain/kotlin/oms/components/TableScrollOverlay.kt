@@ -40,6 +40,10 @@ internal class TableScrollOverlayState {
     fun BoxScope.Content() {
         if (hidden) return
         val navigator = active ?: return
+        // An overlay can briefly outlive a table while layout is settling.
+        // Never render inert controls during that transition or on a viewport
+        // wide enough to fit every column.
+        if (navigator.scroll.maxValue <= 0) return
         Surface(
             modifier = Modifier.align(Alignment.BottomCenter)
                 .width(if (LocalMobileLayout.current) 176.dp else 208.dp)
@@ -50,7 +54,7 @@ internal class TableScrollOverlayState {
             tonalElevation = 2.dp,
             shape = MaterialTheme.shapes.medium
         ) {
-            TableScrollControls(navigator.scroll, showWhenStationary = true)
+            TableScrollControls(navigator.scroll)
         }
     }
 }
