@@ -236,7 +236,6 @@ fun SubprojectEibPaymentChart(
 ) {
     var regionFilter by remember(items) { mutableStateOf<String?>(null) }
     val regions = items.map { it.region }.filter(String::isNotBlank).map(::canonicalUkraineRegion).distinct().sorted()
-    val excludedCount = items.count { it.paymentPct == null }
     val data = items
         .filter { it.paymentPct != null && (regionFilter == null || canonicalUkraineRegion(it.region) == regionFilter) }
         .sortedBy { it.code }
@@ -271,13 +270,6 @@ fun SubprojectEibPaymentChart(
         orientation = orientation,
         sortEnabled = true
     )
-    if (excludedCount > 0) {
-        Text(
-            LocalizationManager.t("payment_percentage_unavailable").replace("{count}", excludedCount.toString()),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-    }
 }
 
 /** Retain small non-zero payment values and do not clamp source anomalies above 100%. */
