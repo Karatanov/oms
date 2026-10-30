@@ -237,20 +237,32 @@ fun SubprojectEibPaymentChart(
     var regionFilter by remember(items) { mutableStateOf<String?>(null) }
     val regions = items.map { it.region }.filter(String::isNotBlank).map(::canonicalUkraineRegion).distinct().sorted()
     val data = items
-        .filter { it.paymentPct != null && (regionFilter == null || canonicalUkraineRegion(it.region) == regionFilter) }
-        .sortedBy { it.code }
-        .map { item ->
+        .asSequence()
+        .filter { regionFilter == null || canonicalUkraineRegion(it.region) == regionFilter }
+        // The all-regions view remains compact by omitting incomplete source
+        // rows.  Once a region is selected, however, a subproject with a
+        // valid eligible contract value and no payment is meaningful: it is
+        // explicitly shown as 0%, rather than silently disappearing.
+        .mapNotNull { item ->
+            val paymentPct = item.paymentPct ?: item.eligibleContractValueUah
+                ?.takeIf { regionFilter != null && it.isFinite() && it > 0.0 }
+                ?.let { 0.0 }
+            paymentPct?.let { item to it }
+        }
+        .sortedBy { it.first.code }
+        .map { (item, paymentPct) ->
             BarData(
                 label = item.code,
-                value = item.paymentPct!!.toFloat(),
+                value = paymentPct.toFloat(),
                 id = item.projectUuid,
                 tooltip = listOf(
                     "${LocalizationManager.t("payment_percentage_paid")}: ${item.paidAmountUah.paymentChartMoney()}",
                     "${LocalizationManager.t("payment_percentage_eligible")}: ${item.eligibleContractValueUah.paymentChartMoney()}"
                 ).joinToString("\n"),
-                formattedValue = paymentPercentageLabel(item.paymentPct)
+                formattedValue = paymentPercentageLabel(paymentPct)
             )
         }
+        .toList()
     AnalyticsCard(
         titleKey = "subproject_eib_payment_percentage",
         hintKey = "subproject_eib_payment_percentage_hint",
