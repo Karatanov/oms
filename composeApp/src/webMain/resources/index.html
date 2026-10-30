@@ -38,7 +38,7 @@
     <link type="text/css" rel="stylesheet" href="styles.css?v=20261002-content-navigation">
     <script src="auth.js?v=20260925-safari"></script>
     <script src="chart-export.js?v=20261015-chart-png"></script>
-    <script src="startup.js?v=20261029-retry-refresh"></script>
+    <script src="startup.js?v=20261030-retry-cache-bust"></script>
     <script>
         // Values are replaced during the immutable production/Pages build.
         // Keeping them in the HTML shell avoids an extra API request solely
@@ -1596,18 +1596,24 @@
 <script>window.reportOmsStartupProgress?.(93, "interface");</script>
 <script>
     (() => {
-        const retry = new URLSearchParams(window.location.search).has("startupRetry");
+        const retryNonce = new URLSearchParams(window.location.search).get("startupRetry");
         const startCompose = () => {
             const script = document.createElement("script");
             script.type = "application/javascript";
-            script.src = "composeApp.js";
+            // A failed script is occasionally retained in Chromium's
+            // in-memory cache even after a cache-reload fetch.  Give the
+            // recovery execution a unique URL; the server still serves the
+            // immutable content-hashed bundle and normal starts are unchanged.
+            script.src = retryNonce
+                ? `composeApp.js?omsRetry=${encodeURIComponent(retryNonce)}`
+                : "composeApp.js";
             document.body.appendChild(script);
         };
         // A retry must refresh the exact JS/WASM URLs first.  Loading the
         // script only after that pass makes the retry equivalent to Ctrl+F5,
         // while ordinary startup keeps the parallel preload fast path.
-        if (retry && window.omsReloadApplicationAssets) {
-            window.omsReloadApplicationAssets().finally(startCompose);
+        if (retryNonce && window.omsReloadApplicationAssets) {
+            window.omsReloadApplicationAssets(retryNonce).finally(startCompose);
         } else {
             startCompose();
         }

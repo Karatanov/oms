@@ -36,6 +36,10 @@
     let watchdog = null;
     let failed = false;
     let messageKey = "preparing";
+    // Kept only for the one recovery attempt.  The production bundle itself
+    // has a content hash, while this extra value prevents a browser from
+    // reusing a half-downloaded in-memory script after a startup failure.
+    let retryNonce = "";
 
     const stored = (() => {
         try { return JSON.parse(sessionStorage.getItem(storageKey) || "{}"); }
@@ -203,11 +207,14 @@
      * again.  Reload each item under its real URL first, just as Ctrl+F5
      * does, so the following Compose bootstrap receives fresh bytes.
      */
-    window.omsReloadApplicationAssets = async () => {
+    window.omsReloadApplicationAssets = async nonce => {
+        retryNonce = nonce || retryNonce || String(Date.now());
         warmProgress = 3;
         if (active) report(3, "assets");
         try {
-            const response = await fetch(new URL("assets-manifest.json", document.baseURI), {
+            const manifestUrl = new URL("assets-manifest.json", document.baseURI);
+            manifestUrl.searchParams.set("omsRetry", retryNonce);
+            const response = await fetch(manifestUrl, {
                 cache: "reload",
                 credentials: "same-origin"
             });
@@ -218,6 +225,9 @@
             const totals = { loaded: 0, size: assets.reduce((sum, asset) => sum + Number(asset.bytes), 0) };
             await Promise.all(assets.map(async rawAsset => {
                 const asset = { ...rawAsset, bytes: Number(rawAsset.bytes), reported: 0 };
+                // Refresh the canonical URL as well as bypassing the cache
+                // for the script tag below.  Compose resolves its WASM asset
+                // by the canonical URL, so that cache entry must be replaced.
                 const fresh = await fetch(new URL(asset.url, document.baseURI), {
                     cache: "reload",
                     credentials: "same-origin"
@@ -312,8 +322,12 @@
         ensureTimer();
         ensureWatchdog();
         render("preparing");
+        retryNonce = String(Date.now());
         const retryUrl = new URL("app.html", document.baseURI);
-        retryUrl.searchParams.set("startupRetry", String(Date.now()));
+        retryUrl.searchParams.set("startupRetry", retryNonce);
+        // Keep the current SPA destination: the recovery shell must not turn
+        // a retry from (for example) Dashboard into an unaddressed app page.
+        retryUrl.hash = window.location.hash;
         window.setTimeout(() => window.location.assign(retryUrl.toString()), 80);
     };
     window.addEventListener("error", event => {
