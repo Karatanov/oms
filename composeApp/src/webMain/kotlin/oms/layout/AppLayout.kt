@@ -127,6 +127,9 @@ fun AppLayout(appState: AppState) {
                     onOpenProjectsByRegion = if (appState.roleCode == "GUEST") ({}) else appState::openProjectsByRegion,
                     onOpenFinancialBySubproject = if (appState.roleCode == "GUEST") ({}) else appState::openFinancialBySubproject,
                     onOpenProcurementsByStatus = if (appState.roleCode == "GUEST") ({}) else appState::openProcurementsByStatus,
+                    onOpenSubprojects = if (appState.roleCode == "GUEST") ({}) else appState::openSubprojects,
+                    onOpenMap = appState::openMap,
+                    onOpenFinancial = if (appState.roleCode == "GUEST") ({}) else appState::openFinancial,
                     onOpenInspectionPreview = if (appState.roleCode == "GUEST") ({}) else appState::openInspectionPreview
                 )
 

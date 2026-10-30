@@ -5,6 +5,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.focusable
+import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material.icons.filled.SwapHoriz
@@ -35,6 +36,9 @@ fun DashboardScreen(
     onOpenProjectsByRegion: (String) -> Unit = {},
     onOpenFinancialBySubproject: (String) -> Unit = {},
     onOpenProcurementsByStatus: (String) -> Unit = {},
+    onOpenSubprojects: () -> Unit = {},
+    onOpenMap: () -> Unit = {},
+    onOpenFinancial: () -> Unit = {},
     onOpenInspectionPreview: (String) -> Unit = {}
 ) {
     var dashboard by remember { mutableStateOf<ApiDashboardOverview?>(null) }
@@ -141,7 +145,15 @@ fun DashboardScreen(
                 }
             }
             dashboard?.nationalSummary?.let { summary ->
-                item { NationalPortfolioSummary(summary) }
+                item {
+                    NationalPortfolioSummary(
+                        summary = summary,
+                        onOpenSubprojects = onOpenSubprojects,
+                        onOpenMap = onOpenMap,
+                        onOpenSignedContracts = { onOpenProcurementsByStatus("contract signed") },
+                        onOpenFinancial = onOpenFinancial
+                    )
+                }
             }
             if (loading) {
                 item { ContentState(LocalizationManager.t("loading_dashboard"), loading = true) }
@@ -228,7 +240,13 @@ fun DashboardScreen(
 }
 
 @Composable
-private fun NationalPortfolioSummary(summary: ApiDashboardNationalSummary) {
+private fun NationalPortfolioSummary(
+    summary: ApiDashboardNationalSummary,
+    onOpenSubprojects: () -> Unit,
+    onOpenMap: () -> Unit,
+    onOpenSignedContracts: () -> Unit,
+    onOpenFinancial: () -> Unit
+) {
     Card(
         Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
@@ -245,20 +263,26 @@ private fun NationalPortfolioSummary(summary: ApiDashboardNationalSummary) {
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                SummaryMetric("national_subprojects", summary.subprojectsCount.toString())
-                SummaryMetric("national_regions", summary.regionsCount.toString())
-                SummaryMetric("national_communities", summary.municipalitiesCount.toString())
-                SummaryMetric("national_settlements", summary.settlementsCount.toString())
+                SummaryMetric("national_subprojects", summary.subprojectsCount.toString(), onClick = onOpenSubprojects)
+                SummaryMetric("national_regions", summary.regionsCount.toString(), onClick = onOpenMap)
+                SummaryMetric("national_communities", summary.municipalitiesCount.toString(), onClick = onOpenMap)
+                SummaryMetric("national_settlements", summary.settlementsCount.toString(), onClick = onOpenMap)
                 SummaryMetric(
                     "national_approved_financing",
                     "€ ${summary.approvedFundingEur.roundToLong().grouped()}",
-                    uahEquivalent = "${summary.approvedFundingUah.roundToLong().grouped()} UAH"
+                    uahEquivalent = "${summary.approvedFundingUah.roundToLong().grouped()} UAH",
+                    onClick = onOpenSubprojects
                 )
-                SummaryMetric("national_signed_contracts", summary.signedContractsCount.toString())
-                SummaryMetric("national_signed_contract_value", "${summary.signedContractsAmountUah.roundToLong().grouped()} UAH")
+                SummaryMetric("national_signed_contracts", summary.signedContractsCount.toString(), onClick = onOpenSignedContracts)
+                SummaryMetric(
+                    "national_signed_contract_value",
+                    "${summary.signedContractsAmountUah.roundToLong().grouped()} UAH",
+                    onClick = onOpenSignedContracts
+                )
                 SummaryMetric(
                     "eib_paid_under_contracts",
-                    summary.eibPaidUnderContractsUah?.roundToLong()?.let { "${it.grouped()} грн" } ?: "—"
+                    summary.eibPaidUnderContractsUah?.roundToLong()?.let { "${it.grouped()} грн" } ?: "—",
+                    onClick = onOpenFinancial
                 )
             }
         }
@@ -266,7 +290,12 @@ private fun NationalPortfolioSummary(summary: ApiDashboardNationalSummary) {
 }
 
 @Composable
-private fun SummaryMetric(labelKey: String, value: String, uahEquivalent: String? = null) {
+private fun SummaryMetric(
+    labelKey: String,
+    value: String,
+    uahEquivalent: String? = null,
+    onClick: (() -> Unit)? = null
+) {
     // A summary should be scannable at a glance.  Each metric gets its own
     // compact card, while the secondary UAH figure remains available on hover
     // or press instead of making the main number compete with a second currency.
@@ -281,7 +310,8 @@ private fun SummaryMetric(labelKey: String, value: String, uahEquivalent: String
         }
     ) {
         Card(
-            Modifier.widthIn(min = 148.dp, max = 208.dp).heightIn(min = 88.dp),
+            Modifier.widthIn(min = 148.dp, max = 208.dp).heightIn(min = 88.dp)
+                .then(if (onClick == null) Modifier else Modifier.clickable(onClick = onClick).buttonHandCursor()),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
             elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
         ) {

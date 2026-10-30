@@ -117,6 +117,15 @@ class AppState {
         navigate(Screen.Projects)
     }
 
+    /** Opens the full subproject registry without carrying a prior region filter. */
+    fun openSubprojects() {
+        requestedProjectRegion = null
+        navigate(Screen.Projects)
+    }
+
+    /** Opens the map while preserving its independently managed filters. */
+    fun openMap() = navigate(Screen.Map)
+
     fun openFinancialBySubproject(subprojectUuid: String) {
         requestedFinancialSubprojectUuid = subprojectUuid
         navigate(Screen.Financial)
@@ -130,6 +139,14 @@ class AppState {
 
     fun openFinancialByMonth(month: String) {
         requestedFinancialMonth = month
+        navigate(Screen.Financial)
+    }
+
+    /** Opens the financial register without dashboard one-shot filters. */
+    fun openFinancial() {
+        requestedFinancialSubprojectUuid = null
+        requestedFinancialRegion = null
+        requestedFinancialMonth = null
         navigate(Screen.Financial)
     }
 
