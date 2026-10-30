@@ -188,7 +188,25 @@ class ProjectPdfExportService {
         private val margin = 34f; private val width = PDRectangle.A4.width - margin * 2; private var page: PDPage? = null; private var stream: PDPageContentStream? = null; private var y = 0f; private var rowIndex = 0
         private val primary = floatArrayOf(0.153f, 0.553f, 0.678f); private val ink = floatArrayOf(0.10f, 0.17f, 0.22f)
         init { newPage() }
-        fun cover(name: String, code: String) { ensure(78f); fillColor(primary); stream!!.addRect(margin, y - 46f, width, 46f); stream!!.fill(); text(name, margin + 15f, y - 21f, 17f, floatArrayOf(1f, 1f, 1f)); text("${label("subproject_code")}: $code", margin + 15f, y - 38f, 9.5f, floatArrayOf(0.92f, 0.98f, 1f)); y -= 60f }
+        fun cover(name: String, code: String) {
+            val titleLines = wrap(name, 17f, width - 30f).ifEmpty { listOf(code) }
+            val height = 26f + titleLines.size * 20f
+            ensure(height + 14f)
+            fillColor(primary)
+            stream!!.addRect(margin, y - height, width, height)
+            stream!!.fill()
+            titleLines.forEachIndexed { index, line ->
+                text(line, margin + 15f, y - 21f - index * 20f, 17f, floatArrayOf(1f, 1f, 1f))
+            }
+            text(
+                "${label("subproject_code")}: $code",
+                margin + 15f,
+                y - 20f - titleLines.size * 20f,
+                9.5f,
+                floatArrayOf(0.92f, 0.98f, 1f)
+            )
+            y -= height + 14f
+        }
         fun section(title: String, icon: Icon, content: PdfWriter.() -> Unit) { ensure(32f); rowIndex = 0; stream!!.setNonStrokingColor(0.91f, 0.97f, 0.98f); stream!!.addRect(margin, y - 24f, width, 24f); stream!!.fill(); drawIcon(icon, margin + 13f, y - 12f); text(title, margin + 29f, y - 16f, 11.5f, primary); y -= 29f; content(); y -= 8f }
         /** Prints photo evidence as a two-column contact sheet, using saved thumbnails only. */
         fun photoEvidenceSection(title: String, photos: List<PhotoEvidence>) {
@@ -225,10 +243,25 @@ class ProjectPdfExportService {
         }
         fun row(label: String, rawValue: Any?) {
             val value = when (rawValue) { null -> return; is LocalDate -> rawValue.format(java.time.format.DateTimeFormatter.ofPattern("dd.MM.yyyy")); else -> rawValue.toString().trim().takeIf(String::isNotEmpty) ?: return }
-            val labelWidth = 178f; val valueWidth = width - labelWidth - 20f; val labelLines = wrap(label, 9f, labelWidth - 14f); val valueLines = wrap(value, 9.5f, valueWidth - 14f); val lines = maxOf(labelLines.size, valueLines.size); val height = 12f + lines * 13f
+            val isLink = value.startsWith("https://") || value.startsWith("http://")
+            val labelWidth = 178f; val valueWidth = width - labelWidth - 20f; val labelLines = wrap(label, 9f, labelWidth - 14f); val valueSize = if (isLink) 7.5f else 9.5f; val valueLineHeight = if (isLink) 10f else 13f; val valueLines = wrap(value, valueSize, valueWidth - 14f); val lines = maxOf(labelLines.size, valueLines.size); val height = 12f + maxOf(labelLines.size * 13f, valueLines.size * valueLineHeight)
             ensure(height + 4f); if (rowIndex++ % 2 == 0) { stream!!.setNonStrokingColor(0.972f, 0.982f, 0.985f); stream!!.addRect(margin, y - height, width, height); stream!!.fill() }
             stream!!.setStrokingColor(0.83f, 0.88f, 0.90f); stream!!.addRect(margin, y - height, width, height); stream!!.moveTo(margin + labelWidth, y); stream!!.lineTo(margin + labelWidth, y - height); stream!!.stroke()
-            labelLines.forEachIndexed { index, line -> text(line, margin + 7f, y - 13f - index * 13f, 9f, floatArrayOf(0.28f, 0.36f, 0.40f)) }; valueLines.forEachIndexed { index, line -> text(line, margin + labelWidth + 7f, y - 13f - index * 13f, 9.5f, ink) }; y -= height
+            labelLines.forEachIndexed { index, line -> text(line, margin + 7f, y - 13f - index * 13f, 9f, floatArrayOf(0.28f, 0.36f, 0.40f)) }
+            val valueColor = if (isLink) floatArrayOf(0.04f, 0.34f, 0.65f) else ink
+            valueLines.forEachIndexed { index, line ->
+                val baseline = y - 13f - index * valueLineHeight
+                val valueX = margin + labelWidth + 7f
+                text(line, valueX, baseline, valueSize, valueColor)
+                if (isLink) {
+                    stream!!.setStrokingColor(valueColor[0], valueColor[1], valueColor[2])
+                    val lineWidth = font.getStringWidth(line) / 1000f * valueSize
+                    stream!!.moveTo(valueX, baseline - 1.3f)
+                    stream!!.lineTo(valueX + lineWidth, baseline - 1.3f)
+                    stream!!.stroke()
+                }
+            }
+            y -= height
         }
         /** A compact, printable progress bar based on stored UAH payment values. */
         fun progress(label: String, completed: Double, total: Double) {
@@ -275,7 +308,35 @@ class ProjectPdfExportService {
         private fun newPage() { stream?.close(); page = PDPage(PDRectangle.A4); document.addPage(page); stream = PDPageContentStream(document, page); y = page!!.mediaBox.height - margin }
         private fun fillColor(color: FloatArray) { stream!!.setNonStrokingColor(color[0], color[1], color[2]) }
         private fun text(value: String, x: Float, baseline: Float, size: Float, color: FloatArray) { stream!!.beginText(); fillColor(color); stream!!.setFont(font, size); stream!!.newLineAtOffset(x, baseline); stream!!.showText(value); stream!!.endText() }
-        private fun wrap(value: String, size: Float, limit: Float): List<String> { val words = value.replace('\n', ' ').trim().split(Regex("\\s+")); val result = mutableListOf<String>(); var current = ""; words.forEach { word -> val candidate = if (current.isEmpty()) word else "$current $word"; if (font.getStringWidth(candidate) / 1000f * size <= limit || current.isEmpty()) current = candidate else { result += current; current = word } }; if (current.isNotEmpty()) result += current; return result }
+        /** Wraps ordinary text and long URLs alike; a single unbroken token must never escape the page. */
+        private fun wrap(value: String, size: Float, limit: Float): List<String> {
+            val words = value.replace('\n', ' ').trim().split(Regex("\\s+")).filter(String::isNotBlank)
+            val result = mutableListOf<String>()
+            var current = ""
+            fun fits(candidate: String) = font.getStringWidth(candidate) / 1000f * size <= limit
+            fun appendToken(token: String) {
+                var rest = token
+                while (rest.isNotEmpty()) {
+                    val count = rest.indices.lastOrNull { index -> fits(rest.substring(0, index + 1)) }?.plus(1) ?: 1
+                    result += rest.substring(0, count)
+                    rest = rest.substring(count)
+                }
+            }
+            words.forEach { word ->
+                val candidate = if (current.isEmpty()) word else "$current $word"
+                when {
+                    fits(candidate) -> current = candidate
+                    current.isNotEmpty() -> {
+                        result += current
+                        current = ""
+                        if (fits(word)) current = word else appendToken(word)
+                    }
+                    else -> appendToken(word)
+                }
+            }
+            if (current.isNotEmpty()) result += current
+            return result
+        }
         private fun drawIcon(icon: Icon, x: Float, centerY: Float) { fillColor(primary); when (icon) { Icon.LOCATION -> { stream!!.addRect(x - 4f, centerY - 5f, 8f, 10f); stream!!.fill(); stream!!.setNonStrokingColor(1f,1f,1f); stream!!.addRect(x - 1f, centerY + 1f, 2f, 2f); stream!!.fill() }; Icon.FINANCE -> { stream!!.addRect(x - 5f, centerY - 5f, 3f, 10f); stream!!.addRect(x, centerY - 2f, 3f, 7f); stream!!.addRect(x + 5f, centerY - 7f, 3f, 12f); stream!!.fill() }; Icon.CONSTRUCTION -> { stream!!.addRect(x - 7f, centerY - 2f, 14f, 3f); stream!!.addRect(x - 1.5f, centerY - 7f, 3f, 12f); stream!!.fill() }; else -> { stream!!.addRect(x - 5f, centerY - 5f, 10f, 10f); stream!!.fill() } } }
         companion object {
             private val translations = mapOf(

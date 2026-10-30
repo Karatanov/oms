@@ -20,6 +20,27 @@ import kotlin.test.assertTrue
 
 class ProjectPdfExportServiceTest {
     @Test
+    fun `wraps long subproject title and engineering links within the card`() {
+        val longName = "Реконструкція комплексу з дуже довгою назвою для перевірки коректного перенесення заголовка PDF-картки субпроєкту"
+        val longUrl = "https://dream.gov.ua/projects/very-long-subproject-reference/with/a/deep/path/and/query?identifier=ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+        val pdf = ProjectPdfExportService().export(
+            project = testSubproject().copy(name = longName),
+            monitoring = testMonitoringDetails().copy(
+                dreamProjectUrl = longUrl,
+                dedUrl = "https://e-construction.gov.ua/edessb/documents/ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+            ),
+            language = ProjectPdfExportService.Language.UK
+        )
+
+        PDDocument.load(pdf).use { document ->
+            val text = PDFTextStripper().getText(document)
+            assertTrue(text.contains("Реконструкція комплексу"))
+            assertTrue(text.contains("dream.gov.ua/projects"))
+            assertTrue(text.contains("e-construction.gov.ua"))
+        }
+    }
+
+    @Test
     fun `exports saved inspection thumbnails as localized photo evidence`() {
         val photo = BufferedImage(8, 6, BufferedImage.TYPE_INT_RGB)
         val thumbnail = ByteArrayOutputStream().use { output ->
