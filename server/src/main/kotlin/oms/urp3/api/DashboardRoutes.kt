@@ -13,6 +13,7 @@ import oms.urp3.dto.toResponse
 import oms.urp3.dto.MonthlyActPaymentResponse
 import oms.urp3.dto.SubprojectFundingResponse
 import oms.urp3.dto.SubprojectProgressResponse
+import oms.urp3.dto.SubprojectPaymentProgressResponse
 import oms.urp3.dto.DashboardMetricResponse
 import oms.urp3.dto.DashboardContractTypeMetricResponse
 import oms.urp3.dto.DashboardNationalSummaryResponse
@@ -33,7 +34,11 @@ fun Route.dashboardRoutes() {
                 recentInspections = overview.recentInspections.map { it.report.toResponse(it.subprojectCode) },
                 monthlyActPayments = overview.monthlyActPayments.map { MonthlyActPaymentResponse(it.month, it.amountEurCents, it.amountUahCents) },
                 subprojectFunding = overview.subprojectFunding.map { SubprojectFundingResponse(it.projectUuid, it.name, it.region, it.amountUah, it.amountEur) },
-                subprojectProgress = overview.subprojectProgress.map { SubprojectProgressResponse(it.projectUuid, it.code, it.name, it.nameEn, it.region, it.completionPct) },
+                subprojectPaymentProgress = overview.subprojectPaymentProgress.map {
+                    SubprojectPaymentProgressResponse(
+                        it.projectUuid, it.code, it.region, it.eligibleContractValueUah, it.paidAmountUah, it.paymentPct
+                    )
+                },
                 procurementStatusCounts = overview.procurementStatusCounts.map { DashboardMetricResponse(it.label, it.value) },
                 signedContractsByType = overview.signedContractsByType.map {
                     DashboardContractTypeMetricResponse(it.type, it.contractsCount, it.contractAmountUah)

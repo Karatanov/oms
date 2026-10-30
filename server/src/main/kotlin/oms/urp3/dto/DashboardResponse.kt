@@ -29,7 +29,7 @@ data class DashboardOverviewResponse(
     val recentInspections: List<InspectionReportResponse> = emptyList(),
     val monthlyActPayments: List<MonthlyActPaymentResponse> = emptyList(),
     val subprojectFunding: List<SubprojectFundingResponse> = emptyList(),
-    val subprojectProgress: List<SubprojectProgressResponse> = emptyList(),
+    val subprojectPaymentProgress: List<SubprojectPaymentProgressResponse> = emptyList(),
     val procurementStatusCounts: List<DashboardMetricResponse> = emptyList(),
     val signedContractsByType: List<DashboardContractTypeMetricResponse> = emptyList(),
     val nationalSummary: DashboardNationalSummaryResponse? = null
@@ -51,7 +51,22 @@ data class MonthlyActPaymentResponse(
     val amountUah: Double,
     val amountEur: Double
 )
-@Serializable data class SubprojectProgressResponse(val projectUuid: String, val code: String, val name: String, val nameEn: String? = null, val region: String, val completionPct: Double)
+@Serializable data class SubprojectProgressResponse(
+    val projectUuid: String,
+    val code: String,
+    val name: String,
+    val nameEn: String? = null,
+    val region: String,
+    val completionPct: Double
+)
+@Serializable data class SubprojectPaymentProgressResponse(
+    val projectUuid: String,
+    val code: String,
+    val region: String,
+    val eligibleContractValueUah: Double? = null,
+    val paidAmountUah: Double? = null,
+    val paymentPct: Double? = null
+)
 @Serializable data class DashboardMetricResponse(val label: String, val value: Long)
 @Serializable data class DashboardContractTypeMetricResponse(
     val type: String,

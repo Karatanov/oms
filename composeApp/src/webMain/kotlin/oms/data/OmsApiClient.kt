@@ -929,7 +929,7 @@ data class ApiDashboardOverview(
     val recentInspections: List<ApiInspectionReport> = emptyList(),
     val monthlyActPayments: List<ApiMonthlyActPayment> = emptyList(),
     val subprojectFunding: List<ApiSubprojectFunding> = emptyList(),
-    val subprojectProgress: List<ApiSubprojectProgress> = emptyList(),
+    val subprojectPaymentProgress: List<ApiSubprojectPaymentProgress> = emptyList(),
     val procurementStatusCounts: List<ApiDashboardMetric> = emptyList(),
     val signedContractsByType: List<ApiDashboardContractTypeMetric> = emptyList(),
     val nationalSummary: ApiDashboardNationalSummary? = null
@@ -939,7 +939,7 @@ private fun ApiDashboard.toOverview() = ApiDashboardOverview(
     recentInspections = recentInspections,
     monthlyActPayments = monthlyActPayments,
     subprojectFunding = subprojectFunding,
-    subprojectProgress = subprojectProgress,
+    subprojectPaymentProgress = emptyList(),
     procurementStatusCounts = procurementStatusCounts
 )
 
@@ -952,7 +952,22 @@ data class ApiMonthlyActPayment(val month: String, val amountEurCents: Long, val
     val amountUah: Double,
     val amountEur: Double
 )
-@Serializable data class ApiSubprojectProgress(val projectUuid: String, val code: String = "", val name: String, val nameEn: String? = null, val region: String = "", val completionPct: Double)
+@Serializable data class ApiSubprojectPaymentProgress(
+    val projectUuid: String,
+    val code: String = "",
+    val region: String = "",
+    val eligibleContractValueUah: Double? = null,
+    val paidAmountUah: Double? = null,
+    val paymentPct: Double? = null
+)
+@Serializable data class ApiSubprojectProgress(
+    val projectUuid: String,
+    val code: String = "",
+    val name: String,
+    val nameEn: String? = null,
+    val region: String = "",
+    val completionPct: Double
+)
 @Serializable data class ApiDashboardMetric(val label: String, val value: Long)
 @Serializable data class ApiDashboardContractTypeMetric(
     val type: String,

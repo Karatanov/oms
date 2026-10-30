@@ -29,7 +29,24 @@ data class DashboardSubprojectFunding(
     val amountUah: Double,
     val amountEur: Double
 )
-data class DashboardSubprojectProgress(val projectUuid: String, val code: String, val name: String, val nameEn: String?, val region: String, val completionPct: Double)
+/** Read-only payment ratio from the approved UR III payment-monitoring register. */
+data class DashboardSubprojectPaymentProgress(
+    val projectUuid: String,
+    val code: String,
+    val region: String,
+    val eligibleContractValueUah: Double?,
+    val paidAmountUah: Double?,
+    val paymentPct: Double?
+)
+/** Legacy payload retained for the separate /dashboard endpoint. */
+data class DashboardSubprojectProgress(
+    val projectUuid: String,
+    val code: String,
+    val name: String,
+    val nameEn: String?,
+    val region: String,
+    val completionPct: Double
+)
 data class DashboardMetric(val label: String, val value: Long)
 data class DashboardRecentInspection(val report: InspectionReport, val subprojectCode: String?)
 data class DashboardNationalSummary(
@@ -60,11 +77,22 @@ data class DashboardOverviewData(
     val recentInspections: List<DashboardRecentInspection>,
     val monthlyActPayments: List<MonthlyActPayment>,
     val subprojectFunding: List<DashboardSubprojectFunding>,
-    val subprojectProgress: List<DashboardSubprojectProgress>,
+    val subprojectPaymentProgress: List<DashboardSubprojectPaymentProgress>,
     val procurementStatusCounts: List<DashboardMetric>,
     val signedContractsByType: List<DashboardContractTypeMetric>,
     val nationalSummary: DashboardNationalSummary
 )
+
+/**
+ * Share of the eligible (non-local-co-financed) contract value that has
+ * actually been paid. Values above 100 are retained as source anomalies; the
+ * presentation layer must never clamp them into a misleading result.
+ */
+internal fun paymentMonitoringPaymentPct(eligibleValueUah: Double?, paidAmountUah: Double?): Double? {
+    if (eligibleValueUah == null || paidAmountUah == null || !eligibleValueUah.isFinite() || !paidAmountUah.isFinite()) return null
+    if (eligibleValueUah <= 0.0) return null
+    return paidAmountUah * 100.0 / eligibleValueUah
+}
 
 private val procurementStatusOrder = listOf(
     "Не розпочато / Not Started",
@@ -377,7 +405,6 @@ class DashboardService(
         // Acts represent completed construction work and are used for the
         // subproject-completion chart below. Payments are a separate cash
         // flow used by the monthly disbursement chart.
-        val actRecords = financialRecords.filter(::isConstructionWorkAct)
         val paymentRecords = financialRecords.filter {
             it[FinancialRecordTable.recordType] in setOf("payment", "advance")
         }
@@ -387,7 +414,6 @@ class DashboardService(
             .where { ProjectMonitoringDetailTable.projectId inList projectIds }.associateBy {
                 it[ProjectMonitoringDetailTable.projectId].value
             }
-        val nameEnByProjectId = monitoringByProjectId.mapValues { (_, row) -> row[ProjectMonitoringDetailTable.nameEn] }
         val subprojects = projects.filter { it[ProjectTable.projectType] == "subproject" }
         // The portfolio headline describes the approved programme scope, not
         // the wider screening register.  Screening candidates are retained in
@@ -423,40 +449,35 @@ class DashboardService(
                 current = project[ProjectTable.parentProjectId]?.value ?: return null
             }
         }
-        // Completion is defined as completed-work acts / construction contract.
-        // Convert every act to UAH before aggregating — a raw sum of UAH and
-        // EUR was the reason mixed-currency portfolios could misleadingly show
-        // 0% (or an unrelated percentage) for every subproject.
-        val actualBySubproject = actRecords.groupBy { subprojectFor(it[FinancialRecordTable.projectId].value) }
-            .filterKeys { it != null }
-            .mapValues { (_, rows) -> rows.sumOf { (it.amountUahCents() ?: 0L).toDouble() / 100.0 } }
         val procurementRecords = if (allowedProjectIds == null) {
             procurementBatchIdsForTranche(trancheNumber)?.let { batchIds ->
                 if (batchIds.isEmpty()) emptyList() else ProcurementRecordTable.selectAll()
                     .where { ProcurementRecordTable.batchId inList batchIds }.toList()
             } ?: ProcurementRecordTable.selectAll().toList()
         } else emptyList()
-        val signedWorksAmountBySubprojectCode = procurementRecords.asSequence()
-            .filter { record ->
-                isConstructionContractSigned(record[ProcurementRecordTable.purchaseStatus]) &&
-                    isWorksContract(record)
+        val portfolioSubprojectsByCode = portfolioSubprojects.associateBy { row ->
+            row[ProjectTable.siteNumber].orEmpty().substringBefore('#').trim().uppercase()
+        }
+        // This chart intentionally uses the same persisted snapshot as
+        // Financial Monitoring → UR III payment monitoring. Supporting _W,
+        // _TS and _CSC rows are contracts, not distinct subprojects.
+        val subprojectPaymentProgress = paymentMonitoringService?.currentIfAvailable()?.items.orEmpty()
+            .asSequence()
+            .filter { isPrimaryPaymentMonitoringSubprojectCode(it.code) }
+            .mapNotNull { item ->
+                val code = item.code.substringBefore('#').substringBefore('$').trim().uppercase()
+                val subproject = portfolioSubprojectsByCode[code] ?: return@mapNotNull null
+                DashboardSubprojectPaymentProgress(
+                    projectUuid = subproject[ProjectTable.uuid],
+                    code = code,
+                    region = subproject[ProjectTable.region].orEmpty(),
+                    eligibleContractValueUah = item.eibInvestmentUah,
+                    paidAmountUah = item.paidUah,
+                    paymentPct = paymentMonitoringPaymentPct(item.eibInvestmentUah, item.paidUah)
+                )
             }
-            .groupBy { it[ProcurementRecordTable.subProjectId].trim().lowercase() }
-            .mapValues { (_, records) -> records.uniqueContracts().sumOf(::worksContractAmount) }
-        // The chart is defined as construction acts divided by a signed W
-        // contract.  Do not render unrelated, unsigned subprojects as 0%:
-        // that made the visual comparison look like incomplete data and
-        // contradicted the procurement condition selected for this chart.
-        val subprojectProgress = portfolioSubprojects.mapNotNull { row ->
-            val id = row[ProjectTable.id].value
-            val contract = signedWorksAmountBySubprojectCode[
-                row[ProjectTable.siteNumber].orEmpty().substringBefore('#').trim().lowercase()
-            ]?.takeIf { it > 0.0 } ?: return@mapNotNull null
-            DashboardSubprojectProgress(
-                row[ProjectTable.uuid], row[ProjectTable.siteNumber].orEmpty(), row[ProjectTable.name], nameEnByProjectId[id], row[ProjectTable.region].orEmpty(),
-                if (contract > 0) (actualBySubproject[id] ?: 0.0) * 100.0 / contract else 0.0
-            )
-        }.sortedBy { it.name }
+            .sortedBy { it.code }
+            .toList()
         val procurementStatusCounts = procurementStatusMetrics(procurementRecords)
         val signedContractsByType = signedContractTypeMetrics(procurementRecords)
         val signedContracts = procurementRecords.filter { record ->
@@ -524,7 +545,7 @@ class DashboardService(
                     subprojectFor(inspection.projectId)?.let { projectsById[it]?.get(ProjectTable.siteNumber) }
                 )
             },
-            monthlyActPayments, subprojectFunding, subprojectProgress, procurementStatusCounts, signedContractsByType, nationalSummary
+            monthlyActPayments, subprojectFunding, subprojectPaymentProgress, procurementStatusCounts, signedContractsByType, nationalSummary
         )
         }
     }

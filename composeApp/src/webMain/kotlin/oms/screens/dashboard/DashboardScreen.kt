@@ -175,7 +175,13 @@ fun DashboardScreen(
                 item {
                     AdaptiveChartRow(
                         first = { FundingByOblastChart(dashboard?.subprojectFunding.orEmpty(), onOpenProjectsByRegion, chartOrientation) },
-                        second = { SubprojectProgressChart(dashboard?.subprojectProgress.orEmpty(), onOpenFinancialBySubproject, chartOrientation) }
+                        second = {
+                            SubprojectEibPaymentChart(
+                                dashboard?.subprojectPaymentProgress.orEmpty(),
+                                onOpenFinancialBySubproject,
+                                chartOrientation
+                            )
+                        }
                     )
                 }
                 item {

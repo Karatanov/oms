@@ -53,7 +53,7 @@ import oms.charts.sortChartCategories
 import oms.data.ApiDashboardMetric
 import oms.data.ApiMonthlyActPayment
 import oms.data.ApiSubprojectFunding
-import oms.data.ApiSubprojectProgress
+import oms.data.ApiSubprojectPaymentProgress
 import oms.localization.LocalizationManager
 import oms.screens.dashboard.toMonthName
 import oms.components.FilterDropdown
@@ -229,26 +229,34 @@ private fun formatFundingMapAmount(value: Double): String {
 }
 
 @Composable
-fun SubprojectProgressChart(items: List<ApiSubprojectProgress>, onOpenFinancial: (String) -> Unit, orientation: BarChartOrientation = BarChartOrientation.Vertical) {
+fun SubprojectEibPaymentChart(
+    items: List<ApiSubprojectPaymentProgress>,
+    onOpenFinancial: (String) -> Unit,
+    orientation: BarChartOrientation = BarChartOrientation.Vertical
+) {
     var regionFilter by remember(items) { mutableStateOf<String?>(null) }
     val regions = items.map { it.region }.filter(String::isNotBlank).map(::canonicalUkraineRegion).distinct().sorted()
+    val excludedCount = items.count { it.paymentPct == null }
     val data = items
-        .filter { regionFilter == null || canonicalUkraineRegion(it.region) == regionFilter }
-        .sortedBy { it.name }
-        .map {
+        .filter { it.paymentPct != null && (regionFilter == null || canonicalUkraineRegion(it.region) == regionFilter) }
+        .sortedBy { it.code }
+        .map { item ->
             BarData(
-                label = it.code.ifBlank { it.name },
-                value = it.completionPct.toFloat(),
-                id = it.projectUuid,
-                tooltip = if (LocalizationManager.currentLanguage == oms.localization.Language.EN) it.nameEn?.takeIf(String::isNotBlank) ?: it.name else it.name,
-                formattedValue = completionPercentLabel(it.completionPct)
+                label = item.code,
+                value = item.paymentPct!!.toFloat(),
+                id = item.projectUuid,
+                tooltip = listOf(
+                    "${LocalizationManager.t("payment_percentage_paid")}: ${item.paidAmountUah.paymentChartMoney()}",
+                    "${LocalizationManager.t("payment_percentage_eligible")}: ${item.eligibleContractValueUah.paymentChartMoney()}"
+                ).joinToString("\n"),
+                formattedValue = paymentPercentageLabel(item.paymentPct)
             )
         }
     AnalyticsCard(
-        titleKey = "subproject_completion",
-        hintKey = "subproject_completion_hint",
+        titleKey = "subproject_eib_payment_percentage",
+        hintKey = "subproject_eib_payment_percentage_hint",
         data = data,
-        valueLabel = { completionPercentLabel(it.toDouble()) },
+        valueLabel = { paymentPercentageLabel(it.toDouble()) },
         onItemClick = { bar -> bar.id?.let(onOpenFinancial) },
         labelMaxLines = 2,
         filterContent = {
@@ -263,13 +271,24 @@ fun SubprojectProgressChart(items: List<ApiSubprojectProgress>, onOpenFinancial:
         orientation = orientation,
         sortEnabled = true
     )
+    if (excludedCount > 0) {
+        Text(
+            LocalizationManager.t("payment_percentage_unavailable").replace("{count}", excludedCount.toString()),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
 }
 
-/** Retain small non-zero completion values instead of truncating 0.8% to 0%. */
-private fun completionPercentLabel(value: Double): String {
-    val tenths = (value.coerceAtLeast(0.0) * 10).roundToLong()
+/** Retain small non-zero payment values and do not clamp source anomalies above 100%. */
+private fun paymentPercentageLabel(value: Double): String {
+    val tenths = (value * 10).roundToLong()
     return if (tenths % 10L == 0L) "${tenths / 10}%" else "${tenths / 10}.${tenths % 10}%"
 }
+
+private fun Double?.paymentChartMoney(): String = this?.takeIf(Double::isFinite)?.let {
+    "${formatGroupedNumber(it.roundToLong())} грн"
+} ?: "—"
 
 private data class AnalyticsListRow(
     val label: String,
