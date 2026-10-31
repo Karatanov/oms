@@ -3,6 +3,11 @@ package oms.localization
 object Strings {
 
     val uk = mapOf(
+        "documents_sort" to "Сортування документів",
+        "sort_ascending" to "За зростанням. Змінити порядок",
+        "sort_descending" to "За спаданням. Змінити порядок",
+        "documents_open" to "Відкрити",
+        "documents_empty_title" to "Документів поки немає",
         "clear_search" to "Очистити пошук",
         "documents_results" to "Документів: {shown} із {total}",
         "documents_no_matches" to "Документів за цими умовами не знайдено",
@@ -962,6 +967,11 @@ object Strings {
     )
 
     val en = mapOf(
+        "documents_sort" to "Sort documents",
+        "sort_ascending" to "Ascending. Change order",
+        "sort_descending" to "Descending. Change order",
+        "documents_open" to "Open",
+        "documents_empty_title" to "No documents yet",
         "clear_search" to "Clear search",
         "documents_results" to "Documents: {shown} of {total}",
         "documents_no_matches" to "No documents match these filters",

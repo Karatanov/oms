@@ -6,6 +6,8 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowUpward
+import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
@@ -156,6 +158,19 @@ fun DocumentsScreen(canManageDocuments: Boolean = true) {
     if (currentPage >= pageCount) currentPage = pageCount - 1
     val pageDocuments = visibleDocuments.drop(currentPage * pageSize).take(pageSize)
     fun selectSort(column: DocumentSort) { if (sort == column) ascending = !ascending else { sort = column; ascending = true } }
+    fun deleteDocument(row: DocumentRow) {
+        deletion.show(row.fileName + if (row.isSirSource) "\n" + LocalizationManager.t("sir_delete_warning") else "") { scope.launch {
+            val deleted = if (row.isSirSource) OmsApiClient.deleteInspectionReport(row.uuid)
+            else OmsApiClient.deleteProjectDocument(row.projectUuid, row.uuid)
+            if (deleted) {
+                documents = documents.filterNot { it.uuid == row.uuid && it.isSirSource == row.isSirSource }
+                // A SIR source deletion also removes its report.  Do not
+                // retain its old report count/ESHS metrics when returning
+                // to the inspection registry.
+                if (row.isSirSource) invalidateInspectionReportsScreenCache()
+            } else errorMessage = LocalizationManager.t("delete_document_error")
+        } }
+    }
     Box(Modifier.fillMaxSize()) {
     Column(
         Modifier.fillMaxSize().verticalScroll(pageScrollState).padding(oms.layout.workspacePadding()),
@@ -199,7 +214,7 @@ fun DocumentsScreen(canManageDocuments: Boolean = true) {
                 Column(Modifier.fillMaxWidth().padding(28.dp), horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Icon(Icons.Default.FolderOpen, null, Modifier.size(40.dp), tint = MaterialTheme.colorScheme.primary)
-                    Text(LocalizationManager.t(if (hasFilters) "documents_no_matches" else "no_documents"),
+                    Text(LocalizationManager.t(if (hasFilters) "documents_no_matches" else "documents_empty_title"),
                         style = MaterialTheme.typography.titleMedium, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
                     Text(LocalizationManager.t(if (hasFilters) "documents_no_matches_hint" else "documents_empty_hint"),
                         color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
@@ -210,44 +225,42 @@ fun DocumentsScreen(canManageDocuments: Boolean = true) {
             }
         }
         if (visibleDocuments.isNotEmpty()) {
-            Box(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface)) {
-                oms.components.ScrollableTable(
-                    Modifier.padding(16.dp),
-                    pageScrollState = pageScrollState,
-                    header = { DocumentTableHeader(sort, ascending, ::selectSort); HorizontalDivider() }
-                ) {
-                    pageDocuments.forEach { row ->
-                        Row(Modifier.width(1_370.dp).padding(vertical = 4.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                            Text(row.fileName, Modifier.width(260.dp))
-                            ExpandableTableText(row.projectName, Modifier.width(210.dp))
-                            Text(row.subprojectPartCode ?: "—", Modifier.width(165.dp))
-                            Box(Modifier.width(140.dp)) { DocumentTypeChip(row.documentType) }
-                            Text(row.date ?: "—", Modifier.width(105.dp))
-                            Text(row.fileSizeBytes?.let(::formatFileSize) ?: "—", Modifier.width(90.dp))
-                            Text("—", Modifier.width(85.dp))
-                            TableActionIconButton(if (row.isSirSource) LocalizationManager.t("open_source_file") else LocalizationManager.t("open_document"), Icons.AutoMirrored.Filled.OpenInNew) {
-                                val path = if (row.isSirSource) "/inspection-reports/${row.uuid}/source-file" else "/projects/${row.projectUuid}/documents/${row.uuid}/download"
-                                oms.data.openOmsDownload(oms.data.omsApiUrl(path))
+            if (oms.layout.LocalMobileLayout.current) {
+                Row(Modifier.fillMaxWidth(), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    InlineOptionPicker(
+                        options = DocumentSort.entries.filter { it != DocumentSort.Author }, selected = sort,
+                        prompt = LocalizationManager.t("documents_sort"),
+                        onSelect = { sort = it; currentPage = 0 },
+                        itemLabel = { LocalizationManager.t(it.labelKey()) }, modifier = Modifier.weight(1f))
+                    TableActionIconButton(LocalizationManager.t(if (ascending) "sort_ascending" else "sort_descending"),
+                        if (ascending) Icons.Default.ArrowUpward else Icons.Default.ArrowDownward) {
+                        ascending = !ascending; currentPage = 0
+                    }
+                }
+                pageDocuments.forEach { row ->
+                    DocumentMobileCard(row, canManageDocuments, onDelete = { deleteDocument(row) })
+                }
+            } else {
+                Box(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface)) {
+                    oms.components.ScrollableTable(
+                        Modifier.padding(16.dp),
+                        pageScrollState = pageScrollState,
+                        header = { DocumentTableHeader(sort, ascending, ::selectSort); HorizontalDivider() }
+                    ) {
+                        pageDocuments.forEach { row ->
+                            Row(Modifier.width(1_370.dp).padding(vertical = 4.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                                Text(row.fileName, Modifier.width(260.dp))
+                                ExpandableTableText(row.projectName, Modifier.width(210.dp))
+                                Text(row.subprojectPartCode ?: "—", Modifier.width(165.dp))
+                                Box(Modifier.width(140.dp)) { DocumentTypeChip(row.documentType) }
+                                Text(row.date ?: "—", Modifier.width(105.dp))
+                                Text(row.fileSizeBytes?.let(::formatFileSize) ?: "—", Modifier.width(90.dp))
+                                Text("—", Modifier.width(85.dp))
+                                DocumentActions(row, canManageDocuments, onDelete = { deleteDocument(row) })
                             }
-                            if (row.isSirSource) TableActionIconButton(LocalizationManager.t("download_report_pdf"), Icons.Default.PictureAsPdf) {
-                                oms.data.openOmsDownload(oms.data.omsApiUrl("/inspection-reports/${row.uuid}/export-pdf"))
-                            } else Spacer(Modifier.width(48.dp))
-                            if (canManageDocuments) TableActionIconButton(LocalizationManager.t("delete"), Icons.Default.Delete) {
-                                deletion.show(row.fileName + if (row.isSirSource) "\n" + LocalizationManager.t("sir_delete_warning") else "") { scope.launch {
-                                    val deleted = if (row.isSirSource) OmsApiClient.deleteInspectionReport(row.uuid)
-                                    else OmsApiClient.deleteProjectDocument(row.projectUuid, row.uuid)
-                                    if (deleted) {
-                                        documents = documents.filterNot { it.uuid == row.uuid && it.isSirSource == row.isSirSource }
-                                        // A SIR source deletion also removes its report.  Do not
-                                        // retain its old report count/ESHS metrics when returning
-                                        // to the inspection registry.
-                                        if (row.isSirSource) invalidateInspectionReportsScreenCache()
-                                    } else errorMessage = LocalizationManager.t("delete_document_error")
-                                } }
-                            }
-                            else Spacer(Modifier.width(48.dp))
+                            HorizontalDivider()
                         }
-                        HorizontalDivider()
                     }
                 }
             }
@@ -271,6 +284,65 @@ fun DocumentsScreen(canManageDocuments: Boolean = true) {
                 showUploadDialog = false
             }
             )
+        }
+    }
+}
+
+private fun DocumentSort.labelKey(): String = when (this) {
+    DocumentSort.Name -> "file_name"
+    DocumentSort.Project -> "subproject"
+    DocumentSort.SubprojectPartCode -> "subproject_part_code_label"
+    DocumentSort.Type -> "type"
+    DocumentSort.Date -> "date"
+    DocumentSort.Size -> "size"
+    DocumentSort.Author -> "uploaded_by_short"
+}
+
+private fun openDocument(row: DocumentRow) {
+    val path = if (row.isSirSource) "/inspection-reports/${row.uuid}/source-file"
+        else "/projects/${row.projectUuid}/documents/${row.uuid}/download"
+    oms.data.openOmsDownload(oms.data.omsApiUrl(path))
+}
+
+@Composable
+private fun DocumentActions(row: DocumentRow, canManage: Boolean, onDelete: () -> Unit, mobile: Boolean = false) {
+    val openLabel = LocalizationManager.t(if (row.isSirSource) "open_source_file" else "open_document")
+    if (mobile) OutlinedButton(onClick = { openDocument(row) }) {
+        Icon(Icons.AutoMirrored.Filled.OpenInNew, null, Modifier.size(18.dp))
+        Spacer(Modifier.width(8.dp))
+        Text(LocalizationManager.t("documents_open"))
+    } else TableActionIconButton(openLabel, Icons.AutoMirrored.Filled.OpenInNew) { openDocument(row) }
+    if (row.isSirSource) TableActionIconButton(LocalizationManager.t("download_report_pdf"), Icons.Default.PictureAsPdf) {
+        oms.data.openOmsDownload(oms.data.omsApiUrl("/inspection-reports/${row.uuid}/export-pdf"))
+    } else if (!mobile) Spacer(Modifier.width(48.dp))
+    if (canManage) TableActionIconButton(LocalizationManager.t("delete"), Icons.Default.Delete, onDelete)
+    else if (!mobile) Spacer(Modifier.width(48.dp))
+}
+
+@Composable
+private fun DocumentMobileCard(row: DocumentRow, canManage: Boolean, onDelete: () -> Unit) {
+    Surface(shape = MaterialTheme.shapes.large,
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)) {
+        Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            DocumentTypeChip(row.documentType)
+            Text(row.fileName, style = MaterialTheme.typography.titleMedium)
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(LocalizationManager.t("subproject"), style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(row.projectName, style = MaterialTheme.typography.bodyMedium)
+                row.subprojectPartCode?.takeIf { it.isNotBlank() }?.let {
+                    Text(LocalizationManager.t("subproject_part_code_label") + ": " + it,
+                        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+            val metadata = listOfNotNull(row.date?.takeIf { it.isNotBlank() }, row.fileSizeBytes?.let(::formatFileSize))
+            if (metadata.isNotEmpty()) Text(metadata.joinToString(" · "), style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                DocumentActions(row, canManage, onDelete, mobile = true)
+            }
         }
     }
 }
