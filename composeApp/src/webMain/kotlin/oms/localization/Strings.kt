@@ -3,6 +3,12 @@ package oms.localization
 object Strings {
 
     val uk = mapOf(
+        "show_filters" to "Показати фільтри",
+        "hide_filters" to "Сховати фільтри",
+        "remove_filter" to "Зняти фільтр",
+        "reports_results" to "Звітів: {shown} із {total}",
+        "reports_no_matches" to "Звітів за цими умовами не знайдено",
+        "reports_no_matches_hint" to "Змініть запит або зніміть фільтри, щоб побачити інші звіти.",
         "documents_sort" to "Сортування документів",
         "sort_ascending" to "За зростанням. Змінити порядок",
         "sort_descending" to "За спаданням. Змінити порядок",
@@ -967,6 +973,12 @@ object Strings {
     )
 
     val en = mapOf(
+        "show_filters" to "Show filters",
+        "hide_filters" to "Hide filters",
+        "remove_filter" to "Remove filter",
+        "reports_results" to "Reports: {shown} of {total}",
+        "reports_no_matches" to "No reports match these filters",
+        "reports_no_matches_hint" to "Try another search or remove filters to see other reports.",
         "documents_sort" to "Sort documents",
         "sort_ascending" to "Ascending. Change order",
         "sort_descending" to "Descending. Change order",

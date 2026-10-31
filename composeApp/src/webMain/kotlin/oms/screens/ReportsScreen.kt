@@ -9,7 +9,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.FactCheck
 import androidx.compose.material.icons.automirrored.filled.FactCheck
 import androidx.compose.material.icons.filled.Add
@@ -125,6 +125,7 @@ fun ReportsScreen(
     var subprojectCodeFilter by remember { mutableStateOf<String?>(null) }
     var subprojectPartCodeFilter by remember { mutableStateOf<String?>(null) }
     var authorFilter by remember { mutableStateOf<String?>(null) }
+    var filtersExpanded by remember { mutableStateOf(false) }
     var loading by remember { mutableStateOf(!InspectionReportsScreenCache.hasReusableReports()) }
     var loadFailed by remember { mutableStateOf(false) }
     oms.navigation.ReportRouteReadiness(loading, loadFailed)
@@ -207,6 +208,12 @@ fun ReportsScreen(
             }.let { if (ascending) it else it.reversed() }
         ).toList()
     }
+    val activeFilterCount = listOf(status, subprojectFilter, subprojectCodeFilter, subprojectPartCodeFilter, authorFilter).count { it != null }
+    val hasSearchOrFilters = search.isNotEmpty() || activeFilterCount > 0
+    fun resetFilters() {
+        search = ""; status = null; subprojectFilter = null; subprojectCodeFilter = null
+        subprojectPartCodeFilter = null; authorFilter = null
+    }
     fun selectSort(column: ReportSort) { if (sort == column) ascending = !ascending else { sort = column; ascending = true } }
     fun scrollBy(delta: Float) = scope.launch { contentScrollState.animateScrollBy(delta) }
     /** Keep the two report charts in sync without reloading the full registry. */
@@ -243,7 +250,65 @@ fun ReportsScreen(
         oms.components.PageHeading(LocalizationManager.t("reports_title"), Icons.Default.FactCheck) {
             if (canCreateReports) Button(onClick = onNewInspection) { Icon(Icons.Default.Add, null); Spacer(Modifier.width(8.dp)); Text(LocalizationManager.t("new_inspection")) }
         }
-        OutlinedTextField(search, { search = it.safeTextInput(200) }, singleLine = true, label = { Text(LocalizationManager.t("reports_search")) }, leadingIcon = { Icon(Icons.Default.Search, null) }, modifier = Modifier.fillMaxWidth())
+        Surface(shape = MaterialTheme.shapes.large,
+            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)) {
+            Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                oms.components.WorkspaceSearchField(search, { search = it.safeTextInput(200) }, LocalizationManager.t("reports_search"))
+                @OptIn(ExperimentalLayoutApi::class)
+                FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    OutlinedButton(onClick = { filtersExpanded = !filtersExpanded }) {
+                        Icon(Icons.Default.FilterList, null, Modifier.size(18.dp)); Spacer(Modifier.width(8.dp))
+                        Text(LocalizationManager.t(if (filtersExpanded) "hide_filters" else "show_filters") +
+                            if (activeFilterCount > 0) " ($activeFilterCount)" else "")
+                    }
+                    if (hasSearchOrFilters) TextButton(onClick = ::resetFilters) { Text(LocalizationManager.t("reset_filters")) }
+                }
+                if (filtersExpanded) {
+                    ReportFilters(
+                        reports = reports,
+                        subprojectFilter = subprojectFilter,
+                        onSubprojectFilterChange = { subprojectFilter = it; subprojectPartCodeFilter = null },
+                        subprojectCodeFilter = subprojectCodeFilter,
+                        onSubprojectCodeFilterChange = { subprojectCodeFilter = it },
+                        subprojectPartCodeFilter = subprojectPartCodeFilter,
+                        onSubprojectPartCodeFilterChange = { subprojectPartCodeFilter = it },
+                        statusFilter = status,
+                        onStatusFilterChange = { status = it },
+                        authorFilter = authorFilter,
+                        onAuthorFilterChange = { authorFilter = it }
+                    )
+                }
+                if (activeFilterCount > 0) {
+                    @OptIn(ExperimentalLayoutApi::class)
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        subprojectFilter?.let { ReportFilterChip(LocalizationManager.t("subproject"), it) { subprojectFilter = null; subprojectPartCodeFilter = null } }
+                        subprojectCodeFilter?.let { ReportFilterChip(LocalizationManager.t("subproject_code"), it) { subprojectCodeFilter = null } }
+                        subprojectPartCodeFilter?.let { ReportFilterChip(LocalizationManager.t("subproject_part_code_label"), it) { subprojectPartCodeFilter = null } }
+                        status?.let { ReportFilterChip(LocalizationManager.t("status"), LocalizationManager.t("${it}_status")) { status = null } }
+                        authorFilter?.let { ReportFilterChip(LocalizationManager.t("uploaded_by_short"), it) { authorFilter = null } }
+                    }
+                }
+                if (!loading && !loadFailed) Text(LocalizationManager.t("reports_results")
+                    .replace("{shown}", visible.size.toString()).replace("{total}", reports.size.toString()),
+                    style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+        if (!loading && !loadFailed && visible.isEmpty()) {
+            Surface(shape = MaterialTheme.shapes.large,
+                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)) {
+                Column(Modifier.fillMaxWidth().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Icon(Icons.AutoMirrored.Filled.FactCheck, null, Modifier.size(36.dp), tint = MaterialTheme.colorScheme.primary)
+                    Text(LocalizationManager.t(if (hasSearchOrFilters) "reports_no_matches" else "no_reports"),
+                        style = MaterialTheme.typography.titleMedium, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                    if (hasSearchOrFilters) {
+                        Text(LocalizationManager.t("reports_no_matches_hint"), color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                        OutlinedButton(onClick = ::resetFilters) { Text(LocalizationManager.t("reset_filters")) }
+                    }
+                }
+            }
+        }
         if (loading) oms.components.ContentState(LocalizationManager.t("loading_records"), loading = true)
         if (loadFailed) oms.components.ContentState(LocalizationManager.t("load_records_error"), error = true, onRetry = { reloadKey++ })
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -269,26 +334,10 @@ fun ReportsScreen(
                 Modifier.padding(start = 16.dp, top = 4.dp, end = 16.dp, bottom = 16.dp),
                 pageScrollState = contentScrollState,
                 header = {
-                    ReportTableHeader(
-                        sort = sort,
-                        ascending = ascending,
-                        onSort = ::selectSort,
-                        reports = reports,
-                        subprojectFilter = subprojectFilter,
-                        onSubprojectFilterChange = { subprojectFilter = it; subprojectPartCodeFilter = null },
-                        subprojectCodeFilter = subprojectCodeFilter,
-                        onSubprojectCodeFilterChange = { subprojectCodeFilter = it },
-                        subprojectPartCodeFilter = subprojectPartCodeFilter,
-                        onSubprojectPartCodeFilterChange = { subprojectPartCodeFilter = it },
-                        statusFilter = status,
-                        onStatusFilterChange = { status = it },
-                        authorFilter = authorFilter,
-                        onAuthorFilterChange = { authorFilter = it }
-                    )
+                    ReportTableHeader(sort, ascending, ::selectSort)
                     HorizontalDivider()
                 }
             ) {
-                if (!loading && !loadFailed && visible.isEmpty()) Text(LocalizationManager.t("no_reports"))
                 visible.forEach { row ->
                     Row(Modifier.width(1_115.dp).padding(vertical = 4.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                         Text(row.report.inspectionDate.toOmsDate(), Modifier.width(105.dp))
@@ -1207,10 +1256,7 @@ private fun FindingEditorDialog(
 }
 
 @Composable
-private fun ReportTableHeader(
-    sort: ReportSort,
-    ascending: Boolean,
-    onSort: (ReportSort) -> Unit,
+private fun ReportFilters(
     reports: List<ReportRow>,
     subprojectFilter: String?,
     onSubprojectFilterChange: (String?) -> Unit,
@@ -1238,46 +1284,40 @@ private fun ReportTableHeader(
         .toList()
     val subprojectCodes = reports.mapNotNull { it.subprojectCode }.distinct().sorted()
     val authors = reports.mapNotNull { it.report.authorUsername?.takeIf(String::isNotBlank) }.distinct().sorted()
-    val statuses = listOf("draft", "pending_review", "completed")
+    val statuses = listOf("draft", "pending_review", "rejected", "completed")
 
-    Column(Modifier.width(1_115.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Row(verticalAlignment = Alignment.Top) {
-            Box(Modifier.width(105.dp).padding(top = 14.dp)) {
-                Text(LocalizationManager.t("filters"), style = MaterialTheme.typography.labelLarge)
-            }
-            Box(Modifier.width(220.dp)) {
-                FilterDropdown(LocalizationManager.t("subproject"), subprojects, subprojectFilter, onSubprojectFilterChange, Modifier.fillMaxWidth()) { it }
-            }
-            Box(Modifier.width(150.dp)) {
-                FilterDropdown(LocalizationManager.t("subproject_code"), subprojectCodes, subprojectCodeFilter, onSubprojectCodeFilterChange, Modifier.fillMaxWidth()) { it }
-            }
-            Box(Modifier.width(160.dp)) {
-                FilterDropdown(LocalizationManager.t("subproject_part_code_label"), partCodes, subprojectPartCodeFilter, onSubprojectPartCodeFilterChange, Modifier.fillMaxWidth()) { it }
-            }
-            Box(Modifier.width(130.dp)) {
-                FilterDropdown(
-                    LocalizationManager.t("status"),
-                    statuses,
-                    statusFilter,
-                    onStatusFilterChange,
-                    Modifier.fillMaxWidth()
-                ) { LocalizationManager.t("${it}_status") }
-            }
-            Box(Modifier.width(110.dp)) {
-                FilterDropdown(LocalizationManager.t("uploaded_by_short"), authors, authorFilter, onAuthorFilterChange, Modifier.fillMaxWidth()) { it }
-            }
-            Spacer(Modifier.width(240.dp))
+    BoxWithConstraints(Modifier.fillMaxWidth()) {
+        val columns = if (maxWidth >= 900.dp) 3 else if (maxWidth >= 540.dp) 2 else 1
+        val fieldWidth = (maxWidth - 12.dp * (columns - 1) - 1.dp) / columns
+        @OptIn(ExperimentalLayoutApi::class)
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            FilterDropdown(LocalizationManager.t("subproject"), subprojects, subprojectFilter, onSubprojectFilterChange, Modifier.width(fieldWidth)) { it }
+            FilterDropdown(LocalizationManager.t("subproject_code"), subprojectCodes, subprojectCodeFilter, onSubprojectCodeFilterChange, Modifier.width(fieldWidth)) { it }
+            FilterDropdown(LocalizationManager.t("subproject_part_code_label"), partCodes, subprojectPartCodeFilter, onSubprojectPartCodeFilterChange, Modifier.width(fieldWidth)) { it }
+            FilterDropdown(LocalizationManager.t("status"), statuses, statusFilter, onStatusFilterChange, Modifier.width(fieldWidth)) { LocalizationManager.t("${it}_status") }
+            FilterDropdown(LocalizationManager.t("uploaded_by_short"), authors, authorFilter, onAuthorFilterChange, Modifier.width(fieldWidth)) { it }
         }
-        Row(Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
-            SortableTableHeader(LocalizationManager.t("date"), sort == ReportSort.Date, ascending, { onSort(ReportSort.Date) }, Modifier.width(105.dp))
-            SortableTableHeader(LocalizationManager.t("subproject"), sort == ReportSort.Subproject, ascending, { onSort(ReportSort.Subproject) }, Modifier.width(220.dp))
-            SortableTableHeader(LocalizationManager.t("subproject_code"), sort == ReportSort.SubprojectCode, ascending, { onSort(ReportSort.SubprojectCode) }, Modifier.width(150.dp))
-            SortableTableHeader(LocalizationManager.t("subproject_part_code_label"), sort == ReportSort.SubprojectPartCode, ascending, { onSort(ReportSort.SubprojectPartCode) }, Modifier.width(160.dp))
-            SortableTableHeader(LocalizationManager.t("status"), sort == ReportSort.Status, ascending, { onSort(ReportSort.Status) }, Modifier.width(130.dp))
-            SortableTableHeader(LocalizationManager.t("uploaded_by_short"), sort == ReportSort.Author, ascending, { onSort(ReportSort.Author) }, Modifier.width(110.dp))
-            Box(Modifier.width(240.dp).height(52.dp), contentAlignment = Alignment.Center) {
-                Text(LocalizationManager.t("actions"))
-            }
+    }
+}
+
+@Composable
+private fun ReportFilterChip(label: String, value: String, onRemove: () -> Unit) {
+    InputChip(selected = true, onClick = onRemove,
+        label = { Text("$label: $value", maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) },
+        trailingIcon = { Icon(Icons.Default.Close, LocalizationManager.t("remove_filter"), Modifier.size(16.dp)) })
+}
+
+@Composable
+private fun ReportTableHeader(sort: ReportSort, ascending: Boolean, onSort: (ReportSort) -> Unit) {
+    Row(Modifier.width(1_115.dp).padding(vertical = 6.dp)) {
+        SortableTableHeader(LocalizationManager.t("date"), sort == ReportSort.Date, ascending, { onSort(ReportSort.Date) }, Modifier.width(105.dp))
+        SortableTableHeader(LocalizationManager.t("subproject"), sort == ReportSort.Subproject, ascending, { onSort(ReportSort.Subproject) }, Modifier.width(220.dp))
+        SortableTableHeader(LocalizationManager.t("subproject_code"), sort == ReportSort.SubprojectCode, ascending, { onSort(ReportSort.SubprojectCode) }, Modifier.width(150.dp))
+        SortableTableHeader(LocalizationManager.t("subproject_part_code_label"), sort == ReportSort.SubprojectPartCode, ascending, { onSort(ReportSort.SubprojectPartCode) }, Modifier.width(160.dp))
+        SortableTableHeader(LocalizationManager.t("status"), sort == ReportSort.Status, ascending, { onSort(ReportSort.Status) }, Modifier.width(130.dp))
+        SortableTableHeader(LocalizationManager.t("uploaded_by_short"), sort == ReportSort.Author, ascending, { onSort(ReportSort.Author) }, Modifier.width(110.dp))
+        Box(Modifier.width(240.dp).height(52.dp), contentAlignment = Alignment.Center) {
+            Text(LocalizationManager.t("actions"))
         }
     }
 }
