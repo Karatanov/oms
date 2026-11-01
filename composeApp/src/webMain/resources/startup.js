@@ -41,11 +41,17 @@
     // reusing a half-downloaded in-memory script after a startup failure.
     let retryNonce = "";
 
+    // Only the authenticated Compose shell may resume a hand-off.  When an
+    // expired session makes /app.html return login.html, retaining this flag
+    // would place the startup card over the login controls indefinitely.
+    const isApplicationShell = /\/(?:app|index)\.html$/i.test(window.location.pathname);
     const stored = (() => {
         try { return JSON.parse(sessionStorage.getItem(storageKey) || "{}"); }
         catch (_) { return {}; }
     })();
-    if (stored.active) {
+    if (!isApplicationShell) {
+        try { sessionStorage.removeItem(storageKey); } catch (_) { /* Storage may be unavailable. */ }
+    } else if (stored.active) {
         active = true;
         startedAt = Number(stored.startedAt) || Date.now();
         progress = Number(stored.progress) || 0;
