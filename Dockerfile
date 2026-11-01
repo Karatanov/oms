@@ -60,6 +60,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends brotli && rm -r
 COPY --from=frontend-source /workspace/frontend/ /workspace/frontend/
 ARG OMS_GIT_SHA=local
 ARG OMS_BUILD_DATE=local
+# Do not consume the retry query in the template literal below. It is appended
+# only after a failed startup to bypass Chromium's in-memory cache.
 RUN mkdir -p /workspace/web \
     && cp -a /workspace/frontend/processed/. /workspace/web/ \
     && cp -a /workspace/frontend/executable/. /workspace/web/ \
@@ -71,7 +73,7 @@ RUN mkdir -p /workspace/web \
     && sed -i "s#skiko\\.wasm#$wasm_asset#g" /workspace/web/composeApp.js \
     && asset_hash=$(sha256sum /workspace/web/composeApp.js | cut -c1-12) \
     && mv /workspace/web/composeApp.js "/workspace/web/composeApp.${asset_hash}.js" \
-    && sed -i -E "s#composeApp\\.js(\\?[^\"']*)?#composeApp.${asset_hash}.js#g" /workspace/web/index.html /workspace/web/login.html \
+    && sed -i "s#composeApp\\.js#composeApp.${asset_hash}.js#g" /workspace/web/index.html /workspace/web/login.html \
     && sed -i "s#__OMS_WASM_ASSET__#$wasm_asset#g" /workspace/web/index.html \
     && js_bytes=$(stat -c %s "/workspace/web/composeApp.${asset_hash}.js") \
     && wasm_bytes=$(stat -c %s "/workspace/web/$wasm_asset") \

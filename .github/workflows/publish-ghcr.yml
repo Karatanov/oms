@@ -258,6 +258,9 @@ jobs:
           base_url='https://ua-oms.com'
           app_html="$(curl --fail --silent --show-error --max-time 30 "$base_url/index.html")"
           grep -Fq 'composeApp.' <<< "$app_html"
+          # The cache-recovery template literal must remain syntactically
+          # complete after Docker fingerprints composeApp.js.
+          grep -Eq 'composeApp\.[a-f0-9]+\.js\?omsRetry=\$\{encodeURIComponent\(retryNonce\)\}`' <<< "$app_html"
           ! grep -Fq '__OMS_WASM_ASSET__' <<< "$app_html"
           manifest="$(curl --fail --silent --show-error --max-time 30 "$base_url/assets-manifest.json")"
           jq -e '.version | type == "string" and length > 0' <<< "$manifest" >/dev/null
