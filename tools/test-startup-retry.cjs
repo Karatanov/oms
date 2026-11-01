@@ -20,13 +20,14 @@ const app = fs.readFileSync('composeApp/src/webMain/resources/index.html', 'utf8
     const page = await browser.newPage();
     let firstBundle = true;
     let retriedBundleUrl = '';
+    let serveLoginAtAppUrl = false;
     await page.addInitScript(() => sessionStorage.setItem('oms.startup', JSON.stringify({
       active: true, startedAt: Date.now(), progress: 93, locale: 'uk'
     })));
     await page.route(`${origin}/**`, route => {
       const url = new URL(route.request().url());
       if (url.pathname === '/') return route.fulfill({ contentType: 'text/html', body: login });
-      if (url.pathname === '/app.html') return route.fulfill({ contentType: 'text/html', body: app });
+      if (url.pathname === '/app.html') return route.fulfill({ contentType: 'text/html', body: serveLoginAtAppUrl ? login : app });
       if (url.pathname === '/assets-manifest.json') return route.fulfill({ contentType: 'application/json', body: JSON.stringify({
         assets: [{ url: 'composeApp.js', bytes: 16 }]
       }) });
@@ -48,11 +49,10 @@ const app = fs.readFileSync('composeApp/src/webMain/resources/index.html', 'utf8
     assert.match(retriedBundleUrl, /composeApp\.js\?omsRetry=\d+/, 'retry must execute a cache-busting bundle URL');
     assert.equal(new URL(page.url()).hash, '#dashboard', 'retry preserves the requested route');
 
-    // An expired server session responds to /app.html with login.html. A stale
-    // hand-off flag must never cover that real login form with a dead retry UI.
-    await page.goto(`${origin}/`);
-    await page.evaluate(() => sessionStorage.setItem('oms.startup', JSON.stringify({ active: true, startedAt: Date.now(), progress: 93, locale: 'uk' })));
-    await page.reload();
+    // An expired server session responds to /app.html with login.html while
+    // retaining the /app.html URL. A stale hand-off must not cover that form.
+    serveLoginAtAppUrl = true;
+    await page.goto(`${origin}/app.html`);
     assert.equal(await page.locator('#oms-startup-status').isHidden(), true, 'login must clear a stale startup hand-off');
     assert.equal(await page.evaluate(() => sessionStorage.getItem('oms.startup')), null, 'stale startup state must be removed on login');
     console.log('PASS startup retry: fresh bundle URL, successful handoff, route preserved');

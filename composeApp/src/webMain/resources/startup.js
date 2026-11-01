@@ -148,6 +148,20 @@
         console.error("OMS startup failed", cause);
         render("failed");
     };
+    const clearStartupForLogin = () => {
+        // `/app.html` deliberately serves login.html for an expired session,
+        // while keeping the requested URL.  Inspect the rendered document,
+        // not just location.pathname, before allowing a persisted hand-off to
+        // cover the login controls.
+        active = false;
+        failed = false;
+        clearWatchdog();
+        clearInterval(timer);
+        timer = null;
+        sessionStorage.removeItem(storageKey);
+        document.getElementById("oms-startup-status")?.setAttribute("hidden", "");
+        document.body.classList.remove("oms-starting");
+    };
     const ensureWatchdog = () => {
         if (watchdog || failed) return;
         // The production renderer is large and is intentionally downloaded
@@ -355,6 +369,10 @@
         // The progress overlay is retained through the hand-off and Compose
         // reports the final readiness stages below.
         window.addEventListener("DOMContentLoaded", () => {
+            if (document.getElementById("login-form")) {
+                clearStartupForLogin();
+                return;
+            }
             report(Math.max(progress, 91), "session");
         }, { once: true });
     }
