@@ -3,6 +3,7 @@ package oms.localization
 object Strings {
 
     val uk = mapOf(
+        "reports_sort" to "Сортування звітів",
         "show_filters" to "Показати фільтри",
         "hide_filters" to "Сховати фільтри",
         "remove_filter" to "Зняти фільтр",
@@ -973,6 +974,7 @@ object Strings {
     )
 
     val en = mapOf(
+        "reports_sort" to "Sort reports",
         "show_filters" to "Show filters",
         "hide_filters" to "Hide filters",
         "remove_filter" to "Remove filter",

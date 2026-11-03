@@ -9,6 +9,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowUpward
+import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.FactCheck
 import androidx.compose.material.icons.automirrored.filled.FactCheck
@@ -118,6 +120,7 @@ fun ReportsScreen(
     canMoveReports: Boolean = true
 ) {
     val deletion = oms.components.LocalDeleteConfirmation.current
+    val mobileLayout = oms.layout.LocalMobileLayout.current
     var reports by remember { mutableStateOf(InspectionReportsScreenCache.reports ?: emptyList()) }
     var search by remember { mutableStateOf("") }
     var status by remember { mutableStateOf<String?>(null) }
@@ -133,8 +136,8 @@ fun ReportsScreen(
     var reportToEdit by remember { mutableStateOf<ReportRow?>(null) }
     var reportToReview by remember { mutableStateOf<ReportRow?>(null) }
     var analytics by remember { mutableStateOf(InspectionReportsScreenCache.analytics) }
-    var inspectionsChartExpanded by remember { mutableStateOf(true) }
-    var eshsChartExpanded by remember { mutableStateOf(true) }
+    var inspectionsChartExpanded by remember { mutableStateOf(!mobileLayout) }
+    var eshsChartExpanded by remember { mutableStateOf(!mobileLayout) }
     val scope = rememberCoroutineScope()
     var sort by remember { mutableStateOf(ReportSort.Date) }
     var ascending by remember { mutableStateOf(false) }
@@ -223,6 +226,34 @@ fun ReportsScreen(
                 analytics = refreshed
                 InspectionReportsScreenCache.analytics = refreshed
             }
+    }
+
+    @Composable
+    fun ReportActions(row: ReportRow, compact: Boolean = false) {
+        if (!compact) TableActionIconButton(LocalizationManager.t("preview_report"), Icons.Default.Visibility) { onPreviewInspection(row.report.uuid) }
+        if (canCreateReports) TableActionIconButton(LocalizationManager.t("edit_inspection"), Icons.Default.Edit) { onEditInspection(row.report.uuid) }
+        else if (!compact) Spacer(Modifier.width(48.dp))
+        if (canReviewReports && row.report.status == "pending_review") {
+            TableActionIconButton(LocalizationManager.t("review_report"), Icons.Default.RateReview) { reportToReview = row }
+        } else if (!compact) {
+            Spacer(Modifier.width(48.dp))
+        }
+        TableActionIconButton(LocalizationManager.t("open_source_file"), Icons.Default.FileDownload) {
+            oms.data.openOmsDownload(oms.data.omsApiUrl("/inspection-reports/${row.report.uuid}/source-file"))
+        }
+        TableActionIconButton(LocalizationManager.t("download_report_pdf"), Icons.Default.PictureAsPdf) {
+            oms.data.openOmsDownload(oms.data.omsApiUrl("/inspection-reports/${row.report.uuid}/export-pdf"))
+        }
+        if (canCreateReports) TableActionIconButton(LocalizationManager.t("delete_report"), Icons.Default.Delete) {
+            deletion.show(row.title()) { scope.launch {
+                if (OmsApiClient.deleteInspectionReport(row.report.uuid)) {
+                    reports = reports.filterNot { it.report.uuid == row.report.uuid }
+                    InspectionReportsScreenCache.reports = reports
+                    refreshAnalytics()
+                }
+                else errorMessage = LocalizationManager.t("error_delete_report")
+            } }
+        } else if (!compact) Spacer(Modifier.width(48.dp))
     }
 
     MaterialTheme(colorScheme = MaterialTheme.colorScheme.copy(onPrimary = Color.White)) {
@@ -326,53 +357,48 @@ fun ReportsScreen(
                 )
             }
         )
-        // Card clips translated children in Web/Wasm.  A drawn surface keeps
-        // the same light table background while allowing its header to stick
-        // above the scrolling page.
-        Box(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface)) {
-            oms.components.ScrollableTable(
-                Modifier.padding(start = 16.dp, top = 4.dp, end = 16.dp, bottom = 16.dp),
-                pageScrollState = contentScrollState,
-                header = {
-                    ReportTableHeader(sort, ascending, ::selectSort)
-                    HorizontalDivider()
+        if (mobileLayout) {
+            if (visible.isNotEmpty()) {
+                Row(Modifier.fillMaxWidth().padding(top = 12.dp, bottom = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    InlineOptionPicker(ReportSort.entries.toList(), sort, LocalizationManager.t("reports_sort"),
+                        onSelect = { sort = it }, itemLabel = { LocalizationManager.t(it.labelKey()) }, modifier = Modifier.weight(1f))
+                    TableActionIconButton(LocalizationManager.t(if (ascending) "sort_ascending" else "sort_descending"),
+                        if (ascending) Icons.Default.ArrowUpward else Icons.Default.ArrowDownward) { ascending = !ascending }
                 }
-            ) {
-                visible.forEach { row ->
-                    Row(Modifier.width(1_115.dp).padding(vertical = 4.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                        Text(row.report.inspectionDate.toOmsDate(), Modifier.width(105.dp))
-                        ExpandableTableText(row.localizedSubprojectName() ?: "—", Modifier.width(220.dp), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text(row.subprojectCode ?: "—", Modifier.width(150.dp), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text(row.subprojectPartCode ?: "—", Modifier.width(160.dp), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Box(Modifier.width(130.dp)) { ReportStatusChip(row.report.status) }
-                        Text(row.report.authorUsername ?: "—", Modifier.width(110.dp))
-                        // Preview is the primary action and must be first in the cell.
-                        TableActionIconButton(LocalizationManager.t("preview_report"), Icons.Default.Visibility) { onPreviewInspection(row.report.uuid) }
-                        if (canCreateReports) TableActionIconButton(LocalizationManager.t("edit_inspection"), Icons.Default.Edit) { onEditInspection(row.report.uuid) }
-                        else Spacer(Modifier.width(48.dp))
-                        if (canReviewReports && row.report.status == "pending_review") {
-                            TableActionIconButton(LocalizationManager.t("review_report"), Icons.Default.RateReview) { reportToReview = row }
-                        } else {
-                            Spacer(Modifier.width(48.dp))
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    visible.forEach { row ->
+                        ReportMobileCard(row, onPreview = { onPreviewInspection(row.report.uuid) }) {
+                            ReportActions(row, compact = true)
                         }
-                        TableActionIconButton(LocalizationManager.t("open_source_file"), Icons.Default.FileDownload) {
-                            oms.data.openOmsDownload(oms.data.omsApiUrl("/inspection-reports/${row.report.uuid}/source-file"))
-                        }
-                        TableActionIconButton(LocalizationManager.t("download_report_pdf"), Icons.Default.PictureAsPdf) {
-                            oms.data.openOmsDownload(oms.data.omsApiUrl("/inspection-reports/${row.report.uuid}/export-pdf"))
-                        }
-                        if (canCreateReports) TableActionIconButton(LocalizationManager.t("delete_report"), Icons.Default.Delete) {
-                            deletion.show(row.title()) { scope.launch {
-                                if (OmsApiClient.deleteInspectionReport(row.report.uuid)) {
-                                    reports = reports.filterNot { it.report.uuid == row.report.uuid }
-                                    InspectionReportsScreenCache.reports = reports
-                                    refreshAnalytics()
-                                }
-                                else errorMessage = LocalizationManager.t("error_delete_report")
-                            } }
-                        } else Spacer(Modifier.width(48.dp))
                     }
-                    HorizontalDivider()
+                }
+            }
+        } else {
+            // Card clips translated children in Web/Wasm.  A drawn surface keeps
+            // the same light table background while allowing its header to stick
+            // above the scrolling page.
+            Box(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface)) {
+                oms.components.ScrollableTable(
+                    Modifier.padding(start = 16.dp, top = 4.dp, end = 16.dp, bottom = 16.dp),
+                    pageScrollState = contentScrollState,
+                    header = {
+                        ReportTableHeader(sort, ascending, ::selectSort)
+                        HorizontalDivider()
+                    }
+                ) {
+                    visible.forEach { row ->
+                        Row(Modifier.width(1_115.dp).padding(vertical = 4.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                            Text(row.report.inspectionDate.toOmsDate(), Modifier.width(105.dp))
+                            ExpandableTableText(row.localizedSubprojectName() ?: "—", Modifier.width(220.dp), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(row.subprojectCode ?: "—", Modifier.width(150.dp), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(row.subprojectPartCode ?: "—", Modifier.width(160.dp), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Box(Modifier.width(130.dp)) { ReportStatusChip(row.report.status) }
+                            Text(row.report.authorUsername ?: "—", Modifier.width(110.dp))
+                            ReportActions(row)
+                        }
+                        HorizontalDivider()
+                    }
                 }
             }
         }
@@ -1251,6 +1277,51 @@ private fun FindingEditorDialog(
                 OutlinedButton(onClick = onDismiss) { Text(LocalizationManager.t("cancel")) }
                 Button(onClick = { onSave(category, severity, description, recommendation.ifBlank { null }, isResolved) }, enabled = category.isNotBlank() && description.isNotBlank()) { Text(LocalizationManager.t("save")) }
             }
+        }
+    }
+}
+
+private fun ReportSort.labelKey(): String = when (this) {
+    ReportSort.Date -> "date"
+    ReportSort.Subproject -> "subproject"
+    ReportSort.SubprojectCode -> "subproject_code"
+    ReportSort.SubprojectPartCode -> "subproject_part_code_label"
+    ReportSort.Status -> "status"
+    ReportSort.Author -> "uploaded_by_short"
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun ReportMobileCard(row: ReportRow, onPreview: () -> Unit, actions: @Composable () -> Unit) {
+    Surface(shape = MaterialTheme.shapes.large,
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)) {
+        Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(row.report.inspectionDate.toOmsDate(), style = MaterialTheme.typography.labelLarge)
+                ReportStatusChip(row.report.status)
+            }
+            Text(row.localizedSubprojectName() ?: row.projectName, style = MaterialTheme.typography.titleMedium)
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                row.report.inspectionCode.takeIf { it.isNotBlank() }?.let {
+                    Text(it, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                }
+                row.subprojectCode?.let {
+                    Text(LocalizationManager.t("subproject_code") + ": " + it, style = MaterialTheme.typography.bodySmall)
+                }
+                row.subprojectPartCode?.let {
+                    Text(LocalizationManager.t("subproject_part_code_label") + ": " + it, style = MaterialTheme.typography.bodySmall)
+                }
+                row.report.authorUsername?.takeIf { it.isNotBlank() }?.let {
+                    Text(LocalizationManager.t("uploaded_by_short") + ": " + it, style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+            Button(onClick = onPreview, modifier = Modifier.fillMaxWidth()) {
+                Icon(Icons.Default.Visibility, null, Modifier.size(18.dp)); Spacer(Modifier.width(8.dp))
+                Text(LocalizationManager.t("preview_report"))
+            }
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) { actions() }
         }
     }
 }
