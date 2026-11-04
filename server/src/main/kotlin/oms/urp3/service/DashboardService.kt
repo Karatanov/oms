@@ -211,6 +211,30 @@ private fun worksContractAmount(row: org.jetbrains.exposed.v1.core.ResultRow): D
         ?: row[ProcurementRecordTable.signedContractAmountUah]?.toDouble()
         ?: 0.0
 
+/**
+ * Procurement rows can be stored at lot level (for example `KH08_07#Lot2`),
+ * while the dashboard renders one bar for the parent subproject.  Keep the
+ * two identities separate where an individual lot is needed, but aggregate to
+ * this canonical key for the displayed subproject.
+ */
+internal fun dashboardSubprojectCode(value: String?): String =
+    value.orEmpty().substringBefore('#').trim().uppercase()
+
+/**
+ * Monitoring workbooks contain a mixture of Excel percentage cells (rendered
+ * as `98%`), decimal values (`0.98`) and occasionally text percentages.  The
+ * registry stores their formatted representation, so normalize all valid
+ * variants once before using them in a financial calculation.
+ */
+internal fun monitoringCompletionFraction(value: String?): Double? {
+    val raw = value.orEmpty().trim().replace('\u00a0', ' ')
+    if (raw.isBlank()) return null
+    val hasPercentSign = raw.contains('%')
+    val number = raw.replace("%", "").replace(" ", "").replace(',', '.').toDoubleOrNull() ?: return null
+    val fraction = if (hasPercentSign || number > 1.0) number / 100.0 else number
+    return fraction.takeIf { it.isFinite() && it >= 0.0 }
+}
+
 /** DB6.3's source row id is contract-level and remains unique across lots. */
 private fun List<org.jetbrains.exposed.v1.core.ResultRow>.uniqueContracts() =
     distinctBy { row -> row[ProcurementRecordTable.tenderId] ?: "record-${row[ProcurementRecordTable.id].value}" }
@@ -570,9 +594,12 @@ class DashboardService(
         val spent = actRecords.sumOf { it[FinancialRecordTable.amount] }.toDouble()
         val monthlyActPayments = monthlySourcePayments(sourcedPayments, trancheNumber).ifEmpty { monthlyPayments(paymentRecords) }
         val projectsById = projects.associateBy { it[ProjectTable.id].value }
-        val nameEnByProjectId = if (projectIds.isEmpty()) emptyMap() else ProjectMonitoringDetailTable.selectAll()
+        val monitoringByProjectId = if (projectIds.isEmpty()) emptyMap() else ProjectMonitoringDetailTable.selectAll()
             .where { ProjectMonitoringDetailTable.projectId inList projectIds }
-            .associate { it[ProjectMonitoringDetailTable.projectId].value to it[ProjectMonitoringDetailTable.nameEn] }
+            .associateBy { it[ProjectMonitoringDetailTable.projectId].value }
+        val nameEnByProjectId = monitoringByProjectId.mapValues { (_, row) ->
+            row[ProjectMonitoringDetailTable.nameEn]
+        }
         val subprojects = projects.filter { it[ProjectTable.projectType] == "subproject" }
         val subprojectIdByCode = subprojects.mapNotNull { row ->
             row[ProjectTable.siteNumber].orEmpty().trim().takeIf(String::isNotBlank)?.lowercase()
@@ -610,23 +637,55 @@ class DashboardService(
                     .where { ProcurementRecordTable.batchId inList batchIds }.toList()
             } ?: ProcurementRecordTable.selectAll().toList()
         } else emptyList()
-        val signedWorksAmountBySubprojectCode = procurementRecords.asSequence()
+        val signedWorksContracts = procurementRecords.asSequence()
             .filter { record ->
                 isConstructionContractSigned(record[ProcurementRecordTable.purchaseStatus]) &&
                     isWorksContract(record)
             }
-            .groupBy { it[ProcurementRecordTable.subProjectId].trim().lowercase() }
+            .toList()
+        val signedWorksAmountBySubprojectCode = signedWorksContracts
+            .groupBy { dashboardSubprojectCode(it[ProcurementRecordTable.subProjectId]) }
             .mapValues { (_, records) -> records.uniqueContracts().sumOf(::worksContractAmount) }
-        val subprojectProgress = subprojects.mapNotNull { row ->
+        val signedWorksAmountBySourceCode = signedWorksContracts
+            .groupBy { it[ProcurementRecordTable.subProjectId].trim().uppercase() }
+            .mapValues { (_, records) -> records.uniqueContracts().sumOf(::worksContractAmount) }
+        data class MonitoringProgress(var completedAmount: Double = 0.0, var hasReportedProgress: Boolean = false)
+        val monitoringProgressBySubproject = mutableMapOf<Long, MonitoringProgress>()
+        monitoringByProjectId.forEach { (projectId, detail) ->
+            val completion = monitoringCompletionFraction(detail[ProjectMonitoringDetailTable.completedWorkPct]) ?: return@forEach
+            val parentId = subprojectFor(projectId) ?: return@forEach
+            val sourceCode = detail[ProjectMonitoringDetailTable.sourceLotId]
+                .ifBlank { projectsById[projectId]?.get(ProjectTable.siteNumber).orEmpty() }
+                .trim()
+                .uppercase()
+            // Prefer the construction contract for the exact lot.  A registry
+            // row without a corresponding procurement lot may still describe
+            // a top-level subproject, where its stored contract is the valid
+            // fallback.  Do not use an approved budget: the chart denominator
+            // is explicitly the construction contract.
+            val contract = signedWorksAmountBySourceCode[sourceCode]
+                ?: projectsById[projectId]?.get(ProjectTable.subprojectContractAmount)?.toDouble()
+                ?: 0.0
+            if (contract > 0.0) {
+                monitoringProgressBySubproject.getOrPut(parentId, ::MonitoringProgress).apply {
+                    completedAmount += contract * completion
+                    hasReportedProgress = true
+                }
+            }
+        }
+        val subprojectProgress = subprojects.asSequence()
+            .filter { it[ProjectTable.status] == "active" }
+            .mapNotNull { row ->
             val id = row[ProjectTable.id].value
             val contract = signedWorksAmountBySubprojectCode[
-                row[ProjectTable.siteNumber].orEmpty().substringBefore('#').trim().lowercase()
+                dashboardSubprojectCode(row[ProjectTable.siteNumber])
             ]?.takeIf { it > 0.0 } ?: return@mapNotNull null
+            val reportedProgress = monitoringProgressBySubproject[id]
             DashboardSubprojectProgress(
                 row[ProjectTable.uuid], row[ProjectTable.siteNumber].orEmpty(), row[ProjectTable.name], nameEnByProjectId[id], row[ProjectTable.region].orEmpty(),
-                (actualBySubproject[id] ?: 0.0) * 100.0 / contract
+                ((if (reportedProgress?.hasReportedProgress == true) reportedProgress.completedAmount else actualBySubproject[id] ?: 0.0) * 100.0 / contract)
             )
-        }.sortedBy { it.name }
+        }.sortedBy { it.name }.toList()
         fun month(date: java.time.LocalDate) = date.toString().take(7)
         val monthlyInspectionCounts = reports.groupBy { month(it[InspectionReportTable.inspectionDate]) }
             .map { DashboardMetric(it.key, it.value.size.toLong()) }.sortedBy { it.label }

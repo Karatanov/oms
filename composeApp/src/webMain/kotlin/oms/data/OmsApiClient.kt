@@ -929,6 +929,7 @@ data class ApiDashboardOverview(
     val recentInspections: List<ApiInspectionReport> = emptyList(),
     val monthlyActPayments: List<ApiMonthlyActPayment> = emptyList(),
     val subprojectFunding: List<ApiSubprojectFunding> = emptyList(),
+    val subprojectProgress: List<ApiSubprojectProgress> = emptyList(),
     val subprojectPaymentProgress: List<ApiSubprojectPaymentProgress> = emptyList(),
     val procurementStatusCounts: List<ApiDashboardMetric> = emptyList(),
     val signedContractsByType: List<ApiDashboardContractTypeMetric> = emptyList(),
@@ -939,6 +940,7 @@ private fun ApiDashboard.toOverview() = ApiDashboardOverview(
     recentInspections = recentInspections,
     monthlyActPayments = monthlyActPayments,
     subprojectFunding = subprojectFunding,
+    subprojectProgress = subprojectProgress,
     subprojectPaymentProgress = emptyList(),
     procurementStatusCounts = procurementStatusCounts
 )

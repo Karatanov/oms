@@ -54,6 +54,7 @@ import oms.data.ApiDashboardMetric
 import oms.data.ApiMonthlyActPayment
 import oms.data.ApiSubprojectFunding
 import oms.data.ApiSubprojectPaymentProgress
+import oms.data.ApiSubprojectProgress
 import oms.localization.LocalizationManager
 import oms.screens.dashboard.toMonthName
 import oms.components.FilterDropdown
@@ -269,6 +270,48 @@ fun SubprojectEibPaymentChart(
         data = data,
         valueLabel = { paymentPercentageLabel(it.toDouble()) },
         onItemClick = { bar -> bar.id?.let(onOpenFinancial) },
+        labelMaxLines = 2,
+        filterContent = {
+            FilterDropdown(
+                label = LocalizationManager.t("region"),
+                options = regions,
+                selected = regionFilter,
+                onSelect = { regionFilter = it },
+                itemLabel = ::localizedUkraineRegion
+            )
+        },
+        orientation = orientation,
+        sortEnabled = true
+    )
+}
+
+/** Physical completion reported by the monitoring register, weighted by each
+ * signed works contract where a subproject contains several lots. */
+@Composable
+fun SubprojectCompletionChart(
+    items: List<ApiSubprojectProgress>,
+    orientation: BarChartOrientation = BarChartOrientation.Vertical
+) {
+    var regionFilter by remember(items) { mutableStateOf<String?>(null) }
+    val regions = items.map { it.region }.filter(String::isNotBlank).map(::canonicalUkraineRegion).distinct().sorted()
+    val data = items.asSequence()
+        .filter { regionFilter == null || canonicalUkraineRegion(it.region) == regionFilter }
+        .sortedBy { it.code }
+        .map { item ->
+            BarData(
+                label = item.code,
+                value = item.completionPct.toFloat(),
+                id = item.projectUuid,
+                tooltip = item.name,
+                formattedValue = paymentPercentageLabel(item.completionPct)
+            )
+        }
+        .toList()
+    AnalyticsCard(
+        titleKey = "subproject_completion",
+        hintKey = "subproject_completion_hint",
+        data = data,
+        valueLabel = { paymentPercentageLabel(it.toDouble()) },
         labelMaxLines = 2,
         filterContent = {
             FilterDropdown(
