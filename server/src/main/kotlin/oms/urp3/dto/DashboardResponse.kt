@@ -29,6 +29,7 @@ data class DashboardOverviewResponse(
     val recentInspections: List<InspectionReportResponse> = emptyList(),
     val monthlyActPayments: List<MonthlyActPaymentResponse> = emptyList(),
     val subprojectFunding: List<SubprojectFundingResponse> = emptyList(),
+    val subprojectProgress: List<SubprojectProgressResponse> = emptyList(),
     val subprojectPaymentProgress: List<SubprojectPaymentProgressResponse> = emptyList(),
     val procurementStatusCounts: List<DashboardMetricResponse> = emptyList(),
     val signedContractsByType: List<DashboardContractTypeMetricResponse> = emptyList(),
