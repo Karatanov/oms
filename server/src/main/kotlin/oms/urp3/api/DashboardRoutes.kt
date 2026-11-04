@@ -34,6 +34,7 @@ fun Route.dashboardRoutes() {
                 recentInspections = overview.recentInspections.map { it.report.toResponse(it.subprojectCode) },
                 monthlyActPayments = overview.monthlyActPayments.map { MonthlyActPaymentResponse(it.month, it.amountEurCents, it.amountUahCents) },
                 subprojectFunding = overview.subprojectFunding.map { SubprojectFundingResponse(it.projectUuid, it.name, it.region, it.amountUah, it.amountEur) },
+                subprojectProgress = overview.subprojectProgress.map { SubprojectProgressResponse(it.projectUuid, it.code, it.name, it.nameEn, it.region, it.completionPct) },
                 subprojectPaymentProgress = overview.subprojectPaymentProgress.map {
                     SubprojectPaymentProgressResponse(
                         it.projectUuid, it.code, it.region, it.eligibleContractValueUah, it.paidAmountUah, it.paymentPct

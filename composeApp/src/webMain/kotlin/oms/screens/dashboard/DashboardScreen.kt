@@ -19,8 +19,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.input.key.*
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.async
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.yield
 import oms.components.*
@@ -67,16 +65,11 @@ fun DashboardScreen(
         // serially can multiply a backend/database delay and make login appear frozen.
         // Fail once and let the user retry explicitly instead.
         try {
-            // The compact overview owns the current KPI cards.  Completion is
-            // still served by the established dashboard endpoint because it
-            // reconciles source monitoring progress with signed works
-            // contracts; load both in parallel so the chart does not delay
-            // navigation or the summary.
-            dashboard = coroutineScope {
-                val overview = async { OmsApiClient.dashboardOverview(trancheNumber) }
-                val completion = async { OmsApiClient.dashboard(trancheNumber).subprojectProgress }
-                overview.await().copy(subprojectProgress = completion.await())
-            }
+            // The compact overview contains every displayed dashboard chart.
+            // One request keeps completion, payments and KPI cards on a single
+            // imported-data snapshot, then the photo preview can start as
+            // soon as its recent-inspections list arrives.
+            dashboard = OmsApiClient.dashboardOverview(trancheNumber)
         } catch (cancelled: CancellationException) {
             throw cancelled
         } catch (_: Exception) {

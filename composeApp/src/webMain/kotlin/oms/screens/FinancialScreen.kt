@@ -454,6 +454,7 @@ fun FinancialScreen(
         val chartScopedActs = chartRows.filter {
             (trancheFilter == null || it.trancheNumber.isFinancialTranche(trancheFilter!!)) &&
                 (subprojectFilter == null || it.subprojectUuid == subprojectFilter) &&
+                (regionFilter == null || it.region == regionFilter) &&
                 (yearFilter == null || (it.act.paymentDate ?: it.act.recordDate).take(4).toIntOrNull() == yearFilter)
         }
         val financialChartRecords = chartScopedActs.map { FinancialChartRecord(it.act, it.subprojectCode.orEmpty()) }
