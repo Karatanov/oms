@@ -21,7 +21,10 @@ import androidx.compose.ui.input.key.type
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import oms.localization.LocalizationManager
 
 /** Text search selector for large option sets. The canonical value changes only after selection. */
 @Composable
@@ -42,6 +45,8 @@ fun <T> SearchableOptionPicker(
     var query by remember { mutableStateOf(selected?.let(itemLabel).orEmpty()) }
     var availableOptions by remember { mutableStateOf(options) }
     val scope = rememberCoroutineScope()
+    var pendingLoad by remember { mutableStateOf<Job?>(null) }
+    var noMatches by remember { mutableStateOf(false) }
     LaunchedEffect(selected) { query = selected?.let(itemLabel).orEmpty() }
     LaunchedEffect(options) { availableOptions = options }
     DisposableEffect(id) { onDispose { host.dismiss(id) } }
@@ -55,6 +60,7 @@ fun <T> SearchableOptionPicker(
             .filter { entered.isBlank() || itemLabel(it).contains(entered, ignoreCase = true) }
             .take(maxSuggestions)
             .toList()
+        noMatches = entered.isNotBlank() && matches.isEmpty()
         if (matches.isEmpty()) {
             host.dismiss(id)
         } else {
@@ -62,7 +68,8 @@ fun <T> SearchableOptionPicker(
                 id = id,
                 anchor = anchor,
                 labels = matches.map(itemLabel),
-                selectedIndex = 0,
+                selectedIndex = matches.indexOfFirst { it == selected }.coerceAtLeast(0),
+                selectedIndexes = matches.indices.filterTo(mutableSetOf()) { matches[it] == selected },
                 onChoose = { index ->
                     val choice = matches[index]
                     query = itemLabel(choice)
@@ -75,33 +82,42 @@ fun <T> SearchableOptionPicker(
         }
     }
 
+    fun searchOptions(text: String) {
+        pendingLoad?.cancel()
+        noMatches = false
+        if (loadOptionsOnInput == null) {
+            showMatches(text, availableOptions)
+        } else {
+            host.dismiss(id)
+            pendingLoad = scope.launch {
+                val source = loadOptionsOnInput()
+                if (isActive) {
+                    availableOptions = source
+                    showMatches(text, source)
+                }
+            }
+        }
+    }
+
     OutlinedTextField(
         value = query,
         onValueChange = { entered ->
             val safeQuery = entered.safeTextInput(200)
             query = safeQuery
-            if (loadOptionsOnInput == null) {
-                showMatches(safeQuery, availableOptions)
-            } else {
-                scope.launch {
-                    availableOptions = loadOptionsOnInput()
-                    showMatches(safeQuery, availableOptions)
-                }
-            }
+            searchOptions(safeQuery)
         },
         label = { Text(label) },
-        placeholder = { Text(label) },
+        supportingText = if (noMatches && enabled) { { Text(LocalizationManager.t("picker_no_matches")) } } else null,
         singleLine = true,
         enabled = enabled,
         modifier = modifier.fillMaxWidth()
             .onGloballyPositioned { anchor = it.boundsInRoot() }
             .onFocusChanged { focusState ->
                 if (focusState.isFocused) {
-                    scope.launch {
-                        val source = loadOptionsOnInput?.invoke() ?: availableOptions
-                        availableOptions = source
-                        showMatches("", source)
-                    }
+                    searchOptions("")
+                } else {
+                    pendingLoad?.cancel()
+                    noMatches = false
                 }
             }
             .onPreviewKeyEvent { event ->
@@ -111,6 +127,8 @@ fun <T> SearchableOptionPicker(
                         true
                     }
                     event.type == KeyEventType.KeyDown && event.key == Key.Escape -> {
+                        pendingLoad?.cancel()
+                        noMatches = false
                         host.dismiss(id)
                         true
                     }

@@ -55,15 +55,15 @@ fun OptionOverlayHost(content: @Composable () -> Unit) {
                 val bottom = with(density) { menu.anchor.bottom.toDp() }
                 val below = (maxHeight - bottom - margin).coerceAtLeast(0.dp)
                 val above = (top - margin).coerceAtLeast(0.dp)
-                val desired = (menu.labels.size * 44 + 8).dp.coerceAtMost(320.dp)
+                val desired = (menu.labels.size.coerceAtLeast(1) * 44 + 8).dp.coerceAtMost(320.dp)
                 val openBelow = below >= desired || below >= above
                 val height = desired.coerceAtMost(if (openBelow) below else above).coerceAtLeast(1.dp)
                 val y = if (openBelow) bottom else (top - height).coerceAtLeast(margin)
                 val requester = remember(menu.id) { FocusRequester() }
-                var active by remember(menu.id) { mutableStateOf(menu.selectedIndex.coerceIn(0, (menu.labels.size - 1).coerceAtLeast(0))) }
+                var active by remember(menu.id, menu.labels) { mutableStateOf(menu.selectedIndex.coerceIn(0, (menu.labels.size - 1).coerceAtLeast(0))) }
                 val listState = rememberLazyListState()
                 LaunchedEffect(menu.id, menu.focusOnOpen) { if (menu.focusOnOpen) requester.requestFocus() }
-                LaunchedEffect(active) { if (menu.labels.isNotEmpty()) listState.animateScrollToItem(active) }
+                LaunchedEffect(menu.id, menu.labels, active) { if (menu.labels.isNotEmpty()) listState.animateScrollToItem(active) }
                 Box(Modifier.fillMaxSize().clickable(
                     interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
                     indication = null, onClickLabel = LocalizationManager.t("close"), onClick = menu.onDismiss))
