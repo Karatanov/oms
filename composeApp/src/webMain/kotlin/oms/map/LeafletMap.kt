@@ -127,13 +127,14 @@ private fun Project.mapFinancingDisbursed(): String =
     formatMapMoney((financingDisbursedEurCents / 100.0).toString(), "EUR")
 
 private fun formatMapMoney(raw: String, currency: String): String {
-    val amount = raw.toDoubleOrNull() ?: return "$raw $currency"
+    val label = LocalizationManager.currencyLabel(currency)
+    val amount = raw.toDoubleOrNull() ?: return "$raw $label"
     val roundedCents = (amount * 100).roundToLong()
     val sign = if (roundedCents < 0) "-" else ""
     val absolute = abs(roundedCents)
     val whole = formatGroupedNumber(absolute / 100)
     val cents = absolute % 100
-    return "$sign$whole${if (cents == 0L) "" else ".${cents.toString().padStart(2, '0')}"} $currency"
+    return "$sign$whole${if (cents == 0L) "" else ".${cents.toString().padStart(2, '0')}"} $label"
 }
 
 /*

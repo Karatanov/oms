@@ -334,7 +334,7 @@ private fun paymentPercentageLabel(value: Double): String {
 }
 
 private fun Double?.paymentChartMoney(): String = this?.takeIf(Double::isFinite)?.let {
-    "${formatGroupedNumber(it.roundToLong())} грн"
+    "${formatGroupedNumber(it.roundToLong())} ${LocalizationManager.currencyLabel("UAH")}"
 } ?: "—"
 
 private data class AnalyticsListRow(

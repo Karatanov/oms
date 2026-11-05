@@ -866,10 +866,10 @@ private fun ProjectDocumentsTab(projectUuid: String, documents: List<ApiProjectD
     }
 }
 
-private fun Double.toMoney(): String = "${formatUiAmount()} UAH"
-private fun Long.toMoney(): String = "${formatUiAmount()} UAH"
+private fun Double.toMoney(): String = "${formatUiAmount()} ${LocalizationManager.currencyLabel("UAH")}"
+private fun Long.toMoney(): String = "${formatUiAmount()} ${LocalizationManager.currencyLabel("UAH")}"
 private fun oms.data.ProjectAmountDto.toMoney(): String =
-    "${amount.toDoubleOrNull()?.formatUiAmount() ?: amount} $currency"
+    "${amount.toDoubleOrNull()?.formatUiAmount() ?: amount} ${LocalizationManager.currencyLabel(currency)}"
 
 /** Locale-independent formatter that also works in Kotlin/Wasm. */
 private fun Long.formatUiAmount(): String {

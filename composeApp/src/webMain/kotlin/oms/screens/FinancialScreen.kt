@@ -437,7 +437,7 @@ fun FinancialScreen(
                 // editable acts. Acts evidence performed work but are not the
                 // authoritative payment source for this programme indicator.
                 val amount = paymentMonitoring?.summary?.amountPaidTotalUah
-                    ?.formatUiAmount()?.plus(" UAH") ?: "—"
+                    ?.formatUiAmount()?.plus(" ${LocalizationManager.currencyLabel("UAH")}") ?: "—"
                 if (maxWidth >= 620.dp) {
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         Text(LocalizationManager.t("completed_works_by_acts"), style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
@@ -1183,7 +1183,7 @@ private fun PaymentSummaryCards(summary: oms.data.ApiPaymentMonitoringSummary?) 
                         color = MaterialTheme.colorScheme.onSecondaryContainer
                     )
                     Text(
-                        "${amount.formatUiAmount()} UAH",
+                        "${amount.formatUiAmount()} ${LocalizationManager.currencyLabel("UAH")}",
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onSecondaryContainer
                     )
@@ -1268,7 +1268,7 @@ private fun FinancialProgressCard(
                         modifier = Modifier.fillMaxWidth()
                     )
                     Text(
-                        "${item.completedAmountUah.formatUiAmount()} UAH / ${item.contractAmountUah.formatUiAmount()} UAH",
+                        "${item.completedAmountUah.formatUiAmount()} ${LocalizationManager.currencyLabel("UAH")} / ${item.contractAmountUah.formatUiAmount()} ${LocalizationManager.currencyLabel("UAH")}",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -1532,7 +1532,7 @@ private fun PaymentMonitoringTransactionTable(
                 PaymentSourceHeader(LocalizationManager.t("date"), 110.dp, PaymentMonitoringTransactionSort.Date, sort, ascending, ::selectSort)
                 PaymentSourceHeader(LocalizationManager.t("subproject_code"), 160.dp, PaymentMonitoringTransactionSort.Code, sort, ascending, ::selectSort)
                 PaymentSourceHeader(LocalizationManager.t("tranche"), 90.dp, PaymentMonitoringTransactionSort.Tranche, sort, ascending, ::selectSort)
-                PaymentSourceHeader("UAH", 130.dp, PaymentMonitoringTransactionSort.Uah, sort, ascending, ::selectSort, true)
+                PaymentSourceHeader(LocalizationManager.currencyLabel("UAH"), 130.dp, PaymentMonitoringTransactionSort.Uah, sort, ascending, ::selectSort, true)
                 PaymentSourceHeader("EUR", 110.dp, PaymentMonitoringTransactionSort.Eur, sort, ascending, ::selectSort, true)
             }
         }

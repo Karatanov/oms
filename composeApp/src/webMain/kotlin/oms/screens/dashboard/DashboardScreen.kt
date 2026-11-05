@@ -286,18 +286,24 @@ private fun NationalPortfolioSummary(
                 SummaryMetric(
                     "national_approved_financing",
                     "€ ${summary.approvedFundingEur.roundToLong().grouped()}",
-                    uahEquivalent = "${summary.approvedFundingUah.roundToLong().grouped()} UAH",
+                    uahEquivalent = "${summary.approvedFundingUah.roundToLong().grouped()} ${LocalizationManager.currencyLabel("UAH")}",
                     onClick = onOpenSubprojects
                 )
                 SummaryMetric("national_signed_contracts", summary.signedContractsCount.toString(), onClick = onOpenSignedContracts)
                 SummaryMetric(
                     "national_signed_contract_value",
-                    "${summary.signedContractsAmountUah.roundToLong().grouped()} UAH",
+                    "${summary.signedContractsAmountUah.roundToLong().grouped()} ${LocalizationManager.currencyLabel("UAH")}",
                     onClick = onOpenSignedContracts
                 )
                 SummaryMetric(
                     "eib_paid_under_contracts",
-                    summary.eibPaidUnderContractsUah?.roundToLong()?.let { "${it.grouped()} грн" } ?: "—",
+                    summary.eibPaidUnderContractsUah?.roundToLong()?.let { amount ->
+                        buildString {
+                            append(amount.grouped())
+                            append(' ')
+                            append(LocalizationManager.currencyLabel("UAH"))
+                        }
+                    } ?: "—",
                     onClick = onOpenFinancial
                 )
             }

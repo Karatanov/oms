@@ -35,6 +35,17 @@ object LocalizationManager {
     }
 
     /**
+     * ISO codes remain in data and inputs, while monetary values use the
+     * conventional label of the active interface language. This prevents the
+     * Ukrainian UI from mixing `грн` and `UAH` beside otherwise identical
+     * amounts.
+     */
+    fun currencyLabel(currency: String): String = when (currency.trim().uppercase()) {
+        "UAH" -> if (currentLanguage == Language.UK) "грн" else "UAH"
+        else -> currency.trim().uppercase()
+    }
+
+    /**
      * Procurement statuses are stored in their stable bilingual form for imports
      * and dashboard aggregation. The UI shows only the active-language variant.
      */
