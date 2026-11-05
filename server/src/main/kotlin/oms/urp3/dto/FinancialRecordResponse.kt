@@ -54,11 +54,22 @@ data class PaymentMonitoringTransactionResponse(
     val amountEur: Double? = null
 )
 
+/** Programme-level values calculated from the same approved payment workbook. */
+@Serializable
+data class PaymentMonitoringSummaryResponse(
+    /** `UR III UAH Payment Dashboard!E4` — Amount paid, Total UAH. */
+    val amountPaidTotalUah: Double? = null,
+    val constructionWorksPaidUah: Double = 0.0,
+    val technicalSupervisionPaidUah: Double = 0.0,
+    val engineerConsultantPaidUah: Double = 0.0
+)
+
 @Serializable
 data class PaymentMonitoringResponse(
     val refreshedAt: String,
     val items: List<PaymentMonitoringItemResponse> = emptyList(),
-    val transactions: List<PaymentMonitoringTransactionResponse> = emptyList()
+    val transactions: List<PaymentMonitoringTransactionResponse> = emptyList(),
+    val summary: PaymentMonitoringSummaryResponse = PaymentMonitoringSummaryResponse()
 )
 
 @Serializable

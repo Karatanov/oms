@@ -536,7 +536,6 @@ class DashboardService(
                 it[ProjectAmountTable.amount], it[ProjectAmountTable.currency], it[ProjectAmountTable.convertedAmount],
                 it[ProjectAmountTable.uahPerEur], it[ProjectAmountTable.rateDate], it[ProjectAmountTable.conversionEdited]
             ) } }
-        val subprojectFunding = portfolioSubprojects.map { row -> row.toFunding(amountsByProject[row[ProjectTable.id].value]) }
         fun subprojectFor(projectId: Long): Long? {
             var current = projectId
             while (true) {
@@ -560,6 +559,22 @@ class DashboardService(
                     .where { ProcurementRecordTable.batchId inList batchIds }.toList()
             } ?: ProcurementRecordTable.selectAll().toList()
         } else emptyList()
+        // AT Work Table investment figures are persisted with every imported
+        // contract row.  Select one approved value per SP rather than adding
+        // W/TS/CSC rows together, which would inflate regional funding.
+        val approvedFundingBySubprojectCode = procurementRecords.asSequence()
+            .mapNotNull { record ->
+                val eur = record[ProcurementRecordTable.estimatedEibEur]?.toDouble()
+                val uah = record[ProcurementRecordTable.estimatedEibUah]?.toDouble()
+                if (eur == null && uah == null) null else record[ProcurementRecordTable.subProjectId]
+                    .substringBefore('#').trim().uppercase() to DashboardApprovedFunding(eur, uah)
+            }
+            .groupBy({ it.first }, { it.second })
+            .mapValues { (_, values) -> values.firstOrNull { it.eur != null } ?: values.first() }
+        val subprojectFunding = portfolioSubprojects.map { row ->
+            val code = row[ProjectTable.siteNumber].orEmpty().substringBefore('#').trim().uppercase()
+            row.toFunding(amountsByProject[row[ProjectTable.id].value], approvedFundingBySubprojectCode[code])
+        }
         val portfolioSubprojectsByCode = portfolioSubprojects.associateBy { row ->
             row[ProjectTable.siteNumber].orEmpty().substringBefore('#').trim().uppercase()
         }
@@ -614,11 +629,11 @@ class DashboardService(
                 }
                 .sum()
         }.getOrNull()
-        // The regional funding chart may present the construction-contract
-        // value where one exists. The programme summary has a different,
-        // source-defined meaning: it must always show approved subproject
-        // funding (DB Monitoring Table: fundingTotal), never a later contract.
-        val approvedFundingUah = portfolioSubprojects.sumOf { it[ProjectTable.budgetPlanned].toDouble() }
+        // Both totals use the same AT Work Table baseline as the regional
+        // funding chart. Fall back only for legacy records that have not yet
+        // been refreshed from the approved procurement source.
+        val approvedFundingUah = subprojectFunding.sumOf { it.amountUah }
+        val approvedFundingEur = subprojectFunding.sumOf { it.amountEur }
         val nationalSummary = DashboardNationalSummary(
             subprojectsCount = portfolioSubprojects.size.toLong(),
             regionsCount = portfolioSubprojects.mapNotNull { canonicalUkraineOblast(it[ProjectTable.region]) }.distinct().size.toLong(),
@@ -628,9 +643,7 @@ class DashboardService(
             }.distinct().size.toLong(),
             settlementsCount = portfolioSubprojects.map { it[ProjectTable.city].orEmpty().trim() }.filter(String::isNotBlank).distinct().size.toLong(),
             approvedFundingUah = approvedFundingUah,
-            approvedFundingEur = approvedFundingUah.toBigDecimal()
-                .divide(DASHBOARD_UAH_PER_EUR, 2, RoundingMode.HALF_UP)
-                .toDouble(),
+            approvedFundingEur = approvedFundingEur,
             signedContractsCount = signedContracts.uniqueProcurements().size.toLong(),
             signedContractsAmountUah = signedContracts.uniqueProcurements().sumOf(::signedContractAmount),
             servicesPaidEurCents = paymentRecords.sumOf { it[FinancialRecordTable.amountEurCents] ?: 0L },
@@ -735,20 +748,25 @@ class DashboardService(
 internal fun isPrimaryPaymentMonitoringSubprojectCode(code: String): Boolean =
     code.paymentMonitoringContractType() == null
 
+private data class DashboardApprovedFunding(val eur: Double?, val uah: Double?)
+
 private fun org.jetbrains.exposed.v1.core.ResultRow.toFunding(
-    amounts: Map<String, ProjectAmount>?
+    amounts: Map<String, ProjectAmount>?,
+    approvedFunding: DashboardApprovedFunding? = null
 ): DashboardSubprojectFunding {
     // Preserve the existing chart semantics: a construction contract is used
     // when it exists; otherwise the approved project budget is shown.
     val amount = amounts?.get("construction") ?: amounts?.get("budget")
     val legacyUah = this[ProjectTable.subprojectContractAmount] ?: this[ProjectTable.budgetPlanned]
-    val uah = amount?.uah?.toDouble() ?: legacyUah.toDouble()
+    val fallbackUah = amount?.uah?.toDouble() ?: legacyUah.toDouble()
+    val uah = approvedFunding?.uah?.takeIf(Double::isFinite) ?: fallbackUah
     // Regional funding is one comparison.  Individual records can retain
     // their own frozen conversion dates, while legacy imports have no EUR
     // conversion at all.  For this aggregate we therefore use the canonical
     // UAH total and one programme presentation rate; a currency toggle can
     // change labels, but never a region's relative share or colour.
-    val eur = uah.toBigDecimal().divide(DASHBOARD_UAH_PER_EUR, 2, RoundingMode.HALF_UP).toDouble()
+    val eur = approvedFunding?.eur?.takeIf(Double::isFinite)
+        ?: uah.toBigDecimal().divide(DASHBOARD_UAH_PER_EUR, 2, RoundingMode.HALF_UP).toDouble()
     return DashboardSubprojectFunding(
         this[ProjectTable.uuid], this[ProjectTable.name], this[ProjectTable.region].orEmpty(), uah, eur
     )

@@ -430,9 +430,9 @@ private object MonitoringWorkbookSource {
             val raw = value("region").replace(Regex("\\s+(область|oblast)$", RegexOption.IGNORE_CASE), "").trim()
             return oblastNamesByCode[raw.uppercase()] ?: raw
         }
-        fun constructionType(): String = when (value("constructionType").lowercase()) {
+        fun constructionType(): String = when (value("constructionType").substringBefore('/').trim().lowercase()) {
             "new construction", "нове будівництво" -> "new_construction"
-            "capital repair", "капітальний ремонт" -> "capital_repair"
+            "capital repair", "капітальний ремонт", "overhaul", "major repair", "major repairs" -> "capital_repair"
             else -> "reconstruction"
         }
     }

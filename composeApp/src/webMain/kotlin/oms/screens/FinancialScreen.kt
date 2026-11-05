@@ -172,6 +172,8 @@ fun FinancialScreen(
     var pageSize by remember { mutableStateOf(20) }
     var currentPage by remember { mutableStateOf(0) }
     var tableTopInRootPx by remember { mutableStateOf(0f) }
+    var paymentMonitoringTopInRootPx by remember { mutableStateOf(0f) }
+    var regionProgressTopInRootPx by remember { mutableStateOf(0f) }
     val deletion = oms.components.LocalDeleteConfirmation.current
     val scope = rememberCoroutineScope()
     val pageScrollState = rememberScrollState()
@@ -308,9 +310,6 @@ fun FinancialScreen(
             )
         )
     }
-    val completedWorksTotal = regionScopedActs
-        .filter { it.act.recordType == "act" }
-        .sumOf { displayCents(it.act) ?: 0L }
     val subprojectFilterOptions = acts.mapNotNull { row ->
         row.subprojectUuid?.takeIf { row.subprojectCode != null }?.let { uuid -> uuid to row.subprojectCode!! }
     }.distinctBy { (uuid, _) -> uuid }.sortedBy { (_, code) -> code }
@@ -392,7 +391,9 @@ fun FinancialScreen(
         paymentPurposeFilter = purpose
         scope.launch {
             delay(16)
-            val target = (pageScrollState.value + tableTopInRootPx - tableTopPaddingPx)
+            // Monthly source charts belong to the read-only payment-monitoring
+            // source, not to the retired editable financial-record registry.
+            val target = (pageScrollState.value + paymentMonitoringTopInRootPx - tableTopPaddingPx)
                 .roundToInt()
                 .coerceIn(0, pageScrollState.maxValue)
             pageScrollState.animateScrollTo(target)
@@ -431,7 +432,12 @@ fun FinancialScreen(
 
         Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
             BoxWithConstraints(Modifier.fillMaxWidth().padding(16.dp)) {
-                val amount = if (missingConversions > 0) "—" else (completedWorksTotal / 100.0).toMoney("").trim()
+                // This value is the approved workbook's dashboard total
+                // (`UR III UAH Payment Dashboard!E4`), rather than a sum of
+                // editable acts. Acts evidence performed work but are not the
+                // authoritative payment source for this programme indicator.
+                val amount = paymentMonitoring?.summary?.amountPaidTotalUah
+                    ?.formatUiAmount()?.plus(" UAH") ?: "—"
                 if (maxWidth >= 620.dp) {
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         Text(LocalizationManager.t("completed_works_by_acts"), style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
@@ -449,6 +455,8 @@ fun FinancialScreen(
                 }
             }
         }
+
+        PaymentSummaryCards(paymentMonitoring?.summary)
 
         val chartRows = if (workbookChartRows.isNotEmpty()) workbookChartRows else acts
         val chartScopedActs = chartRows.filter {
@@ -486,7 +494,22 @@ fun FinancialScreen(
             first = { MonthlyEngineerConsultantPaymentsChart(financialChartRecords, displayRates, selectedChartScopeLabel) { month -> selectChartMonth(month, "engineer_consultant") } },
             second = {
                 financialProgress?.let { progress ->
-                    FinancialProgressCard("financial_progress_by_region", progress.byRegion, selectedChartScopeLabel, compactInitially = true)
+                    Box(Modifier.onGloballyPositioned { regionProgressTopInRootPx = it.positionInRoot().y }) {
+                        FinancialProgressCard(
+                            "financial_progress_by_region",
+                            progress.byRegion,
+                            selectedChartScopeLabel,
+                            compactInitially = true,
+                            onCollapsed = {
+                                scope.launch {
+                                    delay(16)
+                                    val target = (pageScrollState.value + regionProgressTopInRootPx - tableTopPaddingPx)
+                                        .roundToInt().coerceIn(0, pageScrollState.maxValue)
+                                    pageScrollState.animateScrollTo(target)
+                                }
+                            }
+                        )
+                    }
                 }
             }
         )
@@ -494,17 +517,19 @@ fun FinancialScreen(
         // Keep the update action available even when the last source snapshot
         // cannot be read, so an administrator can repair it without leaving
         // Financial Monitoring.
-        PaymentMonitoringCard(
-            snapshot = paymentMonitoring ?: ApiPaymentMonitoring(refreshedAt = ""),
-            selectedMonth = chartMonthFilter,
-            canUpdate = canUpdatePaymentMonitoring,
-            message = paymentMonitoringMessage,
-            messageIsError = paymentMonitoringMessageIsError,
-            onUpdate = {
-                paymentMonitoringMessage = null
-                paymentMonitoringRefreshConfirmationOpen = true
-            }
-        )
+        Box(Modifier.onGloballyPositioned { paymentMonitoringTopInRootPx = it.positionInRoot().y }) {
+            PaymentMonitoringCard(
+                snapshot = paymentMonitoring ?: ApiPaymentMonitoring(refreshedAt = ""),
+                selectedMonth = chartMonthFilter,
+                canUpdate = canUpdatePaymentMonitoring,
+                message = paymentMonitoringMessage,
+                messageIsError = paymentMonitoringMessageIsError,
+                onUpdate = {
+                    paymentMonitoringMessage = null
+                    paymentMonitoringRefreshConfirmationOpen = true
+                }
+            )
+        }
 
         /*
          * The editable financial-record registry is intentionally retired from
@@ -1133,12 +1158,48 @@ private fun Int.isFinancialTranche(filter: Int): Boolean = when (filter) {
 /** The database stores the tranche as a number; the register deliberately exposes only its A/B code. */
 private fun Int.financialTrancheCode(): String = if (this == 2 || this == 9) "B" else "A"
 
+/** Compact, source-backed payment totals shown above the read-only register. */
+@Composable
+private fun PaymentSummaryCards(summary: oms.data.ApiPaymentMonitoringSummary?) {
+    val entries = listOf(
+        "payment_purpose_works" to (summary?.constructionWorksPaidUah ?: 0.0),
+        "payment_purpose_technical_supervision" to (summary?.technicalSupervisionPaidUah ?: 0.0),
+        "payment_purpose_engineer_consultant" to (summary?.engineerConsultantPaidUah ?: 0.0)
+    )
+    FlowRow(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        entries.forEach { (labelKey, amount) ->
+            Card(
+                modifier = Modifier.widthIn(min = 220.dp).weight(1f, fill = true),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
+            ) {
+                Column(Modifier.padding(horizontal = 14.dp, vertical = 12.dp)) {
+                    Text(
+                        LocalizationManager.t(labelKey),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
+                    Text(
+                        "${amount.formatUiAmount()} UAH",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
+                }
+            }
+        }
+    }
+}
+
 @Composable
 private fun FinancialProgressCard(
     titleKey: String,
     items: List<ApiFinancialProgressItem>,
     titleSuffix: String? = null,
-    compactInitially: Boolean = false
+    compactInitially: Boolean = false,
+    onCollapsed: () -> Unit = {}
 ) {
     var expanded by remember { mutableStateOf(true) }
     var showAllItems by remember { mutableStateOf(!compactInitially) }
@@ -1172,7 +1233,11 @@ private fun FinancialProgressCard(
                 TableActionIconButton(
                     tooltip = LocalizationManager.t(if (expanded) "collapse" else "expand"),
                     icon = if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown
-                ) { expanded = !expanded }
+                ) {
+                    val wasExpanded = expanded
+                    expanded = !expanded
+                    if (wasExpanded) onCollapsed()
+                }
             }
             if (expanded && items.isEmpty()) {
                 Text(LocalizationManager.t("no_chart_data"), color = MaterialTheme.colorScheme.onSurfaceVariant)

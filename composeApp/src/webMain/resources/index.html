@@ -1484,12 +1484,11 @@
                     })
                 })
                     .bindPopup(popupHtml, {
-                        autoPan: true,
-                        keepInView: true,
-                        // Include the popup tip/anchor offset so the whole opaque card
-                        // remains inside the visible map instead of covering controls.
-                        autoPanPaddingTopLeft: [24, 72],
-                        autoPanPaddingBottomRight: [24, 24],
+                        // A project card is allowed to extend beyond the map
+                        // frame.  Forcing a pan here made the card jump under
+                        // the navigation and could still clip a long name.
+                        autoPan: false,
+                        keepInView: false,
                         maxWidth: 340,
                         minWidth: 220
                     })

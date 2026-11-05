@@ -207,7 +207,9 @@ body {
     bottom: 0;
     display: none;
     border-radius: 12px;
-    overflow: hidden;
+    /* Popups are information cards, not map tiles: a long card may extend
+       outside the map slot while the map itself remains interactive. */
+    overflow: visible;
     box-shadow: none;
     background: #dbeafe;
     z-index: 3;
@@ -291,8 +293,15 @@ button:focus-visible, a:focus-visible { outline: 2px solid #16566c; outline-offs
 #map-host {
     width: 100%;
     height: 100%;
-    overflow: hidden;
+    overflow: visible;
 }
+
+/* Leaflet normally clips every pane at the map viewport. Keep tiles and
+   controls inside their own panes, but let the selected-project popup remain
+   readable when it is taller than the available map area. */
+#map-host .leaflet-container { overflow: visible; }
+#map-host .leaflet-tile-pane,
+#map-host .leaflet-overlay-pane { overflow: hidden; }
 
 canvas {
     display: block;

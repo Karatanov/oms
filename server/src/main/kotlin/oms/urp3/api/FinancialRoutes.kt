@@ -18,6 +18,7 @@ import oms.urp3.service.PaymentMonitoringPdfExportService
 import oms.urp3.service.GoogleDriveOAuth
 import oms.urp3.service.paymentMonitoringContractType
 import oms.urp3.service.paymentMonitoringSubprojectCode
+import oms.urp3.service.isPrimaryPaymentMonitoringSubprojectCode
 import kotlin.math.roundToLong
 import kotlinx.serialization.Serializable
 
@@ -31,6 +32,20 @@ fun Route.financialRoutes() {
         call.requireRole("ADMIN", "PROJECT_MANAGER") ?: return@get
         try {
             val snapshot = withContext(Dispatchers.IO) { AppContainer.paymentMonitoringService.current() }
+            // The approved dashboard uses the primary (non _W/_TS/_CSC)
+            // rows for E4.  Those rows are cumulative by subproject, while
+            // component rows are separate contracts and must not be added to
+            // the total a second time.
+            val totalPaid = snapshot.items.asSequence()
+                .filter { isPrimaryPaymentMonitoringSubprojectCode(it.code) }
+                .mapNotNull { it.paidUah?.takeIf { value -> value.isFinite() } }
+                .sum()
+                .takeIf { it > 0.0 }
+            fun paidFor(type: String): Double = snapshot.transactions.asSequence()
+                .filter { it.code.paymentMonitoringContractType() == type }
+                .map { it.amountUah }
+                .filter { value -> value.isFinite() }
+                .sum()
             call.respond(
                 PaymentMonitoringResponse(
                     refreshedAt = snapshot.refreshedAt,
@@ -57,7 +72,13 @@ fun Route.financialRoutes() {
                             amountUah = transaction.amountUah,
                             amountEur = transaction.amountEur
                         )
-                    }
+                    },
+                    summary = PaymentMonitoringSummaryResponse(
+                        amountPaidTotalUah = totalPaid,
+                        constructionWorksPaidUah = paidFor("W"),
+                        technicalSupervisionPaidUah = paidFor("TS"),
+                        engineerConsultantPaidUah = paidFor("CSC")
+                    )
                 )
             )
         } catch (error: IllegalArgumentException) {
@@ -197,6 +218,12 @@ fun Route.financialRoutes() {
                 (requestedTranche == null || project.trancheNumber.matchesFinancialTranche(requestedTranche)) &&
                 (requestedSubprojectUuid == null || project.uuid.toString() == requestedSubprojectUuid)
         }
+        // Registry imports retain the authoritative sector and construction
+        // type in monitoring details.  Older project rows can predate these
+        // fields; using the imported values first prevents real subprojects
+        // from being misleadingly grouped under "Unspecified".
+        val monitoringByProjectId = AppContainer.projectService
+            .monitoringDetailsByProjectIds(subprojects.map { it.id })
         // Legacy lot records may use CODE#LotN while payments belong to the
         // base subproject. Build this lookup once: resolving each payment by
         // repeatedly scanning all subprojects becomes expensive as both the
@@ -284,8 +311,14 @@ fun Route.financialRoutes() {
         }
         FinancialProgressResponse(
                 byRegion = aggregate({ it.region.orEmpty() }, ::canonicalFinancialRegion),
-                byConstructionType = aggregate({ it.constructionType.orEmpty() }, ::canonicalFinancialConstructionType),
-                bySector = aggregate({ it.sector.orEmpty() }, ::canonicalFinancialSector)
+                byConstructionType = aggregate({ project ->
+                    monitoringByProjectId[project.id]?.registryValues?.get("constructionType")
+                        .orEmpty().ifBlank { project.constructionType.orEmpty() }
+                }, ::canonicalFinancialConstructionType),
+                bySector = aggregate({ project ->
+                    monitoringByProjectId[project.id]?.priorityAreaSource
+                        .orEmpty().ifBlank { project.sector.orEmpty() }
+                }, ::canonicalFinancialSector)
         )
         }
         call.respond(response)
@@ -536,7 +569,7 @@ internal fun canonicalFinancialSector(value: String): String = when (value.subst
 internal fun canonicalFinancialConstructionType(value: String): String = when (value.substringBefore('/').trim().lowercase()) {
     "new_construction", "new construction", "нове будівництво" -> "new_construction"
     "reconstruction", "реконструкція" -> "reconstruction"
-    "renovation", "капітальний ремонт" -> "renovation"
+    "renovation", "capital_repair", "capital repair", "капітальний ремонт", "overhaul", "major repair", "major repairs" -> "renovation"
     "repair", "поточний ремонт" -> "repair"
     "unspecified", "не визначено", "не вказано", "" -> "Unspecified"
     else -> value.substringBefore('/').trim()

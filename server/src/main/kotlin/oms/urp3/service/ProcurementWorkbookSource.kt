@@ -37,7 +37,10 @@ object ProcurementWorkbookSource {
         val contractorNameUkr: String?, val contractReference: String?, val contractAmountUah: Double?, val contractAmountUahWithoutVat: Double?,
         val dreamCoFinancingPct: Double?, val estimatedEibUah: Double?, val realLocalCoFinancingPct: Double?,
         val realEibFinancingUah: Double?, val bankGuarantee: Double?, val contractLink: String?, val comments: String?,
-        val signedContractAmountUah: Double?
+        val signedContractAmountUah: Double?,
+        /** Approved AT Work Table values, repeated only in-memory for rows of the same subproject. */
+        val approvedEibInvestmentEur: Double? = null,
+        val approvedEibInvestmentUah: Double? = null
     )
 
     fun downloadAndParse(onProgress: (Int, String) -> Unit = { _, _ -> }): List<SourceRow> {
@@ -65,6 +68,10 @@ object ProcurementWorkbookSource {
             val headers = headers(sheet.getRow(headerRowNumber), evaluator)
             requiredHeaders.forEach { heading -> require(headers.containsKey(normalizeHeader(heading))) { "The approved workbook is missing '$heading' on '$sheetName'." } }
             val trackerByProcurementId = trackerRows(workbook, evaluator)
+            // DB6.3 contains contract-level information.  The approved EIB
+            // investment baseline belongs to AT Work Table and is keyed by
+            // subproject, so read it once and attach it to its contract rows.
+            val approvedFundingBySubproject = approvedFundingRows(workbook, evaluator)
             val rows = (headerRowNumber + 1..sheet.lastRowNum).mapNotNull { rowNumber ->
                 val row = sheet.getRow(rowNumber) ?: return@mapNotNull null
                 // Column A is the unique line identifier (for example
@@ -95,6 +102,7 @@ object ProcurementWorkbookSource {
                     ?: throw IllegalArgumentException("Source row $sourceId has no Sub-Project ID.")
                 val partCode = projectReference?.partCode
                     ?: sourceSubprojectCode?.takeIf { it.contains("#LOT", true) }
+                val approvedFunding = approvedFundingBySubproject[subprojectCode.uppercase()]
                 // The row identifier is the stable contract classification.
                 // It wins over the Type cell because approved exports can
                 // retain a wrong cached spreadsheet value in that cell.
@@ -117,7 +125,8 @@ object ProcurementWorkbookSource {
                     value(rowIndex, "DREAM co-financing (%)").number, value(rowIndex, "Estimated amount and Financing (EIB financing, UAH)").number,
                     value(rowIndex, "Real local co-financing according to contract (%)").number, value(rowIndex, "Real EIB financing according contract data (UAH)").number,
                     value(rowIndex, "Bank guarantee").number, contractLink(rows[rowIndex].second, headers, evaluator),
-                    value(rowIndex, "Comments (if any)").text, tracker?.signedContractAmountUah
+                    value(rowIndex, "Comments (if any)").text, tracker?.signedContractAmountUah,
+                    approvedFunding?.eur, approvedFunding?.uah
                 )
             }
             require(parsedRows.map { it.sourceId }.toSet().size == parsedRows.size) {
@@ -344,6 +353,41 @@ object ProcurementWorkbookSource {
         val tenderAttemptCount: Int?,
         val signedContractAmountUah: Double?
     )
+
+    private data class ApprovedFunding(val eur: Double?, val uah: Double?)
+
+    /**
+     * Reads the source-defined EIB investment base from AT Work Table.  The
+     * table also contains regional/grand totals; only genuine subproject IDs
+     * are retained, avoiding accidental double-counting in OMS charts.
+     */
+    private fun approvedFundingRows(
+        workbook: org.apache.poi.ss.usermodel.Workbook,
+        evaluator: FormulaEvaluator
+    ): Map<String, ApprovedFunding> {
+        val sheet = workbook.getSheet("AT Work Table") ?: return emptyMap()
+        val headerRowNumber = (sheet.firstRowNum..sheet.lastRowNum).firstOrNull {
+            rowHasHeader(sheet.getRow(it), "Sub-Project ID", evaluator)
+        } ?: return emptyMap()
+        val columns = headers(sheet.getRow(headerRowNumber), evaluator)
+        val subprojectColumn = columns[normalizeHeader("Sub-Project ID")] ?: return emptyMap()
+        fun column(heading: String): Int? = columns[normalizeHeader(heading)]
+            ?: columns.entries.firstOrNull { (name, _) -> name.contains(normalizeHeader(heading)) }?.value
+        val eurColumn = column("Total Investment Cost, EUR (excl. local co-financing)")
+        val uahColumn = column("Total Investment Cost, UAH (excl. local co-financing)")
+        if (eurColumn == null && uahColumn == null) return emptyMap()
+        return (headerRowNumber + 1..sheet.lastRowNum).mapNotNull { rowNumber ->
+            val row = sheet.getRow(rowNumber) ?: return@mapNotNull null
+            val code = cellText(row, subprojectColumn, evaluator).trim()
+                .takeIf { it.matches(Regex("[A-Za-z]{2}\\d{2}_\\d{2}")) }
+                ?: return@mapNotNull null
+            val funding = ApprovedFunding(
+                eur = eurColumn?.let { cellNumber(row, it, evaluator) }?.takeIf(Double::isFinite),
+                uah = uahColumn?.let { cellNumber(row, it, evaluator) }?.takeIf(Double::isFinite)
+            )
+            funding.takeIf { it.eur != null || it.uah != null }?.let { code.uppercase() to it }
+        }.toMap()
+    }
 
     private fun trackerRows(workbook: org.apache.poi.ss.usermodel.Workbook, evaluator: FormulaEvaluator): Map<String, TrackerRow> {
         val tracker = workbook.getSheet(TRACKER_SHEET_NAME) ?: return emptyMap()

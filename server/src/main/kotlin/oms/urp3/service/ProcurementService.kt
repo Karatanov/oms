@@ -272,7 +272,10 @@ class ProcurementService(
                 sourceContractType = source.sourceContractType, subprojectTotalCostUah = subproject.budgetPlanned.toDouble(),
                 subprojectEibFinancingUah = null, subprojectLocalFinancingUah = null,
                 estimatedTotalEur = null, estimatedTotalUah = null,
-                estimatedEibEur = null, estimatedEibUah = source.estimatedEibUah,
+                // AT Work Table is the approved EIB investment baseline. It
+                // must take precedence over a contract row's estimated value.
+                estimatedEibEur = source.approvedEibInvestmentEur,
+                estimatedEibUah = source.approvedEibInvestmentUah ?: source.estimatedEibUah,
                 estimatedLocalEur = null, estimatedLocalUah = null,
                 procurementMethod = source.procurementMethod, tenderDocumentType = null, publishedInOjeu = null,
                 estimatedProzorroDate = null, estimatedBidSubmissionDate = null,
