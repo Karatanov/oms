@@ -1,5 +1,6 @@
 package oms.screens
 
+import oms.components.PageArrow
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.focusable
@@ -1144,8 +1145,8 @@ private fun FinancialPagination(
                 .replace("{total}", total.toString()),
             style = MaterialTheme.typography.bodySmall
         )
-        TableActionIconButton(LocalizationManager.t("previous_page"), Icons.Default.KeyboardArrowLeft) { onPage(currentPage - 1) }
-        TableActionIconButton(LocalizationManager.t("next_page"), Icons.Default.KeyboardArrowRight) { onPage(currentPage + 1) }
+        PageArrow(forward = false, enabled = currentPage > 0) { onPage(currentPage - 1) }
+        PageArrow(forward = true, enabled = currentPage < pageCount - 1) { onPage(currentPage + 1) }
     })
 }
 
@@ -1391,8 +1392,8 @@ private fun PaymentMonitoringCard(
                                 .replace("{total}", rows.size.toString()),
                             style = MaterialTheme.typography.bodySmall
                         )
-                        TableActionIconButton(LocalizationManager.t("previous_page"), Icons.Default.KeyboardArrowLeft) { page = (page - 1).coerceAtLeast(0) }
-                        TableActionIconButton(LocalizationManager.t("next_page"), Icons.Default.KeyboardArrowRight) { page = (page + 1).coerceAtMost(pageCount - 1) }
+                        PageArrow(forward = false, enabled = page > 0) { page = (page - 1).coerceAtLeast(0) }
+                        PageArrow(forward = true, enabled = page < pageCount - 1) { page = (page + 1).coerceAtMost(pageCount - 1) }
                     }
                 }
                 PaymentMonitoringTransactionTable(snapshot.transactions, selectedMonth, codeQuery)
@@ -1551,8 +1552,8 @@ private fun PaymentMonitoringTransactionTable(
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
         Text(LocalizationManager.t("page_of").replace("{page}", (page.coerceIn(0, pageCount - 1) + 1).toString())
             .replace("{pages}", pageCount.toString()).replace("{total}", rows.size.toString()), style = MaterialTheme.typography.bodySmall)
-        TableActionIconButton(LocalizationManager.t("previous_page"), Icons.Default.KeyboardArrowLeft) { page = (page - 1).coerceAtLeast(0) }
-        TableActionIconButton(LocalizationManager.t("next_page"), Icons.Default.KeyboardArrowRight) { page = (page + 1).coerceAtMost(pageCount - 1) }
+        PageArrow(forward = false, enabled = page > 0) { page = (page - 1).coerceAtLeast(0) }
+        PageArrow(forward = true, enabled = page < pageCount - 1) { page = (page + 1).coerceAtMost(pageCount - 1) }
     }
 }
 

@@ -5,6 +5,8 @@ import androidx.compose.foundation.border
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.ErrorOutline
@@ -131,5 +133,21 @@ fun FormSectionTitle(text: String, icon: ImageVector) {
             Icon(icon, null, Modifier.size(OmsDimensions.IconSize), tint = MaterialTheme.colorScheme.primary)
         }
         Text(text, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onPrimaryContainer)
+    }
+}
+
+@Composable
+fun PageArrow(forward: Boolean, enabled: Boolean, onClick: () -> Unit) {
+    val label = LocalizationManager.t(if (forward) "next_page" else "previous_page")
+    val icon = if (forward) Icons.AutoMirrored.Filled.KeyboardArrowRight else Icons.AutoMirrored.Filled.KeyboardArrowLeft
+    OmsTooltipBox(tooltip = { Text(label) }) {
+        IconButton(
+            onClick = onClick,
+            enabled = enabled,
+            modifier = if (enabled) Modifier.buttonHandCursor() else Modifier,
+            colors = IconButtonDefaults.iconButtonColors(contentColor = MaterialTheme.colorScheme.primary)
+        ) {
+            Icon(icon, contentDescription = label)
+        }
     }
 }

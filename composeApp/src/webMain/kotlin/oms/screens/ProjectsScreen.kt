@@ -1,5 +1,6 @@
 package oms.screens
 
+import oms.components.PageArrow
 import androidx.compose.foundation.background
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.clickable
@@ -802,8 +803,8 @@ private fun ProjectPagination(
     }, navigation = {
         Text(LocalizationManager.t("page_of").replace("{page}", (currentPage + 1).toString())
             .replace("{pages}", pageCount.toString()).replace("{total}", total.toString()), style = MaterialTheme.typography.bodySmall)
-        TableActionIconButton(LocalizationManager.t("previous_page"), Icons.Default.KeyboardArrowLeft) { onPage(currentPage - 1) }
-        TableActionIconButton(LocalizationManager.t("next_page"), Icons.Default.KeyboardArrowRight) { onPage(currentPage + 1) }
+        PageArrow(forward = false, enabled = currentPage > 0) { onPage(currentPage - 1) }
+        PageArrow(forward = true, enabled = currentPage < pageCount - 1) { onPage(currentPage + 1) }
     })
 }
 

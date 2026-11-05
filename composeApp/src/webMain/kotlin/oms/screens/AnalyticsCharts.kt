@@ -1,5 +1,6 @@
 package oms.screens
 
+import oms.components.PageArrow
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Box
@@ -384,9 +385,9 @@ private fun AnalyticsListCard(
                 HorizontalDivider()
             }
             if (pageCount > 1) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
-                TextButton(onClick = { page = (page - 1).coerceAtLeast(0) }, enabled = page > 0) { Text("‹") }
+                PageArrow(forward = false, enabled = page > 0) { page = (page - 1).coerceAtLeast(0) }
                 Text("${page + 1} / $pageCount", style = MaterialTheme.typography.labelMedium)
-                TextButton(onClick = { page = (page + 1).coerceAtMost(pageCount - 1) }, enabled = page < pageCount - 1) { Text("›") }
+                PageArrow(forward = true, enabled = page < pageCount - 1) { page = (page + 1).coerceAtMost(pageCount - 1) }
             }
         }
     }
