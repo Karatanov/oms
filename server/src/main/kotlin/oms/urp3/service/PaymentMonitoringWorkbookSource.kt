@@ -45,7 +45,12 @@ object PaymentMonitoringWorkbookSource {
         val sourceSheet: String
     )
 
-    data class WorkbookData(val items: List<Item>, val transactions: List<Transaction>)
+    data class WorkbookData(
+        val items: List<Item>,
+        val transactions: List<Transaction>,
+        /** Exact source aggregate from UR III UAH Payment Dashboard!E4. */
+        val dashboardAmountPaidTotalUah: Double? = null
+    )
 
     /**
      * The first release deliberately uses a versioned bundled snapshot. The
@@ -86,8 +91,25 @@ object PaymentMonitoringWorkbookSource {
                     text = { heading -> headers[heading]?.let { workbookText(row, it).trim().takeIf(String::isNotBlank) } }
                 )
             }.filter(::hasIndicator)
-            return WorkbookData(items, paymentTransactions(workbook))
+            return WorkbookData(
+                items = items,
+                transactions = paymentTransactions(workbook),
+                dashboardAmountPaidTotalUah = dashboardAmountPaidTotalUah(workbook)
+            )
         }
+    }
+
+    /** E4 is the approved `Amount paid, Total UAH` dashboard indicator. */
+    private fun dashboardAmountPaidTotalUah(workbook: org.apache.poi.ss.usermodel.Workbook): Double? {
+        val sheet = workbook.getSheet("UR III UAH Payment Dashboard") ?: return null
+        return sheet.getRow(3)?.getCell(4)?.let { cell ->
+            when (cell.cellType) {
+                CellType.NUMERIC -> cell.numericCellValue
+                CellType.FORMULA -> if (cell.cachedFormulaResultType == CellType.NUMERIC) cell.numericCellValue
+                    else parseNumber(workbookText(sheet.getRow(3), 4))
+                else -> parseNumber(workbookText(sheet.getRow(3), 4))
+            }
+        }?.takeIf(Double::isFinite)
     }
 
     private fun paymentTransactions(workbook: org.apache.poi.ss.usermodel.Workbook): List<Transaction> = buildList {

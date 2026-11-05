@@ -36,7 +36,9 @@ fun Route.financialRoutes() {
             // rows for E4.  Those rows are cumulative by subproject, while
             // component rows are separate contracts and must not be added to
             // the total a second time.
-            val totalPaid = snapshot.items.asSequence()
+            val totalPaid = snapshot.dashboardAmountPaidTotalUah
+                ?.takeIf(Double::isFinite)
+                ?: snapshot.items.asSequence()
                 .filter { isPrimaryPaymentMonitoringSubprojectCode(it.code) }
                 .mapNotNull { it.paidUah?.takeIf { value -> value.isFinite() } }
                 .sum()

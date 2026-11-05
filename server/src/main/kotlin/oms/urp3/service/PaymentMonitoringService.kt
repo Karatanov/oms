@@ -25,7 +25,8 @@ class PaymentMonitoringService(
     data class Snapshot(
         val refreshedAt: String,
         val items: List<PaymentMonitoringWorkbookSource.Item>,
-        val transactions: List<PaymentMonitoringWorkbookSource.Transaction> = emptyList()
+        val transactions: List<PaymentMonitoringWorkbookSource.Transaction> = emptyList(),
+        val dashboardAmountPaidTotalUah: Double? = null
     )
 
     /** Status of an administrator-triggered source refresh. */
@@ -51,7 +52,7 @@ class PaymentMonitoringService(
         val requestedAt = now()
         cached?.takeIf { requestedAt.isBefore(it.expiresAt) }?.let { return it.snapshot }
         val persisted = repository.findSnapshot()
-            ?: repository.replaceAll(bundledLoader(), emptyList(), LocalDateTime.now())
+            ?: repository.replaceAll(bundledLoader(), emptyList(), null, LocalDateTime.now())
         val snapshot = persisted.toSnapshot()
         cached = CachedSnapshot(snapshot, requestedAt.plus(CACHE_TTL))
         return snapshot
@@ -167,7 +168,12 @@ class PaymentMonitoringService(
 
     @Synchronized
     private fun replaceAll(data: PaymentMonitoringWorkbookSource.WorkbookData): Snapshot {
-        val snapshot = repository.replaceAll(data.items, data.transactions, LocalDateTime.now()).toSnapshot()
+        val snapshot = repository.replaceAll(
+            data.items,
+            data.transactions,
+            data.dashboardAmountPaidTotalUah,
+            LocalDateTime.now()
+        ).toSnapshot()
         cached = CachedSnapshot(snapshot, now().plus(CACHE_TTL))
         return snapshot
     }
@@ -225,7 +231,8 @@ class PaymentMonitoringService(
     private fun PaymentMonitoringSnapshot.toSnapshot() = Snapshot(
         refreshedAt = updatedAt.toString(),
         items = items,
-        transactions = transactions
+        transactions = transactions,
+        dashboardAmountPaidTotalUah = dashboardAmountPaidTotalUah
     )
 
     private companion object {

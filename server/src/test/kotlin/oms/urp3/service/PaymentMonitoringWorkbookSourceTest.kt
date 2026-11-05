@@ -104,6 +104,9 @@ class PaymentMonitoringWorkbookSourceTest {
             createCell(4).setCellValue(1_000.0)
             createCell(5).setCellValue(20.0)
         }
+        workbook.createSheet("UR III UAH Payment Dashboard").apply {
+            createRow(3).createCell(4).setCellValue(1_234.56)
+        }
         val bytes = ByteArrayOutputStream().use { output ->
             workbook.use { it.write(output) }
             output.toByteArray()
@@ -115,5 +118,6 @@ class PaymentMonitoringWorkbookSourceTest {
         assertEquals(1, data.transactions.size)
         assertEquals("VN08_01_W", data.transactions.single().code)
         assertEquals(1_000.0, data.transactions.single().amountUah)
+        assertEquals(1_234.56, data.dashboardAmountPaidTotalUah)
     }
 }

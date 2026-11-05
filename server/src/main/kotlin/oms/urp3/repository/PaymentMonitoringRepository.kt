@@ -15,12 +15,18 @@ import java.time.LocalDateTime
 data class PaymentMonitoringSnapshot(
     val updatedAt: LocalDateTime,
     val items: List<PaymentMonitoringWorkbookSource.Item>,
-    val transactions: List<PaymentMonitoringWorkbookSource.Transaction> = emptyList()
+    val transactions: List<PaymentMonitoringWorkbookSource.Transaction> = emptyList(),
+    val dashboardAmountPaidTotalUah: Double? = null
 )
 
 interface PaymentMonitoringRepository {
     fun findSnapshot(): PaymentMonitoringSnapshot?
-    fun replaceAll(items: List<PaymentMonitoringWorkbookSource.Item>, transactions: List<PaymentMonitoringWorkbookSource.Transaction>, updatedAt: LocalDateTime): PaymentMonitoringSnapshot
+    fun replaceAll(
+        items: List<PaymentMonitoringWorkbookSource.Item>,
+        transactions: List<PaymentMonitoringWorkbookSource.Transaction>,
+        dashboardAmountPaidTotalUah: Double?,
+        updatedAt: LocalDateTime
+    ): PaymentMonitoringSnapshot
 }
 
 class ExposedPaymentMonitoringRepository : PaymentMonitoringRepository {
@@ -28,11 +34,21 @@ class ExposedPaymentMonitoringRepository : PaymentMonitoringRepository {
         val rows = PaymentMonitoringRowTable.selectAll().map(::map)
         val transactions = PaymentMonitoringTransactionTable.selectAll().map(::mapTransaction)
         rows.takeIf { it.isNotEmpty() }?.let { mapped ->
-            PaymentMonitoringSnapshot(mapped.maxOf { it.second }, mapped.map { it.first }, transactions)
+            PaymentMonitoringSnapshot(
+                updatedAt = mapped.maxOf { it.second },
+                items = mapped.map { it.first },
+                transactions = transactions,
+                dashboardAmountPaidTotalUah = rows.first()[PaymentMonitoringRowTable.dashboardAmountPaidTotalUah]?.toDouble()
+            )
         }
     }
 
-    override fun replaceAll(items: List<PaymentMonitoringWorkbookSource.Item>, transactions: List<PaymentMonitoringWorkbookSource.Transaction>, updatedAt: LocalDateTime): PaymentMonitoringSnapshot = transaction {
+    override fun replaceAll(
+        items: List<PaymentMonitoringWorkbookSource.Item>,
+        transactions: List<PaymentMonitoringWorkbookSource.Transaction>,
+        dashboardAmountPaidTotalUah: Double?,
+        updatedAt: LocalDateTime
+    ): PaymentMonitoringSnapshot = transaction {
         require(items.isNotEmpty()) { "The payment monitoring workbook contains no usable rows." }
         require(items.map { it.code.uppercase() }.toSet().size == items.size) { "The payment monitoring workbook contains duplicate IDs." }
         PaymentMonitoringRowTable.deleteAll()
@@ -41,7 +57,7 @@ class ExposedPaymentMonitoringRepository : PaymentMonitoringRepository {
         // rather than one INSERT per row so a remote database pays one round
         // trip for the replacement transaction instead of hundreds.
         PaymentMonitoringRowTable.batchInsert(items, shouldReturnGeneratedValues = false) { item ->
-            applyItem(item, updatedAt)
+            applyItem(item, dashboardAmountPaidTotalUah, updatedAt)
         }
         if (transactions.isNotEmpty()) PaymentMonitoringTransactionTable.batchInsert(transactions, shouldReturnGeneratedValues = false) { item ->
             this[PaymentMonitoringTransactionTable.sourceReference] = item.sourceReference
@@ -53,10 +69,14 @@ class ExposedPaymentMonitoringRepository : PaymentMonitoringRepository {
             this[PaymentMonitoringTransactionTable.sourceSheet] = item.sourceSheet
             this[PaymentMonitoringTransactionTable.updatedAt] = updatedAt
         }
-        PaymentMonitoringSnapshot(updatedAt, items, transactions)
+        PaymentMonitoringSnapshot(updatedAt, items, transactions, dashboardAmountPaidTotalUah)
     }
 
-    private fun UpdateBuilder<*>.applyItem(item: PaymentMonitoringWorkbookSource.Item, updatedAt: LocalDateTime) {
+    private fun UpdateBuilder<*>.applyItem(
+        item: PaymentMonitoringWorkbookSource.Item,
+        dashboardAmountPaidTotalUah: Double?,
+        updatedAt: LocalDateTime
+    ) {
         this[PaymentMonitoringRowTable.sourceCode] = item.code
         this[PaymentMonitoringRowTable.totalInvestmentUah] = item.totalInvestmentUah?.let(BigDecimal::valueOf)
         this[PaymentMonitoringRowTable.eibInvestmentUah] = item.eibInvestmentUah?.let(BigDecimal::valueOf)
@@ -67,6 +87,7 @@ class ExposedPaymentMonitoringRepository : PaymentMonitoringRepository {
         this[PaymentMonitoringRowTable.plannedEibSharePct] = item.plannedEibSharePct?.let(BigDecimal::valueOf)
         this[PaymentMonitoringRowTable.factualEibSharePct] = item.factualEibSharePct?.let(BigDecimal::valueOf)
         this[PaymentMonitoringRowTable.eibShareCompliance] = item.eibShareCompliance
+        this[PaymentMonitoringRowTable.dashboardAmountPaidTotalUah] = dashboardAmountPaidTotalUah?.let(BigDecimal::valueOf)
         this[PaymentMonitoringRowTable.updatedAt] = updatedAt
     }
 

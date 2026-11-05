@@ -16,6 +16,8 @@ object PaymentMonitoringRowTable : LongIdTable("payment_monitoring_rows") {
     val plannedEibSharePct = decimal("planned_eib_share_pct", 8, 2).nullable()
     val factualEibSharePct = decimal("factual_eib_share_pct", 8, 2).nullable()
     val eibShareCompliance = varchar("eib_share_compliance", 255).nullable()
+    /** Source aggregate: UR III UAH Payment Dashboard!E4. */
+    val dashboardAmountPaidTotalUah = decimal("dashboard_amount_paid_total_uah", 20, 2).nullable()
     val updatedAt = datetime("updated_at")
 }
 
