@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -55,6 +56,8 @@ fun <T> SearchableOptionPicker(
     val scope = rememberCoroutineScope()
     var pendingLoad by remember { mutableStateOf<Job?>(null) }
     var noMatches by remember { mutableStateOf(false) }
+    var emptyOptions by remember { mutableStateOf(false) }
+    var moreMatches by remember { mutableStateOf(false) }
     var loading by remember { mutableStateOf(false) }
     var loadFailed by remember { mutableStateOf(false) }
     var searchVersion by remember { mutableStateOf(0) }
@@ -70,15 +73,19 @@ fun <T> SearchableOptionPicker(
     }
 
     fun showMatches(entered: String, source: List<T>) {
-        val matches = source.asSequence()
+        val limit = maxSuggestions.coerceAtLeast(1)
+        val candidates = source.asSequence()
             // Opening an autocomplete should show its available choices even
             // before the first character is typed.  Requiring a keystroke
             // made a populated selector look empty, especially for payment
             // bases where a user naturally clicks the field first.
             .filter { entered.isBlank() || itemLabel(it).contains(entered, ignoreCase = true) }
-            .take(maxSuggestions)
+            .take(limit.toLong().plus(1).coerceAtMost(Int.MAX_VALUE.toLong()).toInt())
             .toList()
-        noMatches = entered.isNotBlank() && matches.isEmpty()
+        val matches = candidates.take(limit)
+        moreMatches = candidates.size > limit
+        emptyOptions = source.isEmpty()
+        noMatches = entered.isNotBlank() && matches.isEmpty() && !emptyOptions
         if (matches.isEmpty()) {
             host.dismiss(id)
         } else {
@@ -105,6 +112,8 @@ fun <T> SearchableOptionPicker(
         val version = searchVersion
         pendingLoad?.cancel()
         noMatches = false
+        emptyOptions = false
+        moreMatches = false
         loadFailed = false
         loading = false
         if (loadOptionsOnInput == null) {
@@ -139,8 +148,13 @@ fun <T> SearchableOptionPicker(
         },
         label = { Text(label) },
         isError = loadFailed && enabled,
-        supportingText = if (enabled && (loadFailed || noMatches)) {
-            { Text(LocalizationManager.t(if (loadFailed) "picker_load_failed" else "picker_no_matches")) }
+        supportingText = if (enabled && (loadFailed || noMatches || emptyOptions || moreMatches)) {
+            { Text(LocalizationManager.t(when {
+                loadFailed -> "picker_load_failed"
+                emptyOptions -> "no_options"
+                noMatches -> "picker_no_matches"
+                else -> "picker_more_matches"
+            }).replace("{count}", maxSuggestions.coerceAtLeast(1).toString())) }
         } else null,
         trailingIcon = {
             if (loading && enabled) {
@@ -148,6 +162,13 @@ fun <T> SearchableOptionPicker(
             } else if (loadFailed && enabled) {
                 IconButton(onClick = { searchOptions(query) }) {
                     Icon(Icons.Default.Refresh, LocalizationManager.t("retry"))
+                }
+            } else {
+                OmsTooltipBox(tooltip = { Text(LocalizationManager.t("picker_show_options")) }, enabled = enabled) {
+                    IconButton(onClick = { searchOptions("") }, enabled = enabled,
+                        modifier = if (enabled) Modifier.buttonHandCursor() else Modifier) {
+                        Icon(Icons.Default.ArrowDropDown, LocalizationManager.t("picker_show_options"))
+                    }
                 }
             }
         },
@@ -163,6 +184,8 @@ fun <T> SearchableOptionPicker(
                     pendingLoad?.cancel()
                     loading = false
                     noMatches = false
+                    emptyOptions = false
+                    moreMatches = false
                 }
             }
             .onPreviewKeyEvent { event ->
@@ -176,6 +199,8 @@ fun <T> SearchableOptionPicker(
                         pendingLoad?.cancel()
                         loading = false
                         noMatches = false
+                        emptyOptions = false
+                        moreMatches = false
                         host.dismiss(id)
                         true
                     }

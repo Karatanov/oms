@@ -3,6 +3,8 @@ package oms.localization
 object Strings {
 
     val uk = mapOf(
+        "picker_show_options" to "Показати варіанти",
+        "picker_more_matches" to "Показано перші {count} варіантів. Уточніть пошук, щоб знайти потрібний.",
         "sorted_ascending_state" to "Відсортовано за зростанням",
         "sorted_descending_state" to "Відсортовано за спаданням",
         "first_page" to "Перша сторінка",
@@ -990,6 +992,8 @@ object Strings {
     )
 
     val en = mapOf(
+        "picker_show_options" to "Show options",
+        "picker_more_matches" to "Showing the first {count} options. Refine your search to find the one you need.",
         "sorted_ascending_state" to "Sorted in ascending order",
         "sorted_descending_state" to "Sorted in descending order",
         "first_page" to "First page",
