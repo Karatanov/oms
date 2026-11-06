@@ -31,14 +31,15 @@ interface PaymentMonitoringRepository {
 
 class ExposedPaymentMonitoringRepository : PaymentMonitoringRepository {
     override fun findSnapshot(): PaymentMonitoringSnapshot? = transaction {
-        val rows = PaymentMonitoringRowTable.selectAll().map(::map)
+        val resultRows = PaymentMonitoringRowTable.selectAll().toList()
+        val rows = resultRows.map(::map)
         val transactions = PaymentMonitoringTransactionTable.selectAll().map(::mapTransaction)
         rows.takeIf { it.isNotEmpty() }?.let { mapped ->
             PaymentMonitoringSnapshot(
                 updatedAt = mapped.maxOf { it.second },
                 items = mapped.map { it.first },
                 transactions = transactions,
-                dashboardAmountPaidTotalUah = rows.first()[PaymentMonitoringRowTable.dashboardAmountPaidTotalUah]?.toDouble()
+                dashboardAmountPaidTotalUah = resultRows.first()[PaymentMonitoringRowTable.dashboardAmountPaidTotalUah]?.toDouble()
             )
         }
     }
