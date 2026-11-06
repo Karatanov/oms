@@ -1,6 +1,8 @@
 package oms.components
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
@@ -54,11 +56,11 @@ fun ProjectMoneyField(label: String, value: ProjectMoneyDraft, currentRate: Proj
                 OutlinedTextField(value.amount, { if (amountInput.matches(it)) {
                     val changed = value.copy(amount = it)
                     onChange(if (currentRate != null && !value.edited) changed.withRate(currentRate) else changed.recalculate())
-                } }, label = { Text(L.t("amount") + ", " + value.currency) }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                } }, label = { Text(L.t("amount") + ", " + value.currency) }, singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), modifier = Modifier.fillMaxWidth())
             }
             val convertedField: @Composable () -> Unit = {
                 OutlinedTextField(value.converted, { if (amountInput.matches(it)) onChange(value.copy(converted = it, edited = true)) },
-                    label = { Text(L.t("project_money_equivalent") + ", " + counterpart) }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                    label = { Text(L.t("project_money_equivalent") + ", " + counterpart) }, singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), modifier = Modifier.fillMaxWidth())
             }
             val currencyPicker: @Composable () -> Unit = {
                 InlineOptionPicker(listOf("EUR", "UAH"), value.currency, L.t("currency"), { selected ->
@@ -68,7 +70,7 @@ fun ProjectMoneyField(label: String, value: ProjectMoneyDraft, currentRate: Proj
             }
             val rateField: @Composable (Modifier) -> Unit = { modifier ->
                 OutlinedTextField(value.rate, { if (rateInput.matches(it)) onChange(value.copy(rate = it, date = currentIsoDate(), edited = true).recalculate()) },
-                label = { Text(L.t("project_money_rate")) }, singleLine = true, modifier = modifier.fillMaxWidth())
+                label = { Text(L.t("project_money_rate")) }, singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), modifier = modifier.fillMaxWidth())
             }
             val rateInfo: @Composable () -> Unit = {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -101,9 +103,14 @@ fun ProjectMoneyField(label: String, value: ProjectMoneyDraft, currentRate: Proj
                     amountField()
                     currencyPicker()
                     convertedField()
-                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                        rateField(Modifier.weight(1f))
-                        Box(Modifier.weight(1f)) { rateInfo() }
+                    if (maxWidth < 480.dp) {
+                        rateField(Modifier)
+                        rateInfo()
+                    } else {
+                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                            rateField(Modifier.weight(1f))
+                            Box(Modifier.weight(1f)) { rateInfo() }
+                        }
                     }
                 }
             }
