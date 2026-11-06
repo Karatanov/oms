@@ -51,7 +51,14 @@ fun <T> InlineOptionPicker(
                 if (canClear && index == 0) onClear?.invoke() else onSelect(openOptions[index - if (canClear) 1 else 0])
                 restoreFocus.requestFocus()
             },
-            onDismiss = { host.dismiss(id); restoreFocus.requestFocus() }
+            onDismiss = { host.dismiss(id); restoreFocus.requestFocus() },
+            selectedIndexes = openOptions.indexOfFirst { it == selected }.let { index ->
+                when {
+                    index >= 0 -> setOf(index + if (canClear) 1 else 0)
+                    canClear && selected == null -> setOf(0)
+                    else -> emptySet()
+                }
+            }
         )
     }
     DisposableEffect(id, enabled) {

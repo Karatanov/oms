@@ -75,6 +75,23 @@ fun OptionOverlayHost(content: @Composable () -> Unit) {
                                 Key.Escape -> { menu.onDismiss(); true }
                                 Key.DirectionDown -> { active = (active + 1).coerceAtMost((menu.labels.size - 1).coerceAtLeast(0)); true }
                                 Key.DirectionUp -> { active = (active - 1).coerceAtLeast(0); true }
+                                Key.MoveHome -> { active = 0; true }
+                                Key.MoveEnd -> { active = menu.labels.lastIndex.coerceAtLeast(0); true }
+                                Key.PageDown -> {
+                                    active = (active + listState.layoutInfo.visibleItemsInfo.size.coerceAtLeast(1))
+                                        .coerceAtMost(menu.labels.lastIndex.coerceAtLeast(0))
+                                    true
+                                }
+                                Key.PageUp -> {
+                                    active = (active - listState.layoutInfo.visibleItemsInfo.size.coerceAtLeast(1)).coerceAtLeast(0)
+                                    true
+                                }
+                                Key.Spacebar -> {
+                                    if (menu.multiSelect && menu.labels.isNotEmpty()) {
+                                        menu.onChoose(active)
+                                        true
+                                    } else false
+                                }
                                 Key.Enter, Key.NumPadEnter -> { if (menu.labels.isNotEmpty()) menu.onChoose(active); true }
                                 Key.Tab -> { menu.onDismiss(); true }
                                 else -> false
