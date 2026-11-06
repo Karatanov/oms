@@ -3,6 +3,7 @@ package oms.localization
 object Strings {
 
     val uk = mapOf(
+        "picker_retry_load" to "Помилка завантаження. Натисніть, щоб повторити.",
         "picker_load_failed" to "Не вдалося завантажити варіанти. Спробуйте ще раз.",
         "show_full_text" to "Показати повний текст",
         "picker_no_matches" to "Збігів немає. Змініть пошуковий запит.",
@@ -977,6 +978,7 @@ object Strings {
     )
 
     val en = mapOf(
+        "picker_retry_load" to "Loading failed. Press to retry.",
         "picker_load_failed" to "Could not load options. Please try again.",
         "show_full_text" to "Show full text",
         "picker_no_matches" to "No matches. Try a different search.",

@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.ArrowDropUp
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -15,6 +16,11 @@ import androidx.compose.ui.semantics.*
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.isActive
+import androidx.compose.ui.input.key.*
+import oms.localization.LocalizationManager
 import oms.theme.OmsDimensions
 
 /** Anchored in the application overlay host: never measured as page content. */
@@ -32,6 +38,9 @@ fun <T> InlineOptionPicker(
     val expanded = host.menu?.id === id
     val restoreFocus = remember { androidx.compose.ui.focus.FocusRequester() }
     val scope = rememberCoroutineScope()
+    var loading by remember { mutableStateOf(false) }
+    var loadFailed by remember { mutableStateOf(false) }
+    var loadJob by remember { mutableStateOf<Job?>(null) }
     fun showMenu(openOptions: List<T>) {
         val canClear = clearLabel != null && onClear != null
         host.menu = OptionMenu(
@@ -45,35 +54,98 @@ fun <T> InlineOptionPicker(
             onDismiss = { host.dismiss(id); restoreFocus.requestFocus() }
         )
     }
-    DisposableEffect(id, enabled) { onDispose { host.dismiss(id) } }
+    DisposableEffect(id, enabled) {
+        onDispose {
+            loadJob?.cancel()
+            loading = false
+            host.dismiss(id)
+        }
+    }
     OutlinedButton(
         enabled = enabled,
         modifier = modifier.then(if (fillWidth) Modifier.fillMaxWidth() else Modifier)
             .heightIn(min = OmsDimensions.ControlHeight)
             .onGloballyPositioned { anchor = it.boundsInRoot() }
-            .then(Modifier.semantics { stateDescription = oms.localization.LocalizationManager.t(if (expanded) "expanded" else "collapsed") })
+            .onPreviewKeyEvent { event ->
+                if (loading && event.type == KeyEventType.KeyDown && event.key == Key.Escape) {
+                    loadJob?.cancel()
+                    loading = false
+                    true
+                } else false
+            }
+            .semantics {
+                stateDescription = LocalizationManager.t(
+                    when {
+                        loading -> "loading_records"
+                        loadFailed -> "picker_load_failed"
+                        expanded -> "expanded"
+                        else -> "collapsed"
+                    }
+                )
+            }
             .then(Modifier.focusRequesterForPicker(restoreFocus)),
         shape = MaterialTheme.shapes.small,
         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
-        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        border = androidx.compose.foundation.BorderStroke(
+            1.dp,
+            if (loadFailed && enabled) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.outlineVariant
+        ),
         colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onSurface),
         onClick = {
-            if (expanded) host.dismiss(id) else {
-                if (loadOptionsOnOpen == null) {
-                    showMenu(options)
-                } else scope.launch {
-                    // Some selectors (notably project parents) are expensive to
-                    // populate.  Resolve them only after the user opens the picker.
-                    showMenu(loadOptionsOnOpen.invoke())
+            if (!loading) {
+                loadFailed = false
+                if (expanded) host.dismiss(id)
+                else if (loadOptionsOnOpen == null) showMenu(options)
+                else {
+                    loading = true
+                    loadJob = scope.launch {
+                        try {
+                            val loadedOptions = loadOptionsOnOpen()
+                            if (isActive) showMenu(loadedOptions)
+                        } catch (cancelled: CancellationException) {
+                            throw cancelled
+                        } catch (_: Exception) {
+                            if (isActive) loadFailed = true
+                        } finally {
+                            if (isActive) loading = false
+                        }
+                    }
                 }
             }
         }
     ) {
-        Text(selected?.let(itemLabel) ?: prompt, maxLines = 1, overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f, fill = fillWidth), style = MaterialTheme.typography.bodyMedium)
+        Column(Modifier.weight(1f, fill = fillWidth)) {
+            Text(
+                selected?.let(itemLabel) ?: prompt,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                style = MaterialTheme.typography.bodyMedium
+            )
+            if (loadFailed && enabled) {
+                Text(
+                    LocalizationManager.t("picker_retry_load"),
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
+        }
         Spacer(Modifier.width(8.dp))
-        Icon(if (expanded) Icons.Default.ArrowDropUp else Icons.Default.ArrowDropDown, null, Modifier.size(20.dp),
-            tint = MaterialTheme.colorScheme.primary)
+        if (loading) {
+            CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
+        } else {
+            Icon(
+                when {
+                    loadFailed -> Icons.Default.Refresh
+                    expanded -> Icons.Default.ArrowDropUp
+                    else -> Icons.Default.ArrowDropDown
+                },
+                contentDescription = if (loadFailed) LocalizationManager.t("retry") else null,
+                modifier = Modifier.size(20.dp),
+                tint = if (loadFailed && enabled) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+            )
+        }
     }
 }
 
