@@ -3,6 +3,7 @@ package oms.localization
 object Strings {
 
     val uk = mapOf(
+        "date_format_hint" to "ДД.ММ.РРРР",
         "saving_user" to "Збереження…",
         "switch_to_english" to "Переключити на англійську",
         "switch_to_ukrainian" to "Переключити на українську",
@@ -983,6 +984,7 @@ object Strings {
     )
 
     val en = mapOf(
+        "date_format_hint" to "DD.MM.YYYY",
         "saving_user" to "Saving…",
         "switch_to_english" to "Switch to English",
         "switch_to_ukrainian" to "Switch to Ukrainian",

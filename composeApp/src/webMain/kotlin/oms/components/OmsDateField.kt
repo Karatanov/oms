@@ -12,6 +12,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.isAltPressed
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.LocalDensity
@@ -53,12 +59,18 @@ fun OmsDateField(
     OutlinedTextField(
         value = displayValue,
         onValueChange = { rawValue ->
-            val sanitized = rawValue.filter { it.isDigit() || it == '.' || it == '-' }.take(10)
+            val sanitized = rawValue.trim().replace('/', '.').filter { it.isDigit() || it == '.' || it == '-' }.take(10)
             displayValue = sanitized
             onValueChange(sanitized.toIsoDateOrNull() ?: sanitized)
         },
         label = { Text(if (required) "$label *" else label) },
-        modifier = modifier,
+        placeholder = { Text(LocalizationManager.t("date_format_hint")) },
+        modifier = modifier.onPreviewKeyEvent { event ->
+            if (event.type == KeyEventType.KeyDown && event.isAltPressed && event.key == Key.DirectionDown) {
+                openNativeDatePicker(value.takeIf(::isValidIsoDate).orEmpty(), anchorLeft, anchorTop, onValueChange)
+                true
+            } else false
+        },
         readOnly = false,
         singleLine = true,
         isError = displayValue.isNotBlank() && displayValue.toIsoDateOrNull()?.let(::isValidIsoDate) != true,
@@ -66,7 +78,7 @@ fun OmsDateField(
             Text(LocalizationManager.t("date_invalid")) },
         trailingIcon = {
             IconButton(
-                onClick = { openNativeDatePicker(value, anchorLeft, anchorTop, onValueChange) },
+                onClick = { openNativeDatePicker(value.takeIf(::isValidIsoDate).orEmpty(), anchorLeft, anchorTop, onValueChange) },
                 modifier = Modifier.buttonHandCursor().onGloballyPositioned { coordinates ->
                     val position = coordinates.positionInWindow()
                     anchorLeft = position.x / density
@@ -101,7 +113,7 @@ private fun String.toIsoDateOrNull(): String? {
 fun String?.toOmsDate(): String {
     val value = this.orEmpty()
     val parts = value.split('-')
-    return if (parts.size == 3 && parts.all { it.all(Char::isDigit) }) "${parts[2]}.${parts[1]}.${parts[0]}" else value
+    return if (Regex("\\d{4}-\\d{2}-\\d{2}").matches(value)) "${parts[2]}.${parts[1]}.${parts[0]}" else value
 }
 
 /** Displays a UTC API timestamp in the browser's local timezone and active UI locale. */
