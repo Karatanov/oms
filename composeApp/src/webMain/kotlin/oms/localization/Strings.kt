@@ -3,6 +3,8 @@ package oms.localization
 object Strings {
 
     val uk = mapOf(
+        "show_password" to "Показати пароль",
+        "hide_password" to "Сховати пароль",
         "picker_retry_load" to "Помилка завантаження. Натисніть, щоб повторити.",
         "picker_load_failed" to "Не вдалося завантажити варіанти. Спробуйте ще раз.",
         "show_full_text" to "Показати повний текст",
@@ -978,6 +980,8 @@ object Strings {
     )
 
     val en = mapOf(
+        "show_password" to "Show password",
+        "hide_password" to "Hide password",
         "picker_retry_load" to "Loading failed. Press to retry.",
         "picker_load_failed" to "Could not load options. Please try again.",
         "show_full_text" to "Show full text",

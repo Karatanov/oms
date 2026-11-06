@@ -22,7 +22,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.input.PasswordVisualTransformation
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
@@ -408,11 +407,10 @@ private fun CreateUserDialog(roles: List<ApiRole>, onDismiss: () -> Unit, onSave
             ) {
             OutlinedTextField(username, { username = it.safeTextInput(100) }, label = { Text(LocalizationManager.t("username")) }, modifier = Modifier.fillMaxWidth())
             OutlinedTextField(email, { email = it.safeTextInput(320) }, label = { Text(LocalizationManager.t("email")) }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(
-                password, { password = it.safeTextInput(256) },
-                label = { Text(LocalizationManager.t("password")) },
-                visualTransformation = PasswordVisualTransformation(),
-                modifier = Modifier.fillMaxWidth()
+            oms.components.OmsPasswordField(
+                password,
+                { password = it.safeTextInput(256) },
+                LocalizationManager.t("password")
             )
             Text(LocalizationManager.t("password_requirements"), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             UserFormFieldPair(
@@ -535,7 +533,7 @@ private fun EditUserDialog(
             }
             InlineOptionPicker(options = roles, selected = role, prompt = roleCode, onSelect = { roleCode = it.code }, itemLabel = { LocalizationManager.t("role_${it.code.lowercase()}") })
             role?.let { RolePermissionsHint(it.code) }
-            OutlinedTextField(password, { password = it.safeTextInput(256) }, label = { Text(LocalizationManager.t("new_password_optional")) }, modifier = Modifier.fillMaxWidth())
+            oms.components.OmsPasswordField(password, { password = it.safeTextInput(256) }, LocalizationManager.t("new_password_optional"), enabled = !saving)
             Text(LocalizationManager.t("password_requirements"), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             saveError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
             }

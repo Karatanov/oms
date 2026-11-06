@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -15,7 +14,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.rememberCoroutineScope
@@ -43,8 +41,8 @@ fun ActivationScreen(token: String, onActivated: () -> Unit) {
         LanguageSwitcher()
         Text(LocalizationManager.t("activate_title"), style = MaterialTheme.typography.headlineMedium)
         Text(LocalizationManager.t("password_guidance"))
-        OutlinedTextField(password, { password = it; error = null }, label = { Text(LocalizationManager.t("password")) }, visualTransformation = PasswordVisualTransformation(), modifier = Modifier.fillMaxWidth())
-        OutlinedTextField(confirmation, { confirmation = it; error = null }, label = { Text(LocalizationManager.t("confirm_password")) }, visualTransformation = PasswordVisualTransformation(), modifier = Modifier.fillMaxWidth())
+        oms.components.OmsPasswordField(password, { password = it; error = null }, LocalizationManager.t("password"), enabled = !saving)
+        oms.components.OmsPasswordField(confirmation, { confirmation = it; error = null }, LocalizationManager.t("confirm_password"), enabled = !saving)
         error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
         Button(onClick = {
             if (password != confirmation) { error = LocalizationManager.t("password_mismatch") } else scope.launch {
