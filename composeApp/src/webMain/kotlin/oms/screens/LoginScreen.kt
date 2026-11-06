@@ -245,7 +245,7 @@ fun LoginScreen(
                                         Icons.Default.Visibility
                                     else
                                         Icons.Default.VisibilityOff,
-                                    contentDescription = LocalizationManager.t("toggle_password")
+                                    contentDescription = LocalizationManager.t(if (passwordVisible) "hide_password" else "show_password")
                                 )
                             }
                         }
@@ -345,13 +345,29 @@ fun LoginScreen(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun PasswordResetDialog(initialIdentifier: String, onDismiss: () -> Unit) {
     var identifier by remember { mutableStateOf(initialIdentifier) }
     var isSending by remember { mutableStateOf(false) }
-    var sent by remember { mutableStateOf(false) }
+    var sentIdentifier by remember { mutableStateOf<String?>(null) }
     var error by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
+    val sent = sentIdentifier == identifier.trim()
+    val canSend = identifier.isNotBlank() && !isSending && !sent
+    val sendRequest: () -> Unit = {
+        if (canSend) {
+            val requestedIdentifier = identifier.trim()
+            isSending = true
+            error = null
+            scope.launch {
+                runCatching { OmsApiClient.requestPasswordReset(requestedIdentifier) }
+                    .onSuccess { sentIdentifier = requestedIdentifier }
+                    .onFailure { error = LocalizationManager.t("password_reset_failed") }
+                isSending = false
+            }
+        }
+    }
     Card(
         modifier = Modifier.widthIn(max = 460.dp).fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
@@ -364,30 +380,28 @@ private fun PasswordResetDialog(initialIdentifier: String, onDismiss: () -> Unit
                 onValueChange = { identifier = it.safeTextInput(320); error = null },
                 label = { Text(LocalizationManager.t("login_or_email")) },
                 modifier = Modifier.fillMaxWidth(),
-                singleLine = true
+                singleLine = true,
+                enabled = !isSending,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                keyboardActions = KeyboardActions(onDone = { sendRequest() })
             )
             if (sent) Text(LocalizationManager.t("password_reset_sent"), color = MaterialTheme.colorScheme.primary)
-            error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
+            error?.let { oms.components.ContentState(it, error = true) }
+            FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedButton(
                     modifier = Modifier.pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true),
                     onClick = onDismiss
                 ) { Text(LocalizationManager.t("close")) }
                 Button(
-                    onClick = {
-                        isSending = true
-                        scope.launch {
-                            runCatching { OmsApiClient.requestPasswordReset(identifier.trim()) }
-                                .onSuccess { sent = true }
-                                .onFailure { error = LocalizationManager.t("password_reset_failed") }
-                            isSending = false
-                        }
-                    },
-                    enabled = identifier.isNotBlank() && !isSending,
+                    onClick = sendRequest,
+                    enabled = canSend,
                     modifier = Modifier.pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true)
                 ) {
-                    if (isSending) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
-                    else Text(LocalizationManager.t("password_reset_send"))
+                    if (isSending) {
+                        CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
+                        Spacer(Modifier.width(8.dp))
+                    }
+                    Text(LocalizationManager.t("password_reset_send"))
                 }
             }
         }
