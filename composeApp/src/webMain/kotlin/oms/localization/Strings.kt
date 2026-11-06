@@ -3,6 +3,7 @@ package oms.localization
 object Strings {
 
     val uk = mapOf(
+        "show_full_text" to "Показати повний текст",
         "picker_no_matches" to "Збігів немає. Змініть пошуковий запит.",
         "reports_sort" to "Сортування звітів",
         "show_filters" to "Показати фільтри",
@@ -975,6 +976,7 @@ object Strings {
     )
 
     val en = mapOf(
+        "show_full_text" to "Show full text",
         "picker_no_matches" to "No matches. Try a different search.",
         "reports_sort" to "Sort reports",
         "show_filters" to "Show filters",

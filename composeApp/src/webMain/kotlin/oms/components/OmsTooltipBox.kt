@@ -1,8 +1,16 @@
 package oms.components
 
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.ui.input.key.*
+import androidx.compose.ui.semantics.*
+import oms.localization.LocalizationManager
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.*
@@ -18,7 +26,12 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 
-private data class TooltipEntry(val id: Any, val bounds: Rect, val content: @Composable () -> Unit)
+private data class TooltipEntry(
+    val id: Any,
+    val bounds: Rect,
+    val content: @Composable () -> Unit,
+    val onDismiss: (() -> Unit)? = null
+)
 private class TooltipOverlayState {
     var entry by mutableStateOf<TooltipEntry?>(null)
     fun dismiss(id: Any) { if (entry?.id === id) entry = null }
@@ -50,16 +63,31 @@ fun TooltipOverlayHost(content: @Composable () -> Unit) {
                 val availableHeight = (if (below) belowSpace else aboveSpace).coerceAtMost(maxTooltipHeight)
                 val y = if (below) bottom + 6.dp else (top - availableHeight - 6.dp).coerceAtLeast(8.dp)
                 Surface(
-                    Modifier.offset(x, y).widthIn(max = width).heightIn(max = availableHeight),
+                    Modifier.offset(x, y).widthIn(max = width).heightIn(max = availableHeight)
+                        .onPreviewKeyEvent { event ->
+                            if (event.type == KeyEventType.KeyDown && event.key == Key.Escape && tooltip.onDismiss != null) {
+                                tooltip.onDismiss.invoke()
+                                true
+                            } else false
+                        },
                     shape = MaterialTheme.shapes.small,
                     color = MaterialTheme.colorScheme.inverseSurface,
                     contentColor = MaterialTheme.colorScheme.inverseOnSurface,
                     shadowElevation = 4.dp
                 ) {
-                    Box(
-                        Modifier.padding(horizontal = 10.dp, vertical = 8.dp)
-                            .verticalScroll(rememberScrollState())
-                    ) { tooltip.content() }
+                    Column {
+                        tooltip.onDismiss?.let { dismiss ->
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                                IconButton(onClick = dismiss) {
+                                    Icon(Icons.Default.Close, LocalizationManager.t("close"), Modifier.size(18.dp))
+                                }
+                            }
+                        }
+                        Box(
+                            Modifier.padding(horizontal = 10.dp, vertical = 8.dp)
+                                .verticalScroll(rememberScrollState())
+                        ) { tooltip.content() }
+                    }
                 }
             }
         }
@@ -83,15 +111,47 @@ fun OmsTooltipBox(
     var focused by remember { mutableStateOf(false) }
     var pinned by remember { mutableStateOf(false) }
     val currentTooltip by rememberUpdatedState(tooltip)
+    fun dismiss() {
+        pinned = false
+        hovered = false
+        focused = false
+        host.dismiss(id)
+    }
     LaunchedEffect(enabled, hovered, focused, pinned, forceOpen, bounds) {
         host.dismiss(id)
         if (enabled && (hovered || focused || pinned || forceOpen)) {
             if (!pinned && !forceOpen) delay(450)
-            host.entry = TooltipEntry(id, bounds) { currentTooltip() }
+            host.entry = TooltipEntry(
+                id = id,
+                bounds = bounds,
+                content = { currentTooltip() },
+                onDismiss = if (pinned) { { dismiss() } } else null
+            )
         }
     }
     DisposableEffect(id) { onDispose { host.dismiss(id) } }
     Box(modifier
+        .onKeyEvent { event ->
+            if (event.type != KeyEventType.KeyDown || !enabled) false
+            else when {
+                event.key == Key.Escape -> {
+                    dismiss()
+                    true
+                }
+                openOnPress && (event.key == Key.Enter || event.key == Key.Spacebar) -> {
+                    pinned = !pinned
+                    true
+                }
+                else -> false
+            }
+        }
+        .then(if (openOnPress && enabled) Modifier.semantics {
+            role = Role.Button
+            onClick(label = LocalizationManager.t("show_full_text")) {
+                pinned = !pinned
+                true
+            }
+        } else Modifier)
         .onGloballyPositioned { if (it.isAttached) bounds = it.boundsInRoot() }
         .onPointerEvent(PointerEventType.Enter) { hovered = true }
         .onPointerEvent(PointerEventType.Exit) { hovered = false }
@@ -100,5 +160,6 @@ fun OmsTooltipBox(
             else { hovered = false; host.dismiss(id) }
         }
         .onFocusChanged { focused = it.hasFocus }
+        .focusable(enabled = openOnPress && enabled)
     ) { content() }
 }

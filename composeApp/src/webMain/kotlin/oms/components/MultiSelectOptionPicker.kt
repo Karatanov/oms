@@ -54,12 +54,14 @@ fun <T> MultiSelectOptionPicker(
     var anchor by remember { mutableStateOf(Rect.Zero) }
     val expanded = host.menu?.id === id
     val restoreFocus = remember { FocusRequester() }
+    var menuSelection by remember { mutableStateOf(selected) }
 
     fun selectedIndexes(values: Set<T>) = options.mapIndexedNotNull { index, option ->
         (index + 1).takeIf { option in values }
     }.toSet()
 
     fun updateSelection(values: Set<T>) {
+        menuSelection = values
         onSelectionChange(values)
         host.menu?.takeIf { it.id === id }?.let { menu ->
             host.menu = menu.copy(selectedIndexes = selectedIndexes(values))
@@ -67,11 +69,12 @@ fun <T> MultiSelectOptionPicker(
     }
 
     fun showMenu() {
+        menuSelection = selected
         host.menu = OptionMenu(
             id = id,
             anchor = anchor,
             labels = listOf(clearLabel) + options.map(itemLabel),
-            selectedIndex = 0,
+            selectedIndex = selectedIndexes(selected).minOrNull() ?: if (options.isNotEmpty()) 1 else 0,
             selectedIndexes = selectedIndexes(selected),
             multiSelect = true,
             clearIndex = 0,
@@ -80,7 +83,7 @@ fun <T> MultiSelectOptionPicker(
                     updateSelection(emptySet())
                 } else {
                     val option = options[index - 1]
-                    updateSelection(selected.toMutableSet().apply {
+                    updateSelection(menuSelection.toMutableSet().apply {
                         if (!add(option)) remove(option)
                     })
                 }
@@ -89,7 +92,9 @@ fun <T> MultiSelectOptionPicker(
         )
     }
 
-    LaunchedEffect(options, selected) {
+    LaunchedEffect(options) { host.dismiss(id) }
+    LaunchedEffect(selected) {
+        menuSelection = selected
         host.menu?.takeIf { it.id === id }?.let { menu ->
             host.menu = menu.copy(selectedIndexes = selectedIndexes(selected))
         }
@@ -98,7 +103,7 @@ fun <T> MultiSelectOptionPicker(
 
     val displayLabel = when (selected.size) {
         0 -> prompt
-        1 -> selected.firstOrNull()?.let(itemLabel) ?: prompt
+        1 -> "$prompt: ${itemLabel(selected.first())}"
         else -> "$prompt (${selected.size})"
     }
     OutlinedButton(
@@ -106,12 +111,23 @@ fun <T> MultiSelectOptionPicker(
         modifier = modifier.then(if (fillWidth) Modifier.fillMaxWidth() else Modifier)
             .heightIn(min = OmsDimensions.ControlHeight)
             .onGloballyPositioned { anchor = it.boundsInRoot() }
-            .semantics { stateDescription = LocalizationManager.t(if (expanded) "expanded" else "collapsed") }
+            .semantics {
+                stateDescription = listOf(
+                    LocalizationManager.t(if (expanded) "expanded" else "collapsed"),
+                    selected.joinToString(", ", transform = itemLabel)
+                ).filter { it.isNotBlank() }.joinToString(". ")
+            }
             .focusRequester(restoreFocus),
         shape = MaterialTheme.shapes.small,
         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
-        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-        colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onSurface),
+        border = androidx.compose.foundation.BorderStroke(
+            1.dp,
+            if (selected.isNotEmpty()) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant
+        ),
+        colors = ButtonDefaults.outlinedButtonColors(
+            containerColor = if (selected.isNotEmpty()) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface,
+            contentColor = if (selected.isNotEmpty()) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface
+        ),
         onClick = { if (expanded) host.dismiss(id) else showMenu() }
     ) {
         Text(displayLabel, maxLines = 1, overflow = TextOverflow.Ellipsis,
