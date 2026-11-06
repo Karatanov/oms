@@ -52,15 +52,18 @@ fun HoldToScrollButton(
                             delay(16)
                         }
                     }
-                    waitForUpOrCancellation()
-                    continuousJob.cancel()
-                    if (suppressClick) {
-                        // FilledIconButton normally emits its click immediately
-                        // after release. Reset as a fallback if it was cancelled.
-                        scope.launch { delay(120); suppressClick = false }
+                    try {
+                        waitForUpOrCancellation()
+                    } finally {
+                        // Reaching an edge disables the control and cancels its
+                        // pointer handler. Always stop the separately launched job.
+                        continuousJob.cancel()
+                        if (suppressClick) {
+                            scope.launch { delay(120); suppressClick = false }
+                        }
                     }
                 }
-            } else modifier.buttonHandCursor(),
+            } else modifier,
             onClick = {
                 if (suppressClick) {
                     suppressClick = false

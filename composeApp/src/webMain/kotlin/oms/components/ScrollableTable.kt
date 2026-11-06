@@ -169,12 +169,12 @@ fun TableScrollControls(scroll: ScrollState, showWhenStationary: Boolean = false
             // the motion smooth but make continuous horizontal navigation
             // materially faster across every shared table and bar chart.
             continuousPixelsPerFrame = 32f,
-            enabled = canScroll,
-            modifier = Modifier.size(30.dp)
+            enabled = canScroll && scroll.value > 0,
+            modifier = Modifier.size(48.dp)
         )
         Text(
             "$percentage%",
-            modifier = Modifier.width(48.dp).semantics { contentDescription = LocalizationManager.t("table_scroll") },
+            modifier = Modifier.width(48.dp).semantics { contentDescription = "${LocalizationManager.t("table_scroll")}: $percentage%" },
             style = MaterialTheme.typography.labelMedium,
             textAlign = androidx.compose.ui.text.style.TextAlign.Center
         )
@@ -185,8 +185,8 @@ fun TableScrollControls(scroll: ScrollState, showWhenStationary: Boolean = false
             direction = 1,
             clickDistance = 720f,
             continuousPixelsPerFrame = 32f,
-            enabled = canScroll,
-            modifier = Modifier.size(30.dp)
+            enabled = canScroll && scroll.value < maxValue,
+            modifier = Modifier.size(48.dp)
         )
     }
 }
