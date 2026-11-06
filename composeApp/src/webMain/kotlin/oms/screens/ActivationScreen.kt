@@ -1,5 +1,10 @@
 package oms.screens
 
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -33,6 +38,24 @@ fun ActivationScreen(token: String, onActivated: () -> Unit) {
     var error by remember { mutableStateOf<String?>(null) }
     var saving by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
+    val confirmationFocus = remember { FocusRequester() }
+    var confirmationVisited by remember { mutableStateOf(false) }
+    var confirmationFocused by remember { mutableStateOf(false) }
+    val mismatch = confirmation.isNotEmpty() && password != confirmation
+    val showMismatch = mismatch && confirmationVisited && !confirmationFocused
+    val canSubmit = !saving && password.isNotBlank() && confirmation.isNotBlank() && !mismatch
+    val activate: () -> Unit = {
+        if (canSubmit) {
+            saving = true
+            error = null
+            scope.launch {
+                runCatching { OmsApiClient.activate(token, password) }
+                    .onSuccess { onActivated() }
+                    .onFailure { error = it.message ?: LocalizationManager.t("activation_error") }
+                saving = false
+            }
+        }
+    }
     Column(
         modifier = Modifier.fillMaxSize().padding(24.dp).verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -42,18 +65,28 @@ fun ActivationScreen(token: String, onActivated: () -> Unit) {
         LanguageSwitcher()
         Text(LocalizationManager.t("activate_title"), style = MaterialTheme.typography.headlineMedium)
         Text(LocalizationManager.t("password_guidance"))
-        oms.components.OmsPasswordField(password, { password = it; error = null }, LocalizationManager.t("password"), enabled = !saving)
-        oms.components.OmsPasswordField(confirmation, { confirmation = it; error = null }, LocalizationManager.t("confirm_password"), enabled = !saving)
-        error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-        Button(onClick = {
-            if (password != confirmation) { error = LocalizationManager.t("password_mismatch") } else scope.launch {
-                saving = true
-                runCatching { OmsApiClient.activate(token, password) }
-                    .onSuccess { onActivated() }
-                    .onFailure { error = it.message ?: LocalizationManager.t("activation_error") }
-                saving = false
-            }
-        }, enabled = !saving && password.isNotBlank() && confirmation.isNotBlank()) { Text(LocalizationManager.t("activate_account")) }
+        oms.components.OmsPasswordField(
+            password, { password = it; error = null }, LocalizationManager.t("password"),
+            enabled = !saving,
+            imeAction = ImeAction.Next,
+            keyboardActions = KeyboardActions(onNext = { confirmationFocus.requestFocus() })
+        )
+        oms.components.OmsPasswordField(
+            confirmation, { confirmation = it; error = null }, LocalizationManager.t("confirm_password"),
+            enabled = !saving,
+            modifier = Modifier.fillMaxWidth().focusRequester(confirmationFocus).onFocusChanged {
+                confirmationFocused = it.isFocused
+                if (it.isFocused) confirmationVisited = true
+            },
+            isError = showMismatch,
+            supportingText = if (showMismatch) ({ Text(LocalizationManager.t("password_mismatch")) }) else null,
+            imeAction = ImeAction.Done,
+            keyboardActions = KeyboardActions(onDone = { activate() })
+        )
+        error?.let { ContentState(it, error = true) }
+        Button(onClick = activate, enabled = canSubmit, modifier = Modifier.fillMaxWidth()) {
+            Text(LocalizationManager.t(if (saving) "save_in_progress" else "activate_account"))
+        }
         if (saving) ContentState(LocalizationManager.t("save_in_progress"), loading = true)
         }
     }
