@@ -10,12 +10,16 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.FirstPage
 import androidx.compose.material.icons.filled.LastPage
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -79,22 +83,54 @@ fun PageHeading(
 @Composable
 fun ContentState(message: String, loading: Boolean = false, error: Boolean = false, onRetry: (() -> Unit)? = null) {
     val background = if (error) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.surfaceContainerLow
-    val iconTint = if (error) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+    val foreground = if (error) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onSurface
+    val iconTint = if (error) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.primary
+
+    @Composable
+    fun StatusIcon() {
+        if (loading) CircularProgressIndicator(Modifier.size(22.dp), strokeWidth = 2.dp, color = iconTint)
+        else Icon(if (error) Icons.Outlined.ErrorOutline else Icons.Outlined.Info, null, tint = iconTint, modifier = Modifier.size(22.dp))
+    }
+
+    @Composable
+    fun RetryAction() {
+        onRetry?.let { retry ->
+            OutlinedButton(
+                onClick = retry,
+                enabled = !loading,
+                modifier = if (loading) Modifier else Modifier.buttonHandCursor(),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = foreground)
+            ) {
+                Icon(Icons.Outlined.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(8.dp))
+                Text(LocalizationManager.t("retry"))
+            }
+        }
+    }
+
     BoxWithConstraints(Modifier.fillMaxWidth().background(background, MaterialTheme.shapes.medium)
         .border(1.dp, if (error) MaterialTheme.colorScheme.error.copy(alpha = .2f) else MaterialTheme.colorScheme.outlineVariant, MaterialTheme.shapes.medium)
         .padding(OmsDimensions.SpaceMedium)) {
-        if (maxWidth >= 440.dp) Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-            if (loading) CircularProgressIndicator(Modifier.size(22.dp), strokeWidth = 2.dp, color = iconTint)
-            else Icon(if (error) Icons.Outlined.ErrorOutline else Icons.Outlined.Info, null, tint = iconTint)
-            Text(message, Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
-            onRetry?.let { TextButton(onClick = it) { Text(LocalizationManager.t("retry")) } }
-        } else Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                if (loading) CircularProgressIndicator(Modifier.size(22.dp), strokeWidth = 2.dp, color = iconTint)
-                else Icon(if (error) Icons.Outlined.ErrorOutline else Icons.Outlined.Info, null, tint = iconTint)
-                Text(message, Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
+        @Composable
+        fun Message(modifier: Modifier) {
+            Row(modifier, horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.Top) {
+                StatusIcon()
+                Text(message, Modifier.weight(1f).semantics { liveRegion = LiveRegionMode.Polite },
+                    style = MaterialTheme.typography.bodyMedium, color = foreground)
             }
-            onRetry?.let { Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) { TextButton(onClick = it) { Text(LocalizationManager.t("retry")) } } }
+        }
+        if (maxWidth >= 440.dp) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                Message(Modifier.weight(1f))
+                RetryAction()
+            }
+        } else {
+            Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Message(Modifier.fillMaxWidth())
+                if (onRetry != null) {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) { RetryAction() }
+                }
+            }
         }
     }
 }
