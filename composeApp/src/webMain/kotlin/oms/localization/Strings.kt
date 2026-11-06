@@ -3,6 +3,8 @@ package oms.localization
 object Strings {
 
     val uk = mapOf(
+        "sorted_ascending_state" to "Відсортовано за зростанням",
+        "sorted_descending_state" to "Відсортовано за спаданням",
         "first_page" to "Перша сторінка",
         "last_page" to "Остання сторінка",
         "feedback_description_example" to "Що ви робили? Що сталося? Який результат очікували?",
@@ -988,6 +990,8 @@ object Strings {
     )
 
     val en = mapOf(
+        "sorted_ascending_state" to "Sorted in ascending order",
+        "sorted_descending_state" to "Sorted in descending order",
         "first_page" to "First page",
         "last_page" to "Last page",
         "feedback_description_example" to "What were you doing? What happened? What did you expect?",

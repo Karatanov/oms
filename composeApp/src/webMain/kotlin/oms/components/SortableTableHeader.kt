@@ -11,6 +11,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.*
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import oms.localization.LocalizationManager
@@ -27,17 +28,30 @@ fun SortableTableHeader(
     height: Dp = OmsDimensions.TableHeaderHeight,
     maxLines: Int = 2
 ) {
+    val sortDescription = LocalizationManager.t(
+        if (!selected) "not_sorted" else if (ascending) "sorted_ascending_state" else "sorted_descending_state"
+    )
+    OmsTooltipBox(
+        modifier = modifier,
+        tooltip = {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(title, style = MaterialTheme.typography.labelLarge)
+                Text(sortDescription, style = MaterialTheme.typography.bodySmall)
+            }
+        }
+    ) {
     TextButton(
         onClick = onClick,
-        modifier = modifier.height(height).background(MaterialTheme.colorScheme.surfaceContainerLow)
-            .semantics { stateDescription = LocalizationManager.t(if (!selected) "not_sorted" else if (ascending) "sort_ascending" else "sort_descending") },
+        modifier = Modifier.fillMaxWidth().height(height).buttonHandCursor()
+            .background(if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerLow)
+            .semantics { stateDescription = sortDescription },
         shape = androidx.compose.ui.graphics.RectangleShape,
         contentPadding = PaddingValues(horizontal = if (numeric) 8.dp else 0.dp, vertical = 4.dp),
         colors = ButtonDefaults.textButtonColors(contentColor = if (selected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant)
     ) {
         Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-            Text(title, Modifier.fillMaxWidth().padding(horizontal = 16.dp), style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.Bold, maxLines = maxLines,
+            Text(title, Modifier.fillMaxWidth().padding(start = 8.dp, end = if (selected) 24.dp else 8.dp), style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Bold, maxLines = maxLines, overflow = TextOverflow.Ellipsis,
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center)
             if (selected) {
                 Icon(
@@ -48,4 +62,5 @@ fun SortableTableHeader(
             }
         }
     }
+}
 }
