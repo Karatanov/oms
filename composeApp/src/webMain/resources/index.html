@@ -1484,11 +1484,14 @@
                     })
                 })
                     .bindPopup(popupHtml, {
-                        // A project card is allowed to extend beyond the map
-                        // frame.  Forcing a pan here made the card jump under
-                        // the navigation and could still clip a long name.
-                        autoPan: false,
-                        keepInView: false,
+                        // Keep the selected card entirely inside the actual
+                        // map viewport. Native clipping is essential for
+                        // Leaflet tile rendering and prevents cards escaping
+                        // across the surrounding application page.
+                        autoPan: true,
+                        keepInView: true,
+                        autoPanPaddingTopLeft: [24, 72],
+                        autoPanPaddingBottomRight: [24, 24],
                         maxWidth: 340,
                         minWidth: 220
                     })
