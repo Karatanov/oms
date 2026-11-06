@@ -430,9 +430,12 @@ private fun DocumentPagination(
         Spacer(Modifier.width(8.dp))
         InlineOptionPicker(listOf(20, 50, 100), pageSize, LocalizationManager.t("rows_per_page"), onPageSize, modifier = Modifier.width(100.dp), fillWidth = false)
     }, navigation = {
-        PageArrow(forward = false, enabled = currentPage > 0) { onPage((currentPage - 1).coerceAtLeast(0)) }
-        Text(if (total == 0) "0 / 0" else "${currentPage * pageSize + 1}–${minOf((currentPage + 1) * pageSize, total)} / $total")
-        PageArrow(forward = true, enabled = currentPage < pageCount - 1) { onPage((currentPage + 1).coerceAtMost(pageCount - 1)) }
+        oms.components.PageNavigation(
+            currentPage = currentPage,
+            pageCount = pageCount,
+            summary = if (total == 0) "0 / 0" else "${currentPage * pageSize + 1}–${minOf((currentPage + 1) * pageSize, total)} / $total",
+            onPage = onPage
+        )
     })
 }
 

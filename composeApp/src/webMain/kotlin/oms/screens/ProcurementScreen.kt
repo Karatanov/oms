@@ -484,15 +484,15 @@ private fun ProcurementPagination(
             fillWidth = false
         )
     }, navigation = {
-        Text(
-            LocalizationManager.t("page_of")
-                .replace("{page}", (currentPage + 1).toString())
-                .replace("{pages}", pageCount.toString())
+        oms.components.PageNavigation(
+            currentPage = currentPage,
+            pageCount = pageCount,
+            summary = LocalizationManager.t("page_of")
+                .replace("{page}", (if (total == 0) 0 else currentPage + 1).toString())
+                .replace("{pages}", (if (total == 0) 0 else pageCount).toString())
                 .replace("{total}", total.toString()),
-            style = MaterialTheme.typography.bodySmall
+            onPage = onPage
         )
-        PageArrow(forward = false, enabled = currentPage > 0) { onPage(currentPage - 1) }
-        PageArrow(forward = true, enabled = currentPage < pageCount - 1) { onPage(currentPage + 1) }
     })
 }
 

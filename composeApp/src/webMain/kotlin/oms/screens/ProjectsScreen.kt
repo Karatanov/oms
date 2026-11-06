@@ -801,10 +801,15 @@ private fun ProjectPagination(
         InlineOptionPicker(listOf(20, 50, 100, Int.MAX_VALUE), pageSize, LocalizationManager.t("rows_per_page"), onPageSize,
             itemLabel = { if (it == Int.MAX_VALUE) LocalizationManager.t("all") else it.toString() }, fillWidth = false)
     }, navigation = {
-        Text(LocalizationManager.t("page_of").replace("{page}", (currentPage + 1).toString())
-            .replace("{pages}", pageCount.toString()).replace("{total}", total.toString()), style = MaterialTheme.typography.bodySmall)
-        PageArrow(forward = false, enabled = currentPage > 0) { onPage(currentPage - 1) }
-        PageArrow(forward = true, enabled = currentPage < pageCount - 1) { onPage(currentPage + 1) }
+        oms.components.PageNavigation(
+            currentPage = currentPage,
+            pageCount = pageCount,
+            summary = LocalizationManager.t("page_of")
+                .replace("{page}", (if (total == 0) 0 else currentPage + 1).toString())
+                .replace("{pages}", (if (total == 0) 0 else pageCount).toString())
+                .replace("{total}", total.toString()),
+            onPage = onPage
+        )
     })
 }
 

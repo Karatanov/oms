@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.FirstPage
+import androidx.compose.material.icons.filled.LastPage
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.ErrorOutline
@@ -148,6 +150,33 @@ fun PageArrow(forward: Boolean, enabled: Boolean, onClick: () -> Unit) {
             colors = IconButtonDefaults.iconButtonColors(contentColor = MaterialTheme.colorScheme.primary)
         ) {
             Icon(icon, contentDescription = label)
+        }
+    }
+}
+
+/** Compact navigation with direct access to the ends of a long list. */
+@Composable
+fun PageNavigation(currentPage: Int, pageCount: Int, summary: String, onPage: (Int) -> Unit) {
+    val lastPage = (pageCount - 1).coerceAtLeast(0)
+    Column(horizontalAlignment = Alignment.End) {
+        Text(summary, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            val firstLabel = LocalizationManager.t("first_page")
+            val lastLabel = LocalizationManager.t("last_page")
+            OmsTooltipBox(tooltip = { Text(firstLabel) }) {
+                IconButton(onClick = { onPage(0) }, enabled = currentPage > 0,
+                    modifier = if (currentPage > 0) Modifier.buttonHandCursor() else Modifier) {
+                    Icon(Icons.Default.FirstPage, contentDescription = firstLabel)
+                }
+            }
+            PageArrow(forward = false, enabled = currentPage > 0) { onPage((currentPage - 1).coerceAtLeast(0)) }
+            PageArrow(forward = true, enabled = currentPage < lastPage) { onPage((currentPage + 1).coerceAtMost(lastPage)) }
+            OmsTooltipBox(tooltip = { Text(lastLabel) }) {
+                IconButton(onClick = { onPage(lastPage) }, enabled = currentPage < lastPage,
+                    modifier = if (currentPage < lastPage) Modifier.buttonHandCursor() else Modifier) {
+                    Icon(Icons.Default.LastPage, contentDescription = lastLabel)
+                }
+            }
         }
     }
 }
