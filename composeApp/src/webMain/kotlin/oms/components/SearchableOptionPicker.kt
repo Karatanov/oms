@@ -1,6 +1,14 @@
 package oms.components
 
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.CancellationException
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -47,9 +55,19 @@ fun <T> SearchableOptionPicker(
     val scope = rememberCoroutineScope()
     var pendingLoad by remember { mutableStateOf<Job?>(null) }
     var noMatches by remember { mutableStateOf(false) }
+    var loading by remember { mutableStateOf(false) }
+    var loadFailed by remember { mutableStateOf(false) }
+    var searchVersion by remember { mutableStateOf(0) }
     LaunchedEffect(selected) { query = selected?.let(itemLabel).orEmpty() }
     LaunchedEffect(options) { availableOptions = options }
-    DisposableEffect(id) { onDispose { host.dismiss(id) } }
+    DisposableEffect(id, enabled) {
+        onDispose {
+            searchVersion++
+            pendingLoad?.cancel()
+            loading = false
+            host.dismiss(id)
+        }
+    }
 
     fun showMatches(entered: String, source: List<T>) {
         val matches = source.asSequence()
@@ -83,17 +101,30 @@ fun <T> SearchableOptionPicker(
     }
 
     fun searchOptions(text: String) {
+        searchVersion++
+        val version = searchVersion
         pendingLoad?.cancel()
         noMatches = false
+        loadFailed = false
+        loading = false
         if (loadOptionsOnInput == null) {
             showMatches(text, availableOptions)
         } else {
             host.dismiss(id)
+            loading = true
             pendingLoad = scope.launch {
-                val source = loadOptionsOnInput()
-                if (isActive) {
-                    availableOptions = source
-                    showMatches(text, source)
+                try {
+                    val source = loadOptionsOnInput()
+                    if (isActive && version == searchVersion) {
+                        availableOptions = source
+                        showMatches(text, source)
+                    }
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
+                } catch (_: Exception) {
+                    if (isActive && version == searchVersion) loadFailed = true
+                } finally {
+                    if (version == searchVersion) loading = false
                 }
             }
         }
@@ -107,7 +138,19 @@ fun <T> SearchableOptionPicker(
             searchOptions(safeQuery)
         },
         label = { Text(label) },
-        supportingText = if (noMatches && enabled) { { Text(LocalizationManager.t("picker_no_matches")) } } else null,
+        isError = loadFailed && enabled,
+        supportingText = if (enabled && (loadFailed || noMatches)) {
+            { Text(LocalizationManager.t(if (loadFailed) "picker_load_failed" else "picker_no_matches")) }
+        } else null,
+        trailingIcon = {
+            if (loading && enabled) {
+                CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
+            } else if (loadFailed && enabled) {
+                IconButton(onClick = { searchOptions(query) }) {
+                    Icon(Icons.Default.Refresh, LocalizationManager.t("retry"))
+                }
+            }
+        },
         singleLine = true,
         enabled = enabled,
         modifier = modifier.fillMaxWidth()
@@ -116,7 +159,9 @@ fun <T> SearchableOptionPicker(
                 if (focusState.isFocused) {
                     searchOptions("")
                 } else {
+                    searchVersion++
                     pendingLoad?.cancel()
+                    loading = false
                     noMatches = false
                 }
             }
@@ -127,7 +172,9 @@ fun <T> SearchableOptionPicker(
                         true
                     }
                     event.type == KeyEventType.KeyDown && event.key == Key.Escape -> {
+                        searchVersion++
                         pendingLoad?.cancel()
+                        loading = false
                         noMatches = false
                         host.dismiss(id)
                         true
