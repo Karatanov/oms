@@ -38,6 +38,7 @@ private val pageKeys = mapOf(
     "Authentication / Users" to "feedback_users", "Database" to "feedback_database", "General / System" to "feedback_general"
 )
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun FeedbackDialog(currentScreen: Screen, onDismiss: () -> Unit) {
     fun t(key: String) = LocalizationManager.t(key)
@@ -72,7 +73,9 @@ fun FeedbackDialog(currentScreen: Screen, onDismiss: () -> Unit) {
         Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
             Surface(Modifier.widthIn(max = 560.dp).fillMaxWidth().semantics { testTag = "feedback-dialog" },
                 shape = MaterialTheme.shapes.large, color = MaterialTheme.colorScheme.surface) {
-                Column(Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                BoxWithConstraints(Modifier.fillMaxWidth()) {
+                val compact = maxWidth < 400.dp
+                Column(Modifier.padding(if (compact) 16.dp else 24.dp), verticalArrangement = Arrangement.spacedBy(if (compact) 12.dp else 16.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         Icon(Icons.Outlined.Feedback, null, tint = MaterialTheme.colorScheme.primary)
                         Text(t("feedback_title"), style = MaterialTheme.typography.headlineSmall)
@@ -91,13 +94,25 @@ fun FeedbackDialog(currentScreen: Screen, onDismiss: () -> Unit) {
                         OutlinedTextField(description, { description = it.take(FeedbackOptions.maxDescriptionLength) },
                             modifier = Modifier.fillMaxWidth().semantics { testTag = "feedback-description" },
                             enabled = !sending && submitted == null, label = { Text(t("feedback_description")) },
-                            minLines = 4, maxLines = 8,
-                            supportingText = { Text("${description.length} / ${FeedbackOptions.maxDescriptionLength}") })
+                            placeholder = { Text(t("feedback_description_example")) },
+                            minLines = if (compact) 3 else 4, maxLines = 8,
+                            supportingText = {
+                                Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    if (description.length == FeedbackOptions.maxDescriptionLength) {
+                                        Text(t("feedback_text_limit"), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
+                                    Text("${description.length} / ${FeedbackOptions.maxDescriptionLength}", modifier = Modifier.align(Alignment.End))
+                                }
+                            })
                         if (date.isNotEmpty()) Text("${t("feedback_date")}: ${date.split('-').reversed().joinToString(".")}",
                             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         if (loading) LinearProgressIndicator(Modifier.fillMaxWidth())
                         error?.let { ContentState(t(it), error = true, onRetry = if (!configured && !loading) ({ attempt++ }) else null) }
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
+                        FlowRow(
+                            Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
                             TextButton(onClick = dismiss, enabled = !sending) { Text(t("cancel")) }
                             Button(enabled = configured && !loading && !sending && description.isNotBlank(), onClick = {
                                 val payload = submitted ?: ApiFeedbackRequest(requestId, page, type, description.trim()).also { submitted = it }
@@ -121,6 +136,7 @@ fun FeedbackDialog(currentScreen: Screen, onDismiss: () -> Unit) {
                             }
                         }
                     }
+                }
                 }
             }
         }

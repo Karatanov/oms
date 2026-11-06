@@ -3,6 +3,8 @@ package oms.localization
 object Strings {
 
     val uk = mapOf(
+        "feedback_description_example" to "Що ви робили? Що сталося? Який результат очікували?",
+        "feedback_text_limit" to "Досягнуто ліміту символів. Щоб додати деталі, скоротіть текст.",
         "date_format_hint" to "ДД.ММ.РРРР",
         "saving_user" to "Збереження…",
         "switch_to_english" to "Переключити на англійську",
@@ -984,6 +986,8 @@ object Strings {
     )
 
     val en = mapOf(
+        "feedback_description_example" to "What were you doing? What happened? What did you expect?",
+        "feedback_text_limit" to "Character limit reached. Shorten the text to add more details.",
         "date_format_hint" to "DD.MM.YYYY",
         "saving_user" to "Saving…",
         "switch_to_english" to "Switch to English",
