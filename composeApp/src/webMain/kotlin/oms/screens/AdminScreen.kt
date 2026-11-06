@@ -129,6 +129,8 @@ fun AdminScreen() {
     oms.navigation.ReportRouteReadiness(loading, errorMessage != null)
     var editUserError by remember { mutableStateOf<String?>(null) }
     var savingUser by remember { mutableStateOf(false) }
+    var creatingUser by remember { mutableStateOf(false) }
+    var createUserError by remember { mutableStateOf<String?>(null) }
     var sort by remember { mutableStateOf(UserSort.Username) }
     var ascending by remember { mutableStateOf(true) }
     val scope = rememberCoroutineScope()
@@ -295,12 +297,16 @@ fun AdminScreen() {
             }
         }
         }
-    if (createUser) { WasmSafeOverlay(onDismiss = { createUser = false }, errorMessage = errorMessage) {
-            CreateUserDialog(roles, onDismiss = { createUser = false }) { request ->
+    if (createUser) { WasmSafeOverlay(onDismiss = { if (!creatingUser) { createUser = false; createUserError = null } }, errorMessage = null) {
+            CreateUserDialog(roles, createUserError, creatingUser, onDismiss = { createUser = false; createUserError = null }) { request ->
+                if (creatingUser) return@CreateUserDialog
+                creatingUser = true
+                createUserError = null
                 scope.launch {
                     runCatching { OmsApiClient.createUser(request) }
                         .onSuccess { created -> users = users + created; createUser = false; refreshActivities() }
-                        .onFailure { errorMessage = LocalizationManager.t("error_create_user").replace("{message}", it.message ?: LocalizationManager.t("unknown_error")) }
+                        .onFailure { createUserError = LocalizationManager.t("error_create_user").replace("{message}", it.message ?: LocalizationManager.t("unknown_error")) }
+                    creatingUser = false
                 }
             }
         }
@@ -383,7 +389,7 @@ private fun AdminStaticHeader(text: String, width: androidx.compose.ui.unit.Dp) 
 }
 
 @Composable
-private fun CreateUserDialog(roles: List<ApiRole>, onDismiss: () -> Unit, onSave: (CreateUserRequest) -> Unit) {
+private fun CreateUserDialog(roles: List<ApiRole>, saveError: String?, saving: Boolean, onDismiss: () -> Unit, onSave: (CreateUserRequest) -> Unit) {
     var username by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var roleCode by remember { mutableStateOf(roles.firstOrNull()?.code ?: "") }
@@ -440,8 +446,9 @@ private fun CreateUserDialog(roles: List<ApiRole>, onDismiss: () -> Unit, onSave
             InlineOptionPicker(options = roles, selected = role, prompt = LocalizationManager.t("select_role"), onSelect = { roleCode = it.code }, itemLabel = { LocalizationManager.t("role_${it.code.lowercase()}") })
             role?.let { RolePermissionsHint(it.code) }
             }
+            saveError?.let { ContentState(it, error = true) }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
-                OutlinedButton(onClick = onDismiss) { Text(LocalizationManager.t("cancel")) }
+                OutlinedButton(onClick = onDismiss, enabled = !saving) { Text(LocalizationManager.t("cancel")) }
             Button(
                 onClick = {
                     onSave(
@@ -459,8 +466,14 @@ private fun CreateUserDialog(roles: List<ApiRole>, onDismiss: () -> Unit, onSave
                         )
                     )
                 },
-                enabled = username.isNotBlank() && email.contains('@') && passwordIsValid && role != null
-            ) { Text(LocalizationManager.t("create")) }
+                enabled = !saving && username.isNotBlank() && email.contains('@') && passwordIsValid && role != null
+            ) {
+                if (saving) {
+                    CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
+                    Spacer(Modifier.width(8.dp))
+                }
+                Text(LocalizationManager.t(if (saving) "saving_user" else "create"))
+            }
             }
         }
     }
@@ -535,8 +548,8 @@ private fun EditUserDialog(
             role?.let { RolePermissionsHint(it.code) }
             oms.components.OmsPasswordField(password, { password = it.safeTextInput(256) }, LocalizationManager.t("new_password_optional"), enabled = !saving)
             Text(LocalizationManager.t("password_requirements"), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            saveError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
             }
+            saveError?.let { ContentState(it, error = true) }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
                 OutlinedButton(onClick = onDismiss, enabled = !saving) { Text(LocalizationManager.t("cancel")) }
             Button(
@@ -545,9 +558,9 @@ private fun EditUserDialog(
             ) {
                 if (saving) {
                     CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
-                } else {
-                    Text(LocalizationManager.t("save"))
+                    Spacer(Modifier.width(8.dp))
                 }
+                Text(LocalizationManager.t(if (saving) "saving_user" else "save"))
             }
             }
         }

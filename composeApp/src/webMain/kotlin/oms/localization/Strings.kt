@@ -3,6 +3,9 @@ package oms.localization
 object Strings {
 
     val uk = mapOf(
+        "saving_user" to "Збереження…",
+        "switch_to_english" to "Переключити на англійську",
+        "switch_to_ukrainian" to "Переключити на українську",
         "show_password" to "Показати пароль",
         "hide_password" to "Сховати пароль",
         "picker_retry_load" to "Помилка завантаження. Натисніть, щоб повторити.",
@@ -980,6 +983,9 @@ object Strings {
     )
 
     val en = mapOf(
+        "saving_user" to "Saving…",
+        "switch_to_english" to "Switch to English",
+        "switch_to_ukrainian" to "Switch to Ukrainian",
         "show_password" to "Show password",
         "hide_password" to "Hide password",
         "picker_retry_load" to "Loading failed. Press to retry.",
