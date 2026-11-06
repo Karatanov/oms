@@ -184,7 +184,7 @@ fun AdminScreen() {
                 Text(LocalizationManager.t("create_user"))
             }
         }
-        OutlinedTextField(search, { search = it.safeTextInput(200) }, singleLine = true, label = { Text(LocalizationManager.t("admin_search")) }, leadingIcon = { Icon(Icons.Default.Search, null) }, modifier = Modifier.fillMaxWidth())
+        oms.components.WorkspaceSearchField(search, { search = it.safeTextInput(200) }, LocalizationManager.t("admin_search"))
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             listOf("active", "archived", "all").forEach { filter ->
                 oms.screens.FilterChip(archiveFilter == filter, { archiveFilter = filter }, { Text(LocalizationManager.t("archive_filter_$filter")) })
@@ -415,14 +415,26 @@ private fun CreateUserDialog(roles: List<ApiRole>, onDismiss: () -> Unit, onSave
                 modifier = Modifier.fillMaxWidth()
             )
             Text(LocalizationManager.t("password_requirements"), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(firstName, { firstName = it.safeTextInput(200) }, label = { Text(LocalizationManager.t("first_name")) }, modifier = Modifier.weight(1f))
-                OutlinedTextField(lastName, { lastName = it.safeTextInput(200) }, label = { Text(LocalizationManager.t("last_name")) }, modifier = Modifier.weight(1f))
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(region, { region = it.safeTextInput(200) }, label = { Text(LocalizationManager.t("region")) }, modifier = Modifier.weight(1f))
-                OutlinedTextField(department, { department = it.safeTextInput(500) }, label = { Text(LocalizationManager.t("department")) }, modifier = Modifier.weight(1f))
-            }
+            UserFormFieldPair(
+                first = { fieldModifier ->
+                    OutlinedTextField(firstName, { firstName = it.safeTextInput(200) },
+                        label = { Text(LocalizationManager.t("first_name")) }, modifier = fieldModifier)
+                },
+                second = { fieldModifier ->
+                    OutlinedTextField(lastName, { lastName = it.safeTextInput(200) },
+                        label = { Text(LocalizationManager.t("last_name")) }, modifier = fieldModifier)
+                }
+            )
+            UserFormFieldPair(
+                first = { fieldModifier ->
+                    OutlinedTextField(region, { region = it.safeTextInput(200) },
+                        label = { Text(LocalizationManager.t("region")) }, modifier = fieldModifier)
+                },
+                second = { fieldModifier ->
+                    OutlinedTextField(department, { department = it.safeTextInput(500) },
+                        label = { Text(LocalizationManager.t("department")) }, modifier = fieldModifier)
+                }
+            )
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text(LocalizationManager.t("language"), style = MaterialTheme.typography.bodyMedium)
                 listOf("uk", "en").forEach { value -> FilterChip(preferredLang == value, { preferredLang = value }, label = { Text(value.uppercase()) }) }
@@ -488,17 +500,38 @@ private fun EditUserDialog(
             ) {
             OutlinedTextField(username, { username = it.safeTextInput(100) }, label = { Text(LocalizationManager.t("username")) }, modifier = Modifier.fillMaxWidth())
             OutlinedTextField(email, { email = it.safeTextInput(320) }, label = { Text(LocalizationManager.t("email")) }, modifier = Modifier.fillMaxWidth())
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(firstName, { firstName = it.safeTextInput(200) }, label = { Text(LocalizationManager.t("first_name")) }, modifier = Modifier.weight(1f))
-                OutlinedTextField(lastName, { lastName = it.safeTextInput(200) }, label = { Text(LocalizationManager.t("last_name")) }, modifier = Modifier.weight(1f))
+            UserFormFieldPair(
+                first = { fieldModifier ->
+                    OutlinedTextField(firstName, { firstName = it.safeTextInput(200) },
+                        label = { Text(LocalizationManager.t("first_name")) }, modifier = fieldModifier)
+                },
+                second = { fieldModifier ->
+                    OutlinedTextField(lastName, { lastName = it.safeTextInput(200) },
+                        label = { Text(LocalizationManager.t("last_name")) }, modifier = fieldModifier)
+                }
+            )
+            UserFormFieldPair(
+                first = { fieldModifier ->
+                    OutlinedTextField(region, { region = it.safeTextInput(200) },
+                        label = { Text(LocalizationManager.t("region")) }, modifier = fieldModifier)
+                },
+                second = { fieldModifier ->
+                    OutlinedTextField(department, { department = it.safeTextInput(500) },
+                        label = { Text(LocalizationManager.t("department")) }, modifier = fieldModifier)
+                }
+            )
+            Text(LocalizationManager.t("status"), style = MaterialTheme.typography.labelLarge)
+            @OptIn(ExperimentalLayoutApi::class)
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                listOf("active", "disabled").forEach { value ->
+                    FilterChip(status == value, { status = value }, label = { Text(LocalizationManager.t("user_status_$value")) })
+                }
             }
+            Text(LocalizationManager.t("language"), style = MaterialTheme.typography.labelLarge)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(region, { region = it.safeTextInput(200) }, label = { Text(LocalizationManager.t("region")) }, modifier = Modifier.weight(1f))
-                OutlinedTextField(department, { department = it.safeTextInput(500) }, label = { Text(LocalizationManager.t("department")) }, modifier = Modifier.weight(1f))
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                listOf("active", "disabled").forEach { value -> FilterChip(status == value, { status = value }, label = { Text(LocalizationManager.t("user_status_$value")) }) }
-                listOf("uk", "en").forEach { value -> FilterChip(preferredLang == value, { preferredLang = value }, label = { Text(value.uppercase()) }) }
+                listOf("uk", "en").forEach { value ->
+                    FilterChip(preferredLang == value, { preferredLang = value }, label = { Text(value.uppercase()) })
+                }
             }
             InlineOptionPicker(options = roles, selected = role, prompt = roleCode, onSelect = { roleCode = it.code }, itemLabel = { LocalizationManager.t("role_${it.code.lowercase()}") })
             role?.let { RolePermissionsHint(it.code) }
@@ -518,6 +551,26 @@ private fun EditUserDialog(
                     Text(LocalizationManager.t("save"))
                 }
             }
+            }
+        }
+    }
+}
+
+@Composable
+private fun UserFormFieldPair(
+    first: @Composable (Modifier) -> Unit,
+    second: @Composable (Modifier) -> Unit
+) {
+    BoxWithConstraints(Modifier.fillMaxWidth()) {
+        if (maxWidth < 520.dp) {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                first(Modifier.fillMaxWidth())
+                second(Modifier.fillMaxWidth())
+            }
+        } else {
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                first(Modifier.weight(1f))
+                second(Modifier.weight(1f))
             }
         }
     }
