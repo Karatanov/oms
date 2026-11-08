@@ -3,6 +3,7 @@ package oms.localization
 object Strings {
 
     val uk = mapOf(
+        "restore_user_failed" to "Не вдалося відновити обліковий запис {name}.",
         "admin_no_archived_users" to "Немає архівованих користувачів.",
         "admin_no_active_users" to "Немає активних користувачів.",
         "admin_no_users" to "Користувачів поки немає.",
@@ -1010,6 +1011,7 @@ object Strings {
     )
 
     val en = mapOf(
+        "restore_user_failed" to "Could not restore the account {name}.",
         "admin_no_archived_users" to "No archived users.",
         "admin_no_active_users" to "No active users.",
         "admin_no_users" to "No users yet.",

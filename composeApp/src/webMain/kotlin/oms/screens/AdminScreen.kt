@@ -143,6 +143,11 @@ fun AdminScreen() {
             activities = runCatching { OmsApiClient.dashboard().activities }.getOrDefault(activities)
         }
     }
+    fun refreshUserListAfterChange() {
+        errorMessage = null
+        loadAttempt++
+        refreshActivities()
+    }
     LaunchedEffect(archiveFilter, loadAttempt) {
         val (loadedUsers, loadedRoles) = coroutineScope {
             val usersRequest = async { runCatching { OmsApiClient.users(archiveFilter) } }
@@ -201,6 +206,7 @@ fun AdminScreen() {
                 oms.screens.FilterChip(archiveFilter == filter, { archiveFilter = filter }, { Text(LocalizationManager.t("archive_filter_$filter")) })
             }
         }
+        errorMessage?.let { oms.components.ContentState(it, error = true) }
         if (loading) oms.components.ContentState(LocalizationManager.t("loading_records"), loading = true)
         if (loadFailed) oms.components.ContentState(LocalizationManager.t("error_load_users"), error = true, onRetry = { loadAttempt++ })
         if (!loading && !loadFailed && sortedUsers.isEmpty()) {
@@ -249,7 +255,17 @@ fun AdminScreen() {
                                 selectedUser = user
                             }
                             if (user.isArchived) TableActionIconButton(LocalizationManager.t("restore"), Icons.Default.Unarchive) {
-                                scope.launch { if (OmsApiClient.restoreUser(user.id)) { users = users.filterNot { it.id == user.id }; refreshActivities() } }
+                                scope.launch {
+                                    val restored = try {
+                                        OmsApiClient.restoreUser(user.id)
+                                    } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                                        throw cancelled
+                                    } catch (_: Exception) {
+                                        false
+                                    }
+                                    if (restored) refreshUserListAfterChange()
+                                    else errorMessage = LocalizationManager.t("restore_user_failed").replace("{name}", user.username)
+                                }
                             } else TableActionIconButton(LocalizationManager.t("archive"), Icons.Default.Archive) { userPendingDeletion = user }
                             if (user.isArchived) TableActionIconButton(LocalizationManager.t("permanently_delete"), Icons.Default.DeleteForever) {
                                 userPendingPermanentDeletion = user
@@ -280,7 +296,7 @@ fun AdminScreen() {
             }
         }
         ActivitySection(activities, users)
-        errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+
         Text(
             buildMarker,
             modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
@@ -338,6 +354,7 @@ fun AdminScreen() {
             Card(Modifier.widthIn(max = 520.dp).fillMaxWidth()) {
                 Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                     Text(LocalizationManager.t("archive"), style = MaterialTheme.typography.titleLarge)
+                    Text(user.username, style = MaterialTheme.typography.titleMedium)
                     Text(LocalizationManager.t("archive_confirmation"))
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
                     OutlinedButton(onClick = { userPendingDeletion = null }) { Text(LocalizationManager.t("cancel")) }
@@ -345,9 +362,8 @@ fun AdminScreen() {
                         onClick = {
                             scope.launch {
                                 if (OmsApiClient.archiveUser(user.id)) {
-                                    users = users.filterNot { it.id == user.id }
                                     userPendingDeletion = null
-                                    refreshActivities()
+                                    refreshUserListAfterChange()
                                 } else {
                                     errorMessage = LocalizationManager.t("error_delete_current_user")
                                 }
