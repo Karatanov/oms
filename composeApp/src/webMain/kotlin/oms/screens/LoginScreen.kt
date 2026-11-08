@@ -119,6 +119,7 @@ fun LoginScreen(
     Box(modifier = Modifier.fillMaxSize()) {
     BoxWithConstraints(Modifier.fillMaxSize()) {
     val showBrandPanel = maxWidth >= 1000.dp
+    val compact = maxWidth < 480.dp
     Row(modifier = Modifier.fillMaxSize()) {
 
 // A quiet brand panel only when there is enough space for both columns.
@@ -136,7 +137,7 @@ fun LoginScreen(
                         )
                     )
                 )
-                .padding(start = 40.dp, end = 40.dp, top = 40.dp, bottom = 88.dp),
+                .padding(40.dp),
             contentAlignment = Alignment.CenterStart
         ) {
 
@@ -195,7 +196,7 @@ fun LoginScreen(
         Box(
             modifier = Modifier
                 .weight(1f)
-                .fillMaxHeight().padding(start = 24.dp, end = 24.dp, top = 24.dp, bottom = 88.dp)
+                .fillMaxHeight().padding(if (compact) 12.dp else 24.dp)
                 .verticalScroll(rememberScrollState()),
             contentAlignment = Alignment.Center
         ) {
@@ -207,23 +208,26 @@ fun LoginScreen(
             ) {
 
                 Column(
-                    modifier = Modifier.padding(36.dp),
+                    modifier = Modifier.padding(if (compact) 18.dp else 36.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
 
-                    // Form identity
-                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         Text(
                             text = LocalizationManager.t("welcome_back"),
+                            modifier = Modifier.weight(1f),
                             style = MaterialTheme.typography.headlineSmall
                         )
-
-                        Text(
-                            text = LocalizationManager.t("please_sign_in"),
-                            style = MaterialTheme.typography.bodyMedium
-                        )
+                        oms.components.LanguageSwitcher()
                     }
+                    Text(
+                        text = LocalizationManager.t("please_sign_in"),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
 
                     // ---------------- LOGIN ----------------
                     AutocompleteField(
@@ -349,9 +353,6 @@ fun LoginScreen(
             }
         }
     }
-        }
-        Box(Modifier.align(Alignment.BottomStart).padding(24.dp)) {
-            oms.components.LanguageSwitcher()
         }
         if (showPasswordReset) {
             WasmSafeOverlay(onDismiss = { showPasswordReset = false }) {
