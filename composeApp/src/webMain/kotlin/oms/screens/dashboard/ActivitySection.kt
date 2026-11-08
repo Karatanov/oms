@@ -8,7 +8,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
+import oms.components.WorkspaceSearchField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -18,7 +18,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SortByAlpha
 import oms.components.toOmsDateTime
 import oms.components.buttonHandCursor
@@ -74,33 +73,44 @@ fun ActivitySection(activities: List<ApiActivity>, users: List<ApiUser>) {
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                OutlinedTextField(
-                    value = userSearch,
-                    onValueChange = { userSearch = it.safeTextInput(200) },
-                    modifier = Modifier.weight(1f),
-                    singleLine = true,
-                    label = { Text(LocalizationManager.t("activity_user_search")) },
-                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) }
-                )
+            @Composable
+            fun UserSearch(modifier: Modifier) {
+                WorkspaceSearchField(userSearch, { userSearch = it.safeTextInput(200) },
+                    LocalizationManager.t("activity_user_search"), modifier)
+            }
+            @Composable
+            fun SortButton(modifier: Modifier) {
                 OutlinedButton(
-                    onClick = { userSortAscending = userSortAscending?.not() ?: true },
-                    modifier = Modifier.height(56.dp).buttonHandCursor()
+                    onClick = {
+                        userSortAscending = when (userSortAscending) {
+                            null -> true
+                            true -> false
+                            false -> null
+                        }
+                    },
+                    modifier = modifier.heightIn(min = 48.dp).buttonHandCursor()
                 ) {
                     Icon(Icons.Default.SortByAlpha, contentDescription = null)
                     Spacer(Modifier.width(8.dp))
-                    Text(
-                        LocalizationManager.t(
-                            when (userSortAscending) {
-                                null -> "activity_user_sort"
-                                true -> "activity_user_sort_ascending"
-                                false -> "activity_user_sort_descending"
-                            }
-                        )
-                    )
+                    Text(LocalizationManager.t(when (userSortAscending) {
+                        null -> "activity_user_sort"
+                        true -> "activity_user_sort_ascending"
+                        false -> "activity_user_sort_descending"
+                    }))
+                }
+            }
+            BoxWithConstraints(Modifier.fillMaxWidth()) {
+                if (maxWidth < 520.dp) {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        UserSearch(Modifier.fillMaxWidth())
+                        SortButton(Modifier.fillMaxWidth())
+                    }
+                } else {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                        UserSearch(Modifier.weight(1f))
+                        SortButton(Modifier)
+                    }
                 }
             }
 
