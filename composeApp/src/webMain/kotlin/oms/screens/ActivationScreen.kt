@@ -43,8 +43,14 @@ fun ActivationScreen(token: String, onActivated: () -> Unit) {
     val confirmationFocus = remember { FocusRequester() }
     var confirmationVisited by remember { mutableStateOf(false) }
     var confirmationFocused by remember { mutableStateOf(false) }
-    val mismatch = confirmation.isNotEmpty() && password != confirmation
-    val showMismatch = mismatch && confirmationVisited && !confirmationFocused
+    var confirmationSubmitted by remember { mutableStateOf(false) }
+    val confirmationFinished = confirmationSubmitted || (confirmationVisited && !confirmationFocused)
+    val confirmationError = when {
+        confirmation.isEmpty() && password.isNotEmpty() && confirmationFinished -> "confirm_password_required"
+        confirmation.isNotEmpty() && confirmation != password &&
+            (confirmationFinished || !password.startsWith(confirmation)) -> "password_mismatch"
+        else -> null
+    }
     val missingRequirement = passwordRequirement(password)
     val canSubmit = !saving && missingRequirement == null && confirmation == password
     val activate: () -> Unit = {
@@ -75,16 +81,20 @@ fun ActivationScreen(token: String, onActivated: () -> Unit) {
             keyboardActions = KeyboardActions(onNext = { confirmationFocus.requestFocus() })
         )
         oms.components.OmsPasswordField(
-            confirmation, { confirmation = it; error = null }, LocalizationManager.t("confirm_password"),
+            confirmation, { confirmation = it; confirmationSubmitted = false; error = null }, LocalizationManager.t("confirm_password"),
             enabled = !saving,
             modifier = Modifier.fillMaxWidth().focusRequester(confirmationFocus).onFocusChanged {
                 confirmationFocused = it.isFocused
                 if (it.isFocused) confirmationVisited = true
             },
-            isError = showMismatch,
-            supportingText = if (showMismatch) ({ Text(LocalizationManager.t("password_mismatch")) }) else null,
+            isError = confirmationError != null,
+            supportingText = when {
+                confirmationError != null -> ({ Text(LocalizationManager.t(confirmationError)) })
+                confirmation.isNotEmpty() && confirmation == password -> ({ Text(LocalizationManager.t("passwords_match")) })
+                else -> null
+            },
             imeAction = ImeAction.Done,
-            keyboardActions = KeyboardActions(onDone = { activate() })
+            keyboardActions = KeyboardActions(onDone = { confirmationSubmitted = true; activate() })
         )
         error?.let { ContentState(it, error = true) }
         Button(onClick = activate, enabled = canSubmit, modifier = Modifier.fillMaxWidth()) {

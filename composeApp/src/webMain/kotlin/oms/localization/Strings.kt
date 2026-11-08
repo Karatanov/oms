@@ -3,6 +3,8 @@ package oms.localization
 object Strings {
 
     val uk = mapOf(
+        "confirm_password_required" to "Введіть пароль ще раз.",
+        "passwords_match" to "Паролі збігаються.",
         "password_need_length" to "Введіть щонайменше 8 символів.",
         "password_need_letter" to "Додайте хоча б одну літеру.",
         "password_need_digit" to "Додайте хоча б одну цифру.",
@@ -1015,6 +1017,8 @@ object Strings {
     )
 
     val en = mapOf(
+        "confirm_password_required" to "Enter your password again.",
+        "passwords_match" to "Passwords match.",
         "password_need_length" to "Enter at least 8 characters.",
         "password_need_letter" to "Add at least one letter.",
         "password_need_digit" to "Add at least one digit.",
