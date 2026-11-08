@@ -159,23 +159,18 @@ fun DocumentsScreen(canManageDocuments: Boolean = true) {
     val visibleDocuments = remember(matchingDocuments, typeFilter, sort, ascending) {
         matchingDocuments.asSequence()
             .filter { typeFilter.matches(it.documentType.lowercase(), it.isSirSource) }
-            .sortedWith(compareBy<DocumentRow> {
-                when (sort) {
-                    DocumentSort.Name -> it.fileName
-                    DocumentSort.Project -> it.projectName
-                    DocumentSort.SubprojectPartCode -> it.subprojectPartCode.orEmpty()
-                    DocumentSort.Type -> it.documentType
-                    DocumentSort.Date -> it.date.orEmpty()
-                    DocumentSort.Size -> it.fileSizeBytes?.toString()?.padStart(20, '0').orEmpty()
-                }
-            }.let { if (ascending) it else it.reversed() })
+            .sortedWith(sort.comparator(ascending))
             .toList()
     }
     LaunchedEffect(search, typeFilter, pageSize) { currentPage = 0 }
     val pageCount = ((visibleDocuments.size + pageSize - 1) / pageSize).coerceAtLeast(1)
     if (currentPage >= pageCount) currentPage = pageCount - 1
     val pageDocuments = visibleDocuments.drop(currentPage * pageSize).take(pageSize)
-    fun selectSort(column: DocumentSort) { if (sort == column) ascending = !ascending else { sort = column; ascending = true } }
+    fun selectSort(column: DocumentSort) {
+        ascending = if (sort == column) !ascending else column != DocumentSort.Date && column != DocumentSort.Size
+        sort = column
+        currentPage = 0
+    }
     fun deleteDocument(row: DocumentRow) {
         deletion.show(row.fileName + if (row.isSirSource) "\n" + LocalizationManager.t("sir_delete_warning") else "") { scope.launch {
             val deleted = if (row.isSirSource) OmsApiClient.deleteInspectionReport(row.uuid)
@@ -252,7 +247,7 @@ fun DocumentsScreen(canManageDocuments: Boolean = true) {
                     InlineOptionPicker(
                         options = DocumentSort.entries, selected = sort,
                         prompt = LocalizationManager.t("documents_sort"),
-                        onSelect = { sort = it; currentPage = 0 },
+                        onSelect = { if (it != sort) selectSort(it) },
                         itemLabel = { LocalizationManager.t(it.labelKey()) }, modifier = Modifier.weight(1f))
                     TableActionIconButton(LocalizationManager.t(if (ascending) "sort_ascending" else "sort_descending"),
                         if (ascending) Icons.Default.ArrowUpward else Icons.Default.ArrowDownward) {
@@ -305,6 +300,21 @@ fun DocumentsScreen(canManageDocuments: Boolean = true) {
             }
             )
         }
+    }
+}
+
+private fun DocumentSort.comparator(ascending: Boolean): Comparator<DocumentRow> {
+    fun <T : Comparable<T>> byValue(value: (DocumentRow) -> T?): Comparator<DocumentRow> {
+        val order = if (ascending) naturalOrder<T>() else reverseOrder<T>()
+        return compareBy(nullsLast(order), value)
+    }
+    return when (this) {
+        DocumentSort.Name -> byValue { it.fileName }
+        DocumentSort.Project -> byValue { it.projectName }
+        DocumentSort.SubprojectPartCode -> byValue { it.subprojectPartCode?.takeIf(String::isNotBlank) }
+        DocumentSort.Type -> byValue { it.documentType }
+        DocumentSort.Date -> byValue { it.date?.takeIf(String::isNotBlank) }
+        DocumentSort.Size -> byValue { it.fileSizeBytes }
     }
 }
 
