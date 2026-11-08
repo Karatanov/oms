@@ -52,6 +52,9 @@ fun ProjectMoneyField(label: String, value: ProjectMoneyDraft, currentRate: Proj
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(label, style = MaterialTheme.typography.titleSmall)
         BoxWithConstraints(Modifier.fillMaxWidth()) {
+            // Keep the constraint value outside nested layout scopes: their receivers
+            // otherwise hide BoxWithConstraintsScope.maxWidth on Kotlin/JS.
+            val availableWidth = maxWidth
             val amountField: @Composable () -> Unit = {
                 OutlinedTextField(value.amount, { if (amountInput.matches(it)) {
                     val changed = value.copy(amount = it)
@@ -90,7 +93,7 @@ fun ProjectMoneyField(label: String, value: ProjectMoneyDraft, currentRate: Proj
                     }
                 }
             }
-            if (maxWidth >= 820.dp) {
+            if (availableWidth >= 820.dp) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                     Box(Modifier.weight(1f)) { amountField() }
                     Box(Modifier.width(132.dp)) { currencyPicker() }
@@ -103,7 +106,7 @@ fun ProjectMoneyField(label: String, value: ProjectMoneyDraft, currentRate: Proj
                     amountField()
                     currencyPicker()
                     convertedField()
-                    if (maxWidth < 480.dp) {
+                    if (availableWidth < 480.dp) {
                         rateField(Modifier)
                         rateInfo()
                     } else {

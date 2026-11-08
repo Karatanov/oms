@@ -446,7 +446,7 @@ private fun CreateUserDialog(roles: List<ApiRole>, saveError: String?, saving: B
             InlineOptionPicker(options = roles, selected = role, prompt = LocalizationManager.t("select_role"), onSelect = { roleCode = it.code }, itemLabel = { LocalizationManager.t("role_${it.code.lowercase()}") })
             role?.let { RolePermissionsHint(it.code) }
             }
-            saveError?.let { ContentState(it, error = true) }
+            saveError?.let { oms.components.ContentState(it, error = true) }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
                 OutlinedButton(onClick = onDismiss, enabled = !saving) { Text(LocalizationManager.t("cancel")) }
             Button(
@@ -549,7 +549,7 @@ private fun EditUserDialog(
             oms.components.OmsPasswordField(password, { password = it.safeTextInput(256) }, LocalizationManager.t("new_password_optional"), enabled = !saving)
             Text(LocalizationManager.t("password_requirements"), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            saveError?.let { ContentState(it, error = true) }
+            saveError?.let { oms.components.ContentState(it, error = true) }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
                 OutlinedButton(onClick = onDismiss, enabled = !saving) { Text(LocalizationManager.t("cancel")) }
             Button(
