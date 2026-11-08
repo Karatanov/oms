@@ -113,18 +113,21 @@
         let omsLoadingRequests = 0;
         // Explicit native uploads/imports have non-blocking operation feedback.
         // This counter is never used for startup or route readiness.
-        function showOmsLoading(message) {
+        function showOmsLoading(message, fileName = "") {
             let overlay = document.getElementById("oms-operation-progress");
             if (!overlay) {
                 overlay = document.createElement("div");
                 overlay.id = "oms-operation-progress";
                 overlay.setAttribute("role", "status");
                 overlay.setAttribute("aria-live", "polite");
-                overlay.innerHTML = '<div class="oms-loading-card"><span class="oms-loading-spinner"></span><span class="oms-loading-message"></span></div>';
+                overlay.innerHTML = '<div class="oms-loading-card"><span class="oms-loading-spinner"></span><div class="oms-operation-copy"><span class="oms-loading-message"></span><bdi class="oms-operation-file" hidden></bdi></div></div>';
                 document.body.appendChild(overlay);
             }
             omsLoadingRequests += 1;
             overlay.querySelector(".oms-loading-message").textContent = message || omsText("loading");
+            const detail = overlay.querySelector(".oms-operation-file");
+            detail.textContent = fileName;
+            detail.hidden = !fileName;
             overlay.classList.add("visible");
         }
 
@@ -629,6 +632,7 @@
             input.accept = accept;
             input.style.display = "none";
             document.body.appendChild(input);
+            input.oncancel = () => input.remove();
             input.onchange = async () => {
                 const file = input.files && input.files[0];
                 if (!file) {
@@ -638,7 +642,7 @@
                 const formData = new FormData();
                 Object.entries(extraFields).forEach(([key, value]) => formData.append(key, value));
                 formData.append("file", file, file.name);
-                showOmsLoading(loadingMessage);
+                showOmsLoading(loadingMessage, file.name);
                 try {
                     const response = await omsAuthenticatedFetch(url, { method, body: formData, credentials: "include" });
                     if (!response.ok) throw new Error(await omsUploadError(response));
@@ -1525,6 +1529,9 @@
         #oms-operation-progress { position: fixed; inset: 0; z-index: 2147483646; display: grid; place-items: center; padding: 24px; background: #153e4d38; opacity: 0; pointer-events: none; transition: opacity .18s ease; }
         #oms-operation-progress.visible { opacity: 1; pointer-events: auto; }
         #oms-operation-progress .oms-loading-card { max-width: min(390px, 100%); padding: 20px 24px; border: 1px solid #d7e3e9; border-radius: 16px; background: #fff; box-shadow: 0 18px 55px #153e4d42; color: #20313c; font-size: 15px; }
+        #oms-operation-progress .oms-operation-copy { min-width: 0; overflow-wrap: anywhere; }
+        #oms-operation-progress .oms-operation-file:not([hidden]) { display: block; margin-top: 4px; font-size: 13px; color: #536571; }
+        #oms-operation-progress .oms-loading-spinner { flex-shrink: 0; }
         .oms-loading-card { display: flex; align-items: center; gap: 10px; color: #536571; font: 500 13px Inter, Arial, sans-serif; }
         .oms-loading-spinner { width: 22px; height: 22px; border: 3px solid #17728a33; border-top-color: #17728a; border-radius: 50%; animation: oms-spin .7s linear infinite; }
         .oms-startup-login { min-height: 100vh; display: grid; grid-template-columns: 1fr 1fr; }
