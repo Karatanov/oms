@@ -107,6 +107,16 @@ private fun ReportRow.localizedSubprojectName(): String? =
     if (LocalizationManager.currentLanguage == Language.EN) subprojectNameEn?.takeIf(String::isNotBlank) ?: subprojectName
     else subprojectName
 private fun ReportRow.title(): String = "${localizedSubprojectName() ?: projectName} ${report.inspectionDate.toOmsDate()}"
+private fun ReportRow.matchesSearch(terms: List<String>): Boolean {
+    if (terms.isEmpty()) return true
+    val fields = listOfNotNull(
+        report.inspectionCode, projectName, subprojectName, subprojectNameEn,
+        subprojectCode, subprojectPartCode, report.authorUsername,
+        report.inspectionDate, report.inspectionDate.toOmsDate()
+    )
+    return terms.all { term -> fields.any { it.contains(term, ignoreCase = true) } }
+}
+
 private enum class ReportSort { Date, Subproject, SubprojectCode, SubprojectPartCode, Status, Author }
 
 @Composable
@@ -197,8 +207,9 @@ fun ReportsScreen(
         }
     }
     val visible = remember(reports, search, status, subprojectFilter, subprojectCodeFilter, subprojectPartCodeFilter, authorFilter, inspectionYear, sort, ascending, language) {
+        val terms = search.trim().split(Regex("\\s+")).filter(String::isNotEmpty)
         reports.asSequence().filter {
-                (search.isBlank() || it.report.inspectionCode.contains(search, true) || it.title().contains(search, true) || it.subprojectCode.orEmpty().contains(search, true)) &&
+                it.matchesSearch(terms) &&
                 (inspectionYear == null || it.report.inspectionDate.substringBefore('-') == inspectionYear) &&
                 (status == null || it.report.status == status) &&
                 (subprojectFilter == null || it.localizedSubprojectName() == subprojectFilter) &&
