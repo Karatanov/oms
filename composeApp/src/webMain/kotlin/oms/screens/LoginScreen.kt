@@ -75,6 +75,7 @@ fun LoginScreen(
             return
         }
 
+        errorMessage = null
         isLoading = true
         scope.launch {
             val loginResult = runCatching {
@@ -92,7 +93,15 @@ fun LoginScreen(
                     onLoginSuccess(authenticated)
                 }
                 .onFailure { exception ->
-                    errorMessage = LocalizationManager.t("connection_error").replace("{message}", exception.message ?: LocalizationManager.t("unknown_error"))
+                    errorMessage = when {
+                        exception is kotlinx.coroutines.CancellationException -> throw exception
+                        exception is oms.data.LoginRejectedException -> when (val reason = exception.message) {
+                            "Invalid username or password." -> LocalizationManager.t("invalid_credentials")
+                            null -> LocalizationManager.t("sign_in_failed")
+                            else -> reason
+                        }
+                        else -> LocalizationManager.t("connection_error").replace("{message}", exception.message ?: LocalizationManager.t("unknown_error"))
+                    }
                 }
         }
     }
@@ -290,13 +299,7 @@ fun LoginScreen(
                     }
 
                     // ---------------- ERROR ----------------
-                    errorMessage?.let {
-                        Text(
-                            text = it,
-                            color = MaterialTheme.colorScheme.error,
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                    }
+                    errorMessage?.let { oms.components.ContentState(it, error = true) }
 
                     // ---------------- LOGIN BUTTON ----------------
                     Button(

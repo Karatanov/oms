@@ -43,6 +43,8 @@ private external fun setOmsAccessToken(value: String)
 private external fun omsAuthorizationFor(url: String): String
 
 @OptIn(ExperimentalWasmJsInterop::class)
+internal class LoginRejectedException(message: String?) : IllegalStateException(message)
+
 object OmsApiClient {
     private val baseUrl = omsApiBaseUrl
 
@@ -99,7 +101,7 @@ object OmsApiClient {
             val message = runCatching {
                 Json { ignoreUnknownKeys = true }.decodeFromString<ApiErrorPayload>(body).message
             }.getOrNull()
-            throw IllegalStateException(message?.takeIf { it.isNotBlank() } ?: body.ifBlank { "Authentication failed." })
+            throw LoginRejectedException(message?.takeIf { it.isNotBlank() })
         }
         val payload = response.body<LoginPayload>()
         // Older deployments can return a JWT without the browser-bearer marker.
