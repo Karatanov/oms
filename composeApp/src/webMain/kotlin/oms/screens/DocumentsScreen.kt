@@ -173,8 +173,14 @@ fun DocumentsScreen(canManageDocuments: Boolean = true) {
     }
     fun deleteDocument(row: DocumentRow) {
         deletion.show(row.fileName + if (row.isSirSource) "\n" + LocalizationManager.t("sir_delete_warning") else "") { scope.launch {
-            val deleted = if (row.isSirSource) OmsApiClient.deleteInspectionReport(row.uuid)
-            else OmsApiClient.deleteProjectDocument(row.projectUuid, row.uuid)
+            val deleted = try {
+                if (row.isSirSource) OmsApiClient.deleteInspectionReport(row.uuid)
+                else OmsApiClient.deleteProjectDocument(row.projectUuid, row.uuid)
+            } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                false
+            }
             if (deleted) {
                 documents = documents.filterNot { it.uuid == row.uuid && it.isSirSource == row.isSirSource }
                 // A SIR source deletion also removes its report.  Do not
@@ -281,7 +287,19 @@ fun DocumentsScreen(canManageDocuments: Boolean = true) {
             }
             DocumentPagination(pageSize, currentPage, pageCount, visibleDocuments.size, { pageSize = it }, { currentPage = it })
         }
-        errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+    }
+    errorMessage?.let { message ->
+        Snackbar(
+            modifier = Modifier.align(androidx.compose.ui.Alignment.TopCenter)
+                .padding(12.dp).widthIn(max = 560.dp).fillMaxWidth(),
+            containerColor = MaterialTheme.colorScheme.errorContainer,
+            contentColor = MaterialTheme.colorScheme.onErrorContainer,
+            action = {
+                TextButton(onClick = { errorMessage = null }) {
+                    Text(LocalizationManager.t("close"), color = MaterialTheme.colorScheme.onErrorContainer)
+                }
+            }
+        ) { Text(message) }
     }
     if (showUploadDialog) WasmSafeOverlay(onDismiss = { showUploadDialog = false }) {
             ProjectDocumentUploadDialog(
