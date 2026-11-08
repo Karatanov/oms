@@ -1,5 +1,6 @@
 package oms.screens
 
+import oms.components.toOmsDate
 import oms.components.PageArrow
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.background
@@ -274,7 +275,7 @@ fun DocumentsScreen(canManageDocuments: Boolean = true) {
                                 ExpandableTableText(row.projectName, Modifier.width(210.dp))
                                 ExpandableTableText(row.subprojectPartCode ?: "—", Modifier.width(165.dp))
                                 Box(Modifier.width(140.dp)) { DocumentTypeChip(row.documentType) }
-                                Text(row.date ?: "—", Modifier.width(105.dp))
+                                Text(row.date.toOmsDate().ifBlank { "—" }, Modifier.width(105.dp))
                                 Text(row.fileSizeBytes?.let(::formatFileSize) ?: "—", Modifier.width(90.dp))
                                 DocumentActions(row, canManageDocuments, onDelete = { deleteDocument(row) })
                             }
@@ -362,7 +363,7 @@ private fun DocumentMobileCard(row: DocumentRow, canManage: Boolean, onDelete: (
                         style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
-            val metadata = listOfNotNull(row.date?.takeIf { it.isNotBlank() }, row.fileSizeBytes?.let(::formatFileSize))
+            val metadata = listOfNotNull(row.date.toOmsDate().takeIf { it.isNotBlank() }, row.fileSizeBytes?.let(::formatFileSize))
             if (metadata.isNotEmpty()) Text(metadata.joinToString(" · "), style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
@@ -492,8 +493,17 @@ private fun DocumentTableHeader(sort: DocumentSort, ascending: Boolean, onSort: 
     }
 }
 
-private fun formatFileSize(bytes: Long): String = when {
-    bytes >= 1_000_000 -> "${bytes / 1_000_000} MB"
-    bytes >= 1_000 -> "${bytes / 1_000} KB"
-    else -> "$bytes B"
+private fun formatFileSize(bytes: Long): String {
+    val (divisor, unit) = when {
+        bytes >= 1_000_000_000 -> 1_000_000_000L to "GB"
+        bytes >= 1_000_000 -> 1_000_000L to "MB"
+        bytes >= 1_000 -> 1_000L to "KB"
+        else -> return "$bytes B"
+    }
+    val tenths = (bytes / divisor) * 10 + ((bytes % divisor) * 10 + divisor / 2) / divisor
+    val whole = tenths / 10
+    val fraction = tenths % 10
+    if (fraction == 0L) return "$whole $unit"
+    val separator = if (LocalizationManager.currentLanguage == oms.localization.Language.UK) ',' else '.'
+    return "$whole$separator$fraction $unit"
 }
