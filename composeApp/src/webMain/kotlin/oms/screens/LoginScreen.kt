@@ -1,5 +1,7 @@
 package oms.screens
 
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.background
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -272,21 +274,24 @@ fun LoginScreen(
                     )
 
                     // ---------------- OPTIONS ----------------
-                    Row(
+                    @OptIn(ExperimentalLayoutApi::class)
+                    FlowRow(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
-
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Checkbox(
-                                checked = rememberMe,
-                                modifier = Modifier.pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true),
-                                onCheckedChange = { selected ->
+                        Row(
+                            modifier = Modifier.heightIn(min = 48.dp)
+                                .toggleable(value = rememberMe, role = Role.Checkbox) { selected ->
                                     rememberMe = selected
                                     if (!selected) BrowserCredentialStorage.clear()
                                 }
-                            )
+                                .pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true)
+                                .padding(horizontal = 8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Checkbox(checked = rememberMe, onCheckedChange = null)
                             Text(LocalizationManager.t("remember_me"))
                         }
 
