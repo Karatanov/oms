@@ -153,7 +153,14 @@ fun AdminScreen() {
     LaunchedEffect(Unit) {
         activities = runCatching { OmsApiClient.dashboard().activities }.getOrDefault(emptyList())
     }
-    val sortedUsers = users.filter { search.isBlank() || listOf(it.username, it.email, it.firstName, it.lastName).any { value -> value.contains(search, true) } }.sortedWith(compareBy<ApiUser> {
+    val matchingUsers = remember(users, search) {
+        val terms = search.trim().split(Regex("\\s+")).filter(String::isNotEmpty)
+        if (terms.isEmpty()) users else users.filter { user ->
+            val fields = listOfNotNull(user.username, user.email, user.firstName, user.lastName, user.region, user.department)
+            terms.all { term -> fields.any { it.contains(term, ignoreCase = true) } }
+        }
+    }
+    val sortedUsers = matchingUsers.sortedWith(compareBy<ApiUser> {
         when (sort) {
             UserSort.Id -> it.id.toString().padStart(12, '0')
             UserSort.Username -> it.username
