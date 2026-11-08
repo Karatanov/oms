@@ -23,7 +23,8 @@ fun ExpandableTableText(
     text: String,
     modifier: Modifier = Modifier,
     style: TextStyle = MaterialTheme.typography.bodyMedium,
-    color: Color = Color.Unspecified
+    color: Color = Color.Unspecified,
+    maxLines: Int = 1
 ) {
     var truncated by remember(text) { mutableStateOf(false) }
     var focused by remember { mutableStateOf(false) }
@@ -42,7 +43,7 @@ fun ExpandableTableText(
         Text(
             text = text,
             modifier = Modifier.fillMaxWidth(),
-            maxLines = 1,
+            maxLines = maxLines,
             overflow = TextOverflow.Ellipsis,
             style = style,
             color = if (focused && truncated) MaterialTheme.colorScheme.onPrimaryContainer else color,

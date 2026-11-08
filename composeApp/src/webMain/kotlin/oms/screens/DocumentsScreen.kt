@@ -259,9 +259,9 @@ fun DocumentsScreen(canManageDocuments: Boolean = true) {
                     ) {
                         pageDocuments.forEach { row ->
                             Row(Modifier.width(1_370.dp).padding(vertical = 4.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                                Text(row.fileName, Modifier.width(260.dp))
+                                ExpandableTableText(row.fileName, Modifier.width(260.dp))
                                 ExpandableTableText(row.projectName, Modifier.width(210.dp))
-                                Text(row.subprojectPartCode ?: "—", Modifier.width(165.dp))
+                                ExpandableTableText(row.subprojectPartCode ?: "—", Modifier.width(165.dp))
                                 Box(Modifier.width(140.dp)) { DocumentTypeChip(row.documentType) }
                                 Text(row.date ?: "—", Modifier.width(105.dp))
                                 Text(row.fileSizeBytes?.let(::formatFileSize) ?: "—", Modifier.width(90.dp))
@@ -334,11 +334,11 @@ private fun DocumentMobileCard(row: DocumentRow, canManage: Boolean, onDelete: (
         border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)) {
         Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             DocumentTypeChip(row.documentType)
-            Text(row.fileName, style = MaterialTheme.typography.titleMedium)
+            ExpandableTableText(row.fileName, Modifier.fillMaxWidth(), style = MaterialTheme.typography.titleMedium, maxLines = 2)
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(LocalizationManager.t("subproject"), style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text(row.projectName, style = MaterialTheme.typography.bodyMedium)
+                ExpandableTableText(row.projectName, Modifier.fillMaxWidth(), maxLines = 2)
                 row.subprojectPartCode?.takeIf { it.isNotBlank() }?.let {
                     Text(LocalizationManager.t("subproject_part_code_label") + ": " + it,
                         style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
