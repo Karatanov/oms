@@ -107,12 +107,21 @@ fun FeedbackDialog(currentScreen: Screen, onDismiss: () -> Unit) {
                         InlineOptionPicker(FeedbackOptions.pages, page, t("feedback_page"), { page = it },
                             itemLabel = { pageKeys[it]?.let(LocalizationManager::t) ?: it }, enabled = !sending && submitted == null)
                         Text(t("feedback_type"), style = MaterialTheme.typography.labelLarge)
-                        InlineOptionPicker(FeedbackOptions.types, type, t("feedback_type"), { type = it },
-                            itemLabel = { t(if (it == "Correction") "feedback_correction" else "feedback_improvement") }, enabled = !sending && submitted == null)
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            FeedbackOptions.types.forEach { option ->
+                                FilterChip(
+                                    selected = type == option,
+                                    onClick = { type = option },
+                                    enabled = !sending && submitted == null,
+                                    label = { Text(t(if (option == "Correction") "feedback_correction" else "feedback_improvement")) }
+                                )
+                            }
+                        }
+                        val isProblem = type == "Correction"
                         OutlinedTextField(description, { description = it.take(FeedbackOptions.maxDescriptionLength) },
                             modifier = Modifier.fillMaxWidth().semantics { testTag = "feedback-description" },
-                            enabled = !sending && submitted == null, label = { Text(t("feedback_description")) },
-                            placeholder = { Text(t("feedback_description_example")) },
+                            enabled = !sending && submitted == null, label = { Text(t(if (isProblem) "feedback_description" else "feedback_proposal")) },
+                            placeholder = { Text(t(if (isProblem) "feedback_description_example" else "feedback_proposal_hint")) },
                             minLines = if (compact) 3 else 4, maxLines = 8,
                             supportingText = {
                                 Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {

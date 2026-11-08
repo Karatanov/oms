@@ -3,6 +3,8 @@ package oms.localization
 object Strings {
 
     val uk = mapOf(
+        "feedback_proposal" to "Опис пропозиції",
+        "feedback_proposal_hint" to "Що ви хотіли б змінити? Як це допоможе у вашій роботі?",
         "feedback_discard_prompt" to "Закрити форму? Введений текст буде втрачено.",
         "feedback_discard" to "Відкинути текст",
         "feedback_return" to "Повернутися до форми",
@@ -995,6 +997,8 @@ object Strings {
     )
 
     val en = mapOf(
+        "feedback_proposal" to "Suggested improvement",
+        "feedback_proposal_hint" to "What would you change? How would it help you do your work?",
         "feedback_discard_prompt" to "Close this form? Your draft text will be lost.",
         "feedback_discard" to "Discard text",
         "feedback_return" to "Return to form",
