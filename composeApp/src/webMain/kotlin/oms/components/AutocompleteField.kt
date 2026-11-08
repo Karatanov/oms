@@ -16,12 +16,12 @@ import androidx.compose.foundation.text.KeyboardOptions
 @Composable
 fun AutocompleteField(value: String, onValueChange: (String) -> Unit, label: String,
     options: List<Pair<String, String>>, modifier: Modifier = Modifier, placeholder: String? = null,
-    keyboardOptions: KeyboardOptions = KeyboardOptions.Default, keyboardActions: KeyboardActions = KeyboardActions.Default) {
+    keyboardOptions: KeyboardOptions = KeyboardOptions.Default, keyboardActions: KeyboardActions = KeyboardActions.Default, enabled: Boolean = true) {
     val host = LocalOptionOverlay.current
     val id = remember { Any() }
     var anchor by remember { mutableStateOf(Rect.Zero) }
     var query by remember(value, options) { mutableStateOf(options.firstOrNull { it.first == value }?.second ?: value) }
-    DisposableEffect(id) { onDispose { host.dismiss(id) } }
+    DisposableEffect(id, enabled) { onDispose { host.dismiss(id) } }
     OutlinedTextField(query, { entered ->
         val safeQuery = entered.safeTextInput(200)
         query = safeQuery
@@ -30,7 +30,7 @@ fun AutocompleteField(value: String, onValueChange: (String) -> Unit, label: Str
         if (matches.isEmpty()) host.dismiss(id) else host.menu = OptionMenu(id, anchor, matches.map { it.second }, 0,
             onChoose = { index -> host.dismiss(id); query = matches[index].second; onValueChange(matches[index].first) },
             onDismiss = { host.dismiss(id) }, focusOnOpen = false)
-    }, label = { Text(label) }, placeholder = placeholder?.let { { Text(it) } }, singleLine = true,
+    }, label = { Text(label) }, placeholder = placeholder?.let { { Text(it) } }, singleLine = true, enabled = enabled,
         keyboardOptions = keyboardOptions, keyboardActions = keyboardActions,
         modifier = modifier.fillMaxWidth().onGloballyPositioned { anchor = it.boundsInRoot() }
             .onPreviewKeyEvent { event ->

@@ -62,6 +62,7 @@ fun LoginScreen(
     val usernameFocus = remember { FocusRequester() }
     val passwordFocus = remember { FocusRequester() }
     val optionOverlay = oms.components.LocalOptionOverlay.current
+    val formEnabled = !isLoading && !isStartingGuestSession
     fun submitLogin() {
         if (isLoading || isStartingGuestSession) return
 
@@ -78,17 +79,20 @@ fun LoginScreen(
         }
 
         errorMessage = null
+        val submittedUsername = username.trim()
+        val submittedPassword = password
+        val rememberSubmitted = rememberMe
         isLoading = true
         scope.launch {
             val loginResult = runCatching {
-                OmsApiClient.login(username, password)
+                OmsApiClient.login(submittedUsername, submittedPassword)
             }
             isLoading = false
             loginResult
                 .onSuccess { authenticated ->
-                    BrowserCredentialStorage.rememberUsername(username)
-                    if (rememberMe) {
-                        BrowserCredentialStorage.save(username.trim(), password)
+                    BrowserCredentialStorage.rememberUsername(submittedUsername)
+                    if (rememberSubmitted) {
+                        BrowserCredentialStorage.save(submittedUsername, submittedPassword)
                     } else {
                         BrowserCredentialStorage.clear()
                     }
@@ -223,6 +227,7 @@ fun LoginScreen(
 
                     // ---------------- LOGIN ----------------
                     AutocompleteField(
+                        enabled = formEnabled,
                         value = username,
                         onValueChange = {
                             username = it.safeTextInput(320)
@@ -241,6 +246,7 @@ fun LoginScreen(
 
                     // ---------------- PASSWORD ----------------
                     OutlinedTextField(
+                        enabled = formEnabled,
                         value = password,
                         onValueChange = {
                             password = it.safeTextInput(256)
@@ -258,6 +264,7 @@ fun LoginScreen(
 
                         trailingIcon = {
                             IconButton(
+                                enabled = formEnabled,
                                 modifier = Modifier.pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true),
                                 onClick = {
                                 passwordVisible = !passwordVisible
@@ -282,7 +289,7 @@ fun LoginScreen(
                     ) {
                         Row(
                             modifier = Modifier.heightIn(min = 48.dp)
-                                .toggleable(value = rememberMe, role = Role.Checkbox) { selected ->
+                                .toggleable(value = rememberMe, enabled = formEnabled, role = Role.Checkbox) { selected ->
                                     rememberMe = selected
                                     if (!selected) BrowserCredentialStorage.clear()
                                 }
@@ -291,12 +298,13 @@ fun LoginScreen(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Checkbox(checked = rememberMe, onCheckedChange = null)
+                            Checkbox(checked = rememberMe, onCheckedChange = null, enabled = formEnabled)
                             Text(LocalizationManager.t("remember_me"))
                         }
 
                         TextButton(
                             modifier = Modifier.pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true),
+                            enabled = formEnabled,
                             onClick = { showPasswordReset = true }
                         ) {
                             Text(LocalizationManager.t("forgot_password"))
