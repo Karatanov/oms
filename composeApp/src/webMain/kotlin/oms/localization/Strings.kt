@@ -3,6 +3,8 @@ package oms.localization
 object Strings {
 
     val uk = mapOf(
+        "login_in_progress" to "Вхід…",
+        "guest_login_in_progress" to "Вхід як гість…",
         "sign_in_failed" to "Не вдалося увійти. Спробуйте ще раз.",
         "confirm_password_required" to "Введіть пароль ще раз.",
         "passwords_match" to "Паролі збігаються.",
@@ -1018,6 +1020,8 @@ object Strings {
     )
 
     val en = mapOf(
+        "login_in_progress" to "Signing in…",
+        "guest_login_in_progress" to "Signing in as guest…",
         "sign_in_failed" to "Sign-in failed. Please try again.",
         "confirm_password_required" to "Enter your password again.",
         "passwords_match" to "Passwords match.",

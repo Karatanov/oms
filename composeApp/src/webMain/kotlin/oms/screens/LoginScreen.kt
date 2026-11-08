@@ -316,18 +316,11 @@ fun LoginScreen(
                             .pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true)
                     ) {
 
-                        if (isLoading) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(20.dp),
-                                strokeWidth = 2.dp,
-                                color = LocalContentColor.current
-                            )
-                        } else {
-                            Text(LocalizationManager.t("sign_in"))
-                        }
+                        LoginActionLabel(isLoading, "sign_in", "login_in_progress")
                     }
                     Button(
                         onClick = {
+                            errorMessage = null
                             isStartingGuestSession = true
                             scope.launch {
                                 runCatching { OmsApiClient.startGuestSession() }
@@ -343,7 +336,7 @@ fun LoginScreen(
                         ),
                         modifier = Modifier.fillMaxWidth()
                             .pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true)
-                    ) { Text(LocalizationManager.t("continue_as_guest")) }
+                    ) { LoginActionLabel(isStartingGuestSession, "continue_as_guest", "guest_login_in_progress") }
                 }
             }
         }
@@ -425,4 +418,13 @@ private fun PasswordResetDialog(initialIdentifier: String, onDismiss: () -> Unit
             }
         }
     }
+}
+
+@Composable
+private fun LoginActionLabel(busy: Boolean, idleLabel: String, busyLabel: String) {
+    if (busy) {
+        CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp, color = LocalContentColor.current)
+        Spacer(Modifier.width(8.dp))
+    }
+    Text(LocalizationManager.t(if (busy) busyLabel else idleLabel))
 }
