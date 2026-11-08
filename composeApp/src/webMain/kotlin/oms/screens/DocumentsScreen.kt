@@ -173,7 +173,12 @@ fun DocumentsScreen(canManageDocuments: Boolean = true) {
         currentPage = 0
     }
     fun deleteDocument(row: DocumentRow) {
-        deletion.show(row.fileName + if (row.isSirSource) "\n" + LocalizationManager.t("sir_delete_warning") else "") { scope.launch {
+        val details = listOfNotNull(
+            row.projectName.takeIf(String::isNotBlank)?.let { "${LocalizationManager.t("subproject")}: $it" },
+            row.subprojectPartCode?.takeIf(String::isNotBlank)?.let { "${LocalizationManager.t("subproject_part_code_label")}: $it" }
+        ).joinToString("\n")
+        val warning = if (row.isSirSource) LocalizationManager.t("sir_delete_warning") else null
+        deletion.showWithDetails(row.fileName, details, warning) { scope.launch {
             val deleted = try {
                 if (row.isSirSource) OmsApiClient.deleteInspectionReport(row.uuid)
                 else OmsApiClient.deleteProjectDocument(row.projectUuid, row.uuid)

@@ -17,10 +17,15 @@ class DeleteConfirmation internal constructor() {
         val archive: Boolean,
         val action: () -> Unit,
         val archiveAlternative: (() -> Unit)? = null,
-        val permanentlyDelete: Boolean = false
+        val permanentlyDelete: Boolean = false,
+        val details: String? = null,
+        val warning: String? = null
     )
     internal var request by mutableStateOf<Request?>(null)
     fun show(name: String, action: () -> Unit) { request = Request(name, false, action) }
+    fun showWithDetails(name: String, details: String, warning: String?, action: () -> Unit) {
+        request = Request(name, false, action, details = details, warning = warning)
+    }
     fun showWithArchive(name: String, deleteAction: () -> Unit, archiveAction: () -> Unit) {
         request = Request(name, false, deleteAction, archiveAction, permanentlyDelete = true)
     }
@@ -83,6 +88,15 @@ fun ConfirmationHost(content: @Composable () -> Unit) {
                                         ).replace("{name}", request.name),
                                         style = MaterialTheme.typography.bodyLarge
                                     )
+                                    request.details?.takeIf(String::isNotBlank)?.let {
+                                        Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
+                                    request.warning?.let {
+                                        Surface(shape = MaterialTheme.shapes.small, color = MaterialTheme.colorScheme.errorContainer) {
+                                            Text(it, Modifier.padding(12.dp), style = MaterialTheme.typography.bodyMedium,
+                                                color = MaterialTheme.colorScheme.onErrorContainer)
+                                        }
+                                    }
                                     @Composable
                                     fun Actions(modifier: Modifier) {
                                         OutlinedButton(onClick = { state.request = null }, modifier = modifier) {
