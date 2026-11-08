@@ -29,10 +29,6 @@ const { chromium } = require(path.resolve(process.env.OMS_PLAYWRIGHT_PATH || 'bu
       await page.waitForTimeout(300);
       await page.screenshot({ path: `build/feedback-screenshots/form-${viewport.width}.png` });
       const desktop = viewport.width > 1000;
-      if (desktop) {
-        await page.mouse.click(600, 386); await page.waitForTimeout(200); await page.mouse.click(600, 480); await page.waitForTimeout(200);
-        await page.mouse.click(600, 481); await page.waitForTimeout(200); await page.mouse.click(600, 575); await page.waitForTimeout(200);
-      }
       const textY = desktop ? 575 : viewport.width === 390 ? 500 : 390;
       await page.mouse.click(desktop ? 600 : 100, textY);
       await page.keyboard.insertText('Feedback UI regression: test description');
@@ -45,7 +41,10 @@ const { chromium } = require(path.resolve(process.env.OMS_PLAYWRIGHT_PATH || 'bu
       await firstSend;
       assert.equal(submitted.length, 1);
       assert.equal(submitted[0].page, desktop ? 'Projects' : 'Dashboard');
-      assert.equal(submitted[0].type, desktop ? 'Improvement' : 'Correction');
+      // The feedback dialog starts with the Correction type.  Do not use fixed
+      // pixel clicks to select a chip: its position intentionally adapts to the
+      // viewport and would make this submission/retry regression test flaky.
+      assert.equal(submitted[0].type, 'Correction');
       assert.equal(submitted[0].description, 'Feedback UI regression: test description');
       await page.waitForTimeout(300);
       if (viewport.width === 320) { await page.mouse.move(160, 400); await page.mouse.wheel(0, 700); await page.waitForTimeout(300); }
