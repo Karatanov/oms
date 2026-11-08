@@ -9,6 +9,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AdminPanelSettings
@@ -213,13 +214,15 @@ fun AdminScreen() {
         }
         // Unlike Card, a background does not clip the sticky table header.
         if (!loading && !loadFailed && sortedUsers.isNotEmpty()) Box(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface)) {
+            val actionWidth = if (archiveFilter == "active") 96.dp else 144.dp
+            val tableWidth = 1950.dp + actionWidth
             oms.components.ScrollableTable(
                 Modifier.padding(16.dp),
                 pageScrollState = pageScrollState,
                 header = {
-                    Row(Modifier.width(2046.dp).padding(vertical = 6.dp)) {
+                    Row(Modifier.width(tableWidth).padding(vertical = 6.dp)) {
                         SortableTableHeader(LocalizationManager.t("username"), sort == UserSort.Username, ascending, { changeSort(UserSort.Username) }, Modifier.width(130.dp))
-                        AdminStaticHeader(LocalizationManager.t("actions"), 96.dp)
+                        AdminStaticHeader(LocalizationManager.t("actions"), actionWidth)
                         SortableTableHeader(LocalizationManager.t("full_name"), sort == UserSort.FullName, ascending, { changeSort(UserSort.FullName) }, Modifier.width(180.dp))
                         SortableTableHeader(LocalizationManager.t("email"), sort == UserSort.Email, ascending, { changeSort(UserSort.Email) }, Modifier.width(220.dp))
                         SortableTableHeader(LocalizationManager.t("role"), sort == UserSort.Role, ascending, { changeSort(UserSort.Role) }, Modifier.width(150.dp))
@@ -237,22 +240,24 @@ fun AdminScreen() {
                 }
             ) {
                 sortedUsers.forEach { user ->
-                    Row(Modifier.width(2046.dp).padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Row(Modifier.width(tableWidth).padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                         Text(user.username, Modifier.width(130.dp))
-                        TableActionIconButton(LocalizationManager.t("edit_user"), Icons.Default.Edit) {
-                            editUserError = null
-                            savingUser = false
-                            selectedUser = user
-                        }
-                        if (user.isArchived) TableActionIconButton(LocalizationManager.t("restore"), Icons.Default.Unarchive) {
-                            scope.launch { if (OmsApiClient.restoreUser(user.id)) { users = users.filterNot { it.id == user.id }; refreshActivities() } }
-                        } else TableActionIconButton(LocalizationManager.t("archive"), Icons.Default.Delete) { userPendingDeletion = user }
-                        if (user.isArchived) TableActionIconButton(LocalizationManager.t("permanently_delete"), Icons.Default.DeleteForever) {
-                            userPendingPermanentDeletion = user
-                            permanentDeleteDependencies = null
-                            scope.launch {
-                                permanentDeleteDependencies = runCatching { OmsApiClient.userPermanentDeleteDependencies(user.id) }
-                                    .getOrDefault(mapOf("unable to verify dependencies" to 1L))
+                        Row(Modifier.width(actionWidth), verticalAlignment = Alignment.CenterVertically) {
+                            TableActionIconButton(LocalizationManager.t("edit_user"), Icons.Default.Edit) {
+                                editUserError = null
+                                savingUser = false
+                                selectedUser = user
+                            }
+                            if (user.isArchived) TableActionIconButton(LocalizationManager.t("restore"), Icons.Default.Unarchive) {
+                                scope.launch { if (OmsApiClient.restoreUser(user.id)) { users = users.filterNot { it.id == user.id }; refreshActivities() } }
+                            } else TableActionIconButton(LocalizationManager.t("archive"), Icons.Default.Archive) { userPendingDeletion = user }
+                            if (user.isArchived) TableActionIconButton(LocalizationManager.t("permanently_delete"), Icons.Default.DeleteForever) {
+                                userPendingPermanentDeletion = user
+                                permanentDeleteDependencies = null
+                                scope.launch {
+                                    permanentDeleteDependencies = runCatching { OmsApiClient.userPermanentDeleteDependencies(user.id) }
+                                        .getOrDefault(mapOf("unable to verify dependencies" to 1L))
+                                }
                             }
                         }
                         Text(listOf(user.firstName, user.lastName).filter { it.isNotBlank() }.joinToString(" ").ifBlank { "—" }, Modifier.width(180.dp))
