@@ -2,6 +2,7 @@ package oms.components
 
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -63,7 +64,13 @@ fun OptionOverlayHost(content: @Composable () -> Unit) {
                 var active by remember(menu.id, menu.labels) { mutableStateOf(menu.selectedIndex.coerceIn(0, (menu.labels.size - 1).coerceAtLeast(0))) }
                 val listState = rememberLazyListState()
                 LaunchedEffect(menu.id, menu.focusOnOpen) { if (menu.focusOnOpen) requester.requestFocus() }
-                LaunchedEffect(menu.id, menu.labels, active) { if (menu.labels.isNotEmpty()) listState.animateScrollToItem(active) }
+                LaunchedEffect(menu.id, menu.labels, active) {
+                    val layout = listState.layoutInfo
+                    val row = layout.visibleItemsInfo.firstOrNull { it.index == active }
+                    val fullyVisible = row != null && row.offset >= layout.viewportStartOffset &&
+                        row.offset + row.size <= layout.viewportEndOffset
+                    if (menu.labels.isNotEmpty() && !fullyVisible) listState.animateScrollToItem(active)
+                }
                 Box(Modifier.fillMaxSize().clickable(
                     interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
                     indication = null, onClickLabel = LocalizationManager.t("close"), onClick = menu.onDismiss))
@@ -106,18 +113,23 @@ fun OptionOverlayHost(content: @Composable () -> Unit) {
                         itemsIndexed(menu.labels, key = { index, _ -> index }) { index, label ->
                             val isClearAction = menu.clearIndex == index
                             val isSelected = index in menu.selectedIndexes
+                            val rowAction = when {
+                                isClearAction -> Modifier.clickable(role = Role.Button) { menu.onChoose(index) }
+                                menu.multiSelect -> Modifier.toggleable(value = isSelected, role = Role.Checkbox) { menu.onChoose(index) }
+                                else -> Modifier.clickable(role = Role.RadioButton) { menu.onChoose(index) }
+                                    .semantics { selected = isSelected }
+                            }
                             Row(Modifier.fillMaxWidth()
                                 .background(if (index == active) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface)
-                                .clickable(role = if (menu.multiSelect && !isClearAction) Role.Checkbox else Role.RadioButton) { menu.onChoose(index) }
+                                .then(rowAction)
                                 .pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true)
-                                .semantics { selected = isSelected }
                                 .heightIn(min = 44.dp).padding(horizontal = 12.dp, vertical = 8.dp),
                                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 Text(label, Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
                                 when {
                                     menu.multiSelect && !isClearAction -> Checkbox(
                                         checked = isSelected,
-                                        onCheckedChange = { menu.onChoose(index) }
+                                        onCheckedChange = null
                                     )
                                     isSelected -> Icon(Icons.Default.Check, null, Modifier.size(18.dp), tint = MaterialTheme.colorScheme.primary)
                                 }
