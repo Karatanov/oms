@@ -209,14 +209,26 @@ fun DocumentsScreen(canManageDocuments: Boolean = true) {
         Surface(shape = MaterialTheme.shapes.large, border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)) {
             Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 oms.components.WorkspaceSearchField(search, { search = it.safeTextInput(200) }, LocalizationManager.t("documents_search"))
-                @OptIn(ExperimentalLayoutApi::class)
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    DocumentTypeFilter.entries.forEach { filter ->
-                        FilterChip(selected = typeFilter == filter, onClick = { typeFilter = filter },
-                            label = {
-                                val label = LocalizationManager.t(filter.labelKey)
-                                Text(if (loading || loadFailed) label else "$label (${typeCounts.getValue(filter)})")
-                            })
+                fun typeLabel(filter: DocumentTypeFilter): String {
+                    val label = LocalizationManager.t(filter.labelKey)
+                    return if (loading || loadFailed) label else "$label (${typeCounts.getValue(filter)})"
+                }
+                if (oms.layout.LocalMobileLayout.current) {
+                    Text(LocalizationManager.t("type"), style = MaterialTheme.typography.labelLarge)
+                    InlineOptionPicker(
+                        options = DocumentTypeFilter.entries,
+                        selected = typeFilter,
+                        prompt = LocalizationManager.t("type"),
+                        onSelect = { typeFilter = it },
+                        itemLabel = { typeLabel(it) }
+                    )
+                } else {
+                    @OptIn(ExperimentalLayoutApi::class)
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        DocumentTypeFilter.entries.forEach { filter ->
+                            FilterChip(selected = typeFilter == filter, onClick = { typeFilter = filter },
+                                label = { Text(typeLabel(filter)) })
+                        }
                     }
                 }
                 Row(Modifier.fillMaxWidth(), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
