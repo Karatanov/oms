@@ -319,15 +319,24 @@ private fun DocumentActions(row: DocumentRow, canManage: Boolean, onDelete: () -
     if (mobile) OutlinedButton(onClick = { openDocument(row) }) {
         Icon(Icons.AutoMirrored.Filled.OpenInNew, null, Modifier.size(18.dp))
         Spacer(Modifier.width(8.dp))
-        Text(LocalizationManager.t("documents_open"))
+        Text(if (row.isSirSource) openLabel else LocalizationManager.t("documents_open"))
     } else TableActionIconButton(openLabel, Icons.AutoMirrored.Filled.OpenInNew) { openDocument(row) }
-    if (row.isSirSource) TableActionIconButton(LocalizationManager.t("download_report_pdf"), Icons.Default.PictureAsPdf) {
-        oms.data.openOmsDownload(oms.data.omsApiUrl("/inspection-reports/${row.uuid}/export-pdf"))
+    if (row.isSirSource) {
+        val pdfLabel = LocalizationManager.t("download_report_pdf")
+        val downloadPdf = { oms.data.openOmsDownload(oms.data.omsApiUrl("/inspection-reports/${row.uuid}/export-pdf")) }
+        if (mobile) {
+            OutlinedButton(onClick = { downloadPdf() }) {
+                Icon(Icons.Default.PictureAsPdf, null, Modifier.size(18.dp))
+                Spacer(Modifier.width(8.dp))
+                Text(pdfLabel)
+            }
+        } else TableActionIconButton(pdfLabel, Icons.Default.PictureAsPdf) { downloadPdf() }
     } else if (!mobile) Spacer(Modifier.width(48.dp))
     if (canManage) TableActionIconButton(LocalizationManager.t("delete"), Icons.Default.Delete, onDelete)
     else if (!mobile) Spacer(Modifier.width(48.dp))
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun DocumentMobileCard(row: DocumentRow, canManage: Boolean, onDelete: () -> Unit) {
     Surface(shape = MaterialTheme.shapes.large,
@@ -348,8 +357,8 @@ private fun DocumentMobileCard(row: DocumentRow, canManage: Boolean, onDelete: (
             if (metadata.isNotEmpty()) Text(metadata.joinToString(" · "), style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+            FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 DocumentActions(row, canManage, onDelete, mobile = true)
             }
         }
