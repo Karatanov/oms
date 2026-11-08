@@ -3,6 +3,10 @@ package oms.localization
 object Strings {
 
     val uk = mapOf(
+        "password_need_length" to "Введіть щонайменше 8 символів.",
+        "password_need_letter" to "Додайте хоча б одну літеру.",
+        "password_need_digit" to "Додайте хоча б одну цифру.",
+        "password_ready" to "Пароль відповідає вимогам.",
         "restore_user_failed" to "Не вдалося відновити обліковий запис {name}.",
         "admin_no_archived_users" to "Немає архівованих користувачів.",
         "admin_no_active_users" to "Немає активних користувачів.",
@@ -1011,6 +1015,10 @@ object Strings {
     )
 
     val en = mapOf(
+        "password_need_length" to "Enter at least 8 characters.",
+        "password_need_letter" to "Add at least one letter.",
+        "password_need_digit" to "Add at least one digit.",
+        "password_ready" to "Password meets the requirements.",
         "restore_user_failed" to "Could not restore the account {name}.",
         "admin_no_archived_users" to "No archived users.",
         "admin_no_active_users" to "No active users.",

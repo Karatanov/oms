@@ -439,7 +439,7 @@ private fun CreateUserDialog(roles: List<ApiRole>, saveError: String?, saving: B
     var preferredLang by remember { mutableStateOf("uk") }
     var password by remember { mutableStateOf("") }
     val role = roles.firstOrNull { it.code == roleCode }
-    val passwordIsValid = password.length >= 8 && password.any(Char::isLetter) && password.any(Char::isDigit)
+    val missingRequirement = passwordRequirement(password)
     Card(
         modifier = Modifier.widthIn(max = 760.dp).fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = Color.White)
@@ -453,11 +453,10 @@ private fun CreateUserDialog(roles: List<ApiRole>, saveError: String?, saving: B
             OutlinedTextField(username, { username = it.safeTextInput(100) }, label = { Text(LocalizationManager.t("username")) }, modifier = Modifier.fillMaxWidth())
             OutlinedTextField(email, { email = it.safeTextInput(320) }, label = { Text(LocalizationManager.t("email")) }, modifier = Modifier.fillMaxWidth())
             oms.components.OmsPasswordField(
-                password,
-                { password = it.safeTextInput(256) },
-                LocalizationManager.t("password")
+                password, { password = it.safeTextInput(256) }, LocalizationManager.t("password"),
+                enabled = !saving,
+                supportingText = { PasswordGuidance(password, missingRequirement) }
             )
-            Text(LocalizationManager.t("password_requirements"), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             UserFormFieldPair(
                 first = { fieldModifier ->
                     OutlinedTextField(firstName, { firstName = it.safeTextInput(200) },
@@ -505,7 +504,7 @@ private fun CreateUserDialog(roles: List<ApiRole>, saveError: String?, saving: B
                         )
                     )
                 },
-                enabled = !saving && username.isNotBlank() && email.contains('@') && passwordIsValid && role != null
+                enabled = !saving && username.isNotBlank() && email.contains('@') && missingRequirement == null && role != null
             ) {
                 if (saving) {
                     CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
@@ -531,6 +530,7 @@ private fun EditUserDialog(
     var email by remember(user.id) { mutableStateOf(user.email) }
     var roleCode by remember(user.id) { mutableStateOf(user.role.code) }
     var password by remember(user.id) { mutableStateOf("") }
+    val missingRequirement = passwordRequirement(password)
     var firstName by remember(user.id) { mutableStateOf(user.firstName) }
     var lastName by remember(user.id) { mutableStateOf(user.lastName) }
     var status by remember(user.id) { mutableStateOf(user.status.takeIf { it in setOf("active", "disabled") } ?: "disabled") }
@@ -585,15 +585,18 @@ private fun EditUserDialog(
             }
             InlineOptionPicker(options = roles, selected = role, prompt = roleCode, onSelect = { roleCode = it.code }, itemLabel = { LocalizationManager.t("role_${it.code.lowercase()}") })
             role?.let { RolePermissionsHint(it.code) }
-            oms.components.OmsPasswordField(password, { password = it.safeTextInput(256) }, LocalizationManager.t("new_password_optional"), enabled = !saving)
-            Text(LocalizationManager.t("password_requirements"), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            oms.components.OmsPasswordField(
+                password, { password = it.safeTextInput(256) }, LocalizationManager.t("new_password_optional"),
+                enabled = !saving,
+                supportingText = { PasswordGuidance(password, missingRequirement) }
+            )
             }
             saveError?.let { oms.components.ContentState(it, error = true) }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
                 OutlinedButton(onClick = onDismiss, enabled = !saving) { Text(LocalizationManager.t("cancel")) }
             Button(
                 onClick = { onSave(UpdateUserRequest(username, email, roleCode, password.ifBlank { null }, firstName, lastName, status, region, department, preferredLang)) },
-                enabled = !saving && username.isNotBlank() && email.contains('@')
+                enabled = !saving && username.isNotBlank() && email.contains('@') && (password.isEmpty() || missingRequirement == null)
             ) {
                 if (saving) {
                     CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
@@ -624,4 +627,17 @@ private fun UserFormFieldPair(
             }
         }
     }
+}
+
+private fun passwordRequirement(value: String): String? = when {
+    value.length < 8 -> "password_need_length"
+    value.none(Char::isLetter) -> "password_need_letter"
+    value.none(Char::isDigit) -> "password_need_digit"
+    else -> null
+}
+
+@Composable
+private fun PasswordGuidance(password: String, missingRequirement: String?) {
+    val key = if (password.isEmpty()) "password_guidance" else missingRequirement ?: "password_ready"
+    Text(LocalizationManager.t(key))
 }
