@@ -1,5 +1,8 @@
 package oms.screens
 
+import oms.components.PasswordGuidance
+import oms.components.passwordRequirement
+
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
@@ -627,17 +630,4 @@ private fun UserFormFieldPair(
             }
         }
     }
-}
-
-private fun passwordRequirement(value: String): String? = when {
-    value.length < 8 -> "password_need_length"
-    value.none(Char::isLetter) -> "password_need_letter"
-    value.none(Char::isDigit) -> "password_need_digit"
-    else -> null
-}
-
-@Composable
-private fun PasswordGuidance(password: String, missingRequirement: String?) {
-    val key = if (password.isEmpty()) "password_guidance" else missingRequirement ?: "password_ready"
-    Text(LocalizationManager.t(key))
 }

@@ -25,6 +25,8 @@ import kotlinx.coroutines.launch
 import androidx.compose.runtime.rememberCoroutineScope
 import oms.data.OmsApiClient
 import oms.localization.LocalizationManager
+import oms.components.passwordRequirement
+import oms.components.PasswordGuidance
 import oms.components.ContentState
 import oms.components.LanguageSwitcher
 import androidx.compose.foundation.rememberScrollState
@@ -43,7 +45,8 @@ fun ActivationScreen(token: String, onActivated: () -> Unit) {
     var confirmationFocused by remember { mutableStateOf(false) }
     val mismatch = confirmation.isNotEmpty() && password != confirmation
     val showMismatch = mismatch && confirmationVisited && !confirmationFocused
-    val canSubmit = !saving && password.isNotBlank() && confirmation.isNotBlank() && !mismatch
+    val missingRequirement = passwordRequirement(password)
+    val canSubmit = !saving && missingRequirement == null && confirmation == password
     val activate: () -> Unit = {
         if (canSubmit) {
             saving = true
@@ -64,10 +67,10 @@ fun ActivationScreen(token: String, onActivated: () -> Unit) {
         Column(Modifier.widthIn(max = 440.dp).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         LanguageSwitcher()
         Text(LocalizationManager.t("activate_title"), style = MaterialTheme.typography.headlineMedium)
-        Text(LocalizationManager.t("password_guidance"))
         oms.components.OmsPasswordField(
             password, { password = it; error = null }, LocalizationManager.t("password"),
             enabled = !saving,
+            supportingText = { PasswordGuidance(password, missingRequirement) },
             imeAction = ImeAction.Next,
             keyboardActions = KeyboardActions(onNext = { confirmationFocus.requestFocus() })
         )

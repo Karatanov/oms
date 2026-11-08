@@ -50,3 +50,16 @@ fun OmsPasswordField(
         }
     )
 }
+
+internal fun passwordRequirement(value: String): String? = when {
+    value.length < 8 -> "password_need_length"
+    value.none(Char::isLetter) -> "password_need_letter"
+    value.none(Char::isDigit) -> "password_need_digit"
+    else -> null
+}
+
+@Composable
+internal fun PasswordGuidance(password: String, missingRequirement: String?) {
+    val key = if (password.isEmpty()) "password_guidance" else missingRequirement ?: "password_ready"
+    Text(LocalizationManager.t(key))
+}
