@@ -68,7 +68,15 @@ fun FeedbackDialog(currentScreen: Screen, onDismiss: () -> Unit) {
         catch (_: Exception) { error = "feedback_failed" }
         finally { loading = false }
     }
-    val dismiss: () -> Unit = { if (!sending) onDismiss() }
+    var confirmDiscard by remember { mutableStateOf(false) }
+    val dismiss: () -> Unit = {
+        when {
+            sending -> Unit
+            confirmDiscard -> confirmDiscard = false
+            receipt == null && description.isNotBlank() -> confirmDiscard = true
+            else -> onDismiss()
+        }
+    }
     WasmSafeOverlay(onDismiss = if (sending) null else dismiss) {
         Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
             Surface(Modifier.widthIn(max = 560.dp).fillMaxWidth().semantics { testTag = "feedback-dialog" },
@@ -80,7 +88,17 @@ fun FeedbackDialog(currentScreen: Screen, onDismiss: () -> Unit) {
                         Icon(Icons.Outlined.Feedback, null, tint = MaterialTheme.colorScheme.primary)
                         Text(t("feedback_title"), style = MaterialTheme.typography.headlineSmall)
                     }
-                    if (receipt != null) {
+                    if (confirmDiscard) {
+                        Text(t("feedback_discard_prompt"), style = MaterialTheme.typography.bodyLarge)
+                        FlowRow(
+                            Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            TextButton(onClick = onDismiss) { Text(t("feedback_discard")) }
+                            Button(onClick = { confirmDiscard = false }) { Text(t("feedback_return")) }
+                        }
+                    } else if (receipt != null) {
                         ContentState("${t("feedback_success")} #$receipt")
                         Button(onClick = dismiss, modifier = Modifier.align(Alignment.End)) { Text(t("close")) }
                     } else {

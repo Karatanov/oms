@@ -3,6 +3,9 @@ package oms.localization
 object Strings {
 
     val uk = mapOf(
+        "feedback_discard_prompt" to "Закрити форму? Введений текст буде втрачено.",
+        "feedback_discard" to "Відкинути текст",
+        "feedback_return" to "Повернутися до форми",
         "picker_show_options" to "Показати варіанти",
         "picker_more_matches" to "Показано перші {count} варіантів. Уточніть пошук, щоб знайти потрібний.",
         "sorted_ascending_state" to "Відсортовано за зростанням",
@@ -992,6 +995,9 @@ object Strings {
     )
 
     val en = mapOf(
+        "feedback_discard_prompt" to "Close this form? Your draft text will be lost.",
+        "feedback_discard" to "Discard text",
+        "feedback_return" to "Return to form",
         "picker_show_options" to "Show options",
         "picker_more_matches" to "Showing the first {count} options. Refine your search to find the one you need.",
         "sorted_ascending_state" to "Sorted in ascending order",
