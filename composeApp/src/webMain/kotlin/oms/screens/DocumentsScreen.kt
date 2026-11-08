@@ -398,16 +398,21 @@ private fun ProjectDocumentUploadDialog(
                 itemLabel = { listOf(it.siteNumber, it.localizedName()).filter(String::isNotBlank).distinct().joinToString(" — ") },
                 enabled = rootUuid != null && subprojects.isNotEmpty()
             )
-            InlineOptionPicker(
-                options = parts,
-                selected = parts.firstOrNull { it.id == partUuid },
-                prompt = LocalizationManager.t("select_subproject_part"),
-                onSelect = { partUuid = it.id },
-                itemLabel = { listOf(it.siteNumber, it.localizedName()).filter(String::isNotBlank).distinct().joinToString(" — ") },
-                enabled = subprojectUuid != null && parts.isNotEmpty(),
-                clearLabel = LocalizationManager.t("all"),
-                onClear = { partUuid = null }
-            )
+            if (rootUuid != null && subprojects.isEmpty()) {
+                Text(LocalizationManager.t("upload_no_subprojects"), style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            if (subprojectUuid != null && parts.isNotEmpty()) {
+                InlineOptionPicker(
+                    options = parts,
+                    selected = parts.firstOrNull { it.id == partUuid },
+                    prompt = LocalizationManager.t("select_subproject_part"),
+                    onSelect = { partUuid = it.id },
+                    itemLabel = { listOf(it.siteNumber, it.localizedName()).filter(String::isNotBlank).distinct().joinToString(" — ") },
+                    clearLabel = LocalizationManager.t("upload_to_subproject"),
+                    onClear = { partUuid = null }
+                )
+            }
             Text(LocalizationManager.t("type"), style = MaterialTheme.typography.labelLarge)
             InlineOptionPicker(
                 options = listOf("contract", "design", "estimate", "invoice", "act", "photo", "other"),
@@ -416,6 +421,12 @@ private fun ProjectDocumentUploadDialog(
                 onSelect = { docType = it },
                 itemLabel = { type -> LocalizationManager.t(if (type == "invoice" || type == "act") "record_type_$type" else type) }
             )
+            val destination = parts.firstOrNull { it.id == partUuid } ?: subprojects.firstOrNull { it.id == subprojectUuid }
+            destination?.let {
+                val name = listOf(it.siteNumber, it.localizedName()).filter(String::isNotBlank).distinct().joinToString(" — ")
+                Text(LocalizationManager.t("upload_destination").replace("{name}", name),
+                    style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
+            }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, androidx.compose.ui.Alignment.End)) {
                 OutlinedButton(onClick = onDismiss) { Text(LocalizationManager.t("cancel")) }
                 Button(onClick = { onUpload(targetUuid!!, docType) }, enabled = targetUuid != null) { Text(LocalizationManager.t("choose_file")) }
