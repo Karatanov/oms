@@ -419,64 +419,81 @@ private fun ProjectDocumentUploadDialog(
     val subprojects = availableProjects.filter { it.projectType == "subproject" && it.parentProjectUuid == rootUuid }
     val parts = availableProjects.filter { it.projectType == "subproject_part" && it.parentProjectUuid == subprojectUuid }
     val targetUuid = partUuid ?: subprojectUuid
-    Card(Modifier.widthIn(max = 720.dp).fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-        Column(
-            Modifier.padding(20.dp).heightIn(max = 520.dp).verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            Text(LocalizationManager.t("upload_document"), style = MaterialTheme.typography.titleLarge)
-            InlineOptionPicker(
-                options = roots,
-                selected = roots.firstOrNull { it.id == rootUuid },
-                prompt = LocalizationManager.t("select_project"),
-                onSelect = { rootUuid = it.id; subprojectUuid = null; partUuid = null },
-                itemLabel = { it.localizedName() },
-                loadOptionsOnOpen = {
-                    val loaded = loadProjectsOnOpen()
-                    availableProjects = loaded
-                    loaded.filter { it.projectType == "project" }
-                }
-            )
-            SearchableOptionPicker(
-                options = subprojects,
-                selected = subprojects.firstOrNull { it.id == subprojectUuid },
-                label = LocalizationManager.t("select_subproject"),
-                onSelect = { subprojectUuid = it.id; partUuid = null },
-                itemLabel = { listOf(it.siteNumber, it.localizedName()).filter(String::isNotBlank).distinct().joinToString(" — ") },
-                enabled = rootUuid != null && subprojects.isNotEmpty()
-            )
-            if (rootUuid != null && subprojects.isEmpty()) {
-                Text(LocalizationManager.t("upload_no_subprojects"), style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            if (subprojectUuid != null && parts.isNotEmpty()) {
+    BoxWithConstraints(Modifier.fillMaxWidth(), contentAlignment = androidx.compose.ui.Alignment.Center) {
+        val compact = maxWidth < 400.dp
+        Card(Modifier.widthIn(max = 720.dp).fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+            Column(
+                Modifier.padding(if (compact) 16.dp else 20.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Text(LocalizationManager.t("upload_document"), style = MaterialTheme.typography.titleLarge)
                 InlineOptionPicker(
-                    options = parts,
-                    selected = parts.firstOrNull { it.id == partUuid },
-                    prompt = LocalizationManager.t("select_subproject_part"),
-                    onSelect = { partUuid = it.id },
-                    itemLabel = { listOf(it.siteNumber, it.localizedName()).filter(String::isNotBlank).distinct().joinToString(" — ") },
-                    clearLabel = LocalizationManager.t("upload_to_subproject"),
-                    onClear = { partUuid = null }
+                    options = roots,
+                    selected = roots.firstOrNull { it.id == rootUuid },
+                    prompt = LocalizationManager.t("select_project"),
+                    onSelect = { rootUuid = it.id; subprojectUuid = null; partUuid = null },
+                    itemLabel = { it.localizedName() },
+                    loadOptionsOnOpen = {
+                        val loaded = loadProjectsOnOpen()
+                        availableProjects = loaded
+                        loaded.filter { it.projectType == "project" }
+                    }
                 )
-            }
-            Text(LocalizationManager.t("type"), style = MaterialTheme.typography.labelLarge)
-            InlineOptionPicker(
-                options = listOf("contract", "design", "estimate", "invoice", "act", "photo", "other"),
-                selected = docType,
-                prompt = LocalizationManager.t("type"),
-                onSelect = { docType = it },
-                itemLabel = { type -> LocalizationManager.t(if (type == "invoice" || type == "act") "record_type_$type" else type) }
-            )
-            val destination = parts.firstOrNull { it.id == partUuid } ?: subprojects.firstOrNull { it.id == subprojectUuid }
-            destination?.let {
-                val name = listOf(it.siteNumber, it.localizedName()).filter(String::isNotBlank).distinct().joinToString(" — ")
-                Text(LocalizationManager.t("upload_destination").replace("{name}", name),
-                    style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
-            }
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, androidx.compose.ui.Alignment.End)) {
-                OutlinedButton(onClick = onDismiss) { Text(LocalizationManager.t("cancel")) }
-                Button(onClick = { onUpload(targetUuid!!, docType) }, enabled = targetUuid != null) { Text(LocalizationManager.t("choose_file")) }
+                SearchableOptionPicker(
+                    options = subprojects,
+                    selected = subprojects.firstOrNull { it.id == subprojectUuid },
+                    label = LocalizationManager.t("select_subproject"),
+                    onSelect = { subprojectUuid = it.id; partUuid = null },
+                    itemLabel = { listOf(it.siteNumber, it.localizedName()).filter(String::isNotBlank).distinct().joinToString(" — ") },
+                    enabled = rootUuid != null && subprojects.isNotEmpty()
+                )
+                if (rootUuid != null && subprojects.isEmpty()) {
+                    Text(LocalizationManager.t("upload_no_subprojects"), style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                if (subprojectUuid != null && parts.isNotEmpty()) {
+                    InlineOptionPicker(
+                        options = parts,
+                        selected = parts.firstOrNull { it.id == partUuid },
+                        prompt = LocalizationManager.t("select_subproject_part"),
+                        onSelect = { partUuid = it.id },
+                        itemLabel = { listOf(it.siteNumber, it.localizedName()).filter(String::isNotBlank).distinct().joinToString(" — ") },
+                        clearLabel = LocalizationManager.t("upload_to_subproject"),
+                        onClear = { partUuid = null }
+                    )
+                }
+                Text(LocalizationManager.t("type"), style = MaterialTheme.typography.labelLarge)
+                InlineOptionPicker(
+                    options = listOf("contract", "design", "estimate", "invoice", "act", "photo", "other"),
+                    selected = docType,
+                    prompt = LocalizationManager.t("type"),
+                    onSelect = { docType = it },
+                    itemLabel = { type -> LocalizationManager.t(if (type == "invoice" || type == "act") "record_type_$type" else type) }
+                )
+                val destination = parts.firstOrNull { it.id == partUuid } ?: subprojects.firstOrNull { it.id == subprojectUuid }
+                destination?.let {
+                    val name = listOf(it.siteNumber, it.localizedName()).filter(String::isNotBlank).distinct().joinToString(" — ")
+                    Text(LocalizationManager.t("upload_destination").replace("{name}", name),
+                        style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
+                }
+                @Composable
+                fun ChooseFile(modifier: Modifier) {
+                    Button(onClick = { targetUuid?.let { onUpload(it, docType) } },
+                        enabled = targetUuid != null, modifier = modifier) {
+                        Text(LocalizationManager.t("choose_file"))
+                    }
+                }
+                if (compact) {
+                    ChooseFile(Modifier.fillMaxWidth())
+                    OutlinedButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) {
+                        Text(LocalizationManager.t("cancel"))
+                    }
+                } else {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, androidx.compose.ui.Alignment.End)) {
+                        OutlinedButton(onClick = onDismiss) { Text(LocalizationManager.t("cancel")) }
+                        ChooseFile(Modifier)
+                    }
+                }
             }
         }
     }
