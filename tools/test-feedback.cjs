@@ -40,7 +40,7 @@ const { chromium } = require(path.resolve(process.env.OMS_PLAYWRIGHT_PATH || 'bu
       await page.mouse.click(desktop ? 920 : viewport.width === 390 ? 300 : 240, desktop ? 738 : viewport.width === 390 ? 670 : 508);
       await firstSend;
       assert.equal(submitted.length, 1);
-      assert.equal(submitted[0].page, desktop ? 'Projects' : 'Dashboard');
+      assert.equal(submitted[0].page, 'Dashboard');
       // The feedback dialog starts with the Correction type.  Do not use fixed
       // pixel clicks to select a chip: its position intentionally adapts to the
       // viewport and would make this submission/retry regression test flaky.
