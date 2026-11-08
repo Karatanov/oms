@@ -12,6 +12,9 @@ import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -54,15 +57,20 @@ fun LoginScreen(
     var isStartingGuestSession by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
+    val usernameFocus = remember { FocusRequester() }
+    val passwordFocus = remember { FocusRequester() }
+    val optionOverlay = oms.components.LocalOptionOverlay.current
     fun submitLogin() {
-        if (isLoading) return
+        if (isLoading || isStartingGuestSession) return
 
         if (username.isBlank()) {
+            usernameFocus.requestFocus()
             errorMessage = LocalizationManager.t("login_or_email_required")
             return
         }
 
         if (password.isBlank()) {
+            passwordFocus.requestFocus()
             errorMessage = LocalizationManager.t("password_required")
             return
         }
@@ -212,9 +220,12 @@ fun LoginScreen(
                         label = LocalizationManager.t("login_or_email"),
                         placeholder = LocalizationManager.t("login_or_email_example"),
                         options = recentUsernames.map { it to it },
-                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                        keyboardActions = KeyboardActions(onDone = { submitLogin() }),
-                        modifier = Modifier.fillMaxWidth()
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                        keyboardActions = KeyboardActions(onNext = {
+                            optionOverlay.menu?.onDismiss?.invoke()
+                            passwordFocus.requestFocus()
+                        }),
+                        modifier = Modifier.fillMaxWidth().focusRequester(usernameFocus)
                     )
 
                     // ---------------- PASSWORD ----------------
@@ -226,9 +237,9 @@ fun LoginScreen(
                         },
                         label = { Text(LocalizationManager.t("password")) },
                         singleLine = true,
-                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
                         keyboardActions = KeyboardActions(onDone = { submitLogin() }),
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier.fillMaxWidth().focusRequester(passwordFocus),
 
                         visualTransformation =
                             if (passwordVisible) VisualTransformation.None
