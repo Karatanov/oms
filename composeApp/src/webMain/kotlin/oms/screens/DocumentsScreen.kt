@@ -50,7 +50,10 @@ private data class DocumentRow(
     val uuid: String,
     val isSirSource: Boolean = false
 )
-private enum class DocumentSort { Name, Project, SubprojectPartCode, Type, Date, Size, Author }
+private enum class DocumentSort { Name, Project, SubprojectPartCode, Type, Date, Size }
+
+// Six data columns followed by three 48 dp action slots.
+private val documentTableWidth = (260 + 210 + 165 + 140 + 105 + 90 + 144).dp
 private enum class DocumentTypeFilter(val labelKey: String) {
     ALL("all"), CONTRACT("contract"), DESIGN("design"),
     ESTIMATE("estimate"), FINANCIAL("financial_doc"), PHOTO("photo"), SIR("sir_source_files"), OTHER("other");
@@ -163,7 +166,6 @@ fun DocumentsScreen(canManageDocuments: Boolean = true) {
                     DocumentSort.Type -> it.documentType
                     DocumentSort.Date -> it.date.orEmpty()
                     DocumentSort.Size -> it.fileSizeBytes?.toString()?.padStart(20, '0').orEmpty()
-                    DocumentSort.Author -> ""
                 }
             }.let { if (ascending) it else it.reversed() })
             .toList()
@@ -247,7 +249,7 @@ fun DocumentsScreen(canManageDocuments: Boolean = true) {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     InlineOptionPicker(
-                        options = DocumentSort.entries.filter { it != DocumentSort.Author }, selected = sort,
+                        options = DocumentSort.entries, selected = sort,
                         prompt = LocalizationManager.t("documents_sort"),
                         onSelect = { sort = it; currentPage = 0 },
                         itemLabel = { LocalizationManager.t(it.labelKey()) }, modifier = Modifier.weight(1f))
@@ -267,14 +269,13 @@ fun DocumentsScreen(canManageDocuments: Boolean = true) {
                         header = { DocumentTableHeader(sort, ascending, ::selectSort); HorizontalDivider() }
                     ) {
                         pageDocuments.forEach { row ->
-                            Row(Modifier.width(1_370.dp).padding(vertical = 4.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                            Row(Modifier.width(documentTableWidth).padding(vertical = 4.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                                 ExpandableTableText(row.fileName, Modifier.width(260.dp))
                                 ExpandableTableText(row.projectName, Modifier.width(210.dp))
                                 ExpandableTableText(row.subprojectPartCode ?: "—", Modifier.width(165.dp))
                                 Box(Modifier.width(140.dp)) { DocumentTypeChip(row.documentType) }
                                 Text(row.date ?: "—", Modifier.width(105.dp))
                                 Text(row.fileSizeBytes?.let(::formatFileSize) ?: "—", Modifier.width(90.dp))
-                                Text("—", Modifier.width(85.dp))
                                 DocumentActions(row, canManageDocuments, onDelete = { deleteDocument(row) })
                             }
                             HorizontalDivider()
@@ -313,7 +314,6 @@ private fun DocumentSort.labelKey(): String = when (this) {
     DocumentSort.Type -> "type"
     DocumentSort.Date -> "date"
     DocumentSort.Size -> "size"
-    DocumentSort.Author -> "uploaded_by_short"
 }
 
 private fun openDocument(row: DocumentRow) {
@@ -478,15 +478,17 @@ private fun DocumentPagination(
 
 @Composable
 private fun DocumentTableHeader(sort: DocumentSort, ascending: Boolean, onSort: (DocumentSort) -> Unit) {
-    Row(Modifier.width(1_370.dp).padding(vertical = 6.dp)) {
+    Row(Modifier.width(documentTableWidth).padding(vertical = 6.dp)) {
         SortableTableHeader(LocalizationManager.t("file_name"), sort == DocumentSort.Name, ascending, { onSort(DocumentSort.Name) }, Modifier.width(260.dp))
         SortableTableHeader(LocalizationManager.t("subproject"), sort == DocumentSort.Project, ascending, { onSort(DocumentSort.Project) }, Modifier.width(210.dp))
         SortableTableHeader(LocalizationManager.t("subproject_part_code_label"), sort == DocumentSort.SubprojectPartCode, ascending, { onSort(DocumentSort.SubprojectPartCode) }, Modifier.width(165.dp))
         SortableTableHeader(LocalizationManager.t("type"), sort == DocumentSort.Type, ascending, { onSort(DocumentSort.Type) }, Modifier.width(140.dp))
         SortableTableHeader(LocalizationManager.t("date"), sort == DocumentSort.Date, ascending, { onSort(DocumentSort.Date) }, Modifier.width(105.dp))
         SortableTableHeader(LocalizationManager.t("size"), sort == DocumentSort.Size, ascending, { onSort(DocumentSort.Size) }, Modifier.width(90.dp))
-        SortableTableHeader(LocalizationManager.t("uploaded_by_short"), sort == DocumentSort.Author, ascending, { onSort(DocumentSort.Author) }, Modifier.width(85.dp))
-        Spacer(Modifier.width(96.dp))
+        Box(Modifier.width(144.dp).height(oms.theme.OmsDimensions.TableHeaderHeight),
+            contentAlignment = androidx.compose.ui.Alignment.Center) {
+            Text(LocalizationManager.t("actions"), style = MaterialTheme.typography.labelLarge)
+        }
     }
 }
 
