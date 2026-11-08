@@ -3,6 +3,7 @@ package oms.localization
 object Strings {
 
     val uk = mapOf(
+        "inspection_year_filter" to "Рік інспекції",
         "feedback_proposal" to "Опис пропозиції",
         "feedback_proposal_hint" to "Що ви хотіли б змінити? Як це допоможе у вашій роботі?",
         "feedback_discard_prompt" to "Закрити форму? Введений текст буде втрачено.",
@@ -997,6 +998,7 @@ object Strings {
     )
 
     val en = mapOf(
+        "inspection_year_filter" to "Inspection year",
         "feedback_proposal" to "Suggested improvement",
         "feedback_proposal_hint" to "What would you change? How would it help you do your work?",
         "feedback_discard_prompt" to "Close this form? Your draft text will be lost.",

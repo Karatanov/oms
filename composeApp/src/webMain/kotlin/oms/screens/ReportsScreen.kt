@@ -128,6 +128,12 @@ fun ReportsScreen(
     var subprojectCodeFilter by remember { mutableStateOf<String?>(null) }
     var subprojectPartCodeFilter by remember { mutableStateOf<String?>(null) }
     var authorFilter by remember { mutableStateOf<String?>(null) }
+    var inspectionYear by remember { mutableStateOf<String?>(null) }
+    val inspectionYears = remember(reports) {
+        reports.map { it.report.inspectionDate.substringBefore('-') }
+            .filter { it.length == 4 && it.all(Char::isDigit) }
+            .distinct().sortedDescending()
+    }
     var filtersExpanded by remember { mutableStateOf(false) }
     var loading by remember { mutableStateOf(!InspectionReportsScreenCache.hasReusableReports()) }
     var loadFailed by remember { mutableStateOf(false) }
@@ -190,9 +196,10 @@ fun ReportsScreen(
             if (failure is kotlinx.coroutines.CancellationException) throw failure
         }
     }
-    val visible = remember(reports, search, status, subprojectFilter, subprojectCodeFilter, subprojectPartCodeFilter, authorFilter, sort, ascending, language) {
+    val visible = remember(reports, search, status, subprojectFilter, subprojectCodeFilter, subprojectPartCodeFilter, authorFilter, inspectionYear, sort, ascending, language) {
         reports.asSequence().filter {
                 (search.isBlank() || it.report.inspectionCode.contains(search, true) || it.title().contains(search, true) || it.subprojectCode.orEmpty().contains(search, true)) &&
+                (inspectionYear == null || it.report.inspectionDate.substringBefore('-') == inspectionYear) &&
                 (status == null || it.report.status == status) &&
                 (subprojectFilter == null || it.localizedSubprojectName() == subprojectFilter) &&
                 (subprojectCodeFilter == null || it.subprojectCode == subprojectCodeFilter) &&
@@ -211,11 +218,12 @@ fun ReportsScreen(
             }.let { if (ascending) it else it.reversed() }
         ).toList()
     }
-    val activeFilterCount = listOf(status, subprojectFilter, subprojectCodeFilter, subprojectPartCodeFilter, authorFilter).count { it != null }
+    val activeFilterCount = listOf(status, subprojectFilter, subprojectCodeFilter, subprojectPartCodeFilter, authorFilter, inspectionYear).count { it != null }
     val hasSearchOrFilters = search.isNotEmpty() || activeFilterCount > 0
     fun resetFilters() {
         search = ""; status = null; subprojectFilter = null; subprojectCodeFilter = null
         subprojectPartCodeFilter = null; authorFilter = null
+        inspectionYear = null
     }
     fun selectSort(column: ReportSort) { if (sort == column) ascending = !ascending else { sort = column; ascending = true } }
     fun scrollBy(delta: Float) = scope.launch { contentScrollState.animateScrollBy(delta) }
@@ -295,6 +303,14 @@ fun ReportsScreen(
                     if (hasSearchOrFilters) TextButton(onClick = ::resetFilters) { Text(LocalizationManager.t("reset_filters")) }
                 }
                 if (filtersExpanded) {
+                    if (inspectionYears.isNotEmpty()) {
+                        val yearLabel = LocalizationManager.t("inspection_year_filter")
+                        InlineOptionPicker(
+                            options = inspectionYears, selected = inspectionYear, prompt = yearLabel,
+                            onSelect = { inspectionYear = it }, itemLabel = { "$yearLabel: $it" },
+                            clearLabel = LocalizationManager.t("all"), onClear = { inspectionYear = null }
+                        )
+                    }
                     ReportFilters(
                         reports = reports,
                         subprojectFilter = subprojectFilter,
@@ -316,6 +332,7 @@ fun ReportsScreen(
                         subprojectCodeFilter?.let { ReportFilterChip(LocalizationManager.t("subproject_code"), it) { subprojectCodeFilter = null } }
                         subprojectPartCodeFilter?.let { ReportFilterChip(LocalizationManager.t("subproject_part_code_label"), it) { subprojectPartCodeFilter = null } }
                         status?.let { ReportFilterChip(LocalizationManager.t("status"), LocalizationManager.t("${it}_status")) { status = null } }
+                        inspectionYear?.let { ReportFilterChip(LocalizationManager.t("inspection_year_filter"), it) { inspectionYear = null } }
                         authorFilter?.let { ReportFilterChip(LocalizationManager.t("uploaded_by_short"), it) { authorFilter = null } }
                     }
                 }
