@@ -61,6 +61,7 @@ fun LoginScreen(
 
     val usernameFocus = remember { FocusRequester() }
     val passwordFocus = remember { FocusRequester() }
+    val resetButtonFocus = remember { FocusRequester() }
     val optionOverlay = oms.components.LocalOptionOverlay.current
     val formEnabled = !isLoading && !isStartingGuestSession
     fun submitLogin() {
@@ -307,7 +308,7 @@ fun LoginScreen(
                         }
 
                         TextButton(
-                            modifier = Modifier.pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true),
+                            modifier = Modifier.focusRequester(resetButtonFocus).pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true),
                             enabled = formEnabled,
                             onClick = { showPasswordReset = true }
                         ) {
@@ -355,12 +356,10 @@ fun LoginScreen(
     }
         }
         if (showPasswordReset) {
-            WasmSafeOverlay(onDismiss = { showPasswordReset = false }) {
-                PasswordResetDialog(
-                    initialIdentifier = username,
-                    onDismiss = { showPasswordReset = false }
-                )
-            }
+            PasswordResetDialog(initialIdentifier = username, onDismiss = {
+                showPasswordReset = false
+                resetButtonFocus.requestFocus()
+            })
         }
     }
     }
@@ -389,40 +388,47 @@ private fun PasswordResetDialog(initialIdentifier: String, onDismiss: () -> Unit
             }
         }
     }
-    Card(
-        modifier = Modifier.widthIn(max = 460.dp).fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-    ) {
-        Column(Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            Text(LocalizationManager.t("password_reset_title"), style = MaterialTheme.typography.titleLarge)
-            Text(LocalizationManager.t("password_reset_hint"), color = MaterialTheme.colorScheme.onSurfaceVariant)
-            OutlinedTextField(
-                value = identifier,
-                onValueChange = { identifier = it.safeTextInput(320); error = null },
-                label = { Text(LocalizationManager.t("login_or_email")) },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                enabled = !isSending,
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                keyboardActions = KeyboardActions(onDone = { sendRequest() })
-            )
-            if (sent) Text(LocalizationManager.t("password_reset_sent"), color = MaterialTheme.colorScheme.primary)
-            error?.let { oms.components.ContentState(it, error = true) }
-            FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(
-                    modifier = Modifier.pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true),
-                    onClick = onDismiss
-                ) { Text(LocalizationManager.t("close")) }
-                Button(
-                    onClick = sendRequest,
-                    enabled = canSend,
-                    modifier = Modifier.pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true)
-                ) {
-                    if (isSending) {
-                        CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
-                        Spacer(Modifier.width(8.dp))
+    val identifierFocus = remember { FocusRequester() }
+    WasmSafeOverlay(onDismiss = if (isSending) null else onDismiss) {
+        LaunchedEffect(Unit) { identifierFocus.requestFocus() }
+        Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+            Card(
+                modifier = Modifier.widthIn(max = 460.dp).fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+            ) {
+                Column(Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                    Text(LocalizationManager.t("password_reset_title"), style = MaterialTheme.typography.titleLarge)
+                    Text(LocalizationManager.t("password_reset_hint"), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    OutlinedTextField(
+                        value = identifier,
+                        onValueChange = { identifier = it.safeTextInput(320); error = null },
+                        label = { Text(LocalizationManager.t("login_or_email")) },
+                        modifier = Modifier.fillMaxWidth().focusRequester(identifierFocus),
+                        singleLine = true,
+                        enabled = !isSending,
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                        keyboardActions = KeyboardActions(onDone = { sendRequest() })
+                    )
+                    if (sent) oms.components.ContentState(LocalizationManager.t("password_reset_sent"))
+                    error?.let { oms.components.ContentState(it, error = true) }
+                    FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedButton(
+                            modifier = Modifier.pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true),
+                            enabled = !isSending,
+                            onClick = onDismiss
+                        ) { Text(LocalizationManager.t("close")) }
+                        Button(
+                            onClick = sendRequest,
+                            enabled = canSend,
+                            modifier = Modifier.pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true)
+                        ) {
+                            if (isSending) {
+                                CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
+                                Spacer(Modifier.width(8.dp))
+                            }
+                            Text(LocalizationManager.t("password_reset_send"))
+                        }
                     }
-                    Text(LocalizationManager.t("password_reset_send"))
                 }
             }
         }
