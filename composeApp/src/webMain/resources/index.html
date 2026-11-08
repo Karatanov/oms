@@ -83,6 +83,7 @@
         const omsBrowserStrings = {
             uk: {
                 importReportError: "Не вдалося імпортувати інспекційний звіт",
+                documentFormatError: "Виберіть файл PDF, XLS, XLSX, JPG, JPEG або PNG.", documentSizeError: "Максимальний розмір для цього формату: {mb} МБ.",
                 uploadFileError: "Не вдалося завантажити файл",
                 documentUploaded: "Документ успішно завантажено.", photoUploaded: "Фото успішно завантажено.", sirSourceReplaced: "Вихідний файл SIR успішно замінено.",
                 financialImported: "Фінансові записи успішно імпортовано.", paymentMonitoringImported: "Моніторинг платежів оновлено.", photoTitle: "Фотографії інспекції",
@@ -96,6 +97,7 @@
             },
             en: {
                 importReportError: "Could not import inspection report", uploadFileError: "Could not upload file",
+                documentFormatError: "Choose a PDF, XLS, XLSX, JPG, JPEG or PNG file.", documentSizeError: "The size limit for this format is {mb} MB.",
                 documentUploaded: "Document uploaded successfully.", photoUploaded: "Photo uploaded successfully.", sirSourceReplaced: "The SIR source file was replaced successfully.",
                 financialImported: "Financial records imported successfully.", paymentMonitoringImported: "Payment monitoring was updated.", photoTitle: "Inspection photos",
                 photoRules: "Drag photos here or choose files. JPEG/PNG only, up to 10 MB each, maximum 30 photos.",
@@ -626,7 +628,7 @@
             }
         }
 
-        function uploadWithDialog(accept, url, extraFields, successMessage, onComplete = null, loadingMessage = omsText("uploadingFile"), method = "POST") {
+        function uploadWithDialog(accept, url, extraFields, successMessage, onComplete = null, loadingMessage = omsText("uploadingFile"), method = "POST", validateFile = null) {
             const input = document.createElement("input");
             input.type = "file";
             input.accept = accept;
@@ -637,6 +639,13 @@
                 const file = input.files && input.files[0];
                 if (!file) {
                     input.remove();
+                    return;
+                }
+                const validationError = validateFile?.(file);
+                if (validationError) {
+                    input.remove();
+                    if (onComplete) onComplete(validationError);
+                    else window.alert(validationError);
                     return;
                 }
                 const formData = new FormData();
@@ -661,7 +670,15 @@
         }
 
         function openProjectDocumentUpload(projectUuid, docType, onComplete) {
-            uploadWithDialog(".pdf,.xls,.xlsx,.jpg,.jpeg,.png", omsApiUrl(`/projects/${projectUuid}/documents`), { docType }, onComplete ? null : omsText("documentUploaded"), onComplete);
+            const limitsMb = new Map([["pdf", 50], ["xls", 20], ["xlsx", 20], ["jpg", 10], ["jpeg", 10], ["png", 10]]);
+            const validateFile = file => {
+                const extension = /\.([^.]+)$/.exec(file.name)?.[1].toLowerCase();
+                const mb = limitsMb.get(extension);
+                if (!mb) return omsText("documentFormatError");
+                return file.size > mb * 1_000_000 ? omsText("documentSizeError").replace("{mb}", mb) : "";
+            };
+            const accept = Array.from(limitsMb.keys(), ext => "." + ext).join(",");
+            uploadWithDialog(accept, omsApiUrl(`/projects/${projectUuid}/documents`), { docType }, onComplete ? null : omsText("documentUploaded"), onComplete, omsText("uploadingFile"), "POST", validateFile);
         }
 
         function openInspectionPhotoUpload(reportUuid, onComplete = null) {

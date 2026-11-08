@@ -514,6 +514,8 @@ private fun ProjectDocumentUploadDialog(
                     Text(LocalizationManager.t("upload_destination").replace("{name}", name),
                         style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
                 }
+                Text(LocalizationManager.t("document_upload_limits"), style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
                 uploadFailure?.let { oms.components.ContentState(it, error = true) }
                 @Composable
                 fun ChooseFile(modifier: Modifier) {
