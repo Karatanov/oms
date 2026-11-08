@@ -3,6 +3,9 @@ package oms.localization
 object Strings {
 
     val uk = mapOf(
+        "admin_no_archived_users" to "Немає архівованих користувачів.",
+        "admin_no_active_users" to "Немає активних користувачів.",
+        "admin_no_users" to "Користувачів поки немає.",
         "document_upload_limits" to "PDF — до 50 МБ · XLS/XLSX — до 20 МБ · JPG/JPEG/PNG — до 10 МБ",
         "documents_other_types" to "Документи інших типів за цих умов: {count}.",
         "documents_show_all_types" to "Показати всі типи",
@@ -1007,6 +1010,9 @@ object Strings {
     )
 
     val en = mapOf(
+        "admin_no_archived_users" to "No archived users.",
+        "admin_no_active_users" to "No active users.",
+        "admin_no_users" to "No users yet.",
         "document_upload_limits" to "PDF up to 50 MB · XLS/XLSX up to 20 MB · JPG/JPEG/PNG up to 10 MB",
         "documents_other_types" to "Matching documents of other types: {count}.",
         "documents_show_all_types" to "Show all types",

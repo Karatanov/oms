@@ -115,9 +115,11 @@ fun AdminScreen() {
         listOfNotNull("v$version", commit?.take(12), updatedAt?.takeIf(String::isNotBlank)).joinToString(" · ")
     }
     var search by remember { mutableStateOf("") }
-    var loading by remember { mutableStateOf(true) }
     var users by remember { mutableStateOf<List<ApiUser>>(emptyList()) }
     var archiveFilter by remember { mutableStateOf("active") }
+    var loadAttempt by remember { mutableStateOf(0) }
+    var loading by remember(archiveFilter, loadAttempt) { mutableStateOf(true) }
+    var loadFailed by remember(archiveFilter, loadAttempt) { mutableStateOf(false) }
     var roles by remember { mutableStateOf<List<ApiRole>>(emptyList()) }
     var activities by remember { mutableStateOf<List<ApiActivity>>(emptyList()) }
     var selectedUser by remember { mutableStateOf<ApiUser?>(null) }
@@ -126,7 +128,7 @@ fun AdminScreen() {
     var permanentDeleteDependencies by remember { mutableStateOf<Map<String, Long>?>(null) }
     var createUser by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
-    oms.navigation.ReportRouteReadiness(loading, errorMessage != null)
+    oms.navigation.ReportRouteReadiness(loading, loadFailed || errorMessage != null)
     var editUserError by remember { mutableStateOf<String?>(null) }
     var savingUser by remember { mutableStateOf(false) }
     var creatingUser by remember { mutableStateOf(false) }
@@ -140,13 +142,13 @@ fun AdminScreen() {
             activities = runCatching { OmsApiClient.dashboard().activities }.getOrDefault(activities)
         }
     }
-    LaunchedEffect(archiveFilter) {
+    LaunchedEffect(archiveFilter, loadAttempt) {
         val (loadedUsers, loadedRoles) = coroutineScope {
             val usersRequest = async { runCatching { OmsApiClient.users(archiveFilter) } }
             val rolesRequest = async { runCatching { OmsApiClient.roles() } }
             usersRequest.await() to rolesRequest.await()
         }
-        loadedUsers.onSuccess { users = it }.onFailure { errorMessage = LocalizationManager.t("error_load_users") }
+        loadedUsers.onSuccess { users = it }.onFailure { loadFailed = true }
         roles = loadedRoles.getOrDefault(emptyList())
         loading = false
     }
@@ -199,9 +201,18 @@ fun AdminScreen() {
             }
         }
         if (loading) oms.components.ContentState(LocalizationManager.t("loading_records"), loading = true)
-        if (!loading && sortedUsers.isEmpty()) oms.components.ContentState(LocalizationManager.t("no_search_results"))
+        if (loadFailed) oms.components.ContentState(LocalizationManager.t("error_load_users"), error = true, onRetry = { loadAttempt++ })
+        if (!loading && !loadFailed && sortedUsers.isEmpty()) {
+            val emptyMessage = when {
+                search.isNotBlank() && users.isNotEmpty() -> "no_search_results"
+                archiveFilter == "archived" -> "admin_no_archived_users"
+                archiveFilter == "active" -> "admin_no_active_users"
+                else -> "admin_no_users"
+            }
+            oms.components.ContentState(LocalizationManager.t(emptyMessage))
+        }
         // Unlike Card, a background does not clip the sticky table header.
-        Box(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface)) {
+        if (!loading && !loadFailed && sortedUsers.isNotEmpty()) Box(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface)) {
             oms.components.ScrollableTable(
                 Modifier.padding(16.dp),
                 pageScrollState = pageScrollState,
