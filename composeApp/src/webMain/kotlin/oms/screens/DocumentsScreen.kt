@@ -315,26 +315,33 @@ fun DocumentsScreen(canManageDocuments: Boolean = true) {
             }
         ) { Text(message) }
     }
-    if (showUploadDialog) WasmSafeOverlay(onDismiss = { showUploadDialog = false }) {
+    if (showUploadDialog) {
+        var uploadFailure by remember { mutableStateOf<String?>(null) }
+        WasmSafeOverlay(onDismiss = { showUploadDialog = false }) {
             ProjectDocumentUploadDialog(
-            projects = ProjectRepository.projects,
-            loadProjectsOnOpen = {
-                ProjectRepository.refresh()
-                ProjectRepository.projects
-            },
-            onDismiss = { showUploadDialog = false },
-            onUpload = { projectUuid, type ->
-                openProjectDocumentUpload(projectUuid, type) { uploadError ->
-                    if (uploadError.isBlank()) {
-                        errorMessage = null
-                        reloadKey++
-                        scope.launch { uploadNotice.showSnackbar(LocalizationManager.t("document_upload_complete")) }
-                    } else errorMessage = LocalizationManager.t("upload_document_error").replace("{message}", uploadError)
+                projects = ProjectRepository.projects,
+                loadProjectsOnOpen = {
+                    ProjectRepository.refresh()
+                    ProjectRepository.projects
+                },
+                uploadFailure = uploadFailure,
+                onDismiss = { showUploadDialog = false },
+                onUpload = { projectUuid, type ->
+                    uploadFailure = null
+                    openProjectDocumentUpload(projectUuid, type) { uploadError ->
+                        if (uploadError.isBlank()) {
+                            showUploadDialog = false
+                            errorMessage = null
+                            reloadKey++
+                            scope.launch { uploadNotice.showSnackbar(LocalizationManager.t("document_upload_complete")) }
+                        } else {
+                            uploadFailure = LocalizationManager.t("upload_document_error").replace("{message}", uploadError)
+                        }
+                    }
                 }
-                showUploadDialog = false
-            }
             )
         }
+    }
     }
 }
 
@@ -424,6 +431,7 @@ private fun DocumentMobileCard(row: DocumentRow, canManage: Boolean, onDelete: (
 private fun ProjectDocumentUploadDialog(
     projects: List<oms.model.Project>,
     loadProjectsOnOpen: suspend () -> List<oms.model.Project>,
+    uploadFailure: String?,
     onDismiss: () -> Unit,
     onUpload: (String, String) -> Unit
 ) {
@@ -493,6 +501,7 @@ private fun ProjectDocumentUploadDialog(
                     Text(LocalizationManager.t("upload_destination").replace("{name}", name),
                         style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
                 }
+                uploadFailure?.let { oms.components.ContentState(it, error = true) }
                 @Composable
                 fun ChooseFile(modifier: Modifier) {
                     Button(onClick = { targetUuid?.let { onUpload(it, docType) } },
