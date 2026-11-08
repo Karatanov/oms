@@ -137,18 +137,24 @@ fun DocumentsScreen(canManageDocuments: Boolean = true) {
             loadFailed = true
         } finally { loading = false }
     }
-    val visibleDocuments = remember(documents, search, typeFilter, sort, ascending) {
+    val matchingDocuments = remember(documents, search) {
         val terms = search.trim().split(Regex("\\s+")).filter(String::isNotEmpty)
-        documents
-            .asSequence()
-            .filter { typeFilter.matches(it.documentType.lowercase(), it.isSirSource) }
-            .filter { document ->
-                terms.all { term ->
-                    document.fileName.contains(term, ignoreCase = true) ||
-                        document.projectName.contains(term, ignoreCase = true) ||
-                        document.subprojectPartCode.orEmpty().contains(term, ignoreCase = true)
-                }
+        if (terms.isEmpty()) documents else documents.filter { document ->
+            terms.all { term ->
+                document.fileName.contains(term, ignoreCase = true) ||
+                    document.projectName.contains(term, ignoreCase = true) ||
+                    document.subprojectPartCode.orEmpty().contains(term, ignoreCase = true)
             }
+        }
+    }
+    val typeCounts = remember(matchingDocuments) {
+        DocumentTypeFilter.entries.associateWith { filter ->
+            matchingDocuments.count { filter.matches(it.documentType.lowercase(), it.isSirSource) }
+        }
+    }
+    val visibleDocuments = remember(matchingDocuments, typeFilter, sort, ascending) {
+        matchingDocuments.asSequence()
+            .filter { typeFilter.matches(it.documentType.lowercase(), it.isSirSource) }
             .sortedWith(compareBy<DocumentRow> {
                 when (sort) {
                     DocumentSort.Name -> it.fileName
@@ -202,7 +208,10 @@ fun DocumentsScreen(canManageDocuments: Boolean = true) {
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     DocumentTypeFilter.entries.forEach { filter ->
                         FilterChip(selected = typeFilter == filter, onClick = { typeFilter = filter },
-                            label = { Text(LocalizationManager.t(filter.labelKey)) })
+                            label = {
+                                val label = LocalizationManager.t(filter.labelKey)
+                                Text(if (loading || loadFailed) label else "$label (${typeCounts.getValue(filter)})")
+                            })
                     }
                 }
                 Row(Modifier.fillMaxWidth(), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
