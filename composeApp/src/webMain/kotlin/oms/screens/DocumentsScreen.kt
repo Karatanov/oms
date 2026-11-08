@@ -248,13 +248,26 @@ fun DocumentsScreen(canManageDocuments: Boolean = true) {
             Surface(shape = MaterialTheme.shapes.large, border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)) {
                 Column(Modifier.fillMaxWidth().padding(28.dp), horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    val canBroadenType = typeFilter != DocumentTypeFilter.ALL && matchingDocuments.isNotEmpty()
+                    val hasDocuments = documents.isNotEmpty()
                     Icon(Icons.Default.FolderOpen, null, Modifier.size(40.dp), tint = MaterialTheme.colorScheme.primary)
-                    Text(LocalizationManager.t(if (hasFilters) "documents_no_matches" else "documents_empty_title"),
+                    Text(LocalizationManager.t(if (hasDocuments) "documents_no_matches" else "documents_empty_title"),
                         style = MaterialTheme.typography.titleMedium, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
-                    Text(LocalizationManager.t(if (hasFilters) "documents_no_matches_hint" else "documents_empty_hint"),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
-                    if (hasFilters) OutlinedButton(onClick = { search = ""; typeFilter = DocumentTypeFilter.ALL }) {
-                        Text(LocalizationManager.t("reset_filters"))
+                    val hint = when {
+                        canBroadenType -> LocalizationManager.t("documents_other_types").replace("{count}", matchingDocuments.size.toString())
+                        hasDocuments -> LocalizationManager.t("documents_no_matches_hint")
+                        else -> LocalizationManager.t("documents_empty_hint")
+                    }
+                    Text(hint, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                    if (canBroadenType) {
+                        OutlinedButton(onClick = { typeFilter = DocumentTypeFilter.ALL }) {
+                            Text(LocalizationManager.t("documents_show_all_types"))
+                        }
+                    } else if (hasDocuments && hasFilters) {
+                        OutlinedButton(onClick = { search = ""; typeFilter = DocumentTypeFilter.ALL }) {
+                            Text(LocalizationManager.t("reset_filters"))
+                        }
                     }
                 }
             }

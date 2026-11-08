@@ -3,6 +3,8 @@ package oms.localization
 object Strings {
 
     val uk = mapOf(
+        "documents_other_types" to "Документи інших типів за цих умов: {count}.",
+        "documents_show_all_types" to "Показати всі типи",
         "document_upload_complete" to "Документ завантажено.",
         "upload_to_subproject" to "До підпроєкту без вибору частини",
         "upload_no_subprojects" to "У цьому проєкті немає підпроєктів. Виберіть інший проєкт.",
@@ -1004,6 +1006,8 @@ object Strings {
     )
 
     val en = mapOf(
+        "documents_other_types" to "Matching documents of other types: {count}.",
+        "documents_show_all_types" to "Show all types",
         "document_upload_complete" to "Document uploaded.",
         "upload_to_subproject" to "Attach to the subproject itself",
         "upload_no_subprojects" to "This project has no subprojects. Choose another project.",
