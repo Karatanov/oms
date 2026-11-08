@@ -3,6 +3,7 @@ package oms.localization
 object Strings {
 
     val uk = mapOf(
+        "document_upload_complete" to "Документ завантажено.",
         "upload_to_subproject" to "До підпроєкту без вибору частини",
         "upload_no_subprojects" to "У цьому проєкті немає підпроєктів. Виберіть інший проєкт.",
         "upload_destination" to "Документ буде додано до: {name}",
@@ -1003,6 +1004,7 @@ object Strings {
     )
 
     val en = mapOf(
+        "document_upload_complete" to "Document uploaded.",
         "upload_to_subproject" to "Attach to the subproject itself",
         "upload_no_subprojects" to "This project has no subprojects. Choose another project.",
         "upload_destination" to "Attach document to: {name}",

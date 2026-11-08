@@ -85,6 +85,7 @@ fun DocumentsScreen(canManageDocuments: Boolean = true) {
     var loadFailed by remember { mutableStateOf(false) }
     oms.navigation.ReportRouteReadiness(loading, loadFailed)
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    val uploadNotice = remember { SnackbarHostState() }
     var showUploadDialog by remember { mutableStateOf(false) }
     val pageScrollState = rememberScrollState()
     var reloadKey by remember { mutableStateOf(0) }
@@ -288,6 +289,7 @@ fun DocumentsScreen(canManageDocuments: Boolean = true) {
             DocumentPagination(pageSize, currentPage, pageCount, visibleDocuments.size, { pageSize = it }, { currentPage = it })
         }
     }
+    SnackbarHost(uploadNotice, modifier = Modifier.align(androidx.compose.ui.Alignment.TopCenter).padding(12.dp))
     errorMessage?.let { message ->
         Snackbar(
             modifier = Modifier.align(androidx.compose.ui.Alignment.TopCenter)
@@ -311,8 +313,11 @@ fun DocumentsScreen(canManageDocuments: Boolean = true) {
             onDismiss = { showUploadDialog = false },
             onUpload = { projectUuid, type ->
                 openProjectDocumentUpload(projectUuid, type) { uploadError ->
-                    if (uploadError.isBlank()) reloadKey++
-                    else errorMessage = LocalizationManager.t("upload_document_error").replace("{message}", uploadError)
+                    if (uploadError.isBlank()) {
+                        errorMessage = null
+                        reloadKey++
+                        scope.launch { uploadNotice.showSnackbar(LocalizationManager.t("document_upload_complete")) }
+                    } else errorMessage = LocalizationManager.t("upload_document_error").replace("{message}", uploadError)
                 }
                 showUploadDialog = false
             }

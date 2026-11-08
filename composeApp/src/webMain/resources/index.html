@@ -646,11 +646,11 @@
                 try {
                     const response = await omsAuthenticatedFetch(url, { method, body: formData, credentials: "include" });
                     if (!response.ok) throw new Error(await omsUploadError(response));
-                    window.alert(successMessage);
+                    if (successMessage != null) window.alert(successMessage);
                     if (onComplete) onComplete("");
                     else window.location.reload();
                 } catch (error) {
-                    window.alert(`${omsText("uploadFileError")}: ${error.message || error}`);
+                    if (successMessage != null) window.alert(`${omsText("uploadFileError")}: ${error.message || error}`);
                     if (onComplete) onComplete(error.message || String(error));
                 } finally {
                     hideOmsLoading();
@@ -661,7 +661,7 @@
         }
 
         function openProjectDocumentUpload(projectUuid, docType, onComplete) {
-            uploadWithDialog(".pdf,.xls,.xlsx,.jpg,.jpeg,.png", omsApiUrl(`/projects/${projectUuid}/documents`), { docType }, omsText("documentUploaded"), onComplete);
+            uploadWithDialog(".pdf,.xls,.xlsx,.jpg,.jpeg,.png", omsApiUrl(`/projects/${projectUuid}/documents`), { docType }, onComplete ? null : omsText("documentUploaded"), onComplete);
         }
 
         function openInspectionPhotoUpload(reportUuid, onComplete = null) {
