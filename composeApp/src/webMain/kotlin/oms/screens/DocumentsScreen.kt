@@ -138,9 +138,17 @@ fun DocumentsScreen(canManageDocuments: Boolean = true) {
         } finally { loading = false }
     }
     val visibleDocuments = remember(documents, search, typeFilter, sort, ascending) {
+        val terms = search.trim().split(Regex("\\s+")).filter(String::isNotEmpty)
         documents
             .asSequence()
-            .filter { typeFilter.matches(it.documentType.lowercase(), it.isSirSource) && (search.isBlank() || it.fileName.contains(search, true) || it.projectName.contains(search, true)) }
+            .filter { typeFilter.matches(it.documentType.lowercase(), it.isSirSource) }
+            .filter { document ->
+                terms.all { term ->
+                    document.fileName.contains(term, ignoreCase = true) ||
+                        document.projectName.contains(term, ignoreCase = true) ||
+                        document.subprojectPartCode.orEmpty().contains(term, ignoreCase = true)
+                }
+            }
             .sortedWith(compareBy<DocumentRow> {
                 when (sort) {
                     DocumentSort.Name -> it.fileName
