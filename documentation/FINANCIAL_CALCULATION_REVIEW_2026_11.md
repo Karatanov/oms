@@ -28,6 +28,27 @@
 
 ## Verification and limits
 
+### Follow-up: procurement counting grain
+
+- The signed **construction** contract count chart on Procurement also counted
+  TS and CSC rows. It now includes only Works; clicking its month applies the
+  same Works restriction to the table. The monetary chart still covers all
+  contract types, as its title specifies, and clears that restriction on click.
+- The approved 10 November file contains 139 contract rows. After applying the
+  tracker's latest-attempt status (the existing import policy), 129 rows belong
+  to signed procedures, representing 124 distinct Procurement IDs. Their raw
+  contract amounts total UAH 2,858,853,119.11; the tracker totals, counted once
+  per procedure, total UAH 2,856,947,600.40. These are different source measures,
+  not interchangeable inputs to one formula. The construction count is 61,
+  rather than the former 129 mixed-type rows, and every Works row has a date.
+- Five TS procedures have two contract rows. For example, KV08_01_TS$1 is
+  terminated in DB6.3 and KV08_01_TS$2 is signed. Both rows are marked Active;
+  the procedure tracker reports the latest attempt. Do not drop history or
+  silently replace procedure statuses with contract statuses to force agreement.
+  Distinguishing these two statuses in OMS remains a separate modelling issue.
+- A read-only standalone reconciliation exercises the actual XLSX importer and
+  checks row counts and both independently scoped sums against this snapshot.
+
 ### Follow-up: monthly disbursement aggregation
 
 - Ledger fallback uses payment date when available, then record date. A payment

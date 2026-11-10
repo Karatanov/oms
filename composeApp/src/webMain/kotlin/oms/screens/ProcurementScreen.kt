@@ -144,9 +144,10 @@ fun ProcurementScreen(
     // while the procurement registry is open. Refresh() is a no-op when it is
     // already present and therefore does not add another API request on return.
     LaunchedEffect(Unit) { ProjectRepository.refresh() }
-    fun applySignedContractMonthFilter(month: String) {
+    fun applySignedContractMonthFilter(month: String, contractType: String? = null) {
         signedContractMonthFilter = month
         statusFilter = procurementStatuses[3]
+        contractTypeFilter = contractType
         scope.launch {
             kotlinx.coroutines.yield()
             contentScrollState.animateScrollTo(
@@ -180,6 +181,7 @@ fun ProcurementScreen(
     val signedContractMetrics = trancheRecords
         .asSequence()
         .filter { sameProcurementStatus(it.purchaseStatus, procurementStatuses[3]) }
+        .filter { oms.urp3.isWorksProcurementContract(it.sourceContractType) }
         .mapNotNull { (it.contractDate ?: it.estimatedContractDate)?.takeIf { date -> date.length >= 7 }?.take(7) }
         .groupingBy { it }
         .eachCount()
@@ -252,7 +254,7 @@ fun ProcurementScreen(
                     signedContractMetrics,
                     centerYearLabels = true,
                     compact = true,
-                    onItemClick = ::applySignedContractMonthFilter
+                    onItemClick = { month -> applySignedContractMonthFilter(month, "Роботи / Works") }
                 )
             }
         )
@@ -262,7 +264,7 @@ fun ProcurementScreen(
             hintKey = "signed_contract_value_by_month_hint",
             payments = signedContractValueMetrics,
             currency = "UAH",
-            onMonthClick = ::applySignedContractMonthFilter
+            onMonthClick = { month -> applySignedContractMonthFilter(month) }
         )
         Spacer(Modifier.height(4.dp))
         val visibleRecords = records.orEmpty().filter { record ->
