@@ -28,6 +28,21 @@
 
 ## Verification and limits
 
+### Follow-up: financial-progress source selection
+
+- Financial progress by region, sector and construction type tested whether
+  imported transactions were nonempty before choosing the approved source.
+  An existing snapshot with no dated payments therefore revived legacy ledger
+  entries. The calculation now distinguishes an absent snapshot from an empty
+  imported register, matching the monthly dashboard source policy.
+- The source selection and Works-payment grouping are tested together: TS/CSC,
+  payments outside the selected year and subprojects outside the selection are
+  excluded; lot payments retain their parent attribution. Only an absent
+  snapshot invokes the legacy reader, which remains lazy.
+- The real-source standalone check reconciles the construction numerator to
+  UAH 307,988,578.28 and verifies empty-register, empty-year and empty-scope cases.
+  This correction does not change the current nonempty imported source totals.
+
 ### Follow-up: procurement counting grain
 
 - The signed **construction** contract count chart on Procurement also counted

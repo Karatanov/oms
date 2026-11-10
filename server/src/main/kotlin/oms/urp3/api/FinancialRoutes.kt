@@ -17,7 +17,6 @@ import oms.urp3.service.FinancialTablePdfExportService
 import oms.urp3.service.PaymentMonitoringPdfExportService
 import oms.urp3.service.GoogleDriveOAuth
 import oms.urp3.service.paymentMonitoringContractType
-import oms.urp3.service.paymentMonitoringSubprojectCode
 import oms.urp3.service.isPrimaryPaymentMonitoringSubprojectCode
 import kotlin.math.roundToLong
 import kotlinx.serialization.Serializable
@@ -255,36 +254,27 @@ fun Route.financialRoutes() {
         // evidence of delivery rather than a payment, and TS/CSC/equipment
         // payments have different financing bases.  Mixing either of them
         // into this numerator previously made sector progress exceed 100%.
-        val sourceTransactions = AppContainer.paymentMonitoringService.currentIfAvailable()?.transactions.orEmpty()
-        val disbursedBySubprojectId = if (sourceTransactions.isNotEmpty()) {
-            // The approved workbook is a payment source.  Its W suffix marks
-            // construction works; TS/CSC rows belong to different charts and
-            // must not inflate construction financial progress.
-            sourceTransactions.asSequence()
-                .filter { it.code.paymentMonitoringContractType() == "W" }
-                .filter { requestedYear == null || it.paymentDate.year == requestedYear }
-                .mapNotNull { payment ->
-                    val baseCode = payment.code.paymentMonitoringSubprojectCode().uppercase()
-                    subprojectByBaseCode[baseCode]?.id?.let { it to payment.amountUah }
+        val sourceTransactions = AppContainer.paymentMonitoringService.currentIfAvailable()?.transactions
+        val disbursedBySubprojectId = oms.urp3.service.financialProgressPayments(
+            sourceTransactions, subprojectByBaseCode.mapValues { it.value.id }, requestedYear
+        ) {
+            AppContainer.financialRecordService.getAll()
+                .asSequence()
+                .filter { it.recordType == FinancialRecordType.PAYMENT || it.recordType == FinancialRecordType.ADVANCE }
+                .filter { it.paymentPurpose.equals("works", ignoreCase = true) }
+                .filter { requestedYear == null || (it.paymentDate ?: it.recordDate).year == requestedYear }
+                .mapNotNull { record ->
+                    val subproject = parentSubproject(record.projectId) ?: return@mapNotNull null
+                    val uah = when (record.currency.uppercase()) {
+                        "UAH" -> record.amount
+                        "EUR" -> record.eurExchangeRate?.takeIf { it > 0 }?.let { record.amount * it }
+                        else -> null
+                    } ?: return@mapNotNull null
+                    subproject.id to uah
                 }
                 .groupBy({ it.first }, { it.second })
                 .mapValues { (_, amounts) -> amounts.sum() }
-        } else AppContainer.financialRecordService.getAll()
-            .asSequence()
-            .filter { it.recordType == FinancialRecordType.PAYMENT || it.recordType == FinancialRecordType.ADVANCE }
-            .filter { it.paymentPurpose.equals("works", ignoreCase = true) }
-            .filter { requestedYear == null || (it.paymentDate ?: it.recordDate).year == requestedYear }
-            .mapNotNull { record ->
-                val subproject = parentSubproject(record.projectId) ?: return@mapNotNull null
-                val uah = when (record.currency.uppercase()) {
-                    "UAH" -> record.amount
-                    "EUR" -> record.eurExchangeRate?.takeIf { it > 0 }?.let { record.amount * it }
-                    else -> null
-                } ?: return@mapNotNull null
-                subproject.id to uah
-            }
-            .groupBy({ it.first }, { it.second })
-            .mapValues { (_, amounts) -> amounts.sum() }
+        }
         data class Aggregate(var contract: Double = 0.0, var completed: Double = 0.0)
         fun aggregate(label: (oms.urp3.domain.Project) -> String, canonical: (String) -> String): List<FinancialProgressItemResponse> {
             val rows = linkedMapOf<String, Aggregate>()
