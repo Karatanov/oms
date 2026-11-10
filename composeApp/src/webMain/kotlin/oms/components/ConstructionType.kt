@@ -39,9 +39,10 @@ fun ConstructionTypeChip(value: String, fontWeight: FontWeight = FontWeight.Medi
     OmsBadge(value.constructionTypeLabel(), color, fontWeight)
 }
 
-fun String.constructionTypeLabel(): String = when (lowercase()) {
+fun String.constructionTypeLabel(): String = when (oms.urp3.financialConstructionKey(this)) {
     "reconstruction" -> LocalizationManager.t("construction_reconstruction")
     "capital_repair" -> LocalizationManager.t("construction_capital_repair")
     "new_construction" -> LocalizationManager.t("construction_new_construction")
+    "Unspecified" -> LocalizationManager.t("construction_unspecified")
     else -> this
 }

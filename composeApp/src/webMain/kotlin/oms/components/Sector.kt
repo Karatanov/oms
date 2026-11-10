@@ -52,15 +52,17 @@ private fun String.canonicalSectorKey(): String? {
  * rather than exposing the raw source notation in charts and filters.
  */
 fun String.sectorLabel(): String {
-    val key = canonicalSectorKey()
+    val key = oms.urp3.financialSectorKey(this)
     return when (key) {
         "education" -> LocalizationManager.t("sector_education")
-        "health" -> LocalizationManager.t("sector_healthcare")
+        "health", "healthcare" -> LocalizationManager.t("sector_healthcare")
         "housing" -> LocalizationManager.t("sector_housing")
         "water_supply" -> LocalizationManager.t("sector_water_supply")
         "sewerage" -> LocalizationManager.t("sector_sewerage")
         "heat_supply" -> LocalizationManager.t("sector_heat_supply")
         "shelter" -> LocalizationManager.t("sector_shelter")
+        "security_centres" -> LocalizationManager.t("sector_security_centres")
+        "Unspecified" -> LocalizationManager.t("construction_unspecified")
         else -> split(Regex("\\s*/\\s*"), limit = 2).let { values ->
             if (values.size == 2) {
                 if (LocalizationManager.currentLanguage == Language.EN) values[1] else values[0]

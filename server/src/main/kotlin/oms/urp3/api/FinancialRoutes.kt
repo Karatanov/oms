@@ -295,11 +295,11 @@ fun Route.financialRoutes() {
                 // contract while payments have already been imported.  Zero
                 // must not become the denominator in that case: use the
                 // approved subproject funding as the documented fallback.
-                val executionBase = subproject.subprojectContractAmount
-                    ?.takeIf { it > 0L }
-                    ?: subproject.budgetPlanned.takeIf { it > 0L }
-                    ?: 0L
-                totals.contract += executionBase.toDouble()
+                val sourceWorksAmount = monitoringByProjectId[subproject.id]?.registryValues
+                    ?.get("constructionAmount")?.replace(Regex("\\s"), "")?.replace(',', '.')?.toDoubleOrNull()
+                val executionBase = financialProgressBase(sourceWorksAmount,
+                    subproject.subprojectContractAmount?.toDouble(), subproject.budgetPlanned.toDouble())
+                totals.contract += executionBase
                 totals.completed += disbursedBySubprojectId[subproject.id] ?: 0.0
             }
             return rows.map { (label, totals) ->
@@ -556,26 +556,13 @@ fun Route.financialRoutes() {
 
 /** Source workbooks may contain a technical code or `UA / EN` display value.
  * Aggregate them under one stable key before producing chart rows. */
-internal fun canonicalFinancialSector(value: String): String = when (value.substringBefore('/').trim().lowercase()) {
-    "education", "освіта" -> "education"
-    "health", "healthcare", "охорона здоров'я", "охорона здоров’я" -> "healthcare"
-    "housing", "житло" -> "housing"
-    "water_supply", "water supply", "водопостачання" -> "water_supply"
-    "sewerage", "водовідведення" -> "sewerage"
-    "heat_supply", "heat supply", "теплопостачання" -> "heat_supply"
-    "shelter", "укриття" -> "shelter"
-    "unspecified", "не визначено", "не вказано", "" -> "Unspecified"
-    else -> value.substringBefore('/').trim()
-}
+internal fun canonicalFinancialSector(value: String): String = oms.urp3.financialSectorKey(value)
 
-internal fun canonicalFinancialConstructionType(value: String): String = when (value.substringBefore('/').trim().lowercase()) {
-    "new_construction", "new construction", "нове будівництво" -> "new_construction"
-    "reconstruction", "реконструкція" -> "reconstruction"
-    "renovation", "capital_repair", "capital repair", "капітальний ремонт", "overhaul", "major repair", "major repairs" -> "renovation"
-    "repair", "поточний ремонт" -> "repair"
-    "unspecified", "не визначено", "не вказано", "" -> "Unspecified"
-    else -> value.substringBefore('/').trim()
-}
+internal fun canonicalFinancialConstructionType(value: String): String = oms.urp3.financialConstructionKey(value)
+
+/** Prefer the source works contract, not the total of Works + TS + CSC contracts. */
+internal fun financialProgressBase(sourceWorks: Double?, storedContract: Double?, approved: Double): Double =
+    listOfNotNull(sourceWorks, storedContract, approved).firstOrNull { it.isFinite() && it > 0.0 } ?: 0.0
 
 internal fun canonicalFinancialRegion(value: String): String = value
     .replace(Regex("\\s+(область|oblast|region)$", RegexOption.IGNORE_CASE), "")
