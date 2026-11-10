@@ -19,5 +19,11 @@ fun main() {
     check(totals["shelter"] == 300.0)
     check(totals["security_centres"] == 700.0)
     check(totals.values.sum() == rows.sumOf { it.second })
+    check(oms.urp3.paymentSubprojectKey("KH08_07#Lot1_W") == "KH08_07")
+    check(oms.urp3.paymentSubprojectKey("KH08_07#Lot1_TS\$2") == "KH08_07")
+    check(oms.urp3.paymentSubprojectKey("KH08_07") == "KH08_07")
+    check(oms.urp3.excelPercentagePoints(0.765, true) == 76.5)
+    check(oms.urp3.excelPercentagePoints(0.005, true) == 0.5)
+    check(oms.urp3.excelPercentagePoints(76.5, false) == 76.5)
     println("Financial category checks passed; grouped totals conserved")
 }

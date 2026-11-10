@@ -22,5 +22,9 @@ class DashboardPaymentMonitoringCodeTest {
         assertEquals("TS", "VN08_01_TS\$1".paymentMonitoringContractType())
         assertEquals("CSC", "VN08_01_CSC\$1".paymentMonitoringContractType())
         assertEquals("VN08_01", "VN08_01_TS\$1".paymentMonitoringSubprojectCode())
+        assertEquals("KH08_07", "KH08_07#Lot1_W".paymentMonitoringSubprojectCode())
+        assertEquals("KH08_07", "KH08_07#Lot1_TS\$2".paymentMonitoringSubprojectCode())
+        assertEquals("KH08_07", "KH08_07".paymentMonitoringSubprojectCode())
+        assertEquals("KH08_07", "KH08_07#Lot2".paymentMonitoringSubprojectCode())
     }
 }

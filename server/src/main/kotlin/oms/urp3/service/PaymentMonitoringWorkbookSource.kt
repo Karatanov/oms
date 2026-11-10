@@ -87,7 +87,15 @@ object PaymentMonitoringWorkbookSource {
                 if (code.isBlank() || code.equals("TOTAL", true) || code.equals("TOTAL:", true)) return@mapNotNull null
                 item(
                     code = code,
-                    number = { heading -> headers[heading]?.let { workbookNumber(row, it) } },
+                    number = { heading -> headers[heading]?.let { column ->
+                        val number = workbookNumber(row, column)
+                        if (heading.endsWith(", %")) {
+                            val cell = row.getCell(column)
+                            val numeric = cell != null && (cell.cellType == CellType.NUMERIC ||
+                                cell.cellType == CellType.FORMULA && cell.cachedFormulaResultType == CellType.NUMERIC)
+                            oms.urp3.excelPercentagePoints(number, numeric && cell?.cellStyle?.dataFormatString?.contains('%') == true)
+                        } else number
+                    } },
                     text = { heading -> headers[heading]?.let { workbookText(row, it).trim().takeIf(String::isNotBlank) } }
                 )
             }.filter(::hasIndicator)
@@ -327,7 +335,4 @@ internal fun String.paymentMonitoringContractType(): String? = substringBefore('
     .takeIf { it in setOf("W", "TS", "CSC") }
 
 /** Returns the owning subproject code, omitting an optional lot and contract suffix. */
-internal fun String.paymentMonitoringSubprojectCode(): String = substringBefore('$')
-    .substringBefore('#')
-    .substringBeforeLast('_')
-    .trim()
+internal fun String.paymentMonitoringSubprojectCode(): String = oms.urp3.paymentSubprojectKey(this)

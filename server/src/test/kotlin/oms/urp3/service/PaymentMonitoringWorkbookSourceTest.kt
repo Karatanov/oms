@@ -59,7 +59,12 @@ class PaymentMonitoringWorkbookSourceTest {
             createCell(5).setCellValue(450.0)
             createCell(6).setCellValue(550.0)
             createCell(7).setCellValue(90.0)
-            createCell(8).setCellValue(89.5)
+            createCell(8).apply {
+                setCellValue(0.895)
+                cellStyle = workbook.createCellStyle().apply {
+                    dataFormat = workbook.createDataFormat().getFormat("0.00%")
+                }
+            }
             createCell(9).setCellValue("Yes")
         }
         val bytes = ByteArrayOutputStream().use { output ->
@@ -74,6 +79,8 @@ class PaymentMonitoringWorkbookSourceTest {
         assertEquals(1_000.0, items.single().totalInvestmentUah)
         assertEquals(450.0, items.single().paidUah)
         assertEquals("Yes", items.single().eibShareCompliance)
+        assertEquals(90.0, items.single().plannedEibSharePct)
+        assertEquals(89.5, items.single().factualEibSharePct)
     }
 
     @Test

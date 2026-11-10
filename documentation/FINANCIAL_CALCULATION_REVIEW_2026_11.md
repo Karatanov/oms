@@ -28,6 +28,24 @@
 
 ## Verification and limits
 
+### Follow-up: lot attribution and percentage units
+
+- `paymentMonitoringSubprojectCode` removed `#Lot` before stripping `_W`/`_TS`/
+  `_CSC`. For `KH08_07#Lot1_W`, that produced `KH08` and lost the project match.
+  The suffix order is corrected and plain subproject codes are preserved.
+  Independent source inspection found 22 dated Works lot payments totalling
+  UAH 49,522,160.76 affected by this attribution defect in grouped progress.
+  The payments themselves were stored; this is not missing imported money.
+- Numeric Excel cells with a percent number format are fractions. The XLSX
+  reader now converts only such cells to API percentage points before storage:
+  `0.765 -> 76.5`. Plain numeric `76.5` and textual `76.5%` remain 76.5.
+  This also preserves a genuine `0.5%` cell instead of applying a value-based
+  heuristic that confuses small percentages with fractions.
+- Existing stored share values require a payment workbook refresh after the
+  corrected backend is deployed. No heuristic rewrite of historical database
+  values is performed. Lot attribution takes effect immediately on new reads
+  after deployment and requires no reimport.
+
 Standalone Kotlin checks execute the shared canonicalization and verify alias
 grouping conserves totals. Backend regression tests cover the weighted ratio,
 aliases and construction-only denominator fallback, including fractional UAH.
