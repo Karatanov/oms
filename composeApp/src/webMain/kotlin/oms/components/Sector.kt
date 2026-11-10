@@ -16,7 +16,14 @@ import oms.localization.LocalizationManager
 /** Canonical Phase 1 sectors aligned with the UR III monitoring source. */
 val sectors = listOf("education", "health", "housing", "water_supply", "sewerage", "heat_supply", "shelter")
 
-private fun String.canonicalSectorKey(): String? = when (lowercase()) {
+private fun String.canonicalSectorKey(): String? {
+    // The approved monitoring workbooks contain both stable codes and human
+    // labels.  Some rows carry one language, others a UA/EN pair and a few
+    // use a descriptive phrase (for example, "Water and sewerage").  Match
+    // against the complete normalized source value so a chart never exposes
+    // an untranslated source label merely because its separator differs.
+    val normalized = trim().lowercase()
+    return when (normalized) {
     "education" -> "education"
     "health", "healthcare" -> "health"
     "housing" -> "housing"
@@ -25,14 +32,17 @@ private fun String.canonicalSectorKey(): String? = when (lowercase()) {
     "heat_supply" -> "heat_supply"
     "shelter" -> "shelter"
     else -> when {
-        contains("освіта") || contains("education") -> "education"
-        contains("охорона здоров") || contains("healthcare") || contains("health care") -> "health"
-        contains("житло") || contains("housing") -> "housing"
-        contains("водопостач") || contains("water supply") -> "water_supply"
-        contains("водовідвед") || contains("sewerage") -> "sewerage"
-        contains("теплопостач") || contains("heat supply") -> "heat_supply"
-        contains("укрит") || contains("shelter") -> "shelter"
+        normalized.contains("освіта") || normalized.contains("education") -> "education"
+        normalized.contains("охорона здоров") || normalized.contains("healthcare") ||
+            normalized.contains("health care") || normalized.contains("health") -> "health"
+        normalized.contains("житло") || normalized.contains("housing") -> "housing"
+        normalized.contains("водопостач") || normalized.contains("water supply") -> "water_supply"
+        normalized.contains("водовідвед") || normalized.contains("каналіза") ||
+            normalized.contains("sewerage") || normalized.contains("sewage") || normalized.contains("wastewater") -> "sewerage"
+        normalized.contains("теплопостач") || normalized.contains("heat supply") || normalized.contains("heating") -> "heat_supply"
+        normalized.contains("укрит") || normalized.contains("shelter") || normalized.contains("civil protection") -> "shelter"
         else -> null
+    }
     }
 }
 
