@@ -5,6 +5,14 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class FinancialProgressPaymentsTest {
+    @Test fun `lot contract bases are summed only when a parent total is unavailable`() {
+        val lots = listOf(2_867_194.45, 2_896_685.69, 2_929_089.77, null, null, 2_905_436.22)
+        assertEquals(11_598_406.13, financialProgressSourceWorks(null, lots)!!, 0.001)
+        assertEquals(11_598_406.13, financialProgressSourceWorks(0.0, lots)!!, 0.001)
+        assertEquals(12_000_000.0, financialProgressSourceWorks(12_000_000.0, lots))
+        assertEquals(null, financialProgressSourceWorks(null, listOf(null, 0.0, Double.NaN, -1.0)))
+    }
+
     private fun payment(code: String, amount: Double, year: Int = 2026) =
         PaymentMonitoringWorkbookSource.Transaction(code, code, 8, LocalDate.of(year, 2, 1), amount, null, "test")
 

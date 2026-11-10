@@ -28,6 +28,23 @@
 
 ## Verification and limits
 
+### Follow-up: lot contract bases in financial execution
+
+- Financial progress fetched monitoring details for parent subprojects only.
+  Where DB Table publishes separate lot rows rather than a parent total,
+  that discarded the actual Works contract bases and used a synthetic parent
+  fallback (which can represent just its first lot).
+- The request now fetches details for parts of the selected subprojects as well.
+  A positive source parent Works total takes precedence; otherwise positive
+  source lot Works amounts are summed once. Missing lot amounts are not invented.
+  The established stored-contract/approved-budget fallback remains when neither
+  source level has an available positive base. No source records are changed.
+- DB Table rows 57–62 (KH08_07) supply four Works amounts across six lots:
+  2,867,194.45 + 2,896,685.69 + 2,929,089.77 + 2,905,436.22 =
+  UAH 11,598,406.13. Rows 67–68 (KH08_09) likewise publish lot amounts,
+  not a separate parent total. Regression tests cover lot aggregation,
+  parent-total precedence, missing values and exclusion of nonpositive values.
+
 ### Follow-up: financial-progress source selection
 
 - Financial progress by region, sector and construction type tested whether

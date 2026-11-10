@@ -219,12 +219,6 @@ fun Route.financialRoutes() {
                 (requestedTranche == null || project.trancheNumber.matchesFinancialTranche(requestedTranche)) &&
                 (requestedSubprojectUuid == null || project.uuid.toString() == requestedSubprojectUuid)
         }
-        // Registry imports retain the authoritative sector and construction
-        // type in monitoring details.  Older project rows can predate these
-        // fields; using the imported values first prevents real subprojects
-        // from being misleadingly grouped under "Unspecified".
-        val monitoringByProjectId = AppContainer.projectService
-            .monitoringDetailsByProjectIds(subprojects.map { it.id })
         // Legacy lot records may use CODE#LotN while payments belong to the
         // base subproject. Build this lookup once: resolving each payment by
         // repeatedly scanning all subprojects becomes expensive as both the
@@ -249,6 +243,20 @@ fun Route.financialRoutes() {
             return if (baseCode.equals(current.siteNumber.trim(), ignoreCase = true)) current else
                 subprojectByBaseCode[baseCode.uppercase()] ?: current
         }
+        val selectedSubprojectIds = subprojects.map { it.id }.toSet()
+        val partIdsBySubproject = projects.asSequence()
+            .filter { it.projectType == ProjectType.SUBPROJECT_PART }
+            .mapNotNull { part ->
+                parentSubproject(part.id)?.id?.takeIf { it in selectedSubprojectIds }
+                    ?.let { it to part.id }
+            }.groupBy({ it.first }, { it.second })
+        // Import details own both the classification and Works-only amounts.
+        // Include parts: a synthetic parent may have no source detail at all.
+        val monitoringByProjectId = AppContainer.projectService.monitoringDetailsByProjectIds(
+            (selectedSubprojectIds + partIdsBySubproject.values.flatten()).toList()
+        )
+        fun readSourceWorksAmount(projectId: Long): Double? = monitoringByProjectId[projectId]?.registryValues
+            ?.get("constructionAmount")?.let { oms.urp3.service.monitoringSourceAmount(it) }
         // Financial execution is cash disbursed for construction works against
         // the construction-contract/approved-work budget.  ACT records are
         // evidence of delivery rather than a payment, and TS/CSC/equipment
@@ -285,8 +293,10 @@ fun Route.financialRoutes() {
                 // contract while payments have already been imported.  Zero
                 // must not become the denominator in that case: use the
                 // approved subproject funding as the documented fallback.
-                val sourceWorksAmount = monitoringByProjectId[subproject.id]?.registryValues
-                    ?.get("constructionAmount")?.let { oms.urp3.service.monitoringSourceAmount(it) }
+                val sourceWorksAmount = oms.urp3.service.financialProgressSourceWorks(
+                    readSourceWorksAmount(subproject.id),
+                    partIdsBySubproject[subproject.id].orEmpty().map(::readSourceWorksAmount)
+                )
                 val executionBase = financialProgressBase(sourceWorksAmount,
                     subproject.subprojectContractAmount?.toDouble(), subproject.budgetPlanned.toDouble())
                 totals.contract += executionBase
