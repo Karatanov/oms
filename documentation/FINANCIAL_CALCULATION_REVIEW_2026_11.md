@@ -44,6 +44,31 @@
   not silently rewrite existing production project attributes; refreshed
   source amounts must be reconciled before a separate data correction.
 
+#### Verified production amount repair
+
+- Read-only diagnosis confirmed the defect in existing attributes: 193 of 196
+  active subprojects and all 29 parts had zero budgets, despite nonzero retained
+  source amounts. A separate case stored `888,956` as 888 rather than 888956.
+- Created and restore-verified backup
+  `/docker/oms/backups/registry-20261110T143436Z` (database and uploaded files).
+  A guarded repair was first applied to the isolated restored schema
+  `oms_amount_trial_20261110143457`: 225 budgets and 67 contract totals changed.
+  Comparison of every other project column found no changes except MySQL's
+  automatic `updated_at` timestamps.
+- Applied the same plan to production in one transaction. Each row required
+  its stored old values and source payload to match the read-only plan; an
+  affected-row assertion aborts the batch before COMMIT on any mismatch.
+  Values not matching the proven legacy-parser result are deliberately skipped
+  during planning rather than overwriting potential manual corrections.
+- Post-repair planning found zero remaining eligible corrections. All 196
+  active subprojects and 29 parts now have nonzero source budgets. All 332
+  hierarchy rows, four users, both inspection identities/project links and
+  every uploaded-file checksum were preserved. Null contracts with no positive
+  source contract remain null; they are not fabricated.
+- No application restart or wider import was needed: the project read cache
+  expires after 30 seconds. This verifies database values and retained links,
+  not a completed interactive browser review of every financial chart.
+
 ### Follow-up: lot contract bases in financial execution
 
 - Financial progress fetched monitoring details for parent subprojects only.

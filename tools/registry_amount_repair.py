@@ -1,0 +1,80 @@
+"""Build a guarded, amount-only SQL repair from a read-only JSON-lines registry export."""
+import json
+import re
+import sys
+from decimal import Decimal, InvalidOperation
+
+
+def amount(text):
+    compact = re.sub(r"\s|\u00a0", "", text or "")
+    if "," in compact and "." in compact:
+        compact = compact.replace(",", "")
+    elif re.fullmatch(r"-?\d{1,3}(,\d{3})+", compact):
+        compact = compact.replace(",", "")
+    else:
+        compact = compact.replace(",", ".")
+    try:
+        value = Decimal(compact)
+        return int(value) if value.is_finite() and value >= 0 else None
+    except InvalidOperation:
+        return None
+
+
+def broken_amount(text):
+    try:
+        value = Decimal(re.sub(r"\s", "", text or "").replace(",", "."))
+        return int(value) if value.is_finite() else 0
+    except InvalidOperation:
+        return 0
+
+
+def sql_text(text):
+    return "NULL" if text is None else "CONVERT(X'" + text.encode("utf-8").hex() + "' USING utf8mb4)"
+
+
+def plan(rows):
+    for row in rows:
+        changes = {}
+        new_budget = amount(row["source_budget"])
+        new_contract = amount(row["source_contract"])
+        if new_budget is not None and row["budget"] == max(0, broken_amount(row["source_budget"])):
+            if new_budget != row["budget"]:
+                changes["budget_planned"] = new_budget
+        old_contract = broken_amount(row["source_contract"])
+        old_contract = old_contract if old_contract > 0 else None
+        if new_contract and row["contract"] == old_contract and new_contract != row["contract"]:
+            changes["subproject_contract_amount"] = new_contract
+        if changes:
+            yield row, changes
+
+
+def main():
+    rows = [json.loads(line) for line in sys.stdin if line.strip()]
+    updates = list(plan(rows))
+    # A duplicate-key assertion aborts even on MySQL versions without enforced CHECK constraints.
+    print("CREATE TEMPORARY TABLE oms_amount_repair_assertion (id INT PRIMARY KEY);")
+    print("INSERT INTO oms_amount_repair_assertion VALUES (1);")
+    print("START TRANSACTION;")
+    print("SET @repaired_rows=0;")
+    for row, changes in updates:
+        expected = "NULL" if row["contract"] is None else str(int(row["contract"]))
+        assignments = ",".join("p." + key + "=" + str(value) for key, value in changes.items())
+        print("UPDATE projects p JOIN project_monitoring_details d ON d.project_id=p.id SET " + assignments
+              + " WHERE p.id=" + str(int(row["id"]))
+              + " AND p.site_number=" + sql_text(row["code"])
+              + " AND p.budget_planned=" + str(int(row["budget"]))
+              + " AND p.subproject_contract_amount <=> " + expected
+              + " AND JSON_UNQUOTE(JSON_EXTRACT(d.registry_json,'$.fundingTotal')) <=> " + sql_text(row["source_budget"])
+              + " AND JSON_UNQUOTE(JSON_EXTRACT(d.registry_json,'$.contractedTotal')) <=> " + sql_text(row["source_contract"])
+              + ";")
+        print("SET @repaired_rows=@repaired_rows+ROW_COUNT();")
+    print("INSERT INTO oms_amount_repair_assertion SELECT 1 WHERE @repaired_rows<>" + str(len(updates)) + ";")
+    print("SELECT @repaired_rows AS repaired_rows;")
+    print("COMMIT;")
+    print(json.dumps({"source_rows": len(rows), "repair_rows": len(updates),
+                      "budget_fields": sum("budget_planned" in change for _, change in updates),
+                      "contract_fields": sum("subproject_contract_amount" in change for _, change in updates)}), file=sys.stderr)
+
+
+if __name__ == "__main__":
+    main()
