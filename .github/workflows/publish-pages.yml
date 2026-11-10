@@ -50,7 +50,11 @@ jobs:
         uses: gradle/actions/setup-gradle@v6
 
       - name: Build production web frontend
-        run: gradle -PrenderJsOnly :composeApp:jsBrowserProductionWebpack --no-daemon --max-workers=1
+        # A corrupted Gradle configuration-cache entry can leave the Kotlin/JS
+        # compiler running indefinitely.  A production bundle normally takes
+        # about 20 minutes, so fail deterministically instead of consuming a
+        # runner for hours and retry from a clean configuration state.
+        run: timeout --foreground --kill-after=1m 30m gradle -PrenderJsOnly :composeApp:jsBrowserProductionWebpack --no-daemon --no-configuration-cache --max-workers=1
 
       - name: Assemble Pages site
         run: |

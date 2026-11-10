@@ -41,7 +41,10 @@ jobs:
       - uses: gradle/actions/setup-gradle@v6
 
       - name: Compile production Compose frontend
-        run: bash gradlew -PrenderJsOnly :composeApp:jsBrowserProductionWebpack --no-daemon --max-workers=1
+        # Do not reuse configuration state for the long Kotlin/JS production
+        # task: a stale entry may hang compilation.  The command-level limit
+        # also works if a hosted-runner job timeout is not enforced promptly.
+        run: timeout --foreground --kill-after=1m 30m bash gradlew -PrenderJsOnly :composeApp:jsBrowserProductionWebpack --no-daemon --no-configuration-cache --max-workers=1
 
       - name: Assemble frontend hand-off
         run: |
