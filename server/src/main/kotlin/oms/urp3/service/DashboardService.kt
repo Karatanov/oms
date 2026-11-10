@@ -433,7 +433,7 @@ private fun dashboardSubprojectProgress(
         .groupBy { dashboardSubprojectCode(it[ProcurementRecordTable.subProjectId]) }
         .mapValues { (_, rows) -> rows.uniqueContracts().sumOf(::worksContractAmount) }
     val signedWorksAmountBySourceCode = signedWorksContracts
-        .groupBy { it[ProcurementRecordTable.subProjectId].trim().uppercase() }
+        .groupBy { worksContractSourceCode(it[ProcurementRecordTable.subProjectId], it[ProcurementRecordTable.subProjectLotId]) }
         .mapValues { (_, rows) -> rows.uniqueContracts().sumOf(::worksContractAmount) }
     data class MonitoringProgress(var completedAmount: Double = 0.0, var hasReportedProgress: Boolean = false)
     val monitoringProgressBySubproject = mutableMapOf<Long, MonitoringProgress>()
@@ -573,7 +573,8 @@ class DashboardService(
             .mapValues { (_, values) -> values.firstOrNull { it.eur != null } ?: values.first() }
         val subprojectFunding = portfolioSubprojects.map { row ->
             val code = row[ProjectTable.siteNumber].orEmpty().substringBefore('#').trim().uppercase()
-            row.toFunding(amountsByProject[row[ProjectTable.id].value], approvedFundingBySubprojectCode[code])
+            row.toFunding(amountsByProject[row[ProjectTable.id].value], approvedFundingBySubprojectCode[code],
+                monitoringByProjectId[row[ProjectTable.id].value])
         }
         val portfolioSubprojectsByCode = portfolioSubprojects.associateBy { row ->
             row[ProjectTable.siteNumber].orEmpty().substringBefore('#').trim().uppercase()
@@ -686,7 +687,9 @@ class DashboardService(
                 it[ProjectAmountTable.amount], it[ProjectAmountTable.currency], it[ProjectAmountTable.convertedAmount],
                 it[ProjectAmountTable.uahPerEur], it[ProjectAmountTable.rateDate], it[ProjectAmountTable.conversionEdited]
             ) } }
-        val subprojectFunding = subprojects.map { row -> row.toFunding(amountsByProject[row[ProjectTable.id].value]) }
+        val subprojectFunding = subprojects.filter { it[ProjectTable.status] == "active" }.map { row ->
+            row.toFunding(amountsByProject[row[ProjectTable.id].value], monitoring = monitoringByProjectId[row[ProjectTable.id].value])
+        }
         val procurementRecords = if (allowedProjectIds == null) {
             procurementBatchIdsForTranche(trancheNumber)?.let { batchIds ->
                 if (batchIds.isEmpty()) emptyList() else ProcurementRecordTable.selectAll()
@@ -739,14 +742,18 @@ private data class DashboardApprovedFunding(val eur: Double?, val uah: Double?)
 
 private fun org.jetbrains.exposed.v1.core.ResultRow.toFunding(
     amounts: Map<String, ProjectAmount>?,
-    approvedFunding: DashboardApprovedFunding? = null
+    approvedFunding: DashboardApprovedFunding? = null,
+    monitoring: org.jetbrains.exposed.v1.core.ResultRow? = null
 ): DashboardSubprojectFunding {
-    // Preserve the existing chart semantics: a construction contract is used
-    // when it exists; otherwise the approved project budget is shown.
-    val amount = amounts?.get("construction") ?: amounts?.get("budget")
-    val legacyUah = this[ProjectTable.subprojectContractAmount] ?: this[ProjectTable.budgetPlanned]
+    // A subproject without a signed procurement row still has approved funding
+    // in its monitoring/allocation snapshot. Never substitute its works
+    // contract (or the locally co-financed total cost) for that EIB baseline.
+    val amount = amounts?.get("budget")
+    val legacyUah = this[ProjectTable.budgetPlanned]
     val fallbackUah = amount?.uah?.toDouble() ?: legacyUah.toDouble()
-    val uah = approvedFunding?.uah?.takeIf(Double::isFinite) ?: fallbackUah
+    val uah = approvedFunding?.uah?.takeIf(Double::isFinite)
+        ?: monitoringApprovedEibUah(monitoring?.get(ProjectMonitoringDetailTable.registryJson))
+        ?: fallbackUah
     // Regional funding is one comparison.  Individual records can retain
     // their own frozen conversion dates, while legacy imports have no EUR
     // conversion at all.  For this aggregate we therefore use the canonical

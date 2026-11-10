@@ -20,6 +20,18 @@ SELECT MAX(dashboard_amount_paid_total_uah) AS approved_dashboard_total_uah
 FROM payment_monitoring_rows;
 SELECT source_code,planned_eib_share_pct,factual_eib_share_pct
 FROM payment_monitoring_rows WHERE source_code='VN08_01';
+SELECT source_subproject_id,
+ SUM(source_lot_id=source_subproject_id) AS parent_progress_rows,
+ SUM(source_lot_id<>source_subproject_id) AS lot_progress_rows
+FROM project_monitoring_details WHERE completed_work_pct IS NOT NULL AND completed_work_pct<>''
+GROUP BY source_subproject_id HAVING parent_progress_rows>0 AND lot_progress_rows>0;
+SELECT COUNT(*) AS active_subprojects_using_monitoring_funding_fallback
+FROM projects p JOIN project_monitoring_details d ON d.project_id=p.id
+LEFT JOIN (
+ SELECT sub_project_id, MAX(estimated_eib_uah) AS approved_uah FROM procurement_records GROUP BY sub_project_id
+) c ON c.sub_project_id=p.site_number
+WHERE p.project_type='subproject' AND p.status='active' AND c.approved_uah IS NULL
+AND JSON_VALID(d.registry_json) AND JSON_EXTRACT(d.registry_json,'$.eibCost') IS NOT NULL;
 SELECT COUNT(*) AS summaries, SUM(paid_uah) AS summary_paid_uah
 FROM payment_monitoring_rows WHERE source_code NOT REGEXP '_(W|TS|CSC)([$].*)?$';
 SELECT source_code FROM payment_monitoring_rows

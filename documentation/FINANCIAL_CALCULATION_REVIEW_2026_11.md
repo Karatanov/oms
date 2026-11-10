@@ -28,6 +28,25 @@
 
 ## Verification and limits
 
+### Follow-up: funding baseline and physical lot weighting
+
+- Physical-completion weighting now uses the procurement lot identifier when
+  present. The parent subproject code remains the final aggregation key, but
+  cannot be used to look up a particular lot's construction contract.
+- Approved funding prefers the AT investment value, then monitoring/allocation
+  `eibCost`, then the budget fallback. A signed construction contract is not
+  an approved-financing fallback. A production query found 136 active
+  subprojects without an AT amount persisted in procurement but with an EIB
+  amount in their monitoring snapshot.
+- The legacy dashboard funding list is scoped to active subprojects, matching
+  the overview instead of including planned screening candidates.
+- Source amount parsing accepts Excel thousands grouping (`6,484,316`), mixed
+  US decimal formatting (`1,234.56`) and Ukrainian decimal formatting
+  (`1 234,56`). Invalid and nonfinite values remain unavailable, not zero.
+- Read-only production inspection found no simultaneous nonblank parent and
+  lot progress rows for the same subproject. No speculative deduplication of
+  such observations was introduced.
+
 ### Follow-up: lot attribution and percentage units
 
 - `paymentMonitoringSubprojectCode` removed `#Lot` before stripping `_W`/`_TS`/

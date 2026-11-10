@@ -296,7 +296,7 @@ fun Route.financialRoutes() {
                 // must not become the denominator in that case: use the
                 // approved subproject funding as the documented fallback.
                 val sourceWorksAmount = monitoringByProjectId[subproject.id]?.registryValues
-                    ?.get("constructionAmount")?.replace(Regex("\\s"), "")?.replace(',', '.')?.toDoubleOrNull()
+                    ?.get("constructionAmount")?.let { oms.urp3.service.monitoringSourceAmount(it) }
                 val executionBase = financialProgressBase(sourceWorksAmount,
                     subproject.subprojectContractAmount?.toDouble(), subproject.budgetPlanned.toDouble())
                 totals.contract += executionBase
