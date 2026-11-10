@@ -28,6 +28,22 @@
 
 ## Verification and limits
 
+### Follow-up: grouped money values during subproject import
+
+- The monitoring row reader replaced every comma with a decimal point.
+  Excel-formatted `1,234,567.89` consequently became `1.234.567.89`, failed
+  numeric parsing and was silently replaced by zero. This path writes the
+  legacy project budget and signed-contract attributes; the original registry
+  JSON and source workbook remain intact.
+- Registry rows now reuse `monitoringSourceAmount`, already used for dashboard
+  funding and financial bases, instead of maintaining a conflicting parser.
+  Tests exercise the actual Row.number entry point with Apache POI-generated
+  grouped display text, grouped integers, decimal commas, NBSP grouping and
+  invalid/blank cells. Missing amounts retain the existing zero fallback.
+- This code correction applies on the next approved registry refresh. It does
+  not silently rewrite existing production project attributes; refreshed
+  source amounts must be reconciled before a separate data correction.
+
 ### Follow-up: lot contract bases in financial execution
 
 - Financial progress fetched monitoring details for parent subprojects only.

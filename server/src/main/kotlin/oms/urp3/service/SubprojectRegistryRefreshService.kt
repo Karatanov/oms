@@ -412,7 +412,7 @@ private object MonitoringWorkbookSource {
         val isAllocationSnapshot: Boolean = false
     ) {
         fun value(key: String) = values[key].orEmpty()
-        fun number(key: String) = value(key).replace(Regex("\\s"), "").replace(',', '.').toDoubleOrNull() ?: 0.0
+        fun number(key: String) = monitoringSourceAmount(value(key)) ?: 0.0
         fun date(key: String) = value(key).let { raw -> runCatching { LocalDate.parse(raw) }.getOrNull() }
         /**
          * Source workbooks use several equivalent captions for Batch 9:
