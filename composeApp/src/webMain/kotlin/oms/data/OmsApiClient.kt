@@ -948,7 +948,7 @@ private fun ApiDashboard.toOverview() = ApiDashboardOverview(
 )
 
 @Serializable
-data class ApiMonthlyActPayment(val month: String, val amountEurCents: Long, val amountUahCents: Long? = null)
+data class ApiMonthlyActPayment(val month: String, val amountEurCents: Long, val amountUahCents: Long? = null, val hasCompleteEurAmounts: Boolean = true)
 @Serializable data class ApiSubprojectFunding(
     val projectUuid: String,
     val name: String,

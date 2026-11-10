@@ -28,6 +28,22 @@
 
 ## Verification and limits
 
+### Follow-up: monthly disbursement aggregation
+
+- Ledger fallback uses payment date when available, then record date. A payment
+  without a saved EUR equivalent is retained in the known UAH total.
+- A persisted approved snapshot is authoritative even for an empty tranche;
+  an empty result no longer revives unrelated legacy financial records.
+- Independent availability is retained for each currency. An additive, defaulted
+  API flag marks incomplete EUR totals without changing the numeric field's
+  wire type. The updated chart does not present an unknown conversion as zero
+  and shows the existing missing-rate warning.
+- Months between the first and last payment are continuous and genuinely empty
+  months are zero. No months are inserted before the first or after the last.
+- Standalone tests verify mixed currency availability, tranche aliases and
+  calendar gaps. An additional real-source reconciliation verifies all 93 rows,
+  UAH 309,119,376.61, the empty tranche-B result and the January 2026 zero.
+
 ### Follow-up: funding baseline and physical lot weighting
 
 - Physical-completion weighting now uses the procurement lot identifier when

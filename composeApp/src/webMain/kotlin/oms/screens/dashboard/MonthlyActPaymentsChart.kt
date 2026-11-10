@@ -37,8 +37,11 @@ fun MonthlyActPaymentsChart(primary: Color, payments: List<ApiMonthlyActPayment>
     var currency by remember { mutableStateOf("EUR") }
     val sortedPayments = payments.sortedBy { it.month }
     val data = sortedPayments
-        .map { payment ->
-            val amountCents = if (currency == "EUR") payment.amountEurCents else payment.amountUahCents ?: 0L
+        .mapNotNull { payment ->
+            val amountCents = if (currency == "EUR") {
+                payment.amountEurCents.takeIf { payment.hasCompleteEurAmounts }
+            } else payment.amountUahCents
+            if (amountCents == null) return@mapNotNull null
             BarData(
                 label = payment.month.toMonthName(),
                 value = amountCents.toFloat(),
@@ -73,7 +76,10 @@ fun MonthlyActPaymentsChart(primary: Color, payments: List<ApiMonthlyActPayment>
                 CurrencySelector(currency) { currency = it }
             }
             Spacer(Modifier.height(8.dp))
-            if (data.isEmpty()) Text(LocalizationManager.t("no_payments_yet"))
+            if (data.size < sortedPayments.size) Text(LocalizationManager.t("financial_rates_missing"), style = MaterialTheme.typography.bodySmall)
+            if (data.isEmpty()) {
+                if (sortedPayments.isEmpty()) Text(LocalizationManager.t("no_payments_yet"))
+            }
             else if (orientation == BarChartOrientation.Vertical) VerticalBarChart(
                 data = data, color = primary, valueLabel = { formatActAmount(it.toLong(), currency) }, labelMaxLines = 1,
                 onItemClick = { bar -> bar.id?.let(onOpenFinancialByMonth) }

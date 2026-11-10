@@ -43,7 +43,8 @@ data class ActivityResponse(val action: String, val entityType: String, val enti
 data class MonthlyActPaymentResponse(
     val month: String,
     val amountEurCents: Long,
-    val amountUahCents: Long? = null
+    val amountUahCents: Long? = null,
+    val hasCompleteEurAmounts: Boolean = true
 )
 @Serializable data class SubprojectFundingResponse(
     val projectUuid: String,
