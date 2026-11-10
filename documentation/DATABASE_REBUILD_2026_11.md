@@ -85,8 +85,37 @@ These include headings, summaries and helper worksheets; they are NOT counts of
 business entities. The subsequent domain import must select the authoritative
 sheets and exclude headings/helpers rather than importing every raw row as data.
 
-## Not yet performed
+## Production cutover on 10 November 2026
 
-No live OMS records have been deleted or refreshed by this preflight. Typed-table
-migrations, coordinated domain import, production refresh
-and post-import reconciliation remain implementation work.
+The existing domain model was reused instead of replacing all tables. The four
+files were parsed by the same import services as the website, first against a
+restored database and then against production. `RegistryRefreshRunner.java` is
+an offline JDK-21 operator tool using the server distribution's existing import
+services. It accepts `preflight` (no database connection) and `apply` modes.
+
+`trial-registry-refresh.sh` retains an isolated restored database for inspection.
+`apply-registry-refresh.sh` requires a verified fresh backup and trial approval,
+stops the application during import, uses the locally installed image (no GHCR
+credentials required), and restores the SQL snapshot if import or protected-link
+verification fails. `check-registry-refresh.sh` executes the read-only verification
+queries against the trial or live database.
+
+Verified live results:
+
+- 125 active tranche-A subprojects, 71 active tranche-B subprojects, 29 parts.
+- 106 additional tranche-B records retained as planned rather than deleted.
+- 139 procurement records, 181 payment summary/component records, 93 payments.
+- Four users and two inspections retain their original identities and links.
+- No orphan inspection/contract references and no duplicate project codes.
+- The 125 primary summary rows total UAH 304,888,750.26. The cached approved
+  dashboard E4 is UAH 304,888,750.30 and remains stored exactly as supplied.
+- The 93 dated payments independently sum to UAH 309,119,376.61 (Works:
+  307,988,578.28; TS: 1,130,798.33). This differs from the cached E4 source
+  aggregate; the import preserves both rather than fabricating reconciliation.
+- One contract (`CK08_05_TS$1`, DB6.3 row 126) has text rather than a URL in AC
+  and no Excel hyperlink target. Its missing link was not invented.
+- The public HTTPS health endpoint returned HTTP 200 after restart.
+
+No application build or database-schema replacement was required for this data
+refresh. Further replacement of the existing domain schema is separate work;
+the source-owned staging snapshot preserves all supplied columns in the meantime.
