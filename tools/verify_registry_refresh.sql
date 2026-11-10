@@ -18,6 +18,8 @@ SELECT COUNT(*) AS payments, SUM(amount_uah) AS paid_uah,
  SUM(amount_eur) AS paid_eur FROM payment_monitoring_transactions;
 SELECT MAX(dashboard_amount_paid_total_uah) AS approved_dashboard_total_uah
 FROM payment_monitoring_rows;
+SELECT source_code,planned_eib_share_pct,factual_eib_share_pct
+FROM payment_monitoring_rows WHERE source_code='VN08_01';
 SELECT COUNT(*) AS summaries, SUM(paid_uah) AS summary_paid_uah
 FROM payment_monitoring_rows WHERE source_code NOT REGEXP '_(W|TS|CSC)([$].*)?$';
 SELECT source_code FROM payment_monitoring_rows

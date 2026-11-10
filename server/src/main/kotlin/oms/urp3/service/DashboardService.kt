@@ -605,29 +605,16 @@ class DashboardService(
             isConstructionContractSigned(record[ProcurementRecordTable.purchaseStatus])
         }
         val servicesPaidUah = paymentRecords.mapNotNull { it.amountUahCents() }
-        // The payment-monitoring register is the only approved source that
-        // carries both the amount actually paid and the factual EIB share.
-        // Do not derive an EIB contribution from all ledger records: payments
-        // for TS/CSC/equipment use different financing bases.
+        // Primary monitoring rows carry approved amounts actually paid.
+        // Their factual-share column is an execution ratio, not a multiplier
+        // for deriving an EIB contribution from these already-paid amounts.
         val selectedSubprojectCodes = portfolioSubprojects
             .map { it[ProjectTable.siteNumber].substringBefore('#').trim().uppercase() }
             .toSet()
         val eibPaidUnderContractsUah = runCatching {
             val monitoringSnapshot = AppContainer.paymentMonitoringService.currentIfAvailable()
                 ?: return@runCatching null
-            monitoringSnapshot.items
-                .asSequence()
-                // The workbook has supporting `_W`, `_TS` and `_CSC` rows
-                // in addition to the primary SP line. They are not separate
-                // subprojects and must never be added to the KPI a second time.
-                .filter { isPrimaryPaymentMonitoringSubprojectCode(it.code) }
-                .filter { it.code.substringBefore('#').substringBefore('$').trim().uppercase() in selectedSubprojectCodes }
-                .mapNotNull { item ->
-                    val paid = item.paidUah?.takeIf { it.isFinite() } ?: return@mapNotNull null
-                    val eibShare = item.factualEibSharePct?.takeIf { it.isFinite() } ?: return@mapNotNull null
-                    paid * eibShare / 100.0
-                }
-                .sum()
+            primaryMonitoringPaidUah(monitoringSnapshot.items, selectedSubprojectCodes)
         }.getOrNull()
         // Both totals use the same AT Work Table baseline as the regional
         // funding chart. Fall back only for legacy records that have not yet

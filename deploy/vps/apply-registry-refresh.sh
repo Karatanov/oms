@@ -4,6 +4,8 @@ set -euo pipefail
 umask 077
 cd /docker/oms
 backup="${1:?fresh verified backup directory}"
+mode="${2:-apply}"
+case "$mode" in apply|payments) ;; *) exit 2 ;; esac
 case "$backup" in /docker/oms/backups/registry-*) ;; *) exit 2 ;; esac
 test -f "$backup/restore-verification.txt"
 test -f "$backup/runner/RegistryRefreshRunner.class"
@@ -26,7 +28,7 @@ docker compose stop oms
 trap rollback EXIT
 docker compose run --pull never --rm --no-deps -T \
   -v "$backup/runner:/tmp/registry-runner:ro" oms \
-  java -Xmx768m -cp '/opt/oms/lib/*:/tmp/registry-runner' RegistryRefreshRunner apply /tmp/registry-runner \
+  java -Xmx768m -cp '/opt/oms/lib/*:/tmp/registry-runner' RegistryRefreshRunner "$mode" /tmp/registry-runner \
   | tee "$backup/import.log"
 docker compose exec -T mysql sh -c 'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" exec mysql -uroot --batch "$MYSQL_DATABASE"' > "$backup/post-import-protected.tsv" <<'SQL'
 SELECT 'users',COUNT(*) FROM users;

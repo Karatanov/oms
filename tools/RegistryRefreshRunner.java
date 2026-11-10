@@ -59,8 +59,8 @@ public final class RegistryRefreshRunner {
     }
     public static void main(String[] args) {
         try {
-            if (args.length != 2 || !Set.of("preflight", "apply").contains(args[0]))
-                throw new IllegalArgumentException("Usage: RegistryRefreshRunner preflight|apply SOURCE_DIRECTORY");
+            if (args.length != 2 || !Set.of("preflight", "apply", "payments").contains(args[0]))
+                throw new IllegalArgumentException("Usage: RegistryRefreshRunner preflight|apply|payments SOURCE_DIRECTORY");
             Path directory = Path.of(args[1]);
             byte[] allocation = Files.readAllBytes(directory.resolve("allocation.xlsx"));
             byte[] monitoring = Files.readAllBytes(directory.resolve("monitoring.xlsx"));
@@ -77,6 +77,12 @@ public final class RegistryRefreshRunner {
             if (args[0].equals("preflight")) return;
             connect();
             Object container = singleton("config.AppContainer");
+            if (args[0].equals("payments")) {
+                Object snapshot = invoke(invoke(container, "getPaymentMonitoringService"), "importWorkbook", payments);
+                System.out.println("Payment summaries imported: " + ((List<?>) invoke(snapshot, "getItems")).size());
+                System.out.println("Payment refresh completed; other registries unchanged");
+                System.exit(0);
+            }
             Object registry = invoke(container, "getSubprojectRegistryRefreshService");
             // The allocation supplies missing tranche-B identities first. The
             // fuller operational monitoring source then supplies current facts.

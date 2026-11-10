@@ -46,6 +46,22 @@
   values is performed. Lot attribution takes effect immediately on new reads
   after deployment and requires no reimport.
 
+### Follow-up: source formula semantics and deployed refresh
+
+- Verified the source formulas directly: planned share I5 is `C5/B5`; factual
+  share J5 is `F5/B5`. J therefore describes funding execution (including payments
+  in progress), not an EIB contribution percentage applicable to paid amount G.
+- Removed the erroneous `G * J / 100` KPI calculation. Sum primary G values
+  within the selected active-subproject scope instead; W/TS/CSC components remain
+  excluded from the parent total. A missing J no longer discards a valid G.
+- Backend, frontend and deployment CI passed for `b323964`. The corrected reader
+  was exercised against a restored trial database and then used for a payment-only
+  production refresh with a fresh verified backup. VN08_01 now stores planned
+  share 76.78 and factual share 10.74 percentage points. All 93 transactions and
+  their total remain unchanged; users and inspection links passed comparison.
+- KPI helper tests explicitly cover a low factual execution ratio, a missing
+  ratio, scope exclusion and exclusion of component rows.
+
 Standalone Kotlin checks execute the shared canonicalization and verify alias
 grouping conserves totals. Backend regression tests cover the weighted ratio,
 aliases and construction-only denominator fallback, including fractional UAH.

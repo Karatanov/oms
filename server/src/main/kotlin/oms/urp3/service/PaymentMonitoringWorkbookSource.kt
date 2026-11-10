@@ -93,7 +93,7 @@ object PaymentMonitoringWorkbookSource {
                             val cell = row.getCell(column)
                             val numeric = cell != null && (cell.cellType == CellType.NUMERIC ||
                                 cell.cellType == CellType.FORMULA && cell.cachedFormulaResultType == CellType.NUMERIC)
-                            oms.urp3.excelPercentagePoints(number, numeric && cell?.cellStyle?.dataFormatString?.contains('%') == true)
+                            oms.urp3.excelPercentagePoints(number, numeric && cell.cellStyle.dataFormatString.contains('%'))
                         } else number
                     } },
                     text = { heading -> headers[heading]?.let { workbookText(row, it).trim().takeIf(String::isNotBlank) } }
