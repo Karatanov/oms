@@ -28,7 +28,10 @@ import oms.data.ApiUser
 
 
 @Composable
-fun ActivitySection(activities: List<ApiActivity>, users: List<ApiUser>) {
+fun ActivitySection(
+    activities: List<ApiActivity>, users: List<ApiUser>,
+    loading: Boolean = false, loadFailed: Boolean = false, onRetry: (() -> Unit)? = null
+) {
     var activityQuery by remember { mutableStateOf("") }
     var userSortAscending by remember { mutableStateOf<Boolean?>(null) }
     val usersByLogin = users.associateBy { it.username.lowercase() }
@@ -118,6 +121,13 @@ fun ActivitySection(activities: List<ApiActivity>, users: List<ApiUser>) {
 
             Spacer(modifier = Modifier.height(12.dp))
 
+            if (loading || loadFailed) {
+                oms.components.ContentState(
+                    LocalizationManager.t(if (loadFailed) "activity_load_failed" else "loading_records"),
+                    loading = loading, error = loadFailed, onRetry = if (loadFailed) onRetry else null
+                )
+            }
+            if (activities.isEmpty() && (loading || loadFailed)) return@Column
             if (activities.isEmpty()) {
                 Text(LocalizationManager.t("no_recent_activity"), color = MaterialTheme.colorScheme.onSurfaceVariant)
             } else if (visibleActivities.isEmpty()) {

@@ -141,11 +141,10 @@ fun AdminScreen() {
     var ascending by remember { mutableStateOf(true) }
     val scope = rememberCoroutineScope()
     val pageScrollState = rememberScrollState()
-    fun refreshActivities() {
-        scope.launch {
-            activities = runCatching { OmsApiClient.dashboard().activities }.getOrDefault(activities)
-        }
-    }
+    var activityAttempt by remember { mutableStateOf(0) }
+    var activitiesLoading by remember { mutableStateOf(true) }
+    var activityLoadFailed by remember { mutableStateOf(false) }
+    fun refreshActivities() { activityAttempt++ }
     fun refreshUserListAfterChange() {
         errorMessage = null
         loadAttempt++
@@ -161,8 +160,18 @@ fun AdminScreen() {
         roles = loadedRoles.getOrDefault(emptyList())
         loading = false
     }
-    LaunchedEffect(Unit) {
-        activities = runCatching { OmsApiClient.dashboard().activities }.getOrDefault(emptyList())
+    LaunchedEffect(activityAttempt) {
+        activitiesLoading = true
+        activityLoadFailed = false
+        try {
+            activities = OmsApiClient.dashboard().activities
+        } catch (cancelled: kotlinx.coroutines.CancellationException) {
+            throw cancelled
+        } catch (_: Exception) {
+            activityLoadFailed = true
+        } finally {
+            activitiesLoading = false
+        }
     }
     val matchingUsers = remember(users, search) {
         val terms = search.trim().split(Regex("\\s+")).filter(String::isNotEmpty)
@@ -298,7 +307,7 @@ fun AdminScreen() {
                 }
             }
         }
-        ActivitySection(activities, users)
+        ActivitySection(activities, users, loading = activitiesLoading, loadFailed = activityLoadFailed, onRetry = ::refreshActivities)
 
         Text(
             buildMarker,
