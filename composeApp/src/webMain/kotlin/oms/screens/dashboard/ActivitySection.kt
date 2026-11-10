@@ -29,7 +29,7 @@ import oms.data.ApiUser
 
 @Composable
 fun ActivitySection(activities: List<ApiActivity>, users: List<ApiUser>) {
-    var userSearch by remember { mutableStateOf("") }
+    var activityQuery by remember { mutableStateOf("") }
     var userSortAscending by remember { mutableStateOf<Boolean?>(null) }
     val usersByLogin = users.associateBy { it.username.lowercase() }
 
@@ -47,8 +47,10 @@ fun ActivitySection(activities: List<ApiActivity>, users: List<ApiUser>) {
         }
     }
 
-    val matchingActivities = activities.filter { activity ->
-        userSearch.isBlank() || userLabel(activity).contains(userSearch.trim(), ignoreCase = true)
+    val terms = remember(activityQuery) { activityQuery.trim().split(Regex("\\s+")).filter(String::isNotEmpty) }
+    val matchingActivities = if (terms.isEmpty()) activities else activities.filter { activity ->
+        val fields = listOf(userLabel(activity), activity.action.toActivityLabel(), activity.createdAt.toOmsDateTime())
+        terms.all { term -> fields.any { it.contains(term, ignoreCase = true) } }
     }
     val visibleActivities = when (userSortAscending) {
         true -> matchingActivities.sortedBy { userLabel(it).lowercase() }
@@ -74,8 +76,8 @@ fun ActivitySection(activities: List<ApiActivity>, users: List<ApiUser>) {
             Spacer(modifier = Modifier.height(12.dp))
 
             @Composable
-            fun UserSearch(modifier: Modifier) {
-                WorkspaceSearchField(userSearch, { userSearch = it.safeTextInput(200) },
+            fun ActivitySearch(modifier: Modifier) {
+                WorkspaceSearchField(activityQuery, { activityQuery = it.safeTextInput(200) },
                     LocalizationManager.t("activity_user_search"), modifier)
             }
             @Composable
@@ -102,13 +104,13 @@ fun ActivitySection(activities: List<ApiActivity>, users: List<ApiUser>) {
             BoxWithConstraints(Modifier.fillMaxWidth()) {
                 if (maxWidth < 520.dp) {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        UserSearch(Modifier.fillMaxWidth())
+                        ActivitySearch(Modifier.fillMaxWidth())
                         SortButton(Modifier.fillMaxWidth())
                     }
                 } else {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp),
                         verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                        UserSearch(Modifier.weight(1f))
+                        ActivitySearch(Modifier.weight(1f))
                         SortButton(Modifier)
                     }
                 }
