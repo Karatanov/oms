@@ -28,6 +28,31 @@
 
 ## Verification and limits
 
+### Follow-up: source currency metadata
+
+- Both approved subproject readers populate legacy budget/contract attributes
+  from UAH columns. New imported projects nevertheless received currency EUR,
+  and updates did not synchronize that label. The individual PDF uses this
+  metadata, so it could print a hryvnia amount with an EUR suffix.
+- Import creation and both update branches now explicitly assign source currency
+  UAH. This does not change the default or currency choice in manual project
+  forms and does not convert or multiply any monetary values.
+- A read-only comparison found 13 approved-source rows with the incorrect EUR
+  label and an exact matching source budget. The currency-only repair mode
+  excludes manual/nonmatching budgets and other currencies, guards the old
+  metadata and source values, and reuses the trialled transactional repair.
+- Backup `/docker/oms/backups/registry-20261110T145538Z` passed restore validation.
+  Trial schema `oms_amount_trial_20261110145602` changed 13 currency labels,
+  zero budgets and zero contract amounts. Comparing every other project column
+  found no changes beyond automatic updated_at timestamps.
+- The same guarded plan corrected production. A subsequent plan had zero rows;
+  all 332 project identities, four users, both inspection links and uploaded-file
+  checksums were preserved. Existing downloaded PDF files are not rewritten;
+  a newly requested PDF reads the corrected project currency.
+- Three Kotlin tests exercise the actual private registry row parser and currency
+  policy; four Python tests cover repair scope, parsing and SQL literals. Full
+  Gradle/interactive PDF verification remains separate from these focused checks.
+
 ### Follow-up: grouped money values during subproject import
 
 - The monitoring row reader replaced every comma with a decimal point.

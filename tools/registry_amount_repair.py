@@ -1,4 +1,4 @@
-"""Build a guarded, amount-only SQL repair from a read-only JSON-lines registry export."""
+"""Build a guarded monetary-attribute repair from a read-only JSON-lines registry export."""
 import json
 import re
 import sys
@@ -32,11 +32,15 @@ def sql_text(text):
     return "NULL" if text is None else "CONVERT(X'" + text.encode("utf-8").hex() + "' USING utf8mb4)"
 
 
-def plan(rows):
+def plan(rows, currency_only=False):
     for row in rows:
         changes = {}
         new_budget = amount(row["source_budget"])
         new_contract = amount(row["source_contract"])
+        if currency_only:
+            if row.get("currency") == "EUR" and new_budget is not None and row["budget"] == new_budget:
+                yield row, {"currency": "UAH"}
+            continue
         if new_budget is not None and row["budget"] == max(0, broken_amount(row["source_budget"])):
             if new_budget != row["budget"]:
                 changes["budget_planned"] = new_budget
@@ -50,7 +54,10 @@ def plan(rows):
 
 def main():
     rows = [json.loads(line) for line in sys.stdin if line.strip()]
-    updates = list(plan(rows))
+    currency_only = sys.argv[1:] == ["--currency-only"]
+    if sys.argv[1:] and not currency_only:
+        raise SystemExit("Usage: registry_amount_repair.py [--currency-only]")
+    updates = list(plan(rows, currency_only))
     # A duplicate-key assertion aborts even on MySQL versions without enforced CHECK constraints.
     print("CREATE TEMPORARY TABLE oms_amount_repair_assertion (id INT PRIMARY KEY);")
     print("INSERT INTO oms_amount_repair_assertion VALUES (1);")
@@ -58,12 +65,15 @@ def main():
     print("SET @repaired_rows=0;")
     for row, changes in updates:
         expected = "NULL" if row["contract"] is None else str(int(row["contract"]))
-        assignments = ",".join("p." + key + "=" + str(value) for key, value in changes.items())
+        assignments = ",".join("p." + key + "=" + (sql_text(value) if isinstance(value, str) else str(value))
+                               for key, value in changes.items())
+        currency_guard = " AND p.currency=" + sql_text(row["currency"]) if "currency" in row else ""
         print("UPDATE projects p JOIN project_monitoring_details d ON d.project_id=p.id SET " + assignments
               + " WHERE p.id=" + str(int(row["id"]))
               + " AND p.site_number=" + sql_text(row["code"])
               + " AND p.budget_planned=" + str(int(row["budget"]))
               + " AND p.subproject_contract_amount <=> " + expected
+              + currency_guard
               + " AND JSON_UNQUOTE(JSON_EXTRACT(d.registry_json,'$.fundingTotal')) <=> " + sql_text(row["source_budget"])
               + " AND JSON_UNQUOTE(JSON_EXTRACT(d.registry_json,'$.contractedTotal')) <=> " + sql_text(row["source_contract"])
               + ";")
@@ -73,7 +83,8 @@ def main():
     print("COMMIT;")
     print(json.dumps({"source_rows": len(rows), "repair_rows": len(updates),
                       "budget_fields": sum("budget_planned" in change for _, change in updates),
-                      "contract_fields": sum("subproject_contract_amount" in change for _, change in updates)}), file=sys.stderr)
+                      "contract_fields": sum("subproject_contract_amount" in change for _, change in updates),
+                      "currency_fields": sum("currency" in change for _, change in updates)}), file=sys.stderr)
 
 
 if __name__ == "__main__":

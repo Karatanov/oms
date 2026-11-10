@@ -3,7 +3,7 @@ set -euo pipefail
 cd /docker/oms
 docker compose exec -T mysql sh -c 'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" exec mysql -uroot --batch --raw --skip-column-names "${1:-$MYSQL_DATABASE}"' sh "${1:-}" <<'SQL'
 START TRANSACTION READ ONLY;
-SELECT JSON_OBJECT('id',p.id,'code',p.site_number,'budget',p.budget_planned,
+SELECT JSON_OBJECT('id',p.id,'code',p.site_number,'budget',p.budget_planned,'currency',p.currency,
  'contract',p.subproject_contract_amount,
  'source_budget',JSON_UNQUOTE(JSON_EXTRACT(d.registry_json,'$.fundingTotal')),
  'source_contract',JSON_UNQUOTE(JSON_EXTRACT(d.registry_json,'$.contractedTotal')))

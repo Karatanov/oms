@@ -7,14 +7,20 @@ import kotlin.test.assertEquals
 
 class MonitoringRegistryAmountTest {
     // The workbook reader is deliberately file-private; exercise it without exposing it as an API.
-    private fun number(value: String, key: String = "fundingTotal"): Double {
+    private fun row(value: String): Any {
         val type = Class.forName("oms.urp3.service.MonitoringWorkbookSource\$Row")
         val constructor = type.getDeclaredConstructor(String::class.java, String::class.java, Map::class.java,
             String::class.java, String::class.java, Boolean::class.javaPrimitiveType).apply { isAccessible = true }
-        val row = constructor.newInstance("VN08_01", "VN08_01",
+        return constructor.newInstance("VN08_01", "VN08_01",
             mapOf("fundingTotal" to value, "contractedTotal" to value), "16", "test.xlsx", false)
-        return type.getDeclaredMethod("number", String::class.java).apply { isAccessible = true }
-            .invoke(row, key) as Double
+    }
+    private fun number(value: String, key: String = "fundingTotal"): Double = row(value).let {
+        it.javaClass.getDeclaredMethod("number", String::class.java).apply { isAccessible = true }.invoke(it, key) as Double
+    }
+
+    @Test fun `registry monetary attributes are hryvnia not the manual form default currency`() {
+        val row = row("1,234,567.89")
+        assertEquals("UAH", row.javaClass.getDeclaredMethod("currency").apply { isAccessible = true }.invoke(row))
     }
 
     @Test fun `Excel grouped amounts survive the actual registry row parser`() {

@@ -4,6 +4,14 @@ from registry_amount_repair import amount, broken_amount, plan, sql_text
 
 
 class AmountRepairTest(unittest.TestCase):
+    def test_currency_repair_requires_a_matching_approved_budget(self):
+        row = dict(id=1, code="VN08_01", budget=1234567, contract=None, currency="EUR",
+                   source_budget="1,234,567.89", source_contract=None)
+        self.assertEqual({"currency": "UAH"}, list(plan([row], True))[0][1])
+        self.assertEqual([], list(plan([dict(row, currency="UAH")], True)))
+        self.assertEqual([], list(plan([dict(row, budget=999)], True)))
+        self.assertEqual([], list(plan([dict(row, currency="USD")], True)))
+
     def test_sql_literals_do_not_interpolate_source_text(self):
         self.assertEqual("NULL", sql_text(None))
         self.assertEqual("CONVERT(X'' USING utf8mb4)", sql_text(""))

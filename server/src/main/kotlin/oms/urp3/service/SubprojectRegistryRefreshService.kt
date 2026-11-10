@@ -225,7 +225,7 @@ class SubprojectRegistryRefreshService(
                         it[ProjectTable.startDate] = contractDate
                         it[ProjectTable.contractSignedDate] = contractDate
                         it[ProjectTable.plannedEndDate] = contractEnd
-                        it[ProjectTable.currency] = "EUR"
+                        it[ProjectTable.currency] = row.currency()
                         it[ProjectTable.contractorName] = row.value("contractor").ifBlank { null }
                         it[ProjectTable.managerId] = managerId
                     }
@@ -239,6 +239,7 @@ class SubprojectRegistryRefreshService(
                         it[ProjectTable.sector] = row.value("priority")
                         it[ProjectTable.constructionType] = row.constructionType()
                         it[ProjectTable.budgetPlanned] = budget
+                        it[ProjectTable.currency] = row.currency()
                         it[ProjectTable.subprojectContractAmount] = contract
                         it[ProjectTable.contractSignedDate] = contractDate
                         it[ProjectTable.plannedEndDate] = contractEnd
@@ -259,6 +260,7 @@ class SubprojectRegistryRefreshService(
                         it[ProjectTable.region] = row.region()
                         it[ProjectTable.sector] = row.value("priority")
                         it[ProjectTable.budgetPlanned] = budget
+                        it[ProjectTable.currency] = row.currency()
                         it[ProjectTable.status] = "active"
                         it[ProjectTable.isArchived] = false
                     }
@@ -413,6 +415,8 @@ private object MonitoringWorkbookSource {
     ) {
         fun value(key: String) = values[key].orEmpty()
         fun number(key: String) = monitoringSourceAmount(value(key)) ?: 0.0
+        /** Both approved workbook formats publish these legacy monetary attributes in UAH. */
+        fun currency() = "UAH"
         fun date(key: String) = value(key).let { raw -> runCatching { LocalDate.parse(raw) }.getOrNull() }
         /**
          * Source workbooks use several equivalent captions for Batch 9:
