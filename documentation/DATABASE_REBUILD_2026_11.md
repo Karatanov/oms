@@ -65,8 +65,28 @@ not edit XLSX files and cannot write to a database.
 6. Verify users and inspection UUIDs, dependent rows, file checksums and links
    are unchanged, then verify Dashboard, Subprojects, Procurement, Finance and Map.
 
+## Backup and staging implementation
+
+`deploy/vps/backup-registry-rebuild.sh` creates a restricted SQL/uploads backup
+and records protected identity links. `verify-registry-backup.sh` restores the SQL
+into a new isolated database, compares protected counts and report links, then
+removes only that scratch database on success. A failed restore is retained for
+diagnosis. These scripts were executed successfully on 10 November 2026.
+
+`tools/stage_registry_sources.py` generates SQL for the separate
+`oms_registry_staging` schema. It retains typed cached values, source formulas
+(including array formulas), Excel error markers and hyperlink targets, keyed by
+immutable batch/file/sheet/row identities. File and batch hashes identify the
+exact source set. Source data and generated SQL are not committed to Git.
+
+The source snapshot contains 8,433 nonempty source rows across all worksheets:
+655 monitoring, 5,212 procurement, 927 allocation/PP and 1,639 payment rows.
+These include headings, summaries and helper worksheets; they are NOT counts of
+business entities. The subsequent domain import must select the authoritative
+sheets and exclude headings/helpers rather than importing every raw row as data.
+
 ## Not yet performed
 
-No production records have been deleted or refreshed by this preflight. Typed-table
-migrations, coordinated batch import, backup/restore validation, production refresh
+No live OMS records have been deleted or refreshed by this preflight. Typed-table
+migrations, coordinated domain import, production refresh
 and post-import reconciliation remain implementation work.
