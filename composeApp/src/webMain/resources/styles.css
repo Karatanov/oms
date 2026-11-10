@@ -306,9 +306,72 @@ button {
 }
 
 .leaflet-container {
+    position: relative;
     width: 100%;
     height: 100%;
+    overflow: hidden !important;
     font-family: inherit;
+}
+
+/* Fallbacks for a temporarily unavailable Leaflet stylesheet.  They cover
+   the geometry required for tiles, markers and controls, and deliberately
+   keep every native map layer inside the allotted Compose pane. */
+#map-host .leaflet-pane,
+#map-host .leaflet-tile,
+#map-host .leaflet-marker-icon,
+#map-host .leaflet-marker-shadow,
+#map-host .leaflet-control,
+#map-host .leaflet-top,
+#map-host .leaflet-bottom {
+    position: absolute;
+}
+#map-host .leaflet-pane,
+#map-host .leaflet-tile,
+#map-host .leaflet-marker-icon,
+#map-host .leaflet-marker-shadow {
+    top: 0;
+    left: 0;
+}
+#map-host .leaflet-pane { z-index: 400; }
+#map-host .leaflet-tile-pane { z-index: 200; }
+#map-host .leaflet-overlay-pane { z-index: 400; }
+#map-host .leaflet-marker-pane { z-index: 600; }
+#map-host .leaflet-popup-pane { z-index: 700; }
+#map-host .leaflet-top,
+#map-host .leaflet-bottom { z-index: 800; pointer-events: none; }
+#map-host .leaflet-top { top: 0; }
+#map-host .leaflet-bottom { bottom: 0; }
+#map-host .leaflet-left { left: 0; }
+#map-host .leaflet-right { right: 0; }
+#map-host .leaflet-control { pointer-events: auto; }
+#map-host .leaflet-top .leaflet-control { margin-top: 10px; }
+#map-host .leaflet-bottom .leaflet-control { margin-bottom: 10px; }
+#map-host .leaflet-left .leaflet-control { margin-left: 10px; }
+#map-host .leaflet-right .leaflet-control { margin-right: 10px; }
+
+.oms-map-load-error {
+    position: absolute;
+    inset: 0;
+    z-index: 1000;
+    display: grid;
+    place-content: center;
+    gap: 12px;
+    padding: 24px;
+    text-align: center;
+    background: #edf6f9;
+    color: #20313c;
+}
+.oms-map-load-error p { max-width: 360px; margin: 0; font-weight: 600; }
+.oms-map-load-error button {
+    justify-self: center;
+    min-width: 132px;
+    padding: 10px 16px;
+    border: 0;
+    border-radius: 8px;
+    background: #278dad;
+    color: #fff;
+    font: inherit;
+    font-weight: 700;
 }
 
 .leaflet-popup {

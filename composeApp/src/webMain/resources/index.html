@@ -321,19 +321,97 @@
             });
         }
 
+        /**
+         * The map is an optional screen, but must not depend on one public CDN
+         * being reachable from a user's corporate network.  Try the pinned
+         * source first and then a second CDN with the same immutable version.
+         */
+        async function loadScriptFromMirrors(urls) {
+            let lastError = null;
+            for (const url of urls) {
+                try {
+                    await loadScript(url);
+                    return true;
+                } catch (error) {
+                    lastError = error;
+                }
+            }
+            throw lastError || new Error("Map script could not be loaded");
+        }
+
+        async function loadStyleFromMirrors(urls) {
+            for (const url of urls) {
+                try {
+                    await loadStyle(url);
+                    return true;
+                } catch (_) {
+                    // The local safety styles below still keep a successfully
+                    // loaded Leaflet map usable if both CDN stylesheets fail.
+                }
+            }
+            return false;
+        }
+
+        function showLeafletLoadError() {
+            const host = document.getElementById("map-host");
+            if (!host || host.querySelector(".oms-map-load-error")) return;
+            const message = document.createElement("div");
+            message.className = "oms-map-load-error";
+            const text = document.createElement("p");
+            text.textContent = omsLanguage === "en"
+                ? "The map could not be loaded. Check the connection and try again."
+                : "Не вдалося завантажити карту. Перевірте з’єднання та повторіть спробу.";
+            const retry = document.createElement("button");
+            retry.type = "button";
+            retry.textContent = omsLanguage === "en" ? "Retry" : "Повторити";
+            retry.onclick = () => {
+                message.remove();
+                urp3LeafletLoading = null;
+                showLeafletMapPane();
+            };
+            message.append(text, retry);
+            host.appendChild(message);
+        }
+
+        function clearLeafletLoadError() {
+            document.querySelector("#map-host .oms-map-load-error")?.remove();
+        }
+
         function ensureLeafletLoaded() {
             if (window.L && typeof L.map === "function" && typeof L.markerClusterGroup === "function") {
                 return Promise.resolve(true);
             }
             if (urp3LeafletLoading) return urp3LeafletLoading;
             urp3LeafletLoading = Promise.all([
-                loadStyle("https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"),
-                loadStyle("https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"),
-                loadStyle("https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css")
-            ]).then(() => loadScript("https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"))
-                .then(() => loadScript("https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"))
+                loadStyleFromMirrors([
+                    "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css",
+                    "https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css"
+                ]),
+                loadStyleFromMirrors([
+                    "https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css",
+                    "https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"
+                ]),
+                loadStyleFromMirrors([
+                    "https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css",
+                    "https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css"
+                ])
+            ])
+                .then(() => loadScriptFromMirrors([
+                    "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js",
+                    "https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"
+                ]))
+                .then(() => loadScriptFromMirrors([
+                    "https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js",
+                    "https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"
+                ]))
                 .then(() => true)
-                .catch(() => false);
+                .catch(() => {
+                    // Do not poison the map for the rest of this browser
+                    // session. A reconnect or the explicit Retry action can
+                    // now initialise it normally.
+                    urp3LeafletLoading = null;
+                    return false;
+                });
             return urp3LeafletLoading;
         }
 
@@ -571,7 +649,11 @@
         function showLeafletMapPane() {
             document.body.classList.add("map-visible");
             ensureLeafletLoaded().then(loaded => {
-                if (!loaded || !initLeafletMap()) return;
+                if (!loaded || !initLeafletMap()) {
+                    showLeafletLoadError();
+                    return;
+                }
+                clearLeafletLoadError();
                 setTimeout(fitUkraineOverview, 250);
             });
         }
