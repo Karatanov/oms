@@ -3,6 +3,8 @@ package oms.localization
 object Strings {
 
     val uk = mapOf(
+        "activity_user_unspecified" to "Користувача не вказано",
+        "activity_action_unspecified" to "Дію не вказано",
         "activity_load_failed" to "Не вдалося оновити журнал дій.",
         "login_in_progress" to "Вхід…",
         "guest_login_in_progress" to "Вхід як гість…",
@@ -1023,6 +1025,8 @@ object Strings {
     )
 
     val en = mapOf(
+        "activity_user_unspecified" to "User not recorded",
+        "activity_action_unspecified" to "Action not recorded",
         "activity_load_failed" to "Could not refresh the activity log.",
         "login_in_progress" to "Signing in…",
         "guest_login_in_progress" to "Signing in as guest…",

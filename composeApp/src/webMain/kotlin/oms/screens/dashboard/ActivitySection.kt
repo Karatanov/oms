@@ -46,7 +46,7 @@ fun ActivitySection(
             fullName.isNotBlank() && login.isNotBlank() -> "$fullName · $login"
             fullName.isNotBlank() -> fullName
             login.isNotBlank() -> login
-            else -> "—"
+            else -> LocalizationManager.t("activity_user_unspecified")
         }
     }
 
@@ -173,5 +173,9 @@ private fun String.toActivityLabel(): String = when (this) {
     "user_archived" -> LocalizationManager.t("activity_user_archived")
     "user_restored" -> LocalizationManager.t("activity_user_restored")
     "user_activated" -> LocalizationManager.t("activity_user_activated")
-    else -> this
+    else -> when {
+        isBlank() -> LocalizationManager.t("activity_action_unspecified")
+        contains('_') -> trim().replace('_', ' ').replaceFirstChar { it.uppercaseChar() }
+        else -> this
+    }
 }
