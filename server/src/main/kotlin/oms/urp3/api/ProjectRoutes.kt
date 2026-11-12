@@ -721,15 +721,29 @@ fun Route.projectRoutes() {
                     )
                 }
             }
+            val partIds = projectService.getAllProjects().filter {
+                it.projectType == ProjectType.SUBPROJECT_PART && it.parentProjectId == project.id
+            }.map { it.id }
+            val scopeIds = partIds.toSet() + project.id
+            val monitoring = projectService.monitoringDetailsByProjectIds(scopeIds)
+            val financialRecords = AppContainer.financialRecordService.filtered(project.id, null, null, null)
+            val execution = oms.urp3.service.projectFinancialExecution(
+                project, monitoring[project.id], partIds.mapNotNull(monitoring::get),
+                AppContainer.paymentMonitoringService.currentIfAvailable()?.transactions
+            ) {
+                if (partIds.isEmpty()) financialRecords else
+                    AppContainer.financialRecordService.getAll().filter { it.projectId in scopeIds }
+            }
             projectPdfExportService.export(
                 project = project,
-                monitoring = AppContainer.projectRepository.monitoringDetails(project.id),
+                monitoring = monitoring[project.id],
                 language = language,
-                financialRecords = AppContainer.financialRecordService.filtered(project.id, null, null, null),
+                financialRecords = financialRecords,
                 inspectionReports = inspectionReports,
                 inspectionPhotos = inspectionPhotos,
                 procurementRecords = procurementRecords,
-                documents = AppContainer.projectDocumentService.list(project.id)
+                documents = AppContainer.projectDocumentService.list(project.id),
+                financialExecution = execution
             )
         }
         call.response.header(HttpHeaders.ContentDisposition, "attachment; filename=\"OMS_$safeCode-subproject-card.pdf\"")

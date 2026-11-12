@@ -17,8 +17,48 @@ import java.util.UUID
 import javax.imageio.ImageIO
 import kotlin.test.Test
 import kotlin.test.assertTrue
+import kotlin.test.assertEquals
 
 class ProjectPdfExportServiceTest {
+    @Test fun `financial execution uses approved Works payments and lot bases without legacy fallback`() {
+        val project = testSubproject().copy(siteNumber = "KH08_07", subprojectContractAmount = 9000)
+        val monitoring = testMonitoringDetails()
+        val parts = listOf(100.0, 200.0).map { monitoring.copy(registryValues = mapOf("constructionAmount" to it.toString())) }
+        fun payment(code: String, amount: Double) = PaymentMonitoringWorkbookSource.Transaction(
+            code, code, 8, LocalDate.of(2026, 11, 12), amount, null, "test")
+        val payments = listOf(payment("KH08_07#Lot1_W", 30.25), payment("KH08_07#Lot2_W", 60.50),
+            payment("KH08_07_TS", 800.0), payment("KH08_07_CSC", 900.0), payment("VN08_01_W", 1000.0))
+        val execution = projectFinancialExecution(project, monitoring, parts, payments) { error("Do not read legacy payments") }
+        assertEquals(90.75, execution.paidUah)
+        assertEquals(300.0, execution.baseUah)
+        assertEquals(0.0, projectFinancialExecution(project, monitoring, parts, emptyList()) {
+            error("An empty approved register must stay empty")
+        }.paidUah)
+    }
+
+    @Test fun `legacy execution excludes service payments and acts and uses decimal conversion`() {
+        fun payment(amount: Double, type: FinancialRecordType = FinancialRecordType.PAYMENT, purpose: String = "works") =
+            FinancialRecord(1L, UUID.randomUUID(), 1L, type, "test", amount, "UAH", LocalDate.of(2026, 11, 12),
+                null, null, null, purpose)
+        val execution = projectFinancialExecution(testSubproject().copy(subprojectContractAmount = 2000),
+            testMonitoringDetails().copy(registryValues = mapOf("constructionAmount" to "1,000.00"))) {
+            listOf(payment(100.0), payment(400.0, purpose = "technical_supervision"),
+                payment(500.0, purpose = "engineer_consultant"), payment(700.0, FinancialRecordType.ACT),
+                payment(0.84).copy(currency = "EUR", eurExchangeRate = 48.125))
+        }
+        assertEquals(140.43, execution.paidUah)
+        assertEquals(1000.0, execution.baseUah)
+    }
+
+    @Test fun `PDF prints actual execution above one hundred percent`() {
+        val pdf = ProjectPdfExportService().export(testSubproject(), language = ProjectPdfExportService.Language.EN,
+            financialExecution = ProjectFinancialExecution(125.0, 100.0))
+        PDDocument.load(pdf).use { document ->
+            val text = PDFTextStripper().getText(document)
+            assertTrue(Regex("125[.,]0%").containsMatchIn(text), text)
+        }
+    }
+
     @Test
     fun `wraps long subproject title and engineering links within the card`() {
         val longName = "Реконструкція комплексу з дуже довгою назвою для перевірки коректного перенесення заголовка PDF-картки субпроєкту"

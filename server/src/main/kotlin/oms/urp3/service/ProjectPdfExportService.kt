@@ -9,7 +9,6 @@ import org.apache.pdfbox.pdmodel.graphics.image.LosslessFactory
 import oms.urp3.domain.Project
 import oms.urp3.domain.ProjectDocument
 import oms.urp3.domain.FinancialRecord
-import oms.urp3.domain.FinancialRecordType
 import oms.urp3.domain.InspectionReport
 import oms.urp3.domain.ProjectMonitoringDetails
 import oms.urp3.domain.ProcurementRecord
@@ -40,22 +39,13 @@ class ProjectPdfExportService {
         inspectionReports: List<InspectionReport> = emptyList(),
         inspectionPhotos: List<PhotoEvidence> = emptyList(),
         procurementRecords: List<ProcurementRecord> = emptyList(),
-        documents: List<ProjectDocument> = emptyList()
+        documents: List<ProjectDocument> = emptyList(),
+        financialExecution: ProjectFinancialExecution? = null
     ): ByteArray = PDDocument().use { document ->
         val fontBytes = requireNotNull(javaClass.getResourceAsStream("/fonts/DejaVuSans.ttf")) { "PDF export font is unavailable." }
         val font = fontBytes.use { PDType0Font.load(document, it, true) }
         val writer = PdfWriter(document, font, language)
-        val financialExecutionBase = (project.subprojectContractAmount ?: project.budgetPlanned).toDouble()
-        val paidUah = financialRecords.asSequence()
-            .filter { it.recordType == FinancialRecordType.PAYMENT || it.recordType == FinancialRecordType.ADVANCE }
-            .mapNotNull { record ->
-                when (record.currency.uppercase()) {
-                    "UAH" -> record.amount
-                    "EUR" -> record.eurExchangeRate?.takeIf { it > 0.0 }?.let { record.amount * it }
-                    else -> null
-                }
-            }
-            .sum()
+        val execution = financialExecution ?: projectFinancialExecution(project, monitoring) { financialRecords }
         writer.cover(project.localizedName(monitoring, language), project.siteNumber)
         writer.section(writer.label("basic_information"), Icon.INFO) {
             row(writer.label("name"), project.localizedName(monitoring, language)); row(writer.label("subproject_code"), project.siteName.ifBlank { project.siteNumber })
@@ -72,7 +62,7 @@ class ProjectPdfExportService {
             row(writer.label("budget"), money(project.budgetPlanned, project.currency)); row(writer.label("subproject_cost_eib_financing"), project.amounts["eib_financing"]?.let { money(it.amount, it.currency) })
             row(writer.label("subproject_cost_local_financing"), project.amounts["local_financing"]?.let { money(it.amount, it.currency) }); row(writer.label("subproject_contract_amount"), project.subprojectContractAmount?.let { money(it, project.currency) })
             row(writer.label("technical_supervision_contract_amount"), project.technicalSupervisionAmount?.let { money(it, project.currency) }); row(writer.label("engineer_consultant_contract_amount"), project.engineerConsultantContractAmount?.let { money(it, project.currency) })
-            if (financialExecutionBase > 0.0) progress(writer.label("financial_execution"), paidUah, financialExecutionBase)
+            if (execution.baseUah > 0.0) progress(writer.label("financial_execution"), execution.paidUah, execution.baseUah)
         }
         writer.section(writer.label("construction_contractor_information"), Icon.CONSTRUCTION) {
             row(writer.label("contractor"), project.contractorName); row(writer.label("contract_number"), project.constructionContractNumber); row(writer.label("construction_contract_date"), project.constructionContractSigningDate)
@@ -265,7 +255,8 @@ class ProjectPdfExportService {
         }
         /** A compact, printable progress bar based on stored UAH payment values. */
         fun progress(label: String, completed: Double, total: Double) {
-            val percentage = (completed * 100.0 / total).coerceIn(0.0, 100.0)
+            val percentage = completed * 100.0 / total
+            val barPercentage = percentage.coerceIn(0.0, 100.0)
             val height = 38f
             ensure(height + 4f)
             stream!!.setStrokingColor(0.83f, 0.88f, 0.90f)
@@ -280,9 +271,9 @@ class ProjectPdfExportService {
             stream!!.setNonStrokingColor(0.91f, 0.94f, 0.95f)
             stream!!.addRect(barX, barY, barWidth, 7f)
             stream!!.fill()
-            if (percentage > 0.0) {
+            if (barPercentage > 0.0) {
                 fillColor(primary)
-                stream!!.addRect(barX, barY, (barWidth * (percentage / 100.0)).toFloat(), 7f)
+                stream!!.addRect(barX, barY, (barWidth * (barPercentage / 100.0)).toFloat(), 7f)
                 stream!!.fill()
             }
             y -= height

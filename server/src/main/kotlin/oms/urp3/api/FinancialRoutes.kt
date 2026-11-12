@@ -272,11 +272,8 @@ fun Route.financialRoutes() {
                 .filter { requestedYear == null || (it.paymentDate ?: it.recordDate).year == requestedYear }
                 .mapNotNull { record ->
                     val subproject = parentSubproject(record.projectId) ?: return@mapNotNull null
-                    val uah = when (record.currency.uppercase()) {
-                        "UAH" -> record.amount
-                        "EUR" -> record.eurExchangeRate?.takeIf { it > 0 }?.let { record.amount * it }
-                        else -> null
-                    } ?: return@mapNotNull null
+                    val uah = oms.urp3.service.financialDisplayCents(record, "UAH")
+                        ?.let { it / 100.0 } ?: return@mapNotNull null
                     subproject.id to uah
                 }
                 .groupBy({ it.first }, { it.second })
@@ -556,7 +553,7 @@ internal fun canonicalFinancialConstructionType(value: String): String = oms.urp
 
 /** Prefer the source works contract, not the total of Works + TS + CSC contracts. */
 internal fun financialProgressBase(sourceWorks: Double?, storedContract: Double?, approved: Double): Double =
-    listOfNotNull(sourceWorks, storedContract, approved).firstOrNull { it.isFinite() && it > 0.0 } ?: 0.0
+    oms.urp3.service.financialWorksExecutionBase(sourceWorks, storedContract, approved)
 
 internal fun canonicalFinancialRegion(value: String): String = value
     .replace(Regex("\\s+(область|oblast|region)$", RegexOption.IGNORE_CASE), "")

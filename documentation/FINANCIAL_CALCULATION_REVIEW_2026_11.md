@@ -28,6 +28,31 @@
 
 ## Verification and limits
 
+### Follow-up: subproject PDF financial execution (12 November)
+
+- PDF execution summed every payment/advance, including TS, CSC and equipment,
+  used only the parent's legacy financial records and divided by the combined
+  contract total. Its percentage text was also clamped to 100%, concealing
+  genuine above-base expenditure. This differed from Works-only progress charts.
+- The PDF route now scopes approved payment transactions to the selected
+  subproject (including lot code attribution). It reads parent/part monitoring
+  details and applies the same source-Works total, lot sum and legacy fallback
+  precedence as Financial Monitoring. A present empty snapshot stays empty.
+  Missing snapshots alone permit a lazy, hierarchy-scoped legacy fallback.
+- Legacy fallback excludes acts and service/equipment payments, and uses the
+  shared decimal display conversion. The financial-progress API now uses that
+  same decimal conversion and missing-rate policy, rather than multiplying
+  Doubles in a separate branch. No saved records or currencies are changed.
+- Only the drawn bar is capped to its available width; the printed percentage
+  retains the actual ratio, including values above 100%. Financial-record and
+  document listing sections otherwise retain their existing behaviour.
+- Five JVM tests passed, including actual generated-PDF text extraction, lot
+  attribution, service exclusions, empty-snapshot authority, saved-rate decimal
+  conversion and the existing photo/link export tests. A synthetic 125% card
+  was rendered and visually inspected: its label and bar fit the section.
+  This is local generator verification, not authenticated production-browser
+  verification of a newly deployed PDF. Full Gradle CI remains required.
+
 ### Follow-up: decimal cent conversion (12 November)
 
 - Reproduced a binary floating-point boundary: `0.84 * 48.125 * 100` is

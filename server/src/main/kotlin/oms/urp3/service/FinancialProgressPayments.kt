@@ -1,5 +1,9 @@
 package oms.urp3.service
 
+/** Prefer Works-only source funding over legacy totals that may include services. */
+internal fun financialWorksExecutionBase(sourceWorks: Double?, storedContract: Double?, approved: Double): Double =
+    listOfNotNull(sourceWorks, storedContract, approved).firstOrNull { it.isFinite() && it > 0.0 } ?: 0.0
+
 /** A parent total and its component lots are alternative bases, never additive. */
 internal fun financialProgressSourceWorks(parentAmount: Double?, lotAmounts: List<Double?>): Double? =
     parentAmount?.takeIf { it.isFinite() && it > 0.0 }
