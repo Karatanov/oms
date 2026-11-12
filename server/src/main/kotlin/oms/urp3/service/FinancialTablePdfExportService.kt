@@ -5,7 +5,6 @@ import java.text.DecimalFormat
 import java.text.DecimalFormatSymbols
 import java.time.format.DateTimeFormatter
 import java.util.Locale
-import kotlin.math.roundToLong
 
 /** PDF export of the current Financial Monitoring registry view. */
 class FinancialTablePdfExportService(
@@ -58,19 +57,10 @@ class FinancialTablePdfExportService(
             row.subprojectCode.orEmpty(),
             row.subprojectPartName.orEmpty(),
             record.recordDate.format(DateTimeFormatter.ofPattern("dd.MM.yyyy")),
-            displayAmount(record, currency)?.let { money(it, language) } ?: "—",
+            financialDisplayCents(record, currency)?.let { money(it, language) } ?: "—",
             currency,
             record.description ?: record.milestone ?: "—"
         )
-    }
-
-    private fun displayAmount(record: FinancialRecord, target: String): Long? {
-        if (!record.amount.isFinite()) return null
-        if (record.currency.equals(target, ignoreCase = true)) return (record.amount * 100).roundToLong()
-        if (target == "EUR") return record.amountEurCents
-        val rate = record.eurExchangeRate?.takeIf { it.isFinite() && it > 0 && (record.currency.equals("UAH", true) || it != 1.0) }
-            ?: return null
-        return if (record.currency.equals("EUR", true)) (record.amount * 100 * rate).roundToLong() else null
     }
 
     private fun money(cents: Long, language: Language): String {

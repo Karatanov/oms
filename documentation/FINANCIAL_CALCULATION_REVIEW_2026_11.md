@@ -28,6 +28,26 @@
 
 ## Verification and limits
 
+### Follow-up: decimal cent conversion (12 November)
+
+- Reproduced a binary floating-point boundary: `0.84 * 48.125 * 100` is
+  4042.4999999999995 and rounds to 4042, although the decimal result is exactly
+  4042.5 cents and should round HALF_UP to 4043. The table-export API and PDF
+  renderer previously multiplied in a different order and maintained separate
+  conversion implementations, permitting a one-kopeck disagreement.
+- A shared decimal-cent helper now rounds once using BigDecimal/HALF_UP, the
+  rule already used by saved NBU EUR conversions. Financial table sorting and
+  PDF cells share the same display helper, saved EUR equivalent and missing-rate
+  policy. Existing EUR amounts are not recalculated from a newly fetched rate.
+- Dashboard legacy-ledger conversion now uses the database BigDecimal values
+  directly instead of passing through Double. Imported monthly payments use
+  the same decimal cent rounding. Unknown/nonfinite/overflowing results remain
+  unavailable rather than becoming zero or a saturated Long value.
+- Three focused JVM tests passed: half-cent cases, negative refund symmetry,
+  zero, large exact decimal amounts, saved EUR values and missing/invalid rates.
+  No database values, saved exchange rates or source transactions were changed.
+  A rendered/browser PDF check and the complete CI build remain separate checks.
+
 ### Follow-up: preserve source money precision (12 November)
 
 - Monitoring and Allocation readers previously applied Excel display formatting

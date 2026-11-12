@@ -18,7 +18,6 @@ import oms.urp3.service.PaymentMonitoringPdfExportService
 import oms.urp3.service.GoogleDriveOAuth
 import oms.urp3.service.paymentMonitoringContractType
 import oms.urp3.service.isPrimaryPaymentMonitoringSubprojectCode
-import kotlin.math.roundToLong
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -391,13 +390,8 @@ fun Route.financialRoutes() {
             2 -> value == 2 || value == 9
             else -> true
         }
-        fun displayedAmount(record: oms.urp3.domain.FinancialRecord): Long? = when {
-            record.currency.equals(currency, ignoreCase = true) -> (record.amount * 100).roundToLong()
-            currency == "EUR" -> record.amountEurCents
-            record.currency.equals("EUR", ignoreCase = true) && record.eurExchangeRate != null && record.eurExchangeRate > 0 && record.eurExchangeRate != 1.0 ->
-                (record.amount * record.eurExchangeRate * 100).roundToLong()
-            else -> null
-        }
+        fun displayedAmount(record: oms.urp3.domain.FinancialRecord): Long? =
+            oms.urp3.service.financialDisplayCents(record, currency)
         val rows = AppContainer.financialRecordService.getAll().mapNotNull(::rowFor)
             .filter { row ->
                 (recordType == null || row.record.recordType.name.equals(recordType, ignoreCase = true)) &&

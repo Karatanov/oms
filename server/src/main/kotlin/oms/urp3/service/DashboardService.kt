@@ -14,7 +14,6 @@ import java.math.BigDecimal
 import java.math.RoundingMode
 import java.util.UUID
 import java.time.LocalDate
-import kotlin.math.roundToLong
 
 /**
  * The approved amount in both presentation currencies.  Values are taken from
@@ -333,13 +332,12 @@ private fun dashboardProjects(
 }
 
 private fun org.jetbrains.exposed.v1.core.ResultRow.amountUahCents(): Long? {
-    val amount = this[FinancialRecordTable.amount].toDouble()
+    val amount = this[FinancialRecordTable.amount]
     return when (this[FinancialRecordTable.currency].uppercase()) {
-        "UAH" -> (amount * 100).roundToLong()
+        "UAH" -> moneyCents(amount)
         "EUR" -> this[FinancialRecordTable.eurExchangeRate]
-            ?.toDouble()
-            ?.takeIf { it.isFinite() && it > 0 }
-            ?.let { (amount * it * 100).roundToLong() }
+            ?.takeIf { it.signum() > 0 }
+            ?.let { moneyCents(amount, it) }
         else -> null
     }
 }
@@ -355,8 +353,8 @@ private fun monthlySourcePayments(
     transactions: List<PaymentMonitoringWorkbookSource.Transaction>,
     trancheNumber: Int?
 ): List<MonthlyActPayment> = dashboardMonthlyPayments(transactions.map {
-    DashboardPaymentAmount(it.paymentDate, it.amountEur?.let { value -> (value * 100).roundToLong() },
-        (it.amountUah * 100).roundToLong(), it.batchId)
+    DashboardPaymentAmount(it.paymentDate, it.amountEur?.let { value -> moneyCents(value) },
+        moneyCents(it.amountUah), it.batchId)
 }, trancheNumber)
 
 /**
