@@ -50,6 +50,46 @@
   their schema was not changed by this precision fix. Decimal-aware financial
   calculations can consume the exact retained source values after refresh.
 
+#### Verified precision restoration
+
+- The two approved local source files have exactly the same SHA-256 hashes as
+  the workbook copies retained in the original 10 November cutover backup.
+  A read-only Apache POI exporter uses their cached numeric values and former
+  display values, with the same first/last monitoring row and Allocation
+  deduplication rules as the importer. Source XLSX files were not modified.
+- The targeted planner matches both workbook provenance and lot code. It only
+  restores a monetary key whose retained value equals the former source display
+  value, and leaves manually changed or unavailable values alone. Whole-unit
+  budget/contract attributes are aligned only if they still match that same
+  rounded source amount. No other source fields are reimported.
+- Created and restore-verified backup
+  `/docker/oms/backups/registry-20261112T095621Z`. Trial database
+  `oms_amount_trial_20261112095645` restored precision to 699 monetary keys
+  across 160 detail rows. Forty project rows needed whole-unit alignment:
+  12 budgets and 31 contract totals (some rows have both).
+- The trial compared every non-amount project column, all detail metadata and
+  every non-money JSON key. All were unchanged, excluding expected project
+  updated_at timestamps. A guarded SQL transaction then applied the same plan
+  to production. Its assertion checks both affected-detail and project counts
+  before COMMIT; any concurrent edit prevents the entire commit.
+- The production recheck found zero eligible precision repairs. All 332 project
+  rows, four users, both inspection links and uploaded-file checksums remain
+  unchanged. The source payment transactions and currencies were not modified.
+  Six Python tests passed for parsing, provenance/matching rules, idempotency,
+  preservation of manual amounts and safe SQL literals.
+
+#### Browser CI follow-up
+
+- The c69adc2 form-test run passed Chrome validation and its Chromium date-picker
+  checks, but WebKit failed to launch: `libicudata.so.74` was missing. The runner
+  installed ICU 78, while the restored browser cache key identified only Linux
+  and the Playwright version, not the Ubuntu ABI.
+- The browser cache now includes the actual distribution, version and machine
+  architecture from `/etc/os-release` and uname. There is no legacy restore-key
+  fallback, so a runner-image migration cannot reuse a different Ubuntu build.
+  Chromium/WebKit checks remain enabled. A fresh CI run must confirm the fix;
+  the prior failed WebKit launch is not represented as a passing Safari test.
+
 ### Follow-up: source currency metadata
 
 - Both approved subproject readers populate legacy budget/contract attributes

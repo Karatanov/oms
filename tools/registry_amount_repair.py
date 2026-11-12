@@ -5,7 +5,7 @@ import sys
 from decimal import Decimal, InvalidOperation
 
 
-def amount(text):
+def decimal_amount(text):
     compact = re.sub(r"\s|\u00a0", "", text or "")
     if "," in compact and "." in compact:
         compact = compact.replace(",", "")
@@ -15,9 +15,14 @@ def amount(text):
         compact = compact.replace(",", ".")
     try:
         value = Decimal(compact)
-        return int(value) if value.is_finite() and value >= 0 else None
+        return value if value.is_finite() and value >= 0 else None
     except InvalidOperation:
         return None
+
+
+def amount(text):
+    value = decimal_amount(text)
+    return int(value) if value is not None else None
 
 
 def broken_amount(text):

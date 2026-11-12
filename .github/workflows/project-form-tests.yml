@@ -27,11 +27,19 @@ jobs:
       # Browser downloads are much larger and slower than the small test
       # scripts. Keep them between runs so deployment does not spend several
       # minutes re-downloading identical Chromium/WebKit/Firefox binaries.
+      - name: Identify browser binary platform
+        id: browser-platform
+        shell: bash
+        run: |
+          source /etc/os-release
+          printf 'id=%s-%s-%s\n' "$ID" "$VERSION_ID" "$(uname -m)" >> "$GITHUB_OUTPUT"
       - name: Cache Playwright browsers
         uses: actions/cache@v4
         with:
           path: ~/.cache/ms-playwright
-          key: ${{ runner.os }}-playwright-1.63.0
+          # Browser revisions alone do not identify their shared-library ABI.
+          # In particular, Ubuntu 24 and 26 WebKit builds use different ICU versions.
+          key: ${{ runner.os }}-${{ steps.browser-platform.outputs.id }}-playwright-1.63.0
 
       - name: Install isolated browser test tools
         run: |
