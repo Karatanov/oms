@@ -469,7 +469,10 @@ private object MonitoringWorkbookSource {
                 val subproject = text(sourceRow.getCell(columns.getValue("subprojectCode"))).trim()
                 val lot = text(sourceRow.getCell(columns.getValue("lotCode"))).trim().ifBlank { subproject }
                 if (subproject.isBlank() || lot.isBlank()) continue
-                val values = columns.mapValues { (_, cell) -> value(sourceRow.getCell(cell)) }
+                val values = columns.mapValues { (key, column) ->
+                    val cell = sourceRow.getCell(column)
+                    if (key in MONEY_FIELDS) moneyValue(cell) else value(cell)
+                }
                 grouped.getOrPut(lot.uppercase()) { mutableListOf() } += (index + 1) to values
                 if (index % 25 == 0) progress(20 + (index * 38 / sheet.lastRowNum.coerceAtLeast(1)), "reading_rows")
             }
@@ -528,6 +531,7 @@ private object MonitoringWorkbookSource {
                 val code = value(row.getCell(subprojectColumn)).trim()
                 if (!code.matches(Regex("[A-Za-z]{2}\\d{2}_\\d{2}(?:#.+)?"))) return@mapNotNull null
                 val field = { title: String -> column(title)?.let { value(row.getCell(it)).trim() }.orEmpty() }
+                val moneyField = { title: String -> column(title)?.let { moneyValue(row.getCell(it)) }.orEmpty() }
                 val batch = value(row.getCell(batchColumn)).trim()
                 val values = mapOf(
                     "pool" to batch,
@@ -536,9 +540,9 @@ private object MonitoringWorkbookSource {
                     "nameEn" to field("Scheme Name eng"),
                     "community" to field("Local Municipality"),
                     "priority" to field("Responsible Sector"),
-                    "fundingTotal" to field("Total Investment Cost, UAH"),
-                    "eibCost" to field("Total Investment Cost, UAH (excl. local co-financing)"),
-                    "localCost" to field("Local co-financing, UAH"),
+                    "fundingTotal" to moneyField("Total Investment Cost, UAH"),
+                    "eibCost" to moneyField("Total Investment Cost, UAH (excl. local co-financing)"),
+                    "localCost" to moneyField("Local co-financing, UAH"),
                     "beneficiaryEn" to field("Promotor / Final Beneficiary"),
                     "beneficiary" to field("FB Name")
                 )
@@ -563,6 +567,16 @@ private object MonitoringWorkbookSource {
     private fun text(cell: Cell?): String = cell?.let {
         if (it.cellType == CellType.FORMULA) cachedText(it) else formatter.formatCellValue(it)
     }?.trim().orEmpty()
+
+    /** Money must retain Excel's numeric precision, not its rounded display format. */
+    private fun moneyValue(cell: Cell?): String {
+        if (cell == null) return ""
+        val numeric = cell.cellType == CellType.NUMERIC ||
+            (cell.cellType == CellType.FORMULA && cell.cachedFormulaResultType == CellType.NUMERIC)
+        return if (numeric && !DateUtil.isCellDateFormatted(cell))
+            java.math.BigDecimal.valueOf(cell.numericCellValue).stripTrailingZeros().toPlainString()
+        else value(cell)
+    }
     private fun value(cell: Cell?): String = when {
         cell == null -> ""
         cell.cellType == CellType.FORMULA && cell.cachedFormulaResultType == CellType.NUMERIC && DateUtil.isCellDateFormatted(cell) ->
@@ -585,6 +599,12 @@ private object MonitoringWorkbookSource {
         CellType.BOOLEAN -> cell.booleanCellValue.toString()
         else -> ""
     }
+
+    private val MONEY_FIELDS = setOf(
+        "fundingTotal", "fundingWorks", "fundingTs", "fundingCsc", "eibCost", "localCost",
+        "contractedTotal", "contractedEib", "contractedLocal", "constructionAmount",
+        "constructionEib", "constructionLocal", "paidConstruction"
+    )
 
     private val FINANCIAL_OR_PROGRESS_FIELDS = setOf(
         "fundingTotal", "fundingWorks", "fundingTs", "fundingCsc", "eibCost", "localCost", "contractedTotal", "contractedEib", "contractedLocal",

@@ -28,6 +28,28 @@
 
 ## Verification and limits
 
+### Follow-up: preserve source money precision (12 November)
+
+- Monitoring and Allocation readers previously applied Excel display formatting
+  to all registry values. An amount such as 1234.56 formatted as `#,##0` became
+  `1,235` in the retained payload. The grouped-number parser cannot recover
+  cents already lost at that earlier step, and financial denominators then use
+  rounded values rather than the workbook's underlying amounts.
+- Dedicated money-field reading now retains the numeric cell value, including
+  Excel's cached numeric formula result, as a locale-independent decimal string.
+  It does not evaluate the approved workbook's cross-sheet formulas. Textual
+  money remains available to the existing source amount parser.
+- Monitoring monetary columns and the three Allocation funding columns use
+  this path. Dates, percentage display units, identifiers, hyperlinks and other
+  fields retain their existing readers. Tests parse complete in-memory XLSX
+  fixtures through both real import paths and verify hidden cents, cached
+  formula amounts, zero/blank/text values, date and percentage preservation.
+- The full-precision registry payload is used on the next approved source
+  refresh. Previously rounded payloads are not heuristically reconstructed.
+  Legacy project budget/contract columns remain whole-unit Long attributes;
+  their schema was not changed by this precision fix. Decimal-aware financial
+  calculations can consume the exact retained source values after refresh.
+
 ### Follow-up: source currency metadata
 
 - Both approved subproject readers populate legacy budget/contract attributes
