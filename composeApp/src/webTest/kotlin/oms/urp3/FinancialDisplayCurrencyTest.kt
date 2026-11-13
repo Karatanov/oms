@@ -45,6 +45,28 @@ class FinancialDisplayCurrencyTest {
         assertEquals(10001L, chart.payments.single().amountCents)
         assertTrue(chart.tooltipByMonth.values.single().contains("KH08_07"))
     }
+    @Test fun monthlyInputsReflectRefreshedRecordsRatesAndCurrency() {
+        val rows = listOf(FinancialChartRecord(eur, "KH08_07"))
+        assertEquals(10025L, aggregateMonthlyPayments(rows, "works", "EUR").payments.single().amountCents)
+        assertEquals(451125L, aggregateMonthlyPayments(rows, "works", "UAH", mapOf("2026-09-01" to 45.0)).payments.single().amountCents)
+        assertEquals(501250L, aggregateMonthlyPayments(rows, "works", "UAH", mapOf("2026-09-01" to 50.0)).payments.single().amountCents)
+        val refreshed = listOf(FinancialChartRecord(eur.copy(amount = 200.50, amountEurCents = 20050), "KH08_07"))
+        assertEquals(20050L, aggregateMonthlyPayments(refreshed, "works", "EUR").payments.single().amountCents)
+    }
+    @Test fun monthlyTooltipUsesCurrentLanguageWithoutChangingAmounts() {
+        val previous = LocalizationManager.currentLanguage
+        try {
+            val rows = listOf(FinancialChartRecord(uah, "KH08_07"))
+            LocalizationManager.currentLanguage = Language.UK
+            val ukrainian = aggregateMonthlyPayments(rows)
+            assertTrue(ukrainian.tooltipByMonth.values.single().startsWith(Strings.uk.getValue("subproject_codes")))
+            LocalizationManager.currentLanguage = Language.EN
+            val english = aggregateMonthlyPayments(rows)
+            assertTrue(english.tooltipByMonth.values.single().startsWith(Strings.en.getValue("subproject_codes")))
+            assertNotEquals(ukrainian.tooltipByMonth, english.tooltipByMonth)
+            assertEquals(ukrainian.payments, english.payments)
+        } finally { LocalizationManager.currentLanguage = previous }
+    }
     @Test fun missingConversionIsNeverInventedAndFallbackUsesRecordRate() {
         assertNull(eur.displayAmountCents("UAH", 0.0))
         assertEquals(10001L, uah.copy(amountEurCents = null).displayAmountCents("EUR"))

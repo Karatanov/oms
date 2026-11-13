@@ -28,6 +28,21 @@
 
 ## Verification and limits
 
+### Follow-up: stable monthly-chart projections (13 November)
+
+- Import progress updates the screen timer every 400 ms. The screen previously
+  rebuilt its scoped chart records on every recomposition, and each monthly
+  chart repeated payment grouping, calendar gap filling and tooltip generation.
+- The scoped record projection is now remembered by source rows and all four
+  scope filters. Works/TS/CSC/equipment aggregates are remembered by records,
+  purpose, currency, resolved rates and interface language. Language is included
+  explicitly because tooltip captions are localized. Timers and expanded state
+  do not affect the amounts. No aggregation formula or network request changes.
+- Added regression cases for refreshed amounts, changed conversion rates,
+  currency and localized tooltips. These require the frontend test build in CI;
+  local Gradle is still blocked before compilation by its loopback error.
+  The web regex check passes. No measured wall-clock improvement is asserted.
+
 ### Follow-up: avoid eager retired-ledger requests (13 November)
 
 - Financial Monitoring previously requested all legacy financial records before

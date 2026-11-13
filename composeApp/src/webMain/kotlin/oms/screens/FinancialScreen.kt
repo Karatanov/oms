@@ -490,13 +490,14 @@ fun FinancialScreen(
         PaymentSummaryCards(paymentMonitoring?.summary)
 
         val chartRows = financialChartSourceRows(paymentMonitoring?.let { workbookChartRows }, paymentMonitoringLoading, acts)
-        val chartScopedActs = chartRows.filter {
-            (trancheFilter == null || it.trancheNumber.isFinancialTranche(trancheFilter!!)) &&
-                (subprojectFilter == null || it.subprojectUuid == subprojectFilter) &&
-                (regionFilter == null || it.region == regionFilter) &&
-                (yearFilter == null || (it.act.paymentDate ?: it.act.recordDate).take(4).toIntOrNull() == yearFilter)
+        val financialChartRecords = remember(chartRows, trancheFilter, subprojectFilter, regionFilter, yearFilter) {
+            chartRows.asSequence().filter {
+                (trancheFilter == null || it.trancheNumber.isFinancialTranche(trancheFilter!!)) &&
+                    (subprojectFilter == null || it.subprojectUuid == subprojectFilter) &&
+                    (regionFilter == null || it.region == regionFilter) &&
+                    (yearFilter == null || (it.act.paymentDate ?: it.act.recordDate).take(4).toIntOrNull() == yearFilter)
+            }.map { FinancialChartRecord(it.act, it.subprojectCode.orEmpty()) }.toList()
         }
-        val financialChartRecords = chartScopedActs.map { FinancialChartRecord(it.act, it.subprojectCode.orEmpty()) }
         // An old record without a frozen exchange rate must not hide every
         // financial chart. Each chart omits only the rows it cannot convert;
         // the warning above still tells the user which totals are incomplete.

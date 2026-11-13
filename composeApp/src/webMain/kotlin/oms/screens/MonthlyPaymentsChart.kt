@@ -30,7 +30,7 @@ fun MonthlyPaymentsChart(
     onMonthClick: (String) -> Unit = {}
 ) {
     var currency by remember { mutableStateOf("EUR") }
-    val aggregation = aggregateMonthlyPayments(records, "works", currency, chartRates(records, "works", currency, rates))
+    val aggregation = rememberMonthlyPayments(records, "works", currency, rates)
     var expanded by remember { mutableStateOf(true) }
     MonthlyMoneyChart(
         titleKey = "monthly_project_payments",
@@ -124,13 +124,28 @@ private fun MonthlyPurposePaymentsChart(
     onMonthClick: (String) -> Unit = {}
 ) {
     var currency by remember { mutableStateOf("EUR") }
-    val aggregation = aggregateMonthlyPayments(records, purpose, currency, chartRates(records, purpose, currency, rates))
+    val aggregation = rememberMonthlyPayments(records, purpose, currency, rates)
     if (aggregation.payments.isEmpty() && !showWhenEmpty) return
     MonthlyMoneyChart(
         titleKey, hintKey, aggregation.payments, currency, titleSuffix = regionName, tooltipByMonth = aggregation.tooltipByMonth,
         currencySelector = { CurrencySelector(currency) { currency = it } },
         expanded = expanded, onExpandedChange = onExpandedChange, onMonthClick = onMonthClick
     )
+}
+
+/** Timer ticks and expand/collapse changes do not alter payment aggregates. */
+@Composable
+private fun rememberMonthlyPayments(
+    records: List<FinancialChartRecord>,
+    purpose: String,
+    currency: String,
+    suppliedRates: Map<String, Double>
+): MonthlyFinancialAggregation {
+    val rates = chartRates(records, purpose, currency, suppliedRates)
+    // Tooltips contain localized text, so language changes must invalidate them.
+    return remember(records, purpose, currency, rates, LocalizationManager.currentLanguage) {
+        aggregateMonthlyPayments(records, purpose, currency, rates)
+    }
 }
 
 /**
