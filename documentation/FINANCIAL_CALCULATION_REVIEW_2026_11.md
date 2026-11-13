@@ -28,6 +28,23 @@
 
 ## Verification and limits
 
+### Follow-up: browser-compatible regression fixtures (13 November)
+
+- CI for `6669741` failed at `:composeApp:compileTestKotlinJs`: the newly
+  added progress-loader tests imported JVM-only `runBlocking`. The preceding
+  standalone JVM test success did not establish browser-test compatibility.
+- Replaced it with standard-library continuations for these immediately
+  completing fixtures. The runner asserts completion, so an unexpectedly
+  suspended fixture cannot silently pass. Production code and dependencies
+  are unchanged.
+- `tools/FinancialChartStateChecks.kt` invokes the same seven test cases for
+  standalone JVM/JS checks. The real production helpers and test files compiled
+  with Kotlin/JS 2.3.0 and linked to CommonJS; all seven checks then passed in
+  Node. This bypasses the local Gradle loopback limitation without substituting
+  JavaScript reimplementations of the Kotlin logic.
+- This is a JS runtime check, not a real-browser/Compose rendering test. The
+  complete browser regression workflow still needs to pass after the fix.
+
 ### Follow-up: scoped progress loading and retry (13 November)
 
 - The grouped-progress request previously retained the previous result during a
