@@ -16,6 +16,8 @@ jobs:
     timeout-minutes: 35
     steps:
       - uses: actions/checkout@v6
+      - name: Download timeout and recovery regressions (offline)
+        run: node --test tools/test-download-timeouts.cjs
       - uses: actions/setup-java@v6
         with:
           distribution: temurin

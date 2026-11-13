@@ -44,12 +44,17 @@
     };
     const downloadOmsResponse = async (url, options = {}) => {
         if (!apiUrl(url)) return;
+        // Downloads bypass Ktor's request timeout. Bound both response headers
+        // and body transfer; a stalled connection must not leave progress forever.
+        const controller = new AbortController();
+        let timedOut = false;
+        const timeout = setTimeout(() => { timedOut = true; controller.abort(); }, 5 * 60 * 1000);
         const canShowProgress = typeof window.showOmsLoading === 'function';
         if (canShowProgress) window.showOmsLoading(
             typeof window.omsText === 'function' ? window.omsText('downloadingFile') : 'Preparing file…'
         );
         try {
-            const response = await omsAuthenticatedFetch(url, options);
+            const response = await omsAuthenticatedFetch(url, { ...options, signal: controller.signal });
             if (!response.ok) {
                 let message = '';
                 try {
@@ -74,8 +79,12 @@
             setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
         } catch (error) {
             const fallback = omsLanguage === 'en' ? 'Could not download the file. Please retry.' : 'Не вдалося завантажити файл. Повторіть спробу.';
-            alert(error instanceof Error && error.message ? error.message : fallback);
+            const timeoutMessage = omsLanguage === 'en'
+                ? 'The file download timed out. Please retry.'
+                : 'Час очікування завантаження файлу вичерпано. Повторіть спробу.';
+            alert(timedOut ? timeoutMessage : (error instanceof Error && error.message ? error.message : fallback));
         } finally {
+            clearTimeout(timeout);
             if (canShowProgress) window.hideOmsLoading();
         }
     };

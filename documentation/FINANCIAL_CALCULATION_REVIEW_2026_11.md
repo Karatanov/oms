@@ -28,6 +28,26 @@
 
 ## Verification and limits
 
+### Follow-up: bounded authenticated downloads (13 November)
+
+- Native authenticated downloads bypass Ktor's 75-second API timeout. Their
+  `fetch`/body read previously had no deadline, so a stalled connection left the
+  operation progress indicator active indefinitely.
+- Each download now has an independent five-minute AbortController deadline
+  covering both response headers and body transfer. It is cleared on every exit;
+  timeout produces a UA/EN retry message and releases the progress counter.
+  This is longer than the SIR server PDF converter's 90-second limit. Successful
+  filenames, authorization headers, POST selection payloads and object-URL
+  cleanup are preserved. No report generation or financial formulas changed.
+- Seven offline tests exercise the shipped auth.js with mocked transport/clock:
+  header/body stalls, UA/EN messages, successful POST, HTTP auth failure, foreign
+  URL exclusion, concurrent downloads and retry after timeout. They pass and are
+  included in browser-regression CI. The 42-pattern web check passes.
+- The existing cookie-free auth/download/image/logout browser checks also pass
+  for user and guest in locally installed Chrome. The packaged Playwright Chrome
+  binary was unavailable, so Chrome was explicitly selected for that run. This
+  does not certify Safari/Firefox or an authenticated production export.
+
 ### Follow-up: payment-monitoring PDF selection (13 November)
 
 - The payment register's PDF button sent only the language. Its endpoint always
