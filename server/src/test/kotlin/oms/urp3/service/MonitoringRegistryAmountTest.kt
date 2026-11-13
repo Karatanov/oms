@@ -8,6 +8,38 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class MonitoringRegistryAmountTest {
+    @Test fun `allocation imports explicit construction types from either header without inventing a default`() {
+        val cases = listOf(
+            "New construction/ Нове будівництво" to "new_construction",
+            "Overhaul/ Капітальний ремонт" to "capital_repair",
+            "Reconstruction/ Реконструкція" to "reconstruction",
+            "Renovation" to "reconstruction",
+            "Restoration/ Реставрація" to "reconstruction",
+            "new_construction" to "new_construction",
+            "" to null,
+            "Unspecified" to null
+        )
+        for (header in listOf("Description of Activity", "Description of Intervention")) {
+            for ((sourceValue, expected) in cases) XSSFWorkbook().use { workbook ->
+                val sheet = workbook.createSheet("3. Batch 9 (Allocation)")
+                sheet.createRow(0).apply {
+                    createCell(0).setCellValue("Sub-Project ID")
+                    createCell(1).setCellValue("Batch ID")
+                    createCell(2).setCellValue(header)
+                }
+                sheet.createRow(1).apply {
+                    createCell(0).setCellValue("CH09_01")
+                    createCell(1).setCellValue(9.0)
+                    createCell(2).setCellValue(sourceValue)
+                }
+                val row = parse(workbook)
+                assertEquals(sourceValue, value(row, "constructionType"))
+                assertEquals(expected, row.javaClass.getDeclaredMethod("constructionType")
+                    .apply { isAccessible = true }.invoke(row))
+            }
+        }
+    }
+
     private fun parse(workbook: XSSFWorkbook): Any {
         val bytes = ByteArrayOutputStream().use { output -> workbook.write(output); output.toByteArray() }
         val type = Class.forName("oms.urp3.service.MonitoringWorkbookSource")

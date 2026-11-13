@@ -260,6 +260,7 @@ class SubprojectRegistryRefreshService(
                         it[ProjectTable.region] = row.region()
                         it[ProjectTable.sector] = row.value("priority")
                         it[ProjectTable.budgetPlanned] = budget
+                        row.constructionType()?.let { construction -> it[ProjectTable.constructionType] = construction }
                         it[ProjectTable.currency] = row.currency()
                         it[ProjectTable.status] = "active"
                         it[ProjectTable.isArchived] = false
@@ -434,11 +435,8 @@ private object MonitoringWorkbookSource {
             val raw = value("region").replace(Regex("\\s+(область|oblast)$", RegexOption.IGNORE_CASE), "").trim()
             return oblastNamesByCode[raw.uppercase()] ?: raw
         }
-        fun constructionType(): String = when (value("constructionType").substringBefore('/').trim().lowercase()) {
-            "new construction", "нове будівництво" -> "new_construction"
-            "capital repair", "капітальний ремонт", "overhaul", "major repair", "major repairs" -> "capital_repair"
-            else -> "reconstruction"
-        }
+        fun constructionType(): String? = oms.urp3.financialConstructionKey(value("constructionType"))
+            .takeIf { it in setOf("new_construction", "capital_repair", "reconstruction", "repair") }
     }
 
     fun parse(workbook: ByteArray, progress: (Int, String) -> Unit): List<Row> {
@@ -540,6 +538,7 @@ private object MonitoringWorkbookSource {
                     "nameEn" to field("Scheme Name eng"),
                     "community" to field("Local Municipality"),
                     "priority" to field("Responsible Sector"),
+                    "constructionType" to field("Description of Activity").ifBlank { field("Description of Intervention") },
                     "fundingTotal" to moneyField("Total Investment Cost, UAH"),
                     "eibCost" to moneyField("Total Investment Cost, UAH (excl. local co-financing)"),
                     "localCost" to moneyField("Local co-financing, UAH"),

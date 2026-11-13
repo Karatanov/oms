@@ -26,9 +26,9 @@ fun financialConstructionKey(value: String): String {
     fun has(vararg aliases: String) = parts.any { part -> aliases.any { part == it } }
     return when {
         has("new_construction", "new construction", "нове будівництво") -> "new_construction"
-        // Explicit OMS terminology: renovation is grouped with reconstruction.
+        // Customer-approved OMS grouping: renovation/restoration are reconstruction.
         // Overhaul/capital repair remains a distinct construction activity.
-        has("reconstruction", "реконструкція", "renovation") -> "reconstruction"
+        has("reconstruction", "реконструкція", "renovation", "restoration", "реставрація") -> "reconstruction"
         has("capital_repair", "capital repair", "капітальний ремонт", "overhaul", "major repair", "major repairs") -> "capital_repair"
         has("repair", "поточний ремонт") -> "repair"
         has("unspecified", "не визначено", "не вказано", "") -> "Unspecified"

@@ -28,6 +28,39 @@
 
 ## Verification and limits
 
+### Confirmed production repair: missing Batch B construction types (13 November)
+
+- Read-only production inspection found 26 active Batch B subprojects with null
+  `projects.construction_type` and no source `constructionType` value. The source
+  Allocation sheet explicitly supplies every missing value in column J. All 26
+  SQL assignments were checked against their exact cells and source SHA256
+  `25d9e2a21f00ae608a0ff7c75339424c1733c16e197a561909dfc590550ed894`.
+- Root cause: the Allocation reader omitted Description of Activity / Description
+  of Intervention, and its existing-project update branch omitted construction
+  type. The reader now accepts both headers and persists known types on refresh.
+  Shared category normalization handles bilingual labels, canonical keys and
+  Renovation/Restoration without fabricating reconstruction for an empty/unknown input.
+  Customer clarification explicitly groups Restoration/Реставрація under
+  reconstruction. ZP09_03 and ZP09_81 were briefly separated during the audit and
+  immediately restored after that clarification. Their original source caption
+  remains as provenance; no separate restoration category is introduced.
+- A full database/uploads backup was created at
+  `/docker/oms/backups/registry-20261113T201000Z`, restored into an isolated trial
+  schema, and the guarded SQL was tested there before production application.
+  Both runs corrected 26 project types and 26 source JSON payloads. Guards verify
+  all other project/detail fields; user/report identities and upload hashes match.
+  The SQL refuses conflicting existing type edits and retains source provenance.
+- Production now has no missing types among 302 subprojects and 29 parts. The
+  subproject distribution is 96 new construction, 100 capital repair and 106
+  reconstruction. These are counts across the registry, not payment percentages.
+  No funding, contracts, payments, status or hierarchy was changed.
+- Parser JUnit tests passed against the exact production parser object extracted
+  unchanged into an isolated harness, including both Allocation header variants,
+  bilingual/canonical types and absent/unknown input. The 42-pattern web check
+  passes. This is not a substitute for full backend CI or production browser QA.
+  The data correction is live independently of deployment of the import fix;
+  the project-list cache expires after 30 seconds, with no restart required.
+
 ### Follow-up: explicit empty PDF selections (13 November)
 
 - Subproject PDF selection treated an empty POST UUID list as a full-registry
