@@ -98,7 +98,7 @@ class PaymentMonitoringPdfExportService(
 ) {
     enum class Language { UK, EN }
 
-    fun export(items: List<PaymentMonitoringWorkbookSource.Item>, language: Language): ByteArray {
+    fun export(items: List<PaymentMonitoringWorkbookSource.Item>, language: Language, codeQuery: String = ""): ByteArray {
         val labels = Labels(language)
         return tableExporter.export(
             LandscapeTablePdfExportService.Request(
@@ -108,7 +108,7 @@ class PaymentMonitoringPdfExportService(
                     "OMS — Subproject payment monitoring"
                 },
                 totalLabel = if (language == Language.UK) "Усього субпроєктів" else "Total subprojects",
-                filtersLabel = if (language == Language.UK) "Порядок" else "Order",
+                filtersLabel = if (language == Language.UK) "Фільтр" else "Filter",
                 noRecordsLabel = if (language == Language.UK) "Немає даних для експорту" else "No data to export",
                 exportDateLabel = if (language == Language.UK) "Дата експорту" else "Export date",
                 pageLabel = { current, total ->
@@ -120,7 +120,8 @@ class PaymentMonitoringPdfExportService(
                     "planned" to 60f, "factual" to 60f, "compliance" to 90f
                 ).map { LandscapeTablePdfExportService.Column(labels[it.first], it.second) },
                 rows = items.map(::values),
-                filterSummary = if (language == Language.UK) "За кодом субпроєкту" else "By subproject code"
+                filterSummary = if (codeQuery.isBlank()) "" else
+                    if (language == Language.UK) "Код субпроєкту: $codeQuery" else "Subproject code: $codeQuery"
             )
         )
     }

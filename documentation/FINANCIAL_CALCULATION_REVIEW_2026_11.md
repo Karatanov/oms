@@ -28,6 +28,26 @@
 
 ## Verification and limits
 
+### Follow-up: payment-monitoring PDF selection (13 November)
+
+- The payment register's PDF button sent only the language. Its endpoint always
+  exported the whole source in code order, ignoring the visible code search and
+  selected numeric/text sort. It now sends the current search, column and
+  direction, and the server applies them to the complete snapshot, not a page.
+- Selection mirrors the table's case-insensitive substring match, numeric sorts
+  and null/blank-last behavior in both directions. Unsupported sort parameters
+  and overlong searches return HTTP 400 before retrieving the source. Existing
+  language-only links retain their default full-register code sort.
+- PDF filter metadata now describes an actual code search rather than falsely
+  asserting a fixed code sort. Layout, monetary values, import and authorization
+  are unchanged. No records are mutated during selection.
+- Five standalone Kotlin/JUnit tests pass, including all eight numeric columns
+  in both directions, text/compliance ordering, zero versus missing values,
+  45 matching rows across pagination, empty selections and invalid parameters.
+  The 42-pattern web check passes. Full builds and authenticated browser/PDF
+  download verification remain required in CI/after deployment; the helper tests
+  do not certify the download workflow or PDF rendering.
+
 ### Follow-up: browser-compatible regression fixtures (13 November)
 
 - CI for `6669741` failed at `:composeApp:compileTestKotlinJs`: the newly

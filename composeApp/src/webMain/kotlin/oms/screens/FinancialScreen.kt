@@ -1386,7 +1386,8 @@ private fun PaymentMonitoringCard(
                 OutlinedButton(onClick = {
                     oms.data.openOmsDownload(
                         OmsApiClient.paymentMonitoringPdfExportUrl(
-                            if (LocalizationManager.currentLanguage == oms.localization.Language.EN) "en" else "uk"
+                            if (LocalizationManager.currentLanguage == oms.localization.Language.EN) "en" else "uk",
+                            code = codeQuery.trim(), sort = sort.name, ascending = ascending
                         )
                     )
                 }, enabled = rows.isNotEmpty()) {

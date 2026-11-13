@@ -88,6 +88,13 @@ fun Route.financialRoutes() {
 
     get("/api/v1/financials/payment-monitoring/export-pdf") {
         call.requireRole("ADMIN", "PROJECT_MANAGER") ?: return@get
+        val query = try {
+            oms.urp3.service.paymentMonitoringExportQuery(
+                call.request.queryParameters["code"], call.request.queryParameters["sort"], call.request.queryParameters["ascending"])
+        } catch (failure: IllegalArgumentException) {
+            call.respond(HttpStatusCode.BadRequest, ErrorResponse("VALIDATION_ERROR", failure.message ?: "Invalid export selection."))
+            return@get
+        }
         val language = when (call.request.queryParameters["lang"]?.lowercase()) {
             "en" -> PaymentMonitoringPdfExportService.Language.EN
             else -> PaymentMonitoringPdfExportService.Language.UK
@@ -99,7 +106,7 @@ fun Route.financialRoutes() {
             return@get
         }
         val pdf = withContext(Dispatchers.IO) {
-            paymentMonitoringPdfExportService.export(snapshot.items.sortedBy { it.code }, language)
+            paymentMonitoringPdfExportService.export(oms.urp3.service.selectPaymentMonitoringExportItems(snapshot.items, query), language, query.code)
         }
         call.response.header(HttpHeaders.ContentDisposition, "attachment; filename=oms-payment-monitoring.pdf")
         call.respondBytes(pdf, ContentType.Application.Pdf)
