@@ -28,6 +28,28 @@
 
 ## Verification and limits
 
+### Follow-up: client payment-source availability (13 November)
+
+- Financial Monitoring monthly charts still selected workbook rows by checking
+  whether the mapped transaction list was nonempty. A successfully loaded
+  approved register with no dated payments therefore resurrected legacy ledger
+  rows, disagreeing with the corrected backend's empty-snapshot policy.
+- Selection now distinguishes an available empty register from an unavailable
+  source. Pending initial loads do not briefly display unrelated legacy totals;
+  an existing snapshot remains authoritative during refresh. The established
+  legacy fallback is retained only after a completed unavailable-source attempt.
+- Payment monitoring load failures now have a localized UA/EN retry message,
+  and coroutine cancellation is propagated. A failed refresh retains the last
+  loaded snapshot instead of silently clearing it. Loading does not block the
+  surrounding navigation.
+- The three payment summary cards show unavailable data as a dash, not as a
+  fabricated zero before a response. Genuine zero totals remain zero. The
+  programme E4 KPI and existing filter scopes are otherwise unchanged.
+- Three focused JVM tests passed for the pure client selection helper; those
+  regressions are also included in the browser-test source set. Browser regex
+  validation passed all 42 literals. Local Gradle JS/WASM remains blocked by
+  the loopback-connection error; CI and a production browser check remain open.
+
 ### Follow-up: bilingual region grouping and filtering (13 November)
 
 - Production contains both English Allocation region names and Ukrainian

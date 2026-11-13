@@ -122,6 +122,8 @@ fun FinancialScreen(
     var acts by remember { mutableStateOf<List<ProjectActRow>>(emptyList()) }
     var financialProgress by remember { mutableStateOf<ApiFinancialProgress?>(null) }
     var paymentMonitoring by remember { mutableStateOf<ApiPaymentMonitoring?>(null) }
+    var paymentMonitoringLoading by remember { mutableStateOf(true) }
+    var paymentMonitoringLoadFailed by remember { mutableStateOf(false) }
     var paymentMonitoringMessage by remember { mutableStateOf<String?>(null) }
     var paymentMonitoringMessageIsError by remember { mutableStateOf(false) }
     var displayCurrency by remember { mutableStateOf("EUR") }
@@ -275,10 +277,19 @@ fun FinancialScreen(
             OmsApiClient.financialProgress(regionFilter, trancheFilter, subprojectFilter, yearFilter)
         }.getOrNull()
     }
-    // The external workbook is supplemental. It must not hold up the main
-    // financial register when its source is temporarily unavailable.
+    // Resolve the approved source independently without blocking navigation.
+    // Retain the previous snapshot during a refresh, but report load failures.
     LaunchedEffect(reloadKey) {
-        paymentMonitoring = runCatching { OmsApiClient.paymentMonitoring() }.getOrNull()
+        paymentMonitoringLoading = true
+        paymentMonitoringLoadFailed = false
+        try {
+            paymentMonitoring = OmsApiClient.paymentMonitoring()
+        } catch (failure: Exception) {
+            if (failure is kotlinx.coroutines.CancellationException) throw failure
+            paymentMonitoringLoadFailed = true
+        } finally {
+            paymentMonitoringLoading = false
+        }
     }
 
     val regionScopedActs = acts.filter { regionFilter == null || it.region == regionFilter }
@@ -427,6 +438,9 @@ fun FinancialScreen(
         )
         if (loading) oms.components.ContentState(LocalizationManager.t("loading_records"), loading = true)
         if (loadFailed) oms.components.ContentState(LocalizationManager.t("load_records_error"), error = true, onRetry = { reloadKey++ })
+        if (paymentMonitoringLoading) oms.components.ContentState(LocalizationManager.t("payment_monitoring_loading"), loading = true)
+        if (paymentMonitoringLoadFailed) oms.components.ContentState(
+            LocalizationManager.t("payment_monitoring_load_error"), error = true, onRetry = { reloadKey++ })
         if (loadingRates) oms.components.ContentState(LocalizationManager.t("financial_rates_loading"), loading = true)
         else if (missingConversions > 0) oms.components.ContentState(
             LocalizationManager.t("financial_rates_missing"), error = true, onRetry = { rateRetry++ })
@@ -459,7 +473,7 @@ fun FinancialScreen(
 
         PaymentSummaryCards(paymentMonitoring?.summary)
 
-        val chartRows = if (workbookChartRows.isNotEmpty()) workbookChartRows else acts
+        val chartRows = financialChartSourceRows(paymentMonitoring?.let { workbookChartRows }, paymentMonitoringLoading, acts)
         val chartScopedActs = chartRows.filter {
             (trancheFilter == null || it.trancheNumber.isFinancialTranche(trancheFilter!!)) &&
                 (subprojectFilter == null || it.subprojectUuid == subprojectFilter) &&
@@ -1163,9 +1177,9 @@ private fun Int.financialTrancheCode(): String = if (this == 2 || this == 9) "B"
 @Composable
 private fun PaymentSummaryCards(summary: oms.data.ApiPaymentMonitoringSummary?) {
     val entries = listOf(
-        "payment_purpose_works" to (summary?.constructionWorksPaidUah ?: 0.0),
-        "payment_purpose_technical_supervision" to (summary?.technicalSupervisionPaidUah ?: 0.0),
-        "payment_purpose_engineer_consultant" to (summary?.engineerConsultantPaidUah ?: 0.0)
+        "payment_purpose_works" to summary?.constructionWorksPaidUah,
+        "payment_purpose_technical_supervision" to summary?.technicalSupervisionPaidUah,
+        "payment_purpose_engineer_consultant" to summary?.engineerConsultantPaidUah
     )
     FlowRow(
         modifier = Modifier.fillMaxWidth(),
@@ -1184,7 +1198,7 @@ private fun PaymentSummaryCards(summary: oms.data.ApiPaymentMonitoringSummary?) 
                         color = MaterialTheme.colorScheme.onSecondaryContainer
                     )
                     Text(
-                        "${amount.formatUiAmount()} ${LocalizationManager.currencyLabel("UAH")}",
+                        amount?.let { "${it.formatUiAmount()} ${LocalizationManager.currencyLabel("UAH")}" } ?: "—",
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onSecondaryContainer
                     )
