@@ -7,3 +7,7 @@ internal fun <T> financialChartSourceRows(approvedRows: List<T>?, loadingApprove
         loadingApproved -> emptyList()
         else -> legacyRows
     }
+
+/** The retired ledger is a fallback, never a prerequisite for approved-source charts. */
+internal fun shouldLoadLegacyFinancialRecords(approvedAvailable: Boolean, loadingApproved: Boolean, projectContextReady: Boolean): Boolean =
+    !approvedAvailable && !loadingApproved && projectContextReady

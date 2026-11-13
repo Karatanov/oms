@@ -27,7 +27,11 @@ const origin = 'http://127.0.0.1:18088';
       try { await route.fulfill({ status: fail ? 503 : 200, contentType: 'application/json', body: fail ? '{}' : '[]' }); }
       catch { /* A superseded Compose request can be cancelled. */ }
     });
-    await page.route('**/api/v1/financials', route => route.fulfill({ contentType: 'application/json', body: '[]' }));
+    let legacyFinancialRequests = 0;
+    await page.route('**/api/v1/financials', route => {
+      legacyFinancialRequests++;
+      return route.fulfill({ contentType: 'application/json', body: '[]' });
+    });
     const ready = section => page.waitForFunction(section => {
       const pane = document.querySelector('#oms-route-transition');
       return pane?.hidden && pane.dataset.displayedSection === section;
@@ -95,6 +99,36 @@ const origin = 'http://127.0.0.1:18088';
     // Browser history uses the same transaction path.
     await page.goBack(); await ready('Procurement');
     await page.goForward(); await ready('Documents');
+
+    // The approved source is independent of route readiness. Neither a pending
+    // nor a loaded-empty register should fetch the retired financial ledger.
+    let releasePayments;
+    let paymentsUnavailable = false;
+    await page.route('**/api/v1/financials/progress**', route => route.fulfill({
+      contentType: 'application/json', body: '{"byRegion":[],"bySector":[],"byConstructionType":[]}'
+    }));
+    await page.route('**/api/v1/financials/payment-monitoring', async route => {
+      if (paymentsUnavailable) {
+        await route.fulfill({ status: 503, contentType: 'application/json', body: '{}' });
+        return;
+      }
+      await new Promise(resolve => { releasePayments = resolve; pendingResponses.push(resolve); });
+      await route.fulfill({ contentType: 'application/json', body: JSON.stringify({
+        refreshedAt: '2026-11-13T00:00:00', items: [], transactions: []
+      }) }).catch(() => {});
+    });
+    await navigate('financial'); await ready('Financial Monitoring');
+    assert.ok(releasePayments, 'Payment source should remain pending after project context is ready');
+    assert.equal(legacyFinancialRequests, 0, 'Pending source must not start the retired ledger request');
+    const paymentResponse = page.waitForResponse(response => response.url().endsWith('/api/v1/financials/payment-monitoring'));
+    releasePayments(); await paymentResponse;
+    await page.waitForTimeout(200);
+    assert.equal(legacyFinancialRequests, 0, 'Loaded-empty approved source must not fetch legacy records');
+    await navigate('documents'); await ready('Documents');
+    paymentsUnavailable = true;
+    const fallbackRequest = page.waitForRequest(request => request.url().endsWith('/api/v1/financials'), { timeout: 10000 });
+    await navigate('financial'); await fallbackRequest; await ready('Financial Monitoring');
+    assert.equal(legacyFinancialRequests, 1, 'An unavailable source must retain the explicit legacy fallback');
 
     // Fast/cached transition: no delayed visual indicator should appear.
     await page.evaluate(() => {

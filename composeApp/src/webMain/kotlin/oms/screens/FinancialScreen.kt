@@ -170,6 +170,8 @@ fun FinancialScreen(
     var showTransferDialog by remember { mutableStateOf(false) }
     var loading by remember { mutableStateOf(true) }
     var loadFailed by remember { mutableStateOf(false) }
+    var legacyLoading by remember { mutableStateOf(false) }
+    var legacyLoadFailed by remember { mutableStateOf(false) }
     oms.navigation.ReportRouteReadiness(loading, loadFailed)
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var pageSize by remember { mutableStateOf(20) }
@@ -240,30 +242,10 @@ fun FinancialScreen(
     LaunchedEffect(reloadKey) {
         loading = true; loadFailed = false
         try {
-        val records = OmsApiClient.allFinancialRecords()
-        // The approved payment workbook is keyed by subproject code.  Load
-        // its light project index even when the editable record register is
-        // empty, otherwise the source charts could not be scoped by region.
-        ProjectRepository.refresh()
-        check(ProjectRepository.errorMessage == null) { "Could not load project context" }
-        val projectsById = ProjectRepository.projects.associateBy { it.id }
-        acts = records.mapNotNull { item ->
-            projectsById[item.projectUuid]?.let { project ->
-                val ancestry = generateSequence(project) { current -> current.parentProjectUuid?.let(projectsById::get) }.toList().asReversed()
-                val subproject = ancestry.firstOrNull { it.projectType == "subproject" }
-                val subprojectPart = ancestry.firstOrNull { it.projectType == "subproject_part" }
-                ProjectActRow(
-                    project.id,
-                    subproject?.id,
-                    subproject?.name ?: project.name,
-                    subproject?.siteNumber ?: project.siteNumber,
-                    subprojectPart?.name,
-                    subproject?.trancheNumber ?: project.trancheNumber,
-                    canonicalUkraineRegion(subproject?.region ?: project.region),
-                    item.record
-                )
-            }
-        }.sortedByDescending { it.act.recordDate }
+            // The source is keyed by subproject code. Resolve this context
+            // independently of the hidden legacy ledger and its exchange rates.
+            ProjectRepository.refresh()
+            check(ProjectRepository.errorMessage == null) { "Could not load project context" }
         } catch (failure: Exception) {
             if (failure is kotlinx.coroutines.CancellationException) throw failure
             loadFailed = true
@@ -291,40 +273,73 @@ fun FinancialScreen(
             paymentMonitoringLoading = false
         }
     }
+    LaunchedEffect(reloadKey, paymentMonitoringLoading, paymentMonitoring != null, loading, loadFailed) {
+        legacyLoading = false
+        legacyLoadFailed = false
+        if (!shouldLoadLegacyFinancialRecords(paymentMonitoring != null, paymentMonitoringLoading, !loading && !loadFailed)) {
+            acts = emptyList()
+            return@LaunchedEffect
+        }
+        legacyLoading = true
+        try {
+            val projectsById = ProjectRepository.projects.associateBy { it.id }
+            acts = OmsApiClient.allFinancialRecords().mapNotNull { item ->
+                projectsById[item.projectUuid]?.let { project ->
+                    val ancestry = generateSequence(project) { current -> current.parentProjectUuid?.let(projectsById::get) }.toList().asReversed()
+                    val subproject = ancestry.firstOrNull { it.projectType == "subproject" }
+                    val subprojectPart = ancestry.firstOrNull { it.projectType == "subproject_part" }
+                    ProjectActRow(project.id, subproject?.id, subproject?.name ?: project.name,
+                        subproject?.siteNumber ?: project.siteNumber, subprojectPart?.name,
+                        subproject?.trancheNumber ?: project.trancheNumber,
+                        canonicalUkraineRegion(subproject?.region ?: project.region), item.record)
+                }
+            }.sortedByDescending { it.act.recordDate }
+        } catch (failure: Exception) {
+            if (failure is kotlinx.coroutines.CancellationException) throw failure
+            legacyLoadFailed = true
+        } finally {
+            legacyLoading = false
+        }
+    }
 
     val regionScopedActs = acts.filter { regionFilter == null || it.region == regionFilter }
-    val workbookChartRows = paymentMonitoring?.transactions.orEmpty().mapNotNull { transaction ->
-        val subprojectCode = transaction.code.paymentSubprojectCode()
-        val project = ProjectRepository.projects.firstOrNull {
-            it.projectType == "subproject" && it.siteNumber.equals(subprojectCode, ignoreCase = true)
-        } ?: return@mapNotNull null
-        val amountEur = transaction.amountEur
-        val derivedRate = amountEur?.takeIf { it > 0.0 }?.let { transaction.amountUah / it }
-        ProjectActRow(
-            projectUuid = project.id,
-            subprojectUuid = project.id,
-            subprojectName = project.name,
-            subprojectCode = project.siteNumber,
-            subprojectPartName = null,
-            trancheNumber = project.trancheNumber,
-            region = canonicalUkraineRegion(project.region),
-            act = ApiFinancialRecord(
-                uuid = transaction.sourceReference,
-                recordType = "payment",
-                referenceNumber = transaction.sourceReference,
-                amount = amountEur ?: transaction.amountUah,
-                currency = if (amountEur != null) "EUR" else "UAH",
-                recordDate = transaction.paymentDate,
-                paymentDate = transaction.paymentDate,
-                paymentPurpose = transaction.code.paymentPurpose(),
-                eurExchangeRate = derivedRate,
-                amountEurCents = amountEur?.let { (it * 100).roundToLong() }
-            )
-        )
+    val subprojectsByCode = remember(ProjectRepository.projects) {
+        ProjectRepository.projects.filter { it.projectType == "subproject" }
+            .associateBy { it.siteNumber.trim().uppercase() }
     }
-    val subprojectFilterOptions = acts.mapNotNull { row ->
-        row.subprojectUuid?.takeIf { row.subprojectCode != null }?.let { uuid -> uuid to row.subprojectCode!! }
-    }.distinctBy { (uuid, _) -> uuid }.sortedBy { (_, code) -> code }
+    val workbookChartRows = remember(paymentMonitoring?.transactions, subprojectsByCode) {
+        paymentMonitoring?.transactions.orEmpty().mapNotNull { transaction ->
+            val subprojectCode = transaction.code.paymentSubprojectCode()
+            val project = subprojectsByCode[subprojectCode.uppercase()] ?: return@mapNotNull null
+            val amountEur = transaction.amountEur
+            val derivedRate = amountEur?.takeIf { it > 0.0 }?.let { transaction.amountUah / it }
+            ProjectActRow(
+                projectUuid = project.id,
+                subprojectUuid = project.id,
+                subprojectName = project.name,
+                subprojectCode = project.siteNumber,
+                subprojectPartName = null,
+                trancheNumber = project.trancheNumber,
+                region = canonicalUkraineRegion(project.region),
+                act = ApiFinancialRecord(
+                    uuid = transaction.sourceReference,
+                    recordType = "payment",
+                    referenceNumber = transaction.sourceReference,
+                    amount = amountEur ?: transaction.amountUah,
+                    currency = if (amountEur != null) "EUR" else "UAH",
+                    recordDate = transaction.paymentDate,
+                    paymentDate = transaction.paymentDate,
+                    paymentPurpose = transaction.code.paymentPurpose(),
+                    eurExchangeRate = derivedRate,
+                    amountEurCents = amountEur?.let { (it * 100).roundToLong() }
+                )
+            )
+        }
+    }
+    val subprojectFilterOptions = remember(subprojectsByCode) {
+        subprojectsByCode.values.filter { it.siteNumber.isNotBlank() }
+            .map { it.id to it.siteNumber }.sortedBy { (_, code) -> code }
+    }
     val regionFilterOptions = acts.map { it.region }.filter(String::isNotBlank).distinct().sorted()
     val yearFilterOptions = acts.map { (it.act.paymentDate ?: it.act.recordDate).take(4).toIntOrNull() }
         .filterNotNull().distinct().sortedDescending()
@@ -436,8 +451,9 @@ fun FinancialScreen(
             Icons.Default.AccountBalance,
             iconText = "€"
         )
-        if (loading) oms.components.ContentState(LocalizationManager.t("loading_records"), loading = true)
+        if (loading || legacyLoading) oms.components.ContentState(LocalizationManager.t("loading_records"), loading = true)
         if (loadFailed) oms.components.ContentState(LocalizationManager.t("load_records_error"), error = true, onRetry = { reloadKey++ })
+        if (legacyLoadFailed) oms.components.ContentState(LocalizationManager.t("load_records_error"), error = true, onRetry = { reloadKey++ })
         if (paymentMonitoringLoading) oms.components.ContentState(LocalizationManager.t("payment_monitoring_loading"), loading = true)
         if (paymentMonitoringLoadFailed) oms.components.ContentState(
             LocalizationManager.t("payment_monitoring_load_error"), error = true, onRetry = { reloadKey++ })

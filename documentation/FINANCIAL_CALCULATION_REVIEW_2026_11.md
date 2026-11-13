@@ -28,6 +28,27 @@
 
 ## Verification and limits
 
+### Follow-up: avoid eager retired-ledger requests (13 November)
+
+- Financial Monitoring previously requested all legacy financial records before
+  loading project context, even when approved payment data was available. Those
+  records could also trigger date-specific NBU requests for the hidden ledger.
+- Project context now loads independently. Legacy records are requested only
+  after an unavailable approved-source attempt and successful context loading;
+  pending and loaded-empty sources never trigger this fallback. Route readiness
+  does not wait for the optional legacy request. Fallback errors retain a retry.
+- Transaction-to-subproject projection is memoized and uses a code index instead
+  of repeatedly scanning every project. Code captions use that same project
+  context and no longer require legacy records. Monetary values, imports and
+  database contents are unchanged.
+- Four standalone Kotlin/JUnit source-selection checks pass, including all eight
+  fallback-gate combinations. JavaScript syntax and the 42-pattern web regex
+  checks pass. A compiled-Compose browser regression now covers pending, empty
+  and unavailable sources and counts legacy requests; its execution requires CI
+  because local Gradle remains blocked by the loopback connection error.
+- No wall-clock loading improvement is claimed without a comparable browser
+  measurement. This removes verified redundant work, not every startup cost.
+
 ### Follow-up: client payment-source availability (13 November)
 
 - Financial Monitoring monthly charts still selected workbook rows by checking

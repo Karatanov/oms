@@ -1,10 +1,17 @@
 package oms.urp3
 
 import oms.screens.financialChartSourceRows
+import oms.screens.shouldLoadLegacyFinancialRecords
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class FinancialChartSourceTest {
+    @Test fun legacyLoadingRequiresBothAnUnavailableSourceAndProjectContext() {
+        for (available in listOf(false, true)) for (pending in listOf(false, true)) for (ready in listOf(false, true)) {
+            assertEquals(!available && !pending && ready, shouldLoadLegacyFinancialRecords(available, pending, ready))
+        }
+    }
+
     @Test fun emptyApprovedDataNeverResurrectsOldPayments() {
         assertEquals(emptyList(), financialChartSourceRows(emptyList<Int>(), false, listOf(100)))
         assertEquals(emptyList(), financialChartSourceRows(emptyList<Int>(), true, listOf(100)))
