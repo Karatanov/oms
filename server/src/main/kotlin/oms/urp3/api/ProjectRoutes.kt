@@ -613,13 +613,12 @@ fun Route.projectRoutes() {
      */
     suspend fun exportSubprojectsTablePdf(
         targetCall: ApplicationCall,
-        requestedUuids: List<String>,
+        requestedUuids: List<String>?,
         requestedLanguage: String,
         requestedFilterSummary: String?
     ) {
         val allProjects = projectService.getAllProjects()
-        val projectsByUuid = allProjects.associateBy { it.uuid.toString() }
-        val projects = if (requestedUuids.isEmpty()) allProjects else requestedUuids.mapNotNull(projectsByUuid::get)
+        val projects = oms.urp3.service.selectTableExportRows(allProjects, requestedUuids) { it.uuid.toString() }
         val language = if (requestedLanguage.equals("en", ignoreCase = true)) {
             SubprojectsTablePdfExportService.Language.EN
         } else SubprojectsTablePdfExportService.Language.UK
@@ -637,7 +636,7 @@ fun Route.projectRoutes() {
         exportSubprojectsTablePdf(
             targetCall = call,
             requestedUuids = call.request.queryParameters.getAll("uuid")
-                ?.map(String::trim)?.filter(String::isNotEmpty).orEmpty(),
+                ?.map(String::trim)?.filter(String::isNotEmpty),
             requestedLanguage = call.request.queryParameters["lang"].orEmpty(),
             requestedFilterSummary = call.request.queryParameters["filters"]
         )

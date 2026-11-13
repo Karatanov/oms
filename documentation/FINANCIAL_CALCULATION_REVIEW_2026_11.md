@@ -28,6 +28,24 @@
 
 ## Verification and limits
 
+### Follow-up: explicit empty PDF selections (13 November)
+
+- Subproject PDF selection treated an empty POST UUID list as a full-registry
+  request. Procurement PDF parsing discarded malformed IDs, so an entirely
+  invalid ID list also fell through to full-registry export.
+- A shared selector now distinguishes omitted selection (`null`, legacy full
+  export) from explicit empty selection (zero rows). It preserves requested
+  order, deduplicates keys and skips deleted/unknown records without restoring
+  unselected rows. GET links with no IDs keep their existing full-export behavior.
+- Procurement IDs and the optional empty-selection flag are validated before
+  database reads; malformed values return HTTP 400 rather than widening scope.
+  Permissions, stored records, PDF layout and financial calculations are unchanged.
+- Six standalone Kotlin/JUnit tests pass, covering omitted/empty selections,
+  both numeric and string keys, order, duplicates, deleted keys, mixed valid and
+  invalid IDs, overflow and malformed flags. The 42-pattern web check passes.
+  Full backend compilation and authenticated endpoint/PDF verification remain
+  CI/post-deployment requirements; these are selection tests, not layout tests.
+
 ### Follow-up: bounded authenticated downloads (13 November)
 
 - Native authenticated downloads bypass Ktor's 75-second API timeout. Their

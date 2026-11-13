@@ -45,12 +45,12 @@ fun Route.procurementRoutes() {
      */
     get("/api/v1/procurements/export-table-pdf") {
         call.requireRole("ADMIN", "PROJECT_MANAGER", "INSPECTOR", "VIEWER") ?: return@get
-        val requestedIds = call.request.queryParameters.getAll("id")
-            ?.mapNotNull { it.toLongOrNull() }
-            ?.distinct()
-            .orEmpty()
-        val hasExplicitSelection = requestedIds.isNotEmpty() ||
-            call.request.queryParameters["empty"]?.toBooleanStrictOrNull() == true
+        val requestedIds = try {
+            oms.urp3.service.procurementExportIds(call.request.queryParameters.getAll("id"), call.request.queryParameters["empty"])
+        } catch (failure: IllegalArgumentException) {
+            call.respond(HttpStatusCode.BadRequest, ErrorResponse("VALIDATION_ERROR", failure.message ?: "Invalid export selection."))
+            return@get
+        }
         val language = if (call.request.queryParameters["lang"].equals("en", ignoreCase = true)) {
             ProcurementTablePdfExportService.Language.EN
         } else {
@@ -61,8 +61,7 @@ fun Route.procurementRoutes() {
         // Isolate them so exporting a large table cannot stall navigation.
         val pdf = withContext(Dispatchers.IO) {
             val allRecords = AppContainer.procurementService.getAll()
-            val recordsById = allRecords.associateBy { it.id }
-            val records = if (hasExplicitSelection) requestedIds.mapNotNull(recordsById::get) else allRecords
+            val records = oms.urp3.service.selectTableExportRows(allRecords, requestedIds) { it.id }
             ProcurementTablePdfExportService().export(records, language, filterSummary)
         }
         call.response.header("Content-Disposition", "attachment; filename=oms-procurement.pdf")
