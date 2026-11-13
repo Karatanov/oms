@@ -28,6 +28,8 @@ jobs:
       OMS_TEST_DATABASE_URL: jdbc:mysql://127.0.0.1:3306/oms_performance_test?allowPublicKeyRetrieval=true&useSSL=false&rewriteBatchedStatements=true
     steps:
       - uses: actions/checkout@v6
+      - name: Release status classification regressions (offline)
+        run: node --test tools/test-release-status.mjs
       - uses: actions/setup-java@v6
         with:
           distribution: temurin
