@@ -85,7 +85,7 @@ class FinancialDisplayCurrencyTest {
         try {
             for (language in listOf(Language.UK, Language.EN)) {
                 LocalizationManager.currentLanguage = language
-                for (key in listOf("gps_manual_hint", "gps_automatic_hint", "financial_rates_loading", "financial_rates_missing", "financial_display_currency_hint", "original_record_currency"))
+                for (key in listOf("gps_manual_hint", "gps_automatic_hint", "financial_rates_loading", "financial_rates_missing", "financial_display_currency_hint", "original_record_currency", "financial_progress_loading", "financial_progress_load_error"))
                     assertNotEquals(key, LocalizationManager.t(key))
             }
         } finally { LocalizationManager.currentLanguage = previous }

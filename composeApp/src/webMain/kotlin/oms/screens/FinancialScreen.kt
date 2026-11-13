@@ -120,7 +120,6 @@ fun FinancialScreen(
     }
 
     var acts by remember { mutableStateOf<List<ProjectActRow>>(emptyList()) }
-    var financialProgress by remember { mutableStateOf<ApiFinancialProgress?>(null) }
     var paymentMonitoring by remember { mutableStateOf<ApiPaymentMonitoring?>(null) }
     var paymentMonitoringLoading by remember { mutableStateOf(true) }
     var paymentMonitoringLoadFailed by remember { mutableStateOf(false) }
@@ -162,6 +161,14 @@ fun FinancialScreen(
     var sort by remember { mutableStateOf(FinancialSort.ActDate) }
     var ascending by remember { mutableStateOf(false) }
     var reloadKey by remember { mutableStateOf(0) }
+    var financialProgressRetry by remember { mutableStateOf(0) }
+    // Bind values and their load state to the exact query. Never show a previous
+    // region's totals under the newly selected scope's caption, even for a frame.
+    var financialProgress by remember(reloadKey, financialProgressRetry, regionFilter, trancheFilter, subprojectFilter, yearFilter) {
+        mutableStateOf<ApiFinancialProgress?>(null)
+    }
+    var financialProgressLoading by remember(reloadKey, financialProgressRetry, regionFilter, trancheFilter, subprojectFilter, yearFilter) { mutableStateOf(true) }
+    var financialProgressLoadFailed by remember(reloadKey, financialProgressRetry, regionFilter, trancheFilter, subprojectFilter, yearFilter) { mutableStateOf(false) }
     var paymentMonitoringRefreshConfirmationOpen by remember { mutableStateOf(false) }
     var paymentMonitoringRefreshJob by remember { mutableStateOf<ApiPaymentMonitoringRefresh?>(null) }
     var paymentMonitoringRefreshElapsedSeconds by remember { mutableStateOf(0) }
@@ -254,10 +261,15 @@ fun FinancialScreen(
     // These filters intentionally scope both the register and financial
     // charts. Otherwise a user could select a tranche or subproject and still
     // see a progress denominator from every subproject in the programme.
-    LaunchedEffect(reloadKey, regionFilter, trancheFilter, subprojectFilter, yearFilter) {
-        financialProgress = runCatching {
-            OmsApiClient.financialProgress(regionFilter, trancheFilter, subprojectFilter, yearFilter)
-        }.getOrNull()
+    LaunchedEffect(reloadKey, financialProgressRetry, regionFilter, trancheFilter, subprojectFilter, yearFilter) {
+        try {
+            loadFinancialProgressSnapshot {
+                OmsApiClient.financialProgress(regionFilter, trancheFilter, subprojectFilter, yearFilter)
+            }.onSuccess { financialProgress = it }
+                .onFailure { financialProgressLoadFailed = true }
+        } finally {
+            financialProgressLoading = false
+        }
     }
     // Resolve the approved source independently without blocking navigation.
     // Retain the previous snapshot during a refresh, but report load failures.
@@ -488,6 +500,12 @@ fun FinancialScreen(
         }
 
         PaymentSummaryCards(paymentMonitoring?.summary)
+
+        if (financialProgressLoading) oms.components.ContentState(
+            LocalizationManager.t("financial_progress_loading"), loading = true)
+        if (financialProgressLoadFailed) oms.components.ContentState(
+            LocalizationManager.t("financial_progress_load_error"), error = true,
+            onRetry = { financialProgressRetry++ })
 
         val chartRows = financialChartSourceRows(paymentMonitoring?.let { workbookChartRows }, paymentMonitoringLoading, acts)
         val financialChartRecords = remember(chartRows, trancheFilter, subprojectFilter, regionFilter, yearFilter) {

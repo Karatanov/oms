@@ -28,6 +28,26 @@
 
 ## Verification and limits
 
+### Follow-up: scoped progress loading and retry (13 November)
+
+- The grouped-progress request previously retained the previous result during a
+  scope change, displaying old region/subproject amounts under the new caption.
+  A failed request silently removed the charts; `runCatching` also swallowed
+  coroutine cancellation.
+- Progress values, loading and failure state now belong to the exact region,
+  tranche, subproject and year query. Scope changes clear the old result during
+  composition rather than waiting for a network response. Successful empty
+  results remain valid. Failure shows a localized UA/EN message and a dedicated
+  retry which does not reload the payment source, project context or ledger.
+- Cancellation is propagated rather than presented as a source failure. These
+  optional grouped charts still do not block route readiness or navigation.
+  Formulas, source records and database contents are unchanged.
+- Three standalone Kotlin/JUnit request-result/cancellation tests and the four
+  source-selection tests pass together (7 tests). The 42-pattern web check also
+  passes. Localization regression coverage includes the two new message keys.
+  The complete Compose build and real-browser validation remain CI requirements;
+  they are not certified by these standalone checks.
+
 ### Follow-up: stable monthly-chart projections (13 November)
 
 - Import progress updates the screen timer every 400 ms. The screen previously
