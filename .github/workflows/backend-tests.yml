@@ -33,7 +33,7 @@ jobs:
           distribution: temurin
           java-version: '21'
       - uses: gradle/actions/setup-gradle@v6
-      - run: bash gradlew :server:test --no-daemon --max-workers=2
+      - run: bash gradlew :shared:jvmTest :server:test --no-daemon --max-workers=2
       - name: Preserve test results and benchmark output
         if: always()
         uses: actions/upload-artifact@v6
@@ -43,3 +43,5 @@ jobs:
             server/build/test-results/test/
             server/build/reports/tests/test/
             server/build/reports/performance/
+            shared/build/test-results/jvmTest/
+            shared/build/reports/tests/jvmTest/

@@ -4,6 +4,20 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class FinancialProgressAggregationTest {
+    @Test fun `bilingual region aggregation conserves both payments and the financial base`() {
+        val rows = listOf("Kharkiv" to (100.0 to 10.0), "Харківська область" to (200.0 to 40.0),
+            "Kyiv Region" to (300.0 to 60.0))
+        val groups = rows.groupBy { canonicalFinancialRegion(it.first) }
+        assertEquals(2, groups.size)
+        val kharkiv = groups.getValue(canonicalFinancialRegion("Kharkiv Region"))
+        assertEquals(300.0, kharkiv.sumOf { it.second.first })
+        assertEquals(50.0, kharkiv.sumOf { it.second.second })
+        assertEquals(600.0, groups.values.sumOf { group -> group.sumOf { it.second.first } })
+        assertEquals(110.0, groups.values.sumOf { group -> group.sumOf { it.second.second } })
+        assertEquals(canonicalFinancialRegion("Харківська обл."), canonicalFinancialRegion("Kharkiv"))
+        assertEquals("Unspecified", canonicalFinancialRegion(""))
+    }
+
     @Test
     fun `sector aliases share one canonical category`() {
         assertEquals("sewerage", canonicalFinancialSector("Водовідведення / Sewerage"))

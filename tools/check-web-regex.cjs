@@ -5,7 +5,8 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const root = path.resolve(__dirname, '..');
-const sourceRoot = path.join(root, 'composeApp/src/webMain/kotlin');
+const sourceRoots = ['composeApp/src/webMain/kotlin', 'shared/src/commonMain/kotlin']
+    .map(directory => path.join(root, directory));
 
 function* files(directory) {
     for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
@@ -17,7 +18,7 @@ function* files(directory) {
 
 let checked = 0;
 const failures = [];
-for (const file of files(sourceRoot)) {
+for (const file of sourceRoots.flatMap(directory => [...files(directory)])) {
     const source = fs.readFileSync(file, 'utf8');
     for (const match of source.matchAll(/\bRegex\("((?:\\.|[^"\\])*)"/g)) {
         // Interpolated patterns need their runtime values; check literals here.

@@ -1,4 +1,4 @@
-# Financial aggregation review, 10 November 2026
+# Financial aggregation review, 10-13 November 2026
 
 ## Confirmed corrections
 
@@ -27,6 +27,32 @@
   primary rows, so that logic was preserved.
 
 ## Verification and limits
+
+### Follow-up: bilingual region grouping and filtering (13 November)
+
+- Production contains both English Allocation region names and Ukrainian
+  Monitoring region names: e.g. Kharkiv and Харківська. Financial progress
+  previously removed the word region/область but did not map the two names to
+  one identity. This split a region's numerator and denominator into separate
+  bars, which then displayed the same localized label. Filtering selected only
+  one spelling and could exclude the other source's subprojects.
+- Moved the existing UI region dictionary/canonicalizer into shared common
+  code. Backend financial grouping and filtering, including financial table PDF
+  filtering, now reuse the same identity. UI labels, autocomplete choices and
+  Kyiv-city distinction remain intact. Unknown labels are preserved, not
+  guessed into an oblast. Canonical lookup and regex patterns are prebuilt.
+- Read-only production evidence shows 38 source labels representing 23 regions.
+  Running the real shared normalizer against that export preserves all 302
+  subprojects. No project records, statuses or monetary values were rewritten;
+  the existing active/planned selection policy was not changed.
+- Three shared JVM tests passed for all dictionary names, language aliases,
+  suffixes, case, whitespace and Kyiv city. Added a backend aggregate regression
+  for conservation of both payments and base amounts after alias merging.
+  The browser regex validator now scans shared sources too and passed all 42
+  literals. Backend CI now runs shared JVM tests and retains their reports as
+  well, rather than merely compiling shared code as a server dependency.
+  Full local Gradle/WASM remains blocked by the loopback-connection
+  error; CI and an authenticated production chart check remain separate checks.
 
 ### Follow-up: subproject PDF financial execution (12 November)
 

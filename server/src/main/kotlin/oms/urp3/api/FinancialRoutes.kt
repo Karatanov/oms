@@ -198,6 +198,7 @@ fun Route.financialRoutes() {
             ?.trim()
             ?.replace(Regex("\\s+(область|oblast|region)$", RegexOption.IGNORE_CASE), "")
             ?.takeIf(String::isNotBlank)
+            ?.let(::canonicalFinancialRegion)
         val requestedTranche = call.request.queryParameters["tranche"]?.toIntOrNull()
         val requestedSubprojectUuid = call.request.queryParameters["subprojectUuid"]
             ?.trim()
@@ -212,8 +213,7 @@ fun Route.financialRoutes() {
         val byId = projects.associateBy { it.id }
         val subprojects = projects.filter { project ->
             project.projectType == ProjectType.SUBPROJECT &&
-                (requestedRegion == null || project.region.orEmpty()
-                    .replace(Regex("\\s+(область|oblast|region)$", RegexOption.IGNORE_CASE), "")
+                (requestedRegion == null || canonicalFinancialRegion(project.region.orEmpty())
                     .equals(requestedRegion, ignoreCase = true)) &&
                 (requestedTranche == null || project.trancheNumber.matchesFinancialTranche(requestedTranche)) &&
                 (requestedSubprojectUuid == null || project.uuid.toString() == requestedSubprojectUuid)
@@ -555,7 +555,7 @@ internal fun canonicalFinancialConstructionType(value: String): String = oms.urp
 internal fun financialProgressBase(sourceWorks: Double?, storedContract: Double?, approved: Double): Double =
     oms.urp3.service.financialWorksExecutionBase(sourceWorks, storedContract, approved)
 
-internal fun canonicalFinancialRegion(value: String): String = value
+internal fun canonicalFinancialRegion(value: String): String = oms.urp3.canonicalUkraineRegion(value)
     .replace(Regex("\\s+(область|oblast|region)$", RegexOption.IGNORE_CASE), "")
     .trim()
     .ifBlank { "Unspecified" }
@@ -593,7 +593,4 @@ private suspend fun io.ktor.server.application.ApplicationCall.financeNotFound(m
 
 /** Matches the browser's canonical region filter without relying on translated display labels. */
 private fun sameRegion(left: String, right: String?): Boolean =
-    left.normalizedRegion() == right.orEmpty().normalizedRegion()
-
-private fun String.normalizedRegion(): String =
-    lowercase().replace(Regex("[.,]"), "").replace(Regex("\\s+(область|обл|oblast|region)$"), "").replace(Regex("\\s+"), " ").trim()
+    canonicalFinancialRegion(left).equals(canonicalFinancialRegion(right.orEmpty()), ignoreCase = true)
