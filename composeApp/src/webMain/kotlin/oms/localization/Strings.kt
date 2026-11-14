@@ -3,6 +3,7 @@ package oms.localization
 object Strings {
 
     val uk = mapOf(
+        "disabled_account_sign_in_hint" to "З вимкненим обліковим записом користувач не зможе увійти в OMS.",
         "activity_user_unspecified" to "Користувача не вказано",
         "activity_action_unspecified" to "Дію не вказано",
         "activity_load_failed" to "Не вдалося оновити журнал дій.",
@@ -1033,6 +1034,7 @@ object Strings {
     )
 
     val en = mapOf(
+        "disabled_account_sign_in_hint" to "A disabled account cannot sign in to OMS.",
         "activity_user_unspecified" to "User not recorded",
         "activity_action_unspecified" to "Action not recorded",
         "activity_load_failed" to "Could not refresh the activity log.",

@@ -56,7 +56,8 @@ private enum class UserSort { Id, Username, FullName, Email, Role, Status, LastL
 private fun UserStatusChip(status: String) {
     val color = when (status.lowercase()) {
         "active" -> Color(0xFF2E7D32)
-        else -> Color(0xFFC62828)
+        "disabled" -> MaterialTheme.colorScheme.error
+        else -> MaterialTheme.colorScheme.onSurfaceVariant
     }
     oms.components.OmsBadge(LocalizationManager.t("user_status_${status.lowercase()}").takeIf { it != "user_status_${status.lowercase()}" } ?: status, color)
 }
@@ -557,8 +558,17 @@ private fun EditUserDialog(
             @OptIn(ExperimentalLayoutApi::class)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 listOf("active", "disabled").forEach { value ->
-                    FilterChip(status == value, { status = value }, label = { Text(LocalizationManager.t("user_status_$value")) })
+                    FilterChip(
+                        selected = status.equals(value, ignoreCase = true),
+                        onClick = { status = value },
+                        enabled = !saving,
+                        label = { Text(LocalizationManager.t("user_status_$value")) }
+                    )
                 }
+            }
+            if (status.equals("disabled", ignoreCase = true)) {
+                Text(LocalizationManager.t("disabled_account_sign_in_hint"), style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             UserLanguagePicker(preferredLang, enabled = !saving) { preferredLang = it }
             InlineOptionPicker(options = roles, selected = role, prompt = roleCode, onSelect = { roleCode = it.code }, itemLabel = { LocalizationManager.t("role_${it.code.lowercase()}") })
