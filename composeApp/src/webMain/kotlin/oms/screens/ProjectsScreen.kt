@@ -1171,12 +1171,12 @@ private fun RegistryTableCell(project: Project, column: SortColumn, fontWeight: 
         SortColumn.PERMIT -> project.registryValue("permitUrl")
         else -> ""
     }
-    val link = sourceReference.takeIf { it.startsWith("https://", ignoreCase = true) || it.startsWith("http://", ignoreCase = true) }.orEmpty()
+    val link = oms.data.registryReferenceLink(sourceReference, eConstruction = column != SortColumn.DREAM)
     val value = when (column) {
         SortColumn.POOL -> project.registryValue("pool", project.trancheNumber.trancheLabel())
         SortColumn.REGION -> localizedUkraineRegion(project.region)
         SortColumn.DREAM, SortColumn.DED, SortColumn.ESTIMATE, SortColumn.EXPERTISE, SortColumn.PERMIT ->
-            link.takeIf(String::isNotBlank)?.let { LocalizationManager.t("open") } ?: sourceReference
+            if (link != null && !link.search) LocalizationManager.t("open") else sourceReference.trim()
         SortColumn.NAME -> project.localizedRegistryValue("name", project.localizedName())
         SortColumn.COMMUNITY -> project.localizedRegistryValue("community")
         SortColumn.PRIORITY -> project.priorityDirectionLabel()
@@ -1232,14 +1232,19 @@ private fun RegistryTableCell(project: Project, column: SortColumn, fontWeight: 
         Box(Modifier.width(width)) {
             OmsBadge(value, constructionWorkStatusColor(value), fontWeight)
         }
-    } else if (link.isNotBlank()) {
-        Text(
-            value,
-            modifier = Modifier.width(width).clickable { window.open(link, "_blank") }
-                .pointerHoverIcon(PointerIcon.Hand),
-            color = MaterialTheme.colorScheme.primary,
-            fontWeight = fontWeight
-        )
+    } else if (link != null) {
+        oms.components.OmsTooltipBox(tooltip = {
+            Text(if (link.search) LocalizationManager.t("search_econstruction_reference") else link.url)
+        }) {
+            Text(
+                value,
+                modifier = Modifier.width(width).clickable { window.open(link.url, "_blank", "noopener,noreferrer") }
+                    .pointerHoverIcon(PointerIcon.Hand),
+                color = MaterialTheme.colorScheme.primary,
+                textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline,
+                fontWeight = fontWeight
+            )
+        }
     } else {
         ExpandableTableText(
             value,
