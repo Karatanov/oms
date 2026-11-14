@@ -454,8 +454,8 @@ private fun CreateUserDialog(roles: List<ApiRole>, roleNotice: @Composable () ->
                 Modifier.fillMaxWidth().heightIn(max = 510.dp).verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-            OutlinedTextField(username, { username = it.safeTextInput(100) }, label = { Text(LocalizationManager.t("username")) }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(email, { email = it.safeTextInput(320) }, label = { Text(LocalizationManager.t("email")) }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(username, { username = it.safeTextInput(100) }, enabled = !saving, singleLine = true, label = { Text(LocalizationManager.t("username")) }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(email, { email = it.safeTextInput(320) }, enabled = !saving, singleLine = true, label = { Text(LocalizationManager.t("email")) }, modifier = Modifier.fillMaxWidth())
             oms.components.OmsPasswordField(
                 password, { password = it.safeTextInput(256) }, LocalizationManager.t("password"),
                 enabled = !saving,
@@ -463,21 +463,21 @@ private fun CreateUserDialog(roles: List<ApiRole>, roleNotice: @Composable () ->
             )
             UserFormFieldPair(
                 first = { fieldModifier ->
-                    OutlinedTextField(firstName, { firstName = it.safeTextInput(200) },
+                    OutlinedTextField(firstName, { firstName = it.safeTextInput(200) }, enabled = !saving, singleLine = true,
                         label = { Text(LocalizationManager.t("first_name")) }, modifier = fieldModifier)
                 },
                 second = { fieldModifier ->
-                    OutlinedTextField(lastName, { lastName = it.safeTextInput(200) },
+                    OutlinedTextField(lastName, { lastName = it.safeTextInput(200) }, enabled = !saving, singleLine = true,
                         label = { Text(LocalizationManager.t("last_name")) }, modifier = fieldModifier)
                 }
             )
             UserFormFieldPair(
                 first = { fieldModifier ->
-                    OutlinedTextField(region, { region = it.safeTextInput(200) },
+                    OutlinedTextField(region, { region = it.safeTextInput(200) }, enabled = !saving, singleLine = true,
                         label = { Text(LocalizationManager.t("region")) }, modifier = fieldModifier)
                 },
                 second = { fieldModifier ->
-                    OutlinedTextField(department, { department = it.safeTextInput(500) },
+                    OutlinedTextField(department, { department = it.safeTextInput(500) }, enabled = !saving, singleLine = true,
                         label = { Text(LocalizationManager.t("department")) }, modifier = fieldModifier)
                 }
             )
@@ -551,25 +551,25 @@ private fun EditUserDialog(
                 Modifier.fillMaxWidth().heightIn(max = 510.dp).verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-            OutlinedTextField(username, { username = it.safeTextInput(100) }, label = { Text(LocalizationManager.t("username")) }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(email, { email = it.safeTextInput(320) }, label = { Text(LocalizationManager.t("email")) }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(username, { username = it.safeTextInput(100) }, enabled = !saving, singleLine = true, label = { Text(LocalizationManager.t("username")) }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(email, { email = it.safeTextInput(320) }, enabled = !saving, singleLine = true, label = { Text(LocalizationManager.t("email")) }, modifier = Modifier.fillMaxWidth())
             UserFormFieldPair(
                 first = { fieldModifier ->
-                    OutlinedTextField(firstName, { firstName = it.safeTextInput(200) },
+                    OutlinedTextField(firstName, { firstName = it.safeTextInput(200) }, enabled = !saving, singleLine = true,
                         label = { Text(LocalizationManager.t("first_name")) }, modifier = fieldModifier)
                 },
                 second = { fieldModifier ->
-                    OutlinedTextField(lastName, { lastName = it.safeTextInput(200) },
+                    OutlinedTextField(lastName, { lastName = it.safeTextInput(200) }, enabled = !saving, singleLine = true,
                         label = { Text(LocalizationManager.t("last_name")) }, modifier = fieldModifier)
                 }
             )
             UserFormFieldPair(
                 first = { fieldModifier ->
-                    OutlinedTextField(region, { region = it.safeTextInput(200) },
+                    OutlinedTextField(region, { region = it.safeTextInput(200) }, enabled = !saving, singleLine = true,
                         label = { Text(LocalizationManager.t("region")) }, modifier = fieldModifier)
                 },
                 second = { fieldModifier ->
-                    OutlinedTextField(department, { department = it.safeTextInput(500) },
+                    OutlinedTextField(department, { department = it.safeTextInput(500) }, enabled = !saving, singleLine = true,
                         label = { Text(LocalizationManager.t("department")) }, modifier = fieldModifier)
                 }
             )
