@@ -80,6 +80,22 @@ fun String.priorityDirectionLabel(): String = when (oms.urp3.priorityDirectionKe
     else -> sectorLabel()
 }
 
+/** Stable category colours: translated captions must never change the palette. */
+fun priorityDirectionColor(value: String): Color = when (oms.urp3.priorityDirectionKey(value)) {
+    "education" -> Color(0xFF1565C0)
+    "healthcare" -> Color(0xFF2E7D32)
+    "housing" -> Color(0xFF795548)
+    "water_supply" -> Color(0xFF015F96)
+    "sewerage" -> Color(0xFF00695C)
+    "heat_supply" -> Color(0xFF994B00)
+    "shelter_education_health" -> Color(0xFF6A1B9A)
+    "shelter_other_public" -> Color(0xFFAD1457)
+    "security_centres" -> Color(0xFF3949AB)
+    "water_supply_sewerage" -> Color(0xFF455A64)
+    "shelter" -> Color(0xFF6A1B9A)
+    else -> Color(0xFF546E7A)
+}
+
 @Composable
 fun SectorSelector(value: String, onValueChange: (String) -> Unit, modifier: Modifier = Modifier) {
     Column(modifier) {

@@ -78,7 +78,9 @@ import oms.components.SectorChip
 import oms.components.sectors
 import oms.components.sectorLabel
 import oms.components.priorityDirectionLabel
+import oms.components.priorityDirectionColor
 import oms.model.priorityDirectionKey
+import oms.model.priorityDirectionValue
 import oms.model.priorityDirectionLabel
 import oms.model.matchesPriorityDirection
 import oms.data.ApiUser
@@ -1220,7 +1222,7 @@ private fun RegistryTableCell(project: Project, column: SortColumn, fontWeight: 
         // Priority areas are controlled programme categories as well.  A chip
         // makes the value scannable without making it look like an action.
         Box(Modifier.width(width)) {
-            OmsBadge(value, Primary, fontWeight)
+            OmsBadge(value, priorityDirectionColor(project.priorityDirectionValue()), fontWeight)
         }
     } else if (column == SortColumn.WORK_STATUS) {
         // The construction-work status is a programme state, not free-form

@@ -18,6 +18,8 @@ jobs:
       - uses: actions/checkout@v6
       - name: Download timeout and recovery regressions (offline)
         run: node --test tools/test-download-timeouts.cjs
+      - name: Priority chip palette and contrast (offline)
+        run: node --test tools/test-priority-chip-colors.cjs
       - uses: actions/setup-java@v6
         with:
           distribution: temurin

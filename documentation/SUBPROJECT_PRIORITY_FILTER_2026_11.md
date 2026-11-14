@@ -1,5 +1,17 @@
 # Subproject priority direction filter — 14 November 2026
 
+## Priority chip colours
+
+The registry uses nine distinct category colours based on canonical direction
+keys, not translated captions. Both shelter subtypes have separate colours;
+unknown directions retain a neutral fallback. Existing badge typography and
+9% background tint are unchanged. Two offline palette/contrast checks pass,
+including a minimum 4.5:1 text contrast on the light tinted background. Browser
+tests cover distinct colours and language-invariant mapping; their execution
+remains a CI requirement. No data or filtering logic changes in this follow-up.
+
+## Filter and translations
+
 - The screen retained `sectorFilter` state but rendered no control over the
   Priority column. Its predicate compared the legacy `project.sector`, while
   the displayed field used `registry.priority`, so merely exposing that control
