@@ -25,8 +25,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import kotlinx.coroutines.async
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import oms.components.SortableTableHeader
 import oms.data.ApiRole
@@ -126,14 +124,33 @@ fun AdminScreen() {
         refreshActivities()
     }
     LaunchedEffect(archiveFilter, loadAttempt) {
-        val (loadedUsers, loadedRoles) = coroutineScope {
-            val usersRequest = async { runCatching { OmsApiClient.users(archiveFilter) } }
-            val rolesRequest = async { runCatching { OmsApiClient.roles() } }
-            usersRequest.await() to rolesRequest.await()
-        }
-        loadedUsers.onSuccess { users = it }.onFailure { loadFailed = true }
-        roles = loadedRoles.getOrDefault(emptyList())
+        runCatching { OmsApiClient.users(archiveFilter) }.onSuccess { users = it }.onFailure { loadFailed = true }
         loading = false
+    }
+    var roleAttempt by remember { mutableStateOf(0) }
+    var rolesLoading by remember(roleAttempt) { mutableStateOf(true) }
+    var rolesFailed by remember(roleAttempt) { mutableStateOf(false) }
+    LaunchedEffect(roleAttempt) {
+        try {
+            roles = OmsApiClient.roles()
+        } catch (cancelled: kotlinx.coroutines.CancellationException) {
+            throw cancelled
+        } catch (_: Exception) {
+            rolesFailed = true
+        } finally {
+            rolesLoading = false
+        }
+    }
+    val roleNotice: @Composable () -> Unit = {
+        if (roles.isEmpty()) {
+            val key = when {
+                rolesLoading -> "admin_roles_loading"
+                rolesFailed -> "admin_roles_failed"
+                else -> "admin_roles_empty"
+            }
+            oms.components.ContentState(LocalizationManager.t(key), loading = rolesLoading, error = rolesFailed,
+                onRetry = if (rolesLoading) null else ({ roleAttempt++ }))
+        }
     }
     LaunchedEffect(activityAttempt) {
         activitiesLoading = true
@@ -298,7 +315,7 @@ fun AdminScreen() {
                 editUserError = null
             }
         }, errorMessage = null) {
-            EditUserDialog(user, roles, editUserError, savingUser, onDismiss = {
+            EditUserDialog(user, roles, roleNotice, editUserError, savingUser, onDismiss = {
                 if (!savingUser) {
                     editUserError = null
                     selectedUser = null
@@ -324,7 +341,7 @@ fun AdminScreen() {
         }
         }
     if (createUser) { WasmSafeOverlay(onDismiss = { if (!creatingUser) { createUser = false; createUserError = null } }, errorMessage = null) {
-            CreateUserDialog(roles, createUserError, creatingUser, onDismiss = { createUser = false; createUserError = null }) { request ->
+            CreateUserDialog(roles, roleNotice, createUserError, creatingUser, onDismiss = { createUser = false; createUserError = null }) { request ->
                 if (creatingUser) return@CreateUserDialog
                 creatingUser = true
                 createUserError = null
@@ -415,7 +432,7 @@ private fun AdminStaticHeader(text: String, width: androidx.compose.ui.unit.Dp) 
 }
 
 @Composable
-private fun CreateUserDialog(roles: List<ApiRole>, saveError: String?, saving: Boolean, onDismiss: () -> Unit, onSave: (CreateUserRequest) -> Unit) {
+private fun CreateUserDialog(roles: List<ApiRole>, roleNotice: @Composable () -> Unit, saveError: String?, saving: Boolean, onDismiss: () -> Unit, onSave: (CreateUserRequest) -> Unit) {
     var username by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var roleCode by remember { mutableStateOf(roles.firstOrNull()?.code ?: "") }
@@ -465,7 +482,8 @@ private fun CreateUserDialog(roles: List<ApiRole>, saveError: String?, saving: B
                 }
             )
             UserLanguagePicker(preferredLang, enabled = !saving) { preferredLang = it }
-            InlineOptionPicker(options = roles, selected = role, prompt = LocalizationManager.t("select_role"), onSelect = { roleCode = it.code }, itemLabel = { LocalizationManager.t("role_${it.code.lowercase()}") })
+            roleNotice()
+            InlineOptionPicker(enabled = !saving && roles.isNotEmpty(), options = roles, selected = role, prompt = LocalizationManager.t("select_role"), onSelect = { roleCode = it.code }, itemLabel = { LocalizationManager.t("role_${it.code.lowercase()}") })
             role?.let { RolePermissionsHint(it.code) }
             }
             saveError?.let { oms.components.ContentState(it, error = true) }
@@ -505,6 +523,7 @@ private fun CreateUserDialog(roles: List<ApiRole>, saveError: String?, saving: B
 private fun EditUserDialog(
     user: ApiUser,
     roles: List<ApiRole>,
+    roleNotice: @Composable () -> Unit,
     saveError: String?,
     saving: Boolean,
     onDismiss: () -> Unit,
@@ -571,7 +590,8 @@ private fun EditUserDialog(
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             UserLanguagePicker(preferredLang, enabled = !saving) { preferredLang = it }
-            InlineOptionPicker(options = roles, selected = role, prompt = roleCode, onSelect = { roleCode = it.code }, itemLabel = { LocalizationManager.t("role_${it.code.lowercase()}") })
+            roleNotice()
+            InlineOptionPicker(enabled = !saving && roles.isNotEmpty(), options = roles, selected = role, prompt = roleCode, onSelect = { roleCode = it.code }, itemLabel = { LocalizationManager.t("role_${it.code.lowercase()}") })
             role?.let { RolePermissionsHint(it.code) }
             oms.components.OmsPasswordField(
                 password, { password = it.safeTextInput(256) }, LocalizationManager.t("new_password_optional"),

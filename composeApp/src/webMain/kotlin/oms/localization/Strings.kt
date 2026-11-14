@@ -3,6 +3,9 @@ package oms.localization
 object Strings {
 
     val uk = mapOf(
+        "admin_roles_loading" to "Завантаження ролей…",
+        "admin_roles_failed" to "Не вдалося завантажити ролі.",
+        "admin_roles_empty" to "Немає доступних ролей.",
         "disabled_account_sign_in_hint" to "З вимкненим обліковим записом користувач не зможе увійти в OMS.",
         "activity_user_unspecified" to "Користувача не вказано",
         "activity_action_unspecified" to "Дію не вказано",
@@ -1034,6 +1037,9 @@ object Strings {
     )
 
     val en = mapOf(
+        "admin_roles_loading" to "Loading roles…",
+        "admin_roles_failed" to "Could not load roles.",
+        "admin_roles_empty" to "No roles are available.",
         "disabled_account_sign_in_hint" to "A disabled account cannot sign in to OMS.",
         "activity_user_unspecified" to "User not recorded",
         "activity_action_unspecified" to "Action not recorded",
