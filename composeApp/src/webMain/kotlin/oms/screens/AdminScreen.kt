@@ -489,10 +489,7 @@ private fun CreateUserDialog(roles: List<ApiRole>, saveError: String?, saving: B
                         label = { Text(LocalizationManager.t("department")) }, modifier = fieldModifier)
                 }
             )
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text(LocalizationManager.t("language"), style = MaterialTheme.typography.bodyMedium)
-                listOf("uk", "en").forEach { value -> FilterChip(preferredLang == value, { preferredLang = value }, label = { Text(value.uppercase()) }) }
-            }
+            UserLanguagePicker(preferredLang, enabled = !saving) { preferredLang = it }
             InlineOptionPicker(options = roles, selected = role, prompt = LocalizationManager.t("select_role"), onSelect = { roleCode = it.code }, itemLabel = { LocalizationManager.t("role_${it.code.lowercase()}") })
             role?.let { RolePermissionsHint(it.code) }
             }
@@ -589,12 +586,7 @@ private fun EditUserDialog(
                     FilterChip(status == value, { status = value }, label = { Text(LocalizationManager.t("user_status_$value")) })
                 }
             }
-            Text(LocalizationManager.t("language"), style = MaterialTheme.typography.labelLarge)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                listOf("uk", "en").forEach { value ->
-                    FilterChip(preferredLang == value, { preferredLang = value }, label = { Text(value.uppercase()) })
-                }
-            }
+            UserLanguagePicker(preferredLang, enabled = !saving) { preferredLang = it }
             InlineOptionPicker(options = roles, selected = role, prompt = roleCode, onSelect = { roleCode = it.code }, itemLabel = { LocalizationManager.t("role_${it.code.lowercase()}") })
             role?.let { RolePermissionsHint(it.code) }
             oms.components.OmsPasswordField(
@@ -637,6 +629,18 @@ private fun UserFormFieldPair(
                 first(Modifier.weight(1f))
                 second(Modifier.weight(1f))
             }
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun UserLanguagePicker(selected: String, enabled: Boolean, onSelect: (String) -> Unit) {
+    Text(LocalizationManager.t("language"), style = MaterialTheme.typography.labelLarge)
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        listOf("uk" to "Українська", "en" to "English").forEach { (code, name) ->
+            FilterChip(selected = selected.equals(code, ignoreCase = true), onClick = { onSelect(code) },
+                enabled = enabled, label = { Text(name) })
         }
     }
 }
