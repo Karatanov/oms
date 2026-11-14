@@ -10,7 +10,7 @@ fun main(args: Array<String>) {
         .mapIndexed { index, code -> code to index.toLong() + 1 }.toMap()
     fun noLegacy(): Map<Long, Double> = error("Unexpected legacy read")
     val totals = financialProgressPayments(transactions, ids, null, ::noLegacy)
-    check(abs(totals.values.sum() - 307_988_578.28) < 0.001)
+    check(abs(totals.values.sum() - 311_946_536.27) < 0.001)
     check(financialProgressPayments(emptyList(), ids, null, ::noLegacy).isEmpty())
     check(financialProgressPayments(transactions, ids, 2000, ::noLegacy).isEmpty())
     check(financialProgressPayments(transactions, emptyMap(), null, ::noLegacy).isEmpty())
@@ -47,5 +47,5 @@ fun main(args: Array<String>) {
             }
         }
     }
-    println("Works payments reconciled: 307988578.28 UAH; empty snapshot, year and scope cannot revive legacy records; lot/service checks passed")
+    println("Works payments reconciled: 311946536.27 UAH; empty snapshot, year and scope cannot revive legacy records; lot/service checks passed")
 }

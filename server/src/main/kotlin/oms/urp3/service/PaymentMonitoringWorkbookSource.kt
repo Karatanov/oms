@@ -277,7 +277,7 @@ object PaymentMonitoringWorkbookSource {
                 cell.localDateTimeCellValue.toLocalDate()
             cell.cellType == CellType.FORMULA && cell.cachedFormulaResultType == CellType.NUMERIC && DateUtil.isCellDateFormatted(cell) ->
                 cell.localDateTimeCellValue.toLocalDate()
-            else -> runCatching { java.time.LocalDate.parse(workbookText(row, index).take(10)) }.getOrNull()
+            else -> parsePaymentWorkbookDate(workbookText(row, index))
         }
     }
 
@@ -325,6 +325,18 @@ object PaymentMonitoringWorkbookSource {
     } catch (_: Exception) {
         throw IllegalArgumentException("Google Drive authentication failed. Check GOOGLE_APPLICATION_CREDENTIALS.")
     }
+}
+
+private val paymentSourceUsDateFormat = java.time.format.DateTimeFormatter
+    .ofPattern("M/d/uuuu", Locale.US).withResolverStyle(java.time.format.ResolverStyle.STRICT)
+
+/** Approved monthly sheets mix Excel dates, ISO and US month/day/year text.
+ * Do not extract dates from "Sent for payment ...": those are not paid rows.
+ */
+internal fun parsePaymentWorkbookDate(value: String): java.time.LocalDate? {
+    val text = value.trim()
+    return runCatching { java.time.LocalDate.parse(text.take(10)) }.getOrNull()
+        ?: runCatching { java.time.LocalDate.parse(text, paymentSourceUsDateFormat) }.getOrNull()
 }
 
 /** Handles both plain `CODE_TS` and contract-row `CODE_TS$1` identifiers. */

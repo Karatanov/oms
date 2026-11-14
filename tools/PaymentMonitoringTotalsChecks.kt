@@ -15,8 +15,8 @@ fun main(args: Array<String>) {
         val first = source.items.first { it.code == "VN08_01" }
         check(kotlin.math.abs(first.plannedEibSharePct!! - 76.77569919) < 0.000001)
         check(kotlin.math.abs(first.factualEibSharePct!! - 10.73987593) < 0.000001)
-        check(source.transactions.size == 93)
-        println("Source percentage units and 93 payment rows verified")
+        check(source.transactions.size == 96)
+        println("Source percentage units and 96 payment rows verified")
     }
     println("Primary paid-total checks passed")
 }
