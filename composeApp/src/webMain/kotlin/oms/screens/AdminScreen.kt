@@ -1,5 +1,6 @@
 package oms.screens
 
+import oms.components.ExpandableTableText
 import oms.components.PasswordGuidance
 import oms.components.passwordRequirement
 
@@ -232,7 +233,7 @@ fun AdminScreen() {
             ) {
                 sortedUsers.forEach { user ->
                     Row(Modifier.width(tableWidth).padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Text(user.username, Modifier.width(130.dp))
+                        ExpandableTableText(user.username, Modifier.width(130.dp))
                         Row(Modifier.width(actionWidth), verticalAlignment = Alignment.CenterVertically) {
                             TableActionIconButton(LocalizationManager.t("edit_user"), Icons.Default.Edit) {
                                 editUserError = null
@@ -261,12 +262,12 @@ fun AdminScreen() {
                                 }
                             }
                         }
-                        Text(listOf(user.firstName, user.lastName).filter { it.isNotBlank() }.joinToString(" ").ifBlank { "—" }, Modifier.width(180.dp))
-                        Text(user.email, Modifier.width(220.dp))
+                        ExpandableTableText(listOf(user.firstName, user.lastName).filter { it.isNotBlank() }.joinToString(" ").ifBlank { "—" }, Modifier.width(180.dp))
+                        ExpandableTableText(user.email, Modifier.width(220.dp))
                         Box(Modifier.width(150.dp)) { RoleChip(user.role.code) }
                         Box(Modifier.width(110.dp)) { UserStatusChip(user.status) }
-                        Text(user.region ?: "—", Modifier.width(130.dp))
-                        Text(user.department ?: "—", Modifier.width(150.dp))
+                        ExpandableTableText(user.region.orEmpty().ifBlank { "—" }, Modifier.width(130.dp))
+                        ExpandableTableText(user.department.orEmpty().ifBlank { "—" }, Modifier.width(150.dp))
                         Box(Modifier.width(80.dp), contentAlignment = Alignment.CenterStart) {
                             Text(accountLanguageName(user.preferredLang), style = MaterialTheme.typography.bodySmall)
                         }
