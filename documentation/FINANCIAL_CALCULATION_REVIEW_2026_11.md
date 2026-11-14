@@ -1,4 +1,4 @@
-# Financial aggregation review, 10-13 November 2026
+# Financial aggregation review, 10-14 November 2026
 
 ## Confirmed corrections
 
@@ -27,6 +27,32 @@
   primary rows, so that logic was preserved.
 
 ## Verification and limits
+
+### Sector follow-up: KH08_02 broad parent caption (verified 14 November)
+
+- Production had exactly one `Water supply & Sewerage` source-sector record:
+  KH08_02. Its project sector and all three lot sectors were already Sewerage,
+  but financial grouping prefers `priority_area_source` from the parent detail.
+  That broad Allocation caption therefore created a separate untranslated bar.
+- The provided DB_Monitoring table.xlsx explicitly classifies all three lots as
+  `Водовідведення / Sewerage` in DB Table!O47:O49. Its SHA256 is
+  `523cafdd8fddf05089a2bffbba3ac2aef8c80dedf6308ad847f91e69e8b0ad91`.
+- After a full backup at `/docker/oms/backups/registry-20261113T202352Z`, the
+  targeted SQL was trialled on a restored database, then applied live. Exactly
+  one parent detail was corrected, including its registry priority and source
+  provenance. JSON guards preserve all unrelated source values. Users, report
+  links and upload checksums match the backup. No money or project/lot hierarchy
+  changed. A subsequent live audit found zero remaining broad source captions.
+- Allocation refresh now preserves an existing precise water/sewerage sector
+  when its incoming caption is only the combined family. This applies both to
+  the project field and merged detail payload. Other incoming specific sectors
+  remain authoritative, and truly unresolved combined categories are not guessed.
+- The combined category has a shared key and UA/EN labels for the chart, details
+  and badges. Four shared selection/classification tests plus the restoration
+  grouping regression pass (5 JUnit tests); the 42-pattern web check passes.
+  Two browser-language tests are added for CI. Full builds, browser rendering and
+  production deployment of the prevention/translation code remain separate from
+  the already completed live data repair.
 
 ### Confirmed production repair: missing Batch B construction types (13 November)
 

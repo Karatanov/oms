@@ -13,11 +13,19 @@ fun financialSectorKey(value: String): String {
         has("education", "освіта") -> "education"
         has("health", "healthcare", "health care", "охорона здоров'я", "охорона здоров’я") -> "healthcare"
         has("housing", "житло") -> "housing"
+        has("water_supply_sewerage", "water supply & sewerage", "water supply and sewerage", "water and sewerage", "водопостачання та водовідведення", "водопостачання і водовідведення") -> "water_supply_sewerage"
         has("water_supply", "water supply", "водопостачання") -> "water_supply"
         has("sewerage", "sewage", "wastewater", "водовідведення", "каналізація") -> "sewerage"
         has("heat_supply", "heat supply", "heating", "теплопостачання") -> "heat_supply"
         else -> value.substringBefore('/').trim()
     }
+}
+
+/** A broad Allocation caption must not erase a known detailed monitoring sector. */
+fun preferredSourceSector(incoming: String, previous: String): String = when {
+    incoming.isBlank() -> previous
+    financialSectorKey(incoming) == "water_supply_sewerage" && financialSectorKey(previous) in setOf("water_supply", "sewerage") -> previous
+    else -> incoming
 }
 
 fun financialConstructionKey(value: String): String {

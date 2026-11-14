@@ -177,6 +177,7 @@ class SubprojectRegistryRefreshService(
                 ?: throw IllegalStateException("No active administrator is available to own imported subprojects.")
 
             val projects = ProjectTable.selectAll().toList()
+            val sectorByProjectId = projects.associate { it[ProjectTable.id].value to it[ProjectTable.sector].orEmpty() }
             // The refresh only needs a stable project ID for a source code.
             // Keeping complete ResultRows made each newly inserted row issue a
             // second SELECT merely to rebuild this lookup.
@@ -258,9 +259,9 @@ class SubprojectRegistryRefreshService(
                     ProjectTable.update({ ProjectTable.id eq id }) {
                         it[ProjectTable.trancheNumber] = tranche
                         it[ProjectTable.region] = row.region()
-                        it[ProjectTable.sector] = row.value("priority")
                         it[ProjectTable.budgetPlanned] = budget
                         row.constructionType()?.let { construction -> it[ProjectTable.constructionType] = construction }
+                        it[ProjectTable.sector] = oms.urp3.preferredSourceSector(row.value("priority"), sectorByProjectId[id].orEmpty())
                         it[ProjectTable.currency] = row.currency()
                         it[ProjectTable.status] = "active"
                         it[ProjectTable.isArchived] = false
@@ -290,8 +291,12 @@ class SubprojectRegistryRefreshService(
                 val previousValues = old?.get(ProjectMonitoringDetailTable.registryJson)
                     ?.let { runCatching { Json.decodeFromString<Map<String, String>>(it) }.getOrDefault(emptyMap()) }
                     .orEmpty()
-                val values = (previousValues + row.values.filterValues(String::isNotBlank)) +
+                val mergedValues = (previousValues + row.values.filterValues(String::isNotBlank)) +
                     mapOf("sourceWorkbook" to row.sourceWorkbook)
+                val values = if (row.isAllocationSnapshot) mergedValues + ("priority" to oms.urp3.preferredSourceSector(
+                    mergedValues["priority"].orEmpty(),
+                    oms.urp3.preferredSourceSector(previousValues["priority"].orEmpty(), sectorByProjectId[projectId].orEmpty())
+                )) else mergedValues
                 val mergedRow = row.copy(values = values)
                 if (old == null) {
                     ProjectMonitoringDetailTable.insert {

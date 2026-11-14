@@ -17,6 +17,7 @@ import oms.localization.LocalizationManager
 val sectors = listOf("education", "health", "housing", "water_supply", "sewerage", "heat_supply", "shelter")
 
 private fun String.canonicalSectorKey(): String? {
+    if (oms.urp3.financialSectorKey(this) == "water_supply_sewerage") return "water_supply_sewerage"
     // The approved monitoring workbooks contain both stable codes and human
     // labels.  Some rows carry one language, others a UA/EN pair and a few
     // use a descriptive phrase (for example, "Water and sewerage").  Match
@@ -58,6 +59,7 @@ fun String.sectorLabel(): String {
         "health", "healthcare" -> LocalizationManager.t("sector_healthcare")
         "housing" -> LocalizationManager.t("sector_housing")
         "water_supply" -> LocalizationManager.t("sector_water_supply")
+        "water_supply_sewerage" -> LocalizationManager.t("sector_water_supply_sewerage")
         "sewerage" -> LocalizationManager.t("sector_sewerage")
         "heat_supply" -> LocalizationManager.t("sector_heat_supply")
         "shelter" -> LocalizationManager.t("sector_shelter")
@@ -92,6 +94,7 @@ fun SectorChip(value: String, fontWeight: FontWeight = FontWeight.Medium) {
         "health", "healthcare" -> oms.theme.OmsColors.Success
         "housing" -> Color(0xFF795548)
         "water_supply" -> Color(0xFF0277BD)
+        "water_supply_sewerage" -> Color(0xFF0277BD)
         "sewerage" -> Color(0xFF455A64)
         "heat_supply" -> Color(0xFFEF6C00)
         "shelter" -> Color(0xFF6A1B9A)
