@@ -77,6 +77,10 @@ import oms.components.InlineOptionPicker
 import oms.components.SectorChip
 import oms.components.sectors
 import oms.components.sectorLabel
+import oms.components.priorityDirectionLabel
+import oms.model.priorityDirectionKey
+import oms.model.priorityDirectionLabel
+import oms.model.matchesPriorityDirection
 import oms.data.ApiUser
 import kotlinx.browser.window
 
@@ -206,7 +210,7 @@ fun ProjectsScreen(
                 (statusFilter == null || project.status == statusFilter) &&
                 project.matchesTranche(trancheFilter) &&
                 (constructionTypeFilter == null || project.constructionType.equals(constructionTypeFilter, ignoreCase = true)) &&
-                (sectorFilter == null || project.sector.equals(sectorFilter, ignoreCase = true))
+                project.matchesPriorityDirection(sectorFilter)
         val matchingProjects = projects.filter(::matches).filterNot(Project::isProgrammeRoot)
         // A lifecycle filter must be exact.  Previously we reinserted every
         // parent solely to preserve the visual tree, so choosing “Active”
@@ -227,7 +231,7 @@ fun ProjectsScreen(
         statusFilter?.let { add("${LocalizationManager.t("status")}: ${LocalizationManager.t("project_status_${it.name.lowercase()}")}") }
         trancheFilter?.let { add("${LocalizationManager.t("tranche")}: ${it.trancheLabel()}") }
         constructionTypeFilter?.let { add("${LocalizationManager.t("construction_type")}: ${it.constructionTypeLabel()}") }
-        sectorFilter?.let { add("${LocalizationManager.t("sector")}: ${it.sectorLabel()}") }
+        sectorFilter?.let { add("${LocalizationManager.t("priority_area")}: ${it.priorityDirectionLabel()}") }
     }.joinToString("; ")
 
     MaterialTheme(colorScheme = MaterialTheme.colorScheme.copy(onPrimary = Color.White)) {
@@ -527,7 +531,7 @@ fun ProjectsTable(
     var pageSize by remember { mutableStateOf(20) }
     var currentPage by remember { mutableStateOf(0) }
 
-    val sortedProjects = remember(projects, sortColumn, ascending, expandedParentIds) {
+    val sortedProjects = remember(projects, sortColumn, ascending, expandedParentIds, LocalizationManager.currentLanguage) {
         fun sort(items: List<Project>): List<Project> = items.sortedWith { left, right ->
             val comparison = when (sortColumn) {
                 SortColumn.ID -> compareBusinessIds(left.siteNumber, right.siteNumber)
@@ -860,6 +864,11 @@ private fun ProjectsFilters(
                     SortColumn.CONSTRUCTION_TYPE -> ProjectFilterDropdown(
                         LocalizationManager.t("construction_type"), constructionTypes, constructionTypeFilter,
                         onConstructionTypeChange, String::constructionTypeLabel)
+                    SortColumn.PRIORITY -> ProjectFilterDropdown(
+                        LocalizationManager.t("priority_area"),
+                        ProjectRepository.projects.filterNot(Project::isProgrammeRoot)
+                            .map { it.priorityDirectionKey() }.distinct().sortedBy { it.priorityDirectionLabel() },
+                        sectorFilter, onSectorChange, String::priorityDirectionLabel)
                     else -> Unit
                 }
             }
@@ -914,7 +923,7 @@ private fun sortKey(project: Project, column: SortColumn): String = when (column
     SortColumn.DREAM -> project.registryValue("dreamUrl")
     SortColumn.NAME -> project.localizedRegistryValue("name", project.localizedName())
     SortColumn.COMMUNITY -> project.localizedRegistryValue("community")
-    SortColumn.PRIORITY -> project.sourceBilingualValue("priority", ukrainianBeforeSlash = true)
+    SortColumn.PRIORITY -> project.priorityDirectionLabel()
     SortColumn.CONSTRUCTION_TYPE -> project.sourceBilingualValue("constructionType", ukrainianBeforeSlash = false, fallback = project.constructionType)
     SortColumn.IMPLEMENTER -> project.localizedRegistryValue("implementer")
     SortColumn.BENEFICIARY -> project.localizedRegistryValue("beneficiary", project.localizedBeneficiary())
@@ -1168,7 +1177,7 @@ private fun RegistryTableCell(project: Project, column: SortColumn, fontWeight: 
             link.takeIf(String::isNotBlank)?.let { LocalizationManager.t("open") } ?: sourceReference
         SortColumn.NAME -> project.localizedRegistryValue("name", project.localizedName())
         SortColumn.COMMUNITY -> project.localizedRegistryValue("community")
-        SortColumn.PRIORITY -> project.sourceBilingualValue("priority", ukrainianBeforeSlash = true)
+        SortColumn.PRIORITY -> project.priorityDirectionLabel()
         SortColumn.CONSTRUCTION_TYPE -> project.sourceBilingualValue("constructionType", ukrainianBeforeSlash = false, fallback = project.constructionType.constructionTypeLabel())
         SortColumn.IMPLEMENTER -> project.localizedRegistryValue("implementer")
         SortColumn.BENEFICIARY -> project.localizedRegistryValue("beneficiary", project.localizedBeneficiary())

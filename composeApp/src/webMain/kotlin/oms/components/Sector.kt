@@ -73,6 +73,13 @@ fun String.sectorLabel(): String {
     }
 }
 
+/** Preserve the more detailed programme directions in registry cells and filters. */
+fun String.priorityDirectionLabel(): String = when (oms.urp3.priorityDirectionKey(this)) {
+    "shelter_education_health" -> LocalizationManager.t("priority_shelter_education_health")
+    "shelter_other_public" -> LocalizationManager.t("priority_shelter_other_public")
+    else -> sectorLabel()
+}
+
 @Composable
 fun SectorSelector(value: String, onValueChange: (String) -> Unit, modifier: Modifier = Modifier) {
     Column(modifier) {
