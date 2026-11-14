@@ -7,9 +7,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Archive
@@ -45,7 +43,6 @@ import oms.components.WasmSafeOverlay
 import oms.localization.LocalizationManager
 import oms.screens.dashboard.ActivitySection
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.drawscope.Stroke
 import kotlin.js.JsName
 
 @JsName("omsBuildVersion") private external fun omsBuildVersion(): String
@@ -81,34 +78,10 @@ private fun RolePermissionsHint(roleCode: String) {
     }
 }
 
-/** Uses vector drawing rather than flag emoji: emoji fonts are not consistently available in Wasm. */
-@Composable
-private fun LanguageFlag(language: String) {
-    Canvas(
-        modifier = Modifier
-            .width(32.dp)
-            .height(21.dp)
-            .background(Color.White, RoundedCornerShape(3.dp))
-    ) {
-        if (language.equals("en", ignoreCase = true)) {
-            // United Kingdom (Union Jack), simplified but recognisable at table scale.
-            drawRect(Color(0xFF012169))
-            drawLine(Color.White, start = androidx.compose.ui.geometry.Offset(0f, 0f), end = androidx.compose.ui.geometry.Offset(size.width, size.height), strokeWidth = size.height * .30f)
-            drawLine(Color.White, start = androidx.compose.ui.geometry.Offset(size.width, 0f), end = androidx.compose.ui.geometry.Offset(0f, size.height), strokeWidth = size.height * .30f)
-            drawLine(Color(0xFFC8102E), start = androidx.compose.ui.geometry.Offset(0f, 0f), end = androidx.compose.ui.geometry.Offset(size.width, size.height), strokeWidth = size.height * .12f)
-            drawLine(Color(0xFFC8102E), start = androidx.compose.ui.geometry.Offset(size.width, 0f), end = androidx.compose.ui.geometry.Offset(0f, size.height), strokeWidth = size.height * .12f)
-            drawLine(Color.White, start = androidx.compose.ui.geometry.Offset(size.width / 2, 0f), end = androidx.compose.ui.geometry.Offset(size.width / 2, size.height), strokeWidth = size.height * .42f)
-            drawLine(Color.White, start = androidx.compose.ui.geometry.Offset(0f, size.height / 2), end = androidx.compose.ui.geometry.Offset(size.width, size.height / 2), strokeWidth = size.height * .42f)
-            drawLine(Color(0xFFC8102E), start = androidx.compose.ui.geometry.Offset(size.width / 2, 0f), end = androidx.compose.ui.geometry.Offset(size.width / 2, size.height), strokeWidth = size.height * .20f)
-            drawLine(Color(0xFFC8102E), start = androidx.compose.ui.geometry.Offset(0f, size.height / 2), end = androidx.compose.ui.geometry.Offset(size.width, size.height / 2), strokeWidth = size.height * .20f)
-        } else {
-            // Ukraine.
-            drawRect(Color(0xFF0057B7), size = androidx.compose.ui.geometry.Size(size.width, size.height / 2))
-            drawRect(Color(0xFFFFDD00), topLeft = androidx.compose.ui.geometry.Offset(0f, size.height / 2), size = androidx.compose.ui.geometry.Size(size.width, size.height / 2))
-        }
-        drawRect(Color(0x22000000), style = Stroke(width = 1.dp.toPx()))
-    }
-}
+private val accountLanguages = mapOf("uk" to "Українська", "en" to "English")
+
+private fun accountLanguageName(code: String): String =
+    accountLanguages[code.trim().lowercase()] ?: code.trim().ifBlank { "—" }
 
 @Composable
 fun AdminScreen() {
@@ -191,7 +164,7 @@ fun AdminScreen() {
             UserSort.LastLogin -> it.lastLoginAt.orEmpty()
             UserSort.Region -> it.region.orEmpty()
             UserSort.Department -> it.department.orEmpty()
-            UserSort.Language -> it.preferredLang
+            UserSort.Language -> accountLanguageName(it.preferredLang)
             UserSort.Created -> it.createdAt.orEmpty()
             UserSort.FailedAttempts -> it.failedLoginCount.toString().padStart(12, '0')
             UserSort.LockedUntil -> it.lockedUntil.orEmpty()
@@ -295,7 +268,7 @@ fun AdminScreen() {
                         Text(user.region ?: "—", Modifier.width(130.dp))
                         Text(user.department ?: "—", Modifier.width(150.dp))
                         Box(Modifier.width(80.dp), contentAlignment = Alignment.CenterStart) {
-                            LanguageFlag(user.preferredLang)
+                            Text(accountLanguageName(user.preferredLang), style = MaterialTheme.typography.bodySmall)
                         }
                         Text(user.lastLoginAt.toOmsDateTime().ifBlank { "—" }, Modifier.width(170.dp))
                         Text(user.failedLoginCount.toString(), Modifier.width(120.dp))
@@ -638,7 +611,7 @@ private fun UserFormFieldPair(
 private fun UserLanguagePicker(selected: String, enabled: Boolean, onSelect: (String) -> Unit) {
     Text(LocalizationManager.t("language"), style = MaterialTheme.typography.labelLarge)
     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        listOf("uk" to "Українська", "en" to "English").forEach { (code, name) ->
+        accountLanguages.forEach { (code, name) ->
             FilterChip(selected = selected.equals(code, ignoreCase = true), onClick = { onSelect(code) },
                 enabled = enabled, label = { Text(name) })
         }
