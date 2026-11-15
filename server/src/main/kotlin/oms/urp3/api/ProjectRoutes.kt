@@ -24,6 +24,11 @@ import io.ktor.utils.io.readRemaining
 import kotlinx.io.readByteArray
 import kotlinx.serialization.Serializable
 import java.nio.file.Files
+import oms.urp3.service.DisbursementNode
+import oms.urp3.service.DisbursementPayment
+import oms.urp3.service.ProjectDisbursement
+import oms.urp3.service.financialDisplayCents
+import oms.urp3.service.projectDisbursements
 
 @Serializable
 private data class SubprojectRegistryRefreshResponse(
@@ -69,6 +74,20 @@ private fun oms.urp3.domain.FinancialRecord.disbursedUah(): BigDecimal? = when (
     "EUR" -> eurExchangeRate?.takeIf { it > 0.0 }?.let { BigDecimal.valueOf(amount * it) }
     else -> null
 }
+
+private fun currentProjectDisbursements(projects: List<oms.urp3.domain.Project>): Map<Long, ProjectDisbursement> =
+    projectDisbursements(
+        projects.map { DisbursementNode(it.id, it.parentProjectId, it.siteNumber) },
+        AppContainer.paymentMonitoringService.currentIfAvailable()?.transactions
+    ) {
+        AppContainer.financialRecordService.getAll()
+            .filter { it.recordType in setOf(FinancialRecordType.PAYMENT, FinancialRecordType.ADVANCE) }
+            .map { record ->
+                DisbursementPayment("", financialDisplayCents(record, "EUR"),
+                    financialDisplayCents(record, "UAH")?.let { BigDecimal.valueOf(it, 2) },
+                    record.paymentPurpose.equals("works", true), record.projectId)
+            }
+    }
 
 /**
  * Маршрути роботи з проєктами.
@@ -203,49 +222,7 @@ fun Route.projectRoutes() {
             val projectsById = hierarchy.associateBy { it.id }
             val projectUuidById = projectsById.mapValues { (_, project) -> project.uuid.toString() }
             val monitoringByProjectId = projectService.monitoringDetailsByProjectIds(pagedProjects.map { it.id })
-            // Build this once for the page, rather than performing a financial
-            // query per map marker/project card. Payment and advance records are
-            // actual disbursements; ACT rows describe completed work, not cash paid.
-            fun owningSubprojectId(projectId: Long): Long? {
-                var current = projectsById[projectId] ?: return null
-                while (current.projectType != ProjectType.SUBPROJECT) {
-                    current = current.parentProjectId?.let(projectsById::get) ?: return null
-                }
-                return current.id
-            }
-
-            val disbursements = AppContainer.financialRecordService.getAll()
-                .asSequence()
-                .filter { it.recordType == FinancialRecordType.PAYMENT || it.recordType == FinancialRecordType.ADVANCE }
-                .toList()
-            // Produce all four presentation totals in one pass. Previously the
-            // same ledger was grouped four times and the hierarchy walk was
-            // repeated for every construction payment.
-            val disbursedEurCentsBySubprojectId = mutableMapOf<Long, Long>()
-            val disbursedEurCentsByProjectId = mutableMapOf<Long, Long>()
-            val paidConstructionUahBySubprojectId = mutableMapOf<Long, BigDecimal>()
-            val paidConstructionUahByProjectId = mutableMapOf<Long, BigDecimal>()
-            disbursements.forEach { record ->
-                val subprojectId = owningSubprojectId(record.projectId)
-                record.disbursedEurCents()?.let { cents ->
-                    disbursedEurCentsByProjectId[record.projectId] =
-                        (disbursedEurCentsByProjectId[record.projectId] ?: 0L) + cents
-                    subprojectId?.let { id ->
-                        disbursedEurCentsBySubprojectId[id] =
-                            (disbursedEurCentsBySubprojectId[id] ?: 0L) + cents
-                    }
-                }
-                if (record.paymentPurpose.equals("works", ignoreCase = true)) {
-                    record.disbursedUah()?.let { amount ->
-                        paidConstructionUahByProjectId[record.projectId] =
-                            (paidConstructionUahByProjectId[record.projectId] ?: BigDecimal.ZERO).add(amount)
-                        subprojectId?.let { id ->
-                            paidConstructionUahBySubprojectId[id] =
-                                (paidConstructionUahBySubprojectId[id] ?: BigDecimal.ZERO).add(amount)
-                        }
-                    }
-                }
-            }
+            val disbursements = currentProjectDisbursements(hierarchy)
             ProjectListResponse(
 
                 data =
@@ -254,16 +231,8 @@ fun Route.projectRoutes() {
                         project.toResponse(
                             parentProjectUuid = projectUuidById[project.parentProjectId],
                             monitoring = monitoringByProjectId[project.id],
-                            financingDisbursedEurCents = when (project.projectType) {
-                                ProjectType.SUBPROJECT -> disbursedEurCentsBySubprojectId[project.id] ?: 0L
-                                ProjectType.SUBPROJECT_PART -> disbursedEurCentsByProjectId[project.id] ?: 0L
-                                else -> 0L
-                            },
-                            financingDisbursedUah = when (project.projectType) {
-                                ProjectType.SUBPROJECT -> paidConstructionUahBySubprojectId[project.id] ?: BigDecimal.ZERO
-                                ProjectType.SUBPROJECT_PART -> paidConstructionUahByProjectId[project.id] ?: BigDecimal.ZERO
-                                else -> BigDecimal.ZERO
-                            }
+                            financingDisbursedEurCents = (disbursements[project.id] ?: ProjectDisbursement()).eurCents,
+                            financingDisbursedUah = (disbursements[project.id] ?: ProjectDisbursement()).worksUah
                         )
                     },
 
@@ -436,6 +405,7 @@ fun Route.projectRoutes() {
 
         val response = withContext(Dispatchers.IO) {
             val monitoring = AppContainer.projectRepository.monitoringDetails(project.id)
+            val disbursement = currentProjectDisbursements(projectService.getAllProjects())[project.id] ?: ProjectDisbursement()
             val contractorNameEn = monitoring?.sourceSubprojectId?.let { sourceId ->
                 AppContainer.procurementService.getForProjectCard(sourceId, null)
                     .firstOrNull { !it.contractorNameEng.isNullOrBlank() }
@@ -445,7 +415,9 @@ fun Route.projectRoutes() {
             ProjectDetailsResponse(
 
                 data =
-                    project.toResponse(monitoring = monitoring),
+                    project.toResponse(monitoring = monitoring,
+                        financingDisbursedEurCents = disbursement.eurCents,
+                        financingDisbursedUah = disbursement.worksUah),
 
                 financialSummary = AppContainer.financialRecordService.summary(project).let {
                     FinancialSummaryResponse(

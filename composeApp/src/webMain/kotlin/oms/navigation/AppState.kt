@@ -32,6 +32,7 @@ class AppState {
     var requestedFinancialRegion by mutableStateOf<String?>(null)
     var requestedFinancialMonth by mutableStateOf<String?>(null)
     var requestedProcurementStatus by mutableStateOf<String?>(null)
+    var requestedAnalyticsTranche by mutableStateOf<Int?>(null)
     var editingInspectionUuid by mutableStateOf<String?>(null)
     var viewingInspection by mutableStateOf(false)
 
@@ -46,13 +47,15 @@ class AppState {
     // ---------------- NAVIGATION ----------------
 
     // 🔹 Перехід між екранами
-    fun navigate(screen: Screen) {
+    fun navigate(screen: Screen, analyticsTranche: Int? = null) {
+        requestedAnalyticsTranche = analyticsTranche
         if (currentScreen != screen) pushOmsRoute(screen.route())
         currentScreen = screen
         navigationRevision++
     }
 
     fun restoreRoute(route: String) {
+        requestedAnalyticsTranche = null
         val screen = when (route.substringBefore('/')) {
             "dashboard" -> Screen.Dashboard
             "projects" -> Screen.Projects
@@ -106,7 +109,7 @@ class AppState {
         navigate(Screen.CreateProject)
     }
 
-    fun openProjectsByRegion(region: String) {
+    fun openProjectsByRegion(region: String, tranche: Int? = null) {
         // This action originates from the approved-funding map.  Do not let
         // one-shot filters from a previous Financial Monitoring visit leak
         // into the next route transition.
@@ -114,21 +117,21 @@ class AppState {
         requestedFinancialRegion = null
         requestedFinancialMonth = null
         requestedProjectRegion = region
-        navigate(Screen.Projects)
+        navigate(Screen.Projects, tranche)
     }
 
     /** Opens the full subproject registry without carrying a prior region filter. */
-    fun openSubprojects() {
+    fun openSubprojects(tranche: Int? = null) {
         requestedProjectRegion = null
-        navigate(Screen.Projects)
+        navigate(Screen.Projects, tranche)
     }
 
     /** Opens the map while preserving its independently managed filters. */
-    fun openMap() = navigate(Screen.Map)
+    fun openMap(tranche: Int? = null) = navigate(Screen.Map, tranche)
 
-    fun openFinancialBySubproject(subprojectUuid: String) {
+    fun openFinancialBySubproject(subprojectUuid: String, tranche: Int? = null) {
         requestedFinancialSubprojectUuid = subprojectUuid
-        navigate(Screen.Financial)
+        navigate(Screen.Financial, tranche)
     }
 
     /** Opens the financial register with records for the selected dashboard region. */
@@ -137,22 +140,22 @@ class AppState {
         navigate(Screen.Financial)
     }
 
-    fun openFinancialByMonth(month: String) {
+    fun openFinancialByMonth(month: String, tranche: Int? = null) {
         requestedFinancialMonth = month
-        navigate(Screen.Financial)
+        navigate(Screen.Financial, tranche)
     }
 
     /** Opens the financial register without dashboard one-shot filters. */
-    fun openFinancial() {
+    fun openFinancial(tranche: Int? = null) {
         requestedFinancialSubprojectUuid = null
         requestedFinancialRegion = null
         requestedFinancialMonth = null
-        navigate(Screen.Financial)
+        navigate(Screen.Financial, tranche)
     }
 
-    fun openProcurementsByStatus(status: String) {
+    fun openProcurementsByStatus(status: String, tranche: Int? = null) {
         requestedProcurementStatus = status
-        navigate(Screen.Procurement)
+        navigate(Screen.Procurement, tranche)
     }
 
     fun openEditProject(project: Project) {

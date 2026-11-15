@@ -521,9 +521,10 @@ object OmsApiClient {
         client.post("$baseUrl/financials/payment-monitoring/refresh/$id/cancel").body()
 
     /** URL keeps the browser's authenticated download flow for the read-only payment register. */
-    fun paymentMonitoringPdfExportUrl(language: String, code: String = "", sort: String = "Code", ascending: Boolean = true): String =
+    fun paymentMonitoringPdfExportUrl(language: String, code: String = "", sort: String = "Code", ascending: Boolean = true, selectedCodes: List<String>? = null): String =
         "$baseUrl/financials/payment-monitoring/export-pdf?lang=${language.encodeURLParameter()}" +
-            "&code=${code.encodeURLParameter()}&sort=${sort.encodeURLParameter()}&ascending=$ascending"
+            "&code=${code.encodeURLParameter()}&sort=${sort.encodeURLParameter()}&ascending=$ascending" +
+            (selectedCodes?.let { "&codes=${it.joinToString(",").encodeURLParameter()}" } ?: "")
 
     suspend fun createFinancialRecord(projectUuid: String, request: FinancialRecordRequest): ApiFinancialRecord =
         client.post("$baseUrl/projects/$projectUuid/financials") {
@@ -866,7 +867,7 @@ data class ApiProject(
     val budgetPlanned: Long,
     val currency: String = "UAH",
     val amounts: Map<String, ProjectAmountDto> = emptyMap(),
-    val financingDisbursedEurCents: Long = 0L,
+    val financingDisbursedEurCents: Long? = 0L,
     val registry: Map<String, String> = emptyMap(),
     val contractorName: String? = null,
     val startDate: String? = null,

@@ -123,10 +123,10 @@ fun AppLayout(appState: AppState) {
 
                 is Screen.Dashboard -> DashboardScreen(
                     onOpenProject = if (appState.roleCode == "GUEST") ({}) else appState::openProjectDetail,
-                    onOpenFinancialByMonth = if (appState.roleCode == "GUEST") ({}) else appState::openFinancialByMonth,
-                    onOpenProjectsByRegion = if (appState.roleCode == "GUEST") ({}) else appState::openProjectsByRegion,
-                    onOpenFinancialBySubproject = if (appState.roleCode == "GUEST") ({}) else appState::openFinancialBySubproject,
-                    onOpenProcurementsByStatus = if (appState.roleCode == "GUEST") ({}) else appState::openProcurementsByStatus,
+                    onOpenFinancialByMonth = if (appState.roleCode == "GUEST") ({ _, _ -> }) else appState::openFinancialByMonth,
+                    onOpenProjectsByRegion = if (appState.roleCode == "GUEST") ({ _, _ -> }) else appState::openProjectsByRegion,
+                    onOpenFinancialBySubproject = if (appState.roleCode == "GUEST") ({ _, _ -> }) else appState::openFinancialBySubproject,
+                    onOpenProcurementsByStatus = if (appState.roleCode == "GUEST") ({ _, _ -> }) else appState::openProcurementsByStatus,
                     onOpenSubprojects = if (appState.roleCode == "GUEST") ({}) else appState::openSubprojects,
                     onOpenMap = appState::openMap,
                     onOpenFinancial = if (appState.roleCode == "GUEST") ({}) else appState::openFinancial,
@@ -142,6 +142,7 @@ fun AppLayout(appState: AppState) {
                     canPermanentlyDeleteProjects = appState.roleCode == "ADMIN",
                     canBulkReassign = appState.roleCode == "ADMIN",
                     requestedRegionFilter = target.region,
+                    requestedTrancheFilter = target.analyticsTranche,
                     onRequestedRegionFilterConsumed = { appState.requestedProjectRegion = null }
                 )
 
@@ -187,6 +188,7 @@ fun AppLayout(appState: AppState) {
                 )
 
                 is Screen.Map -> MapScreen(
+                    requestedTrancheFilter = target.analyticsTranche,
                     onOpenProject = { project ->
                         appState.openProjectDetail(project)
                     }
@@ -208,6 +210,7 @@ fun AppLayout(appState: AppState) {
                     requestedSubprojectUuid = target.financialSubproject,
                     requestedRegion = target.financialRegion,
                     requestedMonth = target.financialMonth,
+                    requestedTranche = target.analyticsTranche,
                     onRequestedSubprojectFilterConsumed = { appState.requestedFinancialSubprojectUuid = null },
                     onRequestedRegionFilterConsumed = { appState.requestedFinancialRegion = null },
                     onRequestedMonthFilterConsumed = { appState.requestedFinancialMonth = null }
@@ -216,6 +219,7 @@ fun AppLayout(appState: AppState) {
                 is Screen.Procurement -> if (appState.roleCode != "GUEST") ProcurementScreen(
                     canManageProcurements = appState.roleCode == "ADMIN",
                     requestedStatusFilter = target.procurementStatus,
+                    requestedTrancheFilter = target.analyticsTranche,
                     onRequestedStatusFilterConsumed = { appState.requestedProcurementStatus = null }
                 )
 

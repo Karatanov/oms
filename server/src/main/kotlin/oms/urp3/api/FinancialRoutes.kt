@@ -90,7 +90,8 @@ fun Route.financialRoutes() {
         call.requireRole("ADMIN", "PROJECT_MANAGER") ?: return@get
         val query = try {
             oms.urp3.service.paymentMonitoringExportQuery(
-                call.request.queryParameters["code"], call.request.queryParameters["sort"], call.request.queryParameters["ascending"])
+                call.request.queryParameters["code"], call.request.queryParameters["sort"], call.request.queryParameters["ascending"],
+                call.request.queryParameters["codes"])
         } catch (failure: IllegalArgumentException) {
             call.respond(HttpStatusCode.BadRequest, ErrorResponse("VALIDATION_ERROR", failure.message ?: "Invalid export selection."))
             return@get

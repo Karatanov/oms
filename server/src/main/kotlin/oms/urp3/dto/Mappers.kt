@@ -71,8 +71,8 @@ fun User.toResponse(): UserResponse {
 fun Project.toResponse(
     parentProjectUuid: String? = null,
     monitoring: oms.urp3.domain.ProjectMonitoringDetails? = null,
-    financingDisbursedEurCents: Long = 0L,
-    financingDisbursedUah: BigDecimal = BigDecimal.ZERO
+    financingDisbursedEurCents: Long? = 0L,
+    financingDisbursedUah: BigDecimal? = BigDecimal.ZERO
 ): ProjectResponse {
 
     return ProjectResponse(
@@ -210,7 +210,7 @@ fun Project.toResponse(
  */
 private fun Project.registryValues(
     monitoring: oms.urp3.domain.ProjectMonitoringDetails?,
-    financingDisbursedUah: BigDecimal
+    financingDisbursedUah: BigDecimal?
 ): Map<String, String> {
     fun amount(kind: String) = amounts[kind]?.amount?.stripTrailingZeros()?.toPlainString().orEmpty()
     fun decimal(value: Long?) = value?.toString().orEmpty()
@@ -251,7 +251,7 @@ private fun Project.registryValues(
         putIfAbsent("constructionAmount", decimal(subprojectContractAmount))
         putIfAbsent("constructionEib", amount("construction_eib"))
         putIfAbsent("constructionLocal", amount("construction_local"))
-        putIfAbsent("paidConstruction", financingDisbursedUah.stripTrailingZeros().toPlainString())
+        putIfAbsent("paidConstruction", financingDisbursedUah?.stripTrailingZeros()?.toPlainString().orEmpty())
         putIfAbsent("dedUrl", value(monitoring?.dedUrl))
         putIfAbsent("estimateUrl", value(monitoring?.estimateUrl))
         putIfAbsent("expertiseUrl", value(monitoring?.expertiseUrl))

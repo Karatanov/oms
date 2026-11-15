@@ -32,7 +32,7 @@ private enum class MapScope(val projectType: String, val labelKey: String) {
 
 @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
-fun MapScreen(onOpenProject: (Project) -> Unit = {}) {
+fun MapScreen(onOpenProject: (Project) -> Unit = {}, requestedTrancheFilter: Int? = null) {
     var initialLoad by remember { mutableStateOf(true) }
     LaunchedEffect(Unit) { ProjectRepository.refresh(); initialLoad = false }
     oms.navigation.ReportRouteReadiness(initialLoad, ProjectRepository.errorMessage != null)
@@ -42,7 +42,7 @@ fun MapScreen(onOpenProject: (Project) -> Unit = {}) {
     var regions by remember { mutableStateOf<Set<String>>(emptySet()) }
     var statuses by remember { mutableStateOf<Set<ProjectStatus>>(emptySet()) }
     var mapScope by remember { mutableStateOf(MapScope.SUBPROJECTS) }
-    var trancheNumber by remember { mutableStateOf<Int?>(null) }
+    var trancheNumber by remember { mutableStateOf(requestedTrancheFilter) }
     // Show exactly one child level, never portfolio-level projects.
     val located = projects.filter {
         it.projectType == mapScope.projectType &&

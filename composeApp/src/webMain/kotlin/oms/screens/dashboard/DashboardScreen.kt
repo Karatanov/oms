@@ -32,13 +32,13 @@ import kotlin.math.roundToLong
 @OptIn(ExperimentalLayoutApi::class)
 fun DashboardScreen(
     onOpenProject: (oms.model.Project) -> Unit = {},
-    onOpenFinancialByMonth: (String) -> Unit = {},
-    onOpenProjectsByRegion: (String) -> Unit = {},
-    onOpenFinancialBySubproject: (String) -> Unit = {},
-    onOpenProcurementsByStatus: (String) -> Unit = {},
-    onOpenSubprojects: () -> Unit = {},
-    onOpenMap: () -> Unit = {},
-    onOpenFinancial: () -> Unit = {},
+    onOpenFinancialByMonth: (String, Int?) -> Unit = { _, _ -> },
+    onOpenProjectsByRegion: (String, Int?) -> Unit = { _, _ -> },
+    onOpenFinancialBySubproject: (String, Int?) -> Unit = { _, _ -> },
+    onOpenProcurementsByStatus: (String, Int?) -> Unit = { _, _ -> },
+    onOpenSubprojects: (Int?) -> Unit = {},
+    onOpenMap: (Int?) -> Unit = {},
+    onOpenFinancial: (Int?) -> Unit = {},
     onOpenInspectionPreview: (String) -> Unit = {}
 ) {
     var dashboard by remember { mutableStateOf<ApiDashboardOverview?>(null) }
@@ -152,10 +152,10 @@ fun DashboardScreen(
                 item {
                     NationalPortfolioSummary(
                         summary = summary,
-                        onOpenSubprojects = onOpenSubprojects,
-                        onOpenMap = onOpenMap,
-                        onOpenSignedContracts = { onOpenProcurementsByStatus("contract signed") },
-                        onOpenFinancial = onOpenFinancial
+                        onOpenSubprojects = { onOpenSubprojects(trancheNumber) },
+                        onOpenMap = { onOpenMap(trancheNumber) },
+                        onOpenSignedContracts = { onOpenProcurementsByStatus("contract signed", trancheNumber) },
+                        onOpenFinancial = { onOpenFinancial(trancheNumber) }
                     )
                 }
             }
@@ -178,11 +178,11 @@ fun DashboardScreen(
             else {
                 item {
                     AdaptiveChartRow(
-                        first = { FundingByOblastChart(dashboard?.subprojectFunding.orEmpty(), onOpenProjectsByRegion, chartOrientation) },
+                        first = { FundingByOblastChart(dashboard?.subprojectFunding.orEmpty(), { onOpenProjectsByRegion(it, trancheNumber) }, chartOrientation) },
                         second = {
                             SubprojectEibPaymentChart(
                                 dashboard?.subprojectPaymentProgress.orEmpty(),
-                                onOpenFinancialBySubproject,
+                                { onOpenFinancialBySubproject(it, trancheNumber) },
                                 chartOrientation
                             )
                         }
@@ -200,11 +200,11 @@ fun DashboardScreen(
                             MetricsChart(
                                 "procurement_status_by_subprojects",
                                 metrics = dashboard?.procurementStatusCounts.orEmpty(),
-                                onItemClick = onOpenProcurementsByStatus,
+                                onItemClick = { onOpenProcurementsByStatus(it, trancheNumber) },
                                 orientation = chartOrientation
                             )
                         },
-                        second = { MonthlyActPaymentsChart(MaterialTheme.colorScheme.primary, dashboard?.monthlyActPayments.orEmpty(), onOpenFinancialByMonth, chartOrientation) }
+                        second = { MonthlyActPaymentsChart(MaterialTheme.colorScheme.primary, dashboard?.monthlyActPayments.orEmpty(), { onOpenFinancialByMonth(it, trancheNumber) }, chartOrientation) }
                     )
                 }
                 item {

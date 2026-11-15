@@ -69,10 +69,11 @@ private const val procurementSourceWorkbookUrl =
 fun ProcurementScreen(
     canManageProcurements: Boolean,
     requestedStatusFilter: String? = null,
+    requestedTrancheFilter: Int? = null,
     onRequestedStatusFilterConsumed: () -> Unit = {}
 ) {
     var search by remember { mutableStateOf("") }
-    var trancheFilter by remember { mutableStateOf<Int?>(null) }
+    var trancheFilter by remember { mutableStateOf(requestedTrancheFilter?.let { if (it == 1) 8 else 9 }) }
     var oblastFilter by remember { mutableStateOf<String?>(null) }
     var subprojectFilter by remember { mutableStateOf<String?>(null) }
     var contractTypeFilter by remember { mutableStateOf<String?>(null) }

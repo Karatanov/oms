@@ -115,6 +115,7 @@ fun ProjectsScreen(
     canPermanentlyDeleteProjects: Boolean = false,
     canBulkReassign: Boolean = false,
     requestedRegionFilter: String? = null,
+    requestedTrancheFilter: Int? = null,
     onRequestedRegionFilterConsumed: () -> Unit = {}
 ) {
 
@@ -124,7 +125,7 @@ fun ProjectsScreen(
     // The registry opens on active subprojects. "Archived" is the ordinary
     // project status, not a second technical archive state.
     var statusFilter by remember { mutableStateOf<ProjectStatus?>(ProjectStatus.ACTIVE) }
-    var trancheFilter by remember { mutableStateOf<Int?>(null) }
+    var trancheFilter by remember { mutableStateOf(requestedTrancheFilter) }
     var constructionTypeFilter by remember { mutableStateOf<String?>(null) }
     var sectorFilter by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()

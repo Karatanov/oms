@@ -1,0 +1,36 @@
+// Generate an isolated DTO fixture from the real declaration, not a parallel model.
+// Only build/ output is written; production source files are unchanged.
+const fs = require('node:fs');
+const path = require('node:path');
+const source = fs.readFileSync('composeApp/src/webMain/kotlin/oms/data/OmsApiClient.kt', 'utf8');
+const model = source.match(/^data class ApiFinancialRecord\([\s\S]*?^\)/m)?.[0];
+if (!model) throw Error('Cannot locate the exact ApiFinancialRecord declaration');
+const output = 'build/calculation-audit';
+fs.mkdirSync(output, {recursive: true});
+fs.writeFileSync(path.join(output, 'ApiFinancialRecord.kt'), 'package oms.data\n\n'+model+'\n');
+const paymentDtos = ['ApiPaymentMonitoringItem', 'ApiPaymentMonitoringTransaction'].map(name => {
+  const declaration = source.match(new RegExp(`data class ${name}\\([\\s\\S]*?^\\)`, 'm'))?.[0];
+  if (!declaration) throw Error(`Cannot locate exact ${name} declaration`);
+  return declaration;
+});
+fs.writeFileSync(path.join(output, 'PaymentMonitoringDtos.kt'), 'package oms.data\n\n' + paymentDtos.join('\n'));
+const monthly = fs.readFileSync('composeApp/src/webMain/kotlin/oms/screens/MonthlyPaymentsChart.kt', 'utf8');
+const definitions = ['FinancialChartRecord', 'MonthlyFinancialAggregation'].map(name => {
+  const declaration = monthly.match(new RegExp(`^(?:internal )?data class ${name}\\([\\s\\S]*?^\\)`, 'm'))?.[0];
+  if (!declaration) throw Error(`Cannot locate ${name}`);
+  return declaration;
+});
+const start = monthly.indexOf('internal fun aggregateMonthlyPayments(');
+if (start < 0 || !monthly.slice(start).includes('internal fun completeFinancialMonths(')) throw Error('Cannot locate monthly pure calculations');
+const monthlyMoney = fs.readFileSync('composeApp/src/webMain/kotlin/oms/screens/AnalyticsCharts.kt', 'utf8')
+  .match(/^data class MonthlyMoneyAmount\([^\n]+/m)?.[0];
+if (!monthlyMoney) throw Error('Cannot locate MonthlyMoneyAmount');
+fs.writeFileSync(path.join(output, 'MonthlyAggregation.kt'),
+  'package oms.screens\nimport oms.data.ApiFinancialRecord\nimport oms.data.displayAmountCents\nimport oms.localization.LocalizationManager\n'+
+  definitions.join('\n')+'\n'+monthlyMoney+'\n'+monthly.slice(start));
+// Localization is irrelevant to numerical characterization; this is not a translation test.
+fs.writeFileSync(path.join(output, 'LocalizationFixture.kt'),
+  'package oms.localization\nobject LocalizationManager { fun t(key: String): String = key }\n');
+fs.writeFileSync(path.join(output, 'ChartModels.kt'), fs.readFileSync('composeApp/src/webMain/kotlin/oms/charts/ChartModels.kt', 'utf8'));
+// Geometry/color is outside the sorting audit; retain the actual model signature.
+fs.writeFileSync(path.join(output, 'ColorFixture.kt'), 'package androidx.compose.ui.graphics\nclass Color\n');

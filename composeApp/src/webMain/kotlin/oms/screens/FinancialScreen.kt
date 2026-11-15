@@ -110,6 +110,7 @@ fun FinancialScreen(
     requestedSubprojectUuid: String? = null,
     requestedRegion: String? = null,
     requestedMonth: String? = null,
+    requestedTranche: Int? = null,
     onRequestedSubprojectFilterConsumed: () -> Unit = {},
     onRequestedRegionFilterConsumed: () -> Unit = {},
     onRequestedMonthFilterConsumed: () -> Unit = {}
@@ -153,7 +154,7 @@ fun FinancialScreen(
     val missingConversions = acts.count { displayCents(it.act) == null }
     var recordTypeFilter by remember { mutableStateOf<String?>(null) }
     var paymentPurposeFilter by remember { mutableStateOf<String?>(null) }
-    var trancheFilter by remember { mutableStateOf<Int?>(null) }
+    var trancheFilter by remember { mutableStateOf(requestedTranche) }
     var subprojectFilter by remember { mutableStateOf<String?>(null) }
     var regionFilter by remember { mutableStateOf<String?>(null) }
     var chartMonthFilter by remember { mutableStateOf<String?>(null) }
@@ -485,21 +486,26 @@ fun FinancialScreen(
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         Text(LocalizationManager.t("completed_works_by_acts"), style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
                         Text(amount, style = MaterialTheme.typography.headlineMedium)
-                        oms.components.CurrencySelector(displayCurrency) { displayCurrency = it }
                     }
                 } else {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(LocalizationManager.t("completed_works_by_acts"), style = MaterialTheme.typography.titleMedium)
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                             Text(amount, style = MaterialTheme.typography.headlineMedium)
-                            oms.components.CurrencySelector(displayCurrency) { displayCurrency = it }
                         }
                     }
                 }
             }
         }
 
-        PaymentSummaryCards(paymentMonitoring?.summary)
+        val paymentProjects = subprojectsByCode.values.map { PaymentProjectContext(it.id, it.siteNumber, it.trancheNumber, it.region) }
+        val paymentScope = PaymentMonitoringScope(trancheFilter, subprojectFilter, regionFilter, yearFilter, chartMonthFilter, paymentPurposeFilter)
+        val contextualPayments = scopePaymentTransactions(paymentMonitoring?.transactions.orEmpty(), paymentProjects, paymentScope.copy(purpose = null))
+        PaymentSummaryCards(paymentMonitoring?.summary?.copy(
+            constructionWorksPaidUah = contextualPayments.filter { sourcePaymentPurpose(it.code) == "works" }.sumOf { it.amountUah },
+            technicalSupervisionPaidUah = contextualPayments.filter { sourcePaymentPurpose(it.code) == "technical_supervision" }.sumOf { it.amountUah },
+            engineerConsultantPaidUah = contextualPayments.filter { sourcePaymentPurpose(it.code) == "engineer_consultant" }.sumOf { it.amountUah }
+        ))
 
         if (financialProgressLoading) oms.components.ContentState(
             LocalizationManager.t("financial_progress_loading"), loading = true)
@@ -571,6 +577,16 @@ fun FinancialScreen(
             PaymentMonitoringCard(
                 snapshot = paymentMonitoring ?: ApiPaymentMonitoring(refreshedAt = ""),
                 selectedMonth = chartMonthFilter,
+                projects = paymentProjects,
+                context = paymentScope,
+                onResetScope = {
+                    trancheFilter = null
+                    subprojectFilter = null
+                    regionFilter = null
+                    yearFilter = null
+                    chartMonthFilter = null
+                    paymentPurposeFilter = null
+                },
                 canUpdate = canUpdatePaymentMonitoring,
                 message = paymentMonitoringMessage,
                 messageIsError = paymentMonitoringMessageIsError,
@@ -1337,6 +1353,9 @@ private fun FinancialProgressCard(
 private fun PaymentMonitoringCard(
     snapshot: ApiPaymentMonitoring,
     selectedMonth: String?,
+    projects: List<PaymentProjectContext>,
+    context: PaymentMonitoringScope,
+    onResetScope: () -> Unit,
     canUpdate: Boolean,
     message: String?,
     messageIsError: Boolean,
@@ -1355,8 +1374,11 @@ private fun PaymentMonitoringCard(
         page = 0
     }
     val normalizedQuery = codeQuery.trim().lowercase()
-    val filteredRows = remember(snapshot.items, normalizedQuery) {
-        snapshot.items.filter { row ->
+    val scopedItems = remember(snapshot.items, projects, context.tranche, context.subproject, context.region) {
+        scopePaymentItems(snapshot.items, projects, context)
+    }
+    val filteredRows = remember(scopedItems, normalizedQuery) {
+        scopedItems.filter { row ->
             normalizedQuery.isBlank() || row.code.lowercase().contains(normalizedQuery)
         }
     }
@@ -1383,11 +1405,15 @@ private fun PaymentMonitoringCard(
                         Text(LocalizationManager.t("payment_monitoring_update"))
                     }
                 }
+                if (context != PaymentMonitoringScope()) {
+                    OutlinedButton(onClick = onResetScope) { Text(LocalizationManager.t("reset_filters")) }
+                }
                 OutlinedButton(onClick = {
                     oms.data.openOmsDownload(
                         OmsApiClient.paymentMonitoringPdfExportUrl(
                             if (LocalizationManager.currentLanguage == oms.localization.Language.EN) "en" else "uk",
-                            code = codeQuery.trim(), sort = sort.name, ascending = ascending
+                            code = codeQuery.trim(), sort = sort.name, ascending = ascending,
+                            selectedCodes = scopedItems.map { it.code }
                         )
                     )
                 }, enabled = rows.isNotEmpty()) {
@@ -1412,7 +1438,7 @@ private fun PaymentMonitoringCard(
                     codeQuery = codeQuery,
                     onCodeQueryChange = { codeQuery = it.safeTextInput(100) },
                     filteredCount = rows.size,
-                    totalCount = snapshot.items.size
+                    totalCount = scopedItems.size
                 )
                 if (rows.isEmpty()) {
                     Text(LocalizationManager.t("no_chart_data"), color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -1446,7 +1472,7 @@ private fun PaymentMonitoringCard(
                         PageArrow(forward = true, enabled = page < pageCount - 1) { page = (page + 1).coerceAtMost(pageCount - 1) }
                     }
                 }
-                PaymentMonitoringTransactionTable(snapshot.transactions, selectedMonth, codeQuery)
+                PaymentMonitoringTransactionTable(scopePaymentTransactions(snapshot.transactions, projects, context), selectedMonth, codeQuery)
             }
         }
     }

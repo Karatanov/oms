@@ -5,6 +5,15 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 
 class PaymentMonitoringTableSelectionTest {
+    @Test fun exportPreservesProjectPopulationIncludingExplicitEmptySelection() {
+        val source = listOf(item("KH08_01", 10.0), item("VN08_01", 20.0))
+        assertEquals(listOf("KH08_01"), selectPaymentMonitoringExportItems(source,
+            paymentMonitoringExportQuery(null, null, null, "kh08_01")).map { it.code })
+        assertEquals(emptyList(), selectPaymentMonitoringExportItems(source,
+            paymentMonitoringExportQuery(null, null, null, "")))
+        assertEquals(emptyList(), selectPaymentMonitoringExportItems(source,
+            paymentMonitoringExportQuery("VN", null, null, "KH08_01")))
+    }
     private fun item(code: String, value: Double? = null, compliance: String? = null) = PaymentMonitoringWorkbookSource.Item(
         code, value, value, value, value, value, value, value, value, compliance)
 

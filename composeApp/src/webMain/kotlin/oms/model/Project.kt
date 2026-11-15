@@ -45,7 +45,7 @@ data class Project(
     /** Project-level financial values used by the map preview. */
     val financingAmount: String? = null,
     val financingCurrency: String? = null,
-    val financingDisbursedEurCents: Long = 0L,
+    val financingDisbursedEurCents: Long? = 0L,
 
     /** Source-aligned values for the monitoring registry table. */
     val registry: Map<String, String> = emptyMap(),

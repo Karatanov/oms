@@ -121,10 +121,11 @@ private fun Project.mapProjectCost(): String =
     formatMapMoney(budgetDisplayAmount ?: budgetPlanned.toString(), budgetCurrency)
 
 private fun Project.mapFinancingAmount(): String =
-    financingAmount?.let { formatMapMoney(it, financingCurrency ?: "UAH") } ?: "—"
+    financingAmount?.let { formatMapMoney(it, financingCurrency ?: "UAH") }
+        ?: registry["eibCost"]?.takeIf(String::isNotBlank)?.let { formatMapMoney(it, "UAH") } ?: "—"
 
 private fun Project.mapFinancingDisbursed(): String =
-    formatMapMoney((financingDisbursedEurCents / 100.0).toString(), "EUR")
+    financingDisbursedEurCents?.let { formatMapMoney((it / 100.0).toString(), "EUR") } ?: "—"
 
 private fun formatMapMoney(raw: String, currency: String): String {
     val label = LocalizationManager.currencyLabel(currency)

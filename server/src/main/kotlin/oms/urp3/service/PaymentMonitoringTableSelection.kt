@@ -9,10 +9,14 @@ internal enum class PaymentMonitoringExportSort {
 internal data class PaymentMonitoringExportQuery(
     val code: String,
     val sort: PaymentMonitoringExportSort,
-    val ascending: Boolean
+    val ascending: Boolean,
+    val selectedCodes: Set<String>? = null
 )
 
-internal fun paymentMonitoringExportQuery(code: String?, sort: String?, ascending: String?): PaymentMonitoringExportQuery {
+internal fun paymentMonitoringExportQuery(code: String?, sort: String?, ascending: String?, codes: String? = null): PaymentMonitoringExportQuery {
+    require(codes == null || codes.length <= 8000) { "Export selection is too large." }
+    // An explicit empty selection must never expand to the entire register.
+    val selectedCodes = codes?.split(',')?.filter { it.isNotBlank() }?.map { it.trim().lowercase(Locale.ROOT) }?.toSet()
     val query = code.orEmpty().trim()
     require(query.length <= 100) { "Subproject code search must not exceed 100 characters." }
     val column = if (sort == null) PaymentMonitoringExportSort.Code else
@@ -20,7 +24,7 @@ internal fun paymentMonitoringExportQuery(code: String?, sort: String?, ascendin
             ?: throw IllegalArgumentException("Unknown payment monitoring sort column.")
     val direction = ascending?.toBooleanStrictOrNull() ?: if (ascending == null) true else
         throw IllegalArgumentException("Sort direction must be true or false.")
-    return PaymentMonitoringExportQuery(query.lowercase(Locale.ROOT), column, direction)
+    return PaymentMonitoringExportQuery(query.lowercase(Locale.ROOT), column, direction, selectedCodes)
 }
 
 /** Match the table's code search and nulls-last sorting, without pagination. */
@@ -42,7 +46,10 @@ internal fun selectPaymentMonitoringExportItems(
         right.isNullOrBlank() -> -1
         else -> compareText(left, right)
     }
-    return items.filter { query.code.isBlank() || it.code.lowercase(Locale.ROOT).contains(query.code) }
+    return items.filter {
+        (query.selectedCodes == null || it.code.lowercase(Locale.ROOT) in query.selectedCodes) &&
+            (query.code.isBlank() || it.code.lowercase(Locale.ROOT).contains(query.code))
+    }
         .sortedWith { left, right ->
             when (query.sort) {
                 PaymentMonitoringExportSort.Code -> compareText(left.code, right.code)

@@ -107,7 +107,7 @@ class PaymentMonitoringPdfExportService(
                 } else {
                     "OMS — Subproject payment monitoring"
                 },
-                totalLabel = if (language == Language.UK) "Усього субпроєктів" else "Total subprojects",
+                totalLabel = if (language == Language.UK) "Усього записів" else "Total records",
                 filtersLabel = if (language == Language.UK) "Фільтр" else "Filter",
                 noRecordsLabel = if (language == Language.UK) "Немає даних для експорту" else "No data to export",
                 exportDateLabel = if (language == Language.UK) "Дата експорту" else "Export date",

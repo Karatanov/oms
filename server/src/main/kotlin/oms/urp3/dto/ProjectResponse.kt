@@ -141,7 +141,7 @@ data class ProjectResponse(
     val amounts: Map<String, ProjectAmountDto> = emptyMap(),
 
     /** Sum of recorded cash disbursements in frozen EUR cents. */
-    val financingDisbursedEurCents: Long = 0L,
+    val financingDisbursedEurCents: Long? = 0L,
 
     /**
      * Flat, presentation-oriented values used by the wide subproject
