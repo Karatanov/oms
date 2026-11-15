@@ -39,13 +39,21 @@ $sources = @(
     'composeApp/src/webMain/kotlin/oms/screens/PaymentMonitoringScope.kt',
     'build/calculation-audit/PaymentMonitoringDtos.kt',
     'build/calculation-audit/ApiFinancialRecord.kt',
+    'build/calculation-audit/MonthlyAggregation.kt',
+    'build/calculation-audit/LocalizationFixture.kt',
+    'composeApp/src/webTest/kotlin/oms/urp3/MonthlyFinancialCompletenessTest.kt',
+    'tools/MonthlyAggregationAudit.kt',
+    'composeApp/src/webMain/kotlin/oms/screens/MonthlyRateLoading.kt',
+    'tools/MonthlyRateLoadingTest.kt',
     'server/src/test/kotlin/oms/urp3/service/ProjectDisbursementsTest.kt',
     'server/src/test/kotlin/oms/urp3/service/PaymentMonitoringTableSelectionTest.kt',
     'composeApp/src/webTest/kotlin/oms/screens/PaymentMonitoringScopeTest.kt'
 )
 & $java -cp ($compiler -join ';') org.jetbrains.kotlin.cli.jvm.K2JVMCompiler -no-stdlib -no-reflect -classpath ($deps -join ';') -d $testOutput @sources
 if ($LASTEXITCODE -ne 0) { throw 'Focused Kotlin compilation failed' }
-& $java -cp ($deps -join ';') org.junit.runner.JUnitCore oms.urp3.service.ProjectDisbursementsTest oms.urp3.service.PaymentMonitoringTableSelectionTest oms.screens.PaymentMonitoringScopeTest oms.urp3.ContractDurationTest oms.urp3.service.FinancialMoneyTest oms.urp3.DecimalMoneyTest oms.urp3.FinancialDecimalRoundingTest
+& $java -cp ($deps -join ';') org.junit.runner.JUnitCore oms.urp3.service.ProjectDisbursementsTest oms.urp3.service.PaymentMonitoringTableSelectionTest oms.screens.PaymentMonitoringScopeTest oms.urp3.ContractDurationTest oms.urp3.service.FinancialMoneyTest oms.urp3.DecimalMoneyTest oms.urp3.FinancialDecimalRoundingTest oms.urp3.MonthlyFinancialCompletenessTest oms.screens.MonthlyRateLoadingTest
 if ($LASTEXITCODE -ne 0) { throw 'Focused tests failed' }
 & $java -cp ($deps -join ';') oms.urp3.service.DisplayCurrencyAuditKt
 if ($LASTEXITCODE -ne 0) { throw 'Frontend decimal reconciliation failed' }
+& $java -cp ($deps -join ';') oms.screens.MonthlyAggregationAuditKt
+if ($LASTEXITCODE -ne 0) { throw 'Monthly completeness reconciliation failed' }

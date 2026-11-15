@@ -499,7 +499,8 @@ fun MonthlyMoneyChart(
     expanded: Boolean = true,
     onExpandedChange: ((Boolean) -> Unit)? = null,
     onMonthClick: (String) -> Unit = {},
-    orientation: BarChartOrientation = BarChartOrientation.Vertical
+    orientation: BarChartOrientation = BarChartOrientation.Vertical,
+    emptyContent: (@Composable () -> Unit)? = null
 ) {
     val data = payments.sortedBy { it.month }.map {
         BarData(
@@ -516,7 +517,8 @@ fun MonthlyMoneyChart(
         filterContent = currencySelector, expanded = expanded, onExpandedChange = onExpandedChange,
         currency = currency,
         titleSuffix = titleSuffix,
-        onItemClick = { bar -> bar.id?.let(onMonthClick) }, orientation = orientation
+        onItemClick = { bar -> bar.id?.let(onMonthClick) }, orientation = orientation,
+        emptyContent = emptyContent
     )
 }
 
@@ -536,7 +538,8 @@ private fun AnalyticsCard(
     orientation: BarChartOrientation = BarChartOrientation.Vertical,
     sortEnabled: Boolean = false,
     currency: String? = null,
-    titleSuffix: String? = null
+    titleSuffix: String? = null,
+    emptyContent: (@Composable () -> Unit)? = null
 ) {
     var sortCriterion by remember { mutableStateOf<ChartSortCriterion?>(null) }
     var sortAscending by remember { mutableStateOf(true) }
@@ -592,7 +595,10 @@ private fun AnalyticsCard(
                     Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) { content() }
                 }
                 Spacer(Modifier.height(if (compact) 6.dp else 8.dp))
-                if (displayData.isEmpty()) Text(LocalizationManager.t("no_chart_data"), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                if (displayData.isEmpty()) {
+                    if (emptyContent != null) emptyContent()
+                    else Text(LocalizationManager.t("no_chart_data"), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
                 else if (orientation == BarChartOrientation.Vertical) VerticalBarChart(displayData, MaterialTheme.colorScheme.primary, labelMaxLines = labelMaxLines, maxVisibleItems = 6, valueLabel = valueLabel, onItemClick = onItemClick, showScrollControls = showScrollControls)
                 else HorizontalBarChart(displayData, MaterialTheme.colorScheme.primary, valueLabel = valueLabel, onItemClick = onItemClick)
             }

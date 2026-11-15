@@ -522,11 +522,8 @@ fun FinancialScreen(
                     (yearFilter == null || (it.act.paymentDate ?: it.act.recordDate).take(4).toIntOrNull() == yearFilter)
             }.map { FinancialChartRecord(it.act, it.subprojectCode.orEmpty()) }.toList()
         }
-        // An old record without a frozen exchange rate must not hide every
-        // financial chart. Each chart omits only the rows it cannot convert;
-        // the warning above still tells the user which totals are incomplete.
-        // This is especially important for the CSC chart, whose valid payment
-        // rows may coexist with unrelated legacy records.
+        // Rate availability is chart-local: an incomplete purpose shows its
+        // own warning/retry without hiding unrelated, complete financial charts.
         oms.components.AdaptiveChartRow(
             first = { MonthlyPaymentsChart(financialChartRecords, displayRates, selectedChartScopeLabel) { month -> selectChartMonth(month, "works") } },
             second = {
