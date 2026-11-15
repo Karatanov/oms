@@ -1266,7 +1266,10 @@ private fun FinancialProgressCard(
 ) {
     var expanded by remember { mutableStateOf(true) }
     var showAllItems by remember { mutableStateOf(!compactInitially) }
-    val sortedItems = items.sortedBy { it.label }
+    val sortedItems = oms.charts.sortChartCategories(
+        items, oms.charts.ChartSortCriterion.Label, true,
+        labelOf = { financialProgressLabel(it.label, titleKey) }, valueOf = { it.completionPct }
+    )
     // The compact sector card must still give a meaningful overview. Four
     // sectors fit without making its paired row taller, while the remaining
     // items stay available through the existing expand control.
@@ -1305,22 +1308,7 @@ private fun FinancialProgressCard(
             if (expanded && items.isEmpty()) {
                 Text(LocalizationManager.t("no_chart_data"), color = MaterialTheme.colorScheme.onSurfaceVariant)
             } else if (expanded) visibleItems.forEach { item ->
-                val label = when (titleKey) {
-                    "financial_progress_by_region" -> item.label
-                        .takeUnless { it.equals("Unspecified", ignoreCase = true) }
-                        ?.let(::localizedUkraineRegion)
-                        ?: LocalizationManager.t("construction_unspecified")
-                    "financial_progress_by_sector" -> item.label
-                        .takeUnless { it.equals("Unspecified", ignoreCase = true) }
-                        ?.sectorLabel()
-                        ?: LocalizationManager.t("construction_unspecified")
-                    else -> if (item.label.equals("Unspecified", ignoreCase = true)) {
-                        LocalizationManager.t("construction_unspecified")
-                    } else {
-                        LocalizationManager.t("construction_${item.label}")
-                            .takeUnless { it == "construction_${item.label}" } ?: item.label
-                    }
-                }
+                val label = financialProgressLabel(item.label, titleKey)
                 Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Text(label, Modifier.weight(1f), maxLines = 2)
@@ -1344,6 +1332,15 @@ private fun FinancialProgressCard(
             }
         }
     }
+}
+
+private fun financialProgressLabel(label: String, titleKey: String): String = when (titleKey) {
+    "financial_progress_by_region" -> label.takeUnless { it.equals("Unspecified", true) }
+        ?.let(::localizedUkraineRegion) ?: LocalizationManager.t("construction_unspecified")
+    "financial_progress_by_sector" -> label.takeUnless { it.equals("Unspecified", true) }
+        ?.sectorLabel() ?: LocalizationManager.t("construction_unspecified")
+    else -> if (label.equals("Unspecified", true)) LocalizationManager.t("construction_unspecified")
+        else LocalizationManager.t("construction_$label").takeUnless { it == "construction_$label" } ?: label
 }
 
 @Composable

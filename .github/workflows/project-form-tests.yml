@@ -20,6 +20,8 @@ jobs:
         run: node --test tools/test-download-timeouts.cjs
       - name: Priority chip palette and contrast (offline)
         run: node --test tools/test-priority-chip-colors.cjs
+      - name: Native chart label collation (offline)
+        run: node --test tools/test-chart-collation.cjs
       - uses: actions/setup-java@v6
         with:
           distribution: temurin
@@ -55,6 +57,8 @@ jobs:
           build/date-picker-test/node_modules/.bin/playwright install --with-deps chromium webkit firefox
       - name: Date overlay in Chromium and WebKit
         run: node tools/test-date-picker.cjs
+      - name: Chart collation in Chromium WebKit and Firefox
+        run: node tools/test-chart-collation-browsers.cjs
       - name: Cookie-free authentication in Chromium, WebKit and Firefox
         run: node tools/test-browser-auth.cjs
       - name: Lightweight login routing for VPS and Pages

@@ -17,6 +17,7 @@ New-Item -ItemType Directory -Path $testOutput | Out-Null
 $deps = @($testOutput) + @(Jars @('org.jetbrains.kotlin/kotlin-stdlib/2.3.0')) +
     @(Get-ChildItem 'server/build/install/server/lib' -Filter '*.jar' | Select-Object -ExpandProperty FullName) + $testDeps
 $java = Join-Path $env:USERPROFILE '.jdks/jbr-21.0.11/bin/java.exe'
+$textEncodingArgs = @('-Dstdout.encoding=UTF-8', '-Dstderr.encoding=UTF-8')
 node tools/build-display-currency-audit.cjs
 if ($LASTEXITCODE -ne 0) { throw 'DTO fixture generation failed' }
 $sources = @(
@@ -45,15 +46,22 @@ $sources = @(
     'tools/MonthlyAggregationAudit.kt',
     'composeApp/src/webMain/kotlin/oms/screens/MonthlyRateLoading.kt',
     'tools/MonthlyRateLoadingTest.kt',
+    'build/calculation-audit/ChartModels.kt',
+    'build/calculation-audit/ColorFixture.kt',
+    'build/calculation-audit/ChartCollationFixture.kt',
+    'composeApp/src/webMain/kotlin/oms/charts/ChartSorting.kt',
+    'tools/ChartSortingAudit.kt',
     'server/src/test/kotlin/oms/urp3/service/ProjectDisbursementsTest.kt',
     'server/src/test/kotlin/oms/urp3/service/PaymentMonitoringTableSelectionTest.kt',
     'composeApp/src/webTest/kotlin/oms/screens/PaymentMonitoringScopeTest.kt'
 )
-& $java -cp ($compiler -join ';') org.jetbrains.kotlin.cli.jvm.K2JVMCompiler -no-stdlib -no-reflect -classpath ($deps -join ';') -d $testOutput @sources
+& $java @textEncodingArgs -cp ($compiler -join ';') org.jetbrains.kotlin.cli.jvm.K2JVMCompiler -no-stdlib -no-reflect -classpath ($deps -join ';') -d $testOutput @sources
 if ($LASTEXITCODE -ne 0) { throw 'Focused Kotlin compilation failed' }
-& $java -cp ($deps -join ';') org.junit.runner.JUnitCore oms.urp3.service.ProjectDisbursementsTest oms.urp3.service.PaymentMonitoringTableSelectionTest oms.screens.PaymentMonitoringScopeTest oms.urp3.ContractDurationTest oms.urp3.service.FinancialMoneyTest oms.urp3.DecimalMoneyTest oms.urp3.FinancialDecimalRoundingTest oms.urp3.MonthlyFinancialCompletenessTest oms.screens.MonthlyRateLoadingTest
+& $java @textEncodingArgs -cp ($deps -join ';') org.junit.runner.JUnitCore oms.urp3.service.ProjectDisbursementsTest oms.urp3.service.PaymentMonitoringTableSelectionTest oms.screens.PaymentMonitoringScopeTest oms.urp3.ContractDurationTest oms.urp3.service.FinancialMoneyTest oms.urp3.DecimalMoneyTest oms.urp3.FinancialDecimalRoundingTest oms.urp3.MonthlyFinancialCompletenessTest oms.screens.MonthlyRateLoadingTest
 if ($LASTEXITCODE -ne 0) { throw 'Focused tests failed' }
-& $java -cp ($deps -join ';') oms.urp3.service.DisplayCurrencyAuditKt
+& $java @textEncodingArgs -cp ($deps -join ';') oms.urp3.service.DisplayCurrencyAuditKt
 if ($LASTEXITCODE -ne 0) { throw 'Frontend decimal reconciliation failed' }
-& $java -cp ($deps -join ';') oms.screens.MonthlyAggregationAuditKt
+& $java @textEncodingArgs -cp ($deps -join ';') oms.screens.MonthlyAggregationAuditKt
 if ($LASTEXITCODE -ne 0) { throw 'Monthly completeness reconciliation failed' }
+& $java @textEncodingArgs -cp ($deps -join ';') oms.charts.ChartSortingAuditKt
+if ($LASTEXITCODE -ne 0) { throw 'Chart sorting reconciliation failed' }

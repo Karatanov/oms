@@ -1,20 +1,24 @@
 package oms.charts
 
+import oms.localization.Language
+import oms.localization.LocalizationManager
+
 /** The two supported ways of ordering independent chart categories. */
 enum class ChartSortCriterion { Label, Value }
 
 /**
  * Sorts only a chart's rendered rows. The source collection is never mutated.
- * Labels are compared case-insensitively against their displayed values.
+ * Displayed labels use the active UI locale, ignoring case but preserving accents.
  */
 internal fun <T> sortChartCategories(
     items: List<T>,
     criterion: ChartSortCriterion,
     ascending: Boolean,
     labelOf: (T) -> String,
-    valueOf: (T) -> Double
+    valueOf: (T) -> Double,
+    locale: String = if (LocalizationManager.currentLanguage == Language.EN) "en" else "uk"
 ): List<T> = items.sortedWith { left, right ->
-    val labelComparison = compareChartLabels(labelOf(left), labelOf(right))
+    val labelComparison = compareLocalizedChartLabels(labelOf(left), labelOf(right), locale).compareTo(0)
     val primary = when (criterion) {
         ChartSortCriterion.Label -> labelComparison
         ChartSortCriterion.Value -> valueOf(left).compareTo(valueOf(right))
@@ -31,7 +35,4 @@ internal fun sortBarData(
     data: List<BarData>,
     criterion: ChartSortCriterion,
     ascending: Boolean
-): List<BarData> = sortChartCategories(data, criterion, ascending, BarData::label) { it.value.toDouble() }
-
-private fun compareChartLabels(left: String, right: String): Int =
-    left.lowercase().compareTo(right.lowercase())
+): List<BarData> = sortChartCategories(data, criterion, ascending, BarData::label, valueOf = { it.value.toDouble() })

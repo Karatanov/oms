@@ -30,7 +30,12 @@ fs.writeFileSync(path.join(output, 'MonthlyAggregation.kt'),
   definitions.join('\n')+'\n'+monthlyMoney+'\n'+monthly.slice(start));
 // Localization is irrelevant to numerical characterization; this is not a translation test.
 fs.writeFileSync(path.join(output, 'LocalizationFixture.kt'),
-  'package oms.localization\nobject LocalizationManager { fun t(key: String): String = key }\n');
+  'package oms.localization\nenum class Language { UK, EN }\nobject LocalizationManager { var currentLanguage = Language.UK; fun t(key: String): String = key }\n');
 fs.writeFileSync(path.join(output, 'ChartModels.kt'), fs.readFileSync('composeApp/src/webMain/kotlin/oms/charts/ChartModels.kt', 'utf8'));
 // Geometry/color is outside the sorting audit; retain the actual model signature.
 fs.writeFileSync(path.join(output, 'ColorFixture.kt'), 'package androidx.compose.ui.graphics\nclass Color\n');
+// JVM checks exercise the real sorter; only its browser-native boundary is adapted.
+// The actual Intl factory is tested separately in Node and headless browsers.
+fs.writeFileSync(path.join(output, 'ChartCollationFixture.kt'),
+  'package oms.charts\ninternal fun compareLocalizedChartLabels(left: String, right: String, locale: String): Int = '+
+  'java.text.Collator.getInstance(java.util.Locale.forLanguageTag(locale)).apply { strength = java.text.Collator.SECONDARY }.compare(left, right)\n');
