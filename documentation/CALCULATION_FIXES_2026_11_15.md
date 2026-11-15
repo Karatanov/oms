@@ -33,4 +33,4 @@ Formula cells without cached results are deliberately skipped, not treated as pr
 
 ## Explicitly not changed yet
 
-The production repair changed only the verified percentages described above, not the schema or monetary data. Inconsistent duration formulas, legacy ledger summaries, decimal frontend conversion, missing-conversion completeness and locale sorting remain separate audited corrections. Budget-source conflicts and the 51,290 UAH / 497 EUR source pair require source reconciliation, not guessed replacements.
+The production repair changed only the verified percentages described above, not the schema or monetary data. Subsequent duration and decimal-display corrections are documented in CONTRACT_DURATION_CORRECTION_2026_11_15.md and CURRENCY_ROUNDING_CORRECTION_2026_11_15.md; their deployment is tracked separately. Legacy ledger summaries, missing-conversion completeness and locale sorting remain audited follow-ups. Budget-source conflicts and the 51,290 UAH / 497 EUR source pair require source reconciliation, not guessed replacements.

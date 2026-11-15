@@ -10,6 +10,21 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNull
 
 class FinancialMoneyTest {
+    @Test fun `shared decimal multiplication and division agree with independent BigDecimal reference`() {
+        for (rate in listOf(48.5, 48.125, 45.0, 0.999999, 0.000001, 1000000.0)) {
+            for (minor in 1..1000) for (sign in listOf(-1, 1)) {
+                val amount = sign * minor / 100.0
+                val decimal = BigDecimal.valueOf(amount)
+                val multiplier = BigDecimal.valueOf(rate)
+                val product = decimal.multiply(multiplier).movePointRight(2)
+                    .setScale(0, java.math.RoundingMode.HALF_UP).longValueExact()
+                val quotient = decimal.divide(multiplier, 2, java.math.RoundingMode.HALF_UP)
+                    .movePointRight(2).longValueExact()
+                assertEquals(product, moneyCents(amount, rate), "multiply $amount at $rate")
+                assertEquals(quotient, oms.urp3.decimalMoneyCents(amount, rate, true), "divide $amount at $rate")
+            }
+        }
+    }
     private fun record(amount: Double = 0.84, currency: String = "EUR", rate: Double? = 48.125, saved: Long? = 84L) =
         FinancialRecord(1L, UUID.randomUUID(), 1L, FinancialRecordType.PAYMENT, "test", amount, currency,
             LocalDate.of(2026, 11, 12), null, null, null, "works", rate, null, saved)

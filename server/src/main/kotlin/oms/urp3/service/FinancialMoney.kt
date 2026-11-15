@@ -15,7 +15,7 @@ internal fun moneyCents(amount: BigDecimal, rate: BigDecimal = BigDecimal.ONE): 
 }
 
 internal fun moneyCents(amount: Double, rate: Double = 1.0): Long? =
-    if (!amount.isFinite() || !rate.isFinite()) null else moneyCents(BigDecimal.valueOf(amount), BigDecimal.valueOf(rate))
+    oms.urp3.decimalMoneyCents(amount, rate)
 
 /** Sorting and PDF cells must use the same saved conversion and missing-rate policy. */
 internal fun financialDisplayCents(record: FinancialRecord, targetCurrency: String): Long? {
