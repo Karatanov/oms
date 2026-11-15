@@ -8,6 +8,38 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class MonitoringRegistryAmountTest {
+    @Test fun `full snapshot clears blank owned values while Allocation preserves unpublished columns`() {
+        val old = mapOf("completedWorkPct" to "697 192,92", "contractor" to "Old", "other" to "Preserve")
+        val incoming = mapOf("completedWorkPct" to "", "contractor" to "New")
+        assertEquals(mapOf("completedWorkPct" to "", "contractor" to "New", "other" to "Preserve"),
+            mergeMonitoringSnapshotValues(old, incoming, allocation = false))
+        assertEquals("697 192,92", mergeMonitoringSnapshotValues(old, incoming, allocation = true)["completedWorkPct"])
+    }
+
+    @Test fun `numeric percentages retain precision including cached formula and values below one percent`() {
+        XSSFWorkbook().use { workbook ->
+            val sheet = workbook.createSheet("DB Table")
+            sheet.createRow(11).apply {
+                createCell(0).setCellValue("Sub-Project ID")
+                createCell(3).setCellValue("Sub-Project Lot ID")
+            }
+            val roundedPercent = workbook.createCellStyle().apply { dataFormat = workbook.createDataFormat().getFormat("0%") }
+            sheet.createRow(15).apply {
+                createCell(0).setCellValue("VN08_01")
+                createCell(3).setCellValue("VN08_01")
+                createCell(39).apply { setCellValue(0.995); cellStyle = roundedPercent }
+                createCell(80).apply { cellFormula = "0.2344"; cellStyle = roundedPercent }
+                createCell(81).apply { setCellValue(0.005); cellStyle = roundedPercent }
+                createCell(82).setCellValue("12,345%")
+            }
+            workbook.creationHelper.createFormulaEvaluator().evaluateAll()
+            val row = parse(workbook)
+            assertEquals("99.5%", value(row, "approvedFundingPct"))
+            assertEquals("23.44%", value(row, "completedWorkPct"))
+            assertEquals("0.5%", value(row, "financingUsedPct"))
+            assertEquals("12,345%", value(row, "paidFinancingPct"))
+        }
+    }
     @Test fun `allocation imports explicit construction types from either header without inventing a default`() {
         val cases = listOf(
             "New construction/ Нове будівництво" to "new_construction",
@@ -51,7 +83,7 @@ class MonitoringRegistryAmountTest {
     private fun value(row: Any, key: String): String = row.javaClass.getDeclaredMethod("value", String::class.java)
         .apply { isAccessible = true }.invoke(row, key) as String
 
-    @Test fun `monitoring import retains numeric and cached formula cents without changing percentage display`() {
+    @Test fun `monitoring import retains numeric and cached formula precision independent of display locale`() {
         XSSFWorkbook().use { workbook ->
             val sheet = workbook.createSheet("DB Table")
             sheet.createRow(11).apply {
@@ -79,7 +111,7 @@ class MonitoringRegistryAmountTest {
             assertEquals("1 234,56", value(row, "localCost"))
             assertEquals("", value(row, "fundingTs"))
             assertEquals("2026-11-12", value(row, "contractDate"))
-            assertEquals(DataFormatter().formatCellValue(sheet.getRow(15).getCell(80)), value(row, "completedWorkPct"))
+            assertEquals("19.6%", value(row, "completedWorkPct"))
         }
     }
 

@@ -291,7 +291,7 @@ class SubprojectRegistryRefreshService(
                 val previousValues = old?.get(ProjectMonitoringDetailTable.registryJson)
                     ?.let { runCatching { Json.decodeFromString<Map<String, String>>(it) }.getOrDefault(emptyMap()) }
                     .orEmpty()
-                val mergedValues = (previousValues + row.values.filterValues(String::isNotBlank)) +
+                val mergedValues = mergeMonitoringSnapshotValues(previousValues, row.values, row.isAllocationSnapshot) +
                     mapOf("sourceWorkbook" to row.sourceWorkbook)
                 val values = if (row.isAllocationSnapshot) mergedValues + ("priority" to oms.urp3.preferredSourceSector(
                     mergedValues["priority"].orEmpty(),
@@ -474,7 +474,11 @@ private object MonitoringWorkbookSource {
                 if (subproject.isBlank() || lot.isBlank()) continue
                 val values = columns.mapValues { (key, column) ->
                     val cell = sourceRow.getCell(column)
-                    if (key in MONEY_FIELDS) moneyValue(cell) else value(cell)
+                    when (key) {
+                        in MONEY_FIELDS -> moneyValue(cell)
+                        in PERCENTAGE_FIELDS -> percentageValue(cell)
+                        else -> value(cell)
+                    }
                 }
                 grouped.getOrPut(lot.uppercase()) { mutableListOf() } += (index + 1) to values
                 if (index % 25 == 0) progress(20 + (index * 38 / sheet.lastRowNum.coerceAtLeast(1)), "reading_rows")
@@ -581,6 +585,20 @@ private object MonitoringWorkbookSource {
             java.math.BigDecimal.valueOf(cell.numericCellValue).stripTrailingZeros().toPlainString()
         else value(cell)
     }
+
+    /** Preserve the cached numeric fraction, not Excel's rounded 0% display.
+     * Keep the percent marker explicit so values below 1% are not read as fractions again.
+     */
+    private fun percentageValue(cell: Cell?): String {
+        if (cell == null) return ""
+        val numeric = cell.cellType == CellType.NUMERIC ||
+            (cell.cellType == CellType.FORMULA && cell.cachedFormulaResultType == CellType.NUMERIC)
+        if (!numeric || DateUtil.isCellDateFormatted(cell)) return value(cell)
+        val amount = java.math.BigDecimal.valueOf(cell.numericCellValue)
+        return if ('%' in cell.cellStyle.dataFormatString.orEmpty())
+            amount.movePointRight(2).stripTrailingZeros().toPlainString() + "%"
+        else amount.stripTrailingZeros().toPlainString()
+    }
     private fun value(cell: Cell?): String = when {
         cell == null -> ""
         cell.cellType == CellType.FORMULA && cell.cachedFormulaResultType == CellType.NUMERIC && DateUtil.isCellDateFormatted(cell) ->
@@ -604,6 +622,7 @@ private object MonitoringWorkbookSource {
         else -> ""
     }
 
+    private val PERCENTAGE_FIELDS = setOf("approvedFundingPct", "completedWorkPct", "financingUsedPct", "paidFinancingPct")
     private val MONEY_FIELDS = setOf(
         "fundingTotal", "fundingWorks", "fundingTs", "fundingCsc", "eibCost", "localCost",
         "contractedTotal", "contractedEib", "contractedLocal", "constructionAmount",
