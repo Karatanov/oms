@@ -43,7 +43,8 @@ data class DashboardSubprojectProgress(
     val name: String,
     val nameEn: String?,
     val region: String,
-    val completionPct: Double
+    val completionPct: Double,
+    val hasCompleteAmounts: Boolean = true
 )
 data class DashboardMetric(val label: String, val value: Long)
 data class DashboardRecentInspection(val report: InspectionReport, val subprojectCode: String?)
@@ -219,21 +220,6 @@ private fun worksContractAmount(row: org.jetbrains.exposed.v1.core.ResultRow): D
 internal fun dashboardSubprojectCode(value: String?): String =
     value.orEmpty().substringBefore('#').trim().uppercase()
 
-/**
- * Monitoring workbooks contain a mixture of Excel percentage cells (rendered
- * as `98%`), decimal values (`0.98`) and occasionally text percentages.  The
- * registry stores their formatted representation, so normalize all valid
- * variants once before using them in a financial calculation.
- */
-internal fun monitoringCompletionFraction(value: String?): Double? {
-    val raw = value.orEmpty().trim().replace('\u00a0', ' ')
-    if (raw.isBlank()) return null
-    val hasPercentSign = raw.contains('%')
-    val number = raw.replace("%", "").replace(" ", "").replace(',', '.').toDoubleOrNull() ?: return null
-    val fraction = if (hasPercentSign || number > 1.0) number / 100.0 else number
-    return fraction.takeIf { it.isFinite() && it >= 0.0 }
-}
-
 /** DB6.3's source row id is contract-level and remains unique across lots. */
 private fun List<org.jetbrains.exposed.v1.core.ResultRow>.uniqueContracts() =
     distinctBy { row -> row[ProcurementRecordTable.tenderId] ?: "record-${row[ProcurementRecordTable.id].value}" }
@@ -398,9 +384,13 @@ private fun dashboardSubprojectProgress(
         .mapValues { (_, rows) -> rows.uniqueContracts().sumOf(::worksContractAmount) }
     data class MonitoringProgress(var completedAmount: Double = 0.0, var hasReportedProgress: Boolean = false)
     val monitoringProgressBySubproject = mutableMapOf<Long, MonitoringProgress>()
+    val invalidProgressSubprojects = mutableSetOf<Long>()
     monitoringByProjectId.forEach { (projectId, detail) ->
-        val completion = monitoringCompletionFraction(detail[ProjectMonitoringDetailTable.completedWorkPct]) ?: return@forEach
+        val raw = detail[ProjectMonitoringDetailTable.completedWorkPct]
         val parentId = subprojectFor(projectId) ?: return@forEach
+        val completion = monitoringCompletionFraction(raw)
+        if (!raw.isNullOrBlank() && completion == null) invalidProgressSubprojects += parentId
+        if (completion == null) return@forEach
         val sourceCode = detail[ProjectMonitoringDetailTable.sourceLotId]
             .ifBlank { projectsById[projectId]?.get(ProjectTable.siteNumber).orEmpty() }
             .trim().uppercase()
@@ -424,8 +414,10 @@ private fun dashboardSubprojectProgress(
             DashboardSubprojectProgress(
                 row[ProjectTable.uuid], row[ProjectTable.siteNumber].orEmpty(), row[ProjectTable.name],
                 monitoringByProjectId[id]?.get(ProjectMonitoringDetailTable.nameEn), row[ProjectTable.region].orEmpty(),
-                ((if (reportedProgress?.hasReportedProgress == true) reportedProgress.completedAmount
-                else actualBySubproject[id] ?: 0.0) * 100.0 / contract)
+                if (id in invalidProgressSubprojects) 0.0 else
+                    ((if (reportedProgress?.hasReportedProgress == true) reportedProgress.completedAmount
+                    else actualBySubproject[id] ?: 0.0) * 100.0 / contract),
+                hasCompleteAmounts = id !in invalidProgressSubprojects
             )
         }
         .sortedBy { it.name }

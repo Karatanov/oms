@@ -480,6 +480,7 @@ private object MonitoringWorkbookSource {
                         else -> value(cell)
                     }
                 }
+                validateMonitoringCompletion(values.getValue("completedWorkPct"), lot, "CC${index + 1}")
                 grouped.getOrPut(lot.uppercase()) { mutableListOf() } += (index + 1) to values
                 if (index % 25 == 0) progress(20 + (index * 38 / sheet.lastRowNum.coerceAtLeast(1)), "reading_rows")
             }

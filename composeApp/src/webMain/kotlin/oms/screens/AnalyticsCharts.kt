@@ -295,8 +295,10 @@ fun SubprojectCompletionChart(
 ) {
     var regionFilter by remember(items) { mutableStateOf<String?>(null) }
     val regions = items.map { it.region }.filter(String::isNotBlank).map(::canonicalUkraineRegion).distinct().sorted()
-    val data = items.asSequence()
-        .filter { regionFilter == null || canonicalUkraineRegion(it.region) == regionFilter }
+    val selected = items.filter { regionFilter == null || canonicalUkraineRegion(it.region) == regionFilter }
+    val series = physicalCompletionSeries(selected)
+    val unavailable = series.unavailableProjects
+    val data = series.items.asSequence()
         .sortedBy { it.code }
         .map { item ->
             BarData(
@@ -324,7 +326,12 @@ fun SubprojectCompletionChart(
             )
         },
         orientation = orientation,
-        sortEnabled = true
+        sortEnabled = true,
+        emptyContent = {
+            if (unavailable > 0) oms.components.ContentState(
+                LocalizationManager.t("physical_completion_incomplete").replace("{count}", unavailable.toString()), error = true
+            ) else Text(LocalizationManager.t("no_chart_data"))
+        }
     )
 }
 

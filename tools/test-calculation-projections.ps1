@@ -35,6 +35,8 @@ $sources = @(
     'server/src/main/kotlin/oms/urp3/service/ProjectFinancialExecution.kt',
     'server/src/main/kotlin/oms/urp3/service/FinancialProgressPayments.kt',
     'server/src/main/kotlin/oms/urp3/service/DashboardFundingRules.kt',
+    'server/src/main/kotlin/oms/urp3/service/MonitoringCompletion.kt',
+    'server/src/test/kotlin/oms/urp3/service/MonitoringCompletionTest.kt',
     'server/src/main/kotlin/oms/urp3/domain/Project.kt',
     'server/src/main/kotlin/oms/urp3/domain/ProjectType.kt',
     'server/src/main/kotlin/oms/urp3/domain/ProjectStatus.kt',
@@ -57,6 +59,9 @@ $sources = @(
     'build/calculation-audit/ApiFinancialRecord.kt',
     'build/calculation-audit/ApiFinancialSummary.kt',
     'build/calculation-audit/ApiMonthlyActPayment.kt',
+    'build/calculation-audit/ApiSubprojectProgress.kt',
+    'composeApp/src/webMain/kotlin/oms/screens/PhysicalCompletionScope.kt',
+    'composeApp/src/webTest/kotlin/oms/urp3/PhysicalCompletionScopeTest.kt',
     'composeApp/src/webMain/kotlin/oms/screens/MonthlyAmountProjection.kt',
     'composeApp/src/webTest/kotlin/oms/urp3/MonthlyAmountProjectionTest.kt',
     'composeApp/src/webTest/kotlin/oms/urp3/FinancialSummaryCompatibilityTest.kt',
@@ -88,6 +93,8 @@ if ($LASTEXITCODE -ne 0) { throw 'Dashboard monthly currency completeness failed
 if ($LASTEXITCODE -ne 0) { throw 'Client/server frozen conversion parity failed' }
 & $java @textEncodingArgs -cp ($deps -join ';') org.junit.runner.JUnitCore oms.urp3.service.ProjectFinancialExecutionTest
 if ($LASTEXITCODE -ne 0) { throw 'Project/lot financial execution failed' }
+& $java @textEncodingArgs -cp ($deps -join ';') org.junit.runner.JUnitCore oms.urp3.service.MonitoringCompletionTest oms.urp3.PhysicalCompletionScopeTest
+if ($LASTEXITCODE -ne 0) { throw 'Physical completion source validation failed' }
 & $java @textEncodingArgs -cp ($deps -join ';') oms.urp3.service.DisplayCurrencyAuditKt
 if ($LASTEXITCODE -ne 0) { throw 'Frontend decimal reconciliation failed' }
 & $java @textEncodingArgs -cp ($deps -join ';') oms.screens.MonthlyAggregationAuditKt

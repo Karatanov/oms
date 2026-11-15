@@ -59,7 +59,8 @@ data class MonthlyActPaymentResponse(
     val name: String,
     val nameEn: String? = null,
     val region: String,
-    val completionPct: Double
+    val completionPct: Double,
+    val hasCompleteAmounts: Boolean = true
 )
 @Serializable data class SubprojectPaymentProgressResponse(
     val projectUuid: String,

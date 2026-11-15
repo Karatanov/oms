@@ -8,6 +8,24 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class MonitoringRegistryAmountTest {
+    @Test fun `actual importer rejects an amount entered in physical completion before replacement`() {
+        XSSFWorkbook().use { workbook ->
+            val sheet = workbook.createSheet("DB Table")
+            sheet.createRow(11).apply {
+                createCell(0).setCellValue("Sub-Project ID")
+                createCell(3).setCellValue("Sub-Project Lot ID")
+            }
+            sheet.createRow(15).apply {
+                createCell(0).setCellValue("TEST08_01")
+                createCell(3).setCellValue("TEST08_01")
+                createCell(80).setCellValue("697 192,92")
+            }
+            val failure = kotlin.test.assertFailsWith<java.lang.reflect.InvocationTargetException> { parse(workbook) }
+            kotlin.test.assertTrue(failure.cause is IllegalArgumentException)
+            kotlin.test.assertContains(failure.cause?.message.orEmpty(), "CC16")
+            kotlin.test.assertContains(failure.cause?.message.orEmpty(), "TEST08_01")
+        }
+    }
     @Test fun `full snapshot clears blank owned values while Allocation preserves unpublished columns`() {
         val old = mapOf("completedWorkPct" to "697 192,92", "contractor" to "Old", "other" to "Preserve")
         val incoming = mapOf("completedWorkPct" to "", "contractor" to "New")
