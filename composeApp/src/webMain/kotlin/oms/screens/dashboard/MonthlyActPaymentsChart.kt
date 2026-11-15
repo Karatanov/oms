@@ -30,18 +30,17 @@ import oms.components.CurrencySelector
 import oms.components.ChartPngExportButton
 import oms.components.OmsChartHeader
 import oms.components.formatGroupedNumber
+import oms.screens.projectMonthlyAmounts
+import oms.screens.MonthlyAmountsUnavailable
 import kotlin.math.roundToInt
 
 @Composable
-fun MonthlyActPaymentsChart(primary: Color, payments: List<ApiMonthlyActPayment>, onOpenFinancialByMonth: (String) -> Unit = {}, orientation: BarChartOrientation = BarChartOrientation.Vertical) {
+fun MonthlyActPaymentsChart(primary: Color, payments: List<ApiMonthlyActPayment>, onOpenFinancialByMonth: (String) -> Unit = {}, orientation: BarChartOrientation = BarChartOrientation.Vertical, onRetry: (() -> Unit)? = null) {
     var currency by remember { mutableStateOf("EUR") }
-    val sortedPayments = payments.sortedBy { it.month }
-    val data = sortedPayments
-        .mapNotNull { payment ->
-            val amountCents = if (currency == "EUR") {
-                payment.amountEurCents.takeIf { payment.hasCompleteEurAmounts }
-            } else payment.amountUahCents
-            if (amountCents == null) return@mapNotNull null
+    val projection = projectMonthlyAmounts(payments, currency)
+    val data = projection.payments
+        .map { payment ->
+            val amountCents = payment.amountCents
             BarData(
                 label = payment.month.toMonthName(),
                 value = amountCents.toFloat(),
@@ -76,9 +75,9 @@ fun MonthlyActPaymentsChart(primary: Color, payments: List<ApiMonthlyActPayment>
                 CurrencySelector(currency) { currency = it }
             }
             Spacer(Modifier.height(8.dp))
-            if (data.size < sortedPayments.size) Text(LocalizationManager.t("financial_rates_missing"), style = MaterialTheme.typography.bodySmall)
             if (data.isEmpty()) {
-                if (sortedPayments.isEmpty()) Text(LocalizationManager.t("no_payments_yet"))
+                if (projection.unavailableMonths > 0) MonthlyAmountsUnavailable(projection.unavailableMonths, currency, onRetry)
+                else Text(LocalizationManager.t("no_payments_yet"))
             }
             else if (orientation == BarChartOrientation.Vertical) VerticalBarChart(
                 data = data, color = primary, valueLabel = { formatActAmount(it.toLong(), currency) }, labelMaxLines = 1,

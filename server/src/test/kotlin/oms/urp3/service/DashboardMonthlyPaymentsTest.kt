@@ -34,4 +34,22 @@ class DashboardMonthlyPaymentsTest {
         assertEquals(200L, dashboardMonthlyPayments(rows, 2).single().amountEurCents)
         assertTrue(dashboardMonthlyPayments(rows.take(1), 2).isEmpty())
     }
+    @Test fun `overflow is unavailable independently for each currency`() {
+        val eurOverflow = dashboardMonthlyPayments(listOf(row("2026-02-01", Long.MAX_VALUE, 100), row("2026-02-02", 1, 200))).single()
+        assertFalse(eurOverflow.hasCompleteEurAmounts)
+        assertEquals(0L, eurOverflow.amountEurCents)
+        assertEquals(300L, eurOverflow.amountUahCents)
+        val uahOverflow = dashboardMonthlyPayments(listOf(row("2026-02-01", 100, Long.MIN_VALUE), row("2026-02-02", 200, -1))).single()
+        assertTrue(uahOverflow.hasCompleteEurAmounts)
+        assertEquals(300L, uahOverflow.amountEurCents)
+        assertNull(uahOverflow.amountUahCents)
+    }
+    @Test fun `exact long boundaries and refunds are not mistaken for overflow`() {
+        for (value in listOf(Long.MAX_VALUE, Long.MIN_VALUE, 0L, -100L)) {
+            val result = dashboardMonthlyPayments(listOf(row("2026-02-01", value, value), row("2026-02-02", 0, 0))).single()
+            assertEquals(value, result.amountEurCents)
+            assertEquals(value, result.amountUahCents)
+            assertTrue(result.hasCompleteEurAmounts)
+        }
+    }
 }

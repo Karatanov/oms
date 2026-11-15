@@ -470,18 +470,31 @@ fun MonthlyAmountsChart(
     orientation: BarChartOrientation = BarChartOrientation.Vertical
 ) {
     var currency by remember { mutableStateOf("EUR") }
+    val projection = projectMonthlyAmounts(payments, currency)
     MonthlyMoneyChart(
         titleKey = titleKey,
         hintKey = hintKey,
-        payments = payments.map { payment ->
-            MonthlyMoneyAmount(payment.month, if (currency == "EUR") payment.amountEurCents else payment.amountUahCents ?: 0L)
-        },
+        payments = projection.payments,
         currency = currency,
         tooltipByMonth = tooltipByMonth,
         currencySelector = { oms.components.CurrencySelector(currency) { currency = it } },
         expanded = expanded,
         onExpandedChange = onExpandedChange,
-        orientation = orientation
+        orientation = orientation,
+        emptyContent = {
+            if (projection.unavailableMonths > 0) MonthlyAmountsUnavailable(projection.unavailableMonths, currency)
+            else Text(LocalizationManager.t("no_chart_data"))
+        }
+    )
+}
+
+@Composable
+internal fun MonthlyAmountsUnavailable(months: Int, currency: String, onRetry: (() -> Unit)? = null) {
+    oms.components.ContentState(
+        LocalizationManager.t("monthly_amounts_incomplete")
+            .replace("{count}", months.toString())
+            .replace("{currency}", LocalizationManager.currencyLabel(currency)),
+        error = true, onRetry = onRetry
     )
 }
 

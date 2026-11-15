@@ -23,10 +23,20 @@ internal fun dashboardMonthlyPayments(rows: List<DashboardPaymentAmount>, tranch
     if (selected.isEmpty()) return emptyList()
     val start = selected.keys.min()
     val end = selected.keys.max()
+    fun completeSum(values: List<Long?>): Long? {
+        var total = 0L
+        for (value in values) {
+            if (value == null) return null
+            if ((value > 0 && total > Long.MAX_VALUE - value) || (value < 0 && total < Long.MIN_VALUE - value)) return null
+            total += value
+        }
+        return total
+    }
     return generateSequence(start) { it.plusMonths(1) }.takeWhile { it <= end }.map { month ->
         val payments = selected[month].orEmpty()
-        MonthlyActPayment(month.toString(), payments.sumOf { it.eurCents ?: 0L },
-            payments.takeIf { group -> group.all { it.uahCents != null } }?.sumOf { it.uahCents!! },
-            payments.all { it.eurCents != null })
+        val eur = completeSum(payments.map { it.eurCents })
+        val uah = completeSum(payments.map { it.uahCents })
+        // EUR's non-null wire field is retained for cached clients; its flag is authoritative.
+        MonthlyActPayment(month.toString(), eur ?: 0L, uah, eur != null)
     }.toList()
 }

@@ -28,6 +28,8 @@ $sources = @(
     'server/src/main/kotlin/oms/urp3/service/NormalizedFinancialSummary.kt',
     'server/src/main/kotlin/oms/urp3/dto/FinancialSummaryResponse.kt',
     'server/src/test/kotlin/oms/urp3/service/NormalizedFinancialSummaryTest.kt',
+    'server/src/main/kotlin/oms/urp3/service/DashboardMonthlyPayments.kt',
+    'server/src/test/kotlin/oms/urp3/service/DashboardMonthlyPaymentsTest.kt',
     'server/src/main/kotlin/oms/urp3/service/ProjectDisbursements.kt',
     'server/src/main/kotlin/oms/urp3/domain/FinancialRecord.kt',
     'server/src/main/kotlin/oms/urp3/domain/FinancialRecordType.kt',
@@ -44,6 +46,9 @@ $sources = @(
     'build/calculation-audit/PaymentMonitoringDtos.kt',
     'build/calculation-audit/ApiFinancialRecord.kt',
     'build/calculation-audit/ApiFinancialSummary.kt',
+    'build/calculation-audit/ApiMonthlyActPayment.kt',
+    'composeApp/src/webMain/kotlin/oms/screens/MonthlyAmountProjection.kt',
+    'composeApp/src/webTest/kotlin/oms/urp3/MonthlyAmountProjectionTest.kt',
     'composeApp/src/webTest/kotlin/oms/urp3/FinancialSummaryCompatibilityTest.kt',
     'build/calculation-audit/MonthlyAggregation.kt',
     'build/calculation-audit/LocalizationFixture.kt',
@@ -67,6 +72,8 @@ if ($LASTEXITCODE -ne 0) { throw 'Focused Kotlin compilation failed' }
 if ($LASTEXITCODE -ne 0) { throw 'Focused tests failed' }
 & $java @textEncodingArgs -cp ($deps -join ';') org.junit.runner.JUnitCore oms.urp3.FinancialSummaryCompatibilityTest
 if ($LASTEXITCODE -ne 0) { throw 'Financial summary serialization compatibility failed' }
+& $java @textEncodingArgs -cp ($deps -join ';') org.junit.runner.JUnitCore oms.urp3.service.DashboardMonthlyPaymentsTest oms.urp3.MonthlyAmountProjectionTest
+if ($LASTEXITCODE -ne 0) { throw 'Dashboard monthly currency completeness failed' }
 & $java @textEncodingArgs -cp ($deps -join ';') oms.urp3.service.DisplayCurrencyAuditKt
 if ($LASTEXITCODE -ne 0) { throw 'Frontend decimal reconciliation failed' }
 & $java @textEncodingArgs -cp ($deps -join ';') oms.screens.MonthlyAggregationAuditKt

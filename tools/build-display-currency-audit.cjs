@@ -12,6 +12,9 @@ if (!summary) throw Error('Cannot locate the exact ApiFinancialSummary declarati
 fs.writeFileSync(path.join(output, 'ApiFinancialSummary.kt'),
   'package oms.data\nimport kotlinx.serialization.Serializable\n@Serializable\n' + summary + '\n');
 fs.writeFileSync(path.join(output, 'ApiFinancialRecord.kt'), 'package oms.data\n\n'+model+'\n');
+const monthlyDto = source.match(/^data class ApiMonthlyActPayment\([^\n]+/m)?.[0];
+if (!monthlyDto) throw Error('Cannot locate the exact ApiMonthlyActPayment declaration');
+fs.writeFileSync(path.join(output, 'ApiMonthlyActPayment.kt'), 'package oms.data\n\n' + monthlyDto + '\n');
 const paymentDtos = ['ApiPaymentMonitoringItem', 'ApiPaymentMonitoringTransaction'].map(name => {
   const declaration = source.match(new RegExp(`data class ${name}\\([\\s\\S]*?^\\)`, 'm'))?.[0];
   if (!declaration) throw Error(`Cannot locate exact ${name} declaration`);

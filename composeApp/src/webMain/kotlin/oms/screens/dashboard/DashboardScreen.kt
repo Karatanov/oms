@@ -204,7 +204,7 @@ fun DashboardScreen(
                                 orientation = chartOrientation
                             )
                         },
-                        second = { MonthlyActPaymentsChart(MaterialTheme.colorScheme.primary, dashboard?.monthlyActPayments.orEmpty(), { onOpenFinancialByMonth(it, trancheNumber) }, chartOrientation) }
+                        second = { MonthlyActPaymentsChart(MaterialTheme.colorScheme.primary, dashboard?.monthlyActPayments.orEmpty(), { onOpenFinancialByMonth(it, trancheNumber) }, chartOrientation, onRetry = { reload++ }) }
                     )
                 }
                 item {
