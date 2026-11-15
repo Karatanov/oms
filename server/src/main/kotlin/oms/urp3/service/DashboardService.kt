@@ -331,21 +331,16 @@ private fun dashboardProjects(
     }
 }
 
-private fun org.jetbrains.exposed.v1.core.ResultRow.amountUahCents(): Long? {
-    val amount = this[FinancialRecordTable.amount]
-    return when (this[FinancialRecordTable.currency].uppercase()) {
-        "UAH" -> moneyCents(amount)
-        "EUR" -> this[FinancialRecordTable.eurExchangeRate]
-            ?.takeIf { it.signum() > 0 }
-            ?.let { moneyCents(amount, it) }
-        else -> null
-    }
-}
+private fun org.jetbrains.exposed.v1.core.ResultRow.frozenAmountCents(currency: String): Long? =
+    frozenFinancialCents(this[FinancialRecordTable.amount], this[FinancialRecordTable.currency], currency,
+        this[FinancialRecordTable.amountEurCents], this[FinancialRecordTable.eurExchangeRate])
+
+private fun org.jetbrains.exposed.v1.core.ResultRow.amountUahCents(): Long? = frozenAmountCents("UAH")
 
 private fun monthlyPayments(rows: List<org.jetbrains.exposed.v1.core.ResultRow>): List<MonthlyActPayment> =
     dashboardMonthlyPayments(rows.map { row ->
         DashboardPaymentAmount(row[FinancialRecordTable.paymentDate] ?: row[FinancialRecordTable.recordDate],
-            row[FinancialRecordTable.amountEurCents], row.amountUahCents())
+            row.frozenAmountCents("EUR"), row.amountUahCents())
     })
 
 /** The imported snapshot stays authoritative even when a tranche has no payments. */

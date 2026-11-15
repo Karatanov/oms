@@ -17,12 +17,33 @@ internal fun moneyCents(amount: BigDecimal, rate: BigDecimal = BigDecimal.ONE): 
 internal fun moneyCents(amount: Double, rate: Double = 1.0): Long? =
     oms.urp3.decimalMoneyCents(amount, rate)
 
-/** Sorting and PDF cells must use the same saved conversion and missing-rate policy. */
-internal fun financialDisplayCents(record: FinancialRecord, targetCurrency: String): Long? {
-    if (!record.amount.isFinite()) return null
-    val target = targetCurrency.uppercase()
-    if (record.currency.equals(target, ignoreCase = true)) return moneyCents(record.amount)
-    if (target == "EUR") return record.amountEurCents
-    val rate = record.eurExchangeRate?.takeIf { it.isFinite() && it > 0 && it != 1.0 } ?: return null
-    return if (target == "UAH" && record.currency.equals("EUR", true)) moneyCents(record.amount, rate) else null
+/** Sorting, PDF and dashboard must follow the client's frozen-value policy, never a live rate. */
+internal fun financialDisplayCents(record: FinancialRecord, targetCurrency: String): Long? =
+    if (!record.amount.isFinite()) null else frozenFinancialCents(
+        BigDecimal.valueOf(record.amount), record.currency, targetCurrency, record.amountEurCents,
+        record.eurExchangeRate?.takeIf(Double::isFinite)?.let(BigDecimal::valueOf)
+    )
+
+/** Accept database decimals directly so dashboard aggregation does not lose precision via Double. */
+internal fun frozenFinancialCents(
+    amount: BigDecimal,
+    currency: String,
+    targetCurrency: String,
+    savedEurCents: Long?,
+    eurRate: BigDecimal?
+): Long? {
+    val source = currency.trim().uppercase()
+    val target = targetCurrency.trim().uppercase()
+    if (target !in setOf("EUR", "UAH")) return null
+    if (source == target) return moneyCents(amount)
+    if (target == "EUR" && savedEurCents != null) return savedEurCents
+    val rate = eurRate?.takeIf { it.signum() > 0 && (source != "EUR" || it.compareTo(BigDecimal.ONE) != 0) }
+        ?: return null
+    return when {
+        source == "EUR" && target == "UAH" -> moneyCents(amount, rate)
+        source == "UAH" && target == "EUR" -> try {
+            amount.divide(rate, 2, RoundingMode.HALF_UP).movePointRight(2).longValueExact()
+        } catch (_: ArithmeticException) { null }
+        else -> null
+    }
 }

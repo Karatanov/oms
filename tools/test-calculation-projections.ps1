@@ -25,6 +25,7 @@ $sources = @(
     'server/src/main/kotlin/oms/urp3/service/PaymentMonitoringTableSelection.kt',
     'server/src/main/kotlin/oms/urp3/service/FinancialMoney.kt',
     'server/src/test/kotlin/oms/urp3/service/FinancialMoneyTest.kt',
+    'tools/FinancialConversionParityTest.kt',
     'server/src/main/kotlin/oms/urp3/service/NormalizedFinancialSummary.kt',
     'server/src/main/kotlin/oms/urp3/dto/FinancialSummaryResponse.kt',
     'server/src/test/kotlin/oms/urp3/service/NormalizedFinancialSummaryTest.kt',
@@ -74,6 +75,8 @@ if ($LASTEXITCODE -ne 0) { throw 'Focused tests failed' }
 if ($LASTEXITCODE -ne 0) { throw 'Financial summary serialization compatibility failed' }
 & $java @textEncodingArgs -cp ($deps -join ';') org.junit.runner.JUnitCore oms.urp3.service.DashboardMonthlyPaymentsTest oms.urp3.MonthlyAmountProjectionTest
 if ($LASTEXITCODE -ne 0) { throw 'Dashboard monthly currency completeness failed' }
+& $java @textEncodingArgs -cp ($deps -join ';') org.junit.runner.JUnitCore oms.urp3.service.FinancialConversionParityTest
+if ($LASTEXITCODE -ne 0) { throw 'Client/server frozen conversion parity failed' }
 & $java @textEncodingArgs -cp ($deps -join ';') oms.urp3.service.DisplayCurrencyAuditKt
 if ($LASTEXITCODE -ne 0) { throw 'Frontend decimal reconciliation failed' }
 & $java @textEncodingArgs -cp ($deps -join ';') oms.screens.MonthlyAggregationAuditKt

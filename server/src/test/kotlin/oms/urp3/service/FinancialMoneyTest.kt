@@ -42,7 +42,8 @@ class FinancialMoneyTest {
         assertEquals(4043L, financialDisplayCents(record(), "UAH"))
         assertEquals(84L, financialDisplayCents(record(), "EUR"))
         assertEquals(912L, financialDisplayCents(record(100.0, "UAH", saved = 912L), "EUR"))
-        assertNull(financialDisplayCents(record(100.0, "UAH", saved = null), "EUR"))
+        assertEquals(208L, financialDisplayCents(record(100.0, "UAH", saved = null), "EUR"))
+        assertNull(financialDisplayCents(record(100.0, "UAH", rate = null, saved = null), "EUR"))
         listOf(null, 0.0, 1.0, Double.NaN, Double.POSITIVE_INFINITY).forEach {
             assertNull(financialDisplayCents(record(rate = it), "UAH"))
         }
@@ -54,5 +55,22 @@ class FinancialMoneyTest {
         assertNull(moneyCents(1.0, -48.0))
         assertNull(moneyCents(Double.MAX_VALUE))
         assertNull(financialDisplayCents(record(Double.NaN), "EUR"))
+    }
+    @Test fun `database decimals keep their precision and frozen conversions take precedence`() {
+        assertEquals(12345678901234567L, frozenFinancialCents(BigDecimal("123456789012345.67"), "UAH", "UAH", null, null))
+        assertEquals(208L, frozenFinancialCents(BigDecimal("100"), "UAH", "EUR", null, BigDecimal("48.125")))
+        assertEquals(0L, frozenFinancialCents(BigDecimal("100"), "UAH", "EUR", 0, BigDecimal("48.125")))
+        assertEquals(123L, frozenFinancialCents(BigDecimal("100"), "UAH", "EUR", 123, null))
+        assertEquals(84L, frozenFinancialCents(BigDecimal("0.84"), "EUR", "EUR", null, null))
+    }
+    @Test fun `legacy EUR sentinel is unknown but UAH identity and same-currency zero remain valid`() {
+        for (rate in listOf<BigDecimal?>(null, BigDecimal.ZERO, BigDecimal("-1"), BigDecimal("1.00000000"))) {
+            assertNull(frozenFinancialCents(BigDecimal("100"), "EUR", "UAH", null, rate))
+        }
+        assertEquals(10000L, frozenFinancialCents(BigDecimal("100"), "UAH", "EUR", null, BigDecimal.ONE))
+        assertEquals(0L, frozenFinancialCents(BigDecimal.ZERO, "UAH", "UAH", null, null))
+        assertNull(frozenFinancialCents(BigDecimal("1E30"), "EUR", "UAH", null, BigDecimal("50")))
+        assertNull(frozenFinancialCents(BigDecimal.ONE, "UAH", "EUR", null, BigDecimal("1E-30")))
+        assertNull(frozenFinancialCents(BigDecimal.ONE, "UAH", "USD", null, BigDecimal.ONE))
     }
 }
