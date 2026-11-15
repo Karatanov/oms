@@ -943,7 +943,7 @@ private fun sortKey(project: Project, column: SortColumn): String = when (column
     SortColumn.CONTRACTOR -> project.localizedRegistryValue("contractor", project.contractorName.orEmpty())
     SortColumn.CONTRACT_DATE -> project.registryValue("contractDate")
     SortColumn.CONTRACT_END_DATE -> project.registryValue("contractEndDate")
-    SortColumn.CONTRACT_DURATION -> project.registryValue("contractDuration").numericSortKey()
+    SortColumn.CONTRACT_DURATION -> oms.urp3.contractDurationMonths(project.contractDurationDays, project.registry["contractDuration"]).orEmpty().numericSortKey()
     SortColumn.CONSTRUCTION_AMOUNT -> project.registryValue("constructionAmount").numericSortKey()
     SortColumn.CONSTRUCTION_EIB -> project.registryValue("constructionEib").numericSortKey()
     SortColumn.CONSTRUCTION_LOCAL -> project.registryValue("constructionLocal").numericSortKey()
@@ -966,7 +966,7 @@ private fun sortKey(project: Project, column: SortColumn): String = when (column
     SortColumn.BUDGET -> project.budgetPlanned.toString().padStart(20, '0')
     SortColumn.START_DATE -> project.startDate.orEmpty()
     SortColumn.PLANNED_END_DATE -> project.plannedEndDate.orEmpty()
-    SortColumn.IMPLEMENTATION_DURATION -> project.contractDurationDays?.toString()?.padStart(12, '0').orEmpty()
+    SortColumn.IMPLEMENTATION_DURATION -> oms.urp3.contractDurationMonths(project.contractDurationDays, project.registry["contractDuration"]).orEmpty().numericSortKey()
 }
 
 private fun Project.registryValue(key: String, fallback: String = ""): String = registry[key]?.takeIf(String::isNotBlank) ?: fallback
@@ -1197,7 +1197,7 @@ private fun RegistryTableCell(project: Project, column: SortColumn, fontWeight: 
         SortColumn.CONTRACTOR -> project.localizedRegistryValue("contractor", project.contractorName.orEmpty())
         SortColumn.CONTRACT_DATE -> project.registryValue("contractDate").toOmsDate()
         SortColumn.CONTRACT_END_DATE -> project.registryValue("contractEndDate").toOmsDate()
-        SortColumn.CONTRACT_DURATION -> project.registryValue("contractDuration").takeIf(String::isNotBlank)?.let { "$it ${LocalizationManager.t("months_short")}" }.orEmpty()
+        SortColumn.CONTRACT_DURATION -> oms.urp3.contractDurationMonths(project.contractDurationDays, project.registry["contractDuration"])?.let { "$it ${LocalizationManager.t("months_short")}" }.orEmpty()
         SortColumn.CONSTRUCTION_AMOUNT -> project.registryValue("constructionAmount")
         SortColumn.CONSTRUCTION_EIB -> project.registryValue("constructionEib")
         SortColumn.CONSTRUCTION_LOCAL -> project.registryValue("constructionLocal")

@@ -1261,7 +1261,8 @@ data class ApiProjectDetailsData(
     val engineerConsultantStartDate: String? = null,
     val engineerConsultantPlannedEndDate: String? = null,
     val engineerConsultantDurationDays: Long? = null,
-    val amounts: Map<String, ProjectAmountDto> = emptyMap()
+    val amounts: Map<String, ProjectAmountDto> = emptyMap(),
+    val registry: Map<String, String> = emptyMap()
 )
 
 @Serializable

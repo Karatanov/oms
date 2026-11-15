@@ -56,7 +56,7 @@ class ProjectPdfExportService {
             row(writer.label("sector"), writer.sector(project.sector)); row(writer.label("construction_type"), writer.constructionType(project.constructionType))
             row(writer.label("address"), project.address); row(writer.label("city"), project.city); row(writer.label("region"), project.region)
             row(writer.label("municipality"), monitoring?.municipality(language)); row(writer.label("coordinates"), project.latitude?.let { latitude -> project.longitude?.let { "$latitude, $it" } })
-            row(writer.label("planned_end_date"), project.plannedEndDate ?: project.projectedCompletionTime); row(writer.label("implementation_duration"), project.contractDurationDays?.let(writer::months))
+            row(writer.label("planned_end_date"), project.plannedEndDate ?: project.projectedCompletionTime); row(writer.label("implementation_duration"), writer.months(project.contractDurationDays, monitoring?.registryValues?.get("contractDuration")))
         }
         writer.section(writer.label("section_finance"), Icon.FINANCE) {
             row(writer.label("budget"), money(project.budgetPlanned, project.currency)); row(writer.label("subproject_cost_eib_financing"), project.amounts["eib_financing"]?.let { money(it.amount, it.currency) })
@@ -66,7 +66,7 @@ class ProjectPdfExportService {
         }
         writer.section(writer.label("construction_contractor_information"), Icon.CONSTRUCTION) {
             row(writer.label("contractor"), project.contractorName); row(writer.label("contract_number"), project.constructionContractNumber); row(writer.label("construction_contract_date"), project.constructionContractSigningDate)
-            row(writer.label("construction_start_date"), project.constructionStartDate); row(writer.label("projected_completion_date"), project.projectedCompletionTime ?: project.plannedEndDate); row(writer.label("contract_duration"), project.contractDurationDays?.let(writer::months))
+            row(writer.label("construction_start_date"), project.constructionStartDate); row(writer.label("projected_completion_date"), project.projectedCompletionTime ?: project.plannedEndDate); row(writer.label("contract_duration"), writer.months(project.contractDurationDays, monitoring?.registryValues?.get("contractDuration")))
         }
         writer.section(writer.label("technical_supervision_information"), Icon.SUPERVISION) {
             row(writer.label("name"), project.technicalSupervisionName); row(writer.label("contract_number"), project.technicalSupervisionContractNumber); row(writer.label("contract_date"), project.technicalSupervisionContractDate)
@@ -279,7 +279,8 @@ class ProjectPdfExportService {
             y -= height
         }
         fun label(key: String) = translations[key]?.get(language) ?: key
-        fun months(days: Long): String { val value = kotlin.math.round(days / 30.44).toInt().coerceAtLeast(1); return if (language == Language.UK) "$value міс." else "$value months" }
+        fun months(days: Long?, source: String? = null): String? =
+            oms.urp3.contractDurationMonths(days, source)?.let { if (language == Language.UK) "$it міс." else "$it months" }
         fun status(value: String) = when (value.lowercase()) { "planned" -> if (language == Language.UK) "Заплановано" else "Planned"; "active" -> if (language == Language.UK) "Активний" else "Active"; "suspended" -> if (language == Language.UK) "Призупинено" else "Suspended"; "completed" -> if (language == Language.UK) "Завершено" else "Completed"; "archived" -> if (language == Language.UK) "Архівовано" else "Archived"; "dlp" -> "DLP"; else -> value }
         fun recordType(value: String) = when (value.lowercase()) { "invoice" -> if (language == Language.UK) "Рахунок" else "Invoice"; "act" -> if (language == Language.UK) "Акт" else "Act"; "payment" -> if (language == Language.UK) "Платіж" else "Payment"; "advance" -> if (language == Language.UK) "Аванс" else "Advance"; else -> value }
         fun documentType(value: String) = when (value.lowercase()) { "contract" -> if (language == Language.UK) "Договір" else "Contract"; "design" -> if (language == Language.UK) "Проєктна документація" else "Design document"; "estimate" -> if (language == Language.UK) "Кошторис" else "Estimate"; "invoice" -> if (language == Language.UK) "Рахунок" else "Invoice"; "act" -> if (language == Language.UK) "Акт" else "Act"; "photo" -> if (language == Language.UK) "Фото" else "Photo"; else -> if (language == Language.UK) "Інший документ" else "Other document" }

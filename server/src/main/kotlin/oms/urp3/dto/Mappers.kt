@@ -247,7 +247,7 @@ private fun Project.registryValues(
         putIfAbsent("contractorEn", value(monitoring?.contractorNameEn))
         putIfAbsent("contractDate", constructionContractSigningDate?.toString().orEmpty())
         putIfAbsent("contractEndDate", plannedEndDate?.toString().orEmpty())
-        putIfAbsent("contractDuration", contractDurationDays?.let { kotlin.math.ceil(it / 30.44).toInt().toString() }.orEmpty())
+        put("contractDuration", oms.urp3.contractDurationMonths(contractDurationDays, get("contractDuration")).orEmpty())
         putIfAbsent("constructionAmount", decimal(subprojectContractAmount))
         putIfAbsent("constructionEib", amount("construction_eib"))
         putIfAbsent("constructionLocal", amount("construction_local"))

@@ -8,6 +8,7 @@ import oms.urp3.domain.FinancialRecord
 import oms.urp3.domain.FinancialRecordType
 import oms.urp3.domain.ProjectDocument
 import oms.urp3.domain.ProjectMonitoringDetails
+import oms.urp3.dto.toResponse
 import org.apache.pdfbox.pdmodel.PDDocument
 import org.apache.pdfbox.text.PDFTextStripper
 import java.awt.image.BufferedImage
@@ -20,6 +21,25 @@ import kotlin.test.assertTrue
 import kotlin.test.assertEquals
 
 class ProjectPdfExportServiceTest {
+    @Test fun `duration agrees in API card and table PDFs in both languages with source precedence`() {
+        val start = LocalDate.of(2025, 1, 1)
+        for ((days, source, expected) in listOf(Triple(518L, null, "17"), Triple(624L, null, "21"), Triple(202L, "6", "6"))) {
+            val project = testSubproject().copy(contractSignedDate = start, plannedEndDate = start.plusDays(days))
+            val monitoring = testMonitoringDetails().copy(registryValues = source?.let { mapOf("contractDuration" to it) }.orEmpty())
+            assertEquals(expected, project.toResponse(monitoring = monitoring).registry["contractDuration"])
+            for (language in ProjectPdfExportService.Language.entries) {
+                val tableLanguage = if (language == ProjectPdfExportService.Language.EN)
+                    SubprojectsTablePdfExportService.Language.EN else SubprojectsTablePdfExportService.Language.UK
+                val expectedText = "$expected " + if (language == ProjectPdfExportService.Language.EN) "months" else "міс."
+                val reports = listOf(ProjectPdfExportService().export(project, monitoring, language),
+                    SubprojectsTablePdfExportService().export(listOf(project), mapOf(project.id to monitoring), tableLanguage, null))
+                for (pdf in reports) PDDocument.load(pdf).use { document ->
+                    val text = PDFTextStripper().getText(document).replace(Regex("\\s+"), " ")
+                    assertTrue(expectedText in text, text)
+                }
+            }
+        }
+    }
     @Test fun `financial execution uses approved Works payments and lot bases without legacy fallback`() {
         val project = testSubproject().copy(siteNumber = "KH08_07", subprojectContractAmount = 9000)
         val monitoring = testMonitoringDetails()

@@ -28,6 +28,8 @@ $sources = @(
     'server/src/main/kotlin/oms/urp3/domain/FinancialRecordType.kt',
     'shared/src/commonMain/kotlin/oms/urp3/PaymentSourceValues.kt',
     'shared/src/commonMain/kotlin/oms/urp3/UkraineRegions.kt',
+    'shared/src/commonMain/kotlin/oms/urp3/ContractDuration.kt',
+    'shared/src/commonTest/kotlin/oms/urp3/ContractDurationTest.kt',
     'composeApp/src/webMain/kotlin/oms/screens/PaymentMonitoringScope.kt',
     'build/calculation-audit/PaymentMonitoringDtos.kt',
     'server/src/test/kotlin/oms/urp3/service/ProjectDisbursementsTest.kt',
@@ -36,5 +38,5 @@ $sources = @(
 )
 & $java -cp ($compiler -join ';') org.jetbrains.kotlin.cli.jvm.K2JVMCompiler -no-stdlib -no-reflect -classpath ($deps -join ';') -d $testOutput @sources
 if ($LASTEXITCODE -ne 0) { throw 'Focused Kotlin compilation failed' }
-& $java -cp ($deps -join ';') org.junit.runner.JUnitCore oms.urp3.service.ProjectDisbursementsTest oms.urp3.service.PaymentMonitoringTableSelectionTest oms.screens.PaymentMonitoringScopeTest
+& $java -cp ($deps -join ';') org.junit.runner.JUnitCore oms.urp3.service.ProjectDisbursementsTest oms.urp3.service.PaymentMonitoringTableSelectionTest oms.screens.PaymentMonitoringScopeTest oms.urp3.ContractDurationTest
 if ($LASTEXITCODE -ne 0) { throw 'Focused tests failed' }

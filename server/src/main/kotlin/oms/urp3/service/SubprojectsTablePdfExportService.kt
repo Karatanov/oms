@@ -5,7 +5,6 @@ import oms.urp3.domain.ProjectMonitoringDetails
 import java.text.DecimalFormat
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
-import kotlin.math.ceil
 
 /** Printable, filtered Subprojects registry built on the shared table renderer. */
 class SubprojectsTablePdfExportService(
@@ -44,7 +43,7 @@ class SubprojectsTablePdfExportService(
                 project.siteNumber, if (project.trancheNumber == 2 || project.trancheNumber == 9) "B" else "A", name,
                 region(project.region), project.city.orEmpty(), sector(project.sector, language), construction(project.constructionType, language),
                 status(project.status.name, language), money(project.budgetPlanned), date(project.startDate), date(project.plannedEndDate),
-                project.contractDurationDays?.let { months(it, language) }.orEmpty(), project.contractorName.orEmpty()
+                months(project.contractDurationDays, monitoring?.registryValues?.get("contractDuration"), language).orEmpty(), project.contractorName.orEmpty()
             )
         }
         return tableExporter.export(
@@ -64,7 +63,8 @@ class SubprojectsTablePdfExportService(
 
     private fun date(value: LocalDate?) = value?.format(DateTimeFormatter.ofPattern("dd.MM.yyyy")).orEmpty()
     private fun money(value: Long) = DecimalFormat("#,##0.00").format(value)
-    private fun months(days: Long, language: Language): String { val value = ceil(days / 30.44).toInt().coerceAtLeast(1); return if (language == Language.UK) "$value міс." else "$value months" }
+    private fun months(days: Long?, source: String?, language: Language): String? =
+        oms.urp3.contractDurationMonths(days, source)?.let { if (language == Language.UK) "$it міс." else "$it months" }
     private fun region(value: String?) = value.orEmpty().replace(Regex("(?i)\\s*(область|oblast|region)$"), "").trim()
     private fun sector(value: String?, language: Language) = when (value?.lowercase()) { "education" -> if (language == Language.UK) "Освіта" else "Education"; "health", "healthcare" -> if (language == Language.UK) "Охорона здоров’я" else "Healthcare"; "housing" -> if (language == Language.UK) "Житло" else "Housing"; "water_supply" -> if (language == Language.UK) "Водопостачання" else "Water supply"; "sewerage" -> if (language == Language.UK) "Водовідведення" else "Sewerage"; "heat_supply" -> if (language == Language.UK) "Теплопостачання" else "Heat supply"; "shelter" -> if (language == Language.UK) "Укриття" else "Shelter"; else -> value.orEmpty() }
     private fun construction(value: String?, language: Language) = when (value?.lowercase()) { "reconstruction" -> if (language == Language.UK) "Реконструкція" else "Reconstruction"; "capital_repair" -> if (language == Language.UK) "Капітальний ремонт" else "Capital repair"; "new_construction" -> if (language == Language.UK) "Нове будівництво" else "New construction"; else -> value.orEmpty() }
