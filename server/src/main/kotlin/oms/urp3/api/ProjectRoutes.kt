@@ -419,7 +419,9 @@ fun Route.projectRoutes() {
                         financingDisbursedEurCents = disbursement.eurCents,
                         financingDisbursedUah = disbursement.worksUah),
 
-                financialSummary = AppContainer.financialRecordService.summary(project).let {
+                financialSummary = if (call.request.queryParameters["summary_version"] == "2") {
+                    AppContainer.financialRecordService.normalizedSummary(project).toResponse()
+                } else AppContainer.financialRecordService.summary(project).let {
                     FinancialSummaryResponse(
                         it.budgetPlanned,
                         it.constructionContractAmount,

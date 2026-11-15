@@ -342,7 +342,7 @@ object OmsApiClient {
         client.post("$baseUrl/projects/registry/refresh/$id/cancel").body()
 
     suspend fun projectDetails(uuid: String): ApiProjectDetails =
-        client.get("$baseUrl/projects/$uuid").body()
+        client.get("$baseUrl/projects/$uuid") { parameter("summary_version", 2) }.body()
 
     suspend fun projectReports(projectUuid: String): List<ApiInspectionReport> =
         client.get("$baseUrl/projects/$projectUuid/inspection-reports").body()
@@ -489,7 +489,7 @@ object OmsApiClient {
         client.get("$baseUrl/documents").body()
 
     suspend fun financials(projectUuid: String): ApiFinancialRecords =
-        client.get("$baseUrl/projects/$projectUuid/financials").body()
+        client.get("$baseUrl/projects/$projectUuid/financials") { parameter("summary_version", 2) }.body()
 
     suspend fun allFinancialRecords(): List<ApiProjectFinancialRecord> =
         client.get("$baseUrl/financials").body()
@@ -1267,13 +1267,21 @@ data class ApiProjectDetailsData(
 
 @Serializable
 data class ApiFinancialSummary(
-    val budgetPlanned: Double,
-    val constructionContractAmount: Double = budgetPlanned,
-    val amountSpent: Double,
-    val financialDocumentsAmount: Double = amountSpent,
-    val budgetRemaining: Double,
-    val completionPct: Double = 0.0,
-    val financialCompletionPct: Double = completionPct
+    val budgetPlanned: Double? = null,
+    val constructionContractAmount: Double? = budgetPlanned,
+    val amountSpent: Double? = null,
+    val financialDocumentsAmount: Double? = amountSpent,
+    val budgetRemaining: Double? = null,
+    val completionPct: Double? = null,
+    val summaryVersion: Int = 1,
+    // The server omits nulls: V2 must not turn unavailable cash into the ACT percentage.
+    val financialCompletionPct: Double? = if (summaryVersion >= 2) null else completionPct,
+    val currency: String? = null,
+    val amountPaid: Double? = null,
+    val unavailableActAmounts: Int = 0,
+    val unavailablePaymentAmounts: Int = 0,
+    val unavailableDocumentAmounts: Int = 0,
+    val dataSource: String? = null
 )
 
 @Serializable

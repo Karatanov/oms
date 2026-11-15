@@ -143,6 +143,10 @@ class FinancialRecordService(
             workbook.write(output)
         }
     }
+    fun normalizedSummary(project: Project): NormalizedFinancialSummary =
+        normalizedFinancialSummary(project.subprojectContractAmount ?: project.budgetPlanned, getAll(project.id))
+
+    /** Version 1 compatibility for clients that have not opted into summary_version=2. */
     fun summary(project: Project): FinancialSummary {
         val records = getAll(project.id)
         return FinancialSummary(

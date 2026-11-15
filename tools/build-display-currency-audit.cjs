@@ -7,6 +7,10 @@ const model = source.match(/^data class ApiFinancialRecord\([\s\S]*?^\)/m)?.[0];
 if (!model) throw Error('Cannot locate the exact ApiFinancialRecord declaration');
 const output = 'build/calculation-audit';
 fs.mkdirSync(output, {recursive: true});
+const summary = source.match(/^data class ApiFinancialSummary\([\s\S]*?^\)/m)?.[0];
+if (!summary) throw Error('Cannot locate the exact ApiFinancialSummary declaration');
+fs.writeFileSync(path.join(output, 'ApiFinancialSummary.kt'),
+  'package oms.data\nimport kotlinx.serialization.Serializable\n@Serializable\n' + summary + '\n');
 fs.writeFileSync(path.join(output, 'ApiFinancialRecord.kt'), 'package oms.data\n\n'+model+'\n');
 const paymentDtos = ['ApiPaymentMonitoringItem', 'ApiPaymentMonitoringTransaction'].map(name => {
   const declaration = source.match(new RegExp(`data class ${name}\\([\\s\\S]*?^\\)`, 'm'))?.[0];

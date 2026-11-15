@@ -437,7 +437,12 @@ fun Route.financialRoutes() {
             if (!call.requireProjectAccess(session, project.uuid.toString())) return@get
             val service = AppContainer.financialRecordService
             try {
-                val summary = service.summary(project)
+                val summary = if (call.request.queryParameters["summary_version"] == "2") {
+                    service.normalizedSummary(project).toResponse()
+                } else service.summary(project).let {
+                    FinancialSummaryResponse(it.budgetPlanned, it.constructionContractAmount, it.amountSpent,
+                        it.financialDocumentsAmount, it.budgetRemaining, it.completionPct, it.financialCompletionPct)
+                }
                 val records = service.filtered(
                     project.id,
                     call.request.queryParameters["record_type"],
@@ -447,15 +452,7 @@ fun Route.financialRoutes() {
                 call.respond(
                     FinancialRecordListResponse(
                         data = records.map { it.toResponse() },
-                        summary = FinancialSummaryResponse(
-                            summary.budgetPlanned,
-                            summary.constructionContractAmount,
-                            summary.amountSpent,
-                            summary.financialDocumentsAmount,
-                            summary.budgetRemaining,
-                            summary.completionPct,
-                            summary.financialCompletionPct
-                        )
+                        summary = summary
                     )
                 )
             } catch (e: IllegalArgumentException) {
