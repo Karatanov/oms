@@ -4,8 +4,9 @@ import oms.urp3.domain.FinancialRecord
 import oms.urp3.domain.FinancialRecordType
 import oms.urp3.domain.Project
 import oms.urp3.domain.ProjectMonitoringDetails
+import java.math.BigDecimal
 
-data class ProjectFinancialExecution(val paidUah: Double, val baseUah: Double)
+data class ProjectFinancialExecution(val paidUah: Double?, val baseUah: Double)
 
 /** Same Works-only source, lot attribution and denominator precedence as financial progress charts. */
 internal fun projectFinancialExecution(
@@ -19,12 +20,19 @@ internal fun projectFinancialExecution(
         source?.registryValues?.get("constructionAmount")?.let(::monitoringSourceAmount)
     val sourceWorks = financialProgressSourceWorks(sourceAmount(monitoring), partSources.map(::sourceAmount))
     val base = financialWorksExecutionBase(sourceWorks, project.subprojectContractAmount?.toDouble(), project.budgetPlanned.toDouble())
-    val paid = financialProgressPayments(approvedPayments, mapOf(project.siteNumber.substringBefore('#').trim().uppercase() to project.id), null) {
-        mapOf(project.id to legacy().asSequence()
+    val paid = if (approvedPayments != null) {
+        // A parent includes its lots; an individual part must not inherit sibling payments.
+        projectDisbursements(listOf(DisbursementNode(project.id, null, project.siteNumber)), approvedPayments) {
+            error("A loaded approved register must not read the legacy ledger")
+        }[project.id]?.worksUah?.toDouble() ?: 0.0
+    } else {
+        val amounts = legacy().asSequence()
             .filter { it.recordType in setOf(FinancialRecordType.PAYMENT, FinancialRecordType.ADVANCE) }
             .filter { it.paymentPurpose.equals("works", true) }
-            .mapNotNull { financialDisplayCents(it, "UAH") }
-            .sum().toDouble() / 100.0)
-    }[project.id] ?: 0.0
+            .map { financialDisplayCents(it, "UAH") }.toList()
+        if (amounts.any { it == null }) null
+        else amounts.fold(BigDecimal.ZERO) { total, cents -> total.add(BigDecimal.valueOf(checkNotNull(cents))) }
+            .movePointLeft(2).toDouble()
+    }
     return ProjectFinancialExecution(paid, base)
 }

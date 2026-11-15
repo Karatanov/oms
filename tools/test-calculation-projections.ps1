@@ -32,6 +32,15 @@ $sources = @(
     'server/src/main/kotlin/oms/urp3/service/DashboardMonthlyPayments.kt',
     'server/src/test/kotlin/oms/urp3/service/DashboardMonthlyPaymentsTest.kt',
     'server/src/main/kotlin/oms/urp3/service/ProjectDisbursements.kt',
+    'server/src/main/kotlin/oms/urp3/service/ProjectFinancialExecution.kt',
+    'server/src/main/kotlin/oms/urp3/service/FinancialProgressPayments.kt',
+    'server/src/main/kotlin/oms/urp3/service/DashboardFundingRules.kt',
+    'server/src/main/kotlin/oms/urp3/domain/Project.kt',
+    'server/src/main/kotlin/oms/urp3/domain/ProjectType.kt',
+    'server/src/main/kotlin/oms/urp3/domain/ProjectStatus.kt',
+    'server/src/main/kotlin/oms/urp3/domain/ProjectAmount.kt',
+    'server/src/main/kotlin/oms/urp3/domain/ProjectSourceDetails.kt',
+    'server/src/test/kotlin/oms/urp3/service/ProjectFinancialExecutionTest.kt',
     'server/src/main/kotlin/oms/urp3/domain/FinancialRecord.kt',
     'server/src/main/kotlin/oms/urp3/domain/FinancialRecordType.kt',
     'shared/src/commonMain/kotlin/oms/urp3/PaymentSourceValues.kt',
@@ -77,6 +86,8 @@ if ($LASTEXITCODE -ne 0) { throw 'Financial summary serialization compatibility 
 if ($LASTEXITCODE -ne 0) { throw 'Dashboard monthly currency completeness failed' }
 & $java @textEncodingArgs -cp ($deps -join ';') org.junit.runner.JUnitCore oms.urp3.service.FinancialConversionParityTest
 if ($LASTEXITCODE -ne 0) { throw 'Client/server frozen conversion parity failed' }
+& $java @textEncodingArgs -cp ($deps -join ';') org.junit.runner.JUnitCore oms.urp3.service.ProjectFinancialExecutionTest
+if ($LASTEXITCODE -ne 0) { throw 'Project/lot financial execution failed' }
 & $java @textEncodingArgs -cp ($deps -join ';') oms.urp3.service.DisplayCurrencyAuditKt
 if ($LASTEXITCODE -ne 0) { throw 'Frontend decimal reconciliation failed' }
 & $java @textEncodingArgs -cp ($deps -join ';') oms.screens.MonthlyAggregationAuditKt

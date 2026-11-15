@@ -21,6 +21,35 @@ import kotlin.test.assertTrue
 import kotlin.test.assertEquals
 
 class ProjectPdfExportServiceTest {
+    @Test fun `lot PDF uses only lot payments and not the parent total`() {
+        val project = testSubproject().copy(siteNumber = "KH08_07#Lot1", projectType = ProjectType.SUBPROJECT_PART,
+            subprojectContractAmount = 100)
+        fun payment(code: String, amount: Double) = PaymentMonitoringWorkbookSource.Transaction(
+            code, code, 8, LocalDate.of(2026, 11, 15), amount, null, "test")
+        val execution = projectFinancialExecution(project, null, approvedPayments = listOf(
+            payment("KH08_07#Lot1_W", 30.25), payment("KH08_07#Lot2_W", 60.50))) { error("No fallback") }
+        for (language in ProjectPdfExportService.Language.entries) {
+            val pdf = ProjectPdfExportService().export(project, language = language, financialExecution = execution)
+            PDDocument.load(pdf).use { document ->
+                val text = PDFTextStripper().getText(document)
+                assertTrue(Regex("30[.,]25 / 100[.,]00").containsMatchIn(text), text)
+                assertTrue(!Regex("90[.,]75 / 100[.,]00").containsMatchIn(text), text)
+            }
+        }
+    }
+
+    @Test fun `unavailable execution is explained in both languages instead of printing a false zero`() {
+        for (language in ProjectPdfExportService.Language.entries) {
+            val pdf = ProjectPdfExportService().export(testSubproject(), language = language,
+                financialExecution = ProjectFinancialExecution(null, 1000.0))
+            PDDocument.load(pdf).use { document ->
+                val text = PDFTextStripper().getText(document).replace(Regex("\\s+"), " ")
+                assertTrue((if (language == ProjectPdfExportService.Language.EN) "Unavailable:" else "Не вдалося розрахувати:") in text, text)
+                assertTrue(!Regex("0[.,]0%").containsMatchIn(text), text)
+            }
+        }
+    }
+
     @Test fun `duration agrees in API card and table PDFs in both languages with source precedence`() {
         val start = LocalDate.of(2025, 1, 1)
         for ((days, source, expected) in listOf(Triple(518L, null, "17"), Triple(624L, null, "21"), Triple(202L, "6", "6"))) {
