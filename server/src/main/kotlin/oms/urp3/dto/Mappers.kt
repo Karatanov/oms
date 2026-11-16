@@ -212,7 +212,8 @@ private fun Project.registryValues(
     monitoring: oms.urp3.domain.ProjectMonitoringDetails?,
     financingDisbursedUah: BigDecimal?
 ): Map<String, String> {
-    fun amount(kind: String) = amounts[kind]?.amount?.stripTrailingZeros()?.toPlainString().orEmpty()
+    // Every monetary registry column is denominated in UAH; retain the saved conversion.
+    fun amount(kind: String) = amounts[kind]?.uah?.stripTrailingZeros()?.toPlainString().orEmpty()
     fun decimal(value: Long?) = value?.toString().orEmpty()
     fun value(item: String?) = item?.trim().orEmpty()
     val contracted = subprojectContractAmount ?: 0L
