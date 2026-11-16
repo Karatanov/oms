@@ -1,0 +1,104 @@
+package oms.screens
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
+import oms.charts.ChartSortCriterion
+import oms.charts.sortChartCategories
+import oms.components.*
+import oms.localization.LocalizationManager
+
+/** Paired series share one scale, while exact amounts remain in labels and tooltips. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+internal fun RegionalFinancingChart(items: List<RegionalFinancingAmount>, loading: Boolean, failed: Boolean, onRetry: () -> Unit, titleSuffix: String? = null) {
+    var expanded by remember { mutableStateOf(true) }
+    var criterion by remember { mutableStateOf(ChartSortCriterion.Value) }
+    var ascending by remember { mutableStateOf(false) }
+    val planColor = MaterialTheme.colorScheme.primary
+    val paidColor = Color(0xFFB65B13)
+    val planLabel = LocalizationManager.t("regional_financing_plan")
+    val paidLabel = LocalizationManager.t("regional_financing_paid")
+    fun region(value: String) = if (value.isBlank()) LocalizationManager.t("construction_unspecified") else localizedUkraineRegion(value)
+    fun money(value: Long?) = value?.let {
+        val sign = if (it < 0) "−" else ""
+        val whole = it / 100
+        val fraction = kotlin.math.abs(it % 100).toString().padStart(2, '0')
+        val separator = if (LocalizationManager.currentLanguage == oms.localization.Language.EN) "." else ","
+        "$sign${formatGroupedNumber(kotlin.math.abs(whole))}$separator$fraction"
+    } ?: "—"
+    val sorted = sortChartCategories(items, criterion, ascending, { region(it.region) }, { (it.plannedCents ?: -1L).toDouble() })
+    val known = items.flatMap { listOfNotNull(it.plannedCents, it.paidCents) }
+    val minimum = (known.minOrNull() ?: 0L).coerceAtMost(0L).toDouble()
+    val maximum = (known.maxOrNull() ?: 0L).coerceAtLeast(0L).toDouble()
+    val span = (maximum - minimum).coerceAtLeast(1.0)
+    Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            OmsChartHeader(listOfNotNull(LocalizationManager.t("regional_financing_title"), titleSuffix).joinToString(" — ")) {
+                ChartSortControls(criterion, ascending, { criterion = it }, { ascending = !ascending })
+                IconButton(onClick = { expanded = !expanded }, modifier = Modifier.size(30.dp).buttonHandCursor()) {
+                    Icon(if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                        LocalizationManager.t(if (expanded) "collapse" else "expand"), modifier = Modifier.size(18.dp))
+                }
+            }
+            if (expanded) {
+                Text(LocalizationManager.t("regional_financing_hint"), style = MaterialTheme.typography.bodySmall)
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    listOf(planLabel to planColor, paidLabel to paidColor).forEach { (label, color) ->
+                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                            Box(Modifier.size(10.dp).background(color))
+                            Text(label, style = MaterialTheme.typography.labelMedium)
+                        }
+                    }
+                }
+                when {
+                    loading -> ContentState(LocalizationManager.t("financial_progress_loading"), loading = true)
+                    failed -> ContentState(LocalizationManager.t("financial_progress_load_error"), error = true, onRetry = onRetry)
+                    items.isEmpty() -> Text(LocalizationManager.t("no_chart_data"))
+                    else -> {
+                        if (items.any { it.plannedCents == null || it.paidCents == null }) Text(
+                            LocalizationManager.t("regional_financing_missing"), color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall)
+                        Column(Modifier.fillMaxWidth().heightIn(max = 480.dp).verticalScroll(rememberScrollState()),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            sorted.forEach { item ->
+                                Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                                    Text(region(item.region), style = MaterialTheme.typography.labelLarge)
+                                    listOf(Triple(planLabel, item.plannedCents, planColor), Triple(paidLabel, item.paidCents, paidColor)).forEach { (label, amount, color) ->
+                                        OmsTooltipBox(tooltip = { Text("${region(item.region)}\n$label: ${money(amount)} ${LocalizationManager.currencyLabel("UAH")}") }) {
+                                            Column(Modifier.fillMaxWidth()) {
+                                                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                                    Text(label, modifier = Modifier.weight(1f), maxLines = 2, style = MaterialTheme.typography.labelSmall)
+                                                    Text(money(amount), modifier = Modifier.padding(start = 8.dp), style = MaterialTheme.typography.labelSmall)
+                                                }
+                                                BoxWithConstraints(Modifier.fillMaxWidth().height(10.dp).background(MaterialTheme.colorScheme.surfaceVariant)) {
+                                                    if (amount != null && amount != 0L) {
+                                                        val start = ((minOf(0.0, amount.toDouble()) - minimum) / span).toFloat().coerceIn(0f, 1f)
+                                                        val width = (kotlin.math.abs(amount.toDouble()) / span).toFloat().coerceIn(0f, 1f)
+                                                        Box(Modifier.offset(x = maxWidth * start).width(maxWidth * width)
+                                                            .fillMaxHeight().background(color))
+                                                    }
+                                                    if (minimum < 0) Box(Modifier.offset(x = maxWidth * (-minimum / span).toFloat())
+                                                        .width(1.dp).fillMaxHeight().background(MaterialTheme.colorScheme.onSurfaceVariant))
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

@@ -55,6 +55,8 @@ $sources = @(
     'composeApp/src/webTest/kotlin/oms/urp3/FinancialDecimalRoundingTest.kt',
     'tools/DisplayCurrencyAudit.kt',
     'composeApp/src/webMain/kotlin/oms/screens/PaymentMonitoringScope.kt',
+    'composeApp/src/webMain/kotlin/oms/screens/RegionalFinancing.kt',
+    'composeApp/src/webTest/kotlin/oms/screens/RegionalFinancingTest.kt',
     'build/calculation-audit/PaymentMonitoringDtos.kt',
     'build/calculation-audit/ApiFinancialRecord.kt',
     'build/calculation-audit/ApiFinancialSummary.kt',
@@ -95,6 +97,8 @@ if ($LASTEXITCODE -ne 0) { throw 'Client/server frozen conversion parity failed'
 if ($LASTEXITCODE -ne 0) { throw 'Project/lot financial execution failed' }
 & $java @textEncodingArgs -cp ($deps -join ';') org.junit.runner.JUnitCore oms.urp3.service.MonitoringCompletionTest oms.urp3.PhysicalCompletionScopeTest
 if ($LASTEXITCODE -ne 0) { throw 'Physical completion source validation failed' }
+& $java @textEncodingArgs -cp ($deps -join ';') org.junit.runner.JUnitCore oms.screens.RegionalFinancingTest
+if ($LASTEXITCODE -ne 0) { throw 'Regional planned/actual financing failed' }
 & $java @textEncodingArgs -cp ($deps -join ';') oms.urp3.service.DisplayCurrencyAuditKt
 if ($LASTEXITCODE -ne 0) { throw 'Frontend decimal reconciliation failed' }
 & $java @textEncodingArgs -cp ($deps -join ';') oms.screens.MonthlyAggregationAuditKt

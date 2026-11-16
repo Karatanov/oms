@@ -124,6 +124,9 @@ fun FinancialScreen(
     var paymentMonitoring by remember { mutableStateOf<ApiPaymentMonitoring?>(null) }
     var paymentMonitoringLoading by remember { mutableStateOf(true) }
     var paymentMonitoringLoadFailed by remember { mutableStateOf(false) }
+    var regionalFunding by remember { mutableStateOf<List<oms.data.ApiSubprojectFunding>?>(null) }
+    var regionalFundingLoading by remember { mutableStateOf(true) }
+    var regionalFundingFailed by remember { mutableStateOf(false) }
     var paymentMonitoringMessage by remember { mutableStateOf<String?>(null) }
     var paymentMonitoringMessageIsError by remember { mutableStateOf(false) }
     var displayCurrency by remember { mutableStateOf("EUR") }
@@ -320,6 +323,19 @@ fun FinancialScreen(
         ProjectRepository.projects.filter { it.projectType == "subproject" }
             .associateBy { it.siteNumber.trim().uppercase() }
     }
+    LaunchedEffect(reloadKey) {
+        regionalFundingLoading = true
+        regionalFundingFailed = false
+        try {
+            regionalFunding = OmsApiClient.dashboardOverview().subprojectFunding
+        } catch (cancelled: kotlinx.coroutines.CancellationException) {
+            throw cancelled
+        } catch (_: Exception) {
+            regionalFundingFailed = true
+        } finally {
+            regionalFundingLoading = false
+        }
+    }
     val workbookChartRows = remember(paymentMonitoring?.transactions, subprojectsByCode) {
         paymentMonitoring?.transactions.orEmpty().mapNotNull { transaction ->
             val subprojectCode = transaction.code.paymentSubprojectCode()
@@ -506,6 +522,20 @@ fun FinancialScreen(
             technicalSupervisionPaidUah = contextualPayments.filter { sourcePaymentPurpose(it.code) == "technical_supervision" }.sumOf { it.amountUah },
             engineerConsultantPaidUah = contextualPayments.filter { sourcePaymentPurpose(it.code) == "engineer_consultant" }.sumOf { it.amountUah }
         ))
+
+        val fundingByUuid = regionalFunding.orEmpty().associateBy { it.projectUuid }
+        val regionalPlanProjects = subprojectsByCode.values
+            .filter { it.id in fundingByUuid && '#' !in it.siteNumber }
+            .map { project -> RegionalFinancingProject(
+                PaymentProjectContext(project.id, project.siteNumber, project.trancheNumber, project.region),
+                oms.urp3.decimalMoneyCents(fundingByUuid.getValue(project.id).amountUah)
+            ) }
+        RegionalFinancingChart(
+            regionalFinancing(regionalPlanProjects, paymentMonitoring?.transactions, paymentScope),
+            paymentMonitoringLoading || ProjectRepository.loading || regionalFundingLoading,
+            paymentMonitoringLoadFailed || ProjectRepository.errorMessage != null || regionalFundingFailed,
+            onRetry = { reloadKey++ }, titleSuffix = selectedChartScopeLabel
+        )
 
         if (financialProgressLoading) oms.components.ContentState(
             LocalizationManager.t("financial_progress_loading"), loading = true)

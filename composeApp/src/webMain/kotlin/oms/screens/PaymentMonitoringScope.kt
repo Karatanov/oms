@@ -31,6 +31,9 @@ private fun PaymentMonitoringScope.matchesProject(project: PaymentProjectContext
 }
 
 /** Cumulative indicators have no month/purpose grain: restrict them only to the selected SP population. */
+internal fun scopePaymentProjects(projects: List<PaymentProjectContext>, scope: PaymentMonitoringScope): List<PaymentProjectContext> =
+    projects.filter { scope.matchesProject(it) }
+
 internal fun scopePaymentItems(items: List<ApiPaymentMonitoringItem>, projects: List<PaymentProjectContext>, scope: PaymentMonitoringScope): List<ApiPaymentMonitoringItem> {
     val byCode = projects.associateBy { it.code.trim().uppercase() }
     return items.filter { scope.matchesProject(byCode[paymentSubprojectKey(it.code).uppercase()]) }
