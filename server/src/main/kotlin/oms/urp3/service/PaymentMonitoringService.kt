@@ -19,7 +19,8 @@ import org.slf4j.LoggerFactory
 class PaymentMonitoringService(
     private val repository: PaymentMonitoringRepository,
     private val now: () -> Instant = Instant::now,
-    private val bundledLoader: () -> List<PaymentMonitoringWorkbookSource.Item> = PaymentMonitoringWorkbookSource::bundledSnapshot
+    private val bundledLoader: () -> List<PaymentMonitoringWorkbookSource.Item> = PaymentMonitoringWorkbookSource::bundledSnapshot,
+    private val workbookParser: (ByteArray) -> PaymentMonitoringWorkbookSource.WorkbookData = PaymentMonitoringWorkbookSource::parseWorkbookData
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
     data class Snapshot(
@@ -43,6 +44,8 @@ class PaymentMonitoringService(
 
     private var cached: CachedSnapshot? = null
     private val refreshLock = Any()
+    // The workbook parser uses a shared formatter. Serialize parsers, not snapshot readers.
+    private val parseLock = Any()
     @Volatile private var activeRefresh: RefreshJob? = null
     @Volatile private var automaticRefreshStarted = false
     private var automaticRefreshExecutor: ScheduledExecutorService? = null
@@ -73,10 +76,12 @@ class PaymentMonitoringService(
         return snapshot
     }
 
-    @Synchronized
+    /** Parsing does not mutate the published snapshot and must not block its readers. */
     fun importWorkbook(bytes: ByteArray): Snapshot {
-        return replaceAll(PaymentMonitoringWorkbookSource.parseWorkbookData(bytes))
+        return replaceAll(parseWorkbook(bytes))
     }
+
+    private fun parseWorkbook(bytes: ByteArray) = synchronized(parseLock) { workbookParser(bytes) }
 
     /**
      * Starts a cancellable import from the configured approved Google source.
@@ -144,11 +149,11 @@ class PaymentMonitoringService(
             checkCancelled(job)
             job.progress = 45
             job.phase = "opening_workbook"
-            val data = PaymentMonitoringWorkbookSource.parseWorkbookData(workbook)
+            val data = parseWorkbook(workbook)
             checkCancelled(job)
             job.progress = 80
             job.phase = "replacing"
-            val snapshot = replaceAll(data)
+            val snapshot = replaceAll(data) { checkCancelled(job) }
             job.importedCount = snapshot.items.size
             job.progress = 100
             job.phase = "completed"
@@ -167,7 +172,13 @@ class PaymentMonitoringService(
     }
 
     @Synchronized
-    private fun replaceAll(data: PaymentMonitoringWorkbookSource.WorkbookData): Snapshot {
+    private fun replaceAll(
+        data: PaymentMonitoringWorkbookSource.WorkbookData,
+        beforeReplace: () -> Unit = {}
+    ): Snapshot {
+        // A refresh may have been cancelled while waiting for this monitor.
+        // After this checkpoint the repository transaction owns the atomic replacement.
+        beforeReplace()
         val snapshot = repository.replaceAll(
             data.items,
             data.transactions,

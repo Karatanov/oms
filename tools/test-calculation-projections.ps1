@@ -21,6 +21,10 @@ $textEncodingArgs = @('-Dstdout.encoding=UTF-8', '-Dstderr.encoding=UTF-8')
 node tools/build-display-currency-audit.cjs
 if ($LASTEXITCODE -ne 0) { throw 'DTO fixture generation failed' }
 $sources = @(
+    'server/src/main/kotlin/oms/urp3/service/PaymentMonitoringService.kt',
+    'server/src/main/kotlin/oms/urp3/repository/PaymentMonitoringRepository.kt',
+    'server/src/main/kotlin/oms/urp3/database/tables/PaymentMonitoringRowTable.kt',
+    'server/src/test/kotlin/oms/urp3/service/PaymentMonitoringConcurrencyTest.kt',
     'build/calculation-audit/ApiDashboardNationalSummary.kt',
     'composeApp/src/webTest/kotlin/oms/urp3/DashboardCurrencyCompatibilityTest.kt',
     'server/src/main/kotlin/oms/urp3/service/DashboardPaymentTotals.kt',
@@ -98,6 +102,8 @@ $sources = @(
 $serializationPlugin = @(Jars @('org.jetbrains.kotlin/kotlin-serialization-compiler-plugin-embeddable/2.3.0'))[0]
 & $java @textEncodingArgs -cp ($compiler -join ';') org.jetbrains.kotlin.cli.jvm.K2JVMCompiler -no-stdlib -no-reflect "-Xplugin=$serializationPlugin" -classpath ($deps -join ';') -d $testOutput @sources
 if ($LASTEXITCODE -ne 0) { throw 'Focused Kotlin compilation failed' }
+& $java @textEncodingArgs -cp ($deps -join ';') org.junit.runner.JUnitCore oms.urp3.service.PaymentMonitoringConcurrencyTest
+if ($LASTEXITCODE -ne 0) { throw 'Payment import availability and cancellation failed' }
 & $java @textEncodingArgs -cp ($deps -join ';') org.junit.runner.JUnitCore oms.urp3.DashboardCurrencyCompatibilityTest
 if ($LASTEXITCODE -ne 0) { throw 'Dashboard frontend currency wire compatibility failed' }
 & $java @textEncodingArgs -cp ($deps -join ';') org.junit.runner.JUnitCore oms.urp3.service.DashboardPaymentTotalsTest
