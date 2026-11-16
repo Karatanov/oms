@@ -39,6 +39,25 @@ class BudgetSnapshotRepairTest(unittest.TestCase):
         self.assertIsNone(changes[0]['newSnapshot'])
         self.assertIn('NOT EXISTS (SELECT 1 FROM project_amounts', sql_plan(changes))
 
+    def test_source_can_corroborate_equivalent_and_frozen_rate_exactly(self):
+        before = row(code='KH08_07#Lot6', sourceLot='KH08_07#Lot6', budget=4018608,
+                     registry='{"fundingTotal":"4018608"}', amount='3959211.85', converted='83721.00')
+        changes, skipped = plan([before])
+        self.assertFalse(skipped)
+        self.assertIsNone(changes[0]['newBudget'])
+        self.assertEqual(changes[0]['newSnapshot'], dict(amount='4018608.00', converted='83721.00'))
+        after = dict(before, **changes[0]['newSnapshot'])
+        self.assertEqual(verify([before], [after], dict(changes=changes)), (1, 1))
+        self.assertEqual(plan([after]), ([], []))
+
+    def test_near_match_is_not_independent_corroboration_and_manual_edits_stay_protected(self):
+        for overrides in (dict(converted='25.00'), dict(converted='25.02'),
+                          dict(converted='25.01', edited=1), dict(converted='25.01', snapshotCurrency='EUR')):
+            with self.subTest(overrides=overrides):
+                changes, skipped = plan([row(**overrides)])
+                self.assertFalse(changes)
+                self.assertEqual(len(skipped), 1)
+
     def test_legacy_only_when_snapshot_already_matches(self):
         changes, _ = plan([row(budget=1, amount='1200.25', converted='25.01')])
         self.assertEqual(changes[0]['newBudget'], 1200)

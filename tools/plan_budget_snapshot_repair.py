@@ -40,10 +40,13 @@ def plan(rows):
                 if row['snapshotCurrency'] != 'UAH' or row['edited']:
                     raise ValueError('original currency or manual conversion is protected')
                 expected_old = (old / rate).quantize(CENT, rounding=ROUND_HALF_UP)
-                if abs(expected_old - converted) > CENT:
+                new_converted = (rounded / rate).quantize(CENT, rounding=ROUND_HALF_UP)
+                # The raw source can corroborate the existing equivalent and
+                # frozen rate exactly even when only the original is stale.
+                # Otherwise an inconsistent saved conversion stays protected.
+                if abs(expected_old - converted) > CENT and new_converted != converted:
                     raise ValueError('saved conversion does not match its frozen rate')
                 if abs(old - rounded) >= CENT:
-                    new_converted = (rounded / rate).quantize(CENT, rounding=ROUND_HALF_UP)
                     if new_converted >= Decimal('1e16'):
                         raise ValueError('converted amount exceeds column precision')
                     saved_change = dict(amount=str(rounded), converted=str(new_converted))

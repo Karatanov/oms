@@ -36,4 +36,20 @@ class MonitoringBudgetSnapshotTest {
         assertEquals(BigDecimal("1234567.00"), monitoringBudgetAmount("1,234,567"))
         assertEquals(BigDecimal("9999999999999999.99"), monitoringBudgetAmount("9999999999999999.99"))
     }
+
+    @Test fun `source corroboration repairs stale original without changing its saved equivalent`() {
+        val stale = saved.copy(amount = BigDecimal("3959211.85"), convertedAmount = BigDecimal("83721.00"))
+        val updated = assertNotNull(refreshedMonitoringBudget("4018608", stale))
+        assertEquals(stale.copy(amount = BigDecimal("4018608.00")), updated)
+        assertNull(refreshedMonitoringBudget("4018608", updated))
+    }
+
+    @Test fun `one cent near match does not corroborate an inconsistent snapshot or override a manual edit`() {
+        for (protected in listOf(saved.copy(convertedAmount = BigDecimal("25.00")),
+            saved.copy(convertedAmount = BigDecimal("25.02")),
+            saved.copy(convertedAmount = BigDecimal("25.01"), conversionEdited = true),
+            saved.copy(convertedAmount = BigDecimal("25.01"), currency = "EUR"))) {
+            assertNull(refreshedMonitoringBudget("1200.25", protected))
+        }
+    }
 }

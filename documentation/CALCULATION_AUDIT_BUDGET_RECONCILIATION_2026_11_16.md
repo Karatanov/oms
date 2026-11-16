@@ -110,3 +110,50 @@ compiler warnings remain. No browser or live workbook re-import test is claimed;
 the known invalid physical completion in the current online workbook must not
 be bypassed merely to exercise this correction. Full CI/deployment results are
 tracked separately. The wider formula audit is not claimed complete.
+
+## Exact-corroboration follow-up: KH08_07#Lot6
+
+The initially excluded record has independent corroborating values:
+
+| Representation | UAH / EUR value |
+| --- | ---: |
+| Raw authoritative fundingTotal | 4,018,608 UAH |
+| Legacy budget | 4,018,608 UAH |
+| Saved original before repair | 3,959,211.85 UAH |
+| Existing saved EUR equivalent | 83,721.00 EUR |
+| Existing frozen UAH/EUR rate | 48.00000000 |
+
+83,721 × 48 = 4,018,608 exactly. Thus the source amount already agrees with
+the existing equivalent/rate pair; repairing the stale original does not require
+guessing a new exchange rate or changing the EUR amount. The historical writer
+of the stale original has not been identified from these observations.
+
+Both the offline planner and runtime import rule now allow this narrow case:
+an inconsistent old snapshot is eligible only when the approved source divided
+by the saved rate matches the existing equivalent **exactly at cent precision**.
+One-cent near matches do not qualify. Manual edits and EUR originals remain
+protected even when the numbers happen to match.
+
+Executed production sequence:
+
+- Fresh full backup `/docker/oms/backups/registry-20261116T122322Z` passed restore
+  verification; the isolated trial `oms_budgettrial_20261116122339` passed all
+  non-target data, target schema and protected-column invariants.
+- The exact verified plan was applied after checking the live before-state.
+  It changed one snapshot, zero legacy budgets. The saved equivalent, frozen
+  rate/date, manual flag and raw source payload remained unchanged.
+- The after-state verifier compared all 331 records to the reviewed manifest.
+  Replanning returns zero changes and zero skipped records.
+- 103 focused Kotlin tests, 16 Python regressions and the existing 1,000 decimal
+  fixtures passed, including exact-corroboration, idempotency, near-match rejection
+  and manual/original-currency protection.
+- Full server source compilation passed using the direct Kotlin 2.3 compiler;
+  existing unrelated warnings remain. The independent live API/raw-source audit
+  now finds 180 consistent saved snapshots and no conflicting snapshots. The
+  other categories remain 45 without snapshots and 106 without raw source budgets.
+
+The preceding import-prevention release `fd2f648` was independently confirmed
+deployed at `/version`; all four workflows completed successfully. The new
+exact-corroboration code release is tracked separately from the live data repair.
+No claim is made that missing-source or missing-snapshot records are now populated,
+or that the wider formula audit is complete.
