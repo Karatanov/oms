@@ -21,6 +21,10 @@ $textEncodingArgs = @('-Dstdout.encoding=UTF-8', '-Dstderr.encoding=UTF-8')
 node tools/build-display-currency-audit.cjs
 if ($LASTEXITCODE -ne 0) { throw 'DTO fixture generation failed' }
 $sources = @(
+    'server/src/main/kotlin/oms/urp3/service/DashboardAmountTotal.kt',
+    'server/src/test/kotlin/oms/urp3/service/DashboardAmountTotalTest.kt',
+    'server/src/main/kotlin/oms/urp3/service/PaymentMonitoringTotals.kt',
+    'server/src/test/kotlin/oms/urp3/service/PaymentMonitoringTotalsTest.kt',
     'server/src/main/kotlin/oms/urp3/service/MonitoringBudgetSnapshot.kt',
     'server/src/test/kotlin/oms/urp3/service/MonitoringBudgetSnapshotTest.kt',
     'server/src/main/kotlin/oms/urp3/service/PaymentMonitoringWorkbookSource.kt',
@@ -90,6 +94,8 @@ $sources = @(
 $serializationPlugin = @(Jars @('org.jetbrains.kotlin/kotlin-serialization-compiler-plugin-embeddable/2.3.0'))[0]
 & $java @textEncodingArgs -cp ($compiler -join ';') org.jetbrains.kotlin.cli.jvm.K2JVMCompiler -no-stdlib -no-reflect "-Xplugin=$serializationPlugin" -classpath ($deps -join ';') -d $testOutput @sources
 if ($LASTEXITCODE -ne 0) { throw 'Focused Kotlin compilation failed' }
+& $java @textEncodingArgs -cp ($deps -join ';') org.junit.runner.JUnitCore oms.urp3.service.DashboardAmountTotalTest oms.urp3.service.PaymentMonitoringTotalsTest
+if ($LASTEXITCODE -ne 0) { throw 'Dashboard decimal monetary totals failed' }
 & $java @textEncodingArgs -cp ($deps -join ';') org.junit.runner.JUnitCore oms.urp3.service.MonitoringBudgetSnapshotTest
 if ($LASTEXITCODE -ne 0) { throw 'Monitoring budget snapshot synchronization failed' }
 & $java @textEncodingArgs -cp ($deps -join ';') org.junit.runner.JUnitCore oms.urp3.service.ProjectDisbursementsTest oms.urp3.service.PaymentMonitoringTableSelectionTest oms.screens.PaymentMonitoringScopeTest oms.urp3.ContractDurationTest oms.urp3.service.FinancialMoneyTest oms.urp3.DecimalMoneyTest oms.urp3.FinancialDecimalRoundingTest oms.urp3.MonthlyFinancialCompletenessTest oms.screens.MonthlyRateLoadingTest oms.urp3.service.NormalizedFinancialSummaryTest

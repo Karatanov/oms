@@ -19,4 +19,9 @@ class PaymentMonitoringTotalsTest {
         assertEquals(100.0, primaryMonitoringPaidUah(rows, setOf("VN08_01")))
         assertEquals(0.0, primaryMonitoringPaidUah(rows, emptySet()))
     }
+
+    @Test fun `paid decimal cents sum exactly while component scope remains unchanged`() {
+        val rows = listOf(item("VN08_01", 0.1), item("VN08_02", 0.2), item("VN08_01_W", 999.0))
+        assertEquals(0.3, primaryMonitoringPaidUah(rows, setOf("VN08_01", "VN08_02")))
+    }
 }

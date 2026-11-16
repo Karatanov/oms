@@ -195,10 +195,10 @@ private fun List<org.jetbrains.exposed.v1.core.ResultRow>.uniqueProcurements() =
             ?: "record-${row[ProcurementRecordTable.id].value}"
     }
 
-private fun signedContractAmount(row: org.jetbrains.exposed.v1.core.ResultRow): Double =
-    row[ProcurementRecordTable.signedContractAmountUah]?.toDouble()
-        ?: row[ProcurementRecordTable.contractAmountUah]?.toDouble()
-        ?: 0.0
+private fun signedContractAmount(row: org.jetbrains.exposed.v1.core.ResultRow): BigDecimal =
+    row[ProcurementRecordTable.signedContractAmountUah]
+        ?: row[ProcurementRecordTable.contractAmountUah]
+        ?: BigDecimal.ZERO
 
 /**
  * Completion is measured against the value of the actual construction
@@ -206,10 +206,10 @@ private fun signedContractAmount(row: org.jetbrains.exposed.v1.core.ResultRow): 
  * not retain the per-contract value.  It must not take precedence here: the
  * tracker can aggregate several procurement lines and distort one SP's base.
  */
-private fun worksContractAmount(row: org.jetbrains.exposed.v1.core.ResultRow): Double =
-    row[ProcurementRecordTable.contractAmountUah]?.toDouble()
-        ?: row[ProcurementRecordTable.signedContractAmountUah]?.toDouble()
-        ?: 0.0
+private fun worksContractAmount(row: org.jetbrains.exposed.v1.core.ResultRow): BigDecimal =
+    row[ProcurementRecordTable.contractAmountUah]
+        ?: row[ProcurementRecordTable.signedContractAmountUah]
+        ?: BigDecimal.ZERO
 
 /**
  * Procurement rows can be stored at lot level (for example `KH08_07#Lot2`),
@@ -264,7 +264,7 @@ private fun signedContractTypeMetrics(
         DashboardContractTypeMetric(
             type = type,
             contractsCount = rows.size.toLong(),
-            contractAmountUah = rows.sumOf(::signedContractAmount)
+            contractAmountUah = dashboardAmountTotal(rows.asSequence().map(::signedContractAmount))
         )
     }
 }
@@ -378,10 +378,10 @@ private fun dashboardSubprojectProgress(
         .toList()
     val signedWorksAmountBySubprojectCode = signedWorksContracts
         .groupBy { dashboardSubprojectCode(it[ProcurementRecordTable.subProjectId]) }
-        .mapValues { (_, rows) -> rows.uniqueContracts().sumOf(::worksContractAmount) }
+        .mapValues { (_, rows) -> dashboardAmountTotal(rows.uniqueContracts().asSequence().map(::worksContractAmount)) }
     val signedWorksAmountBySourceCode = signedWorksContracts
         .groupBy { worksContractSourceCode(it[ProcurementRecordTable.subProjectId], it[ProcurementRecordTable.subProjectLotId]) }
-        .mapValues { (_, rows) -> rows.uniqueContracts().sumOf(::worksContractAmount) }
+        .mapValues { (_, rows) -> dashboardAmountTotal(rows.uniqueContracts().asSequence().map(::worksContractAmount)) }
     data class MonitoringProgress(var completedAmount: Double = 0.0, var hasReportedProgress: Boolean = false)
     val monitoringProgressBySubproject = mutableMapOf<Long, MonitoringProgress>()
     val invalidProgressSubprojects = mutableSetOf<Long>()
@@ -576,8 +576,8 @@ class DashboardService(
         // Both totals use the same AT Work Table baseline as the regional
         // funding chart. Fall back only for legacy records that have not yet
         // been refreshed from the approved procurement source.
-        val approvedFundingUah = subprojectFunding.sumOf { it.amountUah }
-        val approvedFundingEur = subprojectFunding.sumOf { it.amountEur }
+        val approvedFundingUah = dashboardAmountTotal(subprojectFunding.asSequence().map { BigDecimal.valueOf(it.amountUah) })
+        val approvedFundingEur = dashboardAmountTotal(subprojectFunding.asSequence().map { BigDecimal.valueOf(it.amountEur) })
         val nationalSummary = DashboardNationalSummary(
             subprojectsCount = portfolioSubprojects.size.toLong(),
             regionsCount = portfolioSubprojects.mapNotNull { canonicalUkraineOblast(it[ProjectTable.region]) }.distinct().size.toLong(),
@@ -589,7 +589,7 @@ class DashboardService(
             approvedFundingUah = approvedFundingUah,
             approvedFundingEur = approvedFundingEur,
             signedContractsCount = signedContracts.uniqueProcurements().size.toLong(),
-            signedContractsAmountUah = signedContracts.uniqueProcurements().sumOf(::signedContractAmount),
+            signedContractsAmountUah = dashboardAmountTotal(signedContracts.uniqueProcurements().asSequence().map(::signedContractAmount)),
             servicesPaidEurCents = paymentRecords.sumOf { it[FinancialRecordTable.amountEurCents] ?: 0L },
             servicesPaidUahCents = servicesPaidUah.takeIf { it.size == paymentRecords.size }?.sum(),
             eibPaidUnderContractsUah = eibPaidUnderContractsUah
