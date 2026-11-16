@@ -125,6 +125,7 @@ fun ProcurementScreen(
                     refreshJob = updated
                     when (updated.status) {
                         "COMPLETED" -> {
+                            ProjectRepository.invalidate()
                             reloadKey++
                             registryRefreshMessage = LocalizationManager.t("procurement_refresh_success")
                                 .replace("{count}", updated.importedCount?.toString().orEmpty())
@@ -144,7 +145,7 @@ fun ProcurementScreen(
     // The Subproject code is a map link, so retain the shared project snapshot
     // while the procurement registry is open. Refresh() is a no-op when it is
     // already present and therefore does not add another API request on return.
-    LaunchedEffect(Unit) { ProjectRepository.refresh() }
+    LaunchedEffect(reloadKey) { ProjectRepository.refresh() }
     fun applySignedContractMonthFilter(month: String, contractType: String? = null) {
         signedContractMonthFilter = month
         statusFilter = procurementStatuses[3]

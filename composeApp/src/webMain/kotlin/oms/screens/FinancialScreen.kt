@@ -207,6 +207,7 @@ fun FinancialScreen(
                     paymentMonitoringRefreshJob = updated
                     when (updated.status) {
                         "COMPLETED" -> {
+                            ProjectRepository.invalidate()
                             paymentMonitoringMessage = LocalizationManager.t("payment_monitoring_imported")
                             paymentMonitoringMessageIsError = false
                             reloadKey++

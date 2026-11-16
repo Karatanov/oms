@@ -12,7 +12,7 @@ import oms.localization.LocalizationManager
 
 object ProjectRepository {
     private val refreshMutex = Mutex()
-    private var loaded = false
+    private val snapshotState = ProjectSnapshotState()
     var loading by mutableStateOf(false)
         private set
     var projects by mutableStateOf<List<Project>>(emptyList())
@@ -26,10 +26,10 @@ object ProjectRepository {
      * reuse the same in-memory snapshot instead of requesting projects again.
      */
     suspend fun refresh(force: Boolean = false) = refreshMutex.withLock {
-        if (canReuseProjectSnapshot(force, loaded, errorMessage != null)) return@withLock
+        val attempt = snapshotState.beginRefresh(force, errorMessage != null) ?: return@withLock
         loading = true
         try {
-            projects = OmsApiClient.projects().map { api ->
+            val refreshed = OmsApiClient.projects().map { api ->
                 Project(
                     id = api.uuid,
                     projectType = api.projectType,
@@ -62,27 +62,28 @@ object ProjectRepository {
                     isArchived = api.isArchived
                 )
             }
-            loaded = true
-            errorMessage = null
+            if (snapshotState.accept(attempt)) {
+                projects = refreshed
+                errorMessage = null
+            }
         } catch (cancelled: CancellationException) {
             throw cancelled
         } catch (_: Exception) {
-            errorMessage = LocalizationManager.t("load_records_error")
+            if (snapshotState.isCurrent(attempt)) errorMessage = LocalizationManager.t("load_records_error")
         } finally {
             loading = false
         }
     }
 
+    /** Successful imports invalidate derived payment/context fields without blanking the UI. */
+    fun invalidate() = snapshotState.invalidate()
+
     fun clear() {
-        loaded = false
+        snapshotState.invalidate()
         projects = emptyList()
         errorMessage = null
     }
 }
-
-/** A failed forced refresh must not make a navigation retry reuse its error. */
-internal fun canReuseProjectSnapshot(force: Boolean, loaded: Boolean, failed: Boolean): Boolean =
-    !force && loaded && !failed
 
 private fun String.toProjectStatus(): ProjectStatus =
     runCatching { ProjectStatus.valueOf(uppercase()) }.getOrDefault(ProjectStatus.PLANNED)
