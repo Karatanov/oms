@@ -6,12 +6,7 @@ import java.math.RoundingMode
 
 /** Parse the source display value without passing financial cents through Double. */
 internal fun monitoringBudgetAmount(raw: String): BigDecimal? {
-    val compact = raw.replace(Regex("\\s|\u00a0"), "")
-    val normalized = when {
-        ',' in compact && '.' in compact -> compact.replace(",", "")
-        compact.matches(Regex("-?\\d{1,3}(,\\d{3})+")) -> compact.replace(",", "")
-        else -> compact.replace(',', '.')
-    }
+    val normalized = normalizeSourceNumericText(raw) ?: return null
     return normalized.toBigDecimalOrNull()?.takeIf { it.signum() >= 0 && it < MAX_BUDGET }
         ?.setScale(2, RoundingMode.HALF_UP)?.takeIf { it < MAX_BUDGET }
 }

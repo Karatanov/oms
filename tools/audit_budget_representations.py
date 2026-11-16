@@ -10,8 +10,17 @@ from decimal import Decimal, InvalidOperation
 
 def source_money(raw):
     compact = re.sub(r'\s', '', str(raw) if raw is not None else '')
-    if ',' in compact and '.' in compact or re.fullmatch(r'-?\d{1,3}(,\d{3})+', compact):
+    if ',' in compact and '.' in compact:
+        if re.fullmatch(r'[+-]?\d{1,3}(,\d{3})+\.\d+(?:[eE][+-]?\d+)?', compact):
+            compact = compact.replace(',', '')
+        elif re.fullmatch(r'[+-]?\d{1,3}(\.\d{3})+,\d+(?:[eE][+-]?\d+)?', compact):
+            compact = compact.replace('.', '').replace(',', '.')
+        else:
+            return None
+    elif re.fullmatch(r'[+-]?[1-9]\d{0,2}(,\d{3})+', compact):
         compact = compact.replace(',', '')
+    elif re.fullmatch(r'[+-]?[1-9]\d{0,2}(\.\d{3}){2,}', compact):
+        compact = compact.replace('.', '')
     else:
         compact = compact.replace(',', '.')
     try:

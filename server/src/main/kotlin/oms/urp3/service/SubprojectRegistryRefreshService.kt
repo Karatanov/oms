@@ -443,7 +443,7 @@ private object MonitoringWorkbookSource {
         val isAllocationSnapshot: Boolean = false
     ) {
         fun value(key: String) = values[key].orEmpty()
-        fun number(key: String) = monitoringSourceAmount(value(key)) ?: 0.0
+        fun number(key: String) = monitoringImportAmount(value(key), "$lotCode ($key)")
         /** Both approved workbook formats publish these legacy monetary attributes in UAH. */
         fun currency() = "UAH"
         fun date(key: String) = value(key).let { raw -> runCatching { LocalDate.parse(raw) }.getOrNull() }

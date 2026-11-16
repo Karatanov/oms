@@ -32,6 +32,31 @@ class PaymentSourceNumbersTest {
         assertEquals(0.995, item("100", "0,995%").plannedEibSharePct)
     }
 
+    @Test fun `mixed separator conventions preserve the same monetary value`() {
+        for (raw in listOf("1,234.56", "1.234,56", "+1,234.56", "+1.234,56")) {
+            assertEquals(1234.56, item(raw).paidUah, raw)
+        }
+        assertEquals(1234567.89, item("1.234.567,89").paidUah)
+        assertEquals(-1234.56, item("-1.234,56").paidUah)
+        assertEquals(123456.0, item("1.234,56e2").paidUah)
+        assertEquals(123456.0, item("1,234.56e2").paidUah)
+    }
+
+    @Test fun `invalid mixed grouping cannot silently create a different number`() {
+        for (raw in listOf("12,34.56", "12.34,56", "1,23,456.78", "1.23.456,78", "1,234.5.6")) {
+            assertFailsWith<IllegalArgumentException>(raw) { item(raw) }
+        }
+        assertFailsWith<IllegalArgumentException> { item("100", "12,34.56%") }
+    }
+
+    @Test fun `positive signs and multiple dot groups are unambiguous while a single dot stays decimal`() {
+        assertEquals(1234.0, item("+1,234").paidUah)
+        assertEquals(1234567.0, item("1.234.567").paidUah)
+        assertEquals(-1234567.0, item("-1.234.567").paidUah)
+        assertEquals(1.234, item("1.234").paidUah)
+        assertEquals(0.995, item("0,995").paidUah)
+    }
+
     @Test fun `nonfinite amounts are rejected and missing values are not invented`() {
         for (value in listOf("NaN", "Infinity", "-Infinity", "1e309")) {
             assertFailsWith<IllegalArgumentException>(value) { item(value) }

@@ -9,11 +9,18 @@ class BudgetRepresentationsTest(unittest.TestCase):
                     amounts={'budget': dict(amount=saved, convertedAmount='1000.25', currency=currency, conversionEdited=False)})
 
     def test_grouping_decimal_formats_zero_and_missing(self):
-        for text in ('1 234 567,89', '1,234,567.89'):
+        for text in ('1 234 567,89', '1,234,567.89', '1.234.567,89', '+1.234.567,89'):
             self.assertEqual(Decimal('1234567.89'), source_money(text))
         self.assertEqual(Decimal(0), source_money(0))
         self.assertIsNone(source_money(None))
         self.assertIsNone(source_money('NaN'))
+
+    def test_ambiguous_grouping_is_not_repaired_as_a_guessed_budget(self):
+        for text in ('12,34.56', '12.34,56', '1,234.5.6'):
+            self.assertIsNone(source_money(text))
+        self.assertEqual(Decimal('0.995'), source_money('0,995'))
+        self.assertEqual(Decimal('1234567'), source_money('1.234.567'))
+        self.assertIsNone(source_money('-1.234,56'))
 
     def test_whole_hryvnia_legacy_is_not_a_false_monetary_conflict(self):
         self.assertEqual('consistent_at_legacy_precision', classify(self.project())[0])

@@ -13,11 +13,14 @@ internal fun monitoringApprovedEibUah(registryJson: String?): Double? = registry
 
 /** Source snapshots can contain Excel display grouping, not just decimal JSON strings. */
 internal fun monitoringSourceAmount(value: String): Double? {
-    val compact = value.replace(Regex("\\s|\u00a0"), "")
-    val normalized = when {
-        compact.contains(',') && compact.contains('.') -> compact.replace(",", "")
-        compact.matches(Regex("-?\\d{1,3}(,\\d{3})+")) -> compact.replace(",", "")
-        else -> compact.replace(',', '.')
-    }
+    val normalized = normalizeSourceNumericText(value) ?: return null
     return normalized.toDoubleOrNull()?.takeIf { it.isFinite() && it >= 0.0 }
+}
+
+/** A rejected mixed format must abort import, not erase a saved budget via the missing-value fallback. */
+internal fun monitoringImportAmount(raw: String, sourceField: String): Double {
+    require(!(',' in raw && '.' in raw) || normalizeSourceNumericText(raw) != null) {
+        "Invalid numeric separators for $sourceField. Correct the source workbook."
+    }
+    return monitoringSourceAmount(raw) ?: 0.0
 }

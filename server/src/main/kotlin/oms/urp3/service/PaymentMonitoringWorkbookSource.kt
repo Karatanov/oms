@@ -284,16 +284,9 @@ object PaymentMonitoringWorkbookSource {
     }
 
     private fun parseNumber(value: String, percentage: Boolean = false): Double? {
-        val normalized = value.replace(Regex("\\s|\u00A0|\u202F"), "").removeSuffix("%")
-        if (normalized.isBlank()) return null
-        val decimal = when {
-            normalized.contains(',') && normalized.contains('.') -> normalized.replace(",", "")
-            // Three decimal places are meaningful for localized percentages.
-            // A leading zero also indicates a fraction, not a grouped money amount.
-            !percentage && normalized.matches(Regex("-?[1-9]\\d{0,2}(,\\d{3})+")) -> normalized.replace(",", "")
-            normalized.contains(',') -> normalized.replace(',', '.')
-            else -> normalized
-        }
+        val decimal = normalizeSourceNumericText(value.trim().removeSuffix("%"), percentage)
+            ?: throw IllegalArgumentException("Invalid mixed numeric separators in payment source: '$value'.")
+        if (decimal.isBlank()) return null
         return decimal.toDoubleOrNull().also {
             require(it == null || it.isFinite()) { "Non-finite numeric value in payment source: '$value'." }
         }

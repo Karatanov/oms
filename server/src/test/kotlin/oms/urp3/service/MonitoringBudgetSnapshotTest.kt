@@ -6,6 +6,16 @@ import java.time.LocalDate
 import kotlin.test.*
 
 class MonitoringBudgetSnapshotTest {
+    @Test fun `dashboard and saved budget parsing agree on supported localized source amounts`() {
+        for (raw in listOf("1,234.56", "1.234,56", "1\u202f234,56", "+1,234.56")) {
+            assertEquals(BigDecimal("1234.56"), monitoringBudgetAmount(raw), raw)
+            assertEquals(1234.56, monitoringSourceAmount(raw), raw)
+        }
+        assertEquals(BigDecimal("0.995"), monitoringSourceAmount("0,995")?.let(BigDecimal::valueOf))
+        assertNull(monitoringSourceAmount("12,34.56"))
+        assertNull(monitoringBudgetAmount("12,34.56"))
+        assertNull(monitoringBudgetAmount("-1.234,56"))
+    }
     private val saved = ProjectAmount(BigDecimal("960.00"), "UAH", BigDecimal("20.00"),
         BigDecimal("48.00000000"), LocalDate.of(2026, 1, 1), false)
 
