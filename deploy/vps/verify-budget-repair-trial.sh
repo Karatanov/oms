@@ -13,6 +13,8 @@ test -s "$plan"
 scratch="oms_budgettrial_$(date -u +%Y%m%d%H%M%S)"
 result="$backup/$scratch"
 mkdir "$result"
+cp "$plan" "$result/plan.sql"
+(cd "$result" && sha256sum plan.sql > plan.sha256)
 mysql_admin() {
   docker compose exec -T mysql sh -c 'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" exec mysql -uroot --default-character-set=utf8mb4 --batch --raw --skip-column-names "$@"' sh "$@"
 }
@@ -32,7 +34,7 @@ invariants() {
 }
 bash /docker/oms/export-budget-representations.sh "$scratch" > "$result/before.jsonl"
 invariants > "$result/invariants-before.sha256"
-mysql_admin "$scratch" < "$plan" > "$result/applied-counts.tsv"
+mysql_admin "$scratch" < "$result/plan.sql" > "$result/applied-counts.tsv"
 invariants > "$result/invariants-after.sha256"
 cmp "$result/invariants-before.sha256" "$result/invariants-after.sha256"
 bash /docker/oms/export-budget-representations.sh "$scratch" > "$result/after.jsonl"

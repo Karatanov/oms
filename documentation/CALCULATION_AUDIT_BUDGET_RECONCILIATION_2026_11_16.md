@@ -2,9 +2,11 @@
 
 ## Status
 
-Review and isolated database trial completed. **Production financial data has not
-been changed by this repair.** These scripts are operator tools, not migrations;
-deployment alone does not execute them.
+Review, isolated database trial and guarded production repair completed. The
+production after-state has been verified against the manifest. Import prevention
+is implemented and tested locally; deployment status is reported separately.
+These scripts are operator tools, not migrations; deployment alone does not
+execute them.
 
 ## Evidence and scope
 
@@ -62,13 +64,49 @@ plan rather than partially committing it.
    selected by this trial script.
 4. CI runs the offline planner regressions.
 
-Production application of the reviewed repair remains pending. Before applying,
+For any future application of a reviewed repair,
 take/revalidate a fresh backup, repeat the trial if source data changed, compare
 the live export to the reviewed before-state, run the guarded transaction and
 verify the live result. Do not blindly replay an old plan.
 
-Prevention also remains open: `SubprojectRegistryRefreshService.saveProject`
-updates the legacy budget but does not synchronize existing budget snapshots.
-The representative-row policy for multi-lot parents needs separate verification
-before changing import behavior. This checkpoint does not claim that the import
-root cause has been corrected or that all financial calculations are audited.
+## Production repair and import prevention follow-up
+
+A fresh backup `/docker/oms/backups/registry-20261116T120725Z` was restored and
+trialled successfully at `oms_budgettrial_20261116120748`. The trial records an
+SHA-256 digest of the exact SQL. `apply-budget-repair.sh` checked that digest,
+the successful backup restore/trial markers and exact equality between the live
+export and reviewed trial before-state before applying the guarded transaction.
+
+The live transaction changed exactly 9 legacy budgets and 47 snapshots. The
+after-state verifier checked all 331 exported records: only the planned fields
+changed. Replanning returns zero eligible changes. An independent production API
+and raw-source audit reports 179 consistent saved snapshots, one excluded
+inconsistent-rate snapshot (`KH08_07#Lot6`), 45 records without snapshots and 106
+without raw source budgets. Missing snapshots/source budgets are not inferred
+errors and have not been invented by this repair.
+
+Verified code-level causes and corrections:
+
+- `SubprojectRegistryRefreshService.saveProject` updated the legacy budget but
+  left existing `project_amounts` budget snapshots stale. Refresh now locks the
+  exact project's existing budget snapshot and updates original/equivalent
+  amounts in the same import transaction. No new FX rate or snapshot is created;
+  manually edited conversions, EUR originals and inconsistent frozen rates are
+  protected. Duplicate budget snapshots fail the whole import transaction.
+- A representative lot could overwrite the existing parent's budget. An
+  existing parent budget is now changed only by a row with that parent's own code,
+  never by a representative child lot. This does not introduce a new aggregation
+  rule for newly synthesized parents; that separate policy still needs review.
+- `MonitoringBudgetSnapshot.kt` parses original source cents with BigDecimal,
+  reuses the saved rate and checks monetary column limits. Blank or invalid
+  funding is not treated as a new zero snapshot; an explicit zero is supported.
+
+Executed checks: 101 focused Kotlin tests (including four new budget conversion
+regressions), 1,000 existing decimal reconciliation fixtures, 14 offline Python
+tests, full server source compilation with Kotlin 2.3 and existing dependencies,
+and remote Bash syntax checks. The direct compiler bypasses the local Gradle
+loopback limitation; it is not claimed as a Gradle build. Existing unrelated
+compiler warnings remain. No browser or live workbook re-import test is claimed;
+the known invalid physical completion in the current online workbook must not
+be bypassed merely to exercise this correction. Full CI/deployment results are
+tracked separately. The wider formula audit is not claimed complete.

@@ -1,9 +1,11 @@
 package oms.urp3.service
 
 import oms.urp3.database.tables.ProjectMonitoringDetailTable
+import oms.urp3.database.tables.ProjectAmountTable
 import oms.urp3.database.tables.ProjectTable
 import oms.urp3.database.tables.UserTable
 import oms.urp3.domain.ProjectType
+import oms.urp3.domain.ProjectAmount
 import oms.urp3.repository.UserRepository
 import org.apache.poi.ss.usermodel.Cell
 import org.apache.poi.ss.usermodel.CellType
@@ -12,6 +14,7 @@ import org.apache.poi.ss.usermodel.DateUtil
 import org.apache.poi.ss.usermodel.WorkbookFactory
 import org.jetbrains.exposed.v1.core.dao.id.EntityID
 import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.insertAndGetId
 import org.jetbrains.exposed.v1.jdbc.selectAll
@@ -189,6 +192,23 @@ class SubprojectRegistryRefreshService(
             val monitoringByProjectId = ProjectMonitoringDetailTable.selectAll()
                 .associateBy { it[ProjectMonitoringDetailTable.projectId].value }
 
+            fun refreshBudgetSnapshot(projectId: Long, row: MonitoringWorkbookSource.Row) {
+                val snapshots = ProjectAmountTable.selectAll().where {
+                    (ProjectAmountTable.projectId eq projectId) and (ProjectAmountTable.kind eq "budget")
+                }.forUpdate().toList()
+                require(snapshots.size <= 1) { "Ambiguous budget snapshots for ${row.lotCode}." }
+                val saved = snapshots.singleOrNull() ?: return
+                val refreshed = refreshedMonitoringBudget(row.value("fundingTotal"), ProjectAmount(
+                    saved[ProjectAmountTable.amount], saved[ProjectAmountTable.currency],
+                    saved[ProjectAmountTable.convertedAmount], saved[ProjectAmountTable.uahPerEur],
+                    saved[ProjectAmountTable.rateDate], saved[ProjectAmountTable.conversionEdited]
+                )) ?: return
+                ProjectAmountTable.update({ ProjectAmountTable.id eq saved[ProjectAmountTable.id] }) {
+                    it[ProjectAmountTable.amount] = refreshed.amount
+                    it[ProjectAmountTable.convertedAmount] = refreshed.convertedAmount
+                }
+            }
+
             fun saveProject(
                 code: String,
                 type: ProjectType,
@@ -198,6 +218,8 @@ class SubprojectRegistryRefreshService(
                 val existingProjectId = projectIdByCode[code.uppercase()]
                 val tranche = row.trancheNumber()
                 val budget = row.number("fundingTotal").coerceAtLeast(0.0).toLong()
+                // A representative lot supplies parent labels, not its total funding.
+                val ownsBudget = row.lotCode.equals(code, true)
                 val contract = row.number("contractedTotal").takeIf { it > 0 }?.toLong()
                 val contractDate = row.date("contractDate")
                 val contractEnd = row.date("contractEndDate")
@@ -239,7 +261,7 @@ class SubprojectRegistryRefreshService(
                         it[ProjectTable.region] = row.region()
                         it[ProjectTable.sector] = row.value("priority")
                         it[ProjectTable.constructionType] = row.constructionType()
-                        it[ProjectTable.budgetPlanned] = budget
+                        if (ownsBudget) it[ProjectTable.budgetPlanned] = budget
                         it[ProjectTable.currency] = row.currency()
                         it[ProjectTable.subprojectContractAmount] = contract
                         it[ProjectTable.contractSignedDate] = contractDate
@@ -259,7 +281,7 @@ class SubprojectRegistryRefreshService(
                     ProjectTable.update({ ProjectTable.id eq id }) {
                         it[ProjectTable.trancheNumber] = tranche
                         it[ProjectTable.region] = row.region()
-                        it[ProjectTable.budgetPlanned] = budget
+                        if (ownsBudget) it[ProjectTable.budgetPlanned] = budget
                         row.constructionType()?.let { construction -> it[ProjectTable.constructionType] = construction }
                         it[ProjectTable.sector] = oms.urp3.preferredSourceSector(row.value("priority"), sectorByProjectId[id].orEmpty())
                         it[ProjectTable.currency] = row.currency()
@@ -298,6 +320,7 @@ class SubprojectRegistryRefreshService(
                     oms.urp3.preferredSourceSector(previousValues["priority"].orEmpty(), sectorByProjectId[projectId].orEmpty())
                 )) else mergedValues
                 val mergedRow = row.copy(values = values)
+                refreshBudgetSnapshot(projectId, row)
                 if (old == null) {
                     ProjectMonitoringDetailTable.insert {
                         it[ProjectMonitoringDetailTable.projectId] = EntityID(projectId, ProjectTable)
