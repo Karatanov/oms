@@ -8,9 +8,10 @@ import kotlinx.serialization.json.Json
 class PhysicalCompletionScopeTest {
     private fun row(code: String, pct: Double, complete: Boolean = true) =
         ApiSubprojectProgress(code, code, code, completionPct = pct, hasCompleteAmounts = complete)
-    @Test fun flaggedPlaceholderIsNotARealZeroOrAPartialChart() {
+    @Test fun onlyFlaggedProjectsAreExcludedAndValidBarsRemainVisible() {
         val selected = listOf(row("valid", 30.0), row("invalid", 0.0, false))
-        assertTrue(physicalCompletionSeries(selected).items.isEmpty())
+        assertEquals(listOf(selected.first()), physicalCompletionSeries(selected).items)
+        assertEquals(listOf("invalid"), physicalCompletionSeries(selected).excludedCodes)
         assertEquals(1, physicalCompletionSeries(selected).unavailableProjects)
         assertEquals(listOf(selected.first()), physicalCompletionSeries(selected.take(1)).items)
     }
@@ -23,6 +24,14 @@ class PhysicalCompletionScopeTest {
         assertEquals(1, physicalCompletionSeries(listOf(row("bad", Double.NaN))).unavailableProjects)
         assertEquals(0, physicalCompletionSeries(listOf(row("fixed", 20.0))).unavailableProjects)
         assertEquals(0, physicalCompletionSeries(emptyList()).unavailableProjects)
+    }
+    @Test fun allInvalidSelectionIsEmptyAndRefreshRestoresThePreviouslyExcludedProject() {
+        val bad = row("bad", 0.0, false)
+        assertTrue(physicalCompletionSeries(listOf(bad)).items.isEmpty())
+        assertEquals(listOf("bad"), physicalCompletionSeries(listOf(bad)).excludedCodes)
+        val refreshed = bad.copy(hasCompleteAmounts = true, completionPct = 42.0)
+        assertEquals(listOf(refreshed), physicalCompletionSeries(listOf(refreshed)).items)
+        assertTrue(physicalCompletionSeries(listOf(refreshed)).excludedCodes.isEmpty())
     }
     @Test fun legacyResponsesRemainReadableAndExplicitUnavailableFlagIsPreserved() {
         val old = Json.decodeFromString<ApiSubprojectProgress>("""{"projectUuid":"old","name":"Old","completionPct":0}""")

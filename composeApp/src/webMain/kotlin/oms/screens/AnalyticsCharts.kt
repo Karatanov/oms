@@ -298,6 +298,9 @@ fun SubprojectCompletionChart(
     val selected = items.filter { regionFilter == null || canonicalUkraineRegion(it.region) == regionFilter }
     val series = physicalCompletionSeries(selected)
     val unavailable = series.unavailableProjects
+    val excludedNote = LocalizationManager.t("physical_completion_incomplete")
+        .replace("{count}", unavailable.toString()).replace("{codes}", series.excludedCodes.joinToString(", "))
+        .takeIf { unavailable > 0 }
     val data = series.items.asSequence()
         .sortedBy { it.code }
         .map { item ->
@@ -317,21 +320,21 @@ fun SubprojectCompletionChart(
         valueLabel = { paymentPercentageLabel(it.toDouble()) },
         labelMaxLines = 2,
         filterContent = {
-            FilterDropdown(
-                label = LocalizationManager.t("region"),
-                options = regions,
-                selected = regionFilter,
-                onSelect = { regionFilter = it },
-                itemLabel = ::localizedUkraineRegion
-            )
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                FilterDropdown(
+                    label = LocalizationManager.t("region"),
+                    options = regions,
+                    selected = regionFilter,
+                    onSelect = { regionFilter = it },
+                    itemLabel = ::localizedUkraineRegion
+                )
+                excludedNote?.let { Text(it, style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant) }
+            }
         },
         orientation = orientation,
         sortEnabled = true,
-        emptyContent = {
-            if (unavailable > 0) oms.components.ContentState(
-                LocalizationManager.t("physical_completion_incomplete").replace("{count}", unavailable.toString()), error = true
-            ) else Text(LocalizationManager.t("no_chart_data"))
-        }
+        exportNote = excludedNote
     )
 }
 
@@ -559,7 +562,8 @@ private fun AnalyticsCard(
     sortEnabled: Boolean = false,
     currency: String? = null,
     titleSuffix: String? = null,
-    emptyContent: (@Composable () -> Unit)? = null
+    emptyContent: (@Composable () -> Unit)? = null,
+    exportNote: String? = null
 ) {
     var sortCriterion by remember { mutableStateOf<ChartSortCriterion?>(null) }
     var sortAscending by remember { mutableStateOf(true) }
@@ -587,7 +591,8 @@ private fun AnalyticsCard(
                     orientation = orientation,
                     showDataLabels = true,
                     valueLabel = valueLabel,
-                    subtitle = hintKey?.let(LocalizationManager::t),
+                    subtitle = listOfNotNull(hintKey?.let(LocalizationManager::t), exportNote)
+                        .joinToString("\n").takeIf(String::isNotBlank),
                     currency = currency
                 )
                 onExpandedChange?.let { onToggle ->
