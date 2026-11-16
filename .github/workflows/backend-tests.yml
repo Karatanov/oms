@@ -34,6 +34,8 @@ jobs:
         run: python3 -m unittest discover -s tools -p test_registry_percentage_repair.py
       - name: Budget representation classification regressions (offline)
         run: python3 -m unittest discover -s tools -p test_budget_representations.py
+      - name: Budget reconciliation planner regressions (offline)
+        run: python3 -m unittest discover -s tools -p test_budget_snapshot_repair.py
       - uses: actions/setup-java@v6
         with:
           distribution: temurin
