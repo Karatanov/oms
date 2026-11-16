@@ -58,7 +58,6 @@ internal fun RegionalFinancingChart(items: List<RegionalFinancingAmount>, loadin
                 }
             }
             if (expanded) {
-                Text(LocalizationManager.t("regional_financing_hint"), style = MaterialTheme.typography.bodySmall)
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     listOf(planLabel to planColor, paidLabel to paidColor).forEach { (label, color) ->
                         Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
