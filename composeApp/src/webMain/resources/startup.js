@@ -307,7 +307,10 @@
         report(value, messageKey || "interface");
     };
     window.completeOmsStartup = () => {
-        if (failed) return;
+        // Compose calls this only after painting two frames. A watchdog or
+        // transient resource error may have fired while its bundle was still
+        // arriving; that earlier failure must not cover a now usable UI.
+        failed = false;
         report(100, "ready");
         clearWatchdog();
         performance.mark("oms-dashboard-handoff");

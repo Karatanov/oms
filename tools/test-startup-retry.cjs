@@ -44,6 +44,15 @@ const app = fs.readFileSync('composeApp/src/webMain/resources/index.html', 'utf8
 
     await page.goto(`${origin}/app.html#dashboard`);
     await page.getByRole('button', { name: 'Повторити' }).waitFor();
+    // An earlier error/timeout is not proof that Compose will never finish.
+    // Its explicit ready signal must recover without requiring a hard reload.
+    await page.evaluate(() => finishOmsStartup());
+    await page.waitForFunction(() => !document.querySelector('#oms-loading-overlay.visible'));
+    assert.equal(await page.locator('#oms-startup-percent').textContent(), '100%');
+    assert.equal(await page.locator('#oms-startup-retry').isHidden(), true);
+    firstBundle = true;
+    await page.reload();
+    await page.getByRole('button', { name: 'Повторити' }).waitFor();
     await page.getByRole('button', { name: 'Повторити' }).click();
     await page.waitForFunction(() => !document.querySelector('#oms-loading-overlay.visible'));
     assert.match(retriedBundleUrl, /composeApp\.js\?omsRetry=\d+/, 'retry must execute a cache-busting bundle URL');
@@ -55,7 +64,7 @@ const app = fs.readFileSync('composeApp/src/webMain/resources/index.html', 'utf8
     await page.goto(`${origin}/app.html`);
     assert.equal(await page.locator('#oms-startup-status').isHidden(), true, 'login must clear a stale startup hand-off');
     assert.equal(await page.evaluate(() => sessionStorage.getItem('oms.startup')), null, 'stale startup state must be removed on login');
-    console.log('PASS startup retry: fresh bundle URL, successful handoff, route preserved');
+    console.log('PASS startup retry: late readiness recovery, fresh bundle URL, successful handoff, route preserved');
   } finally {
     await browser.close();
   }
