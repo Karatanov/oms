@@ -335,8 +335,13 @@ private val paymentSourceUsDateFormat = java.time.format.DateTimeFormatter
  */
 internal fun parsePaymentWorkbookDate(value: String): java.time.LocalDate? {
     val text = value.trim()
-    return runCatching { java.time.LocalDate.parse(text.take(10)) }.getOrNull()
+    // Consume the whole field: a valid ISO prefix followed by a status is not proof of payment.
+    val timestamp = if (text.getOrNull(10) == ' ') text.replaceRange(10, 11, "T") else text
+    return runCatching { java.time.LocalDate.parse(text, java.time.format.DateTimeFormatter.ISO_DATE) }.getOrNull()
         ?: runCatching { java.time.LocalDate.parse(text, paymentSourceUsDateFormat) }.getOrNull()
+        ?: runCatching {
+            java.time.LocalDate.from(java.time.format.DateTimeFormatter.ISO_DATE_TIME.parse(timestamp))
+        }.getOrNull()
 }
 
 /** Handles both plain `CODE_TS` and contract-row `CODE_TS$1` identifiers. */

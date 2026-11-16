@@ -21,6 +21,8 @@ $textEncodingArgs = @('-Dstdout.encoding=UTF-8', '-Dstderr.encoding=UTF-8')
 node tools/build-display-currency-audit.cjs
 if ($LASTEXITCODE -ne 0) { throw 'DTO fixture generation failed' }
 $sources = @(
+    'server/src/test/kotlin/oms/urp3/service/PaymentWorkbookDateTest.kt',
+    'server/src/test/kotlin/oms/urp3/service/PaymentWorkbookDatePolicyTest.kt',
     'composeApp/src/webMain/kotlin/oms/data/ProjectSnapshotState.kt',
     'composeApp/src/webTest/kotlin/oms/urp3/ProjectSnapshotStateTest.kt',
     'composeApp/src/webTest/kotlin/oms/urp3/ProjectSnapshotRetryTest.kt',
@@ -105,6 +107,10 @@ $sources = @(
 $serializationPlugin = @(Jars @('org.jetbrains.kotlin/kotlin-serialization-compiler-plugin-embeddable/2.3.0'))[0]
 & $java @textEncodingArgs -cp ($compiler -join ';') org.jetbrains.kotlin.cli.jvm.K2JVMCompiler -no-stdlib -no-reflect "-Xplugin=$serializationPlugin" -classpath ($deps -join ';') -d $testOutput @sources
 if ($LASTEXITCODE -ne 0) { throw 'Focused Kotlin compilation failed' }
+& $java @textEncodingArgs -cp ($deps -join ';') org.junit.runner.JUnitCore oms.urp3.service.PaymentWorkbookDateTest
+if ($LASTEXITCODE -ne 0) { throw 'Payment workbook date integration failed' }
+& $java @textEncodingArgs -cp ($deps -join ';') org.junit.runner.JUnitCore oms.urp3.service.PaymentWorkbookDatePolicyTest
+if ($LASTEXITCODE -ne 0) { throw 'Payment date full-string validation failed' }
 & $java @textEncodingArgs -cp ($deps -join ';') org.junit.runner.JUnitCore oms.urp3.ProjectSnapshotStateTest oms.urp3.ProjectSnapshotRetryTest
 if ($LASTEXITCODE -ne 0) { throw 'Project snapshot refresh generation failed' }
 & $java @textEncodingArgs -cp ($deps -join ';') org.junit.runner.JUnitCore oms.urp3.service.PaymentMonitoringConcurrencyTest
