@@ -273,26 +273,21 @@ fun Route.financialRoutes() {
         val disbursedBySubprojectId = oms.urp3.service.financialProgressPayments(
             sourceTransactions, subprojectByBaseCode.mapValues { it.value.id }, requestedYear
         ) {
-            AppContainer.financialRecordService.getAll()
+            oms.urp3.service.financialPaymentTotals(AppContainer.financialRecordService.getAll()
                 .asSequence()
                 .filter { it.recordType == FinancialRecordType.PAYMENT || it.recordType == FinancialRecordType.ADVANCE }
                 .filter { it.paymentPurpose.equals("works", ignoreCase = true) }
                 .filter { requestedYear == null || (it.paymentDate ?: it.recordDate).year == requestedYear }
                 .mapNotNull { record ->
                     val subproject = parentSubproject(record.projectId) ?: return@mapNotNull null
-                    val uah = oms.urp3.service.financialDisplayCents(record, "UAH")
-                        ?.let { it / 100.0 } ?: return@mapNotNull null
-                    subproject.id to uah
+                    subproject.id to oms.urp3.service.financialDisplayCents(record, "UAH")
                 }
-                .groupBy({ it.first }, { it.second })
-                .mapValues { (_, amounts) -> amounts.sum() }
+                .toList())
         }
-        data class Aggregate(var contract: Double = 0.0, var completed: Double = 0.0)
         fun aggregate(label: (oms.urp3.domain.Project) -> String, canonical: (String) -> String): List<FinancialProgressItemResponse> {
-            val rows = linkedMapOf<String, Aggregate>()
+            val rows = linkedMapOf<String, MutableList<oms.urp3.service.FinancialProgressContribution>>()
             subprojects.forEach { subproject ->
                 val key = canonical(label(subproject).trim().ifBlank { "Unspecified" })
-                val totals = rows.getOrPut(key) { Aggregate() }
                 // A source may explicitly store a zero/blank construction
                 // contract while payments have already been imported.  Zero
                 // must not become the denominator in that case: use the
@@ -303,15 +298,17 @@ fun Route.financialRoutes() {
                 )
                 val executionBase = financialProgressBase(sourceWorksAmount,
                     subproject.subprojectContractAmount?.toDouble(), subproject.budgetPlanned.toDouble())
-                totals.contract += executionBase
-                totals.completed += disbursedBySubprojectId[subproject.id] ?: 0.0
+                val paid = if (disbursedBySubprojectId.containsKey(subproject.id)) disbursedBySubprojectId[subproject.id] else 0.0
+                rows.getOrPut(key) { mutableListOf() } += oms.urp3.service.FinancialProgressContribution(executionBase, paid)
             }
-            return rows.map { (label, totals) ->
+            return rows.map { (label, contributions) ->
+                val totals = oms.urp3.service.financialProgressGroupTotal(contributions)
                 FinancialProgressItemResponse(
                     label = label,
-                    contractAmountUah = totals.contract,
-                    completedAmountUah = totals.completed,
-                    completionPct = financialProgressPercentage(totals.completed, totals.contract)
+                    contractAmountUah = totals.contractUah,
+                    completedAmountUah = totals.paidUah ?: 0.0,
+                    completionPct = totals.paidUah?.let { financialProgressPercentage(it, totals.contractUah) } ?: 0.0,
+                    hasCompleteAmounts = totals.paidUah != null
                 )
             }.sortedBy { it.label }
         }

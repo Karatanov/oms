@@ -34,6 +34,7 @@ $sources = @(
     'server/src/main/kotlin/oms/urp3/service/ProjectDisbursements.kt',
     'server/src/main/kotlin/oms/urp3/service/ProjectFinancialExecution.kt',
     'server/src/main/kotlin/oms/urp3/service/FinancialProgressPayments.kt',
+    'server/src/test/kotlin/oms/urp3/service/FinancialProgressPaymentsTest.kt',
     'server/src/main/kotlin/oms/urp3/service/DashboardFundingRules.kt',
     'server/src/main/kotlin/oms/urp3/service/MonitoringCompletion.kt',
     'server/src/test/kotlin/oms/urp3/service/MonitoringCompletionTest.kt',
@@ -62,6 +63,8 @@ $sources = @(
     'build/calculation-audit/ApiFinancialSummary.kt',
     'build/calculation-audit/ApiMonthlyActPayment.kt',
     'build/calculation-audit/ApiSubprojectProgress.kt',
+    'build/calculation-audit/ApiFinancialProgressItem.kt',
+    'composeApp/src/webTest/kotlin/oms/urp3/FinancialProgressAvailabilityTest.kt',
     'composeApp/src/webMain/kotlin/oms/screens/PhysicalCompletionScope.kt',
     'composeApp/src/webTest/kotlin/oms/urp3/PhysicalCompletionScopeTest.kt',
     'composeApp/src/webMain/kotlin/oms/screens/MonthlyAmountProjection.kt',
@@ -99,6 +102,8 @@ if ($LASTEXITCODE -ne 0) { throw 'Project/lot financial execution failed' }
 if ($LASTEXITCODE -ne 0) { throw 'Physical completion source validation failed' }
 & $java @textEncodingArgs -cp ($deps -join ';') org.junit.runner.JUnitCore oms.screens.RegionalFinancingTest
 if ($LASTEXITCODE -ne 0) { throw 'Regional planned/actual financing failed' }
+& $java @textEncodingArgs -cp ($deps -join ';') org.junit.runner.JUnitCore oms.urp3.service.FinancialProgressPaymentsTest oms.urp3.FinancialProgressAvailabilityTest
+if ($LASTEXITCODE -ne 0) { throw 'Financial progress completeness failed' }
 & $java @textEncodingArgs -cp ($deps -join ';') oms.urp3.service.DisplayCurrencyAuditKt
 if ($LASTEXITCODE -ne 0) { throw 'Frontend decimal reconciliation failed' }
 & $java @textEncodingArgs -cp ($deps -join ';') oms.screens.MonthlyAggregationAuditKt

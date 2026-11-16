@@ -19,6 +19,10 @@ const physicalDto = source.match(/data class ApiSubprojectProgress\([\s\S]*?^\)/
 if (!physicalDto) throw Error('Cannot locate the exact ApiSubprojectProgress declaration');
 fs.writeFileSync(path.join(output, 'ApiSubprojectProgress.kt'),
   'package oms.data\nimport kotlinx.serialization.Serializable\n@Serializable\n' + physicalDto + '\n');
+const progressDto = source.match(/data class ApiFinancialProgressItem\([\s\S]*?^\)/m)?.[0];
+if (!progressDto) throw Error('Cannot locate the exact ApiFinancialProgressItem declaration');
+fs.writeFileSync(path.join(output, 'ApiFinancialProgressItem.kt'),
+  'package oms.data\nimport kotlinx.serialization.Serializable\n@Serializable\n' + progressDto + '\n');
 const paymentDtos = ['ApiPaymentMonitoringItem', 'ApiPaymentMonitoringTransaction'].map(name => {
   const declaration = source.match(new RegExp(`data class ${name}\\([\\s\\S]*?^\\)`, 'm'))?.[0];
   if (!declaration) throw Error(`Cannot locate exact ${name} declaration`);

@@ -18,7 +18,8 @@ data class FinancialProgressItemResponse(
     val label: String,
     val contractAmountUah: Double,
     val completedAmountUah: Double,
-    val completionPct: Double
+    val completionPct: Double,
+    val hasCompleteAmounts: Boolean = true
 )
 
 @Serializable

@@ -1342,17 +1342,19 @@ private fun FinancialProgressCard(
                 Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Text(label, Modifier.weight(1f), maxLines = 2)
-                        Text("${item.completionPct.roundToInt()}%", color = MaterialTheme.colorScheme.primary)
+                        Text(if (item.hasCompleteAmounts) "${item.completionPct.roundToInt()}%" else "—", color = MaterialTheme.colorScheme.primary)
                     }
-                    LinearProgressIndicator(
+                    if (item.hasCompleteAmounts) LinearProgressIndicator(
                         progress = { (item.completionPct / 100.0).toFloat().coerceIn(0f, 1f) },
                         modifier = Modifier.fillMaxWidth()
                     )
                     Text(
-                        "${item.completedAmountUah.formatUiAmount()} ${LocalizationManager.currencyLabel("UAH")} / ${item.contractAmountUah.formatUiAmount()} ${LocalizationManager.currencyLabel("UAH")}",
+                        "${if (item.hasCompleteAmounts) item.completedAmountUah.formatUiAmount() else "—"} ${LocalizationManager.currencyLabel("UAH")} / ${item.contractAmountUah.formatUiAmount()} ${LocalizationManager.currencyLabel("UAH")}",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                    if (!item.hasCompleteAmounts) Text(LocalizationManager.t("financial_progress_incomplete_amount"),
+                        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
                 }
             }
             if (expanded && compactInitially && sortedItems.size > initialItemCount) {
