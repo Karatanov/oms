@@ -59,8 +59,9 @@ data class DashboardNationalSummary(
     val signedContractsAmountUah: Double,
     val servicesPaidEurCents: Long,
     val servicesPaidUahCents: Long?,
-    /** Actual paid amount multiplied by the factual EIB share from the approved payment-monitoring register. */
-    val eibPaidUnderContractsUah: Double? = null
+    /** Actual paid amount from primary rows of the approved payment-monitoring register. */
+    val eibPaidUnderContractsUah: Double? = null,
+    val hasCompleteServicesPaidEurAmounts: Boolean = true
 )
 /**
  * Signed-contract indicators mirrored from the engineering dashboard.  The
@@ -561,7 +562,9 @@ class DashboardService(
         val signedContracts = procurementRecords.filter { record ->
             isConstructionContractSigned(record[ProcurementRecordTable.purchaseStatus])
         }
-        val servicesPaidUah = paymentRecords.mapNotNull { it.amountUahCents() }
+        val servicesPaid = dashboardPaymentTotals(paymentRecords.map {
+            it.frozenAmountCents("EUR") to it.amountUahCents()
+        })
         // Primary monitoring rows carry approved amounts actually paid.
         // Their factual-share column is an execution ratio, not a multiplier
         // for deriving an EIB contribution from these already-paid amounts.
@@ -590,9 +593,11 @@ class DashboardService(
             approvedFundingEur = approvedFundingEur,
             signedContractsCount = signedContracts.uniqueProcurements().size.toLong(),
             signedContractsAmountUah = dashboardAmountTotal(signedContracts.uniqueProcurements().asSequence().map(::signedContractAmount)),
-            servicesPaidEurCents = paymentRecords.sumOf { it[FinancialRecordTable.amountEurCents] ?: 0L },
-            servicesPaidUahCents = servicesPaidUah.takeIf { it.size == paymentRecords.size }?.sum(),
-            eibPaidUnderContractsUah = eibPaidUnderContractsUah
+            // Retain the cached-client wire type; the completeness flag is authoritative.
+            servicesPaidEurCents = servicesPaid.eurCents ?: 0L,
+            servicesPaidUahCents = servicesPaid.uahCents,
+            eibPaidUnderContractsUah = eibPaidUnderContractsUah,
+            hasCompleteServicesPaidEurAmounts = servicesPaid.eurCents != null
         )
         fun report(row: org.jetbrains.exposed.v1.core.ResultRow) = InspectionReport(
             row[InspectionReportTable.id].value, UUID.fromString(row[InspectionReportTable.uuid]), row[InspectionReportTable.projectId].value,

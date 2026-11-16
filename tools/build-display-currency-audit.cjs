@@ -7,6 +7,10 @@ const model = source.match(/^data class ApiFinancialRecord\([\s\S]*?^\)/m)?.[0];
 if (!model) throw Error('Cannot locate the exact ApiFinancialRecord declaration');
 const output = 'build/calculation-audit';
 fs.mkdirSync(output, {recursive: true});
+const nationalSummary = source.match(/data class ApiDashboardNationalSummary\([\s\S]*?^\)/m)?.[0];
+if (!nationalSummary) throw Error('Cannot locate exact ApiDashboardNationalSummary declaration');
+fs.writeFileSync(path.join(output, 'ApiDashboardNationalSummary.kt'),
+  'package oms.data\nimport kotlinx.serialization.Serializable\n@Serializable\n' + nationalSummary + '\n');
 const summary = source.match(/^data class ApiFinancialSummary\([\s\S]*?^\)/m)?.[0];
 if (!summary) throw Error('Cannot locate the exact ApiFinancialSummary declaration');
 fs.writeFileSync(path.join(output, 'ApiFinancialSummary.kt'),

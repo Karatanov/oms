@@ -55,7 +55,8 @@ fun Route.dashboardRoutes() {
                     overview.nationalSummary.signedContractsAmountUah,
                     overview.nationalSummary.servicesPaidEurCents,
                     overview.nationalSummary.servicesPaidUahCents,
-                    overview.nationalSummary.eibPaidUnderContractsUah
+                    overview.nationalSummary.eibPaidUnderContractsUah,
+                    overview.nationalSummary.hasCompleteServicesPaidEurAmounts
                 )
             )
         )
