@@ -50,6 +50,18 @@ class FinancialProgressPaymentsTest {
         assertEquals(null, financialProgressSourceWorks(null, listOf(null, 0.0, Double.NaN, -1.0)))
     }
 
+    @Test fun `lot denominator cents do not accumulate binary tails`() {
+        assertEquals(0.3, financialProgressSourceWorks(null, listOf(0.1, 0.2)))
+        assertEquals(0.3, financialProgressSourceWorks(0.0, listOf(0.2, null, 0.1)))
+        assertEquals(1.25, financialProgressSourceWorks(1.25, listOf(0.1, 0.2)))
+    }
+
+    @Test fun `lot denominator preserves source precision without per lot rounding`() {
+        assertEquals(0.009, financialProgressSourceWorks(null, listOf(0.005, 0.004)))
+        assertEquals(0.6, financialProgressSourceWorks(null, listOf(0.1, 0.2, 0.3)))
+        assertEquals(0.6, financialProgressSourceWorks(null, listOf(0.3, 0.2, 0.1)))
+    }
+
     private fun payment(code: String, amount: Double, year: Int = 2026) =
         PaymentMonitoringWorkbookSource.Transaction(code, code, 8, LocalDate.of(year, 2, 1), amount, null, "test")
 

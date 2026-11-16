@@ -28,7 +28,9 @@ internal fun financialWorksExecutionBase(sourceWorks: Double?, storedContract: D
 /** A parent total and its component lots are alternative bases, never additive. */
 internal fun financialProgressSourceWorks(parentAmount: Double?, lotAmounts: List<Double?>): Double? =
     parentAmount?.takeIf { it.isFinite() && it > 0.0 }
-        ?: lotAmounts.filterNotNull().filter { it.isFinite() && it > 0.0 }.sum().takeIf { it > 0.0 }
+        ?: lotAmounts.filterNotNull().filter { it.isFinite() && it > 0.0 }
+            .fold(BigDecimal.ZERO) { total, amount -> total.add(BigDecimal.valueOf(amount)) }
+            .toDouble().takeIf { it > 0.0 }
 
 /** A persisted empty register is authoritative, not a reason to revive legacy payments. */
 internal fun financialProgressPayments(
