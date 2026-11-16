@@ -14,3 +14,13 @@ internal fun validateMonitoringCompletion(value: String, code: String, cell: Str
         "Invalid physical work completion for $code at $cell: '$value'. Expected 0–100%. Correct the source workbook; the existing registry was not replaced."
     }
 }
+
+/** A valid reported completion wins; an invalid source must never be hidden by an ACT fallback. */
+internal fun physicalWorkCompletedAmount(
+    reportedAmount: Double?, actualAmount: Double?, hasActualAmount: Boolean, invalidSource: Boolean
+): Double? = when {
+    invalidSource -> null
+    reportedAmount != null -> reportedAmount.takeIf(Double::isFinite)
+    hasActualAmount -> actualAmount?.takeIf(Double::isFinite)
+    else -> 0.0
+}

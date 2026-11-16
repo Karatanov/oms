@@ -368,11 +368,11 @@ private fun dashboardSubprojectProgress(
             current = project[ProjectTable.parentProjectId]?.value ?: return null
         }
     }
-    val actualBySubproject = financialRecords.asSequence()
+    val actualBySubproject = financialPaymentTotals(financialRecords.asSequence()
         .filter(::isConstructionWorkAct)
-        .groupBy { subprojectFor(it[FinancialRecordTable.projectId].value) }
-        .filterKeys { it != null }
-        .mapValues { (_, records) -> records.sumOf { (it.amountUahCents() ?: 0L).toDouble() / 100.0 } }
+        .mapNotNull { row ->
+            subprojectFor(row[FinancialRecordTable.projectId].value)?.let { it to row.amountUahCents() }
+        }.toList())
     val signedWorksContracts = procurementRecords.asSequence()
         .filter { isConstructionContractSigned(it[ProcurementRecordTable.purchaseStatus]) && isWorksContract(it) }
         .toList()
@@ -411,13 +411,15 @@ private fun dashboardSubprojectProgress(
             val contract = signedWorksAmountBySubprojectCode[dashboardSubprojectCode(row[ProjectTable.siteNumber])]
                 ?.takeIf { it > 0.0 } ?: return@mapNotNull null
             val reportedProgress = monitoringProgressBySubproject[id]
+            val completed = physicalWorkCompletedAmount(
+                reportedProgress?.takeIf { it.hasReportedProgress }?.completedAmount,
+                actualBySubproject[id], actualBySubproject.containsKey(id), id in invalidProgressSubprojects
+            )
             DashboardSubprojectProgress(
                 row[ProjectTable.uuid], row[ProjectTable.siteNumber].orEmpty(), row[ProjectTable.name],
                 monitoringByProjectId[id]?.get(ProjectMonitoringDetailTable.nameEn), row[ProjectTable.region].orEmpty(),
-                if (id in invalidProgressSubprojects) 0.0 else
-                    ((if (reportedProgress?.hasReportedProgress == true) reportedProgress.completedAmount
-                    else actualBySubproject[id] ?: 0.0) * 100.0 / contract),
-                hasCompleteAmounts = id !in invalidProgressSubprojects
+                completed?.let { it * 100.0 / contract } ?: 0.0,
+                hasCompleteAmounts = completed != null
             )
         }
         .sortedBy { it.name }
