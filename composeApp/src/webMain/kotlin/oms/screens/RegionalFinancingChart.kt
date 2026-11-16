@@ -9,8 +9,12 @@ import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import oms.charts.ChartSortCriterion
 import oms.charts.sortChartCategories
@@ -28,6 +32,9 @@ internal fun RegionalFinancingChart(items: List<RegionalFinancingAmount>, loadin
     val paidColor = Color(0xFFB65B13)
     val planLabel = LocalizationManager.t("regional_financing_plan")
     val paidLabel = LocalizationManager.t("regional_financing_paid")
+    val valueStyle = MaterialTheme.typography.labelSmall
+    val textMeasurer = rememberTextMeasurer()
+    val density = LocalDensity.current
     fun region(value: String) = if (value.isBlank()) LocalizationManager.t("construction_unspecified") else localizedUkraineRegion(value)
     fun money(value: Long?) = value?.let {
         val sign = if (it < 0) "−" else ""
@@ -75,20 +82,29 @@ internal fun RegionalFinancingChart(items: List<RegionalFinancingAmount>, loadin
                                     Text(region(item.region), style = MaterialTheme.typography.labelLarge)
                                     listOf(Triple(planLabel, item.plannedCents, planColor), Triple(paidLabel, item.paidCents, paidColor)).forEach { (label, amount, color) ->
                                         OmsTooltipBox(tooltip = { Text("${region(item.region)}\n$label: ${money(amount)} ${LocalizationManager.currencyLabel("UAH")}") }) {
-                                            Column(Modifier.fillMaxWidth()) {
-                                                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                                    Text(label, modifier = Modifier.weight(1f), maxLines = 2, style = MaterialTheme.typography.labelSmall)
-                                                    Text(money(amount), modifier = Modifier.padding(start = 8.dp), style = MaterialTheme.typography.labelSmall)
+                                            BoxWithConstraints(Modifier.fillMaxWidth().height(22.dp).background(MaterialTheme.colorScheme.surfaceVariant)) {
+                                                val value = money(amount)
+                                                val labelWidth = with(density) { textMeasurer.measure(value, valueStyle).size.width.toDp() } + 12.dp
+                                                val start = ((minOf(0.0, amount?.toDouble() ?: 0.0) - minimum) / span).toFloat().coerceIn(0f, 1f)
+                                                val width = (kotlin.math.abs(amount?.toDouble() ?: 0.0) / span).toFloat().coerceIn(0f, 1f)
+                                                val barWidth = maxWidth * width
+                                                val fitsInside = amount != null && amount != 0L && barWidth >= labelWidth
+                                                if (amount != null && amount != 0L) {
+                                                    Box(Modifier.offset(x = maxWidth * start).width(barWidth)
+                                                        .fillMaxHeight().background(color))
                                                 }
-                                                BoxWithConstraints(Modifier.fillMaxWidth().height(10.dp).background(MaterialTheme.colorScheme.surfaceVariant)) {
-                                                    if (amount != null && amount != 0L) {
-                                                        val start = ((minOf(0.0, amount.toDouble()) - minimum) / span).toFloat().coerceIn(0f, 1f)
-                                                        val width = (kotlin.math.abs(amount.toDouble()) / span).toFloat().coerceIn(0f, 1f)
-                                                        Box(Modifier.offset(x = maxWidth * start).width(maxWidth * width)
-                                                            .fillMaxHeight().background(color))
-                                                    }
-                                                    if (minimum < 0) Box(Modifier.offset(x = maxWidth * (-minimum / span).toFloat())
-                                                        .width(1.dp).fillMaxHeight().background(MaterialTheme.colorScheme.onSurfaceVariant))
+                                                if (minimum < 0) Box(Modifier.offset(x = maxWidth * (-minimum / span).toFloat())
+                                                    .width(1.dp).fillMaxHeight().background(MaterialTheme.colorScheme.onSurfaceVariant))
+                                                // Short/zero bars keep their true scale. Their values stay
+                                                // inside the plotting track on a contrasting background.
+                                                Box(if (fitsInside) Modifier.offset(x = maxWidth * start).width(barWidth).fillMaxHeight()
+                                                    else Modifier.fillMaxSize(), contentAlignment = Alignment.CenterEnd) {
+                                                    Text(value, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                                                        modifier = Modifier.background(if (fitsInside) Color.Transparent else MaterialTheme.colorScheme.surfaceVariant)
+                                                            .padding(horizontal = 6.dp),
+                                                        color = if (!fitsInside) MaterialTheme.colorScheme.onSurfaceVariant
+                                                            else if (color == planColor) MaterialTheme.colorScheme.onPrimary else Color.White,
+                                                        style = valueStyle)
                                                 }
                                             }
                                         }
