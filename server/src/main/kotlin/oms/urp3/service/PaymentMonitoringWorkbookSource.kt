@@ -88,7 +88,7 @@ object PaymentMonitoringWorkbookSource {
                 item(
                     code = code,
                     number = { heading -> headers[heading]?.let { column ->
-                        val number = workbookNumber(row, column)
+                        val number = workbookNumber(row, column, percentage = heading.endsWith(", %"))
                         if (heading.endsWith(", %")) {
                             val cell = row.getCell(column)
                             val numeric = cell != null && (cell.cellType == CellType.NUMERIC ||
@@ -208,7 +208,7 @@ object PaymentMonitoringWorkbookSource {
         return rows.drop(headerIndex + 1).mapNotNull { row ->
             val code = cell(row, headers.getValue("id")).trim()
             if (code.isBlank() || code.equals("TOTAL", true) || code.equals("TOTAL:", true)) return@mapNotNull null
-            item(code, { heading -> headers[heading]?.let { number(row, it) } }, { heading -> headers[heading]?.let { cell(row, it).trim().takeIf(String::isNotBlank) } })
+            item(code, { heading -> headers[heading]?.let { number(row, it, percentage = heading.endsWith(", %")) } }, { heading -> headers[heading]?.let { cell(row, it).trim().takeIf(String::isNotBlank) } })
         }.filter(::hasIndicator)
     }
 
@@ -241,8 +241,8 @@ object PaymentMonitoringWorkbookSource {
 
     private fun cell(row: List<String>, column: Int): String = row.getOrElse(column) { "" }
 
-    private fun number(row: List<String>, column: Int?): Double? = column?.let { index ->
-        parseNumber(cell(row, index))
+    private fun number(row: List<String>, column: Int?, percentage: Boolean = false): Double? = column?.let { index ->
+        parseNumber(cell(row, index), percentage)
     }
 
     private fun workbookHeaders(row: Row?): Map<String, Int> = buildMap {
@@ -263,12 +263,14 @@ object PaymentMonitoringWorkbookSource {
         }
     }.orEmpty()
 
-    private fun workbookNumber(row: Row, index: Int): Double? = row.getCell(index)?.let { cell ->
+    private fun workbookNumber(row: Row, index: Int, percentage: Boolean = false): Double? = row.getCell(index)?.let { cell ->
         when (cell.cellType) {
             CellType.NUMERIC -> cell.numericCellValue
-            CellType.FORMULA -> if (cell.cachedFormulaResultType == CellType.NUMERIC) cell.numericCellValue else parseNumber(workbookText(row, index))
-            else -> parseNumber(workbookText(row, index))
+            CellType.FORMULA -> if (cell.cachedFormulaResultType == CellType.NUMERIC) cell.numericCellValue else parseNumber(workbookText(row, index), percentage)
+            else -> parseNumber(workbookText(row, index), percentage)
         }
+    }?.also { value ->
+        require(value.isFinite()) { "Non-finite number at ${row.sheet.sheetName}!${row.getCell(index).address}." }
     }
 
     private fun workbookDate(row: Row, index: Int): java.time.LocalDate? = row.getCell(index)?.let { cell ->
@@ -281,15 +283,20 @@ object PaymentMonitoringWorkbookSource {
         }
     }
 
-    private fun parseNumber(value: String): Double? {
-        val normalized = value.replace("\u00A0", "").replace(" ", "").removeSuffix("%").trim()
+    private fun parseNumber(value: String, percentage: Boolean = false): Double? {
+        val normalized = value.replace(Regex("\\s|\u00A0|\u202F"), "").removeSuffix("%")
         if (normalized.isBlank()) return null
         val decimal = when {
             normalized.contains(',') && normalized.contains('.') -> normalized.replace(",", "")
+            // Three decimal places are meaningful for localized percentages.
+            // A leading zero also indicates a fraction, not a grouped money amount.
+            !percentage && normalized.matches(Regex("-?[1-9]\\d{0,2}(,\\d{3})+")) -> normalized.replace(",", "")
             normalized.contains(',') -> normalized.replace(',', '.')
             else -> normalized
         }
-        return decimal.toDoubleOrNull()
+        return decimal.toDoubleOrNull().also {
+            require(it == null || it.isFinite()) { "Non-finite numeric value in payment source: '$value'." }
+        }
     }
 
     /** Minimal RFC-4180 compatible reader for the quoted CSV snapshot. */
