@@ -24,7 +24,9 @@ import oms.localization.LocalizationManager
 /** Paired series share one scale, while exact amounts remain in labels and tooltips. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-internal fun RegionalFinancingChart(items: List<RegionalFinancingAmount>, loading: Boolean, failed: Boolean, onRetry: () -> Unit, titleSuffix: String? = null) {
+internal fun RegionalFinancingChart(items: List<RegionalFinancingAmount>, loading: Boolean, failed: Boolean, onRetry: () -> Unit, titleSuffix: String? = null, itemsEur: List<RegionalFinancingAmount> = emptyList()) {
+    var currency by remember { mutableStateOf("UAH") }
+    val displayedItems = if (currency == "EUR") itemsEur else items
     var expanded by remember { mutableStateOf(true) }
     var criterion by remember { mutableStateOf(ChartSortCriterion.Value) }
     var ascending by remember { mutableStateOf(false) }
@@ -43,14 +45,15 @@ internal fun RegionalFinancingChart(items: List<RegionalFinancingAmount>, loadin
         val separator = if (LocalizationManager.currentLanguage == oms.localization.Language.EN) "." else ","
         "$sign${formatGroupedNumber(kotlin.math.abs(whole))}$separator$fraction"
     } ?: "—"
-    val sorted = sortChartCategories(items, criterion, ascending, { region(it.region) }, { (it.plannedCents ?: -1L).toDouble() })
-    val known = items.flatMap { listOfNotNull(it.plannedCents, it.paidCents) }
+    val sorted = sortChartCategories(displayedItems, criterion, ascending, { region(it.region) }, { (it.plannedCents ?: -1L).toDouble() })
+    val known = displayedItems.flatMap { listOfNotNull(it.plannedCents, it.paidCents) }
     val minimum = (known.minOrNull() ?: 0L).coerceAtMost(0L).toDouble()
     val maximum = (known.maxOrNull() ?: 0L).coerceAtLeast(0L).toDouble()
     val span = (maximum - minimum).coerceAtLeast(1.0)
     Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            OmsChartHeader(listOfNotNull(LocalizationManager.t("regional_financing_title"), titleSuffix).joinToString(" — ")) {
+            OmsChartHeader(listOfNotNull("${LocalizationManager.t("regional_financing_title")}, ${LocalizationManager.currencyLabel(currency)}", titleSuffix).joinToString(" — ")) {
+                CurrencySelector(currency) { currency = it }
                 ChartSortControls(criterion, ascending, { criterion = it }, { ascending = !ascending })
                 IconButton(onClick = { expanded = !expanded }, modifier = Modifier.size(30.dp).buttonHandCursor()) {
                     Icon(if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
@@ -69,9 +72,9 @@ internal fun RegionalFinancingChart(items: List<RegionalFinancingAmount>, loadin
                 when {
                     loading -> ContentState(LocalizationManager.t("financial_progress_loading"), loading = true)
                     failed -> ContentState(LocalizationManager.t("financial_progress_load_error"), error = true, onRetry = onRetry)
-                    items.isEmpty() -> Text(LocalizationManager.t("no_chart_data"))
+                    displayedItems.isEmpty() -> Text(LocalizationManager.t("no_chart_data"))
                     else -> {
-                        if (items.any { it.plannedCents == null || it.paidCents == null }) Text(
+                        if (displayedItems.any { it.plannedCents == null || it.paidCents == null }) Text(
                             LocalizationManager.t("regional_financing_missing"), color = MaterialTheme.colorScheme.error,
                             style = MaterialTheme.typography.bodySmall)
                         Column(Modifier.fillMaxWidth().heightIn(max = 480.dp).verticalScroll(rememberScrollState()),
@@ -80,7 +83,7 @@ internal fun RegionalFinancingChart(items: List<RegionalFinancingAmount>, loadin
                                 Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
                                     Text(region(item.region), style = MaterialTheme.typography.labelLarge)
                                     listOf(Triple(planLabel, item.plannedCents, planColor), Triple(paidLabel, item.paidCents, paidColor)).forEach { (label, amount, color) ->
-                                        OmsTooltipBox(tooltip = { Text("${region(item.region)}\n$label: ${money(amount)} ${LocalizationManager.currencyLabel("UAH")}") }) {
+                                        OmsTooltipBox(tooltip = { Text("${region(item.region)}\n$label: ${money(amount)} ${LocalizationManager.currencyLabel(currency)}") }) {
                                             BoxWithConstraints(Modifier.fillMaxWidth().height(22.dp).background(MaterialTheme.colorScheme.surfaceVariant)) {
                                                 val value = money(amount)
                                                 val labelWidth = with(density) { textMeasurer.measure(value, valueStyle).size.width.toDp() } + 12.dp

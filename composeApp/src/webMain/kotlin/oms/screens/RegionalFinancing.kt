@@ -5,14 +5,15 @@ import oms.urp3.canonicalUkraineRegion
 import oms.urp3.decimalMoneyCents
 import oms.urp3.paymentSubprojectKey
 
-internal data class RegionalFinancingProject(val context: PaymentProjectContext, val plannedCents: Long?)
+internal data class RegionalFinancingProject(val context: PaymentProjectContext, val plannedCents: Long?, val plannedEurCents: Long? = null)
 internal data class RegionalFinancingAmount(val region: String, val plannedCents: Long?, val paidCents: Long?)
 
 /** Plans have SP grain; cash has transaction/lot grain. Never add both parent and component budgets. */
 internal fun regionalFinancing(
     projects: List<RegionalFinancingProject>,
     payments: List<ApiPaymentMonitoringTransaction>?,
-    scope: PaymentMonitoringScope
+    scope: PaymentMonitoringScope,
+    currency: String = "UAH"
 ): List<RegionalFinancingAmount> {
     val selectedIds = scopePaymentProjects(projects.map { it.context }, scope).map { it.uuid }.toSet()
     val selected = projects.filter { it.context.uuid in selectedIds && '#' !in it.context.code }
@@ -22,7 +23,8 @@ internal fun regionalFinancing(
         scopePaymentTransactions(source, selected.map { it.context }, scope)
             .filter { sourcePaymentPurpose(it.code) in setOf("works", "technical_supervision", "engineer_consultant") }
             .mapNotNull { row -> byCode[paymentSubprojectKey(row.code).uppercase()]?.let { project ->
-                canonicalUkraineRegion(project.context.region) to decimalMoneyCents(row.amountUah)
+                canonicalUkraineRegion(project.context.region) to
+                    (if (currency == "EUR") row.amountEur?.let(::decimalMoneyCents) else decimalMoneyCents(row.amountUah))
             } }.groupBy({ it.first }, { it.second })
     }
     fun sum(values: List<Long?>): Long? {
@@ -35,7 +37,7 @@ internal fun regionalFinancing(
         return total
     }
     return selected.groupBy { canonicalUkraineRegion(it.context.region) }.map { (region, rows) ->
-        RegionalFinancingAmount(region, sum(rows.map { it.plannedCents }),
+        RegionalFinancingAmount(region, sum(rows.map { if (currency == "EUR") it.plannedEurCents else it.plannedCents }),
             if (payments == null) null else sum(paidByRegion?.get(region).orEmpty()))
     }
 }

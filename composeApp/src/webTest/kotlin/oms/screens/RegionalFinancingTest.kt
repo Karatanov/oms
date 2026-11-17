@@ -4,6 +4,24 @@ import oms.data.ApiPaymentMonitoringTransaction
 import kotlin.test.*
 
 class RegionalFinancingTest {
+    @Test fun euroUsesStoredPlanAndPaymentConversionsWithoutChangingHryvniaAmounts() {
+        val projects = listOf(project("KH08_01", "Харківська").copy(plannedEurCents = 250L))
+        val rows = listOf(payment("KH08_01_W", 40.0).copy(amountEur = 1.0),
+            payment("KH08_01_TS", 20.0).copy(amountEur = 0.5))
+        val euro = regionalFinancing(projects, rows, PaymentMonitoringScope(), "EUR").single()
+        assertEquals(250L, euro.plannedCents)
+        assertEquals(150L, euro.paidCents)
+        val uah = regionalFinancing(projects, rows, PaymentMonitoringScope()).single()
+        assertEquals(10000L, uah.plannedCents)
+        assertEquals(6000L, uah.paidCents)
+    }
+
+    @Test fun missingEuroConversionIsUnavailableNotZeroOrHryvnia() {
+        val result = regionalFinancing(listOf(project("KH08_01", "Харківська")),
+            listOf(payment("KH08_01_W", 40.0)), PaymentMonitoringScope(), "EUR").single()
+        assertNull(result.plannedCents)
+        assertNull(result.paidCents)
+    }
     private fun project(code: String, region: String, plan: Long? = 10000, tranche: Int = 1) =
         RegionalFinancingProject(PaymentProjectContext(code, code, tranche, region), plan)
     private fun payment(code: String, amount: Double, date: String = "2026-02-01", batch: Int = 8) =

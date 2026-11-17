@@ -529,13 +529,15 @@ fun FinancialScreen(
             .filter { it.id in fundingByUuid && '#' !in it.siteNumber }
             .map { project -> RegionalFinancingProject(
                 PaymentProjectContext(project.id, project.siteNumber, project.trancheNumber, project.region),
-                oms.urp3.decimalMoneyCents(fundingByUuid.getValue(project.id).amountUah)
+                oms.urp3.decimalMoneyCents(fundingByUuid.getValue(project.id).amountUah),
+                oms.urp3.decimalMoneyCents(fundingByUuid.getValue(project.id).amountEur)
             ) }
         RegionalFinancingChart(
             regionalFinancing(regionalPlanProjects, paymentMonitoring?.transactions, paymentScope),
             paymentMonitoringLoading || ProjectRepository.loading || regionalFundingLoading,
             paymentMonitoringLoadFailed || ProjectRepository.errorMessage != null || regionalFundingFailed,
-            onRetry = { reloadKey++ }, titleSuffix = selectedChartScopeLabel
+            onRetry = { reloadKey++ }, titleSuffix = selectedChartScopeLabel,
+            itemsEur = regionalFinancing(regionalPlanProjects, paymentMonitoring?.transactions, paymentScope, "EUR")
         )
 
         if (financialProgressLoading) oms.components.ContentState(
