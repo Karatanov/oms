@@ -152,6 +152,7 @@ fun DashboardScreen(
                 item {
                     NationalPortfolioSummary(
                         summary = summary,
+                        contractTypes = dashboard?.signedContractsByType.orEmpty(),
                         onOpenSubprojects = { onOpenSubprojects(trancheNumber) },
                         onOpenMap = { onOpenMap(trancheNumber) },
                         onOpenSignedContracts = { onOpenProcurementsByStatus("contract signed", trancheNumber) },
@@ -258,6 +259,7 @@ fun DashboardScreen(
 @Composable
 private fun NationalPortfolioSummary(
     summary: ApiDashboardNationalSummary,
+    contractTypes: List<ApiDashboardContractTypeMetric>,
     onOpenSubprojects: () -> Unit,
     onOpenMap: () -> Unit,
     onOpenSignedContracts: () -> Unit,
@@ -293,7 +295,12 @@ private fun NationalPortfolioSummary(
                 SummaryMetric(
                     "national_signed_contract_value",
                     "${summary.signedContractsAmountUah.roundToLong().grouped()} ${LocalizationManager.currencyLabel("UAH")}",
-                    onClick = onOpenSignedContracts
+                    onClick = onOpenSignedContracts,
+                    details = listOf("dashboard_contract_works", "dashboard_contract_engineer_consultant", "dashboard_contract_technical_supervision")
+                        .map { type ->
+                            LocalizationManager.t(type) to (contractTypes.firstOrNull { it.type == type }
+                                ?.contractAmountUah?.roundToLong()?.grouped() ?: "—")
+                        }
                 )
                 SummaryMetric(
                     "eib_paid_under_contracts",
@@ -316,7 +323,8 @@ private fun SummaryMetric(
     labelKey: String,
     value: String,
     uahEquivalent: String? = null,
-    onClick: (() -> Unit)? = null
+    onClick: (() -> Unit)? = null,
+    details: List<Pair<String, String>> = emptyList()
 ) {
     // A summary should be scannable at a glance.  Each metric gets its own
     // compact card, while the secondary UAH figure remains available on hover
@@ -345,10 +353,19 @@ private fun SummaryMetric(
                     LocalizationManager.t(labelKey),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 2,
+                    maxLines = 3,
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(value, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, maxLines = 2)
+                if (details.isNotEmpty()) {
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                    details.forEach { (label, amount) ->
+                        Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                            Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(amount, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
+                        }
+                    }
+                }
             }
         }
     }
