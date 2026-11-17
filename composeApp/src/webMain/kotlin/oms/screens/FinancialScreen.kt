@@ -1416,14 +1416,8 @@ private fun PaymentMonitoringCard(
     Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) {
-                    Text(LocalizationManager.t("payment_monitoring_title"), style = MaterialTheme.typography.titleMedium)
-                    Text(
-                        LocalizationManager.t("payment_monitoring_description"),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+                Text(paymentMonitoringTitle(context, projects, codeQuery),
+                    modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleMedium)
                 if (canUpdate) {
                     OutlinedButton(onClick = onUpdate) {
                         Text(LocalizationManager.t("payment_monitoring_update"))
@@ -1501,11 +1495,33 @@ private fun PaymentMonitoringCard(
                         PageArrow(forward = true, enabled = page < pageCount - 1) { page = (page + 1).coerceAtMost(pageCount - 1) }
                     }
                 }
-                PaymentMonitoringTransactionTable(scopePaymentTransactions(snapshot.transactions, projects, context), selectedMonth, codeQuery)
+                PaymentMonitoringTransactionTable(scopePaymentTransactions(snapshot.transactions, projects, context), selectedMonth, codeQuery,
+                    title = paymentMonitoringTitle(context.copy(month = selectedMonth ?: context.month), projects, codeQuery, includePeriod = true))
             }
         }
     }
 }
+
+/** Cumulative indicators have no period/purpose grain; only transaction captions include those cuts. */
+private fun paymentMonitoringTitle(
+    context: PaymentMonitoringScope,
+    projects: List<PaymentProjectContext>,
+    codeQuery: String,
+    includePeriod: Boolean = false
+): String = buildList {
+    add(LocalizationManager.t("payment_monitoring_title"))
+    context.region?.let { add(localizedUkraineRegion(it)) }
+    context.tranche?.let { add("${LocalizationManager.t("tranche")} ${it.financialTrancheCode()}") }
+    val projectCode = projects.firstOrNull { it.uuid == context.subproject }?.code
+    projectCode?.let(::add)
+    codeQuery.trim().takeIf { it.isNotEmpty() && !it.equals(projectCode, ignoreCase = true) }
+        ?.let { add("${LocalizationManager.t("subproject_code")}: $it") }
+    if (includePeriod) {
+        if (context.month != null) add("${context.month.toMonthName()} ${context.month.take(4)}")
+        else context.year?.let { add(it.toString()) }
+        context.purpose?.let { add(LocalizationManager.t("payment_purpose_$it")) }
+    }
+}.joinToString(" · ")
 
 @Composable
 private fun PaymentMonitoringCodeSearch(
@@ -1596,7 +1612,8 @@ private fun comparePaymentTransactions(
 private fun PaymentMonitoringTransactionTable(
     transactions: List<ApiPaymentMonitoringTransaction>,
     selectedMonth: String?,
-    codeQuery: String
+    codeQuery: String,
+    title: String
 ) {
     var sort by remember { mutableStateOf(PaymentMonitoringTransactionSort.Date) }
     var ascending by remember { mutableStateOf(true) }
@@ -1621,8 +1638,7 @@ private fun PaymentMonitoringTransactionTable(
     LaunchedEffect(normalizedQuery, selectedMonth) { page = 0 }
     if (transactions.isEmpty()) return
     Text(
-        if (selectedMonth == null) LocalizationManager.t("payment_monitoring_title")
-        else "${LocalizationManager.t("payment_monitoring_title")} · ${selectedMonth.toMonthName()} ${selectedMonth.take(4)}",
+        title,
         style = MaterialTheme.typography.titleSmall
     )
     if (rows.isEmpty()) {
