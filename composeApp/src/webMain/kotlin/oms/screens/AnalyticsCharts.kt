@@ -9,11 +9,11 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -100,32 +100,27 @@ private fun UkraineFundingMapChart(
 ) {
     val maxAmount = intensityAmounts.values.maxOrNull()?.takeIf { it > 0.0 } ?: 1.0
     Card(
-        Modifier.fillMaxWidth().heightIn(min = 462.dp),
+        Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
         colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
-        Column(Modifier.padding(16.dp)) {
-            Box(Modifier.fillMaxWidth().height(44.dp), contentAlignment = Alignment.Center) {
+        Column(Modifier.padding(12.dp)) {
+            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                 Text(LocalizationManager.t("approved_funding_by_oblast"), style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center)
             }
-            Text(
-                LocalizationManager.t("approved_funding_by_oblast_hint"),
-                modifier = Modifier.fillMaxWidth(),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center
-            )
             Box(Modifier.fillMaxWidth().padding(top = 8.dp), contentAlignment = Alignment.Center) {
                 oms.components.CurrencySelector(currency, onCurrencyChange)
             }
-            Spacer(Modifier.height(14.dp))
-            UkraineFundingMap(
-                amounts = amounts,
-                intensityAmounts = intensityAmounts,
-                currency = currency,
-                maxAmount = maxAmount,
-                onOpenProjectsByRegion = onOpenProjectsByRegion
-            )
+            Spacer(Modifier.height(6.dp))
+            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                UkraineFundingMap(
+                    amounts = amounts,
+                    intensityAmounts = intensityAmounts,
+                    currency = currency,
+                    maxAmount = maxAmount,
+                    onOpenProjectsByRegion = onOpenProjectsByRegion
+                )
+            }
         }
     }
 }
@@ -146,6 +141,7 @@ private fun UkraineFundingMap(
     var mapSize by remember { mutableStateOf(IntSize.Zero) }
     OmsTooltipBox(
         modifier = Modifier
+            .widthIn(max = 480.dp)
             .fillMaxWidth()
             .aspectRatio(ukraineMapWidth / ukraineMapHeight)
             .background(MaterialTheme.colorScheme.surfaceContainerLow, RoundedCornerShape(12.dp))
@@ -360,7 +356,6 @@ private data class AnalyticsListRow(
 private fun AnalyticsListCard(
     titleKey: String,
     rows: List<AnalyticsListRow>,
-    hintKey: String? = null,
     compact: Boolean = false,
     sortControls: (@Composable () -> Unit)? = null
 ) {
@@ -369,22 +364,21 @@ private fun AnalyticsListCard(
     val pageCount = ((rows.size + pageSize - 1) / pageSize).coerceAtLeast(1)
     if (page >= pageCount) page = pageCount - 1
     Card(
-        Modifier.fillMaxWidth().heightIn(min = if (compact) 300.dp else 420.dp),
+        Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
         colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
-        Column(Modifier.padding(16.dp)) {
+        Column(Modifier.padding(if (compact) 10.dp else 12.dp)) {
             OmsChartHeader(LocalizationManager.t(titleKey)) {
                 sortControls?.invoke()
             }
-            hintKey?.let { Text(LocalizationManager.t(it), Modifier.fillMaxWidth(), textAlign = TextAlign.Center, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(4.dp))
             if (rows.isEmpty()) Text(LocalizationManager.t("no_chart_data"), color = MaterialTheme.colorScheme.onSurfaceVariant)
             rows.drop(page * pageSize).take(pageSize).forEach { row ->
                 val clickModifier = row.onClick?.let {
                     Modifier.clickable(onClick = it).pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true)
                 } ?: Modifier
-                Column(clickModifier.fillMaxWidth().padding(vertical = 7.dp)) {
+                Column(clickModifier.fillMaxWidth().padding(vertical = 4.dp)) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         Text(row.label, Modifier.weight(1f), maxLines = 2, style = MaterialTheme.typography.bodyMedium)
                         Text(row.value, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary)
@@ -568,14 +562,12 @@ private fun AnalyticsCard(
     var sortCriterion by remember { mutableStateOf<ChartSortCriterion?>(null) }
     var sortAscending by remember { mutableStateOf(true) }
     val displayData = sortCriterion?.let { sortBarData(data, it, sortAscending) } ?: data
-    val cardModifier = Modifier.fillMaxWidth().then(
-        if (!expanded) Modifier
-        else if (compact) Modifier.heightIn(min = 144.dp)
-        else Modifier.heightIn(min = if (filterContent == null) 348.dp else 392.dp)
-    )
+    // Let the plot determine card height; fixed minima left blank space below
+    // short series and continued reserving space after descriptions were removed.
+    val cardModifier = Modifier.fillMaxWidth()
     Card(cardModifier, shape = RoundedCornerShape(12.dp),
         colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-        Column(Modifier.padding(16.dp)) {
+        Column(Modifier.padding(12.dp)) {
             val title = listOfNotNull(LocalizationManager.t(titleKey), titleSuffix).joinToString(" — ")
             OmsChartHeader(title) {
                 if (sortEnabled) ChartSortControls(
@@ -606,20 +598,10 @@ private fun AnalyticsCard(
                 }
             }
             if (expanded) {
-                Box(Modifier.fillMaxWidth().height(28.dp), contentAlignment = Alignment.Center) {
-                    hintKey?.let {
-                        Text(
-                            LocalizationManager.t(it),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            textAlign = TextAlign.Center
-                        )
-                    }
-                }
                 filterContent?.let { content ->
                     Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) { content() }
                 }
-                Spacer(Modifier.height(if (compact) 6.dp else 8.dp))
+                Spacer(Modifier.height(if (compact) 2.dp else 4.dp))
                 if (displayData.isEmpty()) {
                     if (emptyContent != null) emptyContent()
                     else Text(LocalizationManager.t("no_chart_data"), color = MaterialTheme.colorScheme.onSurfaceVariant)

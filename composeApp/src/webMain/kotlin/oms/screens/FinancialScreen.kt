@@ -532,14 +532,6 @@ fun FinancialScreen(
                 oms.urp3.decimalMoneyCents(fundingByUuid.getValue(project.id).amountUah),
                 oms.urp3.decimalMoneyCents(fundingByUuid.getValue(project.id).amountEur)
             ) }
-        RegionalFinancingChart(
-            regionalFinancing(regionalPlanProjects, paymentMonitoring?.transactions, paymentScope),
-            paymentMonitoringLoading || ProjectRepository.loading || regionalFundingLoading,
-            paymentMonitoringLoadFailed || ProjectRepository.errorMessage != null || regionalFundingFailed,
-            onRetry = { reloadKey++ }, titleSuffix = selectedChartScopeLabel,
-            itemsEur = regionalFinancing(regionalPlanProjects, paymentMonitoring?.transactions, paymentScope, "EUR")
-        )
-
         if (financialProgressLoading) oms.components.ContentState(
             LocalizationManager.t("financial_progress_loading"), loading = true)
         if (financialProgressLoadFailed) oms.components.ContentState(
@@ -558,26 +550,34 @@ fun FinancialScreen(
         // Rate availability is chart-local: an incomplete purpose shows its
         // own warning/retry without hiding unrelated, complete financial charts.
         oms.components.AdaptiveChartRow(
-            first = { MonthlyPaymentsChart(financialChartRecords, displayRates, selectedChartScopeLabel) { month -> selectChartMonth(month, "works") } },
+            first = {
+                RegionalFinancingChart(
+                    regionalFinancing(regionalPlanProjects, paymentMonitoring?.transactions, paymentScope),
+                    paymentMonitoringLoading || ProjectRepository.loading || regionalFundingLoading,
+                    paymentMonitoringLoadFailed || ProjectRepository.errorMessage != null || regionalFundingFailed,
+                    onRetry = { reloadKey++ }, titleSuffix = selectedChartScopeLabel,
+                    itemsEur = regionalFinancing(regionalPlanProjects, paymentMonitoring?.transactions, paymentScope, "EUR")
+                )
+            },
             second = {
-                financialProgress?.let { progress ->
-                    FinancialProgressCard("financial_progress_by_construction_type", progress.byConstructionType, selectedChartScopeLabel)
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    MonthlyPaymentsChart(financialChartRecords, displayRates, selectedChartScopeLabel) { month -> selectChartMonth(month, "works") }
+                    financialProgress?.let { progress ->
+                        FinancialProgressCard("financial_progress_by_construction_type", progress.byConstructionType, selectedChartScopeLabel)
+                    }
                 }
             }
         )
         oms.components.AdaptiveChartRow(
             first = { MonthlyTechnicalSupervisionPaymentsChart(financialChartRecords, displayRates, selectedChartScopeLabel) { month -> selectChartMonth(month, "technical_supervision") } },
-            second = {
+            second = { MonthlyEngineerConsultantPaymentsChart(financialChartRecords, displayRates, selectedChartScopeLabel) { month -> selectChartMonth(month, "engineer_consultant") } }
+        )
+        oms.components.AdaptiveChartRow(
+            first = {
                 financialProgress?.let { progress ->
                     FinancialProgressCard("financial_progress_by_sector", progress.bySector, selectedChartScopeLabel, compactInitially = true)
                 }
-            }
-        )
-        oms.components.AdaptiveChartRow(
-            // Keep the CSC chart on the left, directly following Works and
-            // Technical Supervision in the reading order. Regional execution
-            // belongs beside it so both monitoring views share one desktop row.
-            first = { MonthlyEngineerConsultantPaymentsChart(financialChartRecords, displayRates, selectedChartScopeLabel) { month -> selectChartMonth(month, "engineer_consultant") } },
+            },
             second = {
                 financialProgress?.let { progress ->
                     Box(Modifier.onGloballyPositioned { regionProgressTopInRootPx = it.positionInRoot().y }) {
@@ -1312,14 +1312,8 @@ private fun FinancialProgressCard(
         maxOf(1, (sortedItems.size + 5) / 6)
     }
     val visibleItems = if (compactInitially && !showAllItems) sortedItems.take(initialItemCount) else sortedItems
-    val progressModifier = Modifier.fillMaxWidth().then(
-        // Sector progress is paired with the TS monthly chart.  A stable
-        // minimum height keeps both cards visually aligned on desktop while
-        // still allowing the list to grow after the user expands it.
-        if (titleKey == "financial_progress_by_sector" && expanded) Modifier.heightIn(min = 392.dp) else Modifier
-    )
-    Card(progressModifier, colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
@@ -1344,8 +1338,8 @@ private fun FinancialProgressCard(
                 val label = financialProgressLabel(item.label, titleKey)
                 Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text(label, Modifier.weight(1f), maxLines = 2)
-                        Text(if (item.hasCompleteAmounts) "${item.completionPct.roundToInt()}%" else "—", color = MaterialTheme.colorScheme.primary)
+                        Text(label, Modifier.weight(1f), maxLines = 2, style = MaterialTheme.typography.bodySmall)
+                        Text(if (item.hasCompleteAmounts) "${item.completionPct.roundToInt()}%" else "—", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.bodySmall)
                     }
                     if (item.hasCompleteAmounts) LinearProgressIndicator(
                         progress = { (item.completionPct / 100.0).toFloat().coerceIn(0f, 1f) },

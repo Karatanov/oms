@@ -31,13 +31,13 @@ fun HorizontalBarChart(
     val maxValue = data.maxOf { it.value }.coerceAtLeast(1f)
     val scroll = rememberScrollState()
     Column(Modifier.fillMaxWidth()) {
-        Column(Modifier.fillMaxWidth().heightIn(max = 238.dp).verticalScroll(scroll)) {
+        Column(Modifier.fillMaxWidth().heightIn(max = 190.dp).verticalScroll(scroll)) {
             data.forEach { item ->
                 val displayValue = item.formattedValue ?: valueLabel(item.value)
                 val tooltip = listOf(item.label + ": " + displayValue, item.tooltip).filterNotNull().joinToString("\n")
                 OmsTooltipBox(tooltip = { Text(tooltip) }) {
                     Row(
-                        Modifier.fillMaxWidth().heightIn(min = 42.dp).then(
+                        Modifier.fillMaxWidth().heightIn(min = 36.dp).then(
                             if (onItemClick == null) Modifier.focusable()
                             else Modifier.clickable { onItemClick(item) }.pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true)
                         ), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)

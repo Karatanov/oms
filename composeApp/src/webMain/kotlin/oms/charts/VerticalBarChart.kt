@@ -31,7 +31,7 @@ fun VerticalBarChart(
     val maxValue = data.maxOf { it.value }.coerceAtLeast(1f)
     val scroll = rememberScrollState()
     LaunchedEffect(data, initialScrollToEnd, scroll.maxValue) { if (initialScrollToEnd) scroll.scrollTo(scroll.maxValue) }
-    val laneHeight = if (labelMaxLines == 1) 24.dp else 52.dp
+    val laneHeight = if (labelMaxLines == 1) 22.dp else 40.dp
     // A compact lane and wider bar make dense month/subproject charts easier
     // to scan. The label still owns its lane, so tooltips and click targets
     // remain reliable on touch screens.
@@ -55,13 +55,13 @@ fun VerticalBarChart(
                                 .pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true)
                         ),
                         horizontalAlignment = Alignment.CenterHorizontally) {
-                        Box(Modifier.fillMaxWidth().height(if (showDataLabels) 154.dp else 128.dp), contentAlignment = Alignment.BottomCenter) {
+                        Box(Modifier.fillMaxWidth().height(if (showDataLabels) 128.dp else 104.dp), contentAlignment = Alignment.BottomCenter) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 if (showDataLabels) {
                                     Text(displayValue, style = MaterialTheme.typography.labelMedium, maxLines = 1)
-                                    Spacer(Modifier.height(6.dp))
+                                    Spacer(Modifier.height(4.dp))
                                 }
-                                Box(Modifier.width(36.dp).height((118f * (item.value.coerceAtLeast(0f) / maxValue)).dp)
+                                Box(Modifier.width(36.dp).height((94f * (item.value.coerceAtLeast(0f) / maxValue)).dp)
                                     .clip(MaterialTheme.shapes.extraSmall).background(item.color ?: color))
                             }
                         }

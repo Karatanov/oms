@@ -51,7 +51,7 @@ internal fun RegionalFinancingChart(items: List<RegionalFinancingAmount>, loadin
     val maximum = (known.maxOrNull() ?: 0L).coerceAtLeast(0L).toDouble()
     val span = (maximum - minimum).coerceAtLeast(1.0)
     Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             OmsChartHeader(listOfNotNull("${LocalizationManager.t("regional_financing_title")}, ${LocalizationManager.currencyLabel(currency)}", titleSuffix).joinToString(" — ")) {
                 CurrencySelector(currency) { currency = it }
                 ChartSortControls(criterion, ascending, { criterion = it }, { ascending = !ascending })
@@ -77,8 +77,8 @@ internal fun RegionalFinancingChart(items: List<RegionalFinancingAmount>, loadin
                         if (displayedItems.any { it.plannedCents == null || it.paidCents == null }) Text(
                             LocalizationManager.t("regional_financing_missing"), color = MaterialTheme.colorScheme.error,
                             style = MaterialTheme.typography.bodySmall)
-                        Column(Modifier.fillMaxWidth().heightIn(max = 480.dp).verticalScroll(rememberScrollState()),
-                            verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Column(Modifier.fillMaxWidth().heightIn(max = 360.dp).verticalScroll(rememberScrollState()),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             sorted.forEach { item ->
                                 Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
                                     Text(region(item.region), style = MaterialTheme.typography.labelLarge)

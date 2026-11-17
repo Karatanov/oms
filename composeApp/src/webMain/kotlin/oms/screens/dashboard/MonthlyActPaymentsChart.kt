@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
@@ -49,15 +48,10 @@ fun MonthlyActPaymentsChart(primary: Color, payments: List<ApiMonthlyActPayment>
                 formattedValue = formatActAmount(amountCents, currency)
             )
         }
-    // The vertical plot already owns a fixed, readable bar lane.  A 420 dp
-    // card minimum added unused space below it, especially for a short
-    // monthly series; allow the card to follow its actual chart content.
-    val cardModifier = Modifier.fillMaxWidth().then(
-        if (data.isEmpty()) Modifier else Modifier.heightIn(min = 352.dp)
-    )
+    val cardModifier = Modifier.fillMaxWidth()
     Card(modifier = cardModifier, shape = RoundedCornerShape(12.dp),
         colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        Column(modifier = Modifier.padding(12.dp)) {
             OmsChartHeader(LocalizationManager.t("monthly_act_payments")) {
                 if (data.isNotEmpty()) {
                     ChartPngExportButton(
@@ -71,10 +65,10 @@ fun MonthlyActPaymentsChart(primary: Color, payments: List<ApiMonthlyActPayment>
                     )
                 }
             }
-            Box(Modifier.fillMaxWidth().height(40.dp), contentAlignment = Alignment.Center) {
+            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                 CurrencySelector(currency) { currency = it }
             }
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(4.dp))
             if (data.isEmpty()) {
                 if (projection.unavailableMonths > 0) MonthlyAmountsUnavailable(projection.unavailableMonths, currency, onRetry)
                 else Text(LocalizationManager.t("no_payments_yet"))
