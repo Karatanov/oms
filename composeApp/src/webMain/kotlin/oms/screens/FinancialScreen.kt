@@ -1408,6 +1408,7 @@ private fun PaymentMonitoringCard(
     val rows = remember(filteredRows, sort, ascending) {
         filteredRows.sortedWith { left, right -> comparePaymentMonitoringRows(left, right, sort, ascending) }
     }
+    val totals = remember(filteredRows) { paymentMonitoringTotals(filteredRows) }
     LaunchedEffect(normalizedQuery) { page = 0 }
     val pageSize = 20
     val pageCount = maxOf(1, (rows.size + pageSize - 1) / pageSize)
@@ -1475,6 +1476,9 @@ private fun PaymentMonitoringCard(
                                 Row(Modifier.width(130.dp).padding(vertical = 4.dp)) { PaymentMonitoringCell(row.code, 130.dp) }
                                 HorizontalDivider()
                             }
+                            Row(Modifier.width(130.dp).height(44.dp).background(MaterialTheme.colorScheme.surfaceContainerLow),
+                                verticalAlignment = Alignment.CenterVertically) { PaymentMonitoringTotalLabel(130.dp) }
+                            HorizontalDivider()
                         },
                         header = { PaymentMonitoringHeader(sort, ascending, ::selectSort) }
                     ) {
@@ -1482,6 +1486,8 @@ private fun PaymentMonitoringCard(
                             PaymentMonitoringRow(row)
                             HorizontalDivider()
                         }
+                        PaymentMonitoringRow(totals, heading = true)
+                        HorizontalDivider()
                     }
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
                         Text(
@@ -1611,6 +1617,7 @@ private fun PaymentMonitoringTransactionTable(
     val rows = remember(filteredRows, sort, ascending) {
         filteredRows.sortedWith { left, right -> comparePaymentTransactions(left, right, sort, ascending) }
     }
+    val totals = remember(filteredRows) { paymentTransactionTotals(filteredRows) }
     LaunchedEffect(normalizedQuery, selectedMonth) { page = 0 }
     if (transactions.isEmpty()) return
     Text(
@@ -1647,6 +1654,15 @@ private fun PaymentMonitoringTransactionTable(
             }
             HorizontalDivider()
         }
+        Row(Modifier.width(600.dp).height(44.dp).background(MaterialTheme.colorScheme.surfaceContainerLow),
+            verticalAlignment = Alignment.CenterVertically) {
+            PaymentMonitoringTotalLabel(110.dp)
+            PaymentMonitoringCell("—", 160.dp, heading = true)
+            PaymentMonitoringCell("—", 90.dp, heading = true)
+            PaymentMonitoringCell(totals.amountUah.asUahTableValue(), 130.dp, heading = true)
+            PaymentMonitoringCell(totals.amountEur.asUahTableValue(), 110.dp, heading = true)
+        }
+        HorizontalDivider()
     }
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
         Text(LocalizationManager.t("page_of").replace("{page}", (page.coerceIn(0, pageCount - 1) + 1).toString())
@@ -1688,18 +1704,19 @@ private fun PaymentMonitoringHeader(
 }
 
 @Composable
-private fun PaymentMonitoringRow(row: oms.data.ApiPaymentMonitoringItem) {
-    Row(Modifier.width(1_565.dp).padding(vertical = 4.dp)) {
-        PaymentMonitoringCell(row.code, 130.dp)
-        PaymentMonitoringCell(row.totalInvestmentUah.asUahTableValue(), 165.dp)
-        PaymentMonitoringCell(row.eibInvestmentUah.asUahTableValue(), 180.dp)
-        PaymentMonitoringCell(row.localCoFinancingUah.asUahTableValue(), 170.dp)
-        PaymentMonitoringCell(row.paidAndInProgressUah.asUahTableValue(), 190.dp)
-        PaymentMonitoringCell(row.paidUah.asUahTableValue(), 150.dp)
-        PaymentMonitoringCell(row.remainingUah.asUahTableValue(), 160.dp)
-        PaymentMonitoringCell(row.plannedEibSharePct.asPercent(), 130.dp)
-        PaymentMonitoringCell(row.factualEibSharePct.asPercent(), 130.dp)
-        PaymentMonitoringCell(row.eibShareCompliance.asReadableComplianceStatus(), 160.dp)
+private fun PaymentMonitoringRow(row: oms.data.ApiPaymentMonitoringItem, heading: Boolean = false) {
+    Row(Modifier.width(1_565.dp).then(if (heading) Modifier.height(44.dp).background(MaterialTheme.colorScheme.surfaceContainerLow)
+        else Modifier.padding(vertical = 4.dp)), verticalAlignment = if (heading) Alignment.CenterVertically else Alignment.Top) {
+        if (heading) PaymentMonitoringTotalLabel(130.dp) else PaymentMonitoringCell(row.code, 130.dp)
+        PaymentMonitoringCell(row.totalInvestmentUah.asUahTableValue(), 165.dp, heading)
+        PaymentMonitoringCell(row.eibInvestmentUah.asUahTableValue(), 180.dp, heading)
+        PaymentMonitoringCell(row.localCoFinancingUah.asUahTableValue(), 170.dp, heading)
+        PaymentMonitoringCell(row.paidAndInProgressUah.asUahTableValue(), 190.dp, heading)
+        PaymentMonitoringCell(row.paidUah.asUahTableValue(), 150.dp, heading)
+        PaymentMonitoringCell(row.remainingUah.asUahTableValue(), 160.dp, heading)
+        PaymentMonitoringCell(row.plannedEibSharePct.asPercent(), 130.dp, heading)
+        PaymentMonitoringCell(row.factualEibSharePct.asPercent(), 130.dp, heading)
+        PaymentMonitoringCell(row.eibShareCompliance.asReadableComplianceStatus(), 160.dp, heading)
     }
 }
 
@@ -1728,11 +1745,19 @@ private fun PaymentMonitoringHeaderCell(
 }
 
 @Composable
+private fun PaymentMonitoringTotalLabel(width: androidx.compose.ui.unit.Dp) {
+    oms.components.OmsTooltipBox(tooltip = { Text(LocalizationManager.t("table_totals_hint")) }) {
+        PaymentMonitoringCell(LocalizationManager.t("table_total"), width, heading = true)
+    }
+}
+
+@Composable
 private fun PaymentMonitoringCell(value: String, width: androidx.compose.ui.unit.Dp, heading: Boolean = false) {
     Text(
         value,
         modifier = Modifier.width(width).padding(horizontal = 6.dp),
         style = if (heading) MaterialTheme.typography.labelMedium else MaterialTheme.typography.bodySmall,
+        fontWeight = if (heading) FontWeight.SemiBold else FontWeight.Normal,
         maxLines = if (heading) 3 else 2
     )
 }
