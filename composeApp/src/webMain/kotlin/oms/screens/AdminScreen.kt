@@ -9,6 +9,13 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.background
+import androidx.compose.foundation.Canvas
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.material3.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Archive
@@ -82,6 +89,36 @@ private val accountLanguages = mapOf("uk" to "Українська", "en" to "En
 
 private fun accountLanguageName(code: String): String =
     accountLanguages[code.trim().lowercase()] ?: code.trim().ifBlank { "—" }
+
+/** Vector flags do not depend on emoji font support in the browser renderer. */
+@Composable
+private fun LanguageFlag(language: String) {
+    val code = language.trim().lowercase()
+    val name = accountLanguageName(code)
+    if (code !in accountLanguages) {
+        Text(name, style = MaterialTheme.typography.bodySmall)
+        return
+    }
+    oms.components.OmsTooltipBox(tooltip = { Text(name) }) {
+        Canvas(Modifier.size(32.dp, 21.dp).clipToBounds().semantics { contentDescription = name }) {
+            if (code == "en") {
+                drawRect(Color(0xFF012169))
+                for ((color, thickness) in listOf(Color.White to .30f, Color(0xFFC8102E) to .12f)) {
+                    drawLine(color, Offset.Zero, Offset(size.width, size.height), strokeWidth = size.height * thickness)
+                    drawLine(color, Offset(size.width, 0f), Offset(0f, size.height), strokeWidth = size.height * thickness)
+                }
+                for ((color, thickness) in listOf(Color.White to .42f, Color(0xFFC8102E) to .20f)) {
+                    drawLine(color, Offset(size.width / 2, 0f), Offset(size.width / 2, size.height), strokeWidth = size.height * thickness)
+                    drawLine(color, Offset(0f, size.height / 2), Offset(size.width, size.height / 2), strokeWidth = size.height * thickness)
+                }
+            } else {
+                drawRect(Color(0xFF0057B7), size = Size(size.width, size.height / 2))
+                drawRect(Color(0xFFFFDD00), topLeft = Offset(0f, size.height / 2), size = Size(size.width, size.height / 2))
+            }
+            drawRect(Color(0x22000000), style = Stroke(width = 1.dp.toPx()))
+        }
+    }
+}
 
 @Composable
 fun AdminScreen() {
@@ -287,7 +324,7 @@ fun AdminScreen() {
                         ExpandableTableText(user.region.orEmpty().ifBlank { "—" }, Modifier.width(130.dp))
                         ExpandableTableText(user.department.orEmpty().ifBlank { "—" }, Modifier.width(150.dp))
                         Box(Modifier.width(80.dp), contentAlignment = Alignment.CenterStart) {
-                            Text(accountLanguageName(user.preferredLang), style = MaterialTheme.typography.bodySmall)
+                            LanguageFlag(user.preferredLang)
                         }
                         Text(user.lastLoginAt.toOmsDateTime().ifBlank { "—" }, Modifier.width(170.dp))
                         Text(user.failedLoginCount.toString(), Modifier.width(120.dp))
