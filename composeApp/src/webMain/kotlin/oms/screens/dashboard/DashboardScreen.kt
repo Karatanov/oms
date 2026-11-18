@@ -200,6 +200,7 @@ fun DashboardScreen(
                         first = {
                             MetricsChart(
                                 "procurement_status_by_subprojects",
+                                hintKey = "procurement_status_chart_hint",
                                 metrics = dashboard?.procurementStatusCounts.orEmpty(),
                                 onItemClick = { onOpenProcurementsByStatus(it, trancheNumber) },
                                 orientation = chartOrientation
@@ -295,13 +296,20 @@ private fun NationalPortfolioSummary(
                 SummaryMetric(
                     "national_signed_contract_value",
                     "${summary.signedContractsAmountUah.roundToLong().grouped()} ${LocalizationManager.currencyLabel("UAH")}",
-                    onClick = onOpenSignedContracts,
-                    details = listOf("dashboard_contract_works", "dashboard_contract_engineer_consultant", "dashboard_contract_technical_supervision")
-                        .map { type ->
-                            LocalizationManager.t(type) to (contractTypes.firstOrNull { it.type == type }
-                                ?.contractAmountUah?.roundToLong()?.grouped() ?: "—")
-                        }
+                    onClick = onOpenSignedContracts
                 )
+                listOf(
+                    "dashboard_contract_works",
+                    "dashboard_contract_engineer_consultant",
+                    "dashboard_contract_technical_supervision"
+                ).forEach { type ->
+                    val amount = contractTypes.firstOrNull { it.type == type }?.contractAmountUah
+                    SummaryMetric(
+                        type,
+                        amount?.let { "${it.roundToLong().grouped()} ${LocalizationManager.currencyLabel("UAH")}" } ?: "—",
+                        onClick = onOpenSignedContracts
+                    )
+                }
                 SummaryMetric(
                     "eib_paid_under_contracts",
                     summary.eibPaidUnderContractsUah?.roundToLong()?.let { amount ->
@@ -323,8 +331,7 @@ private fun SummaryMetric(
     labelKey: String,
     value: String,
     uahEquivalent: String? = null,
-    onClick: (() -> Unit)? = null,
-    details: List<Pair<String, String>> = emptyList()
+    onClick: (() -> Unit)? = null
 ) {
     // A summary should be scannable at a glance.  Each metric gets its own
     // compact card, while the secondary UAH figure remains available on hover
@@ -340,7 +347,7 @@ private fun SummaryMetric(
         }
     ) {
         Card(
-            Modifier.widthIn(min = 148.dp, max = 208.dp).heightIn(min = 88.dp)
+            Modifier.width(208.dp).height(136.dp)
                 .then(if (onClick == null) Modifier else Modifier.clickable(onClick = onClick).buttonHandCursor()),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
             elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
@@ -351,21 +358,14 @@ private fun SummaryMetric(
             ) {
                 Text(
                     LocalizationManager.t(labelKey),
+                    modifier = Modifier.height(48.dp),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 3,
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(value, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, maxLines = 2)
-                if (details.isNotEmpty()) {
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                    details.forEach { (label, amount) ->
-                        Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
-                            Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text(amount, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
-                        }
-                    }
-                }
+
             }
         }
     }
