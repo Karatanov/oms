@@ -23,15 +23,16 @@ import androidx.compose.ui.unit.dp
  * a compact toolbar is overlaid in a protected trailing lane; narrow cards
  * put the toolbar below the title so controls never overlap its text.
  */
-@OptIn(ExperimentalLayoutApi::class)
+@OptIn(ExperimentalLayoutApi::class, androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 fun OmsChartHeader(
     title: String,
     modifier: Modifier = Modifier,
     toolbar: @Composable () -> Unit = {}
 ) {
+    androidx.compose.runtime.CompositionLocalProvider(androidx.compose.material3.LocalMinimumInteractiveComponentSize provides 0.dp) {
     BoxWithConstraints(modifier.fillMaxWidth()) {
-        if (maxWidth >= 640.dp && !oms.layout.LocalMobileLayout.current) {
+        if (maxWidth >= 420.dp && !oms.layout.LocalMobileLayout.current) {
             Row(
                 Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -40,7 +41,7 @@ fun OmsChartHeader(
                 Text(
                     title,
                     modifier = Modifier.weight(1f),
-                    style = MaterialTheme.typography.titleMedium,
+                    style = MaterialTheme.typography.titleSmall,
                     textAlign = TextAlign.Start,
                     maxLines = 3
                 )
@@ -54,16 +55,16 @@ fun OmsChartHeader(
                 ) { toolbar() }
             }
         } else {
-            Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(
                     title,
                     modifier = Modifier.fillMaxWidth(),
-                    style = MaterialTheme.typography.titleMedium,
+                    style = MaterialTheme.typography.titleSmall,
                     textAlign = TextAlign.Center,
                     maxLines = 3
                 )
                 FlowRow(
-                    Modifier.fillMaxWidth().padding(top = 2.dp),
+                    Modifier.fillMaxWidth().padding(top = 0.dp),
                     horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.End),
                     verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterVertically),
                     itemVerticalAlignment = Alignment.CenterVertically
@@ -71,4 +72,5 @@ fun OmsChartHeader(
             }
         }
     }
+}
 }

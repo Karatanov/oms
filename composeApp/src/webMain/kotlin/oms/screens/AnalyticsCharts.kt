@@ -104,7 +104,7 @@ private fun UkraineFundingMapChart(
         shape = RoundedCornerShape(12.dp),
         colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
-        Column(Modifier.padding(12.dp)) {
+        Column(Modifier.padding(8.dp)) {
             Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                 Text(LocalizationManager.t("approved_funding_by_oblast"), style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center)
             }
@@ -324,8 +324,6 @@ fun SubprojectCompletionChart(
                     onSelect = { regionFilter = it },
                     itemLabel = ::localizedUkraineRegion
                 )
-                excludedNote?.let { Text(it, style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant) }
             }
         },
         orientation = orientation,
@@ -368,7 +366,7 @@ private fun AnalyticsListCard(
         shape = RoundedCornerShape(12.dp),
         colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
-        Column(Modifier.padding(if (compact) 10.dp else 12.dp)) {
+        Column(Modifier.padding(8.dp)) {
             OmsChartHeader(LocalizationManager.t(titleKey)) {
                 sortControls?.invoke()
             }
@@ -421,6 +419,7 @@ fun MetricsChart(
         BarData(
             label = if (centerYearLabels && isMonth) displayLabel.toMonthName() else displayLabel.toChartMonth(),
             value = metric.value.toFloat(),
+            formattedValue = formatGroupedNumber(metric.value),
             id = metric.label,
             groupLabel = if (centerYearLabels && isMonth) metric.label.take(4) else null
         )
@@ -567,7 +566,7 @@ private fun AnalyticsCard(
     val cardModifier = Modifier.fillMaxWidth()
     Card(cardModifier, shape = RoundedCornerShape(12.dp),
         colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-        Column(Modifier.padding(12.dp)) {
+        Column(Modifier.padding(8.dp)) {
             val title = listOfNotNull(LocalizationManager.t(titleKey), titleSuffix).joinToString(" — ")
             OmsChartHeader(title) {
                 if (sortEnabled) ChartSortControls(
@@ -588,7 +587,7 @@ private fun AnalyticsCard(
                     currency = currency
                 )
                 onExpandedChange?.let { onToggle ->
-                    IconButton(onClick = { onToggle(!expanded) }, modifier = Modifier.size(36.dp).buttonHandCursor()) {
+                    IconButton(onClick = { onToggle(!expanded) }, modifier = Modifier.size(24.dp).buttonHandCursor()) {
                         Icon(
                             if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
                             contentDescription = LocalizationManager.t(if (expanded) "collapse" else "expand"),

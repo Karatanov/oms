@@ -71,7 +71,7 @@ fun ChartPngExportButton(
             },
             enabled = data.isNotEmpty(),
             modifier = modifier
-                .size(30.dp)
+                .size(24.dp)
                 .buttonHandCursor()
                 .semantics { contentDescription = LocalizationManager.t("download_png") }
         ) {

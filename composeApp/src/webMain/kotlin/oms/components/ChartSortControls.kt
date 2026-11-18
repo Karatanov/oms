@@ -16,6 +16,9 @@ import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -35,35 +38,28 @@ fun ChartSortControls(
     modifier: Modifier = Modifier
 ) {
     Row(modifier, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-        SingleChoiceSegmentedButtonRow {
-            listOf(ChartSortCriterion.Label, ChartSortCriterion.Value).forEachIndexed { index, option ->
-                val label = if (option == ChartSortCriterion.Label) "A–Z" else "123"
-                val tooltipKey = if (option == ChartSortCriterion.Label) "chart_sort_alphabetically" else "chart_sort_by_value"
-                OmsTooltipBox(tooltip = { Text(LocalizationManager.t(tooltipKey)) }) {
-                    SegmentedButton(
-                        selected = criterion == option,
-                        onClick = { onCriterionChange(option) },
-                        modifier = Modifier.height(28.dp).buttonHandCursor().semantics { contentDescription = LocalizationManager.t(tooltipKey) },
-                        shape = SegmentedButtonDefaults.itemShape(index, 2),
-                        icon = {},
-                        label = { Text(label, style = MaterialTheme.typography.labelSmall) }
-                    )
-                }
+        listOf(ChartSortCriterion.Label, ChartSortCriterion.Value).forEach { option ->
+            val label = if (option == ChartSortCriterion.Label) "A–Z" else "123"
+            val description = LocalizationManager.t(if (option == ChartSortCriterion.Label) "chart_sort_alphabetically" else "chart_sort_by_value")
+            OmsTooltipBox(tooltip = { Text(description) }) {
+                androidx.compose.foundation.layout.Box(
+                    Modifier.size(width = 32.dp, height = 24.dp)
+                        .background(if (criterion == option) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerLow, MaterialTheme.shapes.extraSmall)
+                        .selectable(selected = criterion == option, role = androidx.compose.ui.semantics.Role.RadioButton, onClick = { onCriterionChange(option) })
+                        .buttonHandCursor().semantics { contentDescription = description },
+                    contentAlignment = Alignment.Center
+                ) { Text(label, style = MaterialTheme.typography.labelSmall) }
             }
         }
-        Spacer(Modifier.width(2.dp))
         val directionKey = if (ascending) "sort_ascending" else "sort_descending"
         OmsTooltipBox(tooltip = { Text(LocalizationManager.t(directionKey)) }) {
-            IconButton(
-                onClick = onDirectionToggle,
-                modifier = Modifier.size(30.dp).buttonHandCursor().semantics { contentDescription = LocalizationManager.t(directionKey) }
+            androidx.compose.foundation.layout.Box(
+                Modifier.size(24.dp).clickable(onClick = onDirectionToggle).buttonHandCursor()
+                    .semantics { contentDescription = LocalizationManager.t(directionKey) },
+                contentAlignment = Alignment.Center
             ) {
-                Icon(
-                    if (ascending) Icons.Default.ArrowUpward else Icons.Default.ArrowDownward,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(16.dp)
-                )
+                Icon(if (ascending) Icons.Default.ArrowUpward else Icons.Default.ArrowDownward,
+                    null, Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary)
             }
         }
     }

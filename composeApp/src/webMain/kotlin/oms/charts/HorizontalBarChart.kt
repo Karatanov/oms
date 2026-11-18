@@ -31,19 +31,19 @@ fun HorizontalBarChart(
     val maxValue = data.maxOf { it.value }.coerceAtLeast(1f)
     val scroll = rememberScrollState()
     Column(Modifier.fillMaxWidth()) {
-        Column(Modifier.fillMaxWidth().heightIn(max = 190.dp).verticalScroll(scroll)) {
+        Column(Modifier.fillMaxWidth().heightIn(max = 144.dp).verticalScroll(scroll)) {
             data.forEach { item ->
                 val displayValue = item.formattedValue ?: valueLabel(item.value)
                 val tooltip = listOf(item.label + ": " + displayValue, item.tooltip).filterNotNull().joinToString("\n")
                 OmsTooltipBox(tooltip = { Text(tooltip) }) {
                     Row(
-                        Modifier.fillMaxWidth().heightIn(min = 36.dp).then(
+                        Modifier.fillMaxWidth().heightIn(min = 30.dp).then(
                             if (onItemClick == null) Modifier.focusable()
                             else Modifier.clickable { onItemClick(item) }.pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true)
                         ), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Text(item.label, Modifier.width(108.dp), maxLines = 2, style = MaterialTheme.typography.labelSmall)
-                        Box(Modifier.weight(1f).height(20.dp).clip(MaterialTheme.shapes.extraSmall).background(MaterialTheme.colorScheme.surfaceVariant)) {
+                        Box(Modifier.weight(1f).height(14.dp).clip(MaterialTheme.shapes.extraSmall).background(MaterialTheme.colorScheme.surfaceVariant)) {
                             Box(Modifier.fillMaxWidth((item.value.coerceAtLeast(0f) / maxValue).coerceIn(0f, 1f)).fillMaxHeight().background(item.color ?: color))
                         }
                         if (showDataLabels) {

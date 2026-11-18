@@ -31,7 +31,7 @@ fun VerticalBarChart(
     val maxValue = data.maxOf { it.value }.coerceAtLeast(1f)
     val scroll = rememberScrollState()
     LaunchedEffect(data, initialScrollToEnd, scroll.maxValue) { if (initialScrollToEnd) scroll.scrollTo(scroll.maxValue) }
-    val laneHeight = if (labelMaxLines == 1) 22.dp else 40.dp
+    val laneHeight = if (labelMaxLines == 1) 18.dp else 32.dp
     // A compact lane and wider bar make dense month/subproject charts easier
     // to scan. The label still owns its lane, so tooltips and click targets
     // remain reliable on touch screens.
@@ -55,18 +55,18 @@ fun VerticalBarChart(
                                 .pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true)
                         ),
                         horizontalAlignment = Alignment.CenterHorizontally) {
-                        Box(Modifier.fillMaxWidth().height(if (showDataLabels) 128.dp else 104.dp), contentAlignment = Alignment.BottomCenter) {
+                        Box(Modifier.fillMaxWidth().height(if (showDataLabels) 96.dp else 76.dp), contentAlignment = Alignment.BottomCenter) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 if (showDataLabels) {
                                     Text(displayValue, style = MaterialTheme.typography.labelMedium, maxLines = 1)
                                     Spacer(Modifier.height(4.dp))
                                 }
-                                Box(Modifier.width(36.dp).height((94f * (item.value.coerceAtLeast(0f) / maxValue)).dp)
+                                Box(Modifier.width(36.dp).height((66f * (item.value.coerceAtLeast(0f) / maxValue)).dp)
                                     .clip(MaterialTheme.shapes.extraSmall).background(item.color ?: color))
                             }
                         }
                         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                        Box(Modifier.fillMaxWidth().height(laneHeight).padding(top = 6.dp), contentAlignment = Alignment.TopCenter) {
+                        Box(Modifier.fillMaxWidth().height(laneHeight).padding(top = 2.dp), contentAlignment = Alignment.TopCenter) {
                             Text(item.label, style = MaterialTheme.typography.labelSmall, textAlign = TextAlign.Center, maxLines = labelMaxLines)
                         }
                     }
@@ -93,13 +93,13 @@ fun VerticalBarChart(
         // available width. The navigator becomes visible only after there is
         // actual horizontal content to browse.
         if (showScrollControls && scroll.maxValue > 0) {
-            Box(Modifier.fillMaxWidth().padding(top = 8.dp), contentAlignment = Alignment.Center) {
+            Box(Modifier.fillMaxWidth().padding(top = 2.dp), contentAlignment = Alignment.Center) {
                 Surface(
-                    modifier = Modifier.width(176.dp),
+                    modifier = Modifier.width(120.dp),
                     shape = MaterialTheme.shapes.medium,
                     color = MaterialTheme.colorScheme.surfaceContainerLow
                 ) {
-                    TableScrollControls(scroll)
+                    TableScrollControls(scroll, compact = true)
                 }
             }
         }

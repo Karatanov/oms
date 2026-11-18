@@ -142,8 +142,9 @@ fun ScrollableTable(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TableScrollControls(scroll: ScrollState, showWhenStationary: Boolean = false) {
+fun TableScrollControls(scroll: ScrollState, showWhenStationary: Boolean = false, compact: Boolean = false) {
     val maxValue = scroll.maxValue
     // Tables keep their navigator at the bottom of the screen even when a
     // wide viewport temporarily fits every column. Charts retain the compact
@@ -153,8 +154,9 @@ fun TableScrollControls(scroll: ScrollState, showWhenStationary: Boolean = false
     val percentage = if (canScroll) {
         ((scroll.value.toFloat() / maxValue.toFloat()) * 100).toInt()
     } else 0
+    CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides if (compact) 0.dp else 48.dp) {
     Row(
-        Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+        Modifier.padding(horizontal = 12.dp, vertical = if (compact) 0.dp else 8.dp),
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -170,7 +172,7 @@ fun TableScrollControls(scroll: ScrollState, showWhenStationary: Boolean = false
             // materially faster across every shared table and bar chart.
             continuousPixelsPerFrame = 32f,
             enabled = canScroll && scroll.value > 0,
-            modifier = Modifier.size(48.dp)
+            modifier = Modifier.size(if (compact) 24.dp else 48.dp)
         )
         Text(
             "$percentage%",
@@ -186,7 +188,8 @@ fun TableScrollControls(scroll: ScrollState, showWhenStationary: Boolean = false
             clickDistance = 720f,
             continuousPixelsPerFrame = 32f,
             enabled = canScroll && scroll.value < maxValue,
-            modifier = Modifier.size(48.dp)
+            modifier = Modifier.size(if (compact) 24.dp else 48.dp)
         )
     }
+}
 }

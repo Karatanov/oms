@@ -51,7 +51,7 @@ internal fun RegionalFinancingChart(items: List<RegionalFinancingAmount>, loadin
     val maximum = (known.maxOrNull() ?: 0L).coerceAtLeast(0L).toDouble()
     val span = (maximum - minimum).coerceAtLeast(1.0)
     Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Column(Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
             OmsChartHeader(listOfNotNull("${LocalizationManager.t("regional_financing_title")}, ${LocalizationManager.currencyLabel(currency)}", titleSuffix).joinToString(" — ")) {
                 CurrencySelector(currency) { currency = it }
                 ChartSortControls(criterion, ascending, { criterion = it }, { ascending = !ascending })
@@ -61,9 +61,9 @@ internal fun RegionalFinancingChart(items: List<RegionalFinancingAmount>, loadin
                 }
             }
             if (expanded) {
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                     listOf(planLabel to planColor, paidLabel to paidColor).forEach { (label, color) ->
-                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(3.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                             Box(Modifier.size(10.dp).background(color))
                             Text(label, style = MaterialTheme.typography.labelMedium)
                         }
