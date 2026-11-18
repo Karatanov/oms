@@ -5,6 +5,47 @@ import oms.data.ApiPaymentMonitoringTransaction
 import kotlin.test.*
 
 class PaymentMonitoringTotalsTest {
+    @Test fun parentPaymentSubtotalIsNotAddedAgainFromItsContractRow() {
+        val rows = listOf(
+            ApiPaymentMonitoringItem("CK08_06", paidUah = 800698.95, paidAndInProgressUah = 800698.95),
+            ApiPaymentMonitoringItem("CK08_06_W", paidUah = 800698.95, paidAndInProgressUah = 800698.95))
+        val result = paymentMonitoringTotals(rows)
+        assertEquals(800698.95, result.paidUah)
+        assertEquals(800698.95, result.paidAndInProgressUah)
+        assertEquals(result, paymentMonitoringTotals(rows.reversed()))
+    }
+
+    @Test fun rootSubtotalsCoverAllLotsAndPurposesButNotOtherSubprojects() {
+        val rows = listOf(
+            ApiPaymentMonitoringItem("KH08_07", paidUah = 100.0),
+            ApiPaymentMonitoringItem("KH08_07#Lot1", paidUah = 60.0),
+            ApiPaymentMonitoringItem("KH08_07#Lot1_W", paidUah = 50.0),
+            ApiPaymentMonitoringItem("KH08_07#Lot1_TS\$1", paidUah = 10.0),
+            ApiPaymentMonitoringItem("KH08_07#Lot2_W", paidUah = 40.0),
+            ApiPaymentMonitoringItem("KH08_070_W", paidUah = 5.0),
+            ApiPaymentMonitoringItem("CK08_06_CSC", paidUah = 2.0))
+        assertEquals(107.0, paymentMonitoringTotals(rows).paidUah)
+        assertEquals(107.0, paymentMonitoringTotals(rows.reversed()).paidUah)
+    }
+
+    @Test fun filteringToLotsKeepsTheirValuesAndDoesNotConfuseLot1WithLot10() {
+        val rows = listOf(
+            ApiPaymentMonitoringItem("KH08_07#Lot1", paidUah = 60.0),
+            ApiPaymentMonitoringItem("kh08_07#lot1_W", paidUah = 60.0),
+            ApiPaymentMonitoringItem("KH08_07#Lot10_W", paidUah = 40.0))
+        assertEquals(100.0, paymentMonitoringTotals(rows).paidUah)
+        assertEquals(60.0, paymentMonitoringTotals(rows.filter { it.code.endsWith("lot1_W") }).paidUah)
+    }
+
+    @Test fun eachPaymentColumnUsesItsOwnFilledParentIncludingGenuineZero() {
+        val rows = listOf(
+            ApiPaymentMonitoringItem("CK08_06", paidUah = 0.0),
+            ApiPaymentMonitoringItem("CK08_06_W", paidUah = 10.0, paidAndInProgressUah = 20.0))
+        val result = paymentMonitoringTotals(rows)
+        assertEquals(0.0, result.paidUah)
+        assertEquals(20.0, result.paidAndInProgressUah)
+    }
+
     @Test fun sumsEveryAbsoluteColumnAndAveragesPercentagesRatherThanRatios() {
         val first = ApiPaymentMonitoringItem("A", 10.10, 8.0, 2.10, 4.0, 3.0, 7.10, 80.0, 20.0)
         val second = ApiPaymentMonitoringItem("B", 20.20, 9.0, 11.20, 6.0, 5.0, 15.20, 40.0, 0.0)
