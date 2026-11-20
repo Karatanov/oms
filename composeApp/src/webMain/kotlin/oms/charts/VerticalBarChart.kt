@@ -11,6 +11,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.semantics.*
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextOverflow
@@ -33,6 +34,7 @@ fun VerticalBarChart(
     if (data.isEmpty()) return
     val maxValue = data.maxOf { it.value }.coerceAtLeast(1f)
     val scroll = rememberScrollState()
+    var viewportWidth by remember { mutableStateOf(0) }
     LaunchedEffect(data, initialScrollToEnd, scroll.maxValue) { if (initialScrollToEnd) scroll.scrollTo(scroll.maxValue) }
     val laneHeight = if (labelMaxLines == 1) 18.dp else 32.dp
     // A compact lane and wider bar make dense month/subproject charts easier
@@ -56,7 +58,9 @@ fun VerticalBarChart(
     } else labelWidth * .74f
     val plotWidth = effectiveLabelWidth * data.size + columnGap * (data.size - 1)
     Column(Modifier.fillMaxWidth()) {
-        Column(Modifier.fillMaxWidth().horizontalScroll(scroll)) {
+        Column(Modifier.fillMaxWidth()
+            .onSizeChanged { viewportWidth = it.width }
+            .horizontalScroll(scroll)) {
         Row(Modifier.width(plotWidth), horizontalArrangement = Arrangement.spacedBy(columnGap)) {
             data.forEachIndexed { index, item ->
                 val displayValue = displayValues[index]
@@ -113,7 +117,10 @@ fun VerticalBarChart(
                     shape = MaterialTheme.shapes.medium,
                     color = MaterialTheme.colorScheme.surfaceContainerLow
                 ) {
-                    TableScrollControls(scroll, compact = true)
+                    TableScrollControls(
+                        scroll, compact = true,
+                        stepDistance = (viewportWidth * .8f).coerceAtLeast(1f)
+                    )
                 }
             }
         }

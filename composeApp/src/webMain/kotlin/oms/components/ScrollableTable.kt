@@ -144,7 +144,12 @@ fun ScrollableTable(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TableScrollControls(scroll: ScrollState, showWhenStationary: Boolean = false, compact: Boolean = false) {
+fun TableScrollControls(
+    scroll: ScrollState,
+    showWhenStationary: Boolean = false,
+    compact: Boolean = false,
+    stepDistance: Float = 720f
+) {
     val maxValue = scroll.maxValue
     // Tables keep their navigator at the bottom of the screen even when a
     // wide viewport temporarily fits every column. Charts retain the compact
@@ -165,7 +170,7 @@ fun TableScrollControls(scroll: ScrollState, showWhenStationary: Boolean = false
             icon = Icons.Default.KeyboardArrowLeft,
             scrollState = scroll,
             direction = -1,
-            clickDistance = 720f,
+            clickDistance = stepDistance,
             // A long table/chart can span several thousand pixels.  At the
             // former 16 px/frame rate a held arrow felt unresponsive; keep
             // the motion smooth but make continuous horizontal navigation
@@ -185,7 +190,7 @@ fun TableScrollControls(scroll: ScrollState, showWhenStationary: Boolean = false
             icon = Icons.Default.KeyboardArrowRight,
             scrollState = scroll,
             direction = 1,
-            clickDistance = 720f,
+            clickDistance = stepDistance,
             continuousPixelsPerFrame = 32f,
             enabled = canScroll && scroll.value < maxValue,
             modifier = Modifier.size(if (compact) 24.dp else 48.dp)
