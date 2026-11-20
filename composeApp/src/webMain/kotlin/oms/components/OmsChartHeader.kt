@@ -32,7 +32,9 @@ fun OmsChartHeader(
 ) {
     androidx.compose.runtime.CompositionLocalProvider(androidx.compose.material3.LocalMinimumInteractiveComponentSize provides 0.dp) {
     BoxWithConstraints(modifier.fillMaxWidth()) {
-        if (maxWidth >= 420.dp && !oms.layout.LocalMobileLayout.current) {
+        // Nested FlowRow scopes hide BoxWithConstraintsScope.maxWidth on Kotlin/JS.
+        val availableWidth = maxWidth
+        if (availableWidth >= 420.dp && !oms.layout.LocalMobileLayout.current) {
             Row(
                 Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -51,7 +53,7 @@ fun OmsChartHeader(
                     }
                 }
                 FlowRow(
-                    modifier = Modifier.widthIn(max = minOf(320.dp, maxWidth * .55f)),
+                    modifier = Modifier.widthIn(max = minOf(320.dp, availableWidth * .55f)),
                     horizontalArrangement = Arrangement.spacedBy(2.dp, Alignment.End),
                     verticalArrangement = Arrangement.spacedBy(2.dp, Alignment.CenterVertically),
                     // Toolbar controls have intentionally different compact hit areas.
