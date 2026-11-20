@@ -1,7 +1,6 @@
 package oms.screens.dashboard
 
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -15,7 +14,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
@@ -31,7 +29,7 @@ import oms.components.OmsChartHeader
 import oms.components.formatGroupedNumber
 import oms.screens.projectMonthlyAmounts
 import oms.screens.MonthlyAmountsUnavailable
-import kotlin.math.roundToInt
+import kotlin.math.roundToLong
 
 @Composable
 fun MonthlyActPaymentsChart(primary: Color, payments: List<ApiMonthlyActPayment>, onOpenFinancialByMonth: (String) -> Unit = {}, orientation: BarChartOrientation = BarChartOrientation.Vertical, onRetry: (() -> Unit)? = null) {
@@ -51,8 +49,9 @@ fun MonthlyActPaymentsChart(primary: Color, payments: List<ApiMonthlyActPayment>
     val cardModifier = Modifier.fillMaxWidth()
     Card(modifier = cardModifier, shape = RoundedCornerShape(12.dp),
         colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-        Column(modifier = Modifier.padding(12.dp)) {
+        Column(modifier = Modifier.padding(8.dp)) {
             OmsChartHeader(LocalizationManager.t("monthly_act_payments")) {
+                CurrencySelector(currency) { currency = it }
                 if (data.isNotEmpty()) {
                     ChartPngExportButton(
                         title = LocalizationManager.t("monthly_act_payments"),
@@ -64,9 +63,6 @@ fun MonthlyActPaymentsChart(primary: Color, payments: List<ApiMonthlyActPayment>
                         currency = currency
                     )
                 }
-            }
-            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                CurrencySelector(currency) { currency = it }
             }
             Spacer(Modifier.height(4.dp))
             if (data.isEmpty()) {
@@ -82,4 +78,4 @@ fun MonthlyActPaymentsChart(primary: Color, payments: List<ApiMonthlyActPayment>
 }
 
 private fun formatActAmount(cents: Long, currency: String): String =
-    formatGroupedNumber((cents / 100.0).roundToInt().toLong())
+    formatGroupedNumber((cents / 100.0).roundToLong())

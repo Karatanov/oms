@@ -55,17 +55,17 @@ internal fun RegionalFinancingChart(items: List<RegionalFinancingAmount>, loadin
             OmsChartHeader(listOfNotNull("${LocalizationManager.t("regional_financing_title")}, ${LocalizationManager.currencyLabel(currency)}", titleSuffix).joinToString(" — ")) {
                 CurrencySelector(currency) { currency = it }
                 ChartSortControls(criterion, ascending, { criterion = it }, { ascending = !ascending })
-                IconButton(onClick = { expanded = !expanded }, modifier = Modifier.size(30.dp).buttonHandCursor()) {
+                IconButton(onClick = { expanded = !expanded }, modifier = Modifier.size(24.dp).buttonHandCursor()) {
                     Icon(if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
                         LocalizationManager.t(if (expanded) "collapse" else "expand"), modifier = Modifier.size(18.dp))
                 }
             }
             if (expanded) {
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                     listOf(planLabel to planColor, paidLabel to paidColor).forEach { (label, color) ->
                         Row(horizontalArrangement = Arrangement.spacedBy(3.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                            Box(Modifier.size(10.dp).background(color))
-                            Text(label, style = MaterialTheme.typography.labelMedium)
+                            Box(Modifier.size(8.dp).background(color))
+                            Text(label, style = MaterialTheme.typography.labelSmall)
                         }
                     }
                 }
@@ -77,14 +77,14 @@ internal fun RegionalFinancingChart(items: List<RegionalFinancingAmount>, loadin
                         if (displayedItems.any { it.plannedCents == null || it.paidCents == null }) Text(
                             LocalizationManager.t("regional_financing_missing"), color = MaterialTheme.colorScheme.error,
                             style = MaterialTheme.typography.bodySmall)
-                        Column(Modifier.fillMaxWidth().heightIn(max = 360.dp).verticalScroll(rememberScrollState()),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Column(Modifier.fillMaxWidth().heightIn(max = 240.dp).verticalScroll(rememberScrollState()),
+                            verticalArrangement = Arrangement.spacedBy(4.dp)) {
                             sorted.forEach { item ->
-                                Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                                    Text(region(item.region), style = MaterialTheme.typography.labelLarge)
+                                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                    Text(region(item.region), style = MaterialTheme.typography.labelMedium)
                                     listOf(Triple(planLabel, item.plannedCents, planColor), Triple(paidLabel, item.paidCents, paidColor)).forEach { (label, amount, color) ->
                                         OmsTooltipBox(tooltip = { Text("${region(item.region)}\n$label: ${money(amount)} ${LocalizationManager.currencyLabel(currency)}") }) {
-                                            BoxWithConstraints(Modifier.fillMaxWidth().height(22.dp).background(MaterialTheme.colorScheme.surfaceVariant)) {
+                                            BoxWithConstraints(Modifier.fillMaxWidth().height(18.dp).background(MaterialTheme.colorScheme.surfaceVariant)) {
                                                 val value = money(amount)
                                                 val labelWidth = with(density) { textMeasurer.measure(value, valueStyle).size.width.toDp() } + 12.dp
                                                 val start = ((minOf(0.0, amount?.toDouble() ?: 0.0) - minimum) / span).toFloat().coerceIn(0f, 1f)
