@@ -14,6 +14,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.input.pointer.pointerHoverIcon
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import oms.components.OmsTooltipBox
@@ -36,18 +39,35 @@ fun HorizontalBarChart(
                 val displayValue = item.formattedValue ?: valueLabel(item.value)
                 val tooltip = listOf(item.label + ": " + displayValue, item.tooltip).filterNotNull().joinToString("\n")
                 OmsTooltipBox(tooltip = { Text(tooltip) }) {
-                    Row(
-                        Modifier.fillMaxWidth().heightIn(min = 30.dp).then(
-                            if (onItemClick == null) Modifier.focusable()
-                            else Modifier.clickable { onItemClick(item) }.pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true)
-                        ), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    Column(
+                        Modifier.fillMaxWidth().heightIn(min = 32.dp)
+                            .semantics(mergeDescendants = true) { contentDescription = tooltip }
+                            .then(
+                                if (onItemClick == null) Modifier.focusable()
+                                else Modifier.clickable { onItemClick(item) }
+                                    .pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true)
+                            ).padding(vertical = 2.dp),
+                        verticalArrangement = Arrangement.spacedBy(2.dp)
                     ) {
-                        Text(item.label, Modifier.width(108.dp), maxLines = 2, style = MaterialTheme.typography.labelSmall)
-                        Box(Modifier.weight(1f).height(14.dp).clip(MaterialTheme.shapes.extraSmall).background(MaterialTheme.colorScheme.surfaceVariant)) {
-                            Box(Modifier.fillMaxWidth((item.value.coerceAtLeast(0f) / maxValue).coerceIn(0f, 1f)).fillMaxHeight().background(item.color ?: color))
+                        Row(
+                            Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text(item.label, Modifier.weight(1f), maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                style = MaterialTheme.typography.labelSmall)
+                            if (showDataLabels) {
+                                Text(displayValue, maxLines = 1, softWrap = false,
+                                    textAlign = TextAlign.End,
+                                    style = MaterialTheme.typography.labelSmall)
+                            }
                         }
-                        if (showDataLabels) {
-                            Text(displayValue, Modifier.width(72.dp), textAlign = TextAlign.End, style = MaterialTheme.typography.labelSmall)
+                        Box(Modifier.fillMaxWidth().height(8.dp)
+                            .clip(MaterialTheme.shapes.extraSmall)
+                            .background(MaterialTheme.colorScheme.surfaceVariant)) {
+                            Box(Modifier.fillMaxWidth((item.value.coerceAtLeast(0f) / maxValue).coerceIn(0f, 1f))
+                                .fillMaxHeight().background(item.color ?: color))
                         }
                     }
                 }
