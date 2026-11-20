@@ -273,17 +273,17 @@ private fun NationalPortfolioSummary(
         Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(
                 LocalizationManager.t("national_portfolio_summary"),
-                style = MaterialTheme.typography.titleLarge,
+                style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.fillMaxWidth(),
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center
             )
             FlowRow(
                 Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 SummaryMetric("national_subprojects", summary.subprojectsCount.toString(), onClick = onOpenSubprojects)
                 SummaryMetric("national_regions", summary.regionsCount.toString(), onClick = onOpenMap)
@@ -340,24 +340,27 @@ private fun SummaryMetric(
     // compact card, while the secondary UAH figure remains available on hover
     // or press instead of making the main number compete with a second currency.
     OmsTooltipBox(
-        enabled = uahEquivalent != null,
         openOnPress = true,
         tooltip = {
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(LocalizationManager.t("national_uah_equivalent"), style = MaterialTheme.typography.labelMedium)
-                Text(uahEquivalent.orEmpty(), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                Text(LocalizationManager.t(labelKey), style = MaterialTheme.typography.labelMedium)
+                Text(value, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                if (uahEquivalent != null) {
+                    Text(LocalizationManager.t("national_uah_equivalent"), style = MaterialTheme.typography.labelMedium)
+                    Text(uahEquivalent, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                }
             }
         }
     ) {
         Card(
-            Modifier.width(208.dp).height(136.dp)
+            Modifier.width(208.dp).height(112.dp)
                 .then(if (onClick == null) Modifier else Modifier.clickable(onClick = onClick).buttonHandCursor()),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
             elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
         ) {
             Column(
-                Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(7.dp)
+                Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 Text(
                     LocalizationManager.t(labelKey),
@@ -367,7 +370,7 @@ private fun SummaryMetric(
                     maxLines = 3,
                     overflow = TextOverflow.Ellipsis
                 )
-                Text(value, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, maxLines = 2)
+                Text(value, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
 
             }
         }
