@@ -45,6 +45,7 @@ fun ChartSortControls(
                 androidx.compose.foundation.layout.Box(
                     Modifier.size(width = 32.dp, height = 24.dp)
                         .background(if (criterion == option) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerLow, MaterialTheme.shapes.extraSmall)
+                        .chartControlFocus()
                         .selectable(selected = criterion == option, role = androidx.compose.ui.semantics.Role.RadioButton, onClick = { onCriterionChange(option) })
                         .buttonHandCursor().semantics { contentDescription = description },
                     contentAlignment = Alignment.Center
@@ -54,7 +55,7 @@ fun ChartSortControls(
         val directionKey = if (ascending) "sort_ascending" else "sort_descending"
         OmsTooltipBox(tooltip = { Text(LocalizationManager.t(directionKey)) }) {
             androidx.compose.foundation.layout.Box(
-                Modifier.size(24.dp).clickable(onClick = onDirectionToggle).buttonHandCursor()
+                Modifier.size(24.dp).chartControlFocus().clickable(onClick = onDirectionToggle).buttonHandCursor()
                     .semantics { contentDescription = LocalizationManager.t(directionKey) },
                 contentAlignment = Alignment.Center
             ) {

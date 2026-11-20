@@ -416,6 +416,7 @@ private fun ChartOrientationPicker(selected: BarChartOrientation, onSelect: (Bar
                 Box(
                     Modifier.size(32.dp).clip(MaterialTheme.shapes.extraSmall)
                         .background(if (active) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerLow)
+                        .chartControlFocus()
                         .selectable(selected = active, role = Role.RadioButton, onClick = { onSelect(orientation) })
                         .buttonHandCursor().semantics { contentDescription = description },
                     contentAlignment = Alignment.Center

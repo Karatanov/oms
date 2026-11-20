@@ -33,6 +33,7 @@ fun CurrencySelector(currency: String, onSelect: (String) -> Unit) {
                     Modifier.size(width = 36.dp, height = 24.dp)
                         .clip(MaterialTheme.shapes.extraSmall)
                         .background(if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerLow)
+                        .chartControlFocus()
                         .selectable(selected = selected, role = Role.RadioButton, onClick = { onSelect(code) })
                         .buttonHandCursor().semantics { contentDescription = label },
                     contentAlignment = Alignment.Center
