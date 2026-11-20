@@ -11,6 +11,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.semantics.*
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -39,13 +42,24 @@ fun VerticalBarChart(
     // Hiding values is also a density control.  Without the value lane each
     // bar can use a narrower column, so more categories fit before the
     // horizontal navigator is needed.
-    val effectiveLabelWidth = if (showDataLabels) labelWidth else (labelWidth * .74f)
+    val valueStyle = MaterialTheme.typography.labelMedium
+    val textMeasurer = rememberTextMeasurer()
+    val density = LocalDensity.current
+    val displayValues = data.map { it.formattedValue ?: valueLabel(it.value) }
+    // Grouped amounts must fit in a single line without losing their final digits.
+    // Only widen columns when needed; short values retain the compact layout.
+    val widestValue = if (showDataLabels) displayValues.maxOf {
+        textMeasurer.measure(it, valueStyle, softWrap = false, maxLines = 1).size.width
+    } else 0
+    val effectiveLabelWidth = if (showDataLabels) {
+        maxOf(labelWidth, with(density) { widestValue.toDp() } + 8.dp)
+    } else labelWidth * .74f
     val plotWidth = effectiveLabelWidth * data.size + columnGap * (data.size - 1)
     Column(Modifier.fillMaxWidth()) {
         Column(Modifier.fillMaxWidth().horizontalScroll(scroll)) {
         Row(Modifier.width(plotWidth), horizontalArrangement = Arrangement.spacedBy(columnGap)) {
-            data.forEach { item ->
-                val displayValue = item.formattedValue ?: valueLabel(item.value)
+            data.forEachIndexed { index, item ->
+                val displayValue = displayValues[index]
                 val tooltip = listOf(item.label + ": " + displayValue, item.tooltip).filterNotNull().joinToString("\n")
                 oms.components.OmsTooltipBox(tooltip = { Text(tooltip) }) {
                     Column(Modifier.width(effectiveLabelWidth).semantics { contentDescription = tooltip }
@@ -58,7 +72,7 @@ fun VerticalBarChart(
                         Box(Modifier.fillMaxWidth().height(if (showDataLabels) 96.dp else 76.dp), contentAlignment = Alignment.BottomCenter) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 if (showDataLabels) {
-                                    Text(displayValue, style = MaterialTheme.typography.labelMedium, maxLines = 1)
+                                    Text(displayValue, style = valueStyle, maxLines = 1, softWrap = false)
                                     Spacer(Modifier.height(4.dp))
                                 }
                                 Box(Modifier.width(36.dp).height((66f * (item.value.coerceAtLeast(0f) / maxValue)).dp)
@@ -67,7 +81,7 @@ fun VerticalBarChart(
                         }
                         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                         Box(Modifier.fillMaxWidth().height(laneHeight).padding(top = 2.dp), contentAlignment = Alignment.TopCenter) {
-                            Text(item.label, style = MaterialTheme.typography.labelSmall, textAlign = TextAlign.Center, maxLines = labelMaxLines)
+                            Text(item.label, style = MaterialTheme.typography.labelSmall, textAlign = TextAlign.Center, maxLines = labelMaxLines, overflow = TextOverflow.Ellipsis)
                         }
                     }
                 }
