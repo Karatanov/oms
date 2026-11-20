@@ -113,7 +113,7 @@ fun DashboardScreen(
             }
         }.focusable(),
             contentPadding = oms.layout.workspacePadding(),
-            verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            verticalArrangement = Arrangement.spacedBy(8.dp)) {
             item {
                 PageHeading(LocalizationManager.t("dashboard"), Icons.Default.Dashboard,
                     LocalizationManager.t("portfolio_overview"))

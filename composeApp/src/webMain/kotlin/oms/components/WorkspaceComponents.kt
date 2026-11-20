@@ -135,14 +135,21 @@ fun ContentState(message: String, loading: Boolean = false, error: Boolean = fal
     }
 }
 
-/** A readable two-column analytical layout, stacking on smaller laptops. */
+/** Compact chart pairs keep at least 376 dp per card, stacking on narrow screens. */
 @Composable
 fun AdaptiveChartRow(first: @Composable () -> Unit, second: @Composable () -> Unit) {
     BoxWithConstraints(Modifier.fillMaxWidth()) {
-        if (maxWidth >= 900.dp) Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+        if (maxWidth >= 760.dp) Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.Top
+        ) {
             Box(Modifier.weight(1f)) { first() }
             Box(Modifier.weight(1f)) { second() }
-        } else Column(verticalArrangement = Arrangement.spacedBy(16.dp)) { first(); second() }
+        } else Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            first()
+            second()
+        }
     }
 }
 
