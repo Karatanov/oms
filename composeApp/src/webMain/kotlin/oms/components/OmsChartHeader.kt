@@ -5,7 +5,7 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.Row
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -14,14 +14,14 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 
 /**
  * Responsive title and action area shared by OMS chart cards.
  *
- * Titles remain optically centred within the entire chart card. On wide cards
- * a compact toolbar is overlaid in a protected trailing lane; narrow cards
- * put the toolbar below the title so controls never overlap its text.
+ * Wide cards reserve space for both title and controls. Narrow cards place
+ * controls below the title; long toolbars wrap without squeezing the title.
  */
 @OptIn(ExperimentalLayoutApi::class, androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
@@ -38,15 +38,20 @@ fun OmsChartHeader(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Text(
-                    title,
-                    modifier = Modifier.weight(1f),
-                    style = MaterialTheme.typography.titleSmall,
-                    textAlign = TextAlign.Start,
-                    maxLines = 3
-                )
+                androidx.compose.foundation.layout.Box(Modifier.weight(1f)) {
+                    OmsTooltipBox(tooltip = { Text(title) }) {
+                        Text(
+                            title,
+                            modifier = Modifier.fillMaxWidth(),
+                            style = MaterialTheme.typography.titleSmall,
+                            textAlign = TextAlign.Start,
+                            maxLines = 3,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
                 FlowRow(
-                    modifier = Modifier,
+                    modifier = Modifier.widthIn(max = minOf(320.dp, maxWidth * .55f)),
                     horizontalArrangement = Arrangement.spacedBy(2.dp, Alignment.End),
                     verticalArrangement = Arrangement.spacedBy(2.dp, Alignment.CenterVertically),
                     // Toolbar controls have intentionally different compact hit areas.
@@ -56,17 +61,20 @@ fun OmsChartHeader(
             }
         } else {
             Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(
-                    title,
-                    modifier = Modifier.fillMaxWidth(),
-                    style = MaterialTheme.typography.titleSmall,
-                    textAlign = TextAlign.Center,
-                    maxLines = 3
-                )
+                OmsTooltipBox(tooltip = { Text(title) }) {
+                    Text(
+                        title,
+                        modifier = Modifier.fillMaxWidth(),
+                        style = MaterialTheme.typography.titleSmall,
+                        textAlign = TextAlign.Center,
+                        maxLines = 3,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
                 FlowRow(
-                    Modifier.fillMaxWidth().padding(top = 0.dp),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.End),
-                    verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterVertically),
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(2.dp, Alignment.End),
+                    verticalArrangement = Arrangement.spacedBy(2.dp, Alignment.CenterVertically),
                     itemVerticalAlignment = Alignment.CenterVertically
                 ) { toolbar() }
             }
