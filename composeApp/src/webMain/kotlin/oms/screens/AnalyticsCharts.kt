@@ -265,12 +265,13 @@ fun SubprojectEibPaymentChart(
         valueLabel = { paymentPercentageLabel(it.toDouble()) },
         onItemClick = { bar -> bar.id?.let(onOpenFinancial) },
         labelMaxLines = 2,
-        filterContent = {
+        headerContent = {
             FilterDropdown(
                 label = LocalizationManager.t("region"),
                 options = regions,
                 selected = regionFilter,
                 onSelect = { regionFilter = it },
+                compact = true,
                 itemLabel = ::localizedUkraineRegion
             )
         },
@@ -312,14 +313,15 @@ fun SubprojectCompletionChart(
         data = data,
         valueLabel = { paymentPercentageLabel(it.toDouble()) },
         labelMaxLines = 2,
-        filterContent = {
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        headerContent = {
+            Column {
                 FilterDropdown(
                     label = LocalizationManager.t("region"),
                     options = regions,
                     selected = regionFilter,
                     onSelect = { regionFilter = it },
-                    itemLabel = ::localizedUkraineRegion
+                    compact = true,
+                itemLabel = ::localizedUkraineRegion
                 )
             }
         },

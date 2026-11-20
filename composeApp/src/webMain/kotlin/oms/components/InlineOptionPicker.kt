@@ -24,12 +24,14 @@ import oms.localization.LocalizationManager
 import oms.theme.OmsDimensions
 
 /** Anchored in the application overlay host: never measured as page content. */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun <T> InlineOptionPicker(
     options: List<T>, selected: T?, prompt: String, onSelect: (T) -> Unit,
     itemLabel: (T) -> String = { it.toString() },
     modifier: Modifier = Modifier, fillWidth: Boolean = true, enabled: Boolean = true,
     clearLabel: String? = null, onClear: (() -> Unit)? = null,
+    compact: Boolean = false,
     loadOptionsOnOpen: (suspend () -> List<T>)? = null
 ) {
     val host = LocalOptionOverlay.current
@@ -68,10 +70,12 @@ fun <T> InlineOptionPicker(
             host.dismiss(id)
         }
     }
+    CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides
+        if (compact) 0.dp else LocalMinimumInteractiveComponentSize.current) {
     OutlinedButton(
         enabled = enabled,
         modifier = modifier.then(if (fillWidth) Modifier.fillMaxWidth() else Modifier)
-            .heightIn(min = OmsDimensions.ControlHeight)
+            .heightIn(min = if (compact) 32.dp else OmsDimensions.ControlHeight)
             .onGloballyPositioned { anchor = it.boundsInRoot() }
             .onPreviewKeyEvent { event ->
                 if (loading && event.type == KeyEventType.KeyDown && event.key == Key.Escape) {
@@ -92,7 +96,7 @@ fun <T> InlineOptionPicker(
             }
             .then(Modifier.focusRequesterForPicker(restoreFocus)),
         shape = MaterialTheme.shapes.small,
-        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+        contentPadding = PaddingValues(horizontal = if (compact) 8.dp else 12.dp, vertical = if (compact) 2.dp else 8.dp),
         border = androidx.compose.foundation.BorderStroke(
             1.dp,
             if (loadFailed && enabled) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.outlineVariant
@@ -126,7 +130,7 @@ fun <T> InlineOptionPicker(
                 selected?.let(itemLabel) ?: prompt,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
-                style = MaterialTheme.typography.bodyMedium
+                style = if (compact) MaterialTheme.typography.labelMedium else MaterialTheme.typography.bodyMedium
             )
             if (loadFailed && enabled) {
                 Text(
@@ -138,7 +142,7 @@ fun <T> InlineOptionPicker(
                 )
             }
         }
-        Spacer(Modifier.width(8.dp))
+        Spacer(Modifier.width(if (compact) 4.dp else 8.dp))
         if (loading) {
             CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
         } else {
@@ -153,6 +157,7 @@ fun <T> InlineOptionPicker(
                 tint = if (loadFailed && enabled) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
             )
         }
+    }
     }
 }
 

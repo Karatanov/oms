@@ -14,12 +14,13 @@ fun <T> FilterDropdown(
     selected: T?,
     onSelect: (T?) -> Unit,
     modifier: Modifier? = null,
+    compact: Boolean = false,
     itemLabel: (T) -> String = { it.toString() }
 ) {
 
     // A full-width control is much easier to read and tap on a phone.  Table
     // headers pass an explicit modifier, preserving their fixed column width.
-    val resolvedModifier = modifier ?: if (oms.layout.LocalMobileLayout.current) {
+    val resolvedModifier = modifier ?: if (oms.layout.LocalMobileLayout.current && !compact) {
         Modifier.fillMaxWidth()
     } else {
         Modifier.widthIn(min = 160.dp, max = 220.dp)
@@ -32,6 +33,7 @@ fun <T> FilterDropdown(
         itemLabel = itemLabel,
         modifier = resolvedModifier,
         fillWidth = false,
+        compact = compact,
         clearLabel = oms.localization.LocalizationManager.t("all"),
         onClear = { onSelect(null) }
     )
