@@ -64,7 +64,8 @@ fun VerticalBarChart(
         Row(Modifier.width(plotWidth), horizontalArrangement = Arrangement.spacedBy(columnGap)) {
             data.forEachIndexed { index, item ->
                 val displayValue = displayValues[index]
-                val tooltip = listOf(item.label + ": " + displayValue, item.tooltip).filterNotNull().joinToString("\n")
+                val fullLabel = listOfNotNull(item.label, item.groupLabel?.takeIf { it.isNotBlank() }).joinToString(" ")
+                val tooltip = listOf(fullLabel + ": " + displayValue, item.tooltip).filterNotNull().joinToString("\n")
                 oms.components.OmsTooltipBox(tooltip = { Text(tooltip) }) {
                     Column(Modifier.width(effectiveLabelWidth).semantics { contentDescription = tooltip }
                         .then(

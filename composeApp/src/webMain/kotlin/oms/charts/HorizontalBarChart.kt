@@ -37,7 +37,8 @@ fun HorizontalBarChart(
         Column(Modifier.fillMaxWidth().heightIn(max = 144.dp).verticalScroll(scroll)) {
             data.forEach { item ->
                 val displayValue = item.formattedValue ?: valueLabel(item.value)
-                val tooltip = listOf(item.label + ": " + displayValue, item.tooltip).filterNotNull().joinToString("\n")
+                val fullLabel = listOfNotNull(item.label, item.groupLabel?.takeIf { it.isNotBlank() }).joinToString(" ")
+                val tooltip = listOf(fullLabel + ": " + displayValue, item.tooltip).filterNotNull().joinToString("\n")
                 OmsTooltipBox(tooltip = { Text(tooltip) }) {
                     Column(
                         Modifier.fillMaxWidth().heightIn(min = 32.dp)
@@ -54,7 +55,7 @@ fun HorizontalBarChart(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Text(item.label, Modifier.weight(1f), maxLines = 1,
+                            Text(fullLabel, Modifier.weight(1f), maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                                 style = MaterialTheme.typography.labelSmall)
                             if (showDataLabels) {
