@@ -105,13 +105,10 @@ private fun UkraineFundingMapChart(
         colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Column(Modifier.padding(8.dp)) {
-            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                Text(LocalizationManager.t("approved_funding_by_oblast"), style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center)
-            }
-            Box(Modifier.fillMaxWidth().padding(top = 8.dp), contentAlignment = Alignment.Center) {
+            OmsChartHeader(LocalizationManager.t("approved_funding_by_oblast")) {
                 oms.components.CurrencySelector(currency, onCurrencyChange)
             }
-            Spacer(Modifier.height(6.dp))
+            Spacer(Modifier.height(2.dp))
             Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                 UkraineFundingMap(
                     amounts = amounts,
@@ -530,7 +527,7 @@ fun MonthlyMoneyChart(
     }
     AnalyticsCard(
         titleKey, hintKey, data, { formatChartAmount(it / 100.0, currency) }, labelMaxLines = 1,
-        filterContent = currencySelector, expanded = expanded, onExpandedChange = onExpandedChange,
+        headerContent = currencySelector, expanded = expanded, onExpandedChange = onExpandedChange,
         currency = currency,
         titleSuffix = titleSuffix,
         onItemClick = { bar -> bar.id?.let(onMonthClick) }, orientation = orientation,
@@ -556,7 +553,8 @@ private fun AnalyticsCard(
     currency: String? = null,
     titleSuffix: String? = null,
     emptyContent: (@Composable () -> Unit)? = null,
-    exportNote: String? = null
+    exportNote: String? = null,
+    headerContent: (@Composable () -> Unit)? = null
 ) {
     var sortCriterion by remember { mutableStateOf<ChartSortCriterion?>(null) }
     var sortAscending by remember { mutableStateOf(true) }
@@ -569,6 +567,7 @@ private fun AnalyticsCard(
         Column(Modifier.padding(8.dp)) {
             val title = listOfNotNull(LocalizationManager.t(titleKey), titleSuffix).joinToString(" — ")
             OmsChartHeader(title) {
+                if (expanded) headerContent?.invoke()
                 if (sortEnabled) ChartSortControls(
                     criterion = sortCriterion,
                     ascending = sortAscending,
