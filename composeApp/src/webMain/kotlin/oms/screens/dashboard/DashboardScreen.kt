@@ -5,10 +5,19 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.focusable
+import androidx.compose.foundation.background
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Dashboard
-import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -139,13 +148,7 @@ fun DashboardScreen(
                             )
                         }
                     }
-                    androidx.compose.material3.OutlinedButton(onClick = {
-                        chartOrientation = if (chartOrientation == BarChartOrientation.Vertical) BarChartOrientation.Horizontal else BarChartOrientation.Vertical
-                    }, modifier = Modifier.buttonHandCursor()) {
-                        Icon(Icons.Default.SwapHoriz, null)
-                        Spacer(Modifier.width(6.dp))
-                        Text(LocalizationManager.t(if (chartOrientation == BarChartOrientation.Vertical) "horizontal_charts" else "vertical_charts"))
-                    }
+                    ChartOrientationPicker(chartOrientation) { chartOrientation = it }
                 }
             }
             dashboard?.nationalSummary?.let { summary ->
@@ -395,6 +398,43 @@ private fun DashboardUpdatingChart() {
             CircularProgressIndicator(Modifier.size(28.dp), strokeWidth = 2.dp)
             Spacer(Modifier.height(12.dp))
             Text(LocalizationManager.t("loading_dashboard"), color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
+
+/** Explicit selected state keeps the compact orientation control understandable. */
+@Composable
+private fun ChartOrientationPicker(selected: BarChartOrientation, onSelect: (BarChartOrientation) -> Unit) {
+    Row(Modifier.selectableGroup(), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+        listOf(BarChartOrientation.Vertical, BarChartOrientation.Horizontal).forEach { orientation ->
+            val active = orientation == selected
+            val description = LocalizationManager.t(
+                if (orientation == BarChartOrientation.Vertical) "vertical_charts" else "horizontal_charts"
+            )
+            val foreground = if (active) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
+            OmsTooltipBox(tooltip = { Text(description) }) {
+                Box(
+                    Modifier.size(32.dp).clip(MaterialTheme.shapes.extraSmall)
+                        .background(if (active) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerLow)
+                        .selectable(selected = active, role = Role.RadioButton, onClick = { onSelect(orientation) })
+                        .buttonHandCursor().semantics { contentDescription = description },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Canvas(Modifier.size(18.dp)) {
+                        listOf(.5f, 1f, .75f).forEachIndexed { index, fraction ->
+                            if (orientation == BarChartOrientation.Vertical) {
+                                drawRect(foreground,
+                                    topLeft = Offset(size.width * index / 3f, size.height * (1f - fraction)),
+                                    size = Size(size.width * .22f, size.height * fraction))
+                            } else {
+                                drawRect(foreground,
+                                    topLeft = Offset(0f, size.height * index / 3f),
+                                    size = Size(size.width * fraction, size.height * .22f))
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }
