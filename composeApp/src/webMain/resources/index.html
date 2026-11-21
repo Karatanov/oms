@@ -1403,12 +1403,40 @@
             caption.className = "photo-lightbox-caption";
             caption.setAttribute("aria-live", "polite");
             caption.setAttribute("aria-atomic", "true");
-            image.onerror = () => {
-                image.removeAttribute("src");
-                image.alt = omsText("noPhotos");
-                caption.textContent = omsText("noPhotos");
+            const status = document.createElement("div");
+            status.className = "photo-lightbox-status";
+            const statusText = document.createElement("div");
+            statusText.setAttribute("role", "status");
+            const retry = document.createElement("button");
+            retry.type = "button";
+            retry.className = "photo-lightbox-retry";
+            retry.textContent = omsLanguage === "uk" ? "Повторити спробу" : "Try again";
+            status.append(statusText, retry);
+            image.onload = () => {
+                image.style.visibility = "visible";
+                status.hidden = true;
+                image.setAttribute("aria-busy", "false");
             };
-            const render = () => { omsSetImageSource(image, photos[index].downloadUrl); image.alt = photos[index].fileName; caption.textContent = `${photos[index].fileName} (${index + 1}/${photos.length})`; };
+            image.onerror = () => {
+                image.style.visibility = "hidden";
+                image.setAttribute("aria-busy", "false");
+                status.hidden = false;
+                statusText.textContent = omsLanguage === "uk" ? "Не вдалося завантажити фото" : "Could not load photo";
+                retry.hidden = false;
+            };
+            const render = () => {
+                if (document.activeElement === retry) close.focus({ preventScroll: true });
+                image.style.visibility = "hidden";
+                image.removeAttribute("src");
+                image.setAttribute("aria-busy", "true");
+                status.hidden = false;
+                statusText.textContent = omsText("loading");
+                retry.hidden = true;
+                image.alt = photos[index].fileName;
+                caption.textContent = `${photos[index].fileName} (${index + 1}/${photos.length})`;
+                omsSetImageSource(image, photos[index].downloadUrl);
+            };
+            retry.onclick = render;
             previous.onclick = () => { index = (index - 1 + photos.length) % photos.length; render(); };
             next.onclick = () => { index = (index + 1) % photos.length; render(); };
             overlay.addEventListener("keydown", event => {
@@ -1419,7 +1447,7 @@
                 else if (event.key === "Home") { index = 0; render(); }
                 else if (event.key === "End") { index = photos.length - 1; render(); }
                 else if (event.key === "Tab") {
-                    const controls = [close, previous, next].filter(button => !button.hidden);
+                    const controls = [close, previous, next, retry].filter(button => !button.hidden && (button !== retry || !status.hidden));
                     const current = controls.indexOf(document.activeElement);
                     const target = (current + (event.shiftKey ? -1 : 1) + controls.length) % controls.length;
                     controls[target].focus();
@@ -1427,7 +1455,7 @@
                 event.preventDefault();
                 event.stopPropagation();
             });
-            overlay.append(close, previous, image, next, caption);
+            overlay.append(close, previous, image, status, next, caption);
             document.body.append(overlay);
             render();
             close.focus({ preventScroll: true });

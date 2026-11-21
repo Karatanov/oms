@@ -490,3 +490,9 @@ button {
     background: rgba(255, 255, 255, 0.3);
 }
 .photo-lightbox-caption { max-width: 100%; overflow-wrap: anywhere; text-align: center; }
+
+.photo-lightbox-status { grid-column: 2; grid-row: 1; justify-self: center; color: #fff; text-align: center; }
+.photo-lightbox-status[hidden], .photo-lightbox-retry[hidden] { display: none; }
+.photo-lightbox-retry { margin-top: 12px; padding: 8px 14px; border: 1px solid #cbd5e1; border-radius: 8px; color: #fff; background: rgba(255, 255, 255, .16); font: inherit; cursor: pointer; }
+.photo-lightbox-retry:hover { background: rgba(255, 255, 255, .3); }
+.photo-lightbox-retry:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
