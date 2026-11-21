@@ -1430,6 +1430,7 @@
             image.className = "photo-lightbox-image";
             const caption = document.createElement("div");
             caption.className = "photo-lightbox-caption";
+            caption.tabIndex = 0;
             caption.setAttribute("aria-live", "polite");
             caption.setAttribute("aria-atomic", "true");
             const status = document.createElement("div");
@@ -1473,10 +1474,14 @@
                 if (event.key === "Escape") dismiss();
                 else if (event.key === "ArrowLeft") previous.click();
                 else if (event.key === "ArrowRight") next.click();
+                else if (document.activeElement === caption && ["ArrowUp", "ArrowDown", "Home", "End", "PageUp", "PageDown"].includes(event.key)) {
+                    event.stopPropagation();
+                    return;
+                }
                 else if (event.key === "Home") { index = 0; render(); }
                 else if (event.key === "End") { index = photos.length - 1; render(); }
                 else if (event.key === "Tab") {
-                    const controls = [close, previous, next, retry].filter(button => !button.hidden && (button !== retry || !status.hidden));
+                    const controls = [close, previous, next, retry, caption].filter(button => !button.hidden && (button !== retry || !status.hidden));
                     const current = controls.indexOf(document.activeElement);
                     const target = (current + (event.shiftKey ? -1 : 1) + controls.length) % controls.length;
                     controls[target].focus();
