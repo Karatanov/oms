@@ -276,7 +276,10 @@ fun SubprojectEibPaymentChart(
             )
         },
         orientation = orientation,
-        sortEnabled = true
+        sortEnabled = true,
+        exportNote = regionFilter?.let {
+            "${LocalizationManager.t("region")}: ${localizedUkraineRegion(it)}"
+        }
     )
 }
 
@@ -321,13 +324,16 @@ fun SubprojectCompletionChart(
                     selected = regionFilter,
                     onSelect = { regionFilter = it },
                     compact = true,
-                itemLabel = ::localizedUkraineRegion
+                    itemLabel = ::localizedUkraineRegion
                 )
             }
         },
         orientation = orientation,
         sortEnabled = true,
-        exportNote = excludedNote
+        exportNote = listOfNotNull(
+            regionFilter?.let { "${LocalizationManager.t("region")}: ${localizedUkraineRegion(it)}" },
+            excludedNote
+        ).joinToString("\n").takeIf { it.isNotBlank() }
     )
 }
 
