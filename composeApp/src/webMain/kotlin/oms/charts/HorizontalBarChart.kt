@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -33,6 +34,12 @@ fun HorizontalBarChart(
     if (data.isEmpty()) return
     val maxValue = data.maxOf { it.value }.coerceAtLeast(1f)
     val scroll = rememberScrollState()
+    val categoryOrder = data.map { (it.id ?: it.label) to it.groupLabel }
+    LaunchedEffect(categoryOrder) {
+        // A new filter or order should start with its first result. Amount-only
+        // updates retain the current position so reading is not interrupted.
+        scroll.scrollTo(0)
+    }
     Column(Modifier.fillMaxWidth()) {
         Column(Modifier.fillMaxWidth().heightIn(max = 144.dp).verticalScroll(scroll)) {
             data.forEach { item ->

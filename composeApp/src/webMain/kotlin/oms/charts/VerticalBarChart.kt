@@ -35,6 +35,10 @@ fun VerticalBarChart(
     val maxValue = data.maxOf { it.value }.coerceAtLeast(1f)
     val scroll = rememberScrollState()
     var viewportWidth by remember { mutableStateOf(0) }
+    val categoryOrder = data.map { (it.id ?: it.label) to it.groupLabel }
+    LaunchedEffect(categoryOrder, initialScrollToEnd) {
+        if (!initialScrollToEnd) scroll.scrollTo(0)
+    }
     LaunchedEffect(data, initialScrollToEnd, scroll.maxValue) { if (initialScrollToEnd) scroll.scrollTo(scroll.maxValue) }
     val laneHeight = if (labelMaxLines == 1) 18.dp else 32.dp
     // A compact lane and wider bar make dense month/subproject charts easier
