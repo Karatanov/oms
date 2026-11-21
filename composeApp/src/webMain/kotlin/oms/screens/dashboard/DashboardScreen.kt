@@ -280,26 +280,30 @@ private fun NationalPortfolioSummary(
                 modifier = Modifier.fillMaxWidth(),
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center
             )
-            FlowRow(
+            BoxWithConstraints(Modifier.fillMaxWidth()) {
+                val columns = ((maxWidth + 8.dp) / 216.dp).toInt().coerceAtLeast(1)
+                val metricWidth = (maxWidth - 8.dp * (columns - 1)) / columns
+                FlowRow(
                 Modifier.fillMaxWidth(),
+                maxItemsInEachRow = columns,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                SummaryMetric("national_subprojects", summary.subprojectsCount.toString(), onClick = onOpenSubprojects)
-                SummaryMetric("national_regions", summary.regionsCount.toString(), onClick = onOpenMap)
-                SummaryMetric("national_communities", summary.municipalitiesCount.toString(), onClick = onOpenMap)
-                SummaryMetric("national_settlements", summary.settlementsCount.toString(), onClick = onOpenMap)
+                SummaryMetric("national_subprojects", summary.subprojectsCount.toString(), cardWidth = metricWidth, onClick = onOpenSubprojects)
+                SummaryMetric("national_regions", summary.regionsCount.toString(), cardWidth = metricWidth, onClick = onOpenMap)
+                SummaryMetric("national_communities", summary.municipalitiesCount.toString(), cardWidth = metricWidth, onClick = onOpenMap)
+                SummaryMetric("national_settlements", summary.settlementsCount.toString(), cardWidth = metricWidth, onClick = onOpenMap)
                 SummaryMetric(
                     "national_approved_financing",
                     "€ ${summary.approvedFundingEur.roundToLong().grouped()}",
                     uahEquivalent = "${summary.approvedFundingUah.roundToLong().grouped()} ${LocalizationManager.currencyLabel("UAH")}",
-                    onClick = onOpenSubprojects
+                    cardWidth = metricWidth, onClick = onOpenSubprojects
                 )
-                SummaryMetric("national_signed_contracts", summary.signedContractsCount.toString(), onClick = onOpenSignedContracts)
+                SummaryMetric("national_signed_contracts", summary.signedContractsCount.toString(), cardWidth = metricWidth, onClick = onOpenSignedContracts)
                 SummaryMetric(
                     "national_signed_contract_value",
                     "${summary.signedContractsAmountUah.roundToLong().grouped()} ${LocalizationManager.currencyLabel("UAH")}",
-                    onClick = onOpenSignedContracts
+                    cardWidth = metricWidth, onClick = onOpenSignedContracts
                 )
                 listOf(
                     "dashboard_contract_works",
@@ -310,7 +314,7 @@ private fun NationalPortfolioSummary(
                     SummaryMetric(
                         type,
                         amount?.let { "${it.roundToLong().grouped()} ${LocalizationManager.currencyLabel("UAH")}" } ?: "—",
-                        onClick = onOpenSignedContracts
+                        cardWidth = metricWidth, onClick = onOpenSignedContracts
                     )
                 }
                 SummaryMetric(
@@ -322,8 +326,9 @@ private fun NationalPortfolioSummary(
                             append(LocalizationManager.currencyLabel("UAH"))
                         }
                     } ?: "—",
-                    onClick = onOpenFinancial
+                    cardWidth = metricWidth, onClick = onOpenFinancial
                 )
+            }
             }
         }
     }
@@ -334,6 +339,7 @@ private fun SummaryMetric(
     labelKey: String,
     value: String,
     uahEquivalent: String? = null,
+    cardWidth: androidx.compose.ui.unit.Dp = 208.dp,
     onClick: (() -> Unit)? = null
 ) {
     // A summary should be scannable at a glance.  Each metric gets its own
@@ -353,7 +359,7 @@ private fun SummaryMetric(
         }
     ) {
         Card(
-            Modifier.width(208.dp).height(112.dp)
+            Modifier.width(cardWidth).height(112.dp)
                 .then(if (onClick == null) Modifier else Modifier.clickable(onClick = onClick).buttonHandCursor()),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
             elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
