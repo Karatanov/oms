@@ -1256,7 +1256,7 @@
             omsDashboardOlderInspectionHandler = typeof onOlder === "function" ? onOlder : () => {};
         }
 
-        function showDashboardPhotoSlider(reportUuid, inspectionDate, subprojectCode, photosJson, hasNewerInspection, hasOlderInspection, photosLoading) {
+        function showDashboardPhotoSlider(reportUuid, inspectionDate, subprojectCode, photosJson, hasNewerInspection, hasOlderInspection, photosLoading, photosFailed, onRetryPhotos) {
             const pane = document.getElementById("dashboard-photo-slider");
             if (!pane) return;
             const photos = JSON.parse(photosJson);
@@ -1316,6 +1316,22 @@
                 loading.className = "photo-slider-empty";
                 loading.textContent = omsText("loading");
                 pane.append(loading);
+                return;
+            }
+
+            if (photosFailed) {
+                const error = document.createElement("div");
+                error.className = "photo-slider-error";
+                const message = document.createElement("div");
+                message.setAttribute("role", "status");
+                message.textContent = omsLanguage === "uk" ? "Не вдалося завантажити фотографії" : "Could not load photos";
+                const retry = document.createElement("button");
+                retry.type = "button";
+                retry.className = "photo-slider-retry";
+                retry.textContent = omsLanguage === "uk" ? "Повторити спробу" : "Try again";
+                retry.onclick = () => { retry.disabled = true; onRetryPhotos(); };
+                error.append(message, retry);
+                pane.append(error);
                 return;
             }
 

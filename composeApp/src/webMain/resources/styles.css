@@ -513,3 +513,9 @@ button {
 
 .photo-lightbox-position { position: absolute; top: 28px; left: 50%; transform: translateX(-50%); max-width: calc(100% - 144px); padding: 4px 10px; border-radius: 8px; background: rgba(255, 255, 255, .12); color: #fff; font: 600 14px/20px system-ui, sans-serif; font-variant-numeric: tabular-nums; white-space: nowrap; }
 @media (max-width: 800px) { .photo-lightbox-position { top: 18px; } }
+
+.photo-slider-error { display: flex; min-height: 76px; flex-direction: column; align-items: center; justify-content: center; gap: 8px; color: #9f1239; font-size: 14px; text-align: center; }
+.photo-slider-retry { padding: 6px 12px; border: 1px solid #cbd5e1; border-radius: 7px; background: #fff; color: #176b84; font: inherit; cursor: pointer; }
+.photo-slider-retry:hover:not(:disabled) { background: #e8f3f7; }
+.photo-slider-retry:focus-visible { outline: 2px solid #278dad; outline-offset: 2px; }
+.photo-slider-retry:disabled { opacity: .5; cursor: default; }

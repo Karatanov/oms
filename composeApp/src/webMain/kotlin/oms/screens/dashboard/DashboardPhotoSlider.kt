@@ -20,7 +20,9 @@ external fun showDashboardPhotoSlider(
     photosJson: String,
     hasNewerInspection: Boolean,
     hasOlderInspection: Boolean,
-    photosLoading: Boolean
+    photosLoading: Boolean,
+    photosFailed: Boolean,
+    onRetryPhotos: () -> Unit
 )
 
 @JsName("hideDashboardPhotoSlider")
@@ -47,10 +49,13 @@ fun DashboardPhotoSlider(
     hasOlderInspection: Boolean,
     onOpenNewerInspection: () -> Unit,
     onOpenOlderInspection: () -> Unit,
-    onOpenReport: (String) -> Unit = {}
+    onOpenReport: (String) -> Unit = {},
+    photosFailed: Boolean = false,
+    onRetryPhotos: () -> Unit = {}
 ) {
     val paneHeight = when {
         inspectionDate.isNullOrBlank() -> 64.dp
+        photosFailed -> 144.dp
         !photosLoading && photos.isNullOrEmpty() -> 104.dp
         else -> 200.dp
     }
@@ -62,6 +67,8 @@ fun DashboardPhotoSlider(
         subprojectCode,
         photos,
         photosLoading,
+        photosFailed,
+        onRetryPhotos,
         hasNewerInspection,
         hasOlderInspection,
         onOpenNewerInspection,
@@ -85,7 +92,9 @@ fun DashboardPhotoSlider(
             Json.encodeToString(sliderPhotos),
             hasNewerInspection,
             hasOlderInspection,
-            photosLoading
+            photosLoading,
+            photosFailed,
+            onRetryPhotos
         )
         onDispose {
             setDashboardInspectionPreviewHandler { _ -> }

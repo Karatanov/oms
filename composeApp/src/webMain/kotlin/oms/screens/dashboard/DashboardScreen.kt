@@ -67,6 +67,8 @@ fun DashboardScreen(
     var reload by remember { mutableStateOf(0) }
     var latestPhotos by remember { mutableStateOf<List<ApiInspectionPhoto>?>(null) }
     var latestPhotosLoading by remember { mutableStateOf(false) }
+    var latestPhotosFailed by remember { mutableStateOf(false) }
+    var photosReload by remember { mutableStateOf(0) }
     var chartOrientation by remember {
         val savedOrientation = runCatching { localStorage.getItem("oms.dashboard.chartOrientation") }.getOrNull()
         mutableStateOf(
@@ -112,13 +114,18 @@ fun DashboardScreen(
         .takeIf { it >= 0 }
         ?: 0
     val selectedInspection = recentInspections.getOrNull(selectedInspectionIndex)
-    LaunchedEffect(selectedInspection?.uuid) {
+    LaunchedEffect(selectedInspection?.uuid, photosReload) {
         latestPhotos = null
+        latestPhotosFailed = false
         latestPhotosLoading = selectedInspection != null
         try {
             latestPhotos = selectedInspection?.let {
-                runCatching { OmsApiClient.inspectionPhotos(it.uuid) }.getOrDefault(emptyList())
+                OmsApiClient.inspectionPhotos(it.uuid)
             } ?: emptyList()
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (_: Exception) {
+            latestPhotosFailed = true
         } finally {
             latestPhotosLoading = false
         }
@@ -267,6 +274,8 @@ fun DashboardScreen(
                         subprojectCode = selectedInspection?.subprojectCode,
                         photos = latestPhotos,
                         photosLoading = latestPhotosLoading,
+                        photosFailed = latestPhotosFailed,
+                        onRetryPhotos = { photosReload++ },
                         hasNewerInspection = selectedInspectionIndex > 0,
                         hasOlderInspection = selectedInspectionIndex < recentInspections.lastIndex,
                         onOpenNewerInspection = {
