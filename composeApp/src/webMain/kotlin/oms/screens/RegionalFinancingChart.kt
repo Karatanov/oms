@@ -1,5 +1,8 @@
 package oms.screens
 
+import androidx.compose.foundation.focusable
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -74,17 +77,22 @@ internal fun RegionalFinancingChart(items: List<RegionalFinancingAmount>, loadin
                     failed -> ContentState(LocalizationManager.t("financial_progress_load_error"), error = true, onRetry = onRetry)
                     displayedItems.isEmpty() -> Text(LocalizationManager.t("no_chart_data"))
                     else -> {
-                        if (displayedItems.any { it.plannedCents == null || it.paidCents == null }) Text(
-                            LocalizationManager.t("regional_financing_missing"), color = MaterialTheme.colorScheme.error,
-                            style = MaterialTheme.typography.bodySmall)
                         Column(Modifier.fillMaxWidth().heightIn(max = 240.dp).verticalScroll(rememberScrollState()),
                             verticalArrangement = Arrangement.spacedBy(4.dp)) {
                             sorted.forEach { item ->
                                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                                     Text(region(item.region), style = MaterialTheme.typography.labelMedium)
                                     listOf(Triple(planLabel, item.plannedCents, planColor), Triple(paidLabel, item.paidCents, paidColor)).forEach { (label, amount, color) ->
-                                        OmsTooltipBox(tooltip = { Text("${region(item.region)}\n$label: ${money(amount)} ${LocalizationManager.currencyLabel(currency)}") }) {
-                                            BoxWithConstraints(Modifier.fillMaxWidth().height(18.dp).background(MaterialTheme.colorScheme.surfaceVariant)) {
+                                        val description = buildString {
+                                            append("${region(item.region)}\n$label: ${money(amount)} ${LocalizationManager.currencyLabel(currency)}")
+                                            if (amount == null) append("\n${LocalizationManager.t("regional_financing_missing")}")
+                                        }
+                                        val trackColor = if (amount == null) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.surfaceVariant
+                                        OmsTooltipBox(openOnPress = amount == null, tooltip = { Text(description) }) {
+                                            BoxWithConstraints(Modifier.fillMaxWidth().height(18.dp)
+                                                .background(trackColor).chartControlFocus()
+                                                .semantics { contentDescription = description }
+                                                .focusable(enabled = amount != null)) {
                                                 val value = money(amount)
                                                 val labelWidth = with(density) { textMeasurer.measure(value, valueStyle).size.width.toDp() } + 12.dp
                                                 val start = ((minOf(0.0, amount?.toDouble() ?: 0.0) - minimum) / span).toFloat().coerceIn(0f, 1f)
@@ -102,9 +110,10 @@ internal fun RegionalFinancingChart(items: List<RegionalFinancingAmount>, loadin
                                                 Box(if (fitsInside) Modifier.offset(x = maxWidth * start).width(barWidth).fillMaxHeight()
                                                     else Modifier.fillMaxSize(), contentAlignment = Alignment.CenterEnd) {
                                                     Text(value, maxLines = 1, overflow = TextOverflow.Ellipsis,
-                                                        modifier = Modifier.background(if (fitsInside) Color.Transparent else MaterialTheme.colorScheme.surfaceVariant)
+                                                        modifier = Modifier.background(if (fitsInside) Color.Transparent else trackColor)
                                                             .padding(horizontal = 6.dp),
-                                                        color = if (!fitsInside) MaterialTheme.colorScheme.onSurfaceVariant
+                                                        color = if (amount == null) MaterialTheme.colorScheme.onErrorContainer
+                                                            else if (!fitsInside) MaterialTheme.colorScheme.onSurfaceVariant
                                                             else if (color == planColor) MaterialTheme.colorScheme.onPrimary else Color.White,
                                                         style = valueStyle)
                                                 }
