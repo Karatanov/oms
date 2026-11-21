@@ -17,6 +17,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -351,11 +352,28 @@ private fun SummaryMetric(
     cardWidth: androidx.compose.ui.unit.Dp = 208.dp,
     onClick: (() -> Unit)? = null
 ) {
-    // A summary should be scannable at a glance.  Each metric gets its own
-    // compact card, while the secondary UAH figure remains available on hover
-    // or press instead of making the main number compete with a second currency.
+    var detailsOpen by remember { mutableStateOf(false) }
+    if (detailsOpen) {
+        AlertDialog(
+            onDismissRequest = { detailsOpen = false },
+            title = { Text(LocalizationManager.t(labelKey)) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(value, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                    if (uahEquivalent != null) {
+                        Text(LocalizationManager.t("national_uah_equivalent"), style = MaterialTheme.typography.labelMedium)
+                        Text(uahEquivalent, style = MaterialTheme.typography.bodyLarge)
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { detailsOpen = false }, modifier = Modifier.buttonHandCursor()) {
+                    Text(LocalizationManager.t("close"))
+                }
+            }
+        )
+    }
     OmsTooltipBox(
-        openOnPress = true,
         tooltip = {
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(LocalizationManager.t(labelKey), style = MaterialTheme.typography.labelMedium)
@@ -369,7 +387,7 @@ private fun SummaryMetric(
     ) {
         Card(
             Modifier.width(cardWidth).height(112.dp)
-                .then(if (onClick == null) Modifier else Modifier.clickable(onClick = onClick).buttonHandCursor()),
+                .then(if (onClick == null) Modifier else Modifier.chartControlFocus().clickable(role = Role.Button, onClick = onClick).buttonHandCursor()),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
             elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
         ) {
@@ -377,14 +395,25 @@ private fun SummaryMetric(
                 Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                Text(
-                    LocalizationManager.t(labelKey),
-                    modifier = Modifier.height(48.dp),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 3,
-                    overflow = TextOverflow.Ellipsis
-                )
+                Row(Modifier.fillMaxWidth().height(48.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(
+                        LocalizationManager.t(labelKey),
+                        modifier = Modifier.weight(1f),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 3,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Box(
+                        Modifier.size(24.dp).clip(MaterialTheme.shapes.extraSmall).chartControlFocus()
+                            .clickable(role = Role.Button, onClickLabel = LocalizationManager.t("show_full_text")) { detailsOpen = true }
+                            .buttonHandCursor(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(Icons.Default.Info, contentDescription = LocalizationManager.t("show_full_text"),
+                            modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
                 Text(value, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
 
             }
