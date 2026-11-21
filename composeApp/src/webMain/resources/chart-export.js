@@ -42,9 +42,20 @@
             const hasSubtitle = Boolean(config.subtitle || config.currency);
             const hasGroups = entries.some(item => item.groupLabel);
             const titleHeight = hasSubtitle ? 82 : 58;
-            const lane = horizontal ? 66 : 150;
-            const cssWidth = horizontal ? 1280 : Math.max(980, entries.length * 132 + padding * 2);
-            const cssHeight = horizontal ? Math.max(300, entries.length * lane + titleHeight + padding * 2) : (hasGroups ? 564 : 520);
+            const labelWidth = 310;
+            const measureContext = document.createElement('canvas').getContext('2d');
+            measureContext.font = '14px Arial, sans-serif';
+            const valueWidth = config.showDataLabels
+                ? Math.max(120, ...entries.map(item => measureContext.measureText(String(item.value)).width + 16))
+                : 12;
+            const rows = horizontal ? entries.map(item => {
+                const label = [item.label, item.groupLabel].filter(Boolean).join(' ');
+                const lines = wrap(measureContext, label, labelWidth - 16);
+                return { lines, height: Math.max(66, lines.length * 17 + 24) };
+            }) : [];
+            const cssWidth = horizontal ? Math.max(1280, padding * 2 + labelWidth + valueWidth + 400)
+                : Math.max(980, entries.length * 132 + padding * 2);
+            const cssHeight = horizontal ? Math.max(300, rows.reduce((total, row) => total + row.height, 0) + titleHeight + padding * 2) : (hasGroups ? 564 : 520);
             const canvas = document.createElement('canvas');
             canvas.width = cssWidth * scale; canvas.height = cssHeight * scale;
             const ctx = canvas.getContext('2d');
@@ -60,16 +71,16 @@
             ctx.strokeStyle = '#d6e0e4'; ctx.lineWidth = 1;
             ctx.fillStyle = '#278DAD';
             if (horizontal) {
-                const labelWidth = 310;
                 const chartLeft = padding + labelWidth;
-                const chartWidth = cssWidth - chartLeft - padding - (config.showDataLabels ? 120 : 12);
+                const chartWidth = cssWidth - chartLeft - padding - valueWidth;
+                let top = titleHeight + padding;
                 entries.forEach((item, index) => {
-                    const top = titleHeight + padding + index * lane;
                     ctx.fillStyle = '#153544'; ctx.font = '14px Arial, sans-serif'; ctx.textAlign = 'left';
-                    wrap(ctx, item.label, labelWidth - 16).slice(0, 2).forEach((line, lineIndex) => ctx.fillText(line, padding, top + 24 + lineIndex * 17));
+                    rows[index].lines.forEach((line, lineIndex) => ctx.fillText(line, padding, top + 24 + lineIndex * 17));
                     ctx.fillStyle = '#e8f0f3'; ctx.fillRect(chartLeft, top + 12, chartWidth, 22);
                     ctx.fillStyle = '#278DAD'; ctx.fillRect(chartLeft, top + 12, chartWidth * Math.max(0, item.numeric) / max, 22);
                     if (config.showDataLabels) { ctx.fillStyle = '#153544'; ctx.textAlign = 'right'; ctx.fillText(item.value, cssWidth - padding, top + 28); }
+                    top += rows[index].height;
                 });
             } else {
                 const chartTop = titleHeight + padding;
