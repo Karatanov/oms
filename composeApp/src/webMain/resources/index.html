@@ -1431,8 +1431,10 @@
             const caption = document.createElement("div");
             caption.className = "photo-lightbox-caption";
             caption.tabIndex = 0;
-            caption.setAttribute("aria-live", "polite");
-            caption.setAttribute("aria-atomic", "true");
+            const position = document.createElement("div");
+            position.className = "photo-lightbox-position";
+            position.setAttribute("role", "status");
+            position.setAttribute("aria-atomic", "true");
             const status = document.createElement("div");
             status.className = "photo-lightbox-status";
             const statusText = document.createElement("div");
@@ -1463,7 +1465,10 @@
                 statusText.textContent = omsText("loading");
                 retry.hidden = true;
                 image.alt = photos[index].fileName;
-                caption.textContent = `${photos[index].fileName} (${index + 1}/${photos.length})`;
+                caption.textContent = photos[index].fileName;
+                position.textContent = `${index + 1} / ${photos.length}`;
+                position.setAttribute("aria-label", omsLanguage === "uk"
+                    ? `Фото ${index + 1} з ${photos.length}` : `Photo ${index + 1} of ${photos.length}`);
                 omsSetImageSource(image, photos[index].downloadUrl);
             };
             retry.onclick = render;
@@ -1508,7 +1513,7 @@
                 ignoreClickUntil = performance.now() + 400;
                 if (dx < 0) next.click(); else previous.click();
             });
-            overlay.append(close, previous, image, status, next, caption);
+            overlay.append(close, position, previous, image, status, next, caption);
             document.body.append(overlay);
             render();
             close.focus({ preventScroll: true });

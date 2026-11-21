@@ -510,3 +510,6 @@ button {
 
 .photo-lightbox-caption { box-sizing: border-box; max-height: min(20dvh, 96px); overflow-y: auto; overscroll-behavior: contain; padding: 10px 6px 2px; font-size: 14px; line-height: 20px; }
 .photo-lightbox-caption:focus-visible { outline: 2px solid #fff; outline-offset: 2px; border-radius: 4px; }
+
+.photo-lightbox-position { position: absolute; top: 28px; left: 50%; transform: translateX(-50%); max-width: calc(100% - 144px); padding: 4px 10px; border-radius: 8px; background: rgba(255, 255, 255, .12); color: #fff; font: 600 14px/20px system-ui, sans-serif; font-variant-numeric: tabular-nums; white-space: nowrap; }
+@media (max-width: 800px) { .photo-lightbox-position { top: 18px; } }
