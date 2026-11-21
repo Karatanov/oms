@@ -125,9 +125,11 @@ fun DashboardScreen(
     }
     Box(Modifier.fillMaxSize()) {
         LazyColumn(state = scrollState, modifier = Modifier.fillMaxSize().onKeyEvent { event ->
-            if (event.type != KeyEventType.KeyDown) false else when (event.key) {
-                Key.PageUp -> { scope.launch { scrollState.animateScrollBy(-600f) }; true }
-                Key.PageDown -> { scope.launch { scrollState.animateScrollBy(600f) }; true }
+            val viewport = scrollState.layoutInfo
+            val pageStep = ((viewport.viewportEndOffset - viewport.viewportStartOffset) * .8f).coerceAtLeast(1f)
+            if (event.type != KeyEventType.KeyDown || event.isCtrlPressed || event.isAltPressed || event.isMetaPressed) false else when (event.key) {
+                Key.PageUp -> { scope.launch { scrollState.animateScrollBy(-pageStep) }; true }
+                Key.PageDown -> { scope.launch { scrollState.animateScrollBy(pageStep) }; true }
                 Key.MoveHome -> { scope.launch { scrollState.animateScrollToItem(0) }; true }
                 Key.MoveEnd -> { scope.launch { scrollState.animateScrollToItem((scrollState.layoutInfo.totalItemsCount - 1).coerceAtLeast(0)) }; true }
                 else -> false
