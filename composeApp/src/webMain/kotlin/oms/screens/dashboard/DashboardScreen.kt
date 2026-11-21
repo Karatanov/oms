@@ -29,6 +29,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.input.key.*
+import kotlinx.browser.localStorage
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.yield
@@ -63,7 +64,13 @@ fun DashboardScreen(
     var reload by remember { mutableStateOf(0) }
     var latestPhotos by remember { mutableStateOf<List<ApiInspectionPhoto>?>(null) }
     var latestPhotosLoading by remember { mutableStateOf(false) }
-    var chartOrientation by remember { mutableStateOf(BarChartOrientation.Vertical) }
+    var chartOrientation by remember {
+        val savedOrientation = runCatching { localStorage.getItem("oms.dashboard.chartOrientation") }.getOrNull()
+        mutableStateOf(
+            BarChartOrientation.values().firstOrNull { it.name == savedOrientation }
+                ?: BarChartOrientation.Vertical
+        )
+    }
     var trancheNumber by remember { mutableStateOf<Int?>(null) }
     val scrollState = rememberLazyListState()
     val scope = rememberCoroutineScope()
@@ -159,7 +166,11 @@ fun DashboardScreen(
                             }
                         }
                     }
-                    ChartOrientationPicker(chartOrientation) { chartOrientation = it }
+                    ChartOrientationPicker(chartOrientation) { orientation ->
+                        chartOrientation = orientation
+                        // Storage may be disabled by the browser; switching still works.
+                        runCatching { localStorage.setItem("oms.dashboard.chartOrientation", orientation.name) }
+                    }
                 }
             }
             dashboard?.nationalSummary?.let { summary ->
