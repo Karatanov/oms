@@ -1396,7 +1396,11 @@
                 overlay.remove();
                 if (opener?.isConnected) opener.focus({ preventScroll: true });
             };
-            overlay.addEventListener("click", event => { if (event.target === overlay) dismiss(); });
+            let ignoreClickUntil = 0;
+            overlay.addEventListener("click", event => {
+                if (performance.now() < ignoreClickUntil) return;
+                if (event.target === overlay) dismiss();
+            });
             const close = document.createElement("button");
             close.className = "photo-lightbox-close";
             close.textContent = "×";
@@ -1470,6 +1474,25 @@
                 } else return;
                 event.preventDefault();
                 event.stopPropagation();
+            });
+            let swipe = null;
+            image.draggable = false;
+            image.addEventListener("pointerdown", event => {
+                if (!event.isPrimary) { swipe = null; return; }
+                if (event.pointerType !== "touch" || photos.length < 2 || (window.visualViewport?.scale || 1) > 1) return;
+                swipe = { id: event.pointerId, x: event.clientX, y: event.clientY };
+                image.setPointerCapture(event.pointerId);
+            });
+            image.addEventListener("pointercancel", () => { swipe = null; });
+            image.addEventListener("pointerup", event => {
+                const start = swipe;
+                swipe = null;
+                if (!start || start.id !== event.pointerId) return;
+                const dx = event.clientX - start.x;
+                const dy = event.clientY - start.y;
+                if (Math.abs(dx) < 48 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+                ignoreClickUntil = performance.now() + 400;
+                if (dx < 0) next.click(); else previous.click();
             });
             overlay.append(close, previous, image, status, next, caption);
             document.body.append(overlay);
