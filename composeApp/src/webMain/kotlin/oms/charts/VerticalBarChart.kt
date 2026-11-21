@@ -16,6 +16,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import oms.components.TableScrollControls
@@ -40,7 +41,6 @@ fun VerticalBarChart(
         if (!initialScrollToEnd) scroll.scrollTo(0)
     }
     LaunchedEffect(data, initialScrollToEnd, scroll.maxValue) { if (initialScrollToEnd) scroll.scrollTo(scroll.maxValue) }
-    val laneHeight = if (labelMaxLines == 1) 18.dp else 32.dp
     // A compact lane and wider bar make dense month/subproject charts easier
     // to scan. The label still owns its lane, so tooltips and click targets
     // remain reliable on touch screens.
@@ -67,6 +67,18 @@ fun VerticalBarChart(
             .coerceAtLeast(0) / data.size).toDp()
     }
     val effectiveLabelWidth = maxOf(minimumLabelWidth, fittedLabelWidth)
+    val labelStyle = MaterialTheme.typography.labelSmall
+    val labelConstraints = Constraints(maxWidth = with(density) { effectiveLabelWidth.roundToPx().coerceAtLeast(1) })
+    val tallestLabel = data.maxOf { item ->
+        textMeasurer.measure(
+            text = item.label,
+            style = labelStyle,
+            maxLines = labelMaxLines,
+            overflow = TextOverflow.Ellipsis,
+            constraints = labelConstraints
+        ).size.height
+    }
+    val laneHeight = with(density) { tallestLabel.toDp() } + 2.dp
     val plotWidth = effectiveLabelWidth * data.size + columnGap * (data.size - 1)
     Column(Modifier.fillMaxWidth()) {
         Column(Modifier.fillMaxWidth()
@@ -97,7 +109,7 @@ fun VerticalBarChart(
                         }
                         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                         Box(Modifier.fillMaxWidth().height(laneHeight).padding(top = 2.dp), contentAlignment = Alignment.TopCenter) {
-                            Text(item.label, style = MaterialTheme.typography.labelSmall, textAlign = TextAlign.Center, maxLines = labelMaxLines, overflow = TextOverflow.Ellipsis)
+                            Text(item.label, style = labelStyle, textAlign = TextAlign.Center, maxLines = labelMaxLines, overflow = TextOverflow.Ellipsis)
                         }
                     }
                 }
