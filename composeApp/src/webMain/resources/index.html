@@ -1327,24 +1327,27 @@
 
             const track = document.createElement("div");
             track.className = "photo-slider-track";
-            photos.forEach((photo, index) => {
+            const navigatePhotos = event => {
+                if (event.altKey || event.ctrlKey || event.metaKey) return;
+                const index = Array.from(track.children).indexOf(event.currentTarget);
+                const target = event.key === "ArrowRight" ? index + 1
+                    : event.key === "ArrowLeft" ? index - 1
+                    : event.key === "Home" ? 0
+                    : event.key === "End" ? track.children.length - 1 : null;
+                if (target === null) return;
+                event.preventDefault();
+                event.stopPropagation();
+                const next = track.children[Math.max(0, Math.min(track.children.length - 1, target))];
+                next?.focus({ preventScroll: true });
+                next?.scrollIntoView({ block: "nearest", inline: "nearest" });
+            };
+            const visiblePhotos = photos.slice(0, 7);
+            visiblePhotos.forEach(photo => {
                 const button = document.createElement("button");
                 button.type = "button";
                 button.className = "photo-slider-item";
                 button.title = photo.fileName;
-                button.addEventListener("keydown", event => {
-                    if (event.altKey || event.ctrlKey || event.metaKey) return;
-                    const target = event.key === "ArrowRight" ? index + 1
-                        : event.key === "ArrowLeft" ? index - 1
-                        : event.key === "Home" ? 0
-                        : event.key === "End" ? photos.length - 1 : null;
-                    if (target === null) return;
-                    event.preventDefault();
-                    event.stopPropagation();
-                    const next = track.children[Math.max(0, Math.min(photos.length - 1, target))];
-                    next?.focus({ preventScroll: true });
-                    next?.scrollIntoView({ block: "nearest", inline: "nearest" });
-                });
+                button.addEventListener("keydown", navigatePhotos);
                 button.setAttribute("aria-label", `${omsText("open")} ${photo.fileName}`);
                 const image = document.createElement("img");
                 image.alt = photo.fileName;
@@ -1364,6 +1367,19 @@
                 button.addEventListener("click", () => openPhotoLightbox(photos, photo.uuid));
                 track.append(button);
             });
+            if (photos.length > visiblePhotos.length) {
+                const more = document.createElement("button");
+                more.type = "button";
+                more.className = "photo-slider-item photo-slider-more";
+                const remaining = photos.length - visiblePhotos.length;
+                more.textContent = `+${remaining}`;
+                more.setAttribute("aria-label", omsLanguage === "uk"
+                    ? `Переглянути решту фото: ${remaining}` : `View remaining photos: ${remaining}`);
+                more.title = more.getAttribute("aria-label");
+                more.addEventListener("keydown", navigatePhotos);
+                more.onclick = () => openPhotoLightbox(photos, photos[visiblePhotos.length].uuid);
+                track.append(more);
+            }
             pane.append(track);
         }
 

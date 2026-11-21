@@ -65,7 +65,6 @@ fun DashboardPhotoSlider(
     ) {
         val sliderPhotos = photos.orEmpty()
             .sortedByDescending { it.isMain }
-            .take(7)
             .map { photo ->
                 photo.copy(
                     downloadUrl = photo.downloadUrl.toOmsUrl(),

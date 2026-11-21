@@ -496,3 +496,6 @@ button {
 .photo-lightbox-retry { margin-top: 12px; padding: 8px 14px; border: 1px solid #cbd5e1; border-radius: 8px; color: #fff; background: rgba(255, 255, 255, .16); font: inherit; cursor: pointer; }
 .photo-lightbox-retry:hover { background: rgba(255, 255, 255, .3); }
 .photo-lightbox-retry:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
+
+.photo-slider-more { color: #176b84; background: #e8f3f7; font: 600 28px system-ui, sans-serif; }
+.photo-slider-more:hover { background: #d9edf4; }
