@@ -14,10 +14,13 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material3.*
@@ -291,18 +294,38 @@ private fun NationalPortfolioSummary(
     onOpenSignedContracts: () -> Unit,
     onOpenFinancial: () -> Unit
 ) {
+    var expanded by remember {
+        mutableStateOf(runCatching { localStorage.getItem("oms.dashboard.summaryExpanded") }.getOrNull() != "false")
+    }
     Card(
         Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Column(Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(
-                LocalizationManager.t("national_portfolio_summary"),
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.fillMaxWidth(),
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center
-            )
-            BoxWithConstraints(Modifier.fillMaxWidth()) {
+            Row(
+                Modifier.fillMaxWidth().heightIn(min = 32.dp)
+                    .clip(MaterialTheme.shapes.extraSmall).chartControlFocus()
+                    .clickable(
+                        role = Role.Button,
+                        onClickLabel = LocalizationManager.t(if (expanded) "collapse" else "expand")
+                    ) {
+                        expanded = !expanded
+                        runCatching { localStorage.setItem("oms.dashboard.summaryExpanded", expanded.toString()) }
+                    }.buttonHandCursor()
+                    .semantics { stateDescription = LocalizationManager.t(if (expanded) "expanded" else "collapsed") },
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    LocalizationManager.t("national_portfolio_summary"),
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.weight(1f)
+                )
+                Icon(if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                    contentDescription = null, modifier = Modifier.size(20.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            if (expanded) BoxWithConstraints(Modifier.fillMaxWidth()) {
                 val columns = ((maxWidth + 8.dp) / 216.dp).toInt().coerceAtLeast(1)
                 val metricWidth = (maxWidth - 8.dp * (columns - 1)) / columns
                 FlowRow(
