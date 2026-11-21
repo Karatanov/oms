@@ -128,24 +128,33 @@ fun DashboardScreen(
                     LocalizationManager.t("portfolio_overview"))
             }
             item {
-                FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    SingleChoiceSegmentedButtonRow(Modifier.widthIn(max = 500.dp).fillMaxWidth()) {
-                        listOf<Int?>(null, 1, 2).forEachIndexed { index, option ->
-                            SegmentedButton(
-                                selected = trancheNumber == option,
-                                onClick = { trancheNumber = option },
-                                modifier = Modifier.buttonHandCursor(),
-                                shape = SegmentedButtonDefaults.itemShape(index, 3),
-                                colors = dashboardSegmentedColors(),
-                                icon = {},
-                                label = {
-                                    Text(LocalizationManager.t(when (option) {
+                FlowRow(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                    itemVerticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(Modifier.selectableGroup(), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                        listOf<Int?>(null, 1, 2).forEach { option ->
+                            val selected = trancheNumber == option
+                            Box(
+                                Modifier.heightIn(min = 32.dp).clip(MaterialTheme.shapes.extraSmall)
+                                    .background(if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerLow)
+                                    .chartControlFocus()
+                                    .selectable(selected = selected, role = Role.RadioButton, onClick = { trancheNumber = option })
+                                    .buttonHandCursor().padding(horizontal = 10.dp, vertical = 6.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    LocalizationManager.t(when (option) {
                                         null -> "all_tranches"
                                         1 -> "tranche_a"
                                         else -> "tranche_b"
-                                    }))
-                                }
-                            )
+                                    }),
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = if (selected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         }
                     }
                     ChartOrientationPicker(chartOrientation) { chartOrientation = it }
@@ -387,14 +396,6 @@ private fun Long.grouped(): String = formatGroupedNumber(this)
 
 private fun Long.toEuroAmount(): String = "${(this / 100).grouped()}.${(this % 100).toString().padStart(2, '0')}"
 private fun Long.toUahAmount(): String = "${(this / 100).grouped()}.${(this % 100).toString().padStart(2, '0')}"
-
-@Composable
-private fun dashboardSegmentedColors() = SegmentedButtonDefaults.colors(
-    activeContainerColor = MaterialTheme.colorScheme.primary,
-    activeContentColor = Color.White,
-    inactiveContainerColor = MaterialTheme.colorScheme.surface,
-    inactiveContentColor = MaterialTheme.colorScheme.onSurface
-)
 
 @Composable
 private fun DashboardUpdatingChart() {
