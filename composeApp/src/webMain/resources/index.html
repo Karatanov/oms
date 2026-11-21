@@ -1344,13 +1344,18 @@
                 next?.scrollIntoView({ block: "nearest", inline: "nearest" });
             };
             const visiblePhotos = photos.slice(0, 7);
-            visiblePhotos.forEach(photo => {
+            visiblePhotos.forEach((photo, index) => {
                 const button = document.createElement("button");
                 button.type = "button";
                 button.className = "photo-slider-item";
-                button.title = photo.fileName;
+                const position = `${index + 1}/${photos.length}`;
+                button.title = `${photo.fileName} (${position})`;
+                const counter = document.createElement("span");
+                counter.className = "photo-slider-counter";
+                counter.textContent = position;
+                counter.setAttribute("aria-hidden", "true");
                 button.addEventListener("keydown", navigatePhotos);
-                button.setAttribute("aria-label", `${omsText("open")} ${photo.fileName}`);
+                button.setAttribute("aria-label", `${omsText("open")} ${photo.fileName} (${position})`);
                 const image = document.createElement("img");
                 image.alt = photo.fileName;
                 image.loading = "lazy";
@@ -1361,11 +1366,13 @@
                     } else {
                         image.remove();
                         button.classList.add("photo-slider-item-unavailable");
-                        button.textContent = omsText("noPhotos");
+                        button.replaceChildren(document.createTextNode(omsText("noPhotos")));
+                        if (photos.length > 1) button.append(counter);
                     }
                 });
                 omsSetImageSource(image, photo.thumbnailUrl);
                 button.append(image);
+                if (photos.length > 1) button.append(counter);
                 button.addEventListener("click", () => openPhotoLightbox(photos, photo.uuid));
                 track.append(button);
             });

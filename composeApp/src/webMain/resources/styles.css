@@ -504,3 +504,6 @@ button {
 
 #dashboard-photo-slider.photo-slider-no-report .photo-slider-heading { margin-bottom: 0; }
 #dashboard-photo-slider.photo-slider-no-photos .photo-slider-empty { min-height: 40px; font-size: 14px; }
+
+.photo-slider-item { position: relative; }
+.photo-slider-counter { position: absolute; right: 6px; bottom: 6px; padding: 2px 6px; border-radius: 5px; background: rgba(15, 23, 42, .8); color: #fff; font: 600 11px/16px system-ui, sans-serif; font-variant-numeric: tabular-nums; pointer-events: none; }
