@@ -49,7 +49,7 @@ fun DashboardPhotoSlider(
     onOpenOlderInspection: () -> Unit,
     onOpenReport: (String) -> Unit = {}
 ) {
-    NativePaneAnchor("dashboard-photo-slider", Modifier.fillMaxWidth().height(232.dp))
+    NativePaneAnchor("dashboard-photo-slider", Modifier.fillMaxWidth().height(200.dp))
     if (!oms.navigation.LocalRouteVisible.current) return
     DisposableEffect(
         reportUuid,

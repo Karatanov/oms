@@ -1327,10 +1327,24 @@
 
             const track = document.createElement("div");
             track.className = "photo-slider-track";
-            photos.forEach(photo => {
+            photos.forEach((photo, index) => {
                 const button = document.createElement("button");
                 button.type = "button";
                 button.className = "photo-slider-item";
+                button.title = photo.fileName;
+                button.addEventListener("keydown", event => {
+                    if (event.altKey || event.ctrlKey || event.metaKey) return;
+                    const target = event.key === "ArrowRight" ? index + 1
+                        : event.key === "ArrowLeft" ? index - 1
+                        : event.key === "Home" ? 0
+                        : event.key === "End" ? photos.length - 1 : null;
+                    if (target === null) return;
+                    event.preventDefault();
+                    event.stopPropagation();
+                    const next = track.children[Math.max(0, Math.min(photos.length - 1, target))];
+                    next?.focus({ preventScroll: true });
+                    next?.scrollIntoView({ block: "nearest", inline: "nearest" });
+                });
                 button.setAttribute("aria-label", `${omsText("open")} ${photo.fileName}`);
                 const image = document.createElement("img");
                 image.alt = photo.fileName;
