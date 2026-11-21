@@ -498,11 +498,11 @@ fun MonthlyAmountsChart(
 
 @Composable
 internal fun MonthlyAmountsUnavailable(months: Int, currency: String, onRetry: (() -> Unit)? = null) {
-    oms.components.ContentState(
+    oms.components.ChartContentState(
         LocalizationManager.t("monthly_amounts_incomplete")
             .replace("{count}", months.toString())
             .replace("{currency}", LocalizationManager.currencyLabel(currency)),
-        error = true, onRetry = onRetry
+        onRetry = onRetry
     )
 }
 

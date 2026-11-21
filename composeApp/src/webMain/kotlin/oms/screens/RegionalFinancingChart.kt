@@ -76,8 +76,8 @@ internal fun RegionalFinancingChart(items: List<RegionalFinancingAmount>, loadin
                     }
                 }
                 when {
-                    loading -> ContentState(LocalizationManager.t("financial_progress_loading"), loading = true)
-                    failed -> ContentState(LocalizationManager.t("financial_progress_load_error"), error = true, onRetry = onRetry)
+                    loading -> ChartContentState(LocalizationManager.t("financial_progress_loading"), loading = true)
+                    failed -> ChartContentState(LocalizationManager.t("financial_progress_load_error"), onRetry = onRetry)
                     displayedItems.isEmpty() -> Text(LocalizationManager.t("no_chart_data"))
                     else -> {
                         Column(Modifier.fillMaxWidth().heightIn(max = 240.dp).verticalScroll(rememberScrollState()),
