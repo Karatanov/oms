@@ -54,9 +54,12 @@ fun VerticalBarChart(
     val displayValues = data.map { it.formattedValue ?: valueLabel(it.value) }
     // Grouped amounts must fit in a single line without losing their final digits.
     // Only widen columns when needed; short values retain the compact layout.
-    val widestValue = if (showDataLabels) displayValues.maxOf {
-        textMeasurer.measure(it, valueStyle, softWrap = false, maxLines = 1).size.width
-    } else 0
+    val valueSizes = if (showDataLabels) displayValues.map {
+        textMeasurer.measure(it, valueStyle, softWrap = false, maxLines = 1).size
+    } else emptyList()
+    val widestValue = valueSizes.maxOfOrNull { it.width } ?: 0
+    val valueHeight = with(density) { (valueSizes.maxOfOrNull { it.height } ?: 0).toDp() }
+    val plotHeight = if (showDataLabels) maxOf(96.dp, 66.dp + 4.dp + valueHeight) else 76.dp
     val minimumLabelWidth = if (showDataLabels) {
         maxOf(labelWidth, with(density) { widestValue.toDp() } + 8.dp)
     } else labelWidth * .74f
@@ -97,7 +100,7 @@ fun VerticalBarChart(
                                 .pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true)
                         ),
                         horizontalAlignment = Alignment.CenterHorizontally) {
-                        Box(Modifier.fillMaxWidth().height(if (showDataLabels) 96.dp else 76.dp), contentAlignment = Alignment.BottomCenter) {
+                        Box(Modifier.fillMaxWidth().height(plotHeight), contentAlignment = Alignment.BottomCenter) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 if (showDataLabels) {
                                     Text(displayValue, style = valueStyle, maxLines = 1, softWrap = false)

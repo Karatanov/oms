@@ -40,6 +40,9 @@ internal fun RegionalFinancingChart(items: List<RegionalFinancingAmount>, loadin
     val valueStyle = MaterialTheme.typography.labelSmall
     val textMeasurer = rememberTextMeasurer()
     val density = LocalDensity.current
+    val trackHeight = maxOf(18.dp, with(density) {
+        textMeasurer.measure("0", valueStyle).size.height.toDp()
+    } + 2.dp)
     fun region(value: String) = if (value.isBlank()) LocalizationManager.t("construction_unspecified") else localizedUkraineRegion(value)
     fun money(value: Long?) = value?.let {
         val sign = if (it < 0) "−" else ""
@@ -89,7 +92,7 @@ internal fun RegionalFinancingChart(items: List<RegionalFinancingAmount>, loadin
                                         }
                                         val trackColor = if (amount == null) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.surfaceVariant
                                         OmsTooltipBox(openOnPress = amount == null, tooltip = { Text(description) }) {
-                                            BoxWithConstraints(Modifier.fillMaxWidth().height(18.dp)
+                                            BoxWithConstraints(Modifier.fillMaxWidth().height(trackHeight)
                                                 .background(trackColor).chartControlFocus()
                                                 .semantics { contentDescription = description }
                                                 .focusable(enabled = amount != null)) {
