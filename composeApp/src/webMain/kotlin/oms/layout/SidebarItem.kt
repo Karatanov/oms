@@ -2,6 +2,11 @@ package oms.layout
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.material3.*
@@ -20,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import oms.navigation.Screen
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun SidebarItem(title: String, icon: ImageVector, screen: Screen, current: Screen,
     onNavigate: (Screen) -> Unit, compact: Boolean = false, iconText: String? = null
@@ -29,10 +35,19 @@ fun SidebarItem(title: String, icon: ImageVector, screen: Screen, current: Scree
         (screen == Screen.Inspections && current == Screen.CreateInspection)
     val interactionSource = remember { MutableInteractionSource() }
     val focused by interactionSource.collectIsFocusedAsState()
+    val visibilityRequester = remember { BringIntoViewRequester() }
+    LaunchedEffect(current, compact, title) {
+        if (isSelected) {
+            // Let the expanded/translated label finish layout before revealing it.
+            withFrameNanos { }
+            visibilityRequester.bringIntoView()
+        }
+    }
     // A direct button is intentional: wrapping sidebar links in a tooltip box on
     // Wasm can intercept hover state and leave the text-selection cursor visible.
     TextButton(
         onClick = { onNavigate(screen) }, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)
+            .bringIntoViewRequester(visibilityRequester)
             .pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true).semantics {
                 selected = isSelected
                 if (compact) contentDescription = title
