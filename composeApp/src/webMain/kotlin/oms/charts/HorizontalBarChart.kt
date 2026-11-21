@@ -49,6 +49,7 @@ fun HorizontalBarChart(
                 OmsTooltipBox(tooltip = { Text(tooltip) }) {
                     Column(
                         Modifier.fillMaxWidth().heightIn(min = 32.dp)
+                            .chartItemHighlight()
                             .semantics(mergeDescendants = true) { contentDescription = tooltip }
                             .then(
                                 if (onItemClick == null) Modifier.focusable()

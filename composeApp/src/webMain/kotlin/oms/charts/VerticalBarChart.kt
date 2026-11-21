@@ -71,7 +71,7 @@ fun VerticalBarChart(
                 val fullLabel = listOfNotNull(item.label, item.groupLabel?.takeIf { it.isNotBlank() }).joinToString(" ")
                 val tooltip = listOf(fullLabel + ": " + displayValue, item.tooltip).filterNotNull().joinToString("\n")
                 oms.components.OmsTooltipBox(tooltip = { Text(tooltip) }) {
-                    Column(Modifier.width(effectiveLabelWidth).semantics { contentDescription = tooltip }
+                    Column(Modifier.width(effectiveLabelWidth).chartItemHighlight().semantics { contentDescription = tooltip }
                         .then(
                             if (onItemClick == null) Modifier.focusable()
                             else Modifier.clickable { onItemClick(item) }
