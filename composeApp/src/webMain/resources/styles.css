@@ -483,3 +483,10 @@ button {
 }
 
 @keyframes oms-loading-rotate { to { transform: rotate(360deg); } }
+
+.photo-lightbox-close:focus-visible, .photo-lightbox-nav:focus-visible {
+    outline: 3px solid #fff;
+    outline-offset: 3px;
+    background: rgba(255, 255, 255, 0.3);
+}
+.photo-lightbox-caption { max-width: 100%; overflow-wrap: anywhere; text-align: center; }

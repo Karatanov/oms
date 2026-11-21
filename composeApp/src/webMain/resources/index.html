@@ -1368,25 +1368,41 @@
         }
 
         function openPhotoLightbox(photos, selectedUuid) {
+            if (!photos.length) return;
+            const opener = document.activeElement;
             let index = Math.max(0, photos.findIndex(photo => photo.uuid === selectedUuid));
             const overlay = document.createElement("div");
             overlay.className = "photo-lightbox";
-            overlay.addEventListener("click", event => { if (event.target === overlay) overlay.remove(); });
+            overlay.setAttribute("role", "dialog");
+            overlay.setAttribute("aria-modal", "true");
+            overlay.setAttribute("aria-label", omsLanguage === "uk" ? "Перегляд фотографій" : "Photo viewer");
+            const dismiss = () => {
+                overlay.remove();
+                if (opener?.isConnected) opener.focus({ preventScroll: true });
+            };
+            overlay.addEventListener("click", event => { if (event.target === overlay) dismiss(); });
             const close = document.createElement("button");
             close.className = "photo-lightbox-close";
             close.textContent = "×";
             close.setAttribute("aria-label", omsText("closeFullscreenPhoto"));
-            close.onclick = () => overlay.remove();
+            close.type = "button";
+            close.onclick = dismiss;
             const previous = document.createElement("button");
             previous.className = "photo-lightbox-nav previous";
             previous.textContent = "‹";
             const next = document.createElement("button");
             next.className = "photo-lightbox-nav next";
             next.textContent = "›";
+            previous.type = next.type = "button";
+            previous.setAttribute("aria-label", omsLanguage === "uk" ? "Попереднє фото" : "Previous photo");
+            next.setAttribute("aria-label", omsLanguage === "uk" ? "Наступне фото" : "Next photo");
+            previous.hidden = next.hidden = photos.length < 2;
             const image = document.createElement("img");
             image.className = "photo-lightbox-image";
             const caption = document.createElement("div");
             caption.className = "photo-lightbox-caption";
+            caption.setAttribute("aria-live", "polite");
+            caption.setAttribute("aria-atomic", "true");
             image.onerror = () => {
                 image.removeAttribute("src");
                 image.alt = omsText("noPhotos");
@@ -1395,9 +1411,26 @@
             const render = () => { omsSetImageSource(image, photos[index].downloadUrl); image.alt = photos[index].fileName; caption.textContent = `${photos[index].fileName} (${index + 1}/${photos.length})`; };
             previous.onclick = () => { index = (index - 1 + photos.length) % photos.length; render(); };
             next.onclick = () => { index = (index + 1) % photos.length; render(); };
+            overlay.addEventListener("keydown", event => {
+                if (event.altKey || event.ctrlKey || event.metaKey) return;
+                if (event.key === "Escape") dismiss();
+                else if (event.key === "ArrowLeft") previous.click();
+                else if (event.key === "ArrowRight") next.click();
+                else if (event.key === "Home") { index = 0; render(); }
+                else if (event.key === "End") { index = photos.length - 1; render(); }
+                else if (event.key === "Tab") {
+                    const controls = [close, previous, next].filter(button => !button.hidden);
+                    const current = controls.indexOf(document.activeElement);
+                    const target = (current + (event.shiftKey ? -1 : 1) + controls.length) % controls.length;
+                    controls[target].focus();
+                } else return;
+                event.preventDefault();
+                event.stopPropagation();
+            });
             overlay.append(close, previous, image, next, caption);
             document.body.append(overlay);
             render();
+            close.focus({ preventScroll: true });
         }
 
         // Read-only SIR screens deliberately use a normal Compose button for
