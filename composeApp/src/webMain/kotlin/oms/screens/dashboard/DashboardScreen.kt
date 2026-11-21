@@ -13,6 +13,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.foundation.clickable
@@ -428,15 +429,28 @@ private fun Long.toUahAmount(): String = "${(this / 100).grouped()}.${(this % 10
 
 @Composable
 private fun DashboardUpdatingChart() {
-    Card(Modifier.fillMaxWidth().heightIn(min = 220.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-        Column(
-            Modifier.fillMaxSize().padding(20.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            CircularProgressIndicator(Modifier.size(28.dp), strokeWidth = 2.dp)
-            Spacer(Modifier.height(12.dp))
-            Text(LocalizationManager.t("loading_dashboard"), color = MaterialTheme.colorScheme.onSurfaceVariant)
+    // The shared loading message announces progress once. These decorative
+    // placeholders reserve a compact plot area without repeating live content.
+    Card(
+        Modifier.fillMaxWidth().height(156.dp).clearAndSetSemantics { },
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+    ) {
+        Column(Modifier.fillMaxSize().padding(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween) {
+                Box(Modifier.fillMaxWidth(.45f).height(12.dp)
+                    .clip(MaterialTheme.shapes.extraSmall)
+                    .background(MaterialTheme.colorScheme.surfaceContainerHighest))
+                Box(Modifier.width(56.dp).height(24.dp)
+                    .clip(MaterialTheme.shapes.extraSmall)
+                    .background(MaterialTheme.colorScheme.surfaceContainerLow))
+            }
+            Box(Modifier.fillMaxWidth().weight(1f)
+                .clip(MaterialTheme.shapes.small)
+                .background(MaterialTheme.colorScheme.surfaceContainerLow))
+            Box(Modifier.fillMaxWidth(.65f).height(8.dp)
+                .clip(MaterialTheme.shapes.extraSmall)
+                .background(MaterialTheme.colorScheme.surfaceContainerHighest))
         }
     }
 }
