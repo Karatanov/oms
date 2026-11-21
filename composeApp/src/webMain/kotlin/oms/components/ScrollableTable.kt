@@ -5,6 +5,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import kotlinx.coroutines.launch
+import androidx.compose.material.icons.filled.FirstPage
+import androidx.compose.material.icons.filled.LastPage
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.filled.KeyboardArrowRight
@@ -159,12 +162,29 @@ fun TableScrollControls(
     val percentage = if (canScroll) {
         ((scroll.value.toFloat() / maxValue.toFloat()) * 100).toInt()
     } else 0
+    val scope = rememberCoroutineScope()
+    @Composable
+    fun EdgeButton(end: Boolean) {
+        val description = LocalizationManager.t(if (end) "chart_scroll_end" else "chart_scroll_start")
+        val enabled = canScroll && if (end) scroll.value < maxValue else scroll.value > 0
+        OmsTooltipBox(tooltip = { Text(description) }) {
+            IconButton(
+                onClick = { scope.launch { scroll.animateScrollTo(if (end) scroll.maxValue else 0) } },
+                enabled = enabled,
+                modifier = Modifier.size(24.dp).then(if (enabled) Modifier.buttonHandCursor() else Modifier)
+            ) {
+                Icon(if (end) Icons.Default.LastPage else Icons.Default.FirstPage,
+                    contentDescription = description, modifier = Modifier.size(18.dp))
+            }
+        }
+    }
     CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides if (compact) 0.dp else 48.dp) {
     Row(
         Modifier.padding(horizontal = 12.dp, vertical = if (compact) 0.dp else 8.dp),
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically
     ) {
+        if (compact) EdgeButton(end = false)
         HoldToScrollButton(
             tooltip = LocalizationManager.t("scroll_table_left"),
             icon = Icons.Default.KeyboardArrowLeft,
@@ -179,7 +199,7 @@ fun TableScrollControls(
             enabled = canScroll && scroll.value > 0,
             modifier = Modifier.size(if (compact) 24.dp else 48.dp)
         )
-        Text(
+        if (!compact) Text(
             "$percentage%",
             modifier = Modifier.width(48.dp).semantics { contentDescription = "${LocalizationManager.t("table_scroll")}: $percentage%" },
             style = MaterialTheme.typography.labelMedium,
@@ -195,6 +215,7 @@ fun TableScrollControls(
             enabled = canScroll && scroll.value < maxValue,
             modifier = Modifier.size(if (compact) 24.dp else 48.dp)
         )
+        if (compact) EdgeButton(end = true)
     }
 }
 }
