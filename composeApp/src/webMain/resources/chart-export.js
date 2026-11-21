@@ -53,7 +53,7 @@
                 return { lines, height: Math.max(66, lines.length * 17 + 24) };
             }) : [];
             const cssWidth = horizontal ? Math.max(1280, padding * 2 + labelWidth + valueWidth + 400)
-                : Math.max(980, entries.length * 132 + padding * 2);
+                : Math.max(980, entries.length * Math.max(132, valueWidth) + padding * 2);
             measureContext.font = '600 22px Arial, sans-serif';
             const titleLines = String(config.title || '').split(/\r?\n/)
                 .flatMap(paragraph => wrap(measureContext, paragraph, cssWidth - padding * 2));
@@ -66,8 +66,13 @@
                 : [];
             const extraHeaderHeight = (titleLines.length - 1) * 28 + Math.max(0, detailLines.length - 1) * 18;
             const titleHeight = (hasSubtitle ? 82 : 58) + extraHeaderHeight;
+            const laneWidth = (cssWidth - padding * 2) / entries.length;
+            measureContext.font = '12px Arial, sans-serif';
+            const categoryLines = horizontal ? [] : entries.map(item => wrap(measureContext, item.label, laneWidth - 8));
+            const extraLabelHeight = horizontal ? 0
+                : Math.max(0, ...categoryLines.map(lines => lines.length - 3)) * 15;
             const cssHeight = horizontal ? Math.max(300, rows.reduce((total, row) => total + row.height, 0) + titleHeight + padding * 2)
-                : (hasGroups ? 564 : 520) + extraHeaderHeight;
+                : (hasGroups ? 564 : 520) + extraHeaderHeight + extraLabelHeight;
             const canvas = document.createElement('canvas');
             canvas.width = cssWidth * scale; canvas.height = cssHeight * scale;
             const ctx = canvas.getContext('2d');
@@ -96,9 +101,8 @@
                 });
             } else {
                 const chartTop = titleHeight + padding;
-                const chartBottom = cssHeight - padding - (hasGroups ? 112 : 78);
+                const chartBottom = cssHeight - padding - (hasGroups ? 112 : 78) - extraLabelHeight;
                 const chartHeight = chartBottom - chartTop;
-                const laneWidth = (cssWidth - padding * 2) / entries.length;
                 ctx.beginPath(); ctx.moveTo(padding, chartBottom + .5); ctx.lineTo(cssWidth - padding, chartBottom + .5); ctx.stroke();
                 entries.forEach((item, index) => {
                     const barWidth = Math.min(56, laneWidth * .58);
@@ -107,7 +111,7 @@
                     ctx.fillStyle = '#278DAD'; ctx.fillRect(left, chartBottom - height, barWidth, height);
                     if (config.showDataLabels) { ctx.fillStyle = '#153544'; ctx.font = '13px Arial, sans-serif'; ctx.textAlign = 'center'; ctx.fillText(item.value, left + barWidth / 2, chartBottom - height - 8); }
                     ctx.fillStyle = '#153544'; ctx.font = '12px Arial, sans-serif'; ctx.textAlign = 'center';
-                    wrap(ctx, item.label, laneWidth - 8).slice(0, 3).forEach((line, lineIndex) => ctx.fillText(line, left + barWidth / 2, chartBottom + 20 + lineIndex * 15));
+                    categoryLines[index].forEach((line, lineIndex) => ctx.fillText(line, left + barWidth / 2, chartBottom + 20 + lineIndex * 15));
                 });
                 if (hasGroups) {
                     let first = 0;
@@ -117,7 +121,7 @@
                         while (end < entries.length && entries[end].groupLabel === year) end++;
                         const center = padding + ((first + end) / 2) * laneWidth;
                         ctx.fillStyle = '#496574'; ctx.font = '600 12px Arial, sans-serif'; ctx.textAlign = 'center';
-                        ctx.fillText(year, center, chartBottom + 86);
+                        ctx.fillText(year, center, chartBottom + 86 + extraLabelHeight);
                         first = end;
                     }
                 }
