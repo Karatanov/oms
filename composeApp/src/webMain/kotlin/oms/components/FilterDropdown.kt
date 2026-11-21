@@ -43,17 +43,28 @@ fun <T> FilterDropdown(
         val pickerFocus = remember { FocusRequester() }
         Row(resolvedModifier, verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-            InlineOptionPicker(
-                options = options, selected = selected, prompt = label,
-                onSelect = onSelect, itemLabel = itemLabel,
-                modifier = Modifier.weight(1f).focusRequester(pickerFocus).then(
-                    if (selected != null) Modifier.background(
-                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = .4f), MaterialTheme.shapes.small
-                    ) else Modifier
-                ),
-                fillWidth = true, compact = true,
-                clearLabel = LocalizationManager.t("all"), onClear = { onSelect(null) }
-            )
+            OmsTooltipBox(
+                modifier = Modifier.weight(1f),
+                enabled = selected != null && LocalOptionOverlay.current.menu == null,
+                tooltip = {
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(label, style = MaterialTheme.typography.labelSmall)
+                        Text(selected?.let(itemLabel).orEmpty(), style = MaterialTheme.typography.bodyMedium)
+                    }
+                }
+            ) {
+                InlineOptionPicker(
+                    options = options, selected = selected, prompt = label,
+                    onSelect = onSelect, itemLabel = itemLabel,
+                    modifier = Modifier.fillMaxWidth().focusRequester(pickerFocus).then(
+                        if (selected != null) Modifier.background(
+                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = .4f), MaterialTheme.shapes.small
+                        ) else Modifier
+                    ),
+                    fillWidth = true, compact = true,
+                    clearLabel = LocalizationManager.t("all"), onClear = { onSelect(null) }
+                )
+            }
             if (selected != null) {
                 val description = "${LocalizationManager.t("reset_filters")}: $label"
                 OmsTooltipBox(tooltip = { Text(description) }) {
