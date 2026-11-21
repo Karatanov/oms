@@ -402,7 +402,7 @@ private fun SummaryMetric(
                 }
             },
             confirmButton = {
-                TextButton(onClick = { detailsOpen = false }, modifier = Modifier.buttonHandCursor()) {
+                androidx.compose.material3.TextButton(onClick = { detailsOpen = false }, modifier = Modifier.buttonHandCursor()) {
                     Text(LocalizationManager.t("close"))
                 }
             }
