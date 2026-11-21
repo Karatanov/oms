@@ -57,9 +57,16 @@ fun VerticalBarChart(
     val widestValue = if (showDataLabels) displayValues.maxOf {
         textMeasurer.measure(it, valueStyle, softWrap = false, maxLines = 1).size.width
     } else 0
-    val effectiveLabelWidth = if (showDataLabels) {
+    val minimumLabelWidth = if (showDataLabels) {
         maxOf(labelWidth, with(density) { widestValue.toDp() } + 8.dp)
     } else labelWidth * .74f
+    // Short series share the available width. Long series retain readable
+    // columns and scroll; round down in pixels to avoid a phantom scrollbar.
+    val fittedLabelWidth = with(density) {
+        ((viewportWidth - columnGap.roundToPx() * (data.size - 1))
+            .coerceAtLeast(0) / data.size).toDp()
+    }
+    val effectiveLabelWidth = maxOf(minimumLabelWidth, fittedLabelWidth)
     val plotWidth = effectiveLabelWidth * data.size + columnGap * (data.size - 1)
     Column(Modifier.fillMaxWidth()) {
         Column(Modifier.fillMaxWidth()
