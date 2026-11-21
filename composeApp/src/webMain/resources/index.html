@@ -1262,6 +1262,8 @@
             const photos = JSON.parse(photosJson);
             pane.replaceChildren();
             pane.classList.add("visible");
+            pane.classList.toggle("photo-slider-no-report", !inspectionDate);
+            pane.classList.toggle("photo-slider-no-photos", !photosLoading && photos.length === 0);
 
             const heading = document.createElement("div");
             heading.className = "photo-slider-heading";

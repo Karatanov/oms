@@ -49,7 +49,12 @@ fun DashboardPhotoSlider(
     onOpenOlderInspection: () -> Unit,
     onOpenReport: (String) -> Unit = {}
 ) {
-    NativePaneAnchor("dashboard-photo-slider", Modifier.fillMaxWidth().height(200.dp))
+    val paneHeight = when {
+        inspectionDate.isNullOrBlank() -> 64.dp
+        !photosLoading && photos.isNullOrEmpty() -> 104.dp
+        else -> 200.dp
+    }
+    NativePaneAnchor("dashboard-photo-slider", Modifier.fillMaxWidth().height(paneHeight))
     if (!oms.navigation.LocalRouteVisible.current) return
     DisposableEffect(
         reportUuid,
