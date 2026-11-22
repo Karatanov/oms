@@ -12,8 +12,9 @@ cleanup() {
   done
 }
 trap cleanup EXIT
+trap 'echo "Isolation check failed at line $LINENO" >&2' ERR
 sql() {
-  docker exec "$run-$1-db" mysql --batch --skip-column-names -uapp "-p$password" "oms_$1" -e "$2" 2>/dev/null
+  docker exec "$run-$1-db" mysql --protocol=TCP -h127.0.0.1 --batch --skip-column-names -uapp "-p$password" "oms_$1" -e "$2" 2>/dev/null
 }
 ready() {
   for tick in $(seq 1 120); do
