@@ -54,8 +54,9 @@ fun OmsDateField(
     // an incomplete DD.MM.YYYY value does not overwrite the API-safe ISO one.
     var displayValue by remember { mutableStateOf(value.toOmsDate()) }
     var focused by remember { mutableStateOf(false) }
-    val invalidDate = displayValue.isNotBlank() && displayValue.toIsoDateOrNull()?.let(::isValidIsoDate) != true
-    val showError = invalidDate && (!focused || displayValue.length >= 10)
+    val parsedDate = displayValue.toIsoDateOrNull()
+    val invalidDate = displayValue.isNotBlank() && parsedDate?.let(::isValidIsoDate) != true
+    val showError = invalidDate && (!focused || parsedDate != null || displayValue.length >= 10)
     androidx.compose.runtime.LaunchedEffect(value) {
         val formatted = value.toOmsDate()
         if (displayValue != formatted) displayValue = formatted
@@ -105,10 +106,10 @@ fun isValidIsoDate(value: String): Boolean {
 
 private fun String.toIsoDateOrNull(): String? {
     val normalized = trim()
-    val ddMmYyyy = Regex("(\\d{2})\\.(\\d{2})\\.(\\d{4})").matchEntire(normalized)
+    val ddMmYyyy = Regex("(\\d{1,2})\\.(\\d{1,2})\\.(\\d{4})").matchEntire(normalized)
     if (ddMmYyyy != null) {
         val (day, month, year) = ddMmYyyy.destructured
-        return "$year-$month-$day"
+        return "$year-${month.padStart(2, '0')}-${day.padStart(2, '0')}"
     }
     return normalized.takeIf { Regex("\\d{4}-\\d{2}-\\d{2}").matches(it) }
 }
