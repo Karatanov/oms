@@ -43,7 +43,7 @@ fun PageHeading(
     icon: ImageVector,
     subtitle: String? = null,
     iconText: String? = null,
-    actions: @Composable () -> Unit = {}
+    actions: (@Composable () -> Unit)? = null
 ) {
     BoxWithConstraints(Modifier.fillMaxWidth()
         .background(MaterialTheme.colorScheme.surface, MaterialTheme.shapes.large)
@@ -62,18 +62,20 @@ fun PageHeading(
             }
             Column(textModifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(title, style = if (oms.layout.LocalMobileLayout.current) MaterialTheme.typography.headlineSmall else MaterialTheme.typography.headlineMedium, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                subtitle?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                subtitle?.takeIf { it.isNotBlank() }?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) }
             }
         }
         if (maxWidth >= 620.dp) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
                 HeadingText(Modifier.weight(1f))
-                actions()
+                actions?.invoke()
             }
         } else {
             Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) { HeadingText(Modifier.weight(1f)) }
-                FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End), verticalArrangement = Arrangement.spacedBy(8.dp)) { actions() }
+                actions?.let { content ->
+                    FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End), verticalArrangement = Arrangement.spacedBy(8.dp)) { content() }
+                }
             }
         }
     }
