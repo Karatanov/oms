@@ -95,7 +95,7 @@
                     ctx.fillStyle = '#153544'; ctx.font = '14px Arial, sans-serif'; ctx.textAlign = 'left';
                     rows[index].lines.forEach((line, lineIndex) => ctx.fillText(line, padding, top + 24 + lineIndex * 17));
                     ctx.fillStyle = '#e8f0f3'; ctx.fillRect(chartLeft, top + 12, chartWidth, 22);
-                    ctx.fillStyle = '#278DAD'; ctx.fillRect(chartLeft, top + 12, chartWidth * Math.max(0, item.numeric) / max, 22);
+                    ctx.fillStyle = item.color || '#278DAD'; ctx.fillRect(chartLeft, top + 12, chartWidth * Math.max(0, item.numeric) / max, 22);
                     if (config.showDataLabels) { ctx.fillStyle = '#153544'; ctx.textAlign = 'right'; ctx.fillText(item.value, cssWidth - padding, top + 28); }
                     top += rows[index].height;
                 });
@@ -108,7 +108,7 @@
                     const barWidth = Math.min(56, laneWidth * .58);
                     const left = padding + index * laneWidth + (laneWidth - barWidth) / 2;
                     const height = chartHeight * Math.max(0, item.numeric) / max;
-                    ctx.fillStyle = '#278DAD'; ctx.fillRect(left, chartBottom - height, barWidth, height);
+                    ctx.fillStyle = item.color || '#278DAD'; ctx.fillRect(left, chartBottom - height, barWidth, height);
                     if (config.showDataLabels) { ctx.fillStyle = '#153544'; ctx.font = '13px Arial, sans-serif'; ctx.textAlign = 'center'; ctx.fillText(item.value, left + barWidth / 2, chartBottom - height - 8); }
                     ctx.fillStyle = '#153544'; ctx.font = '12px Arial, sans-serif'; ctx.textAlign = 'center';
                     categoryLines[index].forEach((line, lineIndex) => ctx.fillText(line, left + barWidth / 2, chartBottom + 20 + lineIndex * 15));

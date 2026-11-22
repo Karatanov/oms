@@ -60,7 +60,8 @@ fun MonthlyActPaymentsChart(primary: Color, payments: List<ApiMonthlyActPayment>
                         orientation = orientation,
                         showDataLabels = true,
                         valueLabel = { formatActAmount(it.toLong(), currency) },
-                        currency = currency
+                        currency = currency,
+                        barColor = primary
                     )
                 }
             }

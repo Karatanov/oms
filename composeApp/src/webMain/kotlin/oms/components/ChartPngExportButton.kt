@@ -4,6 +4,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -35,7 +38,7 @@ private data class ChartExportPayload(
 )
 
 @Serializable
-private data class ChartExportItem(val label: String, val value: String, val groupLabel: String? = null)
+private data class ChartExportItem(val label: String, val value: String, val groupLabel: String? = null, val color: String? = null)
 
 /**
  * Exports the exact data currently rendered by a reusable OMS bar chart.
@@ -52,7 +55,8 @@ fun ChartPngExportButton(
     valueLabel: (Float) -> String,
     subtitle: String? = null,
     currency: String? = null,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    barColor: Color = MaterialTheme.colorScheme.primary
 ) {
     OmsTooltipBox(tooltip = { Text(LocalizationManager.t("download_png")) }) {
         IconButton(
@@ -64,7 +68,7 @@ fun ChartPngExportButton(
                     filename = "oms-${filenameStem.toSafeFilenameStem()}.png",
                     orientation = orientation.name,
                     showDataLabels = showDataLabels,
-                    data = data.map { item -> ChartExportItem(item.label, item.formattedValue ?: valueLabel(item.value), item.groupLabel) },
+                    data = data.map { item -> ChartExportItem(item.label, item.formattedValue ?: valueLabel(item.value), item.groupLabel, (item.color ?: barColor).toCssColor()) },
                     exportFailedMessage = LocalizationManager.t("export_failed")
                 )
                 downloadOmsChartPng(Json.encodeToString(payload))
@@ -82,3 +86,8 @@ fun ChartPngExportButton(
 
 private fun String.toSafeFilenameStem(): String =
     lowercase().replace(Regex("[^a-z0-9]+"), "-").trim('-').ifBlank { "chart" }
+
+private fun Color.toCssColor(): String {
+    val argb = toArgb().toUInt().toString(16).padStart(8, '0')
+    return "#${argb.drop(2)}${argb.take(2)}"
+}
