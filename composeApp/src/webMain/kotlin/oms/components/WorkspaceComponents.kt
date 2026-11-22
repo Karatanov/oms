@@ -54,6 +54,9 @@ fun PageHeading(
         .background(MaterialTheme.colorScheme.surface, MaterialTheme.shapes.large)
         .border(1.dp, MaterialTheme.colorScheme.outlineVariant, MaterialTheme.shapes.large)
         .padding(if (oms.layout.LocalMobileLayout.current) 16.dp else 20.dp)) {
+        // FlowRow introduces another layout scope, so retain this constraint
+        // before composing the responsive action area.
+        val availableWidth = maxWidth
         @Composable fun HeadingText(textModifier: Modifier = Modifier) {
             Box(Modifier.size(42.dp).background(MaterialTheme.colorScheme.primaryContainer, MaterialTheme.shapes.medium), contentAlignment = Alignment.Center) {
                 if (iconText == null) Icon(icon, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(22.dp))
@@ -85,12 +88,12 @@ fun PageHeading(
                 subtitle?.takeIf { it.isNotBlank() }?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) }
             }
         }
-        if (maxWidth >= 620.dp) {
+        if (availableWidth >= 620.dp) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
                 HeadingText(Modifier.weight(1f))
                 actions?.let { content ->
                     FlowRow(
-                        Modifier.widthIn(max = minOf(520.dp, maxWidth * .5f)),
+                        Modifier.widthIn(max = minOf(520.dp, availableWidth * .5f)),
                         horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
                         verticalArrangement = Arrangement.spacedBy(4.dp),
                         itemVerticalAlignment = Alignment.CenterVertically
