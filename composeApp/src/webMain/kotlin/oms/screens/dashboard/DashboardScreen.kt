@@ -162,7 +162,13 @@ fun DashboardScreen(
                                 Modifier.heightIn(min = 32.dp).clip(MaterialTheme.shapes.extraSmall)
                                     .background(if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerLow)
                                     .chartControlFocus()
-                                    .selectable(selected = selected, role = Role.RadioButton, onClick = { trancheNumber = option })
+                                    .selectable(selected = selected, role = Role.RadioButton, onClick = {
+                                        if (trancheNumber != option) {
+                                            loading = true
+                                            error = false
+                                            trancheNumber = option
+                                        }
+                                    })
                                     .buttonHandCursor().padding(horizontal = 10.dp, vertical = 6.dp),
                                 contentAlignment = Alignment.Center
                             ) {
@@ -185,7 +191,7 @@ fun DashboardScreen(
                     }
                 }
             }
-            dashboard?.nationalSummary?.let { summary ->
+            dashboard?.takeIf { !loading && !error }?.nationalSummary?.let { summary ->
                 item {
                     NationalPortfolioSummary(
                         summary = summary,
