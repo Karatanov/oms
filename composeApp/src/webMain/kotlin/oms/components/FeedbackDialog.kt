@@ -1,8 +1,10 @@
 package oms.components
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Feedback
+import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -10,6 +12,8 @@ import androidx.compose.ui.input.key.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.testTag
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
@@ -141,7 +145,23 @@ fun FeedbackDialog(currentScreen: Screen, onDismiss: () -> Unit) {
                             Button(onClick = { confirmDiscard = false }, modifier = Modifier.focusRequester(returnFocus)) { Text(t("feedback_return")) }
                         }
                     } else if (receipt != null) {
-                        ContentState("${t("feedback_success")} #$receipt")
+                        Surface(
+                            Modifier.fillMaxWidth().semantics { liveRegion = LiveRegionMode.Polite },
+                            shape = MaterialTheme.shapes.medium,
+                            color = MaterialTheme.colorScheme.tertiaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onTertiaryContainer
+                        ) {
+                            Row(Modifier.padding(16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Outlined.CheckCircle, contentDescription = null, modifier = Modifier.size(28.dp))
+                                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    Text(t("feedback_success"), style = MaterialTheme.typography.bodyMedium)
+                                    SelectionContainer {
+                                        Text("#$receipt", style = MaterialTheme.typography.headlineSmall)
+                                    }
+                                }
+                            }
+                        }
                         Button(onClick = dismiss, modifier = Modifier.align(Alignment.End).focusRequester(closeFocus)) { Text(t("close")) }
                     } else {
                         Text(t("feedback_hint"), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
