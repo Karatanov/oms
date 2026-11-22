@@ -88,10 +88,20 @@ fun FeedbackDialog(currentScreen: Screen, onDismiss: () -> Unit) {
     }
     var confirmDiscard by remember { mutableStateOf(false) }
     val descriptionFocus = remember { FocusRequester() }
-    LaunchedEffect(confirmDiscard, receipt) {
-        if (!confirmDiscard && receipt == null && submitted == null && !sending) {
+    val returnFocus = remember { FocusRequester() }
+    val closeFocus = remember { FocusRequester() }
+    val submitFocus = remember { FocusRequester() }
+    LaunchedEffect(confirmDiscard, receipt, sending) {
+        val target = when {
+            confirmDiscard -> returnFocus
+            receipt != null -> closeFocus
+            sending -> null
+            submitted != null -> submitFocus
+            else -> descriptionFocus
+        }
+        if (target != null) {
             withFrameNanos { }
-            descriptionFocus.requestFocus()
+            target.requestFocus()
         }
     }
     val dismiss: () -> Unit = {
@@ -128,11 +138,11 @@ fun FeedbackDialog(currentScreen: Screen, onDismiss: () -> Unit) {
                             verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             TextButton(onClick = onDismiss) { Text(t("feedback_discard")) }
-                            Button(onClick = { confirmDiscard = false }) { Text(t("feedback_return")) }
+                            Button(onClick = { confirmDiscard = false }, modifier = Modifier.focusRequester(returnFocus)) { Text(t("feedback_return")) }
                         }
                     } else if (receipt != null) {
                         ContentState("${t("feedback_success")} #$receipt")
-                        Button(onClick = dismiss, modifier = Modifier.align(Alignment.End)) { Text(t("close")) }
+                        Button(onClick = dismiss, modifier = Modifier.align(Alignment.End).focusRequester(closeFocus)) { Text(t("close")) }
                     } else {
                         Text(t("feedback_hint"), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -183,7 +193,7 @@ fun FeedbackDialog(currentScreen: Screen, onDismiss: () -> Unit) {
                         ) {
                             TextButton(onClick = dismiss, enabled = !sending) { Text(t("cancel")) }
                             OmsTooltipBox(tooltip = { Text("${t("feedback_send")} · Ctrl / ⌘ + Enter") }) {
-                            Button(enabled = configured && !loading && !sending && description.isNotBlank(), onClick = ::sendFeedback, modifier = Modifier.semantics { testTag = "feedback-submit" }) {
+                            Button(enabled = configured && !loading && !sending && description.isNotBlank(), onClick = ::sendFeedback, modifier = Modifier.focusRequester(submitFocus).semantics { testTag = "feedback-submit" }) {
                                 if (sending) {
                                     CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
                                     Spacer(Modifier.width(8.dp))
