@@ -12,6 +12,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.isAltPressed
@@ -52,6 +53,9 @@ fun OmsDateField(
     // keyboard and pasted from a spreadsheet.  Keep a local display value so
     // an incomplete DD.MM.YYYY value does not overwrite the API-safe ISO one.
     var displayValue by remember { mutableStateOf(value.toOmsDate()) }
+    var focused by remember { mutableStateOf(false) }
+    val invalidDate = displayValue.isNotBlank() && displayValue.toIsoDateOrNull()?.let(::isValidIsoDate) != true
+    val showError = invalidDate && (!focused || displayValue.length >= 10)
     androidx.compose.runtime.LaunchedEffect(value) {
         val formatted = value.toOmsDate()
         if (displayValue != formatted) displayValue = formatted
@@ -65,7 +69,7 @@ fun OmsDateField(
         },
         label = { Text(if (required) "$label *" else label) },
         placeholder = { Text(LocalizationManager.t("date_format_hint")) },
-        modifier = modifier.onPreviewKeyEvent { event ->
+        modifier = modifier.onFocusChanged { focused = it.isFocused }.onPreviewKeyEvent { event ->
             if (event.type == KeyEventType.KeyDown && event.isAltPressed && event.key == Key.DirectionDown) {
                 openNativeDatePicker(value.takeIf(::isValidIsoDate).orEmpty(), anchorLeft, anchorTop, onValueChange)
                 true
@@ -73,9 +77,8 @@ fun OmsDateField(
         },
         readOnly = false,
         singleLine = true,
-        isError = displayValue.isNotBlank() && displayValue.toIsoDateOrNull()?.let(::isValidIsoDate) != true,
-        supportingText = { if (displayValue.isNotBlank() && displayValue.toIsoDateOrNull()?.let(::isValidIsoDate) != true)
-            Text(LocalizationManager.t("date_invalid")) },
+        isError = showError,
+        supportingText = if (showError) ({ Text(LocalizationManager.t("date_invalid")) }) else null,
         trailingIcon = {
             IconButton(
                 onClick = { openNativeDatePicker(value.takeIf(::isValidIsoDate).orEmpty(), anchorLeft, anchorTop, onValueChange) },
