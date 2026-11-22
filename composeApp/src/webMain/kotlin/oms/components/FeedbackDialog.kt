@@ -7,6 +7,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.semantics.testTag
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
@@ -69,6 +71,13 @@ fun FeedbackDialog(currentScreen: Screen, onDismiss: () -> Unit) {
         finally { loading = false }
     }
     var confirmDiscard by remember { mutableStateOf(false) }
+    val descriptionFocus = remember { FocusRequester() }
+    LaunchedEffect(confirmDiscard, receipt) {
+        if (!confirmDiscard && receipt == null && submitted == null && !sending) {
+            withFrameNanos { }
+            descriptionFocus.requestFocus()
+        }
+    }
     val dismiss: () -> Unit = {
         when {
             sending -> Unit
@@ -119,16 +128,21 @@ fun FeedbackDialog(currentScreen: Screen, onDismiss: () -> Unit) {
                         }
                         val isProblem = type == "Correction"
                         OutlinedTextField(description, { description = it.take(FeedbackOptions.maxDescriptionLength) },
-                            modifier = Modifier.fillMaxWidth().semantics { testTag = "feedback-description" },
+                            modifier = Modifier.fillMaxWidth().focusRequester(descriptionFocus).semantics { testTag = "feedback-description" },
                             enabled = !sending && submitted == null, label = { Text(t(if (isProblem) "feedback_description" else "feedback_proposal")) },
                             placeholder = { Text(t(if (isProblem) "feedback_description_example" else "feedback_proposal_hint")) },
                             minLines = if (compact) 3 else 4, maxLines = 8,
                             supportingText = {
                                 Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                     if (description.length == FeedbackOptions.maxDescriptionLength) {
-                                        Text(t("feedback_text_limit"), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        Text(t("feedback_text_limit"), color = MaterialTheme.colorScheme.error)
                                     }
-                                    Text("${description.length} / ${FeedbackOptions.maxDescriptionLength}", modifier = Modifier.align(Alignment.End))
+                                    Text(
+                                        "${description.length} / ${FeedbackOptions.maxDescriptionLength}",
+                                        modifier = Modifier.align(Alignment.End),
+                                        color = if (description.length >= FeedbackOptions.maxDescriptionLength * .9)
+                                            MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
                                 }
                             })
                         if (date.isNotEmpty()) Text("${t("feedback_date")}: ${date.split('-').reversed().joinToString(".")}",
