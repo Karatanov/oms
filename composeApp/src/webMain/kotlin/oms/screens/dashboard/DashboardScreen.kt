@@ -33,6 +33,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.input.key.*
 import kotlinx.browser.localStorage
+import kotlinx.browser.sessionStorage
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.yield
@@ -76,7 +77,10 @@ fun DashboardScreen(
                 ?: BarChartOrientation.Vertical
         )
     }
-    var trancheNumber by remember { mutableStateOf<Int?>(null) }
+    var trancheNumber by remember {
+        val savedTranche = runCatching { sessionStorage.getItem("oms.dashboard.tranche") }.getOrNull()
+        mutableStateOf(savedTranche?.toIntOrNull()?.takeIf { it == 1 || it == 2 })
+    }
     val scrollState = rememberLazyListState()
     val scope = rememberCoroutineScope()
     LaunchedEffect(reload, trancheNumber) {
@@ -167,6 +171,7 @@ fun DashboardScreen(
                                             loading = true
                                             error = false
                                             trancheNumber = option
+                                            runCatching { sessionStorage.setItem("oms.dashboard.tranche", option?.toString() ?: "all") }
                                         }
                                     })
                                     .buttonHandCursor().padding(horizontal = 10.dp, vertical = 6.dp),
