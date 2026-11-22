@@ -6,6 +6,7 @@ import androidx.compose.material.icons.outlined.Feedback
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.input.key.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -58,6 +59,21 @@ fun FeedbackDialog(currentScreen: Screen, onDismiss: () -> Unit) {
     // Retain this payload after an uncertain network result; retry the same operation.
     var submitted by remember { mutableStateOf<ApiFeedbackRequest?>(null) }
     val requestId = remember { List(4) { Random.nextInt().toUInt().toString(16).padStart(8, '0') }.joinToString("") }
+    fun sendFeedback() {
+        if (!configured || loading || sending || receipt != null || description.isBlank()) return
+        val payload = submitted ?: ApiFeedbackRequest(requestId, page, type, description.trim()).also { submitted = it }
+        sending = true
+        error = null
+        scope.launch {
+            try {
+                val result = OmsApiClient.submitFeedback(payload)
+                receipt = result.number
+                date = result.date
+            } catch (e: CancellationException) { throw e }
+            catch (_: Exception) { error = "feedback_retry" }
+            finally { sending = false }
+        }
+    }
     LaunchedEffect(attempt) {
         loading = true
         error = null
@@ -88,7 +104,14 @@ fun FeedbackDialog(currentScreen: Screen, onDismiss: () -> Unit) {
     }
     WasmSafeOverlay(onDismiss = if (sending) null else dismiss) {
         Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-            Surface(Modifier.widthIn(max = 560.dp).fillMaxWidth().semantics { testTag = "feedback-dialog" },
+            Surface(Modifier.widthIn(max = 560.dp).fillMaxWidth()
+                    .onPreviewKeyEvent { event ->
+                        if (!confirmDiscard && receipt == null && event.type == KeyEventType.KeyDown &&
+                            event.key == Key.Enter && (event.isCtrlPressed || event.isMetaPressed) && !event.isAltPressed) {
+                            sendFeedback()
+                            true
+                        } else false
+                    }.semantics { testTag = "feedback-dialog" },
                 shape = MaterialTheme.shapes.large, color = MaterialTheme.colorScheme.surface) {
                 BoxWithConstraints(Modifier.fillMaxWidth()) {
                 val compact = maxWidth < 400.dp
@@ -159,25 +182,14 @@ fun FeedbackDialog(currentScreen: Screen, onDismiss: () -> Unit) {
                             verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             TextButton(onClick = dismiss, enabled = !sending) { Text(t("cancel")) }
-                            Button(enabled = configured && !loading && !sending && description.isNotBlank(), onClick = {
-                                val payload = submitted ?: ApiFeedbackRequest(requestId, page, type, description.trim()).also { submitted = it }
-                                sending = true
-                                error = null
-                                scope.launch {
-                                    try {
-                                        val result = OmsApiClient.submitFeedback(payload)
-                                        receipt = result.number
-                                        date = result.date
-                                    } catch (e: CancellationException) { throw e }
-                                    catch (_: Exception) { error = "feedback_retry" }
-                                    finally { sending = false }
-                                }
-                            }, modifier = Modifier.semantics { testTag = "feedback-submit" }) {
+                            OmsTooltipBox(tooltip = { Text("${t("feedback_send")} · Ctrl / ⌘ + Enter") }) {
+                            Button(enabled = configured && !loading && !sending && description.isNotBlank(), onClick = ::sendFeedback, modifier = Modifier.semantics { testTag = "feedback-submit" }) {
                                 if (sending) {
                                     CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
                                     Spacer(Modifier.width(8.dp))
                                 }
                                 Text(t(if (sending) "feedback_sending" else if (submitted != null) "retry" else "feedback_send"))
+                            }
                             }
                         }
                     }
