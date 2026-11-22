@@ -93,11 +93,13 @@ ARG OMS_GIT_SHA=local
 # Keeping this in the runtime image makes the conversion deterministic and
 # avoids depending on a desktop Office installation or an external service.
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends libreoffice-calc fonts-crosextra-carlito \
+    && apt-get install -y --no-install-recommends libreoffice-calc fonts-crosextra-carlito python3-minimal \
     && rm -rf /var/lib/apt/lists/*
 COPY --from=server-build /workspace/server/build/install/server/ ./
 COPY --from=web-build /workspace/web/ ./web/
 ENV JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=70.0"
 ENV OMS_GIT_REVISION="$OMS_GIT_SHA"
 EXPOSE 8080
+COPY deploy/brands/ ./brands/
+ENTRYPOINT ["python3", "/opt/oms/brands/start.py"]
 CMD ["bin/server"]

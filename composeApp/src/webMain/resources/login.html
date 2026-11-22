@@ -172,12 +172,17 @@
     const uk = ["З поверненням", "Будь ласка, увійдіть до свого облікового запису.", "Логін або електронна пошта", "Пароль", "Запам’ятати мене", "Забули пароль?", "Увійти", "Продовжити як гість"];
     const en = ["Welcome back", "Please sign in to your account.", "Username or email", "Password", "Remember me", "Forgot password?", "Sign in", "Continue as guest"];
     const translated = ["welcome", "hint", "username-label", "password-label", "remember-label", "forgot", "submit", "guest"];
+    const h1Element = document.querySelector(".brand h1");
+    const h1Uk = h1Element.textContent;
+    const pElement = document.querySelector(".brand p");
+    const pUk = pElement.textContent;
     byId("language").onclick = () => {
         english = !english;
+        document.documentElement.lang = english ? "en" : "uk";
         byId("language").textContent = english ? "UA" : "EN";
         translated.forEach((id, index) => { byId(id).textContent = (english ? en : uk)[index]; });
-        document.querySelector(".brand h1").textContent = english ? "OMS — Online Monitoring System" : "OMS — Система онлайн-моніторингу";
-        document.querySelector(".brand p").textContent = english ? "A unified system for project tracking, inspections and financial control." : "Єдина система для відстеження проєктів, інспекцій і фінансового контролю.";
+        h1Element.textContent = english ? (h1Element.dataset.en || "OMS — Online Monitoring System") : h1Uk;
+        pElement.textContent = english ? (pElement.dataset.en || "A unified system for project tracking, inspections and financial control.") : pUk;
         const features = english ? ["Real-time project monitoring", "Inspection reports and work control", "Financial monitoring"] : ["Моніторинг проєктів у реальному часі", "Інспекційні звіти та контроль робіт", "Фінансовий моніторинг"];
         document.querySelectorAll(".features li").forEach((item, index) => { item.textContent = features[index]; });
     };

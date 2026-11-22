@@ -1,5 +1,6 @@
 package oms.screens
 
+import oms.data.WorkspaceBrand
 import oms.components.PageArrow
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
@@ -386,8 +387,8 @@ fun ProcurementScreen(
         Card(Modifier.widthIn(max = 520.dp).fillMaxWidth()) {
             Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 Text(LocalizationManager.t("procurement_refresh_confirm_title"), style = MaterialTheme.typography.titleLarge)
-                Text(LocalizationManager.t("procurement_refresh_confirm_message"), style = MaterialTheme.typography.bodyMedium)
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                if (WorkspaceBrand.legacySources) Text(LocalizationManager.t("procurement_refresh_confirm_message"), style = MaterialTheme.typography.bodyMedium)
+                if (WorkspaceBrand.legacySources) Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text(LocalizationManager.t("procurement_refresh_direct_help"), style = MaterialTheme.typography.bodyMedium)
                     Text(
                         procurementSourceWorkbookUrl,
@@ -416,7 +417,7 @@ fun ProcurementScreen(
                         }
                     }) { Text(LocalizationManager.t("procurement_refresh_manual")) }
                 }
-                Button(modifier = Modifier.fillMaxWidth(), onClick = {
+                if (WorkspaceBrand.legacySources) Button(modifier = Modifier.fillMaxWidth(), onClick = {
                     refreshConfirmationOpen = false
                     openGoogleProcurementRefresh { connectionError, refreshJson ->
                         if (connectionError.isNotBlank()) {

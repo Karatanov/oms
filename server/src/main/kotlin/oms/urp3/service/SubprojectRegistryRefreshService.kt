@@ -1,5 +1,6 @@
 package oms.urp3.service
 
+import oms.urp3.config.Deployment
 import oms.urp3.database.tables.ProjectMonitoringDetailTable
 import oms.urp3.database.tables.ProjectAmountTable
 import oms.urp3.database.tables.ProjectTable
@@ -171,10 +172,8 @@ class SubprojectRegistryRefreshService(
         val imported = transaction {
             val programme = ProjectTable.selectAll().firstOrNull {
                 it[ProjectTable.projectType].equals("project", true) &&
-                    (it[ProjectTable.siteNumber].equals(PROGRAMME_CODE, true) ||
-                        it[ProjectTable.name].equals("Ukraine Recovery III", true) ||
-                        it[ProjectTable.name].equals("Ukraine Recovery Programme III", true))
-            } ?: throw IllegalStateException("The Ukraine Recovery III parent project is missing.")
+                    Deployment.isImportParent(it[ProjectTable.siteNumber], it[ProjectTable.name])
+            } ?: throw IllegalStateException(Deployment.missingImportParent)
             val managerId = programme[ProjectTable.managerId]
                 ?: fallbackAdministratorId?.let { EntityID(it, UserTable) }
                 ?: throw IllegalStateException("No active administrator is available to own imported subprojects.")
@@ -384,7 +383,6 @@ class SubprojectRegistryRefreshService(
     private class RefreshCancelled : RuntimeException()
 
     companion object {
-        private const val PROGRAMME_CODE = "URP-III"
         private const val MAX_WORKBOOK_BYTES = 20_000_000
     }
 }

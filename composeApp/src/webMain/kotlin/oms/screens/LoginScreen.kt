@@ -1,5 +1,6 @@
 package oms.screens
 
+import oms.data.WorkspaceBrand
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.background
@@ -154,12 +155,12 @@ fun LoginScreen(
                 ) {
                     Column(Modifier.padding(horizontal = 12.dp, vertical = 6.dp)) {
                         Text(
-                            text = "UR III",
+                            text = WorkspaceBrand.name,
                             color = androidx.compose.ui.graphics.Color.White,
                             style = MaterialTheme.typography.labelMedium
                         )
                         Text(
-                            text = "TA to the implementation\nof UR III Programme",
+                            text = WorkspaceBrand.caption,
                             color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.88f),
                             style = MaterialTheme.typography.labelSmall
                         )
