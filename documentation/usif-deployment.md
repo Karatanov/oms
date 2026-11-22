@@ -4,11 +4,12 @@ The VPS and Render run the same Linux image published by `publish-ghcr.yml`. The
 
 ## Provision the existing Render service
 
-The target is the existing service `oms` at `https://oms-3j46.onrender.com`. At audit time it was a Git-backed Docker service on Free, with automatic deploys disabled and no disk. The root returned a redirect and the version endpoint returned 404. The checked-in `render.yaml` describes an older Git-backed demo. The settings for this rollout are in `render.image.yaml.example`. Applying a new Blueprint can create a different service. Confirm in-place image support with Render for this service ID before switching it. Keep the existing hostname and service ID.
+The existing service `oms` at `https://oms-3j46.onrender.com` runs the image-backed Free instance. The verified initial image revision is `85eeffe9b098`. The temporary test registry contains one TVET II parent and seven subprojects.
 
-1. Provision a dedicated MySQL 8 instance and an empty database named `oms_usif`, using utf8mb4. Restrict the application account to this database. Grant the DDL and DML privileges needed by Flyway and the application. Enable encrypted transport and database backups. Record the server identity and restore procedure in the organization's private operations records.
-2. Select a Render instance that supports a persistent disk and mount it at `/var/data`. The example starts at Starter. Size RAM using startup, report export and upload tests, including LibreOffice. Confirm readiness and a file upload/download across a release before accepting the chosen plan.
-3. Configure the existing service to pull `ghcr.io/karatanov/oms:sha-<40-character-commit>` and disable independent auto-deploy. For a private package, configure the workspace registry credential `ghcr-oms` with read-only package access. Render documents exact-tag deploys using the `imgURL` hook query parameter. [Render deploy hooks](https://render.com/docs/deploy-hooks)
+1. The existing TiDB Cloud cluster hosts the independent `oms_usif` catalog. Its application account can access only this catalog and system metadata. Use a MySQL JDBC URL with `sslMode=VERIFY_IDENTITY` and `DATABASE_DIALECT=mysql` for the tested isolated V80 schema. Keep the cluster's existing free quota and monitor it separately from Render.
+2. The Free service uses temporary local storage under `/tmp/usif-uploads`. Files written through DurableFileStorage are mirrored into this database. Treat other local files as ephemeral. The small test workload has no paid disk.
+3. The existing service pulls the exact GHCR image with workspace registry credential `github-ghcr`. Automatic source deploys are disabled. Scope the GitHub environment hook to this service.
+
 4. Set the following service variables and restrict access to the service environment. Generate a unique random JWT secret of at least 32 characters. Set an explicit JDBC URL including the database name and the appropriate TLS trust settings for your provider.
 
 | Render variable | Value or source |
@@ -18,12 +19,12 @@ The target is the existing service `oms` at `https://oms-3j46.onrender.com`. At 
 | `DATABASE_URL`, `DATABASE_USER`, `DATABASE_PASSWORD`, `OMS_JWT_SECRET` | Private USIF service environment |
 | `DATABASE_DIALECT` | `mysql` |
 | `OMS_WEB_DIR` | `/opt/oms/web` |
-| `OMS_UPLOAD_DIR` | `/var/data/uploads` |
+| `OMS_UPLOAD_DIR` | `/tmp/usif-uploads` |
 | `PROCUREMENT_AUTO_REFRESH_ENABLED`, `SUBPROJECT_AUTO_REFRESH_ENABLED`, `PAYMENT_MONITORING_AUTO_REFRESH_ENABLED` | `false` |
 | `OMS_IMPORT_PARENT_SITE_NUMBER` | Optional. Unique site number of the organization's parent project when enabling manual registry imports |
 
 5. Configure the GitHub Environment `usif` with deployment branch `master` and its own `RENDER_DEPLOY_HOOK_URL` secret for this service. The existing `production` environment uses `VPS_SSH_PRIVATE_KEY` and `VPS_SSH_KNOWN_HOSTS`. GHCR publication uses the per-run `GITHUB_TOKEN`.
-6. The first verified release creates 18 application tables and five roles. Confirm zero rows in every application table except `roles` before setup. In an interactive terminal of the USIF container run `java -cp '/opt/oms/lib/*' oms.urp3.config.BootstrapAdminKt` once. It prompts privately for a password and checks the user registry in a transaction. Normal startup does not create users.
+6. The first verified release creates 18 application tables and five roles. Confirm zero rows in every application table except `roles` before setup. From a trusted interactive terminal with the USIF environment and deployed server libraries run `java -cp '/opt/oms/lib/*' oms.urp3.config.BootstrapAdminKt` once. It prompts privately for a password and checks the user registry in a transaction. Normal startup does not create users.
 7. Verify the public `/health`, `/ready`, `/version` and login page, both languages, login, guest access, and the empty registries. Verify the database identity separately from HTTP liveness.
 
 ## Schema and import policy

@@ -4,24 +4,23 @@ services:
   - type: web
     name: oms
     runtime: image
-    plan: starter
+    plan: free
     autoDeployTrigger: off
     healthCheckPath: /health
     image:
       url: ghcr.io/karatanov/oms:sha-REPLACE_WITH_TESTED_FULL_SHA
       creds:
         fromRegistryCreds:
-          name: ghcr-oms
-    disk:
-      name: usif-uploads
-      mountPath: /var/data
-      sizeGB: 1
+          name: github-ghcr
     envVars:
       - { key: OMS_BRAND, value: usif }
       - { key: OMS_PUBLIC_BASE_URL, value: "https://oms-3j46.onrender.com" }
       - { key: CORS_ALLOWED_HOST, value: "https://oms-3j46.onrender.com" }
       - { key: OMS_WEB_DIR, value: /opt/oms/web }
-      - { key: OMS_UPLOAD_DIR, value: /var/data/uploads }
+      - { key: OMS_UPLOAD_DIR, value: /tmp/usif-uploads }
+      - { key: DATABASE_POOL_MAX_SIZE, value: "3" }
+      - { key: DATABASE_POOL_MIN_IDLE, value: "0" }
+      - { key: JAVA_TOOL_OPTIONS, value: "-XX:ActiveProcessorCount=2 -XX:MaxRAMPercentage=55.0" }
       - { key: DATABASE_DIALECT, value: mysql }
       - { key: DATABASE_URL, sync: false }
       - { key: DATABASE_USER, sync: false }
