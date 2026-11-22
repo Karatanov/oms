@@ -112,18 +112,22 @@ fun FeedbackDialog(currentScreen: Screen, onDismiss: () -> Unit) {
                         Button(onClick = dismiss, modifier = Modifier.align(Alignment.End)) { Text(t("close")) }
                     } else {
                         Text(t("feedback_hint"), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text(t("feedback_page"), style = MaterialTheme.typography.labelLarge)
-                        InlineOptionPicker(FeedbackOptions.pages, page, t("feedback_page"), { page = it },
-                            itemLabel = { pageKeys[it]?.let(LocalizationManager::t) ?: it }, enabled = !sending && submitted == null)
-                        Text(t("feedback_type"), style = MaterialTheme.typography.labelLarge)
-                        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            FeedbackOptions.types.forEach { option ->
-                                FilterChip(
-                                    selected = type == option,
-                                    onClick = { type = option },
-                                    enabled = !sending && submitted == null,
-                                    label = { Text(t(if (option == "Correction") "feedback_correction" else "feedback_improvement")) }
-                                )
+                        Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text(t("feedback_page"), style = MaterialTheme.typography.labelLarge)
+                            InlineOptionPicker(FeedbackOptions.pages, page, t("feedback_page"), { page = it },
+                                itemLabel = { pageKeys[it]?.let(LocalizationManager::t) ?: it }, enabled = !sending && submitted == null)
+                        }
+                        Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text(t("feedback_type"), style = MaterialTheme.typography.labelLarge)
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                FeedbackOptions.types.forEach { option ->
+                                    FilterChip(
+                                        selected = type == option,
+                                        onClick = { type = option },
+                                        enabled = !sending && submitted == null,
+                                        label = { Text(t(if (option == "Correction") "feedback_correction" else "feedback_improvement")) }
+                                    )
+                                }
                             }
                         }
                         val isProblem = type == "Correction"
@@ -131,7 +135,7 @@ fun FeedbackDialog(currentScreen: Screen, onDismiss: () -> Unit) {
                             modifier = Modifier.fillMaxWidth().focusRequester(descriptionFocus).semantics { testTag = "feedback-description" },
                             enabled = !sending && submitted == null, label = { Text(t(if (isProblem) "feedback_description" else "feedback_proposal")) },
                             placeholder = { Text(t(if (isProblem) "feedback_description_example" else "feedback_proposal_hint")) },
-                            minLines = if (compact) 3 else 4, maxLines = 8,
+                            minLines = if (compact) 3 else 4, maxLines = if (compact) 5 else 8,
                             supportingText = {
                                 Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                     if (description.length == FeedbackOptions.maxDescriptionLength) {
