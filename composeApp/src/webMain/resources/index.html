@@ -1529,6 +1529,22 @@
                 ignoreClickUntil = performance.now() + 400;
                 if (dx < 0) next.click(); else previous.click();
             });
+            overlay.addEventListener("wheel", event => {
+                const overCaption = caption.contains(event.target);
+                const canScrollCaption = overCaption && (
+                    (event.deltaY < 0 && caption.scrollTop > 0) ||
+                    (event.deltaY > 0 && caption.scrollTop + caption.clientHeight < caption.scrollHeight)
+                );
+                // Browser zoom remains available; ordinary wheel movement belongs
+                // to the modal and must not move the dashboard underneath it.
+                if (!event.ctrlKey && !canScrollCaption) event.preventDefault();
+                event.stopPropagation();
+            }, { passive: false });
+            overlay.addEventListener("touchmove", event => {
+                if (event.touches.length === 1 && !caption.contains(event.target) &&
+                    (window.visualViewport?.scale || 1) <= 1) event.preventDefault();
+                event.stopPropagation();
+            }, { passive: false });
             overlay.append(close, position, previous, image, status, next, caption);
             document.body.append(overlay);
             render();
