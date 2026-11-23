@@ -7,6 +7,9 @@ import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -20,12 +23,14 @@ import oms.localization.LocalizationManager
 @Composable
 fun CurrencySelector(currency: String, onSelect: (String) -> Unit) {
     val description = LocalizationManager.t("currency")
+    val currencies = remember { listOf("EUR", "UAH") }
+    val focusTargets = remember { currencies.map { FocusRequester() } }
     Row(
         Modifier.selectableGroup().semantics { contentDescription = description },
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(2.dp)
     ) {
-        listOf("EUR", "UAH").forEach { code ->
+        currencies.forEachIndexed { index, code ->
             val selected = currency == code
             val label = LocalizationManager.currencyLabel(code)
             OmsTooltipBox(tooltip = { Text("$description: $label") }) {
@@ -33,6 +38,8 @@ fun CurrencySelector(currency: String, onSelect: (String) -> Unit) {
                     Modifier.size(width = 36.dp, height = 24.dp)
                         .clip(MaterialTheme.shapes.extraSmall)
                         .background(if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerLow)
+                        .focusRequester(focusTargets[index])
+                        .choiceKeyboardNavigation(index, focusTargets) { onSelect(currencies[it]) }
                         .chartControlFocus()
                         .selectable(selected = selected, role = Role.RadioButton, onClick = { onSelect(code) })
                         .buttonHandCursor().semantics { contentDescription = label },
