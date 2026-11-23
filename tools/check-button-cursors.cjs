@@ -11,7 +11,12 @@ for (const path of required) {
   const source = fs.readFileSync(path, "utf8");
   const hasPolicy = path.endsWith("ButtonCursor.kt")
     ? source.includes("PointerIcon.Hand") && source.includes("overrideDescendants = true")
-    : source.includes("modifier.buttonHandCursor()");
+    : source.includes("modifier.buttonHandCursor()") ||
+      source.includes("oms.components.WorkspaceButton(") &&
+      source.includes("oms.components.WorkspaceOutlinedButton(") &&
+      source.includes("oms.components.WorkspaceTextButton(") &&
+      source.includes("oms.components.WorkspaceIconButton(") &&
+      source.includes("oms.components.WorkspaceFilterChip(");
   if (!hasPolicy) {
     throw new Error(`${path} does not enforce the button hand cursor`);
   }
