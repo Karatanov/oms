@@ -194,8 +194,9 @@ fun AdaptiveChartRow(first: @Composable () -> Unit, second: @Composable () -> Un
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun AdaptivePagination(sizeControls: @Composable () -> Unit, navigation: @Composable () -> Unit) {
-    FlowRow(horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.End),
-        verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+        itemVerticalAlignment = Alignment.CenterVertically) {
         Row(verticalAlignment = Alignment.CenterVertically) { sizeControls() }
         Row(verticalAlignment = Alignment.CenterVertically) { navigation() }
     }
@@ -218,45 +219,55 @@ fun FormSectionTitle(text: String, icon: ImageVector) {
     }
 }
 
+/** Shared compact pagination control, including a visible keyboard focus ring. */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PageArrow(forward: Boolean, enabled: Boolean, onClick: () -> Unit) {
-    val label = LocalizationManager.t(if (forward) "next_page" else "previous_page")
-    val icon = if (forward) Icons.AutoMirrored.Filled.KeyboardArrowRight else Icons.AutoMirrored.Filled.KeyboardArrowLeft
-    OmsTooltipBox(tooltip = { Text(label) }) {
-        IconButton(
-            onClick = onClick,
-            enabled = enabled,
-            modifier = if (enabled) Modifier.buttonHandCursor() else Modifier,
-            colors = IconButtonDefaults.iconButtonColors(contentColor = MaterialTheme.colorScheme.primary)
-        ) {
-            Icon(icon, contentDescription = label)
+private fun PageNavigationButton(label: String, icon: ImageVector, enabled: Boolean, onClick: () -> Unit) {
+    androidx.compose.runtime.CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 0.dp) {
+        OmsTooltipBox(tooltip = { Text(label) }, enabled = enabled) {
+            WorkspaceIconButton(
+                onClick = onClick,
+                enabled = enabled,
+                modifier = Modifier.size(32.dp)
+                    .background(MaterialTheme.colorScheme.surfaceContainerLow, MaterialTheme.shapes.extraSmall)
+                    .chartControlFocus(),
+                colors = IconButtonDefaults.iconButtonColors(contentColor = MaterialTheme.colorScheme.primary)
+            ) {
+                Icon(icon, contentDescription = label, modifier = Modifier.size(18.dp))
+            }
         }
     }
 }
 
-/** Compact navigation with direct access to the ends of a long list. */
+@Composable
+fun PageArrow(forward: Boolean, enabled: Boolean, onClick: () -> Unit) {
+    PageNavigationButton(
+        label = LocalizationManager.t(if (forward) "next_page" else "previous_page"),
+        icon = if (forward) Icons.AutoMirrored.Filled.KeyboardArrowRight else Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+        enabled = enabled,
+        onClick = onClick
+    )
+}
+
+/** Summary and navigation share a line when space permits; arrows stay together. */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun PageNavigation(currentPage: Int, pageCount: Int, summary: String, onPage: (Int) -> Unit) {
     val lastPage = (pageCount - 1).coerceAtLeast(0)
-    Column(horizontalAlignment = Alignment.End) {
-        Text(summary, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            val firstLabel = LocalizationManager.t("first_page")
-            val lastLabel = LocalizationManager.t("last_page")
-            OmsTooltipBox(tooltip = { Text(firstLabel) }) {
-                IconButton(onClick = { onPage(0) }, enabled = currentPage > 0,
-                    modifier = if (currentPage > 0) Modifier.buttonHandCursor() else Modifier) {
-                    Icon(Icons.Default.FirstPage, contentDescription = firstLabel)
-                }
-            }
+    FlowRow(
+        modifier = Modifier.widthIn(max = 440.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+        itemVerticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(summary, style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite })
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+            PageNavigationButton(LocalizationManager.t("first_page"), Icons.Default.FirstPage, currentPage > 0) { onPage(0) }
             PageArrow(forward = false, enabled = currentPage > 0) { onPage((currentPage - 1).coerceAtLeast(0)) }
             PageArrow(forward = true, enabled = currentPage < lastPage) { onPage((currentPage + 1).coerceAtMost(lastPage)) }
-            OmsTooltipBox(tooltip = { Text(lastLabel) }) {
-                IconButton(onClick = { onPage(lastPage) }, enabled = currentPage < lastPage,
-                    modifier = if (currentPage < lastPage) Modifier.buttonHandCursor() else Modifier) {
-                    Icon(Icons.Default.LastPage, contentDescription = lastLabel)
-                }
-            }
+            PageNavigationButton(LocalizationManager.t("last_page"), Icons.Default.LastPage, currentPage < lastPage) { onPage(lastPage) }
         }
     }
 }
