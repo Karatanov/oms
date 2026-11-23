@@ -9,6 +9,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.withFrameNanos
+import kotlinx.coroutines.launch
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -47,6 +52,8 @@ fun OmsDateField(
     required: Boolean = false
 ) {
     val density = LocalDensity.current.density
+    val inputFocus = remember { FocusRequester() }
+    val scope = rememberCoroutineScope()
     var anchorLeft by remember { mutableStateOf(16f) }
     var anchorTop by remember { mutableStateOf(16f) }
     // Native pickers are convenient, but dates also need to be usable with a
@@ -61,6 +68,16 @@ fun OmsDateField(
         val formatted = value.toOmsDate()
         if (displayValue != formatted) displayValue = formatted
     }
+    fun openCalendar() {
+        openNativeDatePicker(value.takeIf(::isValidIsoDate).orEmpty(), anchorLeft, anchorTop) { selected ->
+            onValueChange(selected)
+            scope.launch {
+                // The native input is removed after its change callback returns.
+                withFrameNanos { }
+                inputFocus.requestFocus()
+            }
+        }
+    }
     OutlinedTextField(
         value = displayValue,
         onValueChange = { rawValue ->
@@ -70,9 +87,9 @@ fun OmsDateField(
         },
         label = { Text(if (required) "$label *" else label) },
         placeholder = { Text(LocalizationManager.t("date_format_hint")) },
-        modifier = modifier.onFocusChanged { focused = it.isFocused }.onPreviewKeyEvent { event ->
+        modifier = modifier.focusRequester(inputFocus).onFocusChanged { focused = it.isFocused }.onPreviewKeyEvent { event ->
             if (event.type == KeyEventType.KeyDown && event.isAltPressed && event.key == Key.DirectionDown) {
-                openNativeDatePicker(value.takeIf(::isValidIsoDate).orEmpty(), anchorLeft, anchorTop, onValueChange)
+                openCalendar()
                 true
             } else false
         },
@@ -81,8 +98,9 @@ fun OmsDateField(
         isError = showError,
         supportingText = if (showError) ({ Text(LocalizationManager.t("date_invalid")) }) else null,
         trailingIcon = {
+            OmsTooltipBox(tooltip = { Text("${LocalizationManager.t("choose_date")} · Alt + ↓") }) {
             IconButton(
-                onClick = { openNativeDatePicker(value.takeIf(::isValidIsoDate).orEmpty(), anchorLeft, anchorTop, onValueChange) },
+                onClick = { openCalendar() },
                 modifier = Modifier.buttonHandCursor().onGloballyPositioned { coordinates ->
                     val position = coordinates.positionInWindow()
                     anchorLeft = position.x / density
@@ -90,6 +108,7 @@ fun OmsDateField(
                 }
             ) {
                 Icon(Icons.Default.CalendarMonth, contentDescription = LocalizationManager.t("choose_date"))
+            }
             }
         }
     )
