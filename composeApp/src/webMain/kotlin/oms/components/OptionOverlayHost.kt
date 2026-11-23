@@ -2,6 +2,8 @@ package oms.components
 
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -14,6 +16,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.input.key.*
 import androidx.compose.ui.input.pointer.PointerIcon
@@ -56,11 +59,12 @@ fun OptionOverlayHost(content: @Composable () -> Unit) {
                 val bottom = with(density) { menu.anchor.bottom.toDp() }
                 val below = (maxHeight - bottom - margin).coerceAtLeast(0.dp)
                 val above = (top - margin).coerceAtLeast(0.dp)
-                val desired = (menu.labels.size.coerceAtLeast(1) * 44 + 8).dp.coerceAtMost(320.dp)
+                val desired = (menu.labels.size.coerceAtLeast(1) * 40 + 8).dp.coerceAtMost(320.dp)
                 val openBelow = below >= desired || below >= above
                 val height = desired.coerceAtMost(if (openBelow) below else above).coerceAtLeast(1.dp)
                 val y = if (openBelow) bottom else (top - height).coerceAtLeast(margin)
                 val requester = remember(menu.id) { FocusRequester() }
+                var menuFocused by remember(menu.id) { mutableStateOf(false) }
                 var active by remember(menu.id, menu.labels) { mutableStateOf(menu.selectedIndex.coerceIn(0, (menu.labels.size - 1).coerceAtLeast(0))) }
                 val listState = rememberLazyListState()
                 LaunchedEffect(menu.id, menu.focusOnOpen) { if (menu.focusOnOpen) requester.requestFocus() }
@@ -77,6 +81,7 @@ fun OptionOverlayHost(content: @Composable () -> Unit) {
                 Surface(
                     modifier = Modifier.offset(left, y).width(width).heightIn(max = height)
                         .focusRequester(requester)
+                        .onFocusChanged { menuFocused = it.hasFocus }
                         .onPreviewKeyEvent { event ->
                             if (event.type != KeyEventType.KeyDown) false else when (event.key) {
                                 Key.Escape -> { menu.onDismiss(); true }
@@ -113,6 +118,14 @@ fun OptionOverlayHost(content: @Composable () -> Unit) {
                         itemsIndexed(menu.labels, key = { index, _ -> index }) { index, label ->
                             val isClearAction = menu.clearIndex == index
                             val isSelected = index in menu.selectedIndexes
+                            val hoverSource = remember(menu.id, index) { MutableInteractionSource() }
+                            val hovered by hoverSource.collectIsHoveredAsState()
+                            val keyboardActive = menuFocused && index == active
+                            val rowColor = when {
+                                isSelected -> MaterialTheme.colorScheme.primaryContainer
+                                hovered || keyboardActive -> MaterialTheme.colorScheme.surfaceContainerLow
+                                else -> MaterialTheme.colorScheme.surface
+                            }
                             val rowAction = when {
                                 isClearAction -> Modifier.clickable(role = Role.Button) { menu.onChoose(index) }
                                 menu.multiSelect -> Modifier.toggleable(value = isSelected, role = Role.Checkbox) { menu.onChoose(index) }
@@ -120,12 +133,15 @@ fun OptionOverlayHost(content: @Composable () -> Unit) {
                                     .semantics { selected = isSelected }
                             }
                             Row(Modifier.fillMaxWidth()
-                                .background(if (index == active) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface)
+                                .background(rowColor)
+                                .then(if (keyboardActive) Modifier.border(2.dp, MaterialTheme.colorScheme.primary, MaterialTheme.shapes.extraSmall) else Modifier)
+                                .hoverable(hoverSource)
                                 .then(rowAction)
                                 .pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true)
-                                .heightIn(min = 44.dp).padding(horizontal = 12.dp, vertical = 8.dp),
+                                .heightIn(min = 40.dp).padding(horizontal = 12.dp, vertical = 6.dp),
                                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                Text(label, Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
+                                Text(label, Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium,
+                                    color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface)
                                 when {
                                     menu.multiSelect && !isClearAction -> Checkbox(
                                         checked = isSelected,
