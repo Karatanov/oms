@@ -1,6 +1,8 @@
 package oms.components
 
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.size
+import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -41,11 +43,18 @@ fun OmsPasswordField(
         keyboardActions = keyboardActions,
         visualTransformation = if (visible) VisualTransformation.None else PasswordVisualTransformation(),
         trailingIcon = {
-            IconButton(onClick = { visible = !visible }, enabled = enabled) {
-                Icon(
-                    if (visible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                    contentDescription = LocalizationManager.t(if (visible) "hide_password" else "show_password")
-                )
+            val actionLabel = LocalizationManager.t(if (visible) "hide_password" else "show_password")
+            OmsTooltipBox(tooltip = { Text(actionLabel) }, enabled = enabled) {
+                WorkspaceIconButton(
+                    onClick = { visible = !visible }, enabled = enabled,
+                    modifier = Modifier.chartControlFocus()
+                ) {
+                    Icon(
+                        if (visible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                        contentDescription = actionLabel,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
             }
         }
     )

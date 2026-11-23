@@ -5,6 +5,8 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.input.key.*
 import androidx.compose.ui.layout.boundsInRoot
@@ -19,6 +21,7 @@ fun AutocompleteField(value: String, onValueChange: (String) -> Unit, label: Str
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default, keyboardActions: KeyboardActions = KeyboardActions.Default, enabled: Boolean = true) {
     val host = LocalOptionOverlay.current
     val id = remember { Any() }
+    val fieldFocus = remember { FocusRequester() }
     var anchor by remember { mutableStateOf(Rect.Zero) }
     var query by remember(value, options) { mutableStateOf(options.firstOrNull { it.first == value }?.second ?: value) }
     DisposableEffect(id, enabled) { onDispose { host.dismiss(id) } }
@@ -28,15 +31,15 @@ fun AutocompleteField(value: String, onValueChange: (String) -> Unit, label: Str
         onValueChange(safeQuery)
         val matches = options.filter { safeQuery.isNotBlank() && (it.first.contains(safeQuery, true) || it.second.contains(safeQuery, true)) }
         if (matches.isEmpty()) host.dismiss(id) else host.menu = OptionMenu(id, anchor, matches.map { it.second }, 0,
-            onChoose = { index -> host.dismiss(id); query = matches[index].second; onValueChange(matches[index].first) },
-            onDismiss = { host.dismiss(id) }, focusOnOpen = false)
+            onChoose = { index -> host.dismiss(id); query = matches[index].second; onValueChange(matches[index].first); fieldFocus.requestFocus() },
+            onDismiss = { host.dismiss(id); fieldFocus.requestFocus() }, focusOnOpen = false)
     }, label = { Text(label) }, placeholder = placeholder?.let { { Text(it) } }, singleLine = true, enabled = enabled,
         keyboardOptions = keyboardOptions, keyboardActions = keyboardActions,
-        modifier = modifier.fillMaxWidth().onGloballyPositioned { anchor = it.boundsInRoot() }
+        modifier = modifier.fillMaxWidth().focusRequester(fieldFocus).onGloballyPositioned { anchor = it.boundsInRoot() }
             .onPreviewKeyEvent { event ->
                 if (event.type == KeyEventType.KeyDown && event.key == Key.DirectionDown && host.menu?.id === id) {
                     host.menu = host.menu?.copy(focusOnOpen = true); true
-                } else if (event.type == KeyEventType.KeyDown && event.key == Key.Escape) {
+                } else if (event.type == KeyEventType.KeyDown && event.key == Key.Escape && host.menu?.id === id) {
                     host.dismiss(id); true
                 } else false
             })
