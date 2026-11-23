@@ -68,17 +68,15 @@ const origin = 'http://127.0.0.1:18088';
         assert.equal(await page.evaluate(() => document.body.classList.contains('mobile-navigation-open')), false, 'Navigation closes the drawer');
         await navigate('map', 'Projects Map');
         // The filter toggle remains reachable in portrait and short landscape views.
-        await page.mouse.click(viewport.width - 65, viewport.height < 500 ? 96 : 188);
-        if (viewport.height < 500) {
-          await page.waitForFunction(() => !document.body.classList.contains('map-visible'));
-        } else {
-          await page.waitForFunction(() => document.getElementById('map-pane').getBoundingClientRect().height < 300);
-          const expanded = await page.locator('#map-pane').boundingBox();
-          assert.ok(expanded.height >= 100, 'Portrait filters leave a usable map');
-        }
+        const toggle = page.locator('#map-filter-toggle');
+        await toggle.click({ force: true });
+        await page.waitForFunction(height => {
+          const current = document.getElementById('map-pane').getBoundingClientRect().height;
+          return current >= 100 && current < height;
+        }, map.height);
         await page.screenshot({ path: `build/mobile-layout-screenshots/filters-${viewport.width}x${viewport.height}.png` });
-        await page.mouse.click(viewport.width - 65, viewport.height < 500 ? 96 : 188);
-        await page.waitForFunction(() => document.body.classList.contains('map-visible'));
+        await toggle.click({ force: true });
+        await page.waitForFunction(height => Math.abs(document.getElementById('map-pane').getBoundingClientRect().height - height) <= 1, map.height);
         // Switch language with the toolbar button and recheck translated controls.
         await page.mouse.click(viewport.width - 28, 28);
       }

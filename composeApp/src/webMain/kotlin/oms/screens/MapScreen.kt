@@ -1,5 +1,8 @@
 package oms.screens
 
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.testTag
+
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.rememberScrollState
@@ -62,10 +65,10 @@ fun MapScreen(onOpenProject: (Project) -> Unit = {}, requestedTrancheFilter: Int
         TrancheSelector(trancheNumber, { trancheNumber = it })
     }
     @Composable fun MapAction(label: String, icon: androidx.compose.ui.graphics.vector.ImageVector,
-        enabled: Boolean = true, active: Boolean = false, onClick: () -> Unit) {
+        enabled: Boolean = true, active: Boolean = false, modifier: Modifier = Modifier, onClick: () -> Unit) {
         OmsTooltipBox(tooltip = { Text(label) }) {
             IconButton(onClick = onClick, enabled = enabled,
-                modifier = Modifier.size(32.dp)
+                modifier = modifier.size(32.dp)
                     .background(if (active) MaterialTheme.colorScheme.primaryContainer else Color.Transparent, MaterialTheme.shapes.extraSmall)
                     .then(if (enabled) Modifier.buttonHandCursor() else Modifier)) {
                 Icon(icon, contentDescription = label, modifier = Modifier.size(18.dp))
@@ -102,7 +105,8 @@ fun MapScreen(onOpenProject: (Project) -> Unit = {}, requestedTrancheFilter: Int
                                 }
                                 MapAction(LocalizationManager.t("filters"),
                                     if (filtersExpanded) Icons.Default.ExpandLess else Icons.Default.FilterList,
-                                    active = filtersExpanded || hasFilters) { filtersExpanded = !filtersExpanded }
+                                    active = filtersExpanded || hasFilters,
+                                    modifier = Modifier.semantics { testTag = "map-filter-toggle" }) { filtersExpanded = !filtersExpanded }
                             }
                         }
                         if (filtersExpanded) Column(
