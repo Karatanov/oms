@@ -651,10 +651,11 @@ private fun ProcurementFilters(
     onResetFilters: () -> Unit
 ) {
     Row(
-        Modifier.width(columnWidths.sum().dp).height(procurementFilterHeight).padding(vertical = 2.dp),
+        Modifier.width(procurementTableWidth).height(procurementFilterHeight).padding(vertical = 2.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        columnWidths.forEachIndexed { index, width ->
+        visibleProcurementColumns.forEach { index ->
+            val width = columnWidths[index]
             Box(Modifier.width(width.dp).padding(horizontal = 6.dp)) {
                 when (index) {
                     0 -> InlineOptionPicker(
@@ -727,15 +728,17 @@ private fun ProcurementRow(
         }
     }
     Row(
-        Modifier.width(columnWidths.sum().dp)
+        Modifier.width(procurementTableWidth)
             .height(if (isHeader) procurementHeaderHeight else procurementRowHeight)
             .padding(vertical = if (isHeader) 2.dp else 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        values.take(columnWidths.size).zip(columnWidths).forEachIndexed { index, (value, width) ->
+        visibleProcurementColumns.forEach { index ->
+            val value = values[index]
+            val width = columnWidths[index]
             if (isHeader) {
                 SortableTableHeader(value, index == sortColumnIndex, sortAscending, { onSort(index) }, Modifier.width(width.dp))
-                return@forEachIndexed
+                return@forEach
             }
             if (!isHeader && index == 1 && value.isNotBlank()) Box(Modifier.width(width.dp).padding(horizontal = 6.dp)) {
                 oms.components.OmsBadge(value, procurementContractTypeColor(record?.procurementTypeCode().orEmpty()))
@@ -899,6 +902,14 @@ private fun procurementTableHeaderLabels(): List<String> = if (LocalizationManag
 )
 
 private val columnWidths = listOf(175, 200, 104, 360, 220, 250, 220, 130, 240, 230, 190, 145, 165, 190, 150, 300, 210, 220, 190, 220, 220, 220, 180)
+// Batch, attempts, PIG violations, contract link, revised end date and financing breakdown.
+private val hiddenUsifProcurementColumns = setOf(2, 7, 8, 10, 13, 18, 19, 20, 21)
+
+// Use original column indices for sorting, links and filters in both registries.
+private val visibleProcurementColumns = columnWidths.indices.filter { index ->
+    WorkspaceBrand.name != "USIF" || index !in hiddenUsifProcurementColumns
+}
+private val procurementTableWidth = visibleProcurementColumns.sumOf { columnWidths[it] }.dp
 private val procurementFilterHeight = 56.dp
 private val procurementHeaderHeight = 58.dp
 private val procurementRowHeight = 56.dp
