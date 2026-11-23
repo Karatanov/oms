@@ -12,6 +12,11 @@ import kotlin.js.JsName
 @JsName("setOmsLanguage")
 external fun setOmsLanguage(language: String)
 
+fun switchWorkspaceLanguage() {
+    LocalizationManager.switchLanguage()
+    setOmsLanguage(if (LocalizationManager.currentLanguage == Language.UK) "uk" else "en")
+}
+
 @Composable
 fun LanguageSwitcher() {
     val description = LocalizationManager.t(
@@ -20,10 +25,7 @@ fun LanguageSwitcher() {
     OmsTooltipBox(tooltip = { Text(description) }) {
     WorkspaceOutlinedButton(
         modifier = Modifier.chartControlFocus().semantics { contentDescription = description },
-        onClick = {
-            LocalizationManager.switchLanguage()
-            setOmsLanguage(if (LocalizationManager.currentLanguage == Language.UK) "uk" else "en")
-        }
+        onClick = ::switchWorkspaceLanguage
     ) {
         Text(
             if (LocalizationManager.currentLanguage == Language.UK)

@@ -17,6 +17,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import oms.components.LanguageSwitcher
+import oms.components.switchWorkspaceLanguage
+import oms.components.ExpandableTableText
 import oms.components.TableActionIconButton
 import oms.localization.LocalizationManager
 import oms.navigation.Screen
@@ -30,8 +32,10 @@ fun Sidebar(currentScreen: Screen, onNavigate: (Screen) -> Unit, onLogout: () ->
         border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)) {
         // Keep a usable content lane on phone-sized browser windows.  The
         // compact rail retains all navigation through icons and tooltips.
-        Column(Modifier.width(if (compact) 72.dp else 248.dp).fillMaxHeight().padding(if (compact) 12.dp else 16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Row(Modifier.fillMaxWidth().height(if (compact) 52.dp else 76.dp), verticalAlignment = Alignment.CenterVertically) {
+        Column(Modifier.width(if (compact) 72.dp else 248.dp).fillMaxHeight().padding(if (compact) 12.dp else 16.dp), verticalArrangement = Arrangement.spacedBy(4.dp),
+            horizontalAlignment = if (compact) Alignment.CenterHorizontally else Alignment.Start) {
+            Row(Modifier.fillMaxWidth().height(if (compact) 52.dp else 76.dp), verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = if (compact) Arrangement.Center else Arrangement.Start) {
                 if (!compact) {
                     Icon(Icons.Default.AccountBalance, null, tint = MaterialTheme.colorScheme.primary)
                     Column(
@@ -81,20 +85,23 @@ fun Sidebar(currentScreen: Screen, onNavigate: (Screen) -> Unit, onLogout: () ->
                 }
             }
             HorizontalDivider(Modifier.padding(vertical = 8.dp))
-            if (compact) TableActionIconButton(LocalizationManager.t("language"), Icons.Default.Language, LocalizationManager::switchLanguage)
+            if (compact) TableActionIconButton(
+                LocalizationManager.t(if (LocalizationManager.currentLanguage == oms.localization.Language.UK) "switch_to_english" else "switch_to_ukrainian"),
+                Icons.Default.Language, ::switchWorkspaceLanguage)
             else LanguageSwitcher()
             Row(Modifier.fillMaxWidth()
                 .background(MaterialTheme.colorScheme.surfaceContainerLow, MaterialTheme.shapes.medium)
-                .padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                .padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = if (compact) Arrangement.Center else Arrangement.Start) {
                 if (!compact) Column(Modifier.weight(1f).padding(start = 8.dp)) {
-                    Text(username, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.titleSmall)
+                    ExpandableTableText(username, style = MaterialTheme.typography.titleSmall)
                     Text(LocalizationManager.t(if (isGuest) "guest_access" else "signed_in"), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 TableActionIconButton(LocalizationManager.t("logout"), Icons.AutoMirrored.Filled.Logout, onLogout)
             }
             if (compact) TableActionIconButton(LocalizationManager.t("feedback_title"), Icons.Default.Feedback, onFeedback)
-            else oms.components.WorkspaceOutlinedButton(onClick = onFeedback, modifier = Modifier.fillMaxWidth().heightIn(min = 44.dp)) {
-                Icon(Icons.Default.Feedback, null, Modifier.size(20.dp))
+            else oms.components.WorkspaceOutlinedButton(onClick = onFeedback, modifier = Modifier.fillMaxWidth().heightIn(min = oms.theme.OmsDimensions.ControlHeight)) {
+                Icon(Icons.Default.Feedback, null, Modifier.size(18.dp))
                 Spacer(Modifier.width(8.dp))
                 Text(LocalizationManager.t("feedback_title"))
             }
