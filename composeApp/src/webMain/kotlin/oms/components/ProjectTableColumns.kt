@@ -1,6 +1,7 @@
 package oms.components
 
 import androidx.compose.ui.unit.dp
+import oms.data.WorkspaceBrand
 import oms.screens.SortColumn
 
 /** One geometry for filters, headings and data, independent of available row actions. */
@@ -63,7 +64,17 @@ object ProjectTableColumns {
         SortColumn.PLANNED_END_DATE to 1.dp,
         SortColumn.IMPLEMENTATION_DURATION to 1.dp
     )
-    val columns = widths.filterValues { it > 1.dp }.keys.toList()
+    private val hiddenUsifColumns = setOf(
+        SortColumn.POOL, SortColumn.DREAM, SortColumn.PRIORITY, SortColumn.CONSTRUCTION_TYPE,
+        SortColumn.IMPLEMENTER, SortColumn.BENEFICIARY, SortColumn.FUNDING_TOTAL,
+        SortColumn.FUNDING_TS, SortColumn.FUNDING_CSC, SortColumn.EIB_COST, SortColumn.LOCAL_COST,
+        SortColumn.CONTRACTED_EIB, SortColumn.CONTRACTED_LOCAL, SortColumn.CONSTRUCTION_EIB,
+        SortColumn.CONSTRUCTION_LOCAL, SortColumn.ACT_NUMBER, SortColumn.ACT_DATE,
+        SortColumn.FINANCING_USED_PCT, SortColumn.PAID_FINANCING_PCT, SortColumn.WORK_SUMMARY
+    )
+    val columns = widths.filter { (column, width) ->
+        width > 1.dp && (WorkspaceBrand.name != "USIF" || column !in hiddenUsifColumns)
+    }.keys.toList()
     /** Selection/tree controls followed by the stable subproject code column. */
     val frozenStartWidth = selection + hierarchy + widths.getValue(SortColumn.ID)
     val totalWidth = columns.fold(selection + hierarchy + actions) { total, column -> total + widths.getValue(column) }
