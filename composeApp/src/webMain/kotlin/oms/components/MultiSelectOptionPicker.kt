@@ -20,6 +20,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Rect
@@ -54,6 +55,7 @@ fun <T> MultiSelectOptionPicker(
     val id = remember { Any() }
     var anchor by remember { mutableStateOf(Rect.Zero) }
     val expanded = host.menu?.id === id
+    var focused by remember { mutableStateOf(false) }
     val restoreFocus = remember { FocusRequester() }
     var menuSelection by remember { mutableStateOf(selected) }
 
@@ -111,8 +113,9 @@ fun <T> MultiSelectOptionPicker(
     oms.components.WorkspaceOutlinedButton(
         enabled = enabled,
         modifier = modifier.then(if (fillWidth) Modifier.fillMaxWidth() else Modifier)
-            .heightIn(min = 40.dp)
+            .heightIn(min = OmsDimensions.ControlHeight)
             .onGloballyPositioned { anchor = it.boundsInRoot() }
+            .onFocusChanged { focused = it.isFocused }
             .semantics {
                 stateDescription = listOf(
                     LocalizationManager.t(if (expanded) "expanded" else "collapsed"),
@@ -123,8 +126,8 @@ fun <T> MultiSelectOptionPicker(
         shape = MaterialTheme.shapes.small,
         contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
         border = androidx.compose.foundation.BorderStroke(
-            1.dp,
-            if (selected.isNotEmpty()) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant
+            if (focused && enabled) 2.dp else 1.dp,
+            if (enabled && (focused || expanded || selected.isNotEmpty())) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant
         ),
         colors = ButtonDefaults.outlinedButtonColors(
             containerColor = if (selected.isNotEmpty()) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface,
@@ -132,8 +135,14 @@ fun <T> MultiSelectOptionPicker(
         ),
         onClick = { if (expanded) host.dismiss(id) else showMenu() }
     ) {
-        Text(displayLabel, maxLines = 1, overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f, fill = fillWidth), style = MaterialTheme.typography.bodyMedium)
+        OmsTooltipBox(
+            modifier = Modifier.weight(1f, fill = fillWidth),
+            enabled = enabled && !expanded && selected.isNotEmpty(),
+            tooltip = { Text("$prompt: ${selected.joinToString(", ", transform = itemLabel)}") }
+        ) {
+            Text(displayLabel, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                style = MaterialTheme.typography.bodyMedium)
+        }
         Spacer(Modifier.width(8.dp))
         androidx.compose.material3.Icon(
             if (expanded) Icons.Default.ArrowDropUp else Icons.Default.ArrowDropDown,

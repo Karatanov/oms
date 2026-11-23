@@ -8,6 +8,7 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.layout.boundsInRoot
@@ -38,6 +39,7 @@ fun <T> InlineOptionPicker(
     val id = remember { Any() }
     var anchor by remember { mutableStateOf(Rect.Zero) }
     val expanded = host.menu?.id === id
+    var focused by remember { mutableStateOf(false) }
     val restoreFocus = remember { androidx.compose.ui.focus.FocusRequester() }
     val scope = rememberCoroutineScope()
     var loading by remember { mutableStateOf(false) }
@@ -77,6 +79,7 @@ fun <T> InlineOptionPicker(
         modifier = modifier.then(if (fillWidth) Modifier.fillMaxWidth() else Modifier)
             .heightIn(min = if (compact) 32.dp else OmsDimensions.ControlHeight)
             .onGloballyPositioned { anchor = it.boundsInRoot() }
+            .onFocusChanged { focused = it.isFocused }
             .onPreviewKeyEvent { event ->
                 if (loading && event.type == KeyEventType.KeyDown && event.key == Key.Escape) {
                     loadJob?.cancel()
@@ -96,12 +99,19 @@ fun <T> InlineOptionPicker(
             }
             .then(Modifier.focusRequesterForPicker(restoreFocus)),
         shape = MaterialTheme.shapes.small,
-        contentPadding = PaddingValues(horizontal = if (compact) 8.dp else 12.dp, vertical = if (compact) 2.dp else 8.dp),
+        contentPadding = PaddingValues(horizontal = 8.dp, vertical = if (compact) 2.dp else 4.dp),
         border = androidx.compose.foundation.BorderStroke(
-            1.dp,
-            if (loadFailed && enabled) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.outlineVariant
+            if (focused && enabled) 2.dp else 1.dp,
+            when {
+                loadFailed && enabled -> MaterialTheme.colorScheme.error
+                enabled && (focused || expanded) -> MaterialTheme.colorScheme.primary
+                else -> MaterialTheme.colorScheme.outlineVariant
+            }
         ),
-        colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onSurface),
+        colors = ButtonDefaults.outlinedButtonColors(
+            containerColor = MaterialTheme.colorScheme.surface,
+            contentColor = MaterialTheme.colorScheme.onSurface
+        ),
         onClick = {
             if (!loading) {
                 loadFailed = false
@@ -125,7 +135,12 @@ fun <T> InlineOptionPicker(
             }
         }
     ) {
-        Column(Modifier.weight(1f, fill = fillWidth)) {
+        OmsTooltipBox(
+            modifier = Modifier.weight(1f, fill = fillWidth),
+            enabled = enabled && !expanded && !loading && selected != null,
+            tooltip = { Text(selected?.let { "$prompt: ${itemLabel(it)}" } ?: prompt) }
+        ) {
+        Column {
             Text(
                 selected?.let(itemLabel) ?: prompt,
                 maxLines = 1,
@@ -141,6 +156,7 @@ fun <T> InlineOptionPicker(
                     color = MaterialTheme.colorScheme.error
                 )
             }
+        }
         }
         Spacer(Modifier.width(if (compact) 4.dp else 8.dp))
         if (loading) {
