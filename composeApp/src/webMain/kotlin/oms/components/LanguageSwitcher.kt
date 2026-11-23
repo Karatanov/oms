@@ -1,6 +1,5 @@
 package oms.components
 
-import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -19,8 +18,8 @@ fun LanguageSwitcher() {
         if (LocalizationManager.currentLanguage == Language.UK) "switch_to_english" else "switch_to_ukrainian"
     )
     OmsTooltipBox(tooltip = { Text(description) }) {
-    oms.components.WorkspaceButton(
-        modifier = Modifier.buttonHandCursor().semantics { contentDescription = description },
+    WorkspaceOutlinedButton(
+        modifier = Modifier.chartControlFocus().semantics { contentDescription = description },
         onClick = {
             LocalizationManager.switchLanguage()
             setOmsLanguage(if (LocalizationManager.currentLanguage == Language.UK) "uk" else "en")

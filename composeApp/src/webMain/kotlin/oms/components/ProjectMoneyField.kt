@@ -83,10 +83,10 @@ fun ProjectMoneyField(label: String, value: ProjectMoneyDraft, currentRate: Proj
                         modifier = Modifier.weight(1f), maxLines = 2
                     )
                     OmsTooltipBox(tooltip = { Text(L.t("project_money_reset")) }) {
-                        IconButton(
+                        WorkspaceIconButton(
                             onClick = { currentRate?.let { onChange(value.withRate(it)) } },
                             enabled = currentRate != null,
-                            modifier = Modifier.size(36.dp)
+                            modifier = Modifier.size(36.dp).chartControlFocus()
                         ) {
                             Icon(Icons.Default.Refresh, contentDescription = L.t("project_money_reset"), modifier = Modifier.size(18.dp))
                         }
@@ -101,20 +101,25 @@ fun ProjectMoneyField(label: String, value: ProjectMoneyDraft, currentRate: Proj
                     Box(Modifier.width(156.dp)) { rateField(Modifier) }
                     Box(Modifier.width(174.dp)) { rateInfo() }
                 }
+            } else if (availableWidth >= 480.dp) {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Box(Modifier.weight(1f)) { amountField() }
+                        Box(Modifier.width(132.dp)) { currencyPicker() }
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Box(Modifier.weight(1f)) { convertedField() }
+                        rateField(Modifier.width(156.dp))
+                    }
+                    rateInfo()
+                }
             } else {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     amountField()
                     currencyPicker()
                     convertedField()
-                    if (availableWidth < 480.dp) {
-                        rateField(Modifier)
-                        rateInfo()
-                    } else {
-                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                            rateField(Modifier.weight(1f))
-                            Box(Modifier.weight(1f)) { rateInfo() }
-                        }
-                    }
+                    rateField(Modifier)
+                    rateInfo()
                 }
             }
         }
