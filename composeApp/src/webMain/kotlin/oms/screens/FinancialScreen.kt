@@ -122,9 +122,10 @@ fun FinancialScreen(
         return
     }
 
+    val useLedger = !WorkspaceBrand.legacySources
     var acts by remember { mutableStateOf<List<ProjectActRow>>(emptyList()) }
     var paymentMonitoring by remember { mutableStateOf<ApiPaymentMonitoring?>(null) }
-    var paymentMonitoringLoading by remember { mutableStateOf(true) }
+    var paymentMonitoringLoading by remember { mutableStateOf(!useLedger) }
     var paymentMonitoringLoadFailed by remember { mutableStateOf(false) }
     var regionalFunding by remember { mutableStateOf<List<oms.data.ApiSubprojectFunding>?>(null) }
     var regionalFundingLoading by remember { mutableStateOf(true) }
@@ -136,7 +137,10 @@ fun FinancialScreen(
     var loadingRates by remember { mutableStateOf(false) }
     var rateRetry by remember { mutableStateOf(0) }
     LaunchedEffect(acts, displayCurrency, rateRetry) {
-        val dates = acts.filter { it.act.displayAmountCents(displayCurrency, displayRates[it.act.recordDate]) == null }
+        val dates = acts.filter { row ->
+            val currencies = if (useLedger) listOf("EUR", "UAH") else listOf(displayCurrency)
+            currencies.any { row.act.displayAmountCents(it, displayRates[row.act.recordDate]) == null }
+        }
             .map { it.act.recordDate }.distinct()
         loadingRates = dates.isNotEmpty()
         try {
@@ -258,7 +262,7 @@ fun FinancialScreen(
         try {
             // The source is keyed by subproject code. Resolve this context
             // independently of the hidden legacy ledger and its exchange rates.
-            ProjectRepository.refresh()
+            ProjectRepository.refresh(force = useLedger && reloadKey > 0)
             check(ProjectRepository.errorMessage == null) { "Could not load project context" }
         } catch (failure: Exception) {
             if (failure is kotlinx.coroutines.CancellationException) throw failure
@@ -281,6 +285,7 @@ fun FinancialScreen(
     // Resolve the approved source independently without blocking navigation.
     // Retain the previous snapshot during a refresh, but report load failures.
     LaunchedEffect(reloadKey) {
+        if (useLedger) return@LaunchedEffect
         paymentMonitoringLoading = true
         paymentMonitoringLoadFailed = false
         try {
@@ -452,7 +457,8 @@ fun FinancialScreen(
             delay(16)
             // Monthly source charts belong to the read-only payment-monitoring
             // source, not to the retired editable financial-record registry.
-            val target = (pageScrollState.value + paymentMonitoringTopInRootPx - tableTopPaddingPx)
+            val tableTop = if (useLedger) tableTopInRootPx else paymentMonitoringTopInRootPx
+            val target = (pageScrollState.value + tableTop - tableTopPaddingPx)
                 .roundToInt()
                 .coerceIn(0, pageScrollState.maxValue)
             pageScrollState.animateScrollTo(target)
@@ -482,7 +488,19 @@ fun FinancialScreen(
             listOfNotNull(LocalizationManager.t("financial_monitoring"), selectedRegionLabel).joinToString(" — "),
             Icons.Default.AccountBalance,
             iconText = "€"
-        )
+        ) {
+            if (useLedger && canManageFinancials) {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedButton(onClick = { errorMessage = null; showTransferDialog = true }) {
+                        Text(LocalizationManager.t("import_export_xlsx"))
+                    }
+                    Button(onClick = { errorMessage = null; addAct = true }) {
+                        Icon(Icons.Default.Add, null)
+                        Text(LocalizationManager.t("add_record"))
+                    }
+                }
+            }
+        }
         if (loading || legacyLoading) oms.components.ContentState(LocalizationManager.t("loading_records"), loading = true)
         if (loadFailed) oms.components.ContentState(LocalizationManager.t("load_records_error"), error = true, onRetry = { reloadKey++ })
         if (legacyLoadFailed) oms.components.ContentState(LocalizationManager.t("load_records_error"), error = true, onRetry = { reloadKey++ })
@@ -493,13 +511,34 @@ fun FinancialScreen(
         else if (missingConversions > 0) oms.components.ContentState(
             LocalizationManager.t("financial_rates_missing"), error = true, onRetry = { rateRetry++ })
 
+        val ledgerReady = useLedger && !loading && !loadFailed && !legacyLoading && !legacyLoadFailed
+        val scopedLedger = regionScopedActs.filter {
+            (subprojectFilter == null || it.subprojectUuid == subprojectFilter) &&
+                (trancheFilter == null || it.trancheNumber.isFinancialTranche(trancheFilter!!)) &&
+                (yearFilter == null || (it.act.paymentDate ?: it.act.recordDate).take(4).toIntOrNull() == yearFilter) &&
+                (chartMonthFilter == null || (it.act.paymentDate ?: it.act.recordDate).take(7) == chartMonthFilter)
+        }
+        val cash = scopedLedger.filter { it.act.recordType in setOf("payment", "advance") }
+        fun ledgerCents(rows: List<ProjectActRow>, currency: String): Long? {
+            if (!ledgerReady) return null
+            var total = 0L
+            for (row in rows) {
+                val cents = row.act.displayAmountCents(currency, displayRates[row.act.recordDate]) ?: return null
+                if ((cents > 0 && total > Long.MAX_VALUE - cents) || (cents < 0 && total < Long.MIN_VALUE - cents)) return null
+                total += cents
+            }
+            return total
+        }
         Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
             BoxWithConstraints(Modifier.fillMaxWidth().padding(16.dp)) {
                 // This value is the approved workbook's dashboard total
                 // (`UR III UAH Payment Dashboard!E4`), rather than a sum of
                 // editable acts. Acts evidence performed work but are not the
                 // authoritative payment source for this programme indicator.
-                val amount = paymentMonitoring?.summary?.amountPaidTotalUah
+                val total = if (useLedger) ledgerCents(scopedLedger.filter {
+                    it.act.recordType == "act" && it.act.paymentPurpose == "works"
+                }, "UAH")?.div(100.0) else paymentMonitoring?.summary?.amountPaidTotalUah
+                val amount = total
                     ?.formatUiAmount()?.plus(" ${LocalizationManager.currencyLabel("UAH")}") ?: "—"
                 if (maxWidth >= 620.dp) {
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -520,11 +559,12 @@ fun FinancialScreen(
         val paymentProjects = subprojectsByCode.values.map { PaymentProjectContext(it.id, it.siteNumber, it.trancheNumber, it.region) }
         val paymentScope = PaymentMonitoringScope(trancheFilter, subprojectFilter, regionFilter, yearFilter, chartMonthFilter, paymentPurposeFilter)
         val contextualPayments = scopePaymentTransactions(paymentMonitoring?.transactions.orEmpty(), paymentProjects, paymentScope.copy(purpose = null))
-        PaymentSummaryCards(paymentMonitoring?.summary?.copy(
-            constructionWorksPaidUah = contextualPayments.filter { sourcePaymentPurpose(it.code) == "works" }.sumOf { it.amountUah },
-            technicalSupervisionPaidUah = contextualPayments.filter { sourcePaymentPurpose(it.code) == "technical_supervision" }.sumOf { it.amountUah },
-            engineerConsultantPaidUah = contextualPayments.filter { sourcePaymentPurpose(it.code) == "engineer_consultant" }.sumOf { it.amountUah }
-        ))
+        fun paidFor(purpose: String): Double? = if (useLedger) {
+            ledgerCents(cash.filter { it.act.paymentPurpose == purpose }, "UAH")?.div(100.0)
+        } else paymentMonitoring?.let {
+            contextualPayments.filter { sourcePaymentPurpose(it.code) == purpose }.sumOf { it.amountUah }
+        }
+        PaymentSummaryCards(paidFor("works"), paidFor("technical_supervision"), paidFor("engineer_consultant"))
 
         val fundingByUuid = regionalFunding.orEmpty().associateBy { it.projectUuid }
         val regionalPlanProjects = subprojectsByCode.values
@@ -549,16 +589,24 @@ fun FinancialScreen(
                     (yearFilter == null || (it.act.paymentDate ?: it.act.recordDate).take(4).toIntOrNull() == yearFilter)
             }.map { FinancialChartRecord(it.act, it.subprojectCode.orEmpty()) }.toList()
         }
+        fun financingByRegion(currency: String): List<RegionalFinancingAmount> {
+            val regions = regionalFinancing(regionalPlanProjects, paymentMonitoring?.transactions, paymentScope, currency)
+            if (!useLedger) return regions
+            val included = scopePaymentProjects(regionalPlanProjects.map { it.context }, paymentScope).map { it.uuid }.toSet()
+            val payments = cash.filter { it.subprojectUuid in included &&
+                (paymentPurposeFilter == null || it.act.paymentPurpose == paymentPurposeFilter) }.groupBy { it.region }
+            return regions.map { it.copy(paidCents = ledgerCents(payments[it.region].orEmpty(), currency)) }
+        }
         // Rate availability is chart-local: an incomplete purpose shows its
         // own warning/retry without hiding unrelated, complete financial charts.
         oms.components.AdaptiveChartRow(
             first = {
                 RegionalFinancingChart(
-                    regionalFinancing(regionalPlanProjects, paymentMonitoring?.transactions, paymentScope),
+                    financingByRegion("UAH"),
                     paymentMonitoringLoading || ProjectRepository.loading || regionalFundingLoading,
                     paymentMonitoringLoadFailed || ProjectRepository.errorMessage != null || regionalFundingFailed,
                     onRetry = { reloadKey++ }, titleSuffix = selectedChartScopeLabel,
-                    itemsEur = regionalFinancing(regionalPlanProjects, paymentMonitoring?.transactions, paymentScope, "EUR")
+                    itemsEur = financingByRegion("EUR")
                 )
             },
             second = {
@@ -605,7 +653,7 @@ fun FinancialScreen(
         // Keep the update action available even when the last source snapshot
         // cannot be read, so an administrator can repair it without leaving
         // Financial Monitoring.
-        Box(Modifier.onGloballyPositioned { paymentMonitoringTopInRootPx = it.positionInRoot().y }) {
+        if (!useLedger) Box(Modifier.onGloballyPositioned { paymentMonitoringTopInRootPx = it.positionInRoot().y }) {
             PaymentMonitoringCard(
                 snapshot = paymentMonitoring ?: ApiPaymentMonitoring(refreshedAt = ""),
                 selectedMonth = chartMonthFilter,
@@ -629,166 +677,165 @@ fun FinancialScreen(
             )
         }
 
-        /*
-         * The editable financial-record registry is intentionally retired from
-         * the Financial Monitoring screen. The service and its editor remain
-         * below for a controlled migration of existing data, but this view is
-         * now the read-only programme monitoring source above.
-         *
-        BoxWithConstraints(Modifier.fillMaxWidth()) {
-            if (maxWidth >= 620.dp) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                Text(LocalizationManager.t("financial_records"), style = MaterialTheme.typography.titleLarge)
-                Spacer(Modifier.weight(1f))
-                OutlinedButton(
-                    onClick = {
-                        oms.data.openOmsDownload(
-                            OmsApiClient.financialTablePdfExportUrl(
-                                language = if (oms.localization.LocalizationManager.currentLanguage == oms.localization.Language.EN) "en" else "uk",
-                                currency = displayCurrency,
-                                recordType = recordTypeFilter,
-                                paymentPurpose = paymentPurposeFilter,
-                                tranche = trancheFilter,
-                                subprojectUuid = subprojectFilter,
-                                region = regionFilter,
-                                month = chartMonthFilter,
-                                year = yearFilter,
-                                sort = sort.name.replaceFirstChar { it.lowercase() },
-                                ascending = ascending,
-                                filterSummary = financialPdfFilterSummary
-                            )
-                        )
-                    },
-                    enabled = visibleActs.isNotEmpty()
-                ) { Icon(Icons.Default.PictureAsPdf, null); Spacer(Modifier.width(6.dp)); Text(LocalizationManager.t("export_pdf")) }
-                FinancialPagination(pageSize, currentPage, pageCount, visibleActs.size, { pageSize = it }) { currentPage = it.coerceIn(0, pageCount - 1) }
-            } else Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(LocalizationManager.t("financial_records"), style = MaterialTheme.typography.titleLarge)
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
+        if (useLedger) {
+            BoxWithConstraints(Modifier.fillMaxWidth()) {
+                if (maxWidth >= 620.dp) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                    Text(LocalizationManager.t("financial_records"), style = MaterialTheme.typography.titleLarge)
+                    Spacer(Modifier.weight(1f))
                     OutlinedButton(
                         onClick = {
-                            oms.data.openOmsDownload(OmsApiClient.financialTablePdfExportUrl(
-                                if (oms.localization.LocalizationManager.currentLanguage == oms.localization.Language.EN) "en" else "uk", displayCurrency,
-                                recordTypeFilter, paymentPurposeFilter, trancheFilter, subprojectFilter, regionFilter, chartMonthFilter, yearFilter,
-                                sort.name.replaceFirstChar { it.lowercase() }, ascending, financialPdfFilterSummary
-                            ))
-                        }, enabled = visibleActs.isNotEmpty()
+                            oms.data.openOmsDownload(
+                                OmsApiClient.financialTablePdfExportUrl(
+                                    language = if (oms.localization.LocalizationManager.currentLanguage == oms.localization.Language.EN) "en" else "uk",
+                                    currency = displayCurrency,
+                                    recordType = recordTypeFilter,
+                                    paymentPurpose = paymentPurposeFilter,
+                                    tranche = trancheFilter,
+                                    subprojectUuid = subprojectFilter,
+                                    region = regionFilter,
+                                    month = chartMonthFilter,
+                                    year = yearFilter,
+                                    sort = sort.name.replaceFirstChar { it.lowercase() },
+                                    ascending = ascending,
+                                    filterSummary = financialPdfFilterSummary
+                                )
+                            )
+                        },
+                        enabled = visibleActs.isNotEmpty()
                     ) { Icon(Icons.Default.PictureAsPdf, null); Spacer(Modifier.width(6.dp)); Text(LocalizationManager.t("export_pdf")) }
-                    Spacer(Modifier.width(8.dp))
                     FinancialPagination(pageSize, currentPage, pageCount, visibleActs.size, { pageSize = it }) { currentPage = it.coerceIn(0, pageCount - 1) }
-                }
-            }
-        }
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            FilterDropdown(
-                label = LocalizationManager.t("type"),
-                options = listOf("invoice", "act", "payment", "advance"),
-                selected = recordTypeFilter,
-                onSelect = ::selectRecordType,
-                itemLabel = { LocalizationManager.t("record_type_$it") }
-            )
-            FilterDropdown(
-                label = LocalizationManager.t("payment_purpose"),
-                options = listOf("works", "equipment", "technical_supervision", "engineer_consultant"),
-                selected = paymentPurposeFilter,
-                onSelect = { paymentPurposeFilter = it },
-                itemLabel = { LocalizationManager.t("payment_purpose_$it") }
-            )
-            FilterDropdown(
-                label = LocalizationManager.t("tranche"),
-                options = listOf(1, 2),
-                selected = trancheFilter,
-                onSelect = { trancheFilter = it },
-                itemLabel = { it.financialTrancheCode() }
-            )
-            FilterDropdown(
-                label = LocalizationManager.t("subproject_code"),
-                options = subprojectFilterOptions.map { it.first },
-                selected = subprojectFilter,
-                onSelect = { subprojectFilter = it },
-                itemLabel = { uuid -> subprojectFilterOptions.firstOrNull { it.first == uuid }?.second.orEmpty() }
-            )
-            FilterDropdown(
-                label = LocalizationManager.t("region"),
-                options = regionFilterOptions,
-                selected = regionFilter,
-                onSelect = { regionFilter = it },
-                itemLabel = ::localizedUkraineRegion
-            )
-            FilterDropdown(
-                label = LocalizationManager.t("date"),
-                options = yearFilterOptions,
-                selected = yearFilter,
-                onSelect = { yearFilter = it },
-                itemLabel = Int::toString
-            )
-            chartMonthFilter?.let { month ->
-                AssistChip(
-                    onClick = { chartMonthFilter = null },
-                    label = { Text("${LocalizationManager.t("date")}: ${month.toMonthName()} ${month.take(4)}") }
-                )
-            }
-            OutlinedButton(onClick = {
-                recordTypeFilter = null
-                paymentPurposeFilter = null
-                trancheFilter = null
-                subprojectFilter = null
-                regionFilter = null
-                chartMonthFilter = null
-                yearFilter = null
-            }) { Text(LocalizationManager.t("reset_filters")) }
-        }
-        oms.components.ScrollableTable(
-            Modifier.fillMaxWidth()
-                .onGloballyPositioned { tableTopInRootPx = it.positionInRoot().y },
-            pageScrollState = pageScrollState,
-            pinnedStartWidth = 160.dp,
-            pinnedStartHeader = { FinancialFrozenCodeHeader(sort, ascending, ::selectSort) },
-            pinnedStartContent = {
-                pageRows.forEach { row ->
-                    Row(Modifier.width(160.dp).padding(vertical = 4.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                        Text(row.subprojectCode ?: "—", Modifier.width(160.dp))
+                } else Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(LocalizationManager.t("financial_records"), style = MaterialTheme.typography.titleLarge)
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
+                        OutlinedButton(
+                            onClick = {
+                                oms.data.openOmsDownload(OmsApiClient.financialTablePdfExportUrl(
+                                    if (oms.localization.LocalizationManager.currentLanguage == oms.localization.Language.EN) "en" else "uk", displayCurrency,
+                                    recordTypeFilter, paymentPurposeFilter, trancheFilter, subprojectFilter, regionFilter, chartMonthFilter, yearFilter,
+                                    sort.name.replaceFirstChar { it.lowercase() }, ascending, financialPdfFilterSummary
+                                ))
+                            }, enabled = visibleActs.isNotEmpty()
+                        ) { Icon(Icons.Default.PictureAsPdf, null); Spacer(Modifier.width(6.dp)); Text(LocalizationManager.t("export_pdf")) }
+                        Spacer(Modifier.width(8.dp))
+                        FinancialPagination(pageSize, currentPage, pageCount, visibleActs.size, { pageSize = it }) { currentPage = it.coerceIn(0, pageCount - 1) }
                     }
-                    HorizontalDivider()
                 }
-            },
-            header = { FinancialTableHeader(sort, ascending, ::selectSort); HorizontalDivider() }
-        ) {
-                    if (!loading && !loadFailed && visibleActs.isEmpty()) Text(LocalizationManager.t(emptyRecordsMessage))
+            }
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                listOf("EUR", "UAH").forEach { currency ->
+                    FilterChip(selected = displayCurrency == currency, onClick = { displayCurrency = currency },
+                        label = { Text(LocalizationManager.currencyLabel(currency)) })
+                }
+                FilterDropdown(
+                    label = LocalizationManager.t("type"),
+                    options = listOf("invoice", "act", "payment", "advance"),
+                    selected = recordTypeFilter,
+                    onSelect = ::selectRecordType,
+                    itemLabel = { LocalizationManager.t("record_type_$it") }
+                )
+                FilterDropdown(
+                    label = LocalizationManager.t("payment_purpose"),
+                    options = listOf("works", "equipment", "technical_supervision", "engineer_consultant"),
+                    selected = paymentPurposeFilter,
+                    onSelect = { paymentPurposeFilter = it },
+                    itemLabel = { LocalizationManager.t("payment_purpose_$it") }
+                )
+                FilterDropdown(
+                    label = LocalizationManager.t("tranche"),
+                    options = listOf(1, 2),
+                    selected = trancheFilter,
+                    onSelect = { trancheFilter = it },
+                    itemLabel = { it.financialTrancheCode() }
+                )
+                FilterDropdown(
+                    label = LocalizationManager.t("subproject_code"),
+                    options = subprojectFilterOptions.map { it.first },
+                    selected = subprojectFilter,
+                    onSelect = { subprojectFilter = it },
+                    itemLabel = { uuid -> subprojectFilterOptions.firstOrNull { it.first == uuid }?.second.orEmpty() }
+                )
+                FilterDropdown(
+                    label = LocalizationManager.t("region"),
+                    options = regionFilterOptions,
+                    selected = regionFilter,
+                    onSelect = { regionFilter = it },
+                    itemLabel = ::localizedUkraineRegion
+                )
+                FilterDropdown(
+                    label = LocalizationManager.t("date"),
+                    options = yearFilterOptions,
+                    selected = yearFilter,
+                    onSelect = { yearFilter = it },
+                    itemLabel = Int::toString
+                )
+                chartMonthFilter?.let { month ->
+                    AssistChip(
+                        onClick = { chartMonthFilter = null },
+                        label = { Text("${LocalizationManager.t("date")}: ${month.toMonthName()} ${month.take(4)}") }
+                    )
+                }
+                OutlinedButton(onClick = {
+                    recordTypeFilter = null
+                    paymentPurposeFilter = null
+                    trancheFilter = null
+                    subprojectFilter = null
+                    regionFilter = null
+                    chartMonthFilter = null
+                    yearFilter = null
+                }) { Text(LocalizationManager.t("reset_filters")) }
+            }
+            oms.components.ScrollableTable(
+                Modifier.fillMaxWidth()
+                    .onGloballyPositioned { tableTopInRootPx = it.positionInRoot().y },
+                pageScrollState = pageScrollState,
+                pinnedStartWidth = 160.dp,
+                pinnedStartHeader = { FinancialFrozenCodeHeader(sort, ascending, ::selectSort) },
+                pinnedStartContent = {
                     pageRows.forEach { row ->
-                        Row(Modifier.width(1_681.dp).padding(vertical = 4.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                        Row(Modifier.width(160.dp).padding(vertical = 4.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                             Text(row.subprojectCode ?: "—", Modifier.width(160.dp))
-                            Text(LocalizationManager.t("record_type_${row.act.recordType}"), Modifier.width(95.dp))
-                            Box(Modifier.width(210.dp)) { FinancialPaymentPurposeBadge(row.act.recordType, row.act.paymentPurpose) }
-                            Text(row.trancheNumber.financialTrancheCode(), Modifier.width(95.dp))
-                            ExpandableTableText(row.subprojectName, Modifier.width(200.dp))
-                            ExpandableTableText(row.subprojectPartName ?: "—", Modifier.width(200.dp))
-                            Text(row.act.recordDate.toOmsDate(), Modifier.width(105.dp))
-                            Text(displayCents(row.act)?.let { (it / 100.0).toMoney("").trim() } ?: "—", Modifier.width(130.dp).padding(horizontal = 8.dp), textAlign = androidx.compose.ui.text.style.TextAlign.End)
-                            Text(displayCurrency, Modifier.width(65.dp))
-                            Text(row.act.description ?: row.act.milestone ?: "—", Modifier.width(250.dp))
-                            Text("—", Modifier.width(75.dp))
-                            if (canManageFinancials) {
-                                TableActionIconButton(LocalizationManager.t("edit_financial_record_tooltip"), Icons.Default.Edit) { errorMessage = null; editAct = row }
-                                TableActionIconButton(LocalizationManager.t("delete_financial_record_tooltip"), Icons.Default.Delete) {
-                                    deletion.show(row.act.referenceNumber) { scope.launch {
-                                        if (OmsApiClient.deleteFinancialRecord(row.projectUuid, row.act.uuid)) reloadKey++
-                                        else errorMessage = LocalizationManager.t("error_delete_act")
-                                    } }
-                                }
-                            } else Spacer(Modifier.width(96.dp))
                         }
                         HorizontalDivider()
                     }
-        }
-
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-            FinancialPagination(pageSize, currentPage, pageCount, visibleActs.size, { pageSize = it }) {
-                currentPage = it.coerceIn(0, pageCount - 1)
+                },
+                header = { FinancialTableHeader(sort, ascending, ::selectSort); HorizontalDivider() }
+            ) {
+                        if (ledgerReady && visibleActs.isEmpty()) Text(LocalizationManager.t(emptyRecordsMessage))
+                        pageRows.forEach { row ->
+                            Row(Modifier.width(1_681.dp).padding(vertical = 4.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                                Text(row.subprojectCode ?: "—", Modifier.width(160.dp))
+                                Text(LocalizationManager.t("record_type_${row.act.recordType}"), Modifier.width(95.dp))
+                                Box(Modifier.width(210.dp)) { FinancialPaymentPurposeBadge(row.act.recordType, row.act.paymentPurpose) }
+                                Text(row.trancheNumber.financialTrancheCode(), Modifier.width(95.dp))
+                                ExpandableTableText(row.subprojectName, Modifier.width(200.dp))
+                                ExpandableTableText(row.subprojectPartName ?: "—", Modifier.width(200.dp))
+                                Text(row.act.recordDate.toOmsDate(), Modifier.width(105.dp))
+                                Text(displayCents(row.act)?.let { (it / 100.0).toMoney("").trim() } ?: "—", Modifier.width(130.dp).padding(horizontal = 8.dp), textAlign = androidx.compose.ui.text.style.TextAlign.End)
+                                Text(displayCurrency, Modifier.width(65.dp))
+                                Text(row.act.description ?: row.act.milestone ?: "—", Modifier.width(250.dp))
+                                Text("—", Modifier.width(75.dp))
+                                if (canManageFinancials) {
+                                    TableActionIconButton(LocalizationManager.t("edit_financial_record_tooltip"), Icons.Default.Edit) { errorMessage = null; editAct = row }
+                                    TableActionIconButton(LocalizationManager.t("delete_financial_record_tooltip"), Icons.Default.Delete) {
+                                        deletion.show(row.act.referenceNumber) { scope.launch {
+                                            if (OmsApiClient.deleteFinancialRecord(row.projectUuid, row.act.uuid)) reloadKey++
+                                            else errorMessage = LocalizationManager.t("error_delete_act")
+                                        } }
+                                    }
+                                } else Spacer(Modifier.width(96.dp))
+                            }
+                            HorizontalDivider()
+                        }
             }
-        }
 
-        errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-        */
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                FinancialPagination(pageSize, currentPage, pageCount, visibleActs.size, { pageSize = it }) {
+                    currentPage = it.coerceIn(0, pageCount - 1)
+                }
+            }
+
+            errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+        }
     }
     if (addAct || editAct != null) { WasmSafeOverlay(onDismiss = { addAct = false; editAct = null }, errorMessage = errorMessage) {
             ActEditorDialog(editAct, ProjectRepository.projects, acts, {
@@ -939,7 +986,7 @@ private fun ActEditorDialog(
     var recordType by remember { mutableStateOf(existing?.act?.recordType ?: "act") }
     var amount by remember { mutableStateOf(existing?.act?.amount?.toString() ?: "") }
     var currency by remember { mutableStateOf(existing?.act?.currency ?: "EUR") }
-    var date by remember { mutableStateOf(existing?.act?.recordDate ?: currentIsoDate()) }
+    var date by remember { mutableStateOf(existing?.act?.paymentDate ?: existing?.act?.recordDate ?: currentIsoDate()) }
     var description by remember { mutableStateOf(existing?.act?.description ?: existing?.act?.milestone ?: "") }
     var paymentPurpose by remember { mutableStateOf(existing?.act?.paymentPurpose ?: "works") }
     var basisActs by remember { mutableStateOf<List<ApiFinancialRecord>>(emptyList()) }
@@ -1258,11 +1305,11 @@ private fun Int.financialTrancheCode(): String = if (this == 2 || this == 9) "B"
 
 /** Compact, source-backed payment totals shown above the read-only register. */
 @Composable
-private fun PaymentSummaryCards(summary: oms.data.ApiPaymentMonitoringSummary?) {
+private fun PaymentSummaryCards(works: Double?, supervision: Double?, consultant: Double?) {
     val entries = listOf(
-        "payment_purpose_works" to summary?.constructionWorksPaidUah,
-        "payment_purpose_technical_supervision" to summary?.technicalSupervisionPaidUah,
-        "payment_purpose_engineer_consultant" to summary?.engineerConsultantPaidUah
+        "payment_purpose_works" to works,
+        "payment_purpose_technical_supervision" to supervision,
+        "payment_purpose_engineer_consultant" to consultant
     )
     FlowRow(
         modifier = Modifier.fillMaxWidth(),

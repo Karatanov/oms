@@ -70,6 +70,7 @@ class PaymentMonitoringService(
      */
     @Synchronized
     fun currentIfAvailable(): Snapshot? {
+        if (!Deployment.legacy) return null
         val requestedAt = now()
         cached?.takeIf { requestedAt.isBefore(it.expiresAt) }?.let { return it.snapshot }
         val persisted = repository.findSnapshot() ?: return null

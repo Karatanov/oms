@@ -2,6 +2,7 @@ package oms.urp3.service
 
 import oms.urp3.database.tables.*
 import oms.urp3.config.AppContainer
+import oms.urp3.config.Deployment
 import oms.urp3.domain.InspectionReport
 import oms.urp3.domain.InspectionReportStatus
 import oms.urp3.domain.ProjectAmount
@@ -539,7 +540,18 @@ class DashboardService(
         // This chart intentionally uses the same persisted snapshot as
         // Financial Monitoring → UR III payment monitoring. Supporting _W,
         // _TS and _CSC rows are contracts, not distinct subprojects.
-        val subprojectPaymentProgress = paymentMonitoringService?.currentIfAvailable()?.items.orEmpty()
+        val subprojectPaymentProgress = if (!Deployment.legacy) {
+            val paymentsBySubproject = paymentRecords.groupBy { subprojectFor(it[FinancialRecordTable.projectId].value) }
+            portfolioSubprojects.map { project ->
+                val id = project[ProjectTable.id].value
+                val paid = dashboardPaymentTotals(paymentsBySubproject[id].orEmpty().map {
+                    it.frozenAmountCents("EUR") to it.amountUahCents()
+                }).uahCents?.div(100.0)
+                val eligible = amountsByProject[id]?.get("contracted_eib")?.uah?.toDouble()
+                DashboardSubprojectPaymentProgress(project[ProjectTable.uuid], project[ProjectTable.siteNumber],
+                    project[ProjectTable.region].orEmpty(), eligible, paid, paymentMonitoringPaymentPct(eligible, paid))
+            }.sortedBy { it.code }
+        } else sourcedSnapshot?.items.orEmpty()
             .asSequence()
             .filter { isPrimaryPaymentMonitoringSubprojectCode(it.code) }
             .mapNotNull { item ->

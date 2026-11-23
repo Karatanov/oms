@@ -94,10 +94,21 @@ api financials/payment-monitoring >/dev/null
 ur_count=$(sql ur3 'SELECT COUNT(*) FROM projects')
 curl -fsS -H "Authorization: Bearer $jwt" -H 'Content-Type: application/json' \
   -d '{"name":"Isolation fixture","siteName":"Fixture","siteNumber":"TEST","budgetPlanned":100}' "$us/api/v1/projects" >/dev/null
+# Persist three document types at one site. Only the payment and advance are cash.
+sql usif "INSERT INTO financial_records
+  (uuid, project_id, created_by, record_type, reference_number, amount, currency, record_date, payment_purpose, amount_eur_cents)
+  SELECT UUID(), p.id, u.id, d.kind, d.kind, d.amount, 'UAH', '2026-07-07', 'works', d.eur_cents
+  FROM projects p CROSS JOIN users u CROSS JOIN (
+    SELECT 'act' AS kind, 90 AS amount, 180 AS eur_cents UNION ALL
+    SELECT 'payment', 60, 120 UNION ALL SELECT 'advance', 10, 20
+  ) d WHERE p.site_number='TEST' AND u.username='fixture'"
 docker restart "$run-usif-app" >/dev/null
 ready "$us" "$run-usif-app"
 [[ "$(sql usif 'SELECT COUNT(*) FROM projects WHERE name="Isolation fixture"')" == 1 ]]
 [[ "$(sql ur3 'SELECT COUNT(*) FROM projects')" == "$ur_count" ]]
 [[ "$(sql ur3 'SELECT COUNT(*) FROM projects WHERE name="Isolation fixture"')" == 0 ]]
 api projects | jq -e '.. | strings | select(.=="Isolation fixture")' >/dev/null
+api financials | jq -e 'length == 3'
+api projects | jq -e '.data[] | select(.siteNumber=="TEST") | (.registry.paidConstruction | tonumber) == 70'
+api dashboard/overview | jq -e '.nationalSummary.servicesPaidUahCents == 7000 and .nationalSummary.servicesPaidEurCents == 140'
 node tools/test-brand-pages.cjs

@@ -384,9 +384,11 @@ private fun NationalPortfolioSummary(
                         cardWidth = metricWidth, onClick = onOpenSignedContracts
                     )
                 }
+                val legacyPayments = oms.data.WorkspaceBrand.legacySources
+                val paidUah = if (legacyPayments) summary.eibPaidUnderContractsUah else summary.servicesPaidUahCents?.div(100.0)
                 SummaryMetric(
-                    "eib_paid_under_contracts",
-                    summary.eibPaidUnderContractsUah?.roundToLong()?.let { amount ->
+                    if (legacyPayments) "eib_paid_under_contracts" else "ledger_total_paid",
+                    paidUah?.roundToLong()?.let { amount ->
                         buildString {
                             append(amount.grouped())
                             append(' ')
