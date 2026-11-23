@@ -159,36 +159,14 @@ fun DashboardScreen(
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                     itemVerticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(Modifier.selectableGroup(), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-                        listOf<Int?>(null, 1, 2).forEach { option ->
-                            val selected = trancheNumber == option
-                            Box(
-                                Modifier.heightIn(min = 32.dp).clip(MaterialTheme.shapes.extraSmall)
-                                    .background(if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerLow)
-                                    .chartControlFocus()
-                                    .selectable(selected = selected, role = Role.RadioButton, onClick = {
-                                        if (trancheNumber != option) {
-                                            loading = true
-                                            error = false
-                                            trancheNumber = option
-                                            runCatching { sessionStorage.setItem("oms.dashboard.tranche", option?.toString() ?: "all") }
-                                        }
-                                    })
-                                    .buttonHandCursor().padding(horizontal = 10.dp, vertical = 6.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    LocalizationManager.t(when (option) {
-                                        null -> "all_tranches"
-                                        1 -> "tranche_a"
-                                        else -> "tranche_b"
-                                    }),
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = if (selected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
+                    TrancheSelector(trancheNumber, onSelect = { option ->
+                        if (trancheNumber != option) {
+                            loading = true
+                            error = false
+                            trancheNumber = option
+                            runCatching { sessionStorage.setItem("oms.dashboard.tranche", option?.toString() ?: "all") }
                         }
-                    }
+                    })
                     ChartOrientationPicker(chartOrientation) { orientation ->
                         chartOrientation = orientation
                         // Storage may be disabled by the browser; switching still works.

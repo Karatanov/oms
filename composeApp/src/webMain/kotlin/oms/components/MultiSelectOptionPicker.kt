@@ -37,6 +37,7 @@ import oms.theme.OmsDimensions
  * the menu open while values are toggled, avoiding page-layout jumps and native
  * browser popup differences on mobile and Safari.
  */
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 fun <T> MultiSelectOptionPicker(
     options: List<T>,
@@ -106,10 +107,11 @@ fun <T> MultiSelectOptionPicker(
         1 -> "$prompt: ${itemLabel(selected.first())}"
         else -> "$prompt (${selected.size})"
     }
+    androidx.compose.runtime.CompositionLocalProvider(androidx.compose.material3.LocalMinimumInteractiveComponentSize provides 0.dp) {
     OutlinedButton(
         enabled = enabled,
         modifier = modifier.then(if (fillWidth) Modifier.fillMaxWidth() else Modifier)
-            .heightIn(min = OmsDimensions.ControlHeight)
+            .heightIn(min = 40.dp)
             .onGloballyPositioned { anchor = it.boundsInRoot() }
             .semantics {
                 stateDescription = listOf(
@@ -119,7 +121,7 @@ fun <T> MultiSelectOptionPicker(
             }
             .focusRequester(restoreFocus),
         shape = MaterialTheme.shapes.small,
-        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
         border = androidx.compose.foundation.BorderStroke(
             1.dp,
             if (selected.isNotEmpty()) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant
@@ -139,5 +141,6 @@ fun <T> MultiSelectOptionPicker(
             Modifier.width(20.dp),
             tint = MaterialTheme.colorScheme.primary
         )
+    }
     }
 }

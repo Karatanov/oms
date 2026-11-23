@@ -1,6 +1,7 @@
 package oms.screens
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.background
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -52,151 +53,113 @@ fun MapScreen(onOpenProject: (Project) -> Unit = {}, requestedTrancheFilter: Int
     }
     val visible = located.filter { it.matchesMapFilters(search, regions, statuses) }
     val mobile = oms.layout.LocalMobileLayout.current
-    var filtersExpanded by remember { mutableStateOf(false) }
-    BoxWithConstraints(Modifier.fillMaxSize()) {
-    // Leave room for the heading/actions and a usable map, even on short phones.
-    val filterHeight = (maxHeight * .5f).coerceAtMost((maxHeight - 400.dp).coerceAtLeast(80.dp))
-    val shortViewport = maxHeight < 500.dp
-    val compactLandscapeHeader = mobile && shortViewport && maxWidth >= 600.dp
-    Column(Modifier.fillMaxSize().padding(oms.layout.workspacePadding()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        if (compactLandscapeHeader) { /* The title shares the filter row below. */ }
-        else if (mobile && shortViewport) Text(LocalizationManager.t("projects_map"), style = MaterialTheme.typography.titleLarge)
-        else PageHeading(LocalizationManager.t("projects_map"), Icons.Default.Map)
-        if (mobile) Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            if (compactLandscapeHeader) Text(LocalizationManager.t("projects_map"), Modifier.weight(1f), style = MaterialTheme.typography.titleLarge)
-            Text("${LocalizationManager.t("markers_count")} ${visible.size}", if (compactLandscapeHeader) Modifier.padding(end = 12.dp) else Modifier.weight(1f), style = MaterialTheme.typography.labelLarge)
-            TextButton(onClick = { filtersExpanded = !filtersExpanded }) {
-                Icon(if (filtersExpanded) Icons.Default.ExpandLess else Icons.Default.FilterList, null)
-                Spacer(Modifier.width(6.dp))
-                Text(LocalizationManager.t("filters"))
+    var filtersExpanded by remember { mutableStateOf(!mobile) }
+    val hasFilters = search.isNotBlank() || regions.isNotEmpty() || statuses.isNotEmpty() || trancheNumber != null || mapScope != MapScope.SUBPROJECTS
+
+    @Composable fun Selectors() {
+        CompactChoiceSelector(MapScope.entries.toList(), mapScope, { mapScope = it },
+            itemLabel = { LocalizationManager.t(it.labelKey) })
+        TrancheSelector(trancheNumber, { trancheNumber = it })
+    }
+    @Composable fun MapAction(label: String, icon: androidx.compose.ui.graphics.vector.ImageVector,
+        enabled: Boolean = true, active: Boolean = false, onClick: () -> Unit) {
+        OmsTooltipBox(tooltip = { Text(label) }) {
+            IconButton(onClick = onClick, enabled = enabled,
+                modifier = Modifier.size(32.dp)
+                    .background(if (active) MaterialTheme.colorScheme.primaryContainer else Color.Transparent, MaterialTheme.shapes.extraSmall)
+                    .then(if (enabled) Modifier.buttonHandCursor() else Modifier)) {
+                Icon(icon, contentDescription = label, modifier = Modifier.size(18.dp))
             }
-        }
-        if (!mobile || filtersExpanded) Column(
-            if (mobile) (if (shortViewport) Modifier.weight(1f).fillMaxWidth() else Modifier.fillMaxWidth().heightIn(max = filterHeight))
-                .verticalScroll(rememberScrollState()) else Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-        Text(LocalizationManager.t("map_scope"), style = MaterialTheme.typography.labelLarge)
-        @Composable fun ScopeSelector(modifier: Modifier) {
-            SingleChoiceSegmentedButtonRow(modifier) {
-                MapScope.entries.forEachIndexed { index, option ->
-                    SegmentedButton(
-                        selected = mapScope == option,
-                        onClick = { mapScope = option },
-                        modifier = Modifier.buttonHandCursor(),
-                        shape = SegmentedButtonDefaults.itemShape(index, MapScope.entries.size),
-                        colors = mapSegmentedColors(),
-                        icon = {},
-                        label = { Text(LocalizationManager.t(option.labelKey)) }
-                    )
-                }
-            }
-        }
-        @Composable fun TrancheSelector(modifier: Modifier) {
-            SingleChoiceSegmentedButtonRow(modifier) {
-                listOf<Int?>(null, 1, 2).forEachIndexed { index, option ->
-                    SegmentedButton(
-                        selected = trancheNumber == option,
-                        onClick = { trancheNumber = option },
-                        modifier = Modifier.buttonHandCursor(),
-                        shape = SegmentedButtonDefaults.itemShape(index, 3),
-                        colors = mapSegmentedColors(),
-                        icon = {},
-                        label = {
-                            Text(LocalizationManager.t(when (option) {
-                                null -> "all_tranches"
-                                1 -> "tranche_a"
-                                else -> "tranche_b"
-                            }))
-                        }
-                    )
-                }
-            }
-        }
-        BoxWithConstraints(Modifier.widthIn(max = 680.dp).fillMaxWidth()) {
-            if (maxWidth < 620.dp) Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                ScopeSelector(Modifier.fillMaxWidth())
-                TrancheSelector(Modifier.fillMaxWidth())
-            } else Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                ScopeSelector(Modifier.weight(1f))
-                TrancheSelector(Modifier.weight(1f))
-            }
-        }
-        BoxWithConstraints(Modifier.fillMaxWidth()) {
-            val controls: @Composable (Modifier) -> Unit = { modifier ->
-                OutlinedTextField(search, { search = it.safeTextInput(200) }, singleLine = true,
-                    label = { Text(LocalizationManager.t("search_project")) }, leadingIcon = { Icon(Icons.Default.Search, null) }, modifier = modifier)
-            }
-            val regionFilter: @Composable (Modifier) -> Unit = { modifier ->
-                MultiSelectOptionPicker(
-                    options = located.map { it.region }.filter(String::isNotBlank).distinct().sorted(),
-                    selected = regions,
-                    prompt = LocalizationManager.t("region"),
-                    onSelectionChange = { regions = it },
-                    itemLabel = ::localizedUkraineRegion,
-                    modifier = modifier,
-                    clearLabel = LocalizationManager.t("map_clear_selection")
-                )
-            }
-            val statusFilter: @Composable (Modifier) -> Unit = { modifier ->
-                MultiSelectOptionPicker(
-                    options = ProjectStatus.entries,
-                    selected = statuses,
-                    prompt = LocalizationManager.t("status"),
-                    onSelectionChange = { statuses = it },
-                    itemLabel = { LocalizationManager.t("project_status_${it.name.lowercase()}") },
-                    modifier = modifier,
-                    clearLabel = LocalizationManager.t("map_clear_selection")
-                )
-            }
-            val reset: @Composable () -> Unit = {
-                TextButton(onClick = {
-                    search = ""
-                    regions = emptySet()
-                    statuses = emptySet()
-                    trancheNumber = null
-                    fitUkraineOverview()
-                }) { Text(LocalizationManager.t("reset_filters")) }
-            }
-            if (maxWidth >= 900.dp) {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    controls(Modifier.weight(1f))
-                    regionFilter(Modifier.width(180.dp))
-                    statusFilter(Modifier.width(174.dp))
-                    reset()
-                }
-            } else {
-                FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    controls(Modifier.fillMaxWidth())
-                    regionFilter(if (mobile) Modifier.fillMaxWidth() else Modifier.width(200.dp))
-                    statusFilter(if (mobile) Modifier.fillMaxWidth() else Modifier.width(190.dp))
-                    reset()
-                }
-            }
-        }
-        }
-        if (!mobile || !shortViewport || !filtersExpanded) FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            if (!mobile) Text("${LocalizationManager.t("markers_count")} ${visible.size}", Modifier.align(Alignment.CenterVertically), style = MaterialTheme.typography.labelLarge)
-            TextButton(onClick = ::fitUkraineOverview) { Icon(Icons.Default.Public, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text(LocalizationManager.t("all_ukraine")) }
-            TextButton(onClick = ::fitLeafletResults, enabled = visible.isNotEmpty()) { Icon(Icons.Default.CenterFocusStrong, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text(LocalizationManager.t("fit_results")) }
-        }
-        if (ProjectRepository.loading) ContentState(LocalizationManager.t("loading_records"), loading = true)
-        else if (ProjectRepository.errorMessage != null) ContentState(LocalizationManager.t("load_records_error"), error = true, onRetry = { scope.launch { ProjectRepository.refresh(force = true) } })
-        else if (visible.isEmpty()) ContentState(LocalizationManager.t("no_map_results"))
-        if (!mobile || !shortViewport || !filtersExpanded) Box(Modifier.fillMaxWidth().weight(1f)) {
-            LeafletMapView(visible, allProjects = projects) { id -> visible.firstOrNull { it.id == id }?.let(onOpenProject) }
         }
     }
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        val filterHeight = (maxHeight * .4f).coerceIn(80.dp, 240.dp)
+        Column(Modifier.fillMaxSize().padding(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Surface(Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.medium,
+                color = MaterialTheme.colorScheme.surface) {
+                CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 0.dp) {
+                    Column(Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp), itemVerticalAlignment = Alignment.CenterVertically) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Icon(Icons.Default.Map, null, Modifier.size(18.dp), tint = MaterialTheme.colorScheme.primary)
+                                Text(LocalizationManager.t("projects_map"), style = MaterialTheme.typography.titleSmall)
+                            }
+                            Text("${LocalizationManager.t("markers_count")} ${visible.size}",
+                                style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            if (!mobile) Selectors()
+                            Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                                MapAction(LocalizationManager.t("all_ukraine"), Icons.Default.Public, onClick = ::fitUkraineOverview)
+                                MapAction(LocalizationManager.t("fit_results"), Icons.Default.CenterFocusStrong,
+                                    enabled = visible.isNotEmpty(), onClick = ::fitLeafletResults)
+                                MapAction(LocalizationManager.t("reset_filters"), Icons.Default.RestartAlt, enabled = hasFilters) {
+                                    search = ""
+                                    regions = emptySet()
+                                    statuses = emptySet()
+                                    trancheNumber = null
+                                    mapScope = MapScope.SUBPROJECTS
+                                    fitUkraineOverview()
+                                }
+                                MapAction(LocalizationManager.t("filters"),
+                                    if (filtersExpanded) Icons.Default.ExpandLess else Icons.Default.FilterList,
+                                    active = filtersExpanded || hasFilters) { filtersExpanded = !filtersExpanded }
+                            }
+                        }
+                        if (filtersExpanded) Column(
+                            Modifier.fillMaxWidth().heightIn(max = filterHeight).verticalScroll(rememberScrollState()),
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            if (mobile) FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalArrangement = Arrangement.spacedBy(4.dp)) { Selectors() }
+                            BoxWithConstraints(Modifier.fillMaxWidth()) {
+                                val searchControl: @Composable (Modifier) -> Unit = { modifier ->
+                                    WorkspaceSearchField(search, { search = it.safeTextInput(200) },
+                                        LocalizationManager.t("search_project"), modifier)
+                                }
+                                val regionControl: @Composable (Modifier) -> Unit = { modifier ->
+                                    MultiSelectOptionPicker(
+                                        options = located.map { it.region }.filter(String::isNotBlank).distinct().sorted(),
+                                        selected = regions, prompt = LocalizationManager.t("region"),
+                                        onSelectionChange = { regions = it }, itemLabel = ::localizedUkraineRegion,
+                                        modifier = modifier, clearLabel = LocalizationManager.t("map_clear_selection")
+                                    )
+                                }
+                                val statusControl: @Composable (Modifier) -> Unit = { modifier ->
+                                    MultiSelectOptionPicker(
+                                        options = ProjectStatus.entries, selected = statuses,
+                                        prompt = LocalizationManager.t("status"), onSelectionChange = { statuses = it },
+                                        itemLabel = { LocalizationManager.t("project_status_${it.name.lowercase()}") },
+                                        modifier = modifier, clearLabel = LocalizationManager.t("map_clear_selection")
+                                    )
+                                }
+                                if (maxWidth >= 720.dp) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    verticalAlignment = Alignment.CenterVertically) {
+                                    searchControl(Modifier.weight(1f))
+                                    regionControl(Modifier.width(180.dp))
+                                    statusControl(Modifier.width(174.dp))
+                                } else Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    searchControl(Modifier.fillMaxWidth())
+                                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        regionControl(Modifier.weight(1f))
+                                        statusControl(Modifier.weight(1f))
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            if (ProjectRepository.loading) LinearProgressIndicator(Modifier.fillMaxWidth().height(2.dp))
+            else if (ProjectRepository.errorMessage != null) ChartContentState(LocalizationManager.t("load_records_error"),
+                onRetry = { scope.launch { ProjectRepository.refresh(force = true) } })
+            else if (visible.isEmpty()) Text(LocalizationManager.t("no_map_results"),
+                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Box(Modifier.fillMaxWidth().weight(1f)) {
+                LeafletMapView(visible, allProjects = projects) { id -> visible.firstOrNull { it.id == id }?.let(onOpenProject) }
+            }
+        }
     }
 }
-
-@Composable
-private fun mapSegmentedColors() = SegmentedButtonDefaults.colors(
-    activeContainerColor = MaterialTheme.colorScheme.primary,
-    activeContentColor = Color.White,
-    inactiveContainerColor = MaterialTheme.colorScheme.surface,
-    inactiveContentColor = MaterialTheme.colorScheme.onSurface
-)
 
 /** Batch IDs 8/9 are the imported representations of tranches A/B. */
 private fun Project.matchesMapTranche(filter: Int?): Boolean = when (filter) {

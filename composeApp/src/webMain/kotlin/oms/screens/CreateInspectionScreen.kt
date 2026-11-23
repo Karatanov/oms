@@ -1240,23 +1240,12 @@ internal fun ApiInspectionPhoto.editorAssociationKey(): String? =
 
 @Composable
 private fun ScheduleChoice(selected: String, onSelect: (String) -> Unit) {
-    SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
-        listOf("yes", "no").forEachIndexed { optionIndex, option ->
-            SegmentedButton(
-                selected = selected.equals(option, ignoreCase = true),
-                onClick = { onSelect(option) },
-                modifier = Modifier.buttonHandCursor(),
-                shape = SegmentedButtonDefaults.itemShape(optionIndex, 2),
-                colors = SegmentedButtonDefaults.colors(
-                    activeContainerColor = MaterialTheme.colorScheme.primary,
-                    activeContentColor = Color.White
-                ),
-                icon = {},
-                label = { Text(LocalizationManager.t(option)) }
-            )
-        }
-    }
+    oms.components.CompactChoiceSelector(
+        options = listOf("yes", "no"), selected = selected.lowercase(), onSelect = onSelect,
+        modifier = Modifier.fillMaxWidth(), itemLabel = { LocalizationManager.t(it) }
+    )
 }
+
 
 private data class HseObservationInput(
     val observation: String,

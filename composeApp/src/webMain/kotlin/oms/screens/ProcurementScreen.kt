@@ -324,10 +324,9 @@ fun ProcurementScreen(
             records == null -> CircularProgressIndicator()
             else -> {
                 BoxWithConstraints(Modifier.fillMaxWidth()) {
-                    @Composable fun SearchField(modifier: Modifier) = OutlinedTextField(
-                        value = search, onValueChange = { search = it.safeTextInput(200) }, singleLine = true,
-                        label = { Text(LocalizationManager.t("procurement_search")) },
-                        leadingIcon = { Icon(Icons.Default.Search, null) }, modifier = modifier
+                    @Composable fun SearchField(modifier: Modifier) = oms.components.WorkspaceSearchField(
+                        value = search, onValueChange = { search = it.safeTextInput(200) },
+                        label = LocalizationManager.t("procurement_search"), modifier = modifier
                     )
                     @Composable fun Pagination() = ProcurementPagination(pageSize, currentPage, pageCount, visibleRecords.size, { pageSize = it }) { currentPage = it.coerceIn(0, pageCount - 1) }
                     @Composable fun ExportPdf() = OutlinedButton(
