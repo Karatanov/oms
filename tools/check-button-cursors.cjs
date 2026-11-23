@@ -29,7 +29,12 @@ const segmentedSources = [
 ];
 for (const path of segmentedSources) {
   const source = fs.readFileSync(path, "utf8");
-  if (!source.includes("Modifier.buttonHandCursor()")) {
+  // The Dashboard now delegates its tranche control to the shared selector.
+  // Do not rely on an unrelated dialog button to satisfy this guard.
+  const usesSharedTranche = source.includes("TrancheSelector(") &&
+    fs.readFileSync("composeApp/src/webMain/kotlin/oms/components/CompactChoiceSelector.kt", "utf8")
+      .includes(".buttonHandCursor()");
+  if (!source.includes("Modifier.buttonHandCursor()") && !usesSharedTranche) {
     throw new Error(`${path} has a segmented control without the hand cursor`);
   }
 }

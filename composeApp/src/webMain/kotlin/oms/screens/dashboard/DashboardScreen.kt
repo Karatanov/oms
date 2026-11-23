@@ -21,7 +21,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
-import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -31,6 +30,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.input.key.*
 import kotlinx.browser.localStorage
 import kotlinx.browser.sessionStorage
@@ -326,13 +326,13 @@ private fun NationalPortfolioSummary(
                     tint = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             if (expanded) BoxWithConstraints(Modifier.fillMaxWidth()) {
-                val columns = ((maxWidth + 8.dp) / 216.dp).toInt().coerceAtLeast(1)
-                val metricWidth = (maxWidth - 8.dp * (columns - 1)) / columns
+                val columns = ((maxWidth + 6.dp) / 198.dp).toInt().coerceAtLeast(1)
+                val metricWidth = (maxWidth - 6.dp * (columns - 1)) / columns
                 FlowRow(
                 Modifier.fillMaxWidth(),
                 maxItemsInEachRow = columns,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 SummaryMetric("national_subprojects", summary.subprojectsCount.toString(), cardWidth = metricWidth, onClick = onOpenSubprojects)
                 SummaryMetric("national_regions", summary.regionsCount.toString(), cardWidth = metricWidth, onClick = onOpenMap)
@@ -386,30 +386,9 @@ private fun SummaryMetric(
     labelKey: String,
     value: String,
     uahEquivalent: String? = null,
-    cardWidth: androidx.compose.ui.unit.Dp = 208.dp,
+    cardWidth: androidx.compose.ui.unit.Dp = 192.dp,
     onClick: (() -> Unit)? = null
 ) {
-    var detailsOpen by remember { mutableStateOf(false) }
-    if (detailsOpen) {
-        AlertDialog(
-            onDismissRequest = { detailsOpen = false },
-            title = { Text(LocalizationManager.t(labelKey)) },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(value, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                    if (uahEquivalent != null) {
-                        Text(LocalizationManager.t("national_uah_equivalent"), style = MaterialTheme.typography.labelMedium)
-                        Text(uahEquivalent, style = MaterialTheme.typography.bodyLarge)
-                    }
-                }
-            },
-            confirmButton = {
-                oms.components.WorkspaceTextButton(onClick = { detailsOpen = false }, modifier = Modifier.buttonHandCursor()) {
-                    Text(LocalizationManager.t("close"))
-                }
-            }
-        )
-    }
     OmsTooltipBox(
         tooltip = {
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -423,35 +402,27 @@ private fun SummaryMetric(
         }
     ) {
         Card(
-            Modifier.width(cardWidth).height(112.dp)
+            Modifier.width(cardWidth).heightIn(min = 76.dp)
                 .then(if (onClick == null) Modifier else Modifier.chartControlFocus().clickable(role = Role.Button, onClick = onClick).buttonHandCursor()),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
             elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
         ) {
             Column(
-                Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
+                Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 6.dp),
+                verticalArrangement = Arrangement.spacedBy(3.dp)
             ) {
-                Row(Modifier.fillMaxWidth().height(48.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(
-                        LocalizationManager.t(labelKey),
-                        modifier = Modifier.weight(1f),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 3,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Box(
-                        Modifier.size(24.dp).clip(MaterialTheme.shapes.extraSmall).chartControlFocus()
-                            .clickable(role = Role.Button, onClickLabel = LocalizationManager.t("show_full_text")) { detailsOpen = true }
-                            .buttonHandCursor(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(Icons.Default.Info, contentDescription = LocalizationManager.t("show_full_text"),
-                            modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                }
-                Text(value, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                Text(
+                    LocalizationManager.t(labelKey),
+                    modifier = Modifier.fillMaxWidth(),
+                    style = MaterialTheme.typography.labelMedium.copy(fontSize = 13.sp, lineHeight = 17.sp),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 3,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(value,
+                    style = if (value.length <= 10) MaterialTheme.typography.titleLarge
+                        else MaterialTheme.typography.titleMedium.copy(fontSize = 18.sp, lineHeight = 22.sp),
+                    fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
 
             }
         }
