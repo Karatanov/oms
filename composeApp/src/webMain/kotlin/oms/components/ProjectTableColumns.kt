@@ -64,7 +64,7 @@ object ProjectTableColumns {
         SortColumn.PLANNED_END_DATE to 1.dp,
         SortColumn.IMPLEMENTATION_DURATION to 1.dp
     )
-    private val hiddenUsifColumns = setOf(
+    private val legacyOnlyColumns = setOf(
         SortColumn.POOL, SortColumn.DREAM, SortColumn.PRIORITY, SortColumn.CONSTRUCTION_TYPE,
         SortColumn.IMPLEMENTER, SortColumn.BENEFICIARY, SortColumn.FUNDING_TOTAL,
         SortColumn.FUNDING_TS, SortColumn.FUNDING_CSC, SortColumn.EIB_COST, SortColumn.LOCAL_COST,
@@ -73,7 +73,7 @@ object ProjectTableColumns {
         SortColumn.FINANCING_USED_PCT, SortColumn.PAID_FINANCING_PCT, SortColumn.WORK_SUMMARY
     )
     val columns = widths.filter { (column, width) ->
-        width > 1.dp && (WorkspaceBrand.name != "USIF" || column !in hiddenUsifColumns)
+        width > 1.dp && (WorkspaceBrand.legacySources || column !in legacyOnlyColumns)
     }.keys.toList()
     /** Selection/tree controls followed by the stable subproject code column. */
     val frozenStartWidth = selection + hierarchy + widths.getValue(SortColumn.ID)

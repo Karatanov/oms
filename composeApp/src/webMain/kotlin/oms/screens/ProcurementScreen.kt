@@ -903,11 +903,11 @@ private fun procurementTableHeaderLabels(): List<String> = if (LocalizationManag
 
 private val columnWidths = listOf(175, 200, 104, 360, 220, 250, 220, 130, 240, 230, 190, 145, 165, 190, 150, 300, 210, 220, 190, 220, 220, 220, 180)
 // Batch, attempts, PIG violations, contract link, revised end date and financing breakdown.
-private val hiddenUsifProcurementColumns = setOf(2, 7, 8, 10, 13, 18, 19, 20, 21)
+private val legacyOnlyProcurementColumns = setOf(2, 7, 8, 10, 13, 18, 19, 20, 21)
 
 // Use original column indices for sorting, links and filters in both registries.
 private val visibleProcurementColumns = columnWidths.indices.filter { index ->
-    WorkspaceBrand.name != "USIF" || index !in hiddenUsifProcurementColumns
+    WorkspaceBrand.legacySources || index !in legacyOnlyProcurementColumns
 }
 private val procurementTableWidth = visibleProcurementColumns.sumOf { columnWidths[it] }.dp
 private val procurementFilterHeight = 56.dp
