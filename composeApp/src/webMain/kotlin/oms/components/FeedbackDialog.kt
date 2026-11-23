@@ -141,8 +141,8 @@ fun FeedbackDialog(currentScreen: Screen, onDismiss: () -> Unit) {
                             horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
                             verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            TextButton(onClick = onDismiss) { Text(t("feedback_discard")) }
-                            Button(onClick = { confirmDiscard = false }, modifier = Modifier.focusRequester(returnFocus)) { Text(t("feedback_return")) }
+                            oms.components.WorkspaceTextButton(onClick = onDismiss) { Text(t("feedback_discard")) }
+                            oms.components.WorkspaceButton(onClick = { confirmDiscard = false }, modifier = Modifier.focusRequester(returnFocus)) { Text(t("feedback_return")) }
                         }
                     } else if (receipt != null) {
                         Surface(
@@ -162,7 +162,7 @@ fun FeedbackDialog(currentScreen: Screen, onDismiss: () -> Unit) {
                                 }
                             }
                         }
-                        Button(onClick = dismiss, modifier = Modifier.align(Alignment.End).focusRequester(closeFocus)) { Text(t("close")) }
+                        oms.components.WorkspaceButton(onClick = dismiss, modifier = Modifier.align(Alignment.End).focusRequester(closeFocus)) { Text(t("close")) }
                     } else {
                         Text(t("feedback_hint"), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -174,7 +174,7 @@ fun FeedbackDialog(currentScreen: Screen, onDismiss: () -> Unit) {
                             Text(t("feedback_type"), style = MaterialTheme.typography.labelLarge)
                             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 FeedbackOptions.types.forEach { option ->
-                                    FilterChip(
+                                    oms.components.WorkspaceFilterChip(
                                         selected = type == option,
                                         onClick = { type = option },
                                         enabled = !sending && submitted == null,
@@ -211,9 +211,9 @@ fun FeedbackDialog(currentScreen: Screen, onDismiss: () -> Unit) {
                             horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
                             verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            TextButton(onClick = dismiss, enabled = !sending) { Text(t("cancel")) }
+                            oms.components.WorkspaceTextButton(onClick = dismiss, enabled = !sending) { Text(t("cancel")) }
                             OmsTooltipBox(tooltip = { Text("${t("feedback_send")} · Ctrl / ⌘ + Enter") }) {
-                            Button(enabled = configured && !loading && !sending && description.isNotBlank(), onClick = ::sendFeedback, modifier = Modifier.focusRequester(submitFocus).semantics { testTag = "feedback-submit" }) {
+                            oms.components.WorkspaceButton(enabled = configured && !loading && !sending && description.isNotBlank(), onClick = ::sendFeedback, modifier = Modifier.focusRequester(submitFocus).semantics { testTag = "feedback-submit" }) {
                                 if (sending) {
                                     CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
                                     Spacer(Modifier.width(8.dp))

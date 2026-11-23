@@ -99,11 +99,11 @@ fun ConfirmationHost(content: @Composable () -> Unit) {
                                     }
                                     @Composable
                                     fun Actions(modifier: Modifier) {
-                                        OutlinedButton(onClick = { state.request = null }, modifier = modifier) {
+                                        oms.components.WorkspaceOutlinedButton(onClick = { state.request = null }, modifier = modifier) {
                                             Text(LocalizationManager.t("cancel"))
                                         }
                                         request.archiveAlternative?.let { archiveAction ->
-                                            OutlinedButton(
+                                            oms.components.WorkspaceOutlinedButton(
                                                 onClick = {
                                                     state.request = null
                                                     archiveAction()
@@ -113,7 +113,7 @@ fun ConfirmationHost(content: @Composable () -> Unit) {
                                                 Text(LocalizationManager.t("archive"))
                                             }
                                         }
-                                        Button(
+                                        oms.components.WorkspaceButton(
                                             onClick = {
                                                 state.request = null
                                                 request.action()

@@ -72,7 +72,7 @@ fun <T> InlineOptionPicker(
     }
     CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides
         if (compact) 0.dp else LocalMinimumInteractiveComponentSize.current) {
-    OutlinedButton(
+    oms.components.WorkspaceOutlinedButton(
         enabled = enabled,
         modifier = modifier.then(if (fillWidth) Modifier.fillMaxWidth() else Modifier)
             .heightIn(min = if (compact) 32.dp else OmsDimensions.ControlHeight)

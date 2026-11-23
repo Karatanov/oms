@@ -45,7 +45,7 @@ fun SidebarItem(title: String, icon: ImageVector, screen: Screen, current: Scree
     }
     // A direct button is intentional: wrapping sidebar links in a tooltip box on
     // Wasm can intercept hover state and leave the text-selection cursor visible.
-    TextButton(
+    oms.components.WorkspaceTextButton(
         onClick = { onNavigate(screen) }, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)
             .bringIntoViewRequester(visibilityRequester)
             .pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true).semantics {

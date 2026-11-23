@@ -102,7 +102,7 @@ fun AddressCoordinatesCalculator(
     )
     errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error) }
     if (calculationRequested && !isCalculating) {
-        TextButton(onClick = ::calculate, modifier = Modifier.buttonHandCursor()) { Text(LocalizationManager.t("retry")) }
+        oms.components.WorkspaceTextButton(onClick = ::calculate, modifier = Modifier.buttonHandCursor()) { Text(LocalizationManager.t("retry")) }
     }
     successMessage?.let { Text(it, color = MaterialTheme.colorScheme.primary) }
 }

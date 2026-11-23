@@ -51,19 +51,19 @@ fun PageHeading(
     actions: (@Composable () -> Unit)? = null
 ) {
     BoxWithConstraints(Modifier.fillMaxWidth()
-        .background(MaterialTheme.colorScheme.surface, MaterialTheme.shapes.large)
-        .border(1.dp, MaterialTheme.colorScheme.outlineVariant, MaterialTheme.shapes.large)
-        .padding(if (oms.layout.LocalMobileLayout.current) 16.dp else 20.dp)) {
+        .background(MaterialTheme.colorScheme.surface, MaterialTheme.shapes.medium)
+        .border(1.dp, MaterialTheme.colorScheme.outlineVariant, MaterialTheme.shapes.medium)
+        .padding(12.dp)) {
         // FlowRow introduces another layout scope, so retain this constraint
         // before composing the responsive action area.
         val availableWidth = maxWidth
         @Composable fun HeadingText(textModifier: Modifier = Modifier) {
-            Box(Modifier.size(42.dp).background(MaterialTheme.colorScheme.primaryContainer, MaterialTheme.shapes.medium), contentAlignment = Alignment.Center) {
-                if (iconText == null) Icon(icon, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(22.dp))
+            Box(Modifier.size(28.dp).background(MaterialTheme.colorScheme.primaryContainer, MaterialTheme.shapes.medium), contentAlignment = Alignment.Center) {
+                if (iconText == null) Icon(icon, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
                 else Text(
                     iconText,
                     color = MaterialTheme.colorScheme.primary,
-                    fontSize = 28.sp,
+                    fontSize = 20.sp,
                     lineHeight = 28.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -79,17 +79,17 @@ fun PageHeading(
                         title,
                         modifier = Modifier.semantics { heading() }
                             .then(if (titleTruncated) Modifier.buttonHandCursor() else Modifier),
-                        style = if (oms.layout.LocalMobileLayout.current) MaterialTheme.typography.headlineSmall else MaterialTheme.typography.headlineMedium,
+                        style = MaterialTheme.typography.titleLarge,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                         onTextLayout = { titleTruncated = it.hasVisualOverflow }
                     )
                 }
-                subtitle?.takeIf { it.isNotBlank() }?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                subtitle?.takeIf { it.isNotBlank() }?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
             }
         }
         if (availableWidth >= 620.dp) {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                 HeadingText(Modifier.weight(1f))
                 actions?.let { content ->
                     FlowRow(
@@ -101,8 +101,8 @@ fun PageHeading(
                 }
             }
         } else {
-            Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) { HeadingText(Modifier.weight(1f)) }
+            Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) { HeadingText(Modifier.weight(1f)) }
                 actions?.let { content ->
                     FlowRow(
                         Modifier.fillMaxWidth(),
@@ -125,14 +125,14 @@ fun ContentState(message: String, loading: Boolean = false, error: Boolean = fal
 
     @Composable
     fun StatusIcon() {
-        if (loading) CircularProgressIndicator(Modifier.size(22.dp), strokeWidth = 2.dp, color = iconTint)
-        else Icon(if (error) Icons.Outlined.ErrorOutline else Icons.Outlined.Info, null, tint = iconTint, modifier = Modifier.size(22.dp))
+        if (loading) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp, color = iconTint)
+        else Icon(if (error) Icons.Outlined.ErrorOutline else Icons.Outlined.Info, null, tint = iconTint, modifier = Modifier.size(18.dp))
     }
 
     @Composable
     fun RetryAction() {
         onRetry?.let { retry ->
-            OutlinedButton(
+            oms.components.WorkspaceOutlinedButton(
                 onClick = retry,
                 enabled = !loading,
                 modifier = if (loading) Modifier else Modifier.buttonHandCursor(),
@@ -150,19 +150,19 @@ fun ContentState(message: String, loading: Boolean = false, error: Boolean = fal
         .padding(OmsDimensions.SpaceMedium)) {
         @Composable
         fun Message(modifier: Modifier) {
-            Row(modifier, horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.Top) {
+            Row(modifier, horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.Top) {
                 StatusIcon()
                 Text(message, Modifier.weight(1f).semantics { liveRegion = LiveRegionMode.Polite },
                     style = MaterialTheme.typography.bodyMedium, color = foreground)
             }
         }
         if (maxWidth >= 440.dp) {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                 Message(Modifier.weight(1f))
                 RetryAction()
             }
         } else {
-            Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Message(Modifier.fillMaxWidth())
                 if (onRetry != null) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) { RetryAction() }
@@ -203,7 +203,7 @@ fun AdaptivePagination(sizeControls: @Composable () -> Unit, navigation: @Compos
 
 @Composable
 fun FormSectionTitle(text: String, icon: ImageVector) {
-    HorizontalDivider(Modifier.padding(top = 12.dp, bottom = 10.dp), color = MaterialTheme.colorScheme.outlineVariant)
+    HorizontalDivider(Modifier.padding(top = 8.dp, bottom = 6.dp), color = MaterialTheme.colorScheme.outlineVariant)
     Row(
         modifier = Modifier.fillMaxWidth()
             .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = .45f), MaterialTheme.shapes.small)

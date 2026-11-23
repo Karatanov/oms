@@ -482,7 +482,7 @@ fun FinancialScreen(
                 }
             }
             .verticalScroll(pageScrollState).padding(oms.layout.workspacePadding()),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         oms.components.PageHeading(
             listOfNotNull(LocalizationManager.t("financial_monitoring"), selectedRegionLabel).joinToString(" — "),
@@ -491,10 +491,10 @@ fun FinancialScreen(
         ) {
             if (useLedger && canManageFinancials) {
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(onClick = { errorMessage = null; showTransferDialog = true }) {
+                    oms.components.WorkspaceOutlinedButton(onClick = { errorMessage = null; showTransferDialog = true }) {
                         Text(LocalizationManager.t("import_export_xlsx"))
                     }
-                    Button(onClick = { errorMessage = null; addAct = true }) {
+                    oms.components.WorkspaceButton(onClick = { errorMessage = null; addAct = true }) {
                         Icon(Icons.Default.Add, null)
                         Text(LocalizationManager.t("add_record"))
                     }
@@ -682,7 +682,7 @@ fun FinancialScreen(
                 if (maxWidth >= 620.dp) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                     Text(LocalizationManager.t("financial_records"), style = MaterialTheme.typography.titleLarge)
                     Spacer(Modifier.weight(1f))
-                    OutlinedButton(
+                    oms.components.WorkspaceOutlinedButton(
                         onClick = {
                             oms.data.openOmsDownload(
                                 OmsApiClient.financialTablePdfExportUrl(
@@ -707,7 +707,7 @@ fun FinancialScreen(
                 } else Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(LocalizationManager.t("financial_records"), style = MaterialTheme.typography.titleLarge)
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
-                        OutlinedButton(
+                        oms.components.WorkspaceOutlinedButton(
                             onClick = {
                                 oms.data.openOmsDownload(OmsApiClient.financialTablePdfExportUrl(
                                     if (oms.localization.LocalizationManager.currentLanguage == oms.localization.Language.EN) "en" else "uk", displayCurrency,
@@ -722,10 +722,7 @@ fun FinancialScreen(
                 }
             }
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                listOf("EUR", "UAH").forEach { currency ->
-                    FilterChip(selected = displayCurrency == currency, onClick = { displayCurrency = currency },
-                        label = { Text(LocalizationManager.currencyLabel(currency)) })
-                }
+                oms.components.CurrencySelector(displayCurrency) { displayCurrency = it }
                 FilterDropdown(
                     label = LocalizationManager.t("type"),
                     options = listOf("invoice", "act", "payment", "advance"),
@@ -774,7 +771,7 @@ fun FinancialScreen(
                         label = { Text("${LocalizationManager.t("date")}: ${month.toMonthName()} ${month.take(4)}") }
                     )
                 }
-                OutlinedButton(onClick = {
+                oms.components.WorkspaceOutlinedButton(onClick = {
                     recordTypeFilter = null
                     paymentPurposeFilter = null
                     trancheFilter = null
@@ -876,12 +873,12 @@ fun FinancialScreen(
         }
     if (paymentMonitoringRefreshConfirmationOpen) { WasmSafeOverlay(onDismiss = { paymentMonitoringRefreshConfirmationOpen = false }) {
             Card(Modifier.widthIn(max = 520.dp).fillMaxWidth()) {
-                Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text(LocalizationManager.t("payment_monitoring_refresh_confirm_title"), style = MaterialTheme.typography.titleLarge)
                     if (WorkspaceBrand.legacySources) Text(LocalizationManager.t("payment_monitoring_refresh_confirm_message"), style = MaterialTheme.typography.bodyMedium)
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
-                        OutlinedButton(onClick = { paymentMonitoringRefreshConfirmationOpen = false }) { Text(LocalizationManager.t("cancel")) }
-                        OutlinedButton(onClick = {
+                        oms.components.WorkspaceOutlinedButton(onClick = { paymentMonitoringRefreshConfirmationOpen = false }) { Text(LocalizationManager.t("cancel")) }
+                        oms.components.WorkspaceOutlinedButton(onClick = {
                             paymentMonitoringRefreshConfirmationOpen = false
                             openPaymentMonitoringWorkbookUpload { uploadError, refreshJson ->
                                 if (uploadError.isNotBlank()) {
@@ -898,7 +895,7 @@ fun FinancialScreen(
                             }
                         }) { Text(LocalizationManager.t("payment_monitoring_refresh_manual")) }
                     }
-                    if (WorkspaceBrand.legacySources) Button(modifier = Modifier.fillMaxWidth(), onClick = {
+                    if (WorkspaceBrand.legacySources) oms.components.WorkspaceButton(modifier = Modifier.fillMaxWidth(), onClick = {
                         paymentMonitoringRefreshConfirmationOpen = false
                         openGooglePaymentMonitoringRefresh { connectionError, refreshJson ->
                             if (connectionError.isNotBlank()) {
@@ -920,12 +917,12 @@ fun FinancialScreen(
     paymentMonitoringRefreshJob?.takeIf { it.status in setOf("RUNNING", "CANCELLING") }?.let { job ->
         WasmSafeOverlay(onDismiss = {}) {
             Card(Modifier.widthIn(max = 520.dp).fillMaxWidth()) {
-                Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text(LocalizationManager.t("payment_monitoring_refresh_progress_title"), style = MaterialTheme.typography.titleLarge)
                     Text(paymentMonitoringRefreshPhaseLabel(job.phase), style = MaterialTheme.typography.bodyMedium)
                     LinearProgressIndicator(progress = { (job.progress / 100f).coerceIn(0f, 1f) }, modifier = Modifier.fillMaxWidth())
                     Text("${job.progress}% · ${formatPaymentMonitoringRefreshElapsed(paymentMonitoringRefreshElapsedSeconds)}", style = MaterialTheme.typography.bodySmall)
-                    OutlinedButton(
+                    oms.components.WorkspaceOutlinedButton(
                         enabled = job.status == "RUNNING",
                         onClick = { scope.launch { runCatching { OmsApiClient.cancelPaymentMonitoringRefresh(job.id) }.onSuccess { paymentMonitoringRefreshJob = it } } },
                         modifier = Modifier.align(Alignment.End)
@@ -963,9 +960,9 @@ private fun FinancialTransferDialog(
             }) { projectUuid = it }
             Text(LocalizationManager.t("financial_import_hint"), color = MaterialTheme.colorScheme.onSurfaceVariant)
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, androidx.compose.ui.Alignment.End)) {
-                OutlinedButton(onClick = onDismiss) { Text(LocalizationManager.t("cancel")) }
-                OutlinedButton(onClick = { projectUuid?.let(onExport) }, enabled = projectUuid != null) { Text(LocalizationManager.t("export_to_excel")) }
-                Button(onClick = { projectUuid?.let(onImport) }, enabled = projectUuid != null) { Text(LocalizationManager.t("import_xls")) }
+                oms.components.WorkspaceOutlinedButton(onClick = onDismiss) { Text(LocalizationManager.t("cancel")) }
+                oms.components.WorkspaceOutlinedButton(onClick = { projectUuid?.let(onExport) }, enabled = projectUuid != null) { Text(LocalizationManager.t("export_to_excel")) }
+                oms.components.WorkspaceButton(onClick = { projectUuid?.let(onImport) }, enabled = projectUuid != null) { Text(LocalizationManager.t("import_xls")) }
             }
         }
     }
@@ -1035,7 +1032,7 @@ private fun ActEditorDialog(
             }) { projectUuid = it }
             OutlinedTextField(reference, { reference = it.safeTextInput(500) }, label = { Text(LocalizationManager.t("reference_number")) }, modifier = Modifier.fillMaxWidth())
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                listOf("invoice", "act", "payment", "advance").forEach { type -> FilterChip(selected = recordType == type, onClick = { recordType = type }, label = { Text(LocalizationManager.t("record_type_$type")) }) }
+                listOf("invoice", "act", "payment", "advance").forEach { type -> oms.components.WorkspaceFilterChip(selected = recordType == type, onClick = { recordType = type }, label = { Text(LocalizationManager.t("record_type_$type")) }) }
             }
             if (recordType in setOf("payment", "advance")) {
                 Text(LocalizationManager.t("payment_purpose"), style = MaterialTheme.typography.labelLarge)
@@ -1082,7 +1079,7 @@ private fun ActEditorDialog(
             Text(LocalizationManager.t("original_record_currency"), style = MaterialTheme.typography.labelLarge)
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 listOf("EUR", "UAH").forEach { code ->
-                    FilterChip(
+                    oms.components.WorkspaceFilterChip(
                         selected = currency == code,
                         onClick = { currency = code },
                         label = { Text(LocalizationManager.t("currency_${code.lowercase()}")) }
@@ -1100,8 +1097,8 @@ private fun ActEditorDialog(
                 )
             }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, androidx.compose.ui.Alignment.End)) {
-                OutlinedButton(onClick = onDismiss) { Text(LocalizationManager.t("cancel")) }
-                Button(onClick = { onSave(projectUuid!!, oms.data.FinancialRecordRequest(recordType, reference, parsedAmount!!, currency, date, description = description.ifBlank { null }, milestone = null, paymentPurpose = paymentPurpose)) }, enabled = valid) { Text(LocalizationManager.t("save")) }
+                oms.components.WorkspaceOutlinedButton(onClick = onDismiss) { Text(LocalizationManager.t("cancel")) }
+                oms.components.WorkspaceButton(onClick = { onSave(projectUuid!!, oms.data.FinancialRecordRequest(recordType, reference, parsedAmount!!, currency, date, description = description.ifBlank { null }, milestone = null, paymentPurpose = paymentPurpose)) }, enabled = valid) { Text(LocalizationManager.t("save")) }
             }
         }
     }
@@ -1404,7 +1401,7 @@ private fun FinancialProgressCard(
                 }
             }
             if (expanded && compactInitially && sortedItems.size > initialItemCount) {
-                TextButton(onClick = { showAllItems = !showAllItems }) {
+                oms.components.WorkspaceTextButton(onClick = { showAllItems = !showAllItems }) {
                     Text(LocalizationManager.t(if (showAllItems) "collapse" else "expand"))
                 }
             }
@@ -1468,14 +1465,14 @@ private fun PaymentMonitoringCard(
                 Text(paymentMonitoringTitle(context, projects, codeQuery),
                     modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleMedium)
                 if (canUpdate) {
-                    OutlinedButton(onClick = onUpdate) {
+                    oms.components.WorkspaceOutlinedButton(onClick = onUpdate) {
                         Text(LocalizationManager.t("payment_monitoring_update"))
                     }
                 }
                 if (context != PaymentMonitoringScope()) {
-                    OutlinedButton(onClick = onResetScope) { Text(LocalizationManager.t("reset_filters")) }
+                    oms.components.WorkspaceOutlinedButton(onClick = onResetScope) { Text(LocalizationManager.t("reset_filters")) }
                 }
-                OutlinedButton(onClick = {
+                oms.components.WorkspaceOutlinedButton(onClick = {
                     oms.data.openOmsDownload(
                         OmsApiClient.paymentMonitoringPdfExportUrl(
                             if (LocalizationManager.currentLanguage == oms.localization.Language.EN) "en" else "uk",

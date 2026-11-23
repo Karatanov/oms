@@ -144,13 +144,13 @@ fun ProjectDetailScreen(
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
             .padding(oms.layout.workspacePadding()),
-        verticalArrangement = Arrangement.spacedBy(20.dp)
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         // Breadcrumb
         Row(
             verticalAlignment = Alignment.CenterVertically
         ) {
-            TextButton(onClick = onBackToProjects, modifier = Modifier.pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true)) {
+            oms.components.WorkspaceTextButton(onClick = onBackToProjects, modifier = Modifier.pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true)) {
                 Text(LocalizationManager.t("projects"))
             }
 
@@ -176,7 +176,7 @@ fun ProjectDetailScreen(
             modifier = Modifier.fillMaxWidth()
         ) {
             Column(
-                modifier = Modifier.padding(20.dp),
+                modifier = Modifier.padding(12.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 BoxWithConstraints(Modifier.fillMaxWidth()) {
@@ -190,7 +190,7 @@ fun ProjectDetailScreen(
                     ) {
                         Text(
                             text = project.localizedName(),
-                            style = MaterialTheme.typography.headlineMedium
+                            style = MaterialTheme.typography.titleLarge
                         )
 
                         Row(
@@ -216,7 +216,7 @@ fun ProjectDetailScreen(
 
                     if (canEditProject || canDeleteProject) Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         if (canEditProject) {
-                        Button(onClick = { onEdit(project) }, modifier = Modifier.pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true)) {
+                        oms.components.WorkspaceButton(onClick = { onEdit(project) }, modifier = Modifier.pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true)) {
                             Icon(
                                 imageVector = Icons.Default.Edit,
                                 contentDescription = LocalizationManager.t("edit")
@@ -226,7 +226,7 @@ fun ProjectDetailScreen(
                         }
                         }
                         if (canDeleteProject) {
-                            OutlinedButton(
+                            oms.components.WorkspaceOutlinedButton(
                                 onClick = { confirmDeletion = true },
                                 modifier = Modifier.pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true),
                                 colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)
@@ -251,7 +251,7 @@ fun ProjectDetailScreen(
                     }
                 } else Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text(text = project.localizedName(), style = MaterialTheme.typography.headlineMedium)
+                        Text(text = project.localizedName(), style = MaterialTheme.typography.titleLarge)
                         FlowRow(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             StatusChip(project.status)
                             if (!project.projectType.equals("project", ignoreCase = true)) Text(text = "${LocalizationManager.t("address")}: ${details.value?.let(::localizedProjectAddress) ?: localizedUkraineRegion(project.region)}", style = MaterialTheme.typography.bodyMedium)
@@ -259,8 +259,8 @@ fun ProjectDetailScreen(
                         Text(text = "${LocalizationManager.t("sector")}: ${details.value?.data?.sector?.sectorLabel() ?: "—"} • ${LocalizationManager.t("construction_type")}: ${details.value?.data?.constructionType?.constructionTypeLabel() ?: "—"}", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        if (canEditProject) Button(onClick = { onEdit(project) }, modifier = Modifier.pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true)) { Icon(Icons.Default.Edit, LocalizationManager.t("edit")); Spacer(Modifier.width(8.dp)); Text(LocalizationManager.t("edit")) }
-                        if (canDeleteProject) OutlinedButton(onClick = { confirmDeletion = true }, modifier = Modifier.pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true), colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)) { Icon(Icons.Default.DeleteForever, LocalizationManager.t("permanently_delete")); Spacer(Modifier.width(8.dp)); Text(LocalizationManager.t("permanently_delete")) }
+                        if (canEditProject) oms.components.WorkspaceButton(onClick = { onEdit(project) }, modifier = Modifier.pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true)) { Icon(Icons.Default.Edit, LocalizationManager.t("edit")); Spacer(Modifier.width(8.dp)); Text(LocalizationManager.t("edit")) }
+                        if (canDeleteProject) oms.components.WorkspaceOutlinedButton(onClick = { confirmDeletion = true }, modifier = Modifier.pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true), colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)) { Icon(Icons.Default.DeleteForever, LocalizationManager.t("permanently_delete")); Spacer(Modifier.width(8.dp)); Text(LocalizationManager.t("permanently_delete")) }
                         if (project.projectType.equals("subproject", ignoreCase = true)) IconButton(onClick = { openOmsDownload(omsApiUrl("/projects/${project.id}/export-pdf?lang=${if (LocalizationManager.currentLanguage == Language.EN) "en" else "uk"}")) }, modifier = Modifier.pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true)) { Icon(Icons.Default.PictureAsPdf, LocalizationManager.t("download_subproject_pdf"), tint = MaterialTheme.colorScheme.primary) }
                     }
                 }
@@ -278,11 +278,11 @@ fun ProjectDetailScreen(
                     Text(LocalizationManager.t("confirm_permanent_delete_message").replace("{name}", project.localizedName()))
                     deleteError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
                     FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedButton(
+                        oms.components.WorkspaceOutlinedButton(
                             onClick = { confirmDeletion = false },
                             modifier = Modifier.pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true)
                         ) { Text(LocalizationManager.t("cancel")) }
-                        OutlinedButton(
+                        oms.components.WorkspaceOutlinedButton(
                             onClick = {
                                 scope.launch {
                                     if (OmsApiClient.archiveProject(project.id)) {
@@ -293,7 +293,7 @@ fun ProjectDetailScreen(
                             },
                             modifier = Modifier.pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true)
                         ) { Text(LocalizationManager.t("archive")) }
-                        Button(
+                        oms.components.WorkspaceButton(
                             onClick = {
                                 scope.launch {
                                     if (OmsApiClient.permanentlyDeleteProject(project.id)) {
@@ -479,7 +479,7 @@ private fun String?.isHseChecklistAnswer() = isPositiveHseAnswer() || isNegative
 @Composable
 private fun EmptyProjectTab(title: String, description: String) {
     Card(modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(title, style = MaterialTheme.typography.titleMedium)
             Text(description, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
@@ -659,7 +659,7 @@ private fun CollapsibleProjectSection(
     val clipboard = LocalClipboardManager.current
     val mapUrl = "https://www.openstreetmap.org/?mlat=$latitude&mlon=$longitude#map=16/$latitude/$longitude"
     Column {
-        TextButton(
+        oms.components.WorkspaceTextButton(
             onClick = { expanded = !expanded },
             modifier = Modifier.fillMaxWidth().pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true),
             contentPadding = PaddingValues(vertical = 10.dp)
@@ -681,7 +681,7 @@ private fun CollapsibleProjectSection(
                         Text(label, modifier = Modifier.width(210.dp), color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     if (value.startsWith("https://", ignoreCase = true) || value.startsWith("http://", ignoreCase = true)) {
-                        TextButton(
+                        oms.components.WorkspaceTextButton(
                             onClick = { uriHandler.openUri(value) },
                             modifier = Modifier.weight(1f).pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true),
                             contentPadding = PaddingValues(0.dp)
@@ -693,8 +693,8 @@ private fun CollapsibleProjectSection(
                 HorizontalDivider()
             }
             if (showMapLink) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                TextButton(onClick = { clipboard.setText(AnnotatedString(mapUrl)) }, modifier = Modifier.pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true)) { Icon(Icons.Default.ContentCopy, null); Spacer(Modifier.width(6.dp)); Text(LocalizationManager.t("copy_map_link")) }
-                TextButton(onClick = { uriHandler.openUri(mapUrl) }, modifier = Modifier.pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true)) { Icon(Icons.Default.OpenInNew, null); Spacer(Modifier.width(6.dp)); Text(LocalizationManager.t("open_in_openstreetmap")) }
+                oms.components.WorkspaceTextButton(onClick = { clipboard.setText(AnnotatedString(mapUrl)) }, modifier = Modifier.pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true)) { Icon(Icons.Default.ContentCopy, null); Spacer(Modifier.width(6.dp)); Text(LocalizationManager.t("copy_map_link")) }
+                oms.components.WorkspaceTextButton(onClick = { uriHandler.openUri(mapUrl) }, modifier = Modifier.pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true)) { Icon(Icons.Default.OpenInNew, null); Spacer(Modifier.width(6.dp)); Text(LocalizationManager.t("open_in_openstreetmap")) }
             }
         }
     }
@@ -708,7 +708,7 @@ private fun ProjectReportsTab(reports: List<ApiInspectionReport>) {
             if (reports.isEmpty()) Text(LocalizationManager.t("no_reports"))
             reports.forEach { report ->
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
-                    Button(
+                    oms.components.WorkspaceButton(
                         onClick = { oms.data.openOmsDownload(oms.data.omsApiUrl("/inspection-reports/${report.uuid}/source-file")) },
                         modifier = Modifier.pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true)
                     ) {
@@ -823,7 +823,7 @@ private fun ProjectProcurementTab(records: List<ApiProcurementRecord>) {
                     }
                 }
                 record.prozorroTenderId?.takeIf(String::isNotBlank)?.let { tender ->
-                    TextButton(
+                    oms.components.WorkspaceTextButton(
                         onClick = { uriHandler.openUri(tender.toProjectProzorroUrl()) },
                         modifier = Modifier.pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true),
                         contentPadding = PaddingValues(0.dp)
@@ -856,7 +856,7 @@ private fun ProjectDocumentsTab(projectUuid: String, documents: List<ApiProjectD
             projectDocuments.forEach { document ->
                 Text(document.fileName, style = MaterialTheme.typography.titleMedium)
                 Text("${document.docType} • ${document.fileSizeBytes} ${LocalizationManager.t("bytes")}")
-                Button(
+                oms.components.WorkspaceButton(
                     onClick = { oms.data.openOmsDownload(oms.data.omsApiUrl("/projects/$projectUuid/documents/${document.uuid}/download")) },
                     modifier = Modifier.pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true)
                 ) { Text(LocalizationManager.t("open_document")) }

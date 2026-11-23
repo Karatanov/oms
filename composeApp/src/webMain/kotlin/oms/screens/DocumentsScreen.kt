@@ -199,10 +199,10 @@ fun DocumentsScreen(canManageDocuments: Boolean = true) {
     Box(Modifier.fillMaxSize()) {
     Column(
         Modifier.fillMaxSize().verticalScroll(pageScrollState).padding(oms.layout.workspacePadding()),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         oms.components.PageHeading(LocalizationManager.t("documents_title"), Icons.Default.FolderOpen) {
-            if (canManageDocuments) Button(onClick = {
+            if (canManageDocuments) oms.components.WorkspaceButton(onClick = {
                 showUploadDialog = true
             }) {
                 Icon(Icons.Default.Add, null)
@@ -212,7 +212,7 @@ fun DocumentsScreen(canManageDocuments: Boolean = true) {
         }
         val hasFilters = search.isNotEmpty() || typeFilter != DocumentTypeFilter.ALL
         Surface(shape = MaterialTheme.shapes.large, border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)) {
-            Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(Modifier.fillMaxWidth().padding(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 oms.components.WorkspaceSearchField(search, { search = it.safeTextInput(200) }, LocalizationManager.t("documents_search"))
                 fun typeLabel(filter: DocumentTypeFilter): String {
                     val label = LocalizationManager.t(filter.labelKey)
@@ -231,7 +231,7 @@ fun DocumentsScreen(canManageDocuments: Boolean = true) {
                     @OptIn(ExperimentalLayoutApi::class)
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         DocumentTypeFilter.entries.forEach { filter ->
-                            FilterChip(selected = typeFilter == filter, onClick = { typeFilter = filter },
+                            oms.components.WorkspaceFilterChip(selected = typeFilter == filter, onClick = { typeFilter = filter },
                                 label = { Text(typeLabel(filter)) })
                         }
                     }
@@ -241,7 +241,7 @@ fun DocumentsScreen(canManageDocuments: Boolean = true) {
                         .replace("{shown}", visibleDocuments.size.toString()).replace("{total}", documents.size.toString()),
                         Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    if (hasFilters) TextButton(onClick = { search = ""; typeFilter = DocumentTypeFilter.ALL }) {
+                    if (hasFilters) oms.components.WorkspaceTextButton(onClick = { search = ""; typeFilter = DocumentTypeFilter.ALL }) {
                         Text(LocalizationManager.t("reset_filters"))
                     }
                 }
@@ -266,11 +266,11 @@ fun DocumentsScreen(canManageDocuments: Boolean = true) {
                     Text(hint, color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = androidx.compose.ui.text.style.TextAlign.Center)
                     if (canBroadenType) {
-                        OutlinedButton(onClick = { typeFilter = DocumentTypeFilter.ALL }) {
+                        oms.components.WorkspaceOutlinedButton(onClick = { typeFilter = DocumentTypeFilter.ALL }) {
                             Text(LocalizationManager.t("documents_show_all_types"))
                         }
                     } else if (hasDocuments && hasFilters) {
-                        OutlinedButton(onClick = { search = ""; typeFilter = DocumentTypeFilter.ALL }) {
+                        oms.components.WorkspaceOutlinedButton(onClick = { search = ""; typeFilter = DocumentTypeFilter.ALL }) {
                             Text(LocalizationManager.t("reset_filters"))
                         }
                     }
@@ -327,7 +327,7 @@ fun DocumentsScreen(canManageDocuments: Boolean = true) {
             containerColor = MaterialTheme.colorScheme.errorContainer,
             contentColor = MaterialTheme.colorScheme.onErrorContainer,
             action = {
-                TextButton(onClick = { errorMessage = null }) {
+                oms.components.WorkspaceTextButton(onClick = { errorMessage = null }) {
                     Text(LocalizationManager.t("close"), color = MaterialTheme.colorScheme.onErrorContainer)
                 }
             }
@@ -396,7 +396,7 @@ private fun openDocument(row: DocumentRow) {
 @Composable
 private fun DocumentActions(row: DocumentRow, canManage: Boolean, onDelete: () -> Unit, mobile: Boolean = false) {
     val openLabel = LocalizationManager.t(if (row.isSirSource) "open_source_file" else "open_document")
-    if (mobile) OutlinedButton(onClick = { openDocument(row) }) {
+    if (mobile) oms.components.WorkspaceOutlinedButton(onClick = { openDocument(row) }) {
         Icon(Icons.AutoMirrored.Filled.OpenInNew, null, Modifier.size(18.dp))
         Spacer(Modifier.width(8.dp))
         Text(if (row.isSirSource) openLabel else LocalizationManager.t("documents_open"))
@@ -405,7 +405,7 @@ private fun DocumentActions(row: DocumentRow, canManage: Boolean, onDelete: () -
         val pdfLabel = LocalizationManager.t("download_report_pdf")
         val downloadPdf = { oms.data.openOmsDownload(oms.data.omsApiUrl("/inspection-reports/${row.uuid}/export-pdf")) }
         if (mobile) {
-            OutlinedButton(onClick = { downloadPdf() }) {
+            oms.components.WorkspaceOutlinedButton(onClick = { downloadPdf() }) {
                 Icon(Icons.Default.PictureAsPdf, null, Modifier.size(18.dp))
                 Spacer(Modifier.width(8.dp))
                 Text(pdfLabel)
@@ -421,7 +421,7 @@ private fun DocumentActions(row: DocumentRow, canManage: Boolean, onDelete: () -
 private fun DocumentMobileCard(row: DocumentRow, canManage: Boolean, onDelete: () -> Unit) {
     Surface(shape = MaterialTheme.shapes.large,
         border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)) {
-        Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(Modifier.fillMaxWidth().padding(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             DocumentTypeChip(row.documentType)
             ExpandableTableText(row.fileName, Modifier.fillMaxWidth(), style = MaterialTheme.typography.titleMedium, maxLines = 2)
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -524,19 +524,19 @@ private fun ProjectDocumentUploadDialog(
                 uploadFailure?.let { oms.components.ContentState(it, error = true) }
                 @Composable
                 fun ChooseFile(modifier: Modifier) {
-                    Button(onClick = { targetUuid?.let { onUpload(it, docType) } },
+                    oms.components.WorkspaceButton(onClick = { targetUuid?.let { onUpload(it, docType) } },
                         enabled = targetUuid != null, modifier = modifier) {
                         Text(LocalizationManager.t("choose_file"))
                     }
                 }
                 if (compact) {
                     ChooseFile(Modifier.fillMaxWidth())
-                    OutlinedButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) {
+                    oms.components.WorkspaceOutlinedButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) {
                         Text(LocalizationManager.t("cancel"))
                     }
                 } else {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, androidx.compose.ui.Alignment.End)) {
-                        OutlinedButton(onClick = onDismiss) { Text(LocalizationManager.t("cancel")) }
+                        oms.components.WorkspaceOutlinedButton(onClick = onDismiss) { Text(LocalizationManager.t("cancel")) }
                         ChooseFile(Modifier)
                     }
                 }

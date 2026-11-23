@@ -108,7 +108,7 @@ fun <T> MultiSelectOptionPicker(
         else -> "$prompt (${selected.size})"
     }
     androidx.compose.runtime.CompositionLocalProvider(androidx.compose.material3.LocalMinimumInteractiveComponentSize provides 0.dp) {
-    OutlinedButton(
+    oms.components.WorkspaceOutlinedButton(
         enabled = enabled,
         modifier = modifier.then(if (fillWidth) Modifier.fillMaxWidth() else Modifier)
             .heightIn(min = 40.dp)

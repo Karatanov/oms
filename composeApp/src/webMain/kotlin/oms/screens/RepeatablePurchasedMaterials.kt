@@ -58,7 +58,7 @@ internal fun RepeatablePurchasedMaterials(
                         OutlinedTextField(material.notes, { value -> update(index) { it.copy(notes = value.inspectionText(4_000)) } }, label = { Text(LocalizationManager.t("sir_material_notes")) }, minLines = 2, maxLines = 5, modifier = Modifier.weight(1f))
                         TableActionIconButton(LocalizationManager.t("delete"), Icons.Default.Remove) { onChange(values.filterIndexed { current, _ -> current != index }) }
                     }
-                    OutlinedButton(onClick = {
+                    oms.components.WorkspaceOutlinedButton(onClick = {
                         openInspectionPhotoPicker(material.photoKey) { count ->
                             update(index) { it.copy(photoCount = count, photoRevision = it.photoRevision + 1) }
                         }

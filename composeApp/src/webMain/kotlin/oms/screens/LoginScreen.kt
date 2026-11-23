@@ -210,8 +210,8 @@ fun LoginScreen(
             ) {
 
                 Column(
-                    modifier = Modifier.padding(if (compact) 18.dp else 36.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                    modifier = Modifier.padding(if (compact) 16.dp else 24.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
 
                     Row(
@@ -308,7 +308,7 @@ fun LoginScreen(
                             Text(LocalizationManager.t("remember_me"))
                         }
 
-                        TextButton(
+                        oms.components.WorkspaceTextButton(
                             modifier = Modifier.focusRequester(resetButtonFocus).pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true),
                             enabled = formEnabled,
                             onClick = { showPasswordReset = true }
@@ -321,7 +321,7 @@ fun LoginScreen(
                     errorMessage?.let { oms.components.ContentState(it, error = true) }
 
                     // ---------------- LOGIN BUTTON ----------------
-                    Button(
+                    oms.components.WorkspaceButton(
                         onClick = ::submitLogin,
                         enabled = !isLoading && !isStartingGuestSession,
                         modifier = Modifier
@@ -332,7 +332,7 @@ fun LoginScreen(
 
                         LoginActionLabel(isLoading, "sign_in", "login_in_progress")
                     }
-                    Button(
+                    oms.components.WorkspaceButton(
                         onClick = {
                             errorMessage = null
                             isStartingGuestSession = true
@@ -413,12 +413,12 @@ private fun PasswordResetDialog(initialIdentifier: String, onDismiss: () -> Unit
                     if (sent) oms.components.ContentState(LocalizationManager.t("password_reset_sent"))
                     error?.let { oms.components.ContentState(it, error = true) }
                     FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedButton(
+                        oms.components.WorkspaceOutlinedButton(
                             modifier = Modifier.pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true),
                             enabled = !isSending,
                             onClick = onDismiss
                         ) { Text(LocalizationManager.t("close")) }
-                        Button(
+                        oms.components.WorkspaceButton(
                             onClick = sendRequest,
                             enabled = canSend,
                             modifier = Modifier.pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true)

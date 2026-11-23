@@ -232,10 +232,10 @@ fun AdminScreen() {
     Box(Modifier.fillMaxSize()) {
     Column(
         Modifier.fillMaxSize().verticalScroll(pageScrollState).padding(oms.layout.workspacePadding()),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         oms.components.PageHeading(LocalizationManager.t("admin_title"), Icons.Default.AdminPanelSettings) {
-            Button(onClick = { errorMessage = null; createUser = true }) {
+            oms.components.WorkspaceButton(onClick = { errorMessage = null; createUser = true }) {
                 Icon(Icons.Default.Add, null)
                 Spacer(Modifier.width(8.dp))
                 Text(LocalizationManager.t("create_user"))
@@ -244,7 +244,7 @@ fun AdminScreen() {
         oms.components.WorkspaceSearchField(search, { search = it.safeTextInput(200) }, LocalizationManager.t("admin_search"))
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             listOf("active", "archived", "all").forEach { filter ->
-                oms.screens.FilterChip(archiveFilter == filter, { archiveFilter = filter }, { Text(LocalizationManager.t("archive_filter_$filter")) })
+                oms.components.WorkspaceFilterChip(archiveFilter == filter, { archiveFilter = filter }, { Text(LocalizationManager.t("archive_filter_$filter")) })
             }
         }
         errorMessage?.let { oms.components.ContentState(it, error = true) }
@@ -393,13 +393,13 @@ fun AdminScreen() {
         }
     userPendingDeletion?.let { user -> WasmSafeOverlay(onDismiss = { userPendingDeletion = null }, errorMessage = errorMessage) {
             Card(Modifier.widthIn(max = 520.dp).fillMaxWidth()) {
-                Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text(LocalizationManager.t("archive"), style = MaterialTheme.typography.titleLarge)
                     Text(user.username, style = MaterialTheme.typography.titleMedium)
                     Text(LocalizationManager.t("archive_confirmation"))
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
-                    OutlinedButton(onClick = { userPendingDeletion = null }) { Text(LocalizationManager.t("cancel")) }
-                    Button(
+                    oms.components.WorkspaceOutlinedButton(onClick = { userPendingDeletion = null }) { Text(LocalizationManager.t("cancel")) }
+                    oms.components.WorkspaceButton(
                         onClick = {
                             scope.launch {
                                 if (OmsApiClient.archiveUser(user.id)) {
@@ -419,7 +419,7 @@ fun AdminScreen() {
         }
     userPendingPermanentDeletion?.let { user -> WasmSafeOverlay(onDismiss = { userPendingPermanentDeletion = null }, errorMessage = errorMessage) {
             Card(Modifier.widthIn(max = 520.dp).fillMaxWidth()) {
-                Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text(LocalizationManager.t("permanently_delete"), style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.error)
                     Text(LocalizationManager.t("permanent_delete_warning"))
                     when (val dependencies = permanentDeleteDependencies) {
@@ -431,8 +431,8 @@ fun AdminScreen() {
                         }
                     }
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
-                        OutlinedButton(onClick = { userPendingPermanentDeletion = null }) { Text(LocalizationManager.t("cancel")) }
-                        Button(
+                        oms.components.WorkspaceOutlinedButton(onClick = { userPendingPermanentDeletion = null }) { Text(LocalizationManager.t("cancel")) }
+                        oms.components.WorkspaceButton(
                             enabled = permanentDeleteDependencies?.isEmpty() == true,
                             onClick = {
                                 scope.launch {
@@ -525,8 +525,8 @@ private fun CreateUserDialog(roles: List<ApiRole>, roleNotice: @Composable () ->
             }
             saveError?.let { oms.components.ContentState(it, error = true) }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
-                OutlinedButton(onClick = onDismiss, enabled = !saving) { Text(LocalizationManager.t("cancel")) }
-            Button(
+                oms.components.WorkspaceOutlinedButton(onClick = onDismiss, enabled = !saving) { Text(LocalizationManager.t("cancel")) }
+            oms.components.WorkspaceButton(
                 onClick = {
                     onSave(
                         CreateUserRequest(
@@ -614,7 +614,7 @@ private fun EditUserDialog(
             @OptIn(ExperimentalLayoutApi::class)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 listOf("active", "disabled").forEach { value ->
-                    FilterChip(
+                    oms.components.WorkspaceFilterChip(
                         selected = status.equals(value, ignoreCase = true),
                         onClick = { status = value },
                         enabled = !saving,
@@ -638,8 +638,8 @@ private fun EditUserDialog(
             }
             saveError?.let { oms.components.ContentState(it, error = true) }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
-                OutlinedButton(onClick = onDismiss, enabled = !saving) { Text(LocalizationManager.t("cancel")) }
-            Button(
+                oms.components.WorkspaceOutlinedButton(onClick = onDismiss, enabled = !saving) { Text(LocalizationManager.t("cancel")) }
+            oms.components.WorkspaceButton(
                 onClick = { onSave(UpdateUserRequest(username, email, roleCode, password.ifBlank { null }, firstName, lastName, status, region, department, preferredLang)) },
                 enabled = !saving && username.isNotBlank() && email.contains('@') && (password.isEmpty() || missingRequirement == null)
             ) {
@@ -680,7 +680,7 @@ private fun UserLanguagePicker(selected: String, enabled: Boolean, onSelect: (St
     Text(LocalizationManager.t("language"), style = MaterialTheme.typography.labelLarge)
     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
         accountLanguages.forEach { (code, name) ->
-            FilterChip(selected = selected.equals(code, ignoreCase = true), onClick = { onSelect(code) },
+            oms.components.WorkspaceFilterChip(selected = selected.equals(code, ignoreCase = true), onClick = { onSelect(code) },
                 enabled = enabled, label = { Text(name) })
         }
     }

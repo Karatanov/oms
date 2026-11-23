@@ -10,10 +10,10 @@ import androidx.compose.ui.unit.dp
 val LocalMobileLayout = staticCompositionLocalOf { false }
 
 @Composable
-fun workspacePadding(withScrollControls: Boolean = false, desktop: Dp = 24.dp): PaddingValues =
+fun workspacePadding(withScrollControls: Boolean = false, desktop: Dp = oms.theme.OmsDimensions.PagePadding): PaddingValues =
     if (LocalMobileLayout.current) PaddingValues(
-        start = 12.dp, top = 16.dp, end = 12.dp,
-        bottom = if (withScrollControls) 80.dp else 16.dp
+        start = 12.dp, top = 12.dp, end = 12.dp,
+        bottom = if (withScrollControls) 80.dp else 12.dp
     ) else PaddingValues(
         start = desktop, top = desktop,
         end = if (withScrollControls) 76.dp else desktop, bottom = desktop

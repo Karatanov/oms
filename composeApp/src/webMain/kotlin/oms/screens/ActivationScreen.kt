@@ -70,9 +70,15 @@ fun ActivationScreen(token: String, onActivated: () -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Column(Modifier.widthIn(max = 440.dp).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        androidx.compose.material3.Surface(
+            modifier = Modifier.widthIn(max = 440.dp).fillMaxWidth(),
+            shape = MaterialTheme.shapes.medium,
+            color = MaterialTheme.colorScheme.surface,
+            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+        ) {
+        Column(Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         LanguageSwitcher()
-        Text(LocalizationManager.t("activate_title"), style = MaterialTheme.typography.headlineMedium)
+        Text(LocalizationManager.t("activate_title"), style = MaterialTheme.typography.titleLarge)
         oms.components.OmsPasswordField(
             password, { password = it; error = null }, LocalizationManager.t("password"),
             enabled = !saving,
@@ -97,10 +103,11 @@ fun ActivationScreen(token: String, onActivated: () -> Unit) {
             keyboardActions = KeyboardActions(onDone = { confirmationSubmitted = true; activate() })
         )
         error?.let { ContentState(it, error = true) }
-        Button(onClick = activate, enabled = canSubmit, modifier = Modifier.fillMaxWidth()) {
+        oms.components.WorkspaceButton(onClick = activate, enabled = canSubmit, modifier = Modifier.fillMaxWidth()) {
             Text(LocalizationManager.t(if (saving) "save_in_progress" else "activate_account"))
         }
         if (saving) ContentState(LocalizationManager.t("save_in_progress"), loading = true)
         }
+    }
     }
 }

@@ -32,7 +32,7 @@ fun EditProjectScreen(project: Project, onCancel: () -> Unit = {}, onSaved: (Pro
             }.onFailure { error = L.t("error_load_project") }
     }
     MaterialTheme(colorScheme = MaterialTheme.colorScheme.copy(onPrimary = Color.White)) {
-        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(oms.layout.workspacePadding()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(oms.layout.workspacePadding()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             oms.components.PageHeading(L.t("edit_project"), Icons.Default.Edit)
             val form = state
             if (form == null) CircularProgressIndicator() else {
@@ -40,8 +40,8 @@ fun EditProjectScreen(project: Project, onCancel: () -> Unit = {}, onSaved: (Pro
                 if (form.currentRate == null) oms.components.ContentState(L.t("project_money_rate_unavailable"))
                 error?.let { oms.components.ContentState(it, error = true) }
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.End)) {
-                    OutlinedButton(onClick = onCancel, enabled = !saving) { Text(L.t("cancel")) }
-                    Button(enabled = !saving, onClick = {
+                    oms.components.WorkspaceOutlinedButton(onClick = onCancel, enabled = !saving) { Text(L.t("cancel")) }
+                    oms.components.WorkspaceButton(enabled = !saving, onClick = {
                         error = form.validate(true)
                         if (error == null) scope.launch {
                             saving = true

@@ -9,6 +9,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Shape
 import oms.components.buttonHandCursor
+import androidx.compose.ui.unit.dp
 
 /**
  * Compose selection gives the Text inside a Material control a text cursor on
@@ -20,15 +21,15 @@ fun Button(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
-    shape: Shape = ButtonDefaults.shape,
+    shape: Shape = MaterialTheme.shapes.small,
     colors: ButtonColors = ButtonDefaults.buttonColors(),
-    elevation: ButtonElevation? = ButtonDefaults.buttonElevation(),
+    elevation: ButtonElevation? = null,
     border: BorderStroke? = null,
-    contentPadding: PaddingValues = ButtonDefaults.ContentPadding,
+    contentPadding: PaddingValues = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
     interactionSource: MutableInteractionSource? = null,
     content: @Composable RowScope.() -> Unit
-) = androidx.compose.material3.Button(
-    onClick = onClick, modifier = modifier.buttonHandCursor(), enabled = enabled, shape = shape,
+) = oms.components.WorkspaceButton(
+    onClick = onClick, modifier = modifier, enabled = enabled, shape = shape,
     colors = colors, elevation = elevation, border = border, contentPadding = contentPadding,
     interactionSource = interactionSource, content = content
 )
@@ -38,15 +39,15 @@ fun OutlinedButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
-    shape: Shape = ButtonDefaults.outlinedShape,
+    shape: Shape = MaterialTheme.shapes.small,
     colors: ButtonColors = ButtonDefaults.outlinedButtonColors(),
     elevation: ButtonElevation? = null,
     border: BorderStroke? = ButtonDefaults.outlinedButtonBorder(enabled),
-    contentPadding: PaddingValues = ButtonDefaults.ContentPadding,
+    contentPadding: PaddingValues = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
     interactionSource: MutableInteractionSource? = null,
     content: @Composable RowScope.() -> Unit
-) = androidx.compose.material3.OutlinedButton(
-    onClick = onClick, modifier = modifier.buttonHandCursor(), enabled = enabled, shape = shape,
+) = oms.components.WorkspaceOutlinedButton(
+    onClick = onClick, modifier = modifier, enabled = enabled, shape = shape,
     colors = colors, elevation = elevation, border = border, contentPadding = contentPadding,
     interactionSource = interactionSource, content = content
 )
@@ -56,15 +57,15 @@ fun TextButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
-    shape: Shape = ButtonDefaults.textShape,
+    shape: Shape = MaterialTheme.shapes.small,
     colors: ButtonColors = ButtonDefaults.textButtonColors(),
     elevation: ButtonElevation? = null,
     border: BorderStroke? = null,
-    contentPadding: PaddingValues = ButtonDefaults.TextButtonContentPadding,
+    contentPadding: PaddingValues = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
     interactionSource: MutableInteractionSource? = null,
     content: @Composable RowScope.() -> Unit
-) = androidx.compose.material3.TextButton(
-    onClick = onClick, modifier = modifier.buttonHandCursor(), enabled = enabled, shape = shape,
+) = oms.components.WorkspaceTextButton(
+    onClick = onClick, modifier = modifier, enabled = enabled, shape = shape,
     colors = colors, elevation = elevation, border = border, contentPadding = contentPadding,
     interactionSource = interactionSource, content = content
 )
@@ -77,8 +78,8 @@ fun IconButton(
     colors: IconButtonColors = IconButtonDefaults.iconButtonColors(),
     interactionSource: MutableInteractionSource? = null,
     content: @Composable () -> Unit
-) = androidx.compose.material3.IconButton(
-    onClick = onClick, modifier = modifier.buttonHandCursor(), enabled = enabled,
+) = oms.components.WorkspaceIconButton(
+    onClick = onClick, modifier = modifier, enabled = enabled,
     colors = colors, interactionSource = interactionSource, content = content
 )
 
@@ -91,13 +92,18 @@ fun FilterChip(
     enabled: Boolean = true,
     leadingIcon: (@Composable (() -> Unit))? = null,
     trailingIcon: (@Composable (() -> Unit))? = null,
-    shape: Shape = FilterChipDefaults.shape,
-    colors: SelectableChipColors = FilterChipDefaults.filterChipColors(),
-    elevation: SelectableChipElevation? = FilterChipDefaults.filterChipElevation(),
-    border: BorderStroke? = FilterChipDefaults.filterChipBorder(enabled, selected),
+    shape: Shape = MaterialTheme.shapes.extraSmall,
+    colors: SelectableChipColors = FilterChipDefaults.filterChipColors(
+        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+        labelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+        selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
+    ),
+    elevation: SelectableChipElevation? = null,
+    border: BorderStroke? = null,
     interactionSource: MutableInteractionSource? = null
-) = androidx.compose.material3.FilterChip(
-    selected = selected, onClick = onClick, label = label, modifier = modifier.buttonHandCursor(), enabled = enabled,
+) = oms.components.WorkspaceFilterChip(
+    selected = selected, onClick = onClick, label = label, modifier = modifier, enabled = enabled,
     leadingIcon = leadingIcon, trailingIcon = trailingIcon, shape = shape, colors = colors,
     elevation = elevation, border = border, interactionSource = interactionSource
 )

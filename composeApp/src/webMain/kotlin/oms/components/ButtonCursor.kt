@@ -19,7 +19,7 @@ fun Modifier.buttonHandCursor(): Modifier =
     pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true)
 
 @Composable
-fun Button(
+fun oms.components.WorkspaceButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
@@ -30,14 +30,14 @@ fun Button(
     contentPadding: PaddingValues = ButtonDefaults.ContentPadding,
     interactionSource: MutableInteractionSource? = null,
     content: @Composable RowScope.() -> Unit
-) = androidx.compose.material3.Button(
+) = oms.components.WorkspaceButton(
     onClick = onClick, modifier = modifier.buttonHandCursor(), enabled = enabled, shape = shape,
     colors = colors, elevation = elevation, border = border, contentPadding = contentPadding,
     interactionSource = interactionSource, content = content
 )
 
 @Composable
-fun OutlinedButton(
+fun oms.components.WorkspaceOutlinedButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
@@ -48,14 +48,14 @@ fun OutlinedButton(
     contentPadding: PaddingValues = ButtonDefaults.ContentPadding,
     interactionSource: MutableInteractionSource? = null,
     content: @Composable RowScope.() -> Unit
-) = androidx.compose.material3.OutlinedButton(
+) = oms.components.WorkspaceOutlinedButton(
     onClick = onClick, modifier = modifier.buttonHandCursor(), enabled = enabled, shape = shape,
     colors = colors, elevation = elevation, border = border, contentPadding = contentPadding,
     interactionSource = interactionSource, content = content
 )
 
 @Composable
-fun TextButton(
+fun oms.components.WorkspaceTextButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
@@ -66,7 +66,7 @@ fun TextButton(
     contentPadding: PaddingValues = ButtonDefaults.TextButtonContentPadding,
     interactionSource: MutableInteractionSource? = null,
     content: @Composable RowScope.() -> Unit
-) = androidx.compose.material3.TextButton(
+) = oms.components.WorkspaceTextButton(
     onClick = onClick, modifier = modifier.buttonHandCursor(), enabled = enabled, shape = shape,
     colors = colors, elevation = elevation, border = border, contentPadding = contentPadding,
     interactionSource = interactionSource, content = content

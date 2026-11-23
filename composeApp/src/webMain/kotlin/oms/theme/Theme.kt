@@ -12,11 +12,11 @@ import androidx.compose.ui.unit.sp
 /** Compact enterprise scale; the corporate primary remains #278DAD. */
 object OmsDimensions {
     val SpaceSmall = 8.dp
-    val SpaceMedium = 16.dp
-    val PagePadding = 24.dp
-    val ControlHeight = 44.dp
+    val SpaceMedium = 12.dp
+    val PagePadding = 12.dp
+    val ControlHeight = 40.dp
     val IconSize = 20.dp
-    val TableHeaderHeight = 52.dp
+    val TableHeaderHeight = 44.dp
     val CornerRadius = 10.dp
 }
 
@@ -58,6 +58,7 @@ private val OmsTypography = Typography(
 )
 
 // 🔹 Основна тема додатку
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun OMSTheme(
     content: @Composable () -> Unit
@@ -67,6 +68,10 @@ fun OMSTheme(
         typography = OmsTypography,
         shapes = Shapes(extraSmall = RoundedCornerShape(4.dp), small = RoundedCornerShape(6.dp),
             medium = RoundedCornerShape(10.dp), large = RoundedCornerShape(14.dp), extraLarge = RoundedCornerShape(18.dp)),
-        content = content
+        content = {
+            androidx.compose.runtime.CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides OmsDimensions.ControlHeight) {
+                content()
+            }
+        }
     )
 }

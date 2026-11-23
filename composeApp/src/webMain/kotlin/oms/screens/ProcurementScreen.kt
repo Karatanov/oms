@@ -233,7 +233,7 @@ fun ProcurementScreen(
         oms.components.PageHeading(LocalizationManager.t("procurement_title"), Icons.Default.ShoppingCart) {
             if (canManageProcurements) {
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(enabled = refreshJob?.status !in setOf("RUNNING", "CANCELLING"), onClick = {
+                    oms.components.WorkspaceOutlinedButton(enabled = refreshJob?.status !in setOf("RUNNING", "CANCELLING"), onClick = {
                         error = null; registryRefreshMessage = null; refreshConfirmationOpen = true
                     }) {
                         Icon(Icons.Default.Refresh, null)
@@ -329,7 +329,7 @@ fun ProcurementScreen(
                         label = LocalizationManager.t("procurement_search"), modifier = modifier
                     )
                     @Composable fun Pagination() = ProcurementPagination(pageSize, currentPage, pageCount, visibleRecords.size, { pageSize = it }) { currentPage = it.coerceIn(0, pageCount - 1) }
-                    @Composable fun ExportPdf() = OutlinedButton(
+                    @Composable fun ExportPdf() = oms.components.WorkspaceOutlinedButton(
                         onClick = {
                             oms.data.openOmsDownload(
                                 OmsApiClient.procurementTablePdfExportUrl(
@@ -353,7 +353,7 @@ fun ProcurementScreen(
                     }
                 }
                 signedContractMonthFilter?.let { month ->
-                    FilterChip(
+                    oms.components.WorkspaceFilterChip(
                         selected = true,
                         onClick = { signedContractMonthFilter = null; statusFilter = null },
                         label = { Text("${LocalizationManager.t("signed_construction_contracts")}: $month") }
@@ -384,7 +384,7 @@ fun ProcurementScreen(
     }
     if (refreshConfirmationOpen) WasmSafeOverlay(onDismiss = { refreshConfirmationOpen = false }) {
         Card(Modifier.widthIn(max = 520.dp).fillMaxWidth()) {
-            Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(LocalizationManager.t("procurement_refresh_confirm_title"), style = MaterialTheme.typography.titleLarge)
                 if (WorkspaceBrand.legacySources) Text(LocalizationManager.t("procurement_refresh_confirm_message"), style = MaterialTheme.typography.bodyMedium)
                 if (WorkspaceBrand.legacySources) Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -398,8 +398,8 @@ fun ProcurementScreen(
                     )
                 }
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
-                    OutlinedButton(onClick = { refreshConfirmationOpen = false }) { Text(LocalizationManager.t("cancel")) }
-                    OutlinedButton(onClick = {
+                    oms.components.WorkspaceOutlinedButton(onClick = { refreshConfirmationOpen = false }) { Text(LocalizationManager.t("cancel")) }
+                    oms.components.WorkspaceOutlinedButton(onClick = {
                         refreshConfirmationOpen = false
                         openProcurementWorkbookUpload { uploadError, refreshJson ->
                             if (uploadError.isNotBlank()) {
@@ -416,7 +416,7 @@ fun ProcurementScreen(
                         }
                     }) { Text(LocalizationManager.t("procurement_refresh_manual")) }
                 }
-                if (WorkspaceBrand.legacySources) Button(modifier = Modifier.fillMaxWidth(), onClick = {
+                if (WorkspaceBrand.legacySources) oms.components.WorkspaceButton(modifier = Modifier.fillMaxWidth(), onClick = {
                     refreshConfirmationOpen = false
                     openGoogleProcurementRefresh { connectionError, refreshJson ->
                         if (connectionError.isNotBlank()) {
@@ -436,7 +436,7 @@ fun ProcurementScreen(
     refreshJob?.takeIf { it.status in setOf("RUNNING", "CANCELLING") }?.let { job ->
         WasmSafeOverlay(onDismiss = {}) {
             Card(Modifier.widthIn(max = 520.dp).fillMaxWidth()) {
-                Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text(LocalizationManager.t("procurement_refresh_progress_title"), style = MaterialTheme.typography.titleLarge)
                     Text(procurementRefreshPhaseLabel(job.phase), style = MaterialTheme.typography.bodyMedium)
                     LinearProgressIndicator(
@@ -444,7 +444,7 @@ fun ProcurementScreen(
                         modifier = Modifier.fillMaxWidth()
                     )
                     Text("${job.progress}% · ${formatRefreshElapsed(refreshElapsedSeconds)}", style = MaterialTheme.typography.bodySmall)
-                    OutlinedButton(
+                    oms.components.WorkspaceOutlinedButton(
                         enabled = job.status == "RUNNING",
                         onClick = { scope.launch { runCatching { OmsApiClient.cancelProcurementRefresh(job.id) }.onSuccess { refreshJob = it } } },
                         modifier = Modifier.align(Alignment.End)
@@ -697,7 +697,7 @@ private fun ProcurementFilters(
 
 @Composable
 private fun ProcurementResetFiltersButton(enabled: Boolean, onClick: () -> Unit) {
-    TextButton(
+    oms.components.WorkspaceTextButton(
         onClick = onClick,
         enabled = enabled,
         contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp)

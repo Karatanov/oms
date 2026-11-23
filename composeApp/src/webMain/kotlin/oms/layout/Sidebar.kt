@@ -93,7 +93,7 @@ fun Sidebar(currentScreen: Screen, onNavigate: (Screen) -> Unit, onLogout: () ->
                 TableActionIconButton(LocalizationManager.t("logout"), Icons.AutoMirrored.Filled.Logout, onLogout)
             }
             if (compact) TableActionIconButton(LocalizationManager.t("feedback_title"), Icons.Default.Feedback, onFeedback)
-            else OutlinedButton(onClick = onFeedback, modifier = Modifier.fillMaxWidth().heightIn(min = 44.dp)) {
+            else oms.components.WorkspaceOutlinedButton(onClick = onFeedback, modifier = Modifier.fillMaxWidth().heightIn(min = 44.dp)) {
                 Icon(Icons.Default.Feedback, null, Modifier.size(20.dp))
                 Spacer(Modifier.width(8.dp))
                 Text(LocalizationManager.t("feedback_title"))

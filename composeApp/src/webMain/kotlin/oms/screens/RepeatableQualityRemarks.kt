@@ -69,7 +69,7 @@ internal fun RepeatableQualityRemarks(
                     }
                     else Spacer(Modifier.width(40.dp))
                 }
-                OutlinedButton(onClick = {
+                oms.components.WorkspaceOutlinedButton(onClick = {
                     openInspectionPhotoPicker(remark.photoKey) { count ->
                         update(index) { it.copy(photoCount = count, photoRevision = it.photoRevision + 1) }
                     }

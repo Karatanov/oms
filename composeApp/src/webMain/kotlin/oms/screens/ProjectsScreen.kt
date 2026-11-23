@@ -257,63 +257,25 @@ fun ProjectsScreen(
                 }
             }
             .verticalScroll(pageScrollState)
-            .padding(oms.layout.workspacePadding(desktop = 16.dp))
+            .padding(oms.layout.workspacePadding())
     ) {
 
-        // The programme is contextual information, not a table row.  Keep it
-        // centred independently of the page title and the create action.
-        BoxWithConstraints(Modifier.fillMaxWidth()) {
-            if (maxWidth >= 820.dp) Box(Modifier.fillMaxWidth().heightIn(min = 42.dp)) {
-                Row(
-                    modifier = Modifier.align(Alignment.CenterStart),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Box(Modifier.size(42.dp).background(MaterialTheme.colorScheme.primaryContainer, MaterialTheme.shapes.medium), contentAlignment = Alignment.Center) {
-                        Icon(Icons.Default.FolderOpen, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(22.dp))
-                    }
-                    Text(LocalizationManager.t("projects_title"), style = MaterialTheme.typography.headlineMedium)
-                }
-                programme?.let { root ->
-                    Text(
-                        root.localizedName(),
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.primary,
-                        maxLines = 1,
-                        modifier = Modifier.align(Alignment.Center).widthIn(max = 360.dp)
-                    )
-                }
-                if (canManageProjects || canRefreshSubprojectRegistry) Row(
-                    modifier = Modifier.align(Alignment.CenterEnd),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    if (canRefreshSubprojectRegistry) OutlinedButton(
-                        enabled = registryRefreshJob?.status !in setOf("RUNNING", "CANCELLING"),
-                        onClick = { registryRefreshMessage = null; registryRefreshConfirmationOpen = true }
-                    ) {
-                        Icon(Icons.Default.Refresh, null)
-                        Spacer(Modifier.width(6.dp))
-                        Text(LocalizationManager.t("refresh_subproject_registry"))
-                    }
-                    if (canManageProjects) Button(onClick = onCreateProject) {
-                        Icon(Icons.Default.Add, null)
-                        Spacer(Modifier.width(8.dp))
-                        Text(LocalizationManager.t("create_project"))
-                    }
-                }
-            } else oms.components.PageHeading(LocalizationManager.t("projects_title"), Icons.Default.FolderOpen) {
-                Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    programme?.let { root -> Text(root.localizedName(), maxLines = 2, modifier = Modifier.widthIn(max = 260.dp)) }
-                    if (canManageProjects) Button(onClick = onCreateProject) {
-                        Icon(Icons.Default.Add, null)
-                        Spacer(Modifier.width(8.dp))
-                        Text(LocalizationManager.t("create_project"))
-                    }
-                    if (canRefreshSubprojectRegistry) OutlinedButton(
-                        enabled = registryRefreshJob?.status !in setOf("RUNNING", "CANCELLING"),
-                        onClick = { registryRefreshMessage = null; registryRefreshConfirmationOpen = true }
-                    ) { Icon(Icons.Default.Refresh, null); Spacer(Modifier.width(6.dp)); Text(LocalizationManager.t("refresh_subproject_registry")) }
-                }
+        oms.components.PageHeading(
+            LocalizationManager.t("projects_title"), Icons.Default.FolderOpen,
+            subtitle = programme?.localizedName()
+        ) {
+            if (canRefreshSubprojectRegistry) oms.components.WorkspaceOutlinedButton(
+                enabled = registryRefreshJob?.status !in setOf("RUNNING", "CANCELLING"),
+                onClick = { registryRefreshMessage = null; registryRefreshConfirmationOpen = true }
+            ) {
+                Icon(Icons.Default.Refresh, null, Modifier.size(18.dp))
+                Spacer(Modifier.width(6.dp))
+                Text(LocalizationManager.t("refresh_subproject_registry"))
+            }
+            if (canManageProjects) oms.components.WorkspaceButton(onClick = onCreateProject) {
+                Icon(Icons.Default.Add, null, Modifier.size(18.dp))
+                Spacer(Modifier.width(6.dp))
+                Text(LocalizationManager.t("create_project"))
             }
         }
 
@@ -333,17 +295,17 @@ fun ProjectsScreen(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Text(LocalizationManager.t("selected_projects").replace("{count}", selectedProjectIds.size.toString()))
-                    OutlinedButton(onClick = { selectedProjectIds = emptySet() }) { Text(LocalizationManager.t("clear_selection")) }
-                    OutlinedButton(onClick = { oms.data.openOmsDownload(oms.data.OmsApiClient.projectExportUrl(selectedProjectIds)) }) { Text("XLSX") }
-                    if (canBulkReassign) Button(onClick = { showReassign = true }) { Text(LocalizationManager.t("reassign")) }
-                    Button(onClick = {
+                    oms.components.WorkspaceOutlinedButton(onClick = { selectedProjectIds = emptySet() }) { Text(LocalizationManager.t("clear_selection")) }
+                    oms.components.WorkspaceOutlinedButton(onClick = { oms.data.openOmsDownload(oms.data.OmsApiClient.projectExportUrl(selectedProjectIds)) }) { Text("XLSX") }
+                    if (canBulkReassign) oms.components.WorkspaceButton(onClick = { showReassign = true }) { Text(LocalizationManager.t("reassign")) }
+                    oms.components.WorkspaceButton(onClick = {
                         scope.launch {
                             runCatching { oms.data.OmsApiClient.bulkUpdateProjectStatus(selectedProjectIds.toList(), "suspended") }
                                 .onSuccess { ProjectRepository.refresh(force = true); selectedProjectIds = emptySet() }
                                 .onFailure { errorMessage = it.message ?: LocalizationManager.t("error_suspend_projects") }
                         }
                     }) { Text(LocalizationManager.t("project_status_suspended")) }
-                    Button(onClick = {
+                    oms.components.WorkspaceButton(onClick = {
                         scope.launch {
                             runCatching { oms.data.OmsApiClient.bulkUpdateProjectStatus(selectedProjectIds.toList(), "archived") }
                                 .onSuccess { ProjectRepository.refresh(force = true); selectedProjectIds = emptySet() }
@@ -415,8 +377,8 @@ fun ProjectsScreen(
                     Text(LocalizationManager.t("reassign_projects"), style = MaterialTheme.typography.titleMedium)
                     InlineOptionPicker(managers, selectedManager, LocalizationManager.t("role_project_manager"), { selectedManager = it }, { "${it.firstName} ${it.lastName} (${it.username})" })
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
-                        OutlinedButton(onClick = { showReassign = false }) { Text(LocalizationManager.t("cancel")) }
-                        Button(onClick = {
+                        oms.components.WorkspaceOutlinedButton(onClick = { showReassign = false }) { Text(LocalizationManager.t("cancel")) }
+                        oms.components.WorkspaceButton(onClick = {
                             selectedManager?.let { manager ->
                                 scope.launch {
                                     runCatching { oms.data.OmsApiClient.bulkReassignProjects(selectedProjectIds.toList(), manager.id) }
@@ -435,7 +397,7 @@ fun ProjectsScreen(
     }
     if (registryRefreshConfirmationOpen) oms.components.WasmSafeOverlay(onDismiss = { registryRefreshConfirmationOpen = false }) {
         Card(Modifier.widthIn(max = 520.dp).fillMaxWidth()) {
-            Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(LocalizationManager.t("subproject_registry_refresh_confirm_title"), style = MaterialTheme.typography.titleLarge)
                 if (WorkspaceBrand.legacySources) Text(LocalizationManager.t("subproject_registry_refresh_confirm_message"), style = MaterialTheme.typography.bodyMedium)
                 if (WorkspaceBrand.legacySources) Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -459,8 +421,8 @@ fun ProjectsScreen(
                     Text(LocalizationManager.t("subproject_registry_refresh_instruction_step_3"), style = MaterialTheme.typography.bodyMedium)
                 }
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
-                    OutlinedButton(onClick = { registryRefreshConfirmationOpen = false }) { Text(LocalizationManager.t("cancel")) }
-                    Button(onClick = {
+                    oms.components.WorkspaceOutlinedButton(onClick = { registryRefreshConfirmationOpen = false }) { Text(LocalizationManager.t("cancel")) }
+                    oms.components.WorkspaceButton(onClick = {
                         registryRefreshConfirmationOpen = false
                         openSubprojectMonitoringWorkbookUpload { uploadError, refreshJson ->
                             if (uploadError.isNotBlank()) {
@@ -478,12 +440,12 @@ fun ProjectsScreen(
     registryRefreshJob?.takeIf { it.status in setOf("RUNNING", "CANCELLING") }?.let { job ->
         oms.components.WasmSafeOverlay(onDismiss = {}) {
             Card(Modifier.widthIn(max = 520.dp).fillMaxWidth()) {
-                Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text(LocalizationManager.t("subproject_registry_refresh_progress_title"), style = MaterialTheme.typography.titleLarge)
                     Text(subprojectRegistryRefreshPhaseLabel(job.phase), style = MaterialTheme.typography.bodyMedium)
                     LinearProgressIndicator(progress = { (job.progress / 100f).coerceIn(0f, 1f) }, modifier = Modifier.fillMaxWidth())
                     Text("${job.progress}% · ${formatSubprojectRefreshElapsed(registryRefreshElapsedSeconds)}", style = MaterialTheme.typography.bodySmall)
-                    OutlinedButton(
+                    oms.components.WorkspaceOutlinedButton(
                         enabled = job.status == "RUNNING",
                         onClick = { scope.launch { runCatching { oms.data.OmsApiClient.cancelSubprojectRegistryRefresh(job.id) }.onSuccess { registryRefreshJob = it } } },
                         modifier = Modifier.align(Alignment.End)
@@ -587,7 +549,7 @@ fun ProjectsTable(
             ) {
                 oms.components.WorkspaceSearchField(value = searchText, onValueChange = onSearchTextChange, label = LocalizationManager.t("search_project"), modifier = Modifier.weight(1f).widthIn(min = 280.dp))
                 onExportPdf?.let { export ->
-                    OutlinedButton(onClick = { export(sortedProjects.map { it.project.id }) }, enabled = sortedProjects.isNotEmpty()) {
+                    oms.components.WorkspaceOutlinedButton(onClick = { export(sortedProjects.map { it.project.id }) }, enabled = sortedProjects.isNotEmpty()) {
                         Icon(Icons.Default.PictureAsPdf, contentDescription = null)
                         Spacer(Modifier.width(4.dp))
                         Text(LocalizationManager.t("export_pdf"))
@@ -597,7 +559,7 @@ fun ProjectsTable(
             } else Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 oms.components.WorkspaceSearchField(value = searchText, onValueChange = onSearchTextChange, label = LocalizationManager.t("search_project"), modifier = Modifier.fillMaxWidth())
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
-                    onExportPdf?.let { export -> OutlinedButton(onClick = { export(sortedProjects.map { it.project.id }) }, enabled = sortedProjects.isNotEmpty()) { Text(LocalizationManager.t("export_pdf")) } }
+                    onExportPdf?.let { export -> oms.components.WorkspaceOutlinedButton(onClick = { export(sortedProjects.map { it.project.id }) }, enabled = sortedProjects.isNotEmpty()) { Text(LocalizationManager.t("export_pdf")) } }
                     ProjectPagination(pageSize, currentPage, pageCount, sortedProjects.size, { pageSize = it }) { currentPage = it.coerceIn(0, pageCount - 1) }
                 }
             }
@@ -881,7 +843,7 @@ private fun ProjectsFilters(
             Modifier.width(ProjectTableColumns.actions),
             contentAlignment = Alignment.CenterEnd
         ) {
-            TextButton(
+            oms.components.WorkspaceTextButton(
                 onClick = onReset,
                 enabled = canReset,
                 contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp)

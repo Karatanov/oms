@@ -40,7 +40,7 @@ fun SortableTableHeader(
             }
         }
     ) {
-    TextButton(
+    oms.components.WorkspaceTextButton(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth().height(height).buttonHandCursor()
             .background(if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerLow)

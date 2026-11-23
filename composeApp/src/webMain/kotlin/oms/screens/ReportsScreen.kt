@@ -295,23 +295,23 @@ fun ReportsScreen(
             }
             .verticalScroll(contentScrollState)
             .padding(oms.layout.workspacePadding()),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         oms.components.PageHeading(LocalizationManager.t("reports_title"), Icons.Default.FactCheck) {
-            if (canCreateReports) Button(onClick = onNewInspection) { Icon(Icons.Default.Add, null); Spacer(Modifier.width(8.dp)); Text(LocalizationManager.t("new_inspection")) }
+            if (canCreateReports) oms.components.WorkspaceButton(onClick = onNewInspection) { Icon(Icons.Default.Add, null); Spacer(Modifier.width(8.dp)); Text(LocalizationManager.t("new_inspection")) }
         }
         Surface(shape = MaterialTheme.shapes.large,
             border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)) {
-            Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(Modifier.fillMaxWidth().padding(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 oms.components.WorkspaceSearchField(search, { search = it.safeTextInput(200) }, LocalizationManager.t("reports_search"))
                 @OptIn(ExperimentalLayoutApi::class)
                 FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    OutlinedButton(onClick = { filtersExpanded = !filtersExpanded }) {
+                    oms.components.WorkspaceOutlinedButton(onClick = { filtersExpanded = !filtersExpanded }) {
                         Icon(Icons.Default.FilterList, null, Modifier.size(18.dp)); Spacer(Modifier.width(8.dp))
                         Text(LocalizationManager.t(if (filtersExpanded) "hide_filters" else "show_filters") +
                             if (activeFilterCount > 0) " ($activeFilterCount)" else "")
                     }
-                    if (hasSearchOrFilters) TextButton(onClick = ::resetFilters) { Text(LocalizationManager.t("reset_filters")) }
+                    if (hasSearchOrFilters) oms.components.WorkspaceTextButton(onClick = ::resetFilters) { Text(LocalizationManager.t("reset_filters")) }
                 }
                 if (filtersExpanded) {
                     if (inspectionYears.isNotEmpty()) {
@@ -363,7 +363,7 @@ fun ReportsScreen(
                     if (hasSearchOrFilters) {
                         Text(LocalizationManager.t("reports_no_matches_hint"), color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = androidx.compose.ui.text.style.TextAlign.Center)
-                        OutlinedButton(onClick = ::resetFilters) { Text(LocalizationManager.t("reset_filters")) }
+                        oms.components.WorkspaceOutlinedButton(onClick = ::resetFilters) { Text(LocalizationManager.t("reset_filters")) }
                     }
                 }
             }
@@ -561,7 +561,7 @@ private fun ReportPreviewDialog(report: ReportRow, onDismiss: () -> Unit) {
                     } else {
                         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             loaded.sheets.forEachIndexed { index, sheet ->
-                                FilterChip(
+                                oms.components.WorkspaceFilterChip(
                                     selected = selectedSheet == index,
                                     onClick = { selectedSheet = index },
                                     label = { Text(sheet.name) }
@@ -575,7 +575,7 @@ private fun ReportPreviewDialog(report: ReportRow, onDismiss: () -> Unit) {
                 }
             }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                OutlinedButton(onClick = onDismiss) { Text(LocalizationManager.t("close")) }
+                oms.components.WorkspaceOutlinedButton(onClick = onDismiss) { Text(LocalizationManager.t("close")) }
             }
         }
     }
@@ -1124,14 +1124,14 @@ private fun ReportEditorDialog(
             }
             Text(LocalizationManager.t("attachments"), style = MaterialTheme.typography.titleSmall)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(onClick = {
+                oms.components.WorkspaceOutlinedButton(onClick = {
                     openInspectionSourceReplacement(report.report.uuid) { }
                 }) {
                     Icon(Icons.Default.UploadFile, null)
                     Spacer(Modifier.width(6.dp))
                     Text(LocalizationManager.t("replace_source_file"))
                 }
-                OutlinedButton(onClick = {
+                oms.components.WorkspaceOutlinedButton(onClick = {
                     openInspectionPhotoUpload(report.report.uuid) { }
                 }) {
                     Icon(Icons.Default.PhotoCamera, null)
@@ -1140,8 +1140,8 @@ private fun ReportEditorDialog(
                 }
             }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
-                OutlinedButton(onClick = onDismiss) { Text(LocalizationManager.t("cancel")) }
-                Button(
+                oms.components.WorkspaceOutlinedButton(onClick = onDismiss) { Text(LocalizationManager.t("cancel")) }
+                oms.components.WorkspaceButton(
                     onClick = {
                         onSave(
                             date, summary, inspectionType, latitudeValue, longitudeValue, targetProjectUuid,
@@ -1207,12 +1207,12 @@ private fun ReviewReportDialog(
                 minLines = 3
             )
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
-                OutlinedButton(onClick = onDismiss) { Text(LocalizationManager.t("cancel")) }
-                OutlinedButton(
+                oms.components.WorkspaceOutlinedButton(onClick = onDismiss) { Text(LocalizationManager.t("cancel")) }
+                oms.components.WorkspaceOutlinedButton(
                     onClick = { onReview("reject", rejectionReason.trim()) },
                     enabled = rejectionReason.isNotBlank()
                 ) { Text(LocalizationManager.t("return_for_revision")) }
-                Button(onClick = { onReview("approve", null) }) { Text(LocalizationManager.t("approve")) }
+                oms.components.WorkspaceButton(onClick = { onReview("approve", null) }) { Text(LocalizationManager.t("approve")) }
             }
         }
     }
@@ -1254,14 +1254,14 @@ private fun FindingsDialog(report: ReportRow, onDismiss: () -> Unit) {
                             Text(finding.description)
                             finding.recommendation?.let { Text("${LocalizationManager.t("recommendation")}: $it", style = MaterialTheme.typography.bodySmall) }
                             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                TextButton(onClick = { editing = finding }) { Text(LocalizationManager.t("edit")) }
-                                TextButton(onClick = {
+                                oms.components.WorkspaceTextButton(onClick = { editing = finding }) { Text(LocalizationManager.t("edit")) }
+                                oms.components.WorkspaceTextButton(onClick = {
                                     scope.launch {
                                         runCatching { OmsApiClient.updateInspectionFinding(report.report.uuid, finding.uuid, UpdateInspectionFindingRequest(finding.category, finding.severity, finding.description, finding.recommendation, !finding.isResolved)) }
                                             .onSuccess { refresh() }.onFailure { error = LocalizationManager.t("error_update_finding") }
                                     }
                                 }) { Text(if (finding.isResolved) LocalizationManager.t("reopen") else LocalizationManager.t("resolve")) }
-                                TextButton(onClick = {
+                                oms.components.WorkspaceTextButton(onClick = {
                                     scope.launch {
                                         if (OmsApiClient.deleteInspectionFinding(report.report.uuid, finding.uuid)) refresh()
                                         else error = LocalizationManager.t("error_delete_finding")
@@ -1273,8 +1273,8 @@ private fun FindingsDialog(report: ReportRow, onDismiss: () -> Unit) {
                 }
                 error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
-                OutlinedButton(onClick = onDismiss) { Text(LocalizationManager.t("close")) }
-                Button(onClick = { adding = true }) { Text(LocalizationManager.t("add_finding")) }
+                oms.components.WorkspaceOutlinedButton(onClick = onDismiss) { Text(LocalizationManager.t("close")) }
+                oms.components.WorkspaceButton(onClick = { adding = true }) { Text(LocalizationManager.t("add_finding")) }
             }
         }
     }
@@ -1296,14 +1296,14 @@ private fun FindingEditorDialog(
             Text(if (finding == null) LocalizationManager.t("add_finding") else LocalizationManager.t("edit_finding"), style = MaterialTheme.typography.titleLarge)
                 OutlinedTextField(category, { category = it.safeTextInput(200) }, label = { Text(LocalizationManager.t("category")) }, modifier = Modifier.fillMaxWidth())
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    listOf("low", "medium", "high", "critical").forEach { value -> FilterChip(selected = severity == value, onClick = { severity = value }, label = { Text(LocalizationManager.t("severity_$value")) }) }
+                    listOf("low", "medium", "high", "critical").forEach { value -> oms.components.WorkspaceFilterChip(selected = severity == value, onClick = { severity = value }, label = { Text(LocalizationManager.t("severity_$value")) }) }
                 }
                 OutlinedTextField(description, { description = it.safeTextInput(8_000) }, label = { Text(LocalizationManager.t("description")) }, minLines = 3, modifier = Modifier.fillMaxWidth())
                 OutlinedTextField(recommendation, { recommendation = it.safeTextInput(8_000) }, label = { Text(LocalizationManager.t("recommendation")) }, minLines = 2, modifier = Modifier.fillMaxWidth())
                 if (finding != null) Row(verticalAlignment = Alignment.CenterVertically) { Checkbox(isResolved, { isResolved = it }); Text(LocalizationManager.t("resolved")) }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
-                OutlinedButton(onClick = onDismiss) { Text(LocalizationManager.t("cancel")) }
-                Button(onClick = { onSave(category, severity, description, recommendation.ifBlank { null }, isResolved) }, enabled = category.isNotBlank() && description.isNotBlank()) { Text(LocalizationManager.t("save")) }
+                oms.components.WorkspaceOutlinedButton(onClick = onDismiss) { Text(LocalizationManager.t("cancel")) }
+                oms.components.WorkspaceButton(onClick = { onSave(category, severity, description, recommendation.ifBlank { null }, isResolved) }, enabled = category.isNotBlank() && description.isNotBlank()) { Text(LocalizationManager.t("save")) }
             }
         }
     }
@@ -1323,7 +1323,7 @@ private fun ReportSort.labelKey(): String = when (this) {
 private fun ReportMobileCard(row: ReportRow, onPreview: () -> Unit, actions: @Composable () -> Unit) {
     Surface(shape = MaterialTheme.shapes.large,
         border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)) {
-        Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(Modifier.fillMaxWidth().padding(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             FlowRow(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(row.report.inspectionDate.toOmsDate(), style = MaterialTheme.typography.labelLarge)
                 ReportStatusChip(row.report.status)
@@ -1344,7 +1344,7 @@ private fun ReportMobileCard(row: ReportRow, onPreview: () -> Unit, actions: @Co
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
-            Button(onClick = onPreview, modifier = Modifier.fillMaxWidth()) {
+            oms.components.WorkspaceButton(onClick = onPreview, modifier = Modifier.fillMaxWidth()) {
                 Icon(Icons.Default.Visibility, null, Modifier.size(18.dp)); Spacer(Modifier.width(8.dp))
                 Text(LocalizationManager.t("preview_report"))
             }

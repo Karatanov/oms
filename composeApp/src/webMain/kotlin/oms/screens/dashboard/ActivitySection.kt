@@ -85,7 +85,7 @@ fun ActivitySection(
             }
             @Composable
             fun SortButton(modifier: Modifier) {
-                OutlinedButton(
+                oms.components.WorkspaceOutlinedButton(
                     onClick = {
                         userSortAscending = when (userSortAscending) {
                             null -> true

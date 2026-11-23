@@ -44,7 +44,7 @@ internal fun ProjectForm(
             if (!editing) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     listOf("project", "subproject", "subproject_part").forEach { type ->
-                        FilterChip(selected = state.projectType == type, onClick = {
+                        oms.components.WorkspaceFilterChip(selected = state.projectType == type, onClick = {
                             state.projectType = type
                             state.parentUuid = null
                             // A newly created subproject belongs to the programme by
@@ -88,7 +88,7 @@ internal fun ProjectForm(
             oms.components.ProjectStatusLabelWithInfo(style = MaterialTheme.typography.labelLarge)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 listOf("planned", "active", "suspended", "completed", "archived", "dlp").forEach { status ->
-                    FilterChip(state["status"] == status, { state["status"] = status }, { Text(L.t("project_status_$status")) })
+                    oms.components.WorkspaceFilterChip(state["status"] == status, { state["status"] = status }, { Text(L.t("project_status_$status")) })
                 }
             }
             FormPair(

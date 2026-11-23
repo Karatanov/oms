@@ -30,7 +30,7 @@ fun CreateProjectScreen(onCancel: () -> Unit = {}, onCreated: () -> Unit = {}) {
         runCatching { OmsApiClient.projectExchangeRate() }.getOrNull()?.let(state::applyRate)
     }
     MaterialTheme(colorScheme = MaterialTheme.colorScheme.copy(onPrimary = Color.White)) {
-        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(oms.layout.workspacePadding()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(oms.layout.workspacePadding()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             oms.components.PageHeading(L.t("create_project"), Icons.Default.CreateNewFolder)
             Text(L.t("project_created_hint"), color = MaterialTheme.colorScheme.onSurfaceVariant)
             ProjectForm(state, parents, editing = false, loadParentsOnOpen = {
@@ -42,8 +42,8 @@ fun CreateProjectScreen(onCancel: () -> Unit = {}, onCreated: () -> Unit = {}) {
             if (state.currentRate == null) oms.components.ContentState(L.t("project_money_rate_unavailable"))
             error?.let { oms.components.ContentState(it, error = true) }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.End)) {
-                OutlinedButton(onClick = onCancel, enabled = !saving) { Text(L.t("cancel")) }
-                Button(enabled = !saving, onClick = {
+                oms.components.WorkspaceOutlinedButton(onClick = onCancel, enabled = !saving) { Text(L.t("cancel")) }
+                oms.components.WorkspaceButton(enabled = !saving, onClick = {
                     error = state.validate(false)
                     if (error == null) scope.launch {
                         saving = true

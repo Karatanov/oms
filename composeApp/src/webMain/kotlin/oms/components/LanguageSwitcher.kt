@@ -19,7 +19,7 @@ fun LanguageSwitcher() {
         if (LocalizationManager.currentLanguage == Language.UK) "switch_to_english" else "switch_to_ukrainian"
     )
     OmsTooltipBox(tooltip = { Text(description) }) {
-    Button(
+    oms.components.WorkspaceButton(
         modifier = Modifier.buttonHandCursor().semantics { contentDescription = description },
         onClick = {
             LocalizationManager.switchLanguage()

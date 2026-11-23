@@ -347,7 +347,7 @@ fun CreateInspectionScreen(
             }
             .verticalScroll(pageScrollState)
             .padding(oms.layout.workspacePadding()),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         PageHeading(
             if (readOnly) LocalizationManager.t("report_preview")
@@ -355,7 +355,7 @@ fun CreateInspectionScreen(
             else LocalizationManager.t("create_inspection"),
             Icons.Default.FactCheck
         ) {
-            if (readOnly) OutlinedButton(onClick = onCancel) {
+            if (readOnly) oms.components.WorkspaceOutlinedButton(onClick = onCancel) {
                 Icon(Icons.Default.ArrowBack, contentDescription = null)
                 Spacer(Modifier.width(6.dp))
                 Text(LocalizationManager.t("return_to_reports"))
@@ -367,8 +367,8 @@ fun CreateInspectionScreen(
         }
 
         if (!isManualEdit) FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            FilterChip(entryMode == "manual", { entryMode = "manual"; errorMessage = null }, label = { Text(LocalizationManager.t("manual_sir_entry")) })
-            FilterChip(entryMode == "import", { entryMode = "import"; errorMessage = null }, label = { Text(LocalizationManager.t("import_sir_xlsx")) })
+            oms.components.WorkspaceFilterChip(entryMode == "manual", { entryMode = "manual"; errorMessage = null }, label = { Text(LocalizationManager.t("manual_sir_entry")) }, modifier = Modifier.buttonHandCursor())
+            oms.components.WorkspaceFilterChip(entryMode == "import", { entryMode = "import"; errorMessage = null }, label = { Text(LocalizationManager.t("import_sir_xlsx")) }, modifier = Modifier.buttonHandCursor())
         }
 
         if (rejectedReason != null) {
@@ -502,14 +502,14 @@ fun CreateInspectionScreen(
             horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.End),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            OutlinedButton(
+            oms.components.WorkspaceOutlinedButton(
                 enabled = !isSubmitting && !loadingManualReport,
                 onClick = onCancel
             ) {
                 Text(LocalizationManager.t("cancel"))
             }
 
-            if (!isManualEdit) OutlinedButton(
+            if (!isManualEdit) oms.components.WorkspaceOutlinedButton(
                 enabled = !isSubmitting && !loadingManualReport,
                 onClick = {
                     val selectedProject = inspectionTargetUuid
@@ -543,7 +543,7 @@ fun CreateInspectionScreen(
                 Text(LocalizationManager.t("save_draft"))
             }
 
-            if (!isManualEdit) OutlinedButton(enabled = entryMode == "import" && !loadingManualReport, onClick = {
+            if (!isManualEdit) oms.components.WorkspaceOutlinedButton(enabled = entryMode == "import" && !loadingManualReport, onClick = {
                 val selectedProject = inspectionTargetUuid
                 if (selectionError != null) errorMessage = selectionError
                 else {
@@ -558,7 +558,7 @@ fun CreateInspectionScreen(
                 Text(LocalizationManager.t("upload_xls"))
             }
 
-            Button(
+            oms.components.WorkspaceButton(
                 enabled = !isSubmitting && !loadingManualReport,
                 onClick = {
                     if (entryMode == "manual") {
@@ -772,7 +772,7 @@ internal fun InspectionActivityPhotoGallery(
     // positioned DOM element.  Never mount it in the read-only report: it can
     // end up above the Compose canvas after a relayout and swallow all clicks.
     if (!nativeGallery) {
-        OutlinedButton(
+        oms.components.WorkspaceOutlinedButton(
             onClick = { openInspectionPhotoLightbox(Json.encodeToString(publicPhotos)) },
             modifier = modifier.heightIn(min = 40.dp)
         ) {
@@ -1012,7 +1012,7 @@ private fun RepeatableOngoingObservations(
                         }
                     }
                 }
-                OutlinedButton(
+                oms.components.WorkspaceOutlinedButton(
                     onClick = {
                         openInspectionPhotoPicker(observation.photoKey) { count ->
                             update(index) { it.copy(photoCount = count, photoRevision = it.photoRevision + 1) }
@@ -1076,7 +1076,7 @@ private fun WeatherPicker(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 WeatherCondition.entries.forEach { condition ->
-                    FilterChip(
+                    oms.components.WorkspaceFilterChip(
                         selected = selected == condition,
                         onClick = { onSelect(if (selected == condition) null else condition) },
                         label = { Text(LocalizationManager.t(condition.localizationKey)) },
@@ -1191,7 +1191,7 @@ private fun RepeatableManualActivities(
                         OutlinedTextField(activity.remarks, { value -> update(index) { it.copy(remarks = value.inspectionText(2_000)) } }, label = { Text(LocalizationManager.t("sir_activity_remarks")) }, modifier = Modifier.fillMaxWidth())
                     }
                 }
-                OutlinedButton(
+                oms.components.WorkspaceOutlinedButton(
                     onClick = {
                         openInspectionPhotoPicker(activity.photoKey) { count ->
                             update(index) { it.copy(photoCount = count, photoRevision = it.photoRevision + 1) }
