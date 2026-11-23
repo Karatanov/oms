@@ -7,7 +7,9 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.LocalMinimumInteractiveComponentSize
+import androidx.compose.material3.ProvideTextStyle
 import androidx.compose.ui.input.key.*
 import androidx.compose.ui.semantics.*
 import oms.localization.LocalizationManager
@@ -22,6 +24,7 @@ import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.onPointerEvent
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
@@ -39,6 +42,7 @@ private class TooltipOverlayState {
 private val LocalTooltipOverlay = staticCompositionLocalOf<TooltipOverlayState> { error("TooltipOverlayHost is required") }
 
 /** Render tooltips in the same canvas hierarchy; native Wasm Popup positioning can crash navigation. */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TooltipOverlayHost(content: @Composable () -> Unit) {
     val state = remember { TooltipOverlayState() }
@@ -57,13 +61,18 @@ fun TooltipOverlayHost(content: @Composable () -> Unit) {
                 // long content the larger side of the viewport and make its
                 // body scrollable instead of clipping it at the card edge.
                 val maxTooltipHeight = minOf(300.dp, (maxHeight - 16.dp).coerceAtLeast(1.dp))
-                val belowSpace = (maxHeight - bottom - 8.dp).coerceAtLeast(1.dp)
-                val aboveSpace = (top - 8.dp).coerceAtLeast(1.dp)
+                val gap = 6.dp
+                val belowSpace = (maxHeight - bottom - gap - 8.dp).coerceAtLeast(1.dp)
+                val aboveSpace = (top - gap - 8.dp).coerceAtLeast(1.dp)
                 val below = belowSpace >= 172.dp || belowSpace >= aboveSpace
                 val availableHeight = (if (below) belowSpace else aboveSpace).coerceAtMost(maxTooltipHeight)
-                val y = if (below) bottom + 6.dp else (top - availableHeight - 6.dp).coerceAtLeast(8.dp)
+                var measuredHeight by remember(tooltip.id, width, availableHeight) { mutableStateOf<androidx.compose.ui.unit.Dp?>(null) }
+                val placedHeight = (measuredHeight ?: availableHeight).coerceAtMost(availableHeight)
+                val y = (if (below) bottom + gap else top - placedHeight - gap)
+                    .coerceIn(8.dp, (maxHeight - placedHeight - 8.dp).coerceAtLeast(8.dp))
                 Surface(
                     Modifier.offset(x, y).widthIn(max = width).heightIn(max = availableHeight)
+                        .onSizeChanged { measuredHeight = with(density) { it.height.toDp() } }
                         .onPreviewKeyEvent { event ->
                             if (event.type == KeyEventType.KeyDown && event.key == Key.Escape && tooltip.onDismiss != null) {
                                 tooltip.onDismiss.invoke()
@@ -78,15 +87,20 @@ fun TooltipOverlayHost(content: @Composable () -> Unit) {
                     Column {
                         tooltip.onDismiss?.let { dismiss ->
                             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                                IconButton(onClick = dismiss) {
-                                    Icon(Icons.Default.Close, LocalizationManager.t("close"), Modifier.size(18.dp))
+                                CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 0.dp) {
+                                    WorkspaceIconButton(onClick = dismiss,
+                                        modifier = Modifier.size(28.dp).chartControlFocus()) {
+                                        Icon(Icons.Default.Close, LocalizationManager.t("close"), Modifier.size(16.dp))
+                                    }
                                 }
                             }
                         }
                         Box(
                             Modifier.padding(horizontal = 10.dp, vertical = 8.dp)
                                 .verticalScroll(rememberScrollState())
-                        ) { tooltip.content() }
+                        ) {
+                            ProvideTextStyle(MaterialTheme.typography.bodySmall) { tooltip.content() }
+                        }
                     }
                 }
             }
