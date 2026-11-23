@@ -1,5 +1,6 @@
 package oms.urp3.plugins
 
+import oms.urp3.config.Deployment
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import io.ktor.server.application.*
@@ -30,23 +31,32 @@ fun Application.configureDatabase() {
      * Після завершення роботи Flyway застосунок
      * гарантовано працює з актуальною схемою даних.
      */
+    if (!Deployment.legacy) {
+        require(dialect == "mysql" && user.isNotBlank() && dbPassword.isNotBlank())
+        require(!System.getenv("DATABASE_USER").isNullOrBlank() && !System.getenv("DATABASE_URL").isNullOrBlank())
+        require(url.startsWith("jdbc:mysql://") && java.net.URI(url.removePrefix("jdbc:")).path == "/oms_" + Deployment.brand) {
+            "The isolated deployment requires its own named MySQL database."
+        }
+        require((System.getenv("OMS_JWT_SECRET")?.length ?: 0) >= 32)
+        require(!System.getenv("OMS_UPLOAD_DIR").isNullOrBlank())
+    }
+    val history = when {
+        !Deployment.legacy -> "classpath:db/isolated"
+        dialect == "mysql" -> "classpath:db/migration"
+        dialect == "tidb" -> "classpath:db/migration-tidb"
+        else -> error("Unsupported database dialect: $dialect")
+    }
     val flyway = Flyway
         .configure()
         .dataSource(url, user, dbPassword)
-        .locations(
-            when (dialect) {
-                "mysql" -> "classpath:db/migration"
-                "tidb" -> "classpath:db/migration-tidb"
-                else -> error("Unsupported database dialect: $dialect")
-            }
-        )
+        .locations(history, "classpath:db/common")
         .load()
 
     // Opt-in recovery for a locally interrupted development migration.
     // Production starts never repair history implicitly.
     if (
-        System.getProperty("oms.flywayRepair") == "true" ||
-        System.getenv("OMS_FLYWAY_REPAIR").equals("true", ignoreCase = true)
+        Deployment.legacy && (System.getProperty("oms.flywayRepair") == "true" ||
+        System.getenv("OMS_FLYWAY_REPAIR").equals("true", ignoreCase = true))
     ) {
         log.warn("Flyway repair was explicitly requested for this startup.")
         flyway.repair()

@@ -13,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import oms.components.*
+import oms.data.WorkspaceBrand
 import oms.data.ApiProject
 import oms.localization.LocalizationManager as L
 
@@ -28,9 +29,8 @@ internal fun ProjectForm(
     val scope = rememberCoroutineScope()
     fun programmeParent(options: List<ApiProject>): ApiProject? =
         options.firstOrNull {
-            it.projectType.equals("project", true) &&
-                it.name.equals("Ukraine Recovery III", true) ||
-                    it.name.equals("Ukraine Recovery Programme III", true)
+            WorkspaceBrand.legacySources && it.projectType.equals("project", true) &&
+                (it.name.equals("Ukraine Recovery III", true) || it.name.equals("Ukraine Recovery Programme III", true))
         } ?: options.firstOrNull { it.projectType.equals("project", true) }
     fun field(key: String, label: String, modifier: Modifier = Modifier, lines: Int = 1) = @Composable {
         ProjectFieldValidation(state, key, modifier) {

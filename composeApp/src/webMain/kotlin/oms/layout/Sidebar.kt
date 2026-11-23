@@ -1,5 +1,6 @@
 package oms.layout
 
+import oms.data.WorkspaceBrand
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -38,14 +39,14 @@ fun Sidebar(currentScreen: Screen, onNavigate: (Screen) -> Unit, onLogout: () ->
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
-                            "UR III",
+                            WorkspaceBrand.name,
                             modifier = Modifier.fillMaxWidth(),
                             style = MaterialTheme.typography.headlineSmall,
                             color = MaterialTheme.colorScheme.primary,
                             textAlign = TextAlign.Center
                         )
                         Text(
-                            "TA to the implementation\nof UR III Programme",
+                            WorkspaceBrand.caption,
                             modifier = Modifier.fillMaxWidth(),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,

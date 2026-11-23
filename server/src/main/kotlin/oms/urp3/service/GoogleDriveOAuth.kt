@@ -1,5 +1,6 @@
 package oms.urp3.service
 
+import oms.urp3.config.Deployment
 import kotlinx.serialization.json.*
 import java.io.File
 import java.net.URI
@@ -30,6 +31,7 @@ internal object GoogleDriveOAuth {
     val origin: String get() = URI(config().callback).let { "${it.scheme}://${it.rawAuthority}" }
 
     private fun config(): Config {
+        require(Deployment.legacy) { "Google source integration is disabled." }
         val file = System.getenv("OMS_GOOGLE_OAUTH_CLIENT_FILE")?.takeIf(String::isNotBlank)
         val web = file?.let { Json.parseToJsonElement(File(it).readText()).jsonObject["web"]?.jsonObject }
         val id = web?.get("client_id")?.jsonPrimitive?.content ?: System.getenv("OMS_GOOGLE_CLIENT_ID")

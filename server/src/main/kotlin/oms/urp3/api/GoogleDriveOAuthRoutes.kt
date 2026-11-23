@@ -1,5 +1,6 @@
 package oms.urp3.api
 
+import oms.urp3.config.Deployment
 import io.ktor.http.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
@@ -46,7 +47,7 @@ fun Route.googleDriveOAuthRoutes() {
         } catch (_: Exception) {
             error = "Google connection was cancelled, expired or failed. Close this window and try again, or upload XLSX manually."
         }
-        val target = runCatching { GoogleDriveOAuth.origin }.getOrDefault("https://ua-oms.com")
+        val target = runCatching { GoogleDriveOAuth.origin }.getOrDefault(Deployment.publicOrigin)
         call.respondText("""<!doctype html><html><head><meta charset="utf-8"><title>OMS — Google Drive</title></head>
             <body><p>${if (ticket.isNotEmpty()) "Google connected. Return to OMS." else error}</p>
             <script nonce="$scriptNonce">history.replaceState(null,'',location.pathname);

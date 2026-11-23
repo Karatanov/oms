@@ -1,5 +1,6 @@
 package oms.urp3.api
 
+import oms.urp3.config.Deployment
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.ContentType
 import io.ktor.http.content.PartData
@@ -70,6 +71,8 @@ fun Route.procurementRoutes() {
 
     post("/api/v1/procurements/refresh") {
         call.requireRole("ADMIN") ?: return@post
+        if (!Deployment.legacy) return@post call.respond(HttpStatusCode.ServiceUnavailable,
+            ErrorResponse("SOURCE_DISABLED", "Online source is disabled. Upload a workbook instead."))
         call.respondRefreshSafely(HttpStatusCode.Accepted) {
             AppContainer.procurementService.startApprovedSourceRefresh().toResponse()
         }
@@ -77,6 +80,8 @@ fun Route.procurementRoutes() {
 
     post("/api/v1/procurements/refresh/google") {
         val user = call.requireRole("ADMIN") ?: return@post
+        if (!Deployment.legacy) return@post call.respond(HttpStatusCode.ServiceUnavailable,
+            ErrorResponse("SOURCE_DISABLED", "Online source is disabled. Upload a workbook instead."))
         val request = call.receive<GoogleRefreshRequest>()
         call.respondRefreshSafely(HttpStatusCode.Accepted) {
             require(call.request.headers["Origin"] == GoogleDriveOAuth.origin) { "Start the update on the OMS website." }

@@ -50,7 +50,7 @@
     <script>
         function omsApiUrl(path) {
             const local = ["localhost", "127.0.0.1"].includes(window.location.hostname);
-            // Production serves UI and API together at ua-oms.com. The legacy
+            // Production serves UI and API on one origin. The legacy
             // GitHub Pages build uses that same public API for native helpers.
             const pages = window.location.hostname === "karatanov.github.io";
             const base = pages

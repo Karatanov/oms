@@ -1,5 +1,6 @@
 package oms.urp3.service
 
+import oms.urp3.config.Deployment
 import oms.urp3.repository.ProcurementRecordRepository
 import oms.urp3.repository.UserRepository
 import oms.urp3.domain.ProcurementRecord
@@ -311,10 +312,8 @@ class ProcurementService(
         var projects = projectService.getAllProjects()
         val programme = projects.firstOrNull {
             it.projectType == ProjectType.PROJECT &&
-                (it.siteNumber.equals("URP-III", true) ||
-                    it.name.equals("Ukraine Recovery III", true) ||
-                    it.name.equals("Ukraine Recovery Programme III", true))
-        } ?: throw IllegalArgumentException("The Ukraine Recovery III parent project is missing.")
+                Deployment.isImportParent(it.siteNumber, it.name)
+        } ?: throw IllegalArgumentException(Deployment.missingImportParent)
         // Import is a system-maintenance operation.  Older seed data may not
         // have an assignee on the root programme, but that must not prevent an
         // administrator from synchronising the approved procurement source.

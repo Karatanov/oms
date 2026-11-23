@@ -1,5 +1,6 @@
 package oms.urp3
 
+import oms.urp3.config.Deployment
 import io.ktor.server.application.*
 import oms.urp3.config.AppContainer
 import oms.urp3.plugins.*
@@ -66,9 +67,11 @@ fun Application.module(
      */
     if (configureDatabase) {
         configureDatabase()
-        configureProcurementAutoRefresh()
-        configureSubprojectAutoRefresh()
-        configurePaymentMonitoringAutoRefresh()
+        if (Deployment.legacy) {
+            configureProcurementAutoRefresh()
+            configureSubprojectAutoRefresh()
+            configurePaymentMonitoringAutoRefresh()
+        }
     }
 
     /**

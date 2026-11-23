@@ -1,5 +1,6 @@
 package oms.screens
 
+import oms.data.WorkspaceBrand
 import oms.components.PageArrow
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -830,7 +831,7 @@ fun FinancialScreen(
             Card(Modifier.widthIn(max = 520.dp).fillMaxWidth()) {
                 Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                     Text(LocalizationManager.t("payment_monitoring_refresh_confirm_title"), style = MaterialTheme.typography.titleLarge)
-                    Text(LocalizationManager.t("payment_monitoring_refresh_confirm_message"), style = MaterialTheme.typography.bodyMedium)
+                    if (WorkspaceBrand.legacySources) Text(LocalizationManager.t("payment_monitoring_refresh_confirm_message"), style = MaterialTheme.typography.bodyMedium)
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
                         OutlinedButton(onClick = { paymentMonitoringRefreshConfirmationOpen = false }) { Text(LocalizationManager.t("cancel")) }
                         OutlinedButton(onClick = {
@@ -850,7 +851,7 @@ fun FinancialScreen(
                             }
                         }) { Text(LocalizationManager.t("payment_monitoring_refresh_manual")) }
                     }
-                    Button(modifier = Modifier.fillMaxWidth(), onClick = {
+                    if (WorkspaceBrand.legacySources) Button(modifier = Modifier.fillMaxWidth(), onClick = {
                         paymentMonitoringRefreshConfirmationOpen = false
                         openGooglePaymentMonitoringRefresh { connectionError, refreshJson ->
                             if (connectionError.isNotBlank()) {

@@ -1,5 +1,6 @@
 package oms.components
 
+import oms.data.WorkspaceBrand
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -25,7 +26,7 @@ fun Breadcrumb(screen: Screen) {
 
         // 🔹 Назва системи (root)
         Text(
-            text = "UR III",
+            text = WorkspaceBrand.name,
             style = MaterialTheme.typography.bodyMedium
         )
 

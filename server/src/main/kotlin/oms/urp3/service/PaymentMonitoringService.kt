@@ -1,5 +1,6 @@
 package oms.urp3.service
 
+import oms.urp3.config.Deployment
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalDateTime
@@ -55,7 +56,8 @@ class PaymentMonitoringService(
         val requestedAt = now()
         cached?.takeIf { requestedAt.isBefore(it.expiresAt) }?.let { return it.snapshot }
         val persisted = repository.findSnapshot()
-            ?: repository.replaceAll(bundledLoader(), emptyList(), null, LocalDateTime.now())
+            ?: if (Deployment.legacy) repository.replaceAll(bundledLoader(), emptyList(), null, LocalDateTime.now())
+            else return Snapshot("", emptyList())
         val snapshot = persisted.toSnapshot()
         cached = CachedSnapshot(snapshot, requestedAt.plus(CACHE_TTL))
         return snapshot

@@ -1,5 +1,7 @@
 package oms.localization
 
+import oms.data.WorkspaceBrand
+
 object Strings {
 
     val uk = mapOf(
@@ -513,7 +515,7 @@ object Strings {
         "spent_remaining" to "% витрачено / % залишилось",
         "spent" to "Витрачено",
         "remaining" to "Залишилось, грн",
-        "payment_monitoring_title" to "UR III — моніторинг платежів за субпроєктами",
+        "payment_monitoring_title" to "${WorkspaceBrand.name} — моніторинг платежів за субпроєктами",
         "payment_monitoring_update" to "Оновити дані",
         "payment_monitoring_imported" to "Моніторинг платежів оновлено.",
         "error_payment_monitoring_import" to "Не вдалося оновити моніторинг платежів: {message}",
@@ -1556,7 +1558,7 @@ object Strings {
         "spent_remaining" to "% spent / % remaining",
         "spent" to "Spent",
         "remaining" to "Remaining, UAH",
-        "payment_monitoring_title" to "UR III — subproject payment monitoring",
+        "payment_monitoring_title" to "${WorkspaceBrand.name} — subproject payment monitoring",
         "payment_monitoring_update" to "Update data",
         "payment_monitoring_imported" to "Payment monitoring was updated.",
         "error_payment_monitoring_import" to "Could not update payment monitoring: {message}",

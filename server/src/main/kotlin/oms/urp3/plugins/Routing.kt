@@ -1,5 +1,6 @@
 package oms.urp3.plugins
 
+import oms.urp3.config.Deployment
 import io.ktor.http.CacheControl
 import io.ktor.http.HttpHeaders
 import io.ktor.server.application.*
@@ -69,7 +70,7 @@ fun Application.configureRouting() {
         // Console no longer records these historical routes as 404 pages.
         listOf("/auth/login", "/auth/guest", "/oms/app.html").forEach { legacyPath ->
             get(legacyPath) {
-                call.respondRedirect("https://ua-oms.com/", permanent = true)
+                call.respondRedirect("${Deployment.publicOrigin}/", permanent = true)
             }
         }
 
@@ -77,6 +78,10 @@ fun Application.configureRouting() {
             ?.trim()
             ?.takeIf(String::isNotEmpty)
             ?.let(::File)
+        if (!Deployment.legacy) {
+            require(frontendDirectory != null && File(frontendDirectory, "login.html").readText()
+                .contains("data-oms-name=\"" + Deployment.brand.uppercase() + "\"")) { "Missing branded login page" }
+        }
         if (frontendDirectory?.isDirectory == true) {
             // Keep the initial page independent from the large Kotlin/JS
             // application bundle. The bundle is requested only after login.
@@ -138,7 +143,7 @@ fun Application.configureRouting() {
             // Production VPS Compose always sets OMS_WEB_DIR. Keep a safe
             // public-host fallback for incomplete server configuration.
             get("/") {
-                call.respondRedirect("https://ua-oms.com/", permanent = false)
+                call.respondRedirect("${Deployment.publicOrigin}/", permanent = false)
             }
         }
     }

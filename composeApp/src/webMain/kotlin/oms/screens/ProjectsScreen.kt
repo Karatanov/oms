@@ -1,5 +1,6 @@
 package oms.screens
 
+import oms.data.WorkspaceBrand
 import oms.components.PageArrow
 import androidx.compose.foundation.background
 import androidx.compose.foundation.ScrollState
@@ -100,7 +101,7 @@ private const val PROGRAMME_ROOT_CODE = "URP-III"
 
 /** The programme remains the database parent; it is a page heading, not a row. */
 private fun Project.isProgrammeRoot(): Boolean =
-    projectType.equals("project", ignoreCase = true) &&
+    WorkspaceBrand.legacySources && projectType.equals("project", ignoreCase = true) &&
         (siteNumber.equals(PROGRAMME_ROOT_CODE, ignoreCase = true) ||
             name.equals("Ukraine Recovery III", ignoreCase = true) ||
             name.equals("Ukraine Recovery Programme III", ignoreCase = true))
@@ -436,8 +437,8 @@ fun ProjectsScreen(
         Card(Modifier.widthIn(max = 520.dp).fillMaxWidth()) {
             Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 Text(LocalizationManager.t("subproject_registry_refresh_confirm_title"), style = MaterialTheme.typography.titleLarge)
-                Text(LocalizationManager.t("subproject_registry_refresh_confirm_message"), style = MaterialTheme.typography.bodyMedium)
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                if (WorkspaceBrand.legacySources) Text(LocalizationManager.t("subproject_registry_refresh_confirm_message"), style = MaterialTheme.typography.bodyMedium)
+                if (WorkspaceBrand.legacySources) Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text(LocalizationManager.t("subproject_registry_refresh_instruction_step_1"), style = MaterialTheme.typography.bodyMedium)
                     Text(
                         subprojectMonitoringWorkbookUrl,

@@ -1,5 +1,6 @@
 package oms.urp3.service
 
+import oms.urp3.config.Deployment
 import com.google.auth.oauth2.ServiceAccountCredentials
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
@@ -96,7 +97,7 @@ internal fun buildFeedbackRow(request: FeedbackRequest, number: Int, date: Local
 class GoogleFeedbackSheetGateway : FeedbackSheetGateway {
     private val credentialPath = System.getenv("OMS_FEEDBACK_GOOGLE_CREDENTIALS")?.takeIf { it.isNotBlank() }
         ?: System.getenv("GOOGLE_APPLICATION_CREDENTIALS")?.takeIf { it.isNotBlank() }
-    override val configured get() = credentialPath?.let { File(it).isFile } == true
+    override val configured get() = Deployment.legacy && credentialPath?.let { File(it).isFile } == true
     private val http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build()
     private val base = "https://sheets.googleapis.com/v4/spreadsheets/1dSOFZ1tzuzLUIaK6LcaklqZTXkmAwRqby_TOCZx1dMk"
     private val sheetId = 1327224389

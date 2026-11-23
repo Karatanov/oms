@@ -1,5 +1,6 @@
 package oms.urp3.api
 
+import oms.urp3.config.Deployment
 import io.ktor.http.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
@@ -115,6 +116,8 @@ fun Route.financialRoutes() {
 
     post("/api/v1/financials/payment-monitoring/refresh") {
         call.requireRole("ADMIN") ?: return@post
+        if (!Deployment.legacy) return@post call.respond(HttpStatusCode.ServiceUnavailable,
+            ErrorResponse("SOURCE_DISABLED", "Online source is disabled. Upload a workbook instead."))
         call.respondPaymentMonitoringRefresh(HttpStatusCode.Accepted) {
             AppContainer.paymentMonitoringService.startApprovedSourceRefresh().toResponse()
         }
@@ -122,6 +125,8 @@ fun Route.financialRoutes() {
 
     post("/api/v1/financials/payment-monitoring/refresh/google") {
         val user = call.requireRole("ADMIN") ?: return@post
+        if (!Deployment.legacy) return@post call.respond(HttpStatusCode.ServiceUnavailable,
+            ErrorResponse("SOURCE_DISABLED", "Online source is disabled. Upload a workbook instead."))
         val request = call.receive<PaymentMonitoringGoogleRefreshRequest>()
         call.respondPaymentMonitoringRefresh(HttpStatusCode.Accepted) {
             require(call.request.headers["Origin"] == GoogleDriveOAuth.origin) { "Start the update on the OMS website." }

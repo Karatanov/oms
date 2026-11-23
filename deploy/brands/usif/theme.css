@@ -1,0 +1,14 @@
+:root { --navy: #102c48; --teal: #087975; }
+.brand, .oms-startup-brand {
+    background: linear-gradient(155deg, var(--navy) 25%, #124758 78%, #0d6869);
+    border-inline-start: 8px solid #58d1c1;
+}
+.brand .badge, .oms-startup-badge {
+    padding: 0 0 14px; border: 0; border-bottom: 3px solid #58d1c1;
+    border-radius: 0; background: transparent;
+}
+.brand .badge strong, .oms-startup-badge strong { font-size: 26px; letter-spacing: .12em; }
+.brand h1 { font-weight: 650; }
+.primary, .guest { border-radius: 8px; background: var(--teal); }
+.primary:hover { background: #065c59; }
+.guest { background: white; color: var(--teal); border: 1px solid var(--teal); }
