@@ -29,8 +29,7 @@ const { chromium } = require(path.resolve(process.env.OMS_PLAYWRIGHT_PATH || 'bu
       await page.waitForTimeout(300);
       await page.screenshot({ path: `build/feedback-screenshots/form-${viewport.width}.png` });
       const desktop = viewport.width > 1000;
-      const textY = desktop ? 575 : viewport.width === 390 ? 500 : 390;
-      await page.mouse.click(desktop ? 600 : 100, textY);
+      // The dialog focuses its description field on opening.
       await page.keyboard.insertText('Feedback UI regression: test description');
       // Scroll the short viewport to reach the actions, as a phone user would.
       if (viewport.width === 320) { await page.mouse.move(160, 400); await page.mouse.wheel(0, 700); await page.waitForTimeout(300); }
@@ -46,7 +45,7 @@ const { chromium } = require(path.resolve(process.env.OMS_PLAYWRIGHT_PATH || 'bu
         continue;
       }
       const firstSend = page.waitForResponse(r => r.url().endsWith('/api/v1/feedback') && r.request().method() === 'POST', { timeout: 10000 });
-      await page.mouse.click(desktop ? 920 : viewport.width === 390 ? 300 : 240, desktop ? 738 : viewport.width === 390 ? 670 : 508);
+      await page.keyboard.press('Control+Enter');
       await firstSend;
       assert.equal(submitted.length, 1);
       assert.equal(submitted[0].page, 'Dashboard');
@@ -59,7 +58,7 @@ const { chromium } = require(path.resolve(process.env.OMS_PLAYWRIGHT_PATH || 'bu
       if (viewport.width === 320) { await page.mouse.move(160, 400); await page.mouse.wheel(0, 700); await page.waitForTimeout(300); }
       await page.screenshot({ path: `build/feedback-screenshots/retry-${viewport.width}.png` });
       const retry = page.waitForResponse(r => r.url().endsWith('/api/v1/feedback') && r.request().method() === 'POST', { timeout: 10000 });
-      await page.mouse.click(desktop ? 920 : viewport.width === 390 ? 300 : 240, desktop ? 780 : viewport.width === 390 ? 730 : 508);
+      await page.keyboard.press('Control+Enter');
       await retry;
       assert.deepEqual(submitted[0], submitted[1], 'Retry must retain the original request ID and content');
       await page.waitForTimeout(300);
