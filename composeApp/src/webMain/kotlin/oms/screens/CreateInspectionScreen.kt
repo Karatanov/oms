@@ -633,7 +633,7 @@ fun CreateInspectionScreen(
                                     isSubmitting = false
                                 }
                             }
-                            return@Button
+                            return@WorkspaceButton
                         }
                     }
                     val createdReport = createdReportUuid
@@ -645,7 +645,7 @@ fun CreateInspectionScreen(
                             else errorMessage = LocalizationManager.t("error_upload_photos_after_report").replace("{message}", uploadError)
                             isSubmitting = false
                         }
-                        return@Button
+                        return@WorkspaceButton
                     }
                     val selectedProject = inspectionTargetUuid
                     when {
