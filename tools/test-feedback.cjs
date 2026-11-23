@@ -58,7 +58,8 @@ const { chromium } = require(path.resolve(process.env.OMS_PLAYWRIGHT_PATH || 'bu
       if (viewport.width === 320) { await page.mouse.move(160, 400); await page.mouse.wheel(0, 700); await page.waitForTimeout(300); }
       await page.screenshot({ path: `build/feedback-screenshots/retry-${viewport.width}.png` });
       const retry = page.waitForResponse(r => r.url().endsWith('/api/v1/feedback') && r.request().method() === 'POST', { timeout: 10000 });
-      await page.keyboard.press('Control+Enter');
+      // The compiled desktop form renders Retry on the Compose canvas.
+      await page.mouse.click(931, 752);
       await retry;
       assert.deepEqual(submitted[0], submitted[1], 'Retry must retain the original request ID and content');
       await page.waitForTimeout(300);
