@@ -15,6 +15,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
+import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.PointerIcon
@@ -35,9 +36,10 @@ fun SidebarItem(title: String, icon: ImageVector, screen: Screen, current: Scree
         (screen == Screen.Inspections && current == Screen.CreateInspection)
     val interactionSource = remember { MutableInteractionSource() }
     val focused by interactionSource.collectIsFocusedAsState()
+    val hovered by interactionSource.collectIsHoveredAsState()
     val visibilityRequester = remember { BringIntoViewRequester() }
-    LaunchedEffect(current, compact, title) {
-        if (isSelected) {
+    LaunchedEffect(current, compact, title, focused) {
+        if (focused || isSelected) {
             // Let the expanded/translated label finish layout before revealing it.
             withFrameNanos { }
             visibilityRequester.bringIntoView()
@@ -46,7 +48,7 @@ fun SidebarItem(title: String, icon: ImageVector, screen: Screen, current: Scree
     // A direct button is intentional: wrapping sidebar links in a tooltip box on
     // Wasm can intercept hover state and leave the text-selection cursor visible.
     oms.components.WorkspaceTextButton(
-        onClick = { onNavigate(screen) }, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)
+        onClick = { onNavigate(screen) }, modifier = Modifier.fillMaxWidth().heightIn(min = oms.theme.OmsDimensions.ControlHeight)
             .bringIntoViewRequester(visibilityRequester)
             .pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true).semantics {
                 selected = isSelected
@@ -59,27 +61,31 @@ fun SidebarItem(title: String, icon: ImageVector, screen: Screen, current: Scree
             isSelected -> BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = .24f))
             else -> null
         },
-        shape = MaterialTheme.shapes.medium, contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp),
+        shape = MaterialTheme.shapes.small, contentPadding = PaddingValues(horizontal = if (compact) 8.dp else 10.dp, vertical = 6.dp),
         colors = ButtonDefaults.textButtonColors(
-            containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
+            containerColor = when {
+                isSelected -> MaterialTheme.colorScheme.primaryContainer
+                hovered -> MaterialTheme.colorScheme.surfaceContainerLow
+                else -> Color.Transparent
+            },
             contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
         )
     ) {
         val navigationIconColor = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
         if (iconText == null) {
-            Icon(icon, null, Modifier.size(20.dp), tint = navigationIconColor)
+            Icon(icon, null, Modifier.size(18.dp), tint = navigationIconColor)
         } else {
             Text(
                 iconText,
-                modifier = Modifier.width(22.dp),
+                modifier = Modifier.width(18.dp),
                 color = navigationIconColor,
                 textAlign = TextAlign.Center,
-                fontSize = 25.sp,
-                lineHeight = 25.sp
+                fontSize = 20.sp,
+                lineHeight = 20.sp
             )
         }
         if (!compact) {
-            Spacer(Modifier.width(12.dp))
+            Spacer(Modifier.width(8.dp))
             Text(title, modifier = Modifier.weight(1f), style = MaterialTheme.typography.labelLarge,
                 textAlign = TextAlign.Start,
                 fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium)
