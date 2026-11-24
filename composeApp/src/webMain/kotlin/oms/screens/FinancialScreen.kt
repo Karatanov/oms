@@ -17,6 +17,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.PictureAsPdf
@@ -394,6 +395,11 @@ fun FinancialScreen(
             subprojectFilterOptions.firstOrNull { it.first == selected }?.second?.let(::add)
         }
     }.joinToString(" · ").ifBlank { null }
+    val selectedSubprojectCode = subprojectFilter?.let { selected ->
+        subprojectFilterOptions.firstOrNull { it.first == selected }?.second
+    }
+    val selectedMonthLabel = chartMonthFilter?.let { "${it.toMonthName()} ${it.take(4)}" }
+    val selectedPaymentScopeLabel = listOfNotNull(selectedChartScopeLabel, selectedMonthLabel).joinToString(" · ").ifBlank { null }
     val visibleActs = acts.filter {
         (recordTypeFilter == null || it.act.recordType == recordTypeFilter) &&
             (paymentPurposeFilter == null || it.act.paymentPurpose == paymentPurposeFilter) &&
@@ -504,6 +510,26 @@ fun FinancialScreen(
                 }
             }
         }
+        if (subprojectFilter != null || chartMonthFilter != null || paymentPurposeFilter != null) {
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (subprojectFilter != null) oms.components.WorkspaceOutlinedButton(onClick = { subprojectFilter = null }) {
+                    Text("${LocalizationManager.t("subproject_code")}: ${selectedSubprojectCode ?: "…"}")
+                    Icon(Icons.Default.Close, LocalizationManager.t("reset_filters"), Modifier.size(16.dp))
+                }
+                selectedMonthLabel?.let { month ->
+                    oms.components.WorkspaceOutlinedButton(onClick = { chartMonthFilter = null }) {
+                        Text(month)
+                        Icon(Icons.Default.Close, LocalizationManager.t("reset_filters"), Modifier.size(16.dp))
+                    }
+                }
+                paymentPurposeFilter?.let { purpose ->
+                    oms.components.WorkspaceOutlinedButton(onClick = { paymentPurposeFilter = null }) {
+                        Text(LocalizationManager.t("payment_purpose_$purpose"))
+                        Icon(Icons.Default.Close, LocalizationManager.t("reset_filters"), Modifier.size(16.dp))
+                    }
+                }
+            }
+        }
         if (loading || legacyLoading) oms.components.ContentState(LocalizationManager.t("loading_records"), loading = true)
         if (loadFailed) oms.components.ContentState(LocalizationManager.t("load_records_error"), error = true, onRetry = { reloadKey++ })
         if (legacyLoadFailed) oms.components.ContentState(LocalizationManager.t("load_records_error"), error = true, onRetry = { reloadKey++ })
@@ -532,25 +558,31 @@ fun FinancialScreen(
             }
             return total
         }
+        val paymentProjects = subprojectsByCode.values.map { PaymentProjectContext(it.id, it.siteNumber, it.trancheNumber, it.region) }
+        val paymentScope = PaymentMonitoringScope(trancheFilter, subprojectFilter, regionFilter, yearFilter, chartMonthFilter, paymentPurposeFilter)
+        val contextualPayments = scopePaymentTransactions(paymentMonitoring?.transactions.orEmpty(), paymentProjects, paymentScope.copy(purpose = null))
+        val paymentSourceReady = !loading && !loadFailed && !paymentMonitoringLoading && !paymentMonitoringLoadFailed
+        val totalCaption = listOfNotNull(LocalizationManager.t("completed_works_by_acts"), selectedPaymentScopeLabel,
+            paymentPurposeFilter?.let { LocalizationManager.t("payment_purpose_$it") }).joinToString(" · ")
         Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
             BoxWithConstraints(Modifier.fillMaxWidth().padding(16.dp)) {
-                // This value is the approved workbook's dashboard total
-                // (`UR III UAH Payment Dashboard!E4`), rather than a sum of
-                // editable acts. Acts evidence performed work but are not the
-                // authoritative payment source for this programme indicator.
+                // Keep the source dashboard total for the whole programme;
+                // filtered views must use the source's dated transactions.
                 val total = if (useLedger) ledgerCents(scopedLedger.filter {
                     it.act.recordType == "act" && it.act.paymentPurpose == "works"
-                }, "UAH")?.div(100.0) else paymentMonitoring?.summary?.amountPaidTotalUah
+                }, "UAH")?.div(100.0) else if (paymentSourceReady) scopedPaymentTotalUah(
+                    paymentMonitoring?.transactions, paymentProjects, paymentScope, paymentMonitoring?.summary?.amountPaidTotalUah
+                ) else null
                 val amount = total
                     ?.formatUiAmount()?.plus(" ${LocalizationManager.currencyLabel("UAH")}") ?: "—"
                 if (maxWidth >= 620.dp) {
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Text(LocalizationManager.t("completed_works_by_acts"), style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+                        Text(totalCaption, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
                         Text(amount, style = MaterialTheme.typography.headlineMedium)
                     }
                 } else {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text(LocalizationManager.t("completed_works_by_acts"), style = MaterialTheme.typography.titleMedium)
+                        Text(totalCaption, style = MaterialTheme.typography.titleMedium)
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                             Text(amount, style = MaterialTheme.typography.headlineMedium)
                         }
@@ -559,15 +591,12 @@ fun FinancialScreen(
             }
         }
 
-        val paymentProjects = subprojectsByCode.values.map { PaymentProjectContext(it.id, it.siteNumber, it.trancheNumber, it.region) }
-        val paymentScope = PaymentMonitoringScope(trancheFilter, subprojectFilter, regionFilter, yearFilter, chartMonthFilter, paymentPurposeFilter)
-        val contextualPayments = scopePaymentTransactions(paymentMonitoring?.transactions.orEmpty(), paymentProjects, paymentScope.copy(purpose = null))
         fun paidFor(purpose: String): Double? = if (useLedger) {
             ledgerCents(cash.filter { it.act.paymentPurpose == purpose }, "UAH")?.div(100.0)
-        } else paymentMonitoring?.let {
-            contextualPayments.filter { sourcePaymentPurpose(it.code) == purpose }.sumOf { it.amountUah }
-        }
-        PaymentSummaryCards(paidFor("works"), paidFor("technical_supervision"), paidFor("engineer_consultant"))
+        } else if (paymentSourceReady && paymentMonitoring != null) {
+            paymentAmountTotalUah(contextualPayments.filter { sourcePaymentPurpose(it.code) == purpose })
+        } else null
+        PaymentSummaryCards(paidFor("works"), paidFor("technical_supervision"), paidFor("engineer_consultant"), selectedPaymentScopeLabel)
 
         val fundingByUuid = regionalFunding.orEmpty().associateBy { it.projectUuid }
         val regionalPlanProjects = subprojectsByCode.values
@@ -1306,7 +1335,7 @@ private fun Int.financialTrancheCode(): String = if (this == 2 || this == 9) "B"
 
 /** Compact, source-backed payment totals shown above the read-only register. */
 @Composable
-private fun PaymentSummaryCards(works: Double?, supervision: Double?, consultant: Double?) {
+private fun PaymentSummaryCards(works: Double?, supervision: Double?, consultant: Double?, scopeLabel: String? = null) {
     val entries = listOf(
         "payment_purpose_works" to works,
         "payment_purpose_technical_supervision" to supervision,
@@ -1324,7 +1353,7 @@ private fun PaymentSummaryCards(works: Double?, supervision: Double?, consultant
             ) {
                 Column(Modifier.padding(horizontal = 14.dp, vertical = 12.dp)) {
                     Text(
-                        LocalizationManager.t(labelKey),
+                        listOfNotNull(LocalizationManager.t(labelKey), scopeLabel).joinToString(" · "),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSecondaryContainer
                     )

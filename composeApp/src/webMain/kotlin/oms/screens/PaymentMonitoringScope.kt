@@ -49,3 +49,20 @@ internal fun scopePaymentTransactions(rows: List<ApiPaymentMonitoringTransaction
             (scope.purpose == null || sourcePaymentPurpose(row.code) == scope.purpose)
     }
 }
+
+/** Sum auditable transactions, not cumulative parent/lot summary rows. */
+internal fun paymentAmountTotalUah(rows: List<ApiPaymentMonitoringTransaction>): Double? {
+    var total = 0L
+    for (row in rows) {
+        val cents = oms.urp3.decimalMoneyCents(row.amountUah) ?: return null
+        if ((cents > 0 && total > Long.MAX_VALUE - cents) || (cents < 0 && total < Long.MIN_VALUE - cents)) return null
+        total += cents
+    }
+    return total / 100.0
+}
+
+internal fun scopedPaymentTotalUah(
+    rows: List<ApiPaymentMonitoringTransaction>?, projects: List<PaymentProjectContext>,
+    scope: PaymentMonitoringScope, unfilteredTotal: Double?
+): Double? = if (scope == PaymentMonitoringScope()) unfilteredTotal
+else rows?.let { paymentAmountTotalUah(scopePaymentTransactions(it, projects, scope)) }
