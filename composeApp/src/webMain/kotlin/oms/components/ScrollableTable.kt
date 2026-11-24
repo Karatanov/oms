@@ -78,7 +78,11 @@ fun ScrollableTable(
     // Keep a wide table's intrinsic width inside its own viewport. Without
     // this clip, Compose/Wasm can propagate the child width to the page and
     // create a horizontal scrollbar above the table and its charts.
-    Box(modifier.fillMaxWidth().clipToBounds()) {
+    BoxWithConstraints(modifier.fillMaxWidth().clipToBounds()) {
+        // A frozen identifier must not consume the phone's data viewport.
+        // Keep the original columns intact and scroll them together when
+        // there is insufficient room beside the pinned strip.
+        val canPinStart = pinnedStartWidth != null && maxWidth - pinnedStartWidth >= 240.dp
         Column(
             Modifier.fillMaxWidth()
                 .onGloballyPositioned { coordinates ->
@@ -121,7 +125,7 @@ fun ScrollableTable(
         // position: sticky.  Render a narrow duplicate leading strip only
         // once the user starts moving horizontally; it preserves the actual
         // table body and does not recreate or scroll its rows.
-        if (scroll.value > 0 && pinnedStartWidth != null && pinnedStartHeader != null && pinnedStartContent != null) {
+        if (canPinStart && scroll.value > 0 && pinnedStartWidth != null && pinnedStartHeader != null && pinnedStartContent != null) {
             // An explicit width is essential on Web/Wasm: an unconstrained
             // sibling Column may be measured to the full viewport width and
             // paint an opaque surface over every non-frozen column.
