@@ -45,6 +45,7 @@ fun ScrollableTable(
     var tableTopInRoot by remember { mutableStateOf(0f) }
     var tableTopInPage by remember { mutableStateOf<Float?>(null) }
     var tableHeight by remember { mutableStateOf(0) }
+    var tableViewportWidth by remember { mutableStateOf(0) }
     var headerHeight by remember { mutableStateOf(0) }
     // Browser/Wasm scrolling is applied as a layer transform, so layout
     // coordinates alone can remain stale while the page moves.  Keep the
@@ -69,8 +70,10 @@ fun ScrollableTable(
         liveTableTop < window.innerHeight.toFloat() &&
         liveTableTop + tableHeight > contentTop
     val navigatorVisible = showScrollControls && interactive && scroll.maxValue > 0 && tableVisibleInViewport
-    DisposableEffect(navigatorId, navigatorVisible) {
-        if (navigatorVisible) navigatorOverlay.show(navigatorId, scroll)
+    val mobile = oms.layout.LocalMobileLayout.current
+    val navigationStep = (tableViewportWidth * .8f).coerceIn(1f, 720f)
+    DisposableEffect(navigatorId, navigatorVisible, navigationStep, mobile) {
+        if (navigatorVisible) navigatorOverlay.show(navigatorId, scroll, navigationStep, mobile)
         else navigatorOverlay.dismiss(navigatorId)
         onDispose { navigatorOverlay.dismiss(navigatorId) }
     }
@@ -93,6 +96,7 @@ fun ScrollableTable(
                     tableTopInRoot = top
                     tableTopInPage = top + (pageScrollState?.value ?: 0)
                     tableHeight = coordinates.size.height
+                    tableViewportWidth = coordinates.size.width
                 }
         ) {
             // The header itself must live outside the clipped horizontal-scroll

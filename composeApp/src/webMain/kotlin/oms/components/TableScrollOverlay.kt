@@ -20,16 +20,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.zIndex
 import androidx.compose.ui.unit.dp
-import oms.layout.LocalMobileLayout
 
-private data class ActiveTableNavigator(val id: Any, val scroll: ScrollState)
+private data class ActiveTableNavigator(val id: Any, val scroll: ScrollState, val stepDistance: Float, val mobile: Boolean)
 
 internal class TableScrollOverlayState {
     private var active by mutableStateOf<ActiveTableNavigator?>(null)
     var hidden by mutableStateOf(false)
 
-    fun show(id: Any, scroll: ScrollState) {
-        active = ActiveTableNavigator(id, scroll)
+    fun show(id: Any, scroll: ScrollState, stepDistance: Float, mobile: Boolean) {
+        active = ActiveTableNavigator(id, scroll, stepDistance, mobile)
     }
 
     fun dismiss(id: Any) {
@@ -46,7 +45,7 @@ internal class TableScrollOverlayState {
         if (navigator.scroll.maxValue <= 0) return
         Surface(
             modifier = Modifier.align(Alignment.BottomCenter)
-                .width(if (LocalMobileLayout.current) 176.dp else 208.dp)
+                .width(if (navigator.mobile) 176.dp else 208.dp)
                 .padding(top = 8.dp)
                 .zIndex(100f)
                 .shadow(6.dp),
@@ -54,7 +53,7 @@ internal class TableScrollOverlayState {
             tonalElevation = 2.dp,
             shape = MaterialTheme.shapes.medium
         ) {
-            TableScrollControls(navigator.scroll)
+            TableScrollControls(navigator.scroll, stepDistance = navigator.stepDistance)
         }
     }
 }
