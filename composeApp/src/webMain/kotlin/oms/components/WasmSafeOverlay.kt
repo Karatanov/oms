@@ -1,6 +1,9 @@
 package oms.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -22,11 +25,19 @@ import androidx.compose.ui.semantics.*
 import oms.localization.LocalizationManager
 
 /** Page-level dialog replacement that does not use the unstable Wasm browser popup layer. */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun WasmSafeOverlay(onDismiss: (() -> Unit)? = null, errorMessage: String? = null, content: @Composable () -> Unit) {
     val requester = remember { FocusRequester() }
+    val errorVisibility = remember { BringIntoViewRequester() }
     LaunchedEffect(Unit) { requester.requestFocus() }
-    Box(
+    LaunchedEffect(errorMessage) {
+        if (!errorMessage.isNullOrBlank()) {
+            withFrameNanos { }
+            errorVisibility.bringIntoView()
+        }
+    }
+    BoxWithConstraints(
         modifier = Modifier.fillMaxSize()
             .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.32f))
             .focusRequester(requester)
@@ -44,12 +55,18 @@ fun WasmSafeOverlay(onDismiss: (() -> Unit)? = null, errorMessage: String? = nul
         // scrolling dialog keeps its actions and all fields reachable instead
         // of letting the lower part be clipped by the browser viewport.
         Column(
-            Modifier.fillMaxWidth().padding(12.dp).widthIn(max = 960.dp)
+            Modifier.align(if (maxHeight < 480.dp) Alignment.TopCenter else Alignment.Center)
+                .padding(if (maxWidth < 600.dp) 8.dp else 12.dp)
+                .widthIn(max = 960.dp).fillMaxWidth()
                 .verticalScroll(rememberScrollState())
             .semantics { paneTitle = LocalizationManager.t("edit_dialog") },
             verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Box(Modifier.fillMaxWidth()) { content() }
-            errorMessage?.let { ContentState(it, error = true) }
+            errorMessage?.let { message ->
+                Box(Modifier.fillMaxWidth().bringIntoViewRequester(errorVisibility)) {
+                    ContentState(message, error = true)
+                }
+            }
         }
     }
 }
