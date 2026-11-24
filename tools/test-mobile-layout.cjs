@@ -50,6 +50,15 @@ const origin = 'http://127.0.0.1:18088';
       assert.equal(content.x, mobile ? 0 : (viewport.width < 1100 ? 72 : 248), 'Mobile content must not reserve a sidebar lane');
       await page.screenshot({ path: `build/mobile-layout-screenshots/map-${viewport.width}x${viewport.height}.png` });
       if (mobile) {
+        // Compose paints the actual hit target on its canvas. Forcing a DOM
+        // click scrolls the transient semantics node and can collapse its bounds.
+        const tapControl = async id => {
+          const control = page.locator('#' + id);
+          await control.waitFor({ state: 'visible' });
+          const rect = await control.boundingBox();
+          assert.ok(rect && rect.width > 0 && rect.height > 0, id + ' must have a hit target');
+          await page.mouse.click(rect.x + rect.width / 2, rect.y + rect.height / 2);
+        };
         // Real taps, rather than calling the state setter, verify the drawer's hit targets.
         await page.mouse.click(28, 28);
         await page.waitForFunction(() => document.body.classList.contains('mobile-navigation-open'));
@@ -63,22 +72,18 @@ const origin = 'http://127.0.0.1:18088';
         await page.mouse.click(28, 28);
         await page.waitForFunction(() => document.body.classList.contains('mobile-navigation-open'));
         // Compose exposes semantic bounds behind its canvas; click those bounds on the canvas.
-        const projectsLink = page.locator('#sidebar-projects');
-        await projectsLink.waitFor({ state: 'visible' });
-        await projectsLink.click({ force: true });
+        await tapControl('sidebar-projects');
         await ready('Projects');
         assert.equal(await page.evaluate(() => document.body.classList.contains('mobile-navigation-open')), false, 'Navigation closes the drawer');
         await navigate('map', 'Projects Map');
         // The filter toggle remains reachable in portrait and short landscape views.
-        const toggle = page.locator('#map-filter-toggle');
-        await toggle.waitFor({ state: 'visible' });
-        await toggle.click({ force: true });
+        await tapControl('map-filter-toggle');
         await page.waitForFunction(height => {
           const current = document.getElementById('map-pane').getBoundingClientRect().height;
           return current >= 100 && current < height;
         }, map.height);
         await page.screenshot({ path: `build/mobile-layout-screenshots/filters-${viewport.width}x${viewport.height}.png` });
-        await toggle.click({ force: true });
+        await tapControl('map-filter-toggle');
         await page.waitForFunction(height => Math.abs(document.getElementById('map-pane').getBoundingClientRect().height - height) <= 1, map.height);
         // Switch language with the toolbar button and recheck translated controls.
         await page.mouse.click(viewport.width - 28, 28);
