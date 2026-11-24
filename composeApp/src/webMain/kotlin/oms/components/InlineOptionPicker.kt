@@ -33,6 +33,7 @@ fun <T> InlineOptionPicker(
     modifier: Modifier = Modifier, fillWidth: Boolean = true, enabled: Boolean = true,
     clearLabel: String? = null, onClear: (() -> Unit)? = null,
     compact: Boolean = false,
+    showSelectionContext: Boolean = false,
     loadOptionsOnOpen: (suspend () -> List<T>)? = null
 ) {
     val host = LocalOptionOverlay.current
@@ -142,7 +143,7 @@ fun <T> InlineOptionPicker(
         ) {
         Column {
             Text(
-                selected?.let(itemLabel) ?: prompt,
+                selected?.let { if (showSelectionContext) "$prompt: ${itemLabel(it)}" else itemLabel(it) } ?: prompt,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 style = if (compact) MaterialTheme.typography.labelMedium else MaterialTheme.typography.bodyMedium

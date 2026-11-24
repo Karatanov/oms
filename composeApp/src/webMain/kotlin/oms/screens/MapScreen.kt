@@ -143,7 +143,10 @@ fun MapScreen(onOpenProject: (Project) -> Unit = {}, requestedTrancheFilter: Int
                                     statusControl(Modifier.width(174.dp))
                                 } else Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                     searchControl(Modifier.fillMaxWidth())
-                                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    if (maxWidth < 480.dp) {
+                                        regionControl(Modifier.fillMaxWidth())
+                                        statusControl(Modifier.fillMaxWidth())
+                                    } else Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                         regionControl(Modifier.weight(1f))
                                         statusControl(Modifier.weight(1f))
                                     }

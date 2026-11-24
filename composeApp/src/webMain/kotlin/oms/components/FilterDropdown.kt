@@ -91,6 +91,7 @@ fun <T> FilterDropdown(
             itemLabel = itemLabel,
             modifier = resolvedModifier,
             fillWidth = false,
+            showSelectionContext = true,
             clearLabel = LocalizationManager.t("all"),
             onClear = { onSelect(null) }
         )
