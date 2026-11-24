@@ -54,10 +54,20 @@ const origin = 'http://127.0.0.1:18088';
         // click scrolls the transient semantics node and can collapse its bounds.
         const tapControl = async id => {
           const control = page.locator('#' + id);
-          await control.waitFor({ state: 'visible' });
-          const rect = await control.boundingBox();
-          assert.ok(rect && rect.width > 0 && rect.height > 0, id + ' must have a hit target');
-          await page.mouse.click(rect.x + rect.width / 2, rect.y + rect.height / 2);
+          const deadline = Date.now() + 10000;
+          let previous;
+          while (Date.now() < deadline) {
+            const rect = await control.boundingBox({ timeout: 10000 });
+            if (rect && rect.width > 0 && rect.height > 0 &&
+                previous && rect.x === previous.x && rect.y === previous.y &&
+                rect.width === previous.width && rect.height === previous.height) {
+              await page.mouse.click(rect.x + rect.width / 2, rect.y + rect.height / 2);
+              return;
+            }
+            previous = rect;
+            await page.evaluate(() => new Promise(resolve => requestAnimationFrame(resolve)));
+          }
+          assert.fail(id + ' did not acquire stable hit bounds');
         };
         // Real taps, rather than calling the state setter, verify the drawer's hit targets.
         await page.mouse.click(28, 28);
