@@ -800,10 +800,7 @@ private fun ReadOnlyQualityAssessmentTable(
     photoCaptionCandidates: List<String>
 ) {
     val headerColor = MaterialTheme.colorScheme.surfaceVariant
-    Column(
-        Modifier.fillMaxWidth().border(1.dp, MaterialTheme.colorScheme.outlineVariant),
-        verticalArrangement = Arrangement.spacedBy(0.dp)
-    ) {
+    ReadablePreviewTable {
         Row(Modifier.fillMaxWidth().background(headerColor).padding(horizontal = 10.dp, vertical = 8.dp)) {
             Text(LocalizationManager.t("sir_quality_work"), Modifier.weight(1f), style = MaterialTheme.typography.labelMedium)
             Text(LocalizationManager.t("sir_quality_comment"), Modifier.weight(1.4f), style = MaterialTheme.typography.labelMedium)
@@ -845,10 +842,7 @@ private fun ReadOnlyPurchasedMaterialsTable(
     photoCaptionCandidates: List<String>
 ) {
     val headerColor = MaterialTheme.colorScheme.surfaceVariant
-    Column(
-        Modifier.fillMaxWidth().border(1.dp, MaterialTheme.colorScheme.outlineVariant),
-        verticalArrangement = Arrangement.spacedBy(0.dp)
-    ) {
+    ReadablePreviewTable {
         Row(Modifier.fillMaxWidth().background(headerColor).padding(horizontal = 10.dp, vertical = 8.dp)) {
             Text(LocalizationManager.t("sir_materials_equipment"), Modifier.weight(1.25f), style = MaterialTheme.typography.labelMedium)
             Text(LocalizationManager.t("sir_material_characteristics"), Modifier.weight(1f), style = MaterialTheme.typography.labelMedium)
@@ -897,10 +891,7 @@ private fun ReadOnlyActivitiesTable(
         return
     }
     val headerColor = MaterialTheme.colorScheme.surfaceVariant
-    Column(
-        Modifier.fillMaxWidth().border(1.dp, MaterialTheme.colorScheme.outlineVariant),
-        verticalArrangement = Arrangement.spacedBy(0.dp)
-    ) {
+    ReadablePreviewTable {
         Row(Modifier.fillMaxWidth().background(headerColor).padding(horizontal = 10.dp, vertical = 8.dp)) {
             Text(LocalizationManager.t("sir_activity_location"), Modifier.weight(1f), style = MaterialTheme.typography.labelMedium)
             Text(LocalizationManager.t("sir_activity_description"), Modifier.weight(2f), style = MaterialTheme.typography.labelMedium)
@@ -1417,6 +1408,27 @@ private fun ReportTableHeader(sort: ReportSort, ascending: Boolean, onSort: (Rep
         SortableTableHeader(LocalizationManager.t("uploaded_by_short"), sort == ReportSort.Author, ascending, { onSort(ReportSort.Author) }, Modifier.width(110.dp))
         Box(Modifier.width(240.dp).height(52.dp), contentAlignment = Alignment.Center) {
             Text(LocalizationManager.t("actions"))
+        }
+    }
+}
+
+/** Preserve spreadsheet column widths inside the preview, not on the page. */
+@Composable
+private fun ReadablePreviewTable(content: @Composable ColumnScope.() -> Unit) {
+    val scroll = rememberScrollState()
+    BoxWithConstraints(Modifier.fillMaxWidth()) {
+        val contentWidth = maxOf(maxWidth, 900.dp)
+        val step = with(androidx.compose.ui.platform.LocalDensity.current) { maxWidth.toPx() * .8f }
+        Column(Modifier.fillMaxWidth()) {
+            Box(Modifier.fillMaxWidth().horizontalScroll(scroll)) {
+                Column(Modifier.width(contentWidth).border(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                    content = content)
+            }
+            if (scroll.maxValue > 0) {
+                Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    oms.components.TableScrollControls(scroll, stepDistance = step)
+                }
+            }
         }
     }
 }
