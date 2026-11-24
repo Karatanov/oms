@@ -635,7 +635,31 @@
             if (id !== "oms-route-transition") pane.inert = !document.getElementById("oms-route-transition")?.hidden;
             pane.classList.toggle("oms-pane-clipped", height <= 0 || width <= 0);
             Object.assign(pane.style, { left: x + "px", top: y + "px", width: width + "px", height: height + "px", right: "auto", bottom: "auto" });
+            if (id === "dashboard-photo-slider") updateOmsTooltipPhotoClip();
             if (id === "map-pane" && urp3LeafletMap) urp3LeafletMap.invalidateSize({pan: false});
+        }
+
+        let omsTooltipBounds = null;
+        function setOmsTooltipBounds(x, y, width, height) {
+            omsTooltipBounds = width > 0 && height > 0 ? { x, y, width, height } : null;
+            updateOmsTooltipPhotoClip();
+        }
+
+        function updateOmsTooltipPhotoClip() {
+            const pane = document.getElementById("dashboard-photo-slider");
+            if (!pane) return;
+            pane.style.removeProperty("clip-path");
+            if (!omsTooltipBounds) return;
+            // Photos are native DOM above the Compose canvas. Cut out only the
+            // tooltip intersection (including its shadow), not the whole pane.
+            const rect = pane.getBoundingClientRect();
+            const tooltip = omsTooltipBounds;
+            const left = Math.max(0, tooltip.x - rect.left - 6);
+            const top = Math.max(0, tooltip.y - rect.top - 6);
+            const right = Math.min(rect.width, tooltip.x + tooltip.width - rect.left + 6);
+            const bottom = Math.min(rect.height, tooltip.y + tooltip.height - rect.top + 6);
+            if (right <= left || bottom <= top) return;
+            pane.style.clipPath = `polygon(evenodd, 0px 0px, ${rect.width}px 0px, ${rect.width}px ${rect.height}px, 0px ${rect.height}px, 0px 0px, ${left}px ${top}px, ${right}px ${top}px, ${right}px ${bottom}px, ${left}px ${bottom}px, ${left}px ${top}px)`;
         }
 
         function setOmsCanvasOverlay(active) {

@@ -46,6 +46,34 @@ const source = fs.readFileSync('composeApp/src/webMain/resources/index.html', 'u
     assert.equal(await page.locator('#map-pane').evaluate(el => el.inert), false);
     await page.evaluate(() => hideOmsLoading());
     assert.equal(await page.locator('#oms-operation-progress.visible').count(), 0);
+    // The photo pane must not paint or intercept events over an in-canvas tooltip.
+    await page.evaluate(() => {
+      const host = document.getElementById('compose-host');
+      host.style.background = 'white';
+      const tooltip = document.createElement('div');
+      tooltip.id = 'tooltip-test';
+      Object.assign(tooltip.style, { position: 'absolute', left: '300px', top: '490px', width: '200px', height: '100px', background: 'black' });
+      host.appendChild(tooltip);
+      const photos = document.getElementById('dashboard-photo-slider');
+      photos.classList.add('visible');
+      setOmsPaneBounds(photos.id, 250, 500, 700, 200);
+      setOmsTooltipBounds(300, 490, 200, 100);
+    });
+    const hit = (x, y) => page.evaluate(({ x, y }) => document.elementFromPoint(x, y)?.id, { x, y });
+    assert.equal(await hit(350, 550), 'tooltip-test', 'tooltip stays above overlapping photos');
+    assert.equal(await hit(600, 550), 'dashboard-photo-slider', 'other photos remain interactive');
+    await page.evaluate(() => setOmsPaneBounds('dashboard-photo-slider', 280, 520, 600, 160));
+    assert.equal(await hit(350, 550), 'tooltip-test', 'clipping follows layout/viewport changes');
+    for (let i = 0; i < 10; i++) {
+      await page.evaluate(() => setOmsTooltipBounds(0, 0, 0, 0));
+      assert.equal(await hit(350, 550), 'dashboard-photo-slider', 'dismissal restores photos');
+      await page.evaluate(() => setOmsTooltipBounds(300, 490, 200, 100));
+      assert.equal(await hit(350, 550), 'tooltip-test');
+    }
+    await page.evaluate(() => setOmsTooltipBounds(10, 10, 100, 50));
+    assert.equal(await page.locator('#dashboard-photo-slider').evaluate(el => el.style.clipPath), '', 'non-overlapping tooltip does not clip photos');
+    await page.evaluate(() => setOmsTooltipBounds(0, 0, 0, 0));
+    console.log('PASS tooltip/photo layering: overlap, native interactions, resize, dismissal, repeated toggling');
     console.log('PASS scoped overlay: bounds, delay, UK/EN, retry, inert panes, independent operation progress');
   } finally { await browser.close(); }
 })().catch(error => { console.error(error); process.exitCode = 1; });

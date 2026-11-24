@@ -28,6 +28,10 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
+import kotlin.js.JsName
+
+@JsName("setOmsTooltipBounds")
+private external fun setOmsTooltipBounds(x: Float, y: Float, width: Float, height: Float)
 
 private data class TooltipEntry(
     val id: Any,
@@ -46,6 +50,15 @@ private val LocalTooltipOverlay = staticCompositionLocalOf<TooltipOverlayState> 
 @Composable
 fun TooltipOverlayHost(content: @Composable () -> Unit) {
     val state = remember { TooltipOverlayState() }
+    val densityScale = LocalDensity.current.density
+    var tooltipBounds by remember(state.entry?.id) { mutableStateOf<Rect?>(null) }
+    DisposableEffect(tooltipBounds, densityScale) {
+        tooltipBounds?.let { bounds ->
+            setOmsTooltipBounds(bounds.left / densityScale, bounds.top / densityScale,
+                bounds.width / densityScale, bounds.height / densityScale)
+        }
+        onDispose { setOmsTooltipBounds(0f, 0f, 0f, 0f) }
+    }
     CompositionLocalProvider(LocalTooltipOverlay provides state) {
         BoxWithConstraints(Modifier.fillMaxSize()) {
             content()
@@ -72,6 +85,7 @@ fun TooltipOverlayHost(content: @Composable () -> Unit) {
                     .coerceIn(8.dp, (maxHeight - placedHeight - 8.dp).coerceAtLeast(8.dp))
                 Surface(
                     Modifier.offset(x, y).widthIn(max = width).heightIn(max = availableHeight)
+                        .onGloballyPositioned { if (it.isAttached) tooltipBounds = it.boundsInRoot() }
                         .onSizeChanged { measuredHeight = with(density) { it.height.toDp() } }
                         .onPreviewKeyEvent { event ->
                             if (event.type == KeyEventType.KeyDown && event.key == Key.Escape && tooltip.onDismiss != null) {
