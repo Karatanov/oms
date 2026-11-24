@@ -404,7 +404,7 @@ fun ProcurementScreen(
                         modifier = Modifier.clickable { refreshUriHandler.openUri(procurementSourceWorkbookUrl) }
                     )
                 }
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
+                oms.components.WrappingActions(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
                     oms.components.WorkspaceOutlinedButton(onClick = { refreshConfirmationOpen = false }) { Text(LocalizationManager.t("cancel")) }
                     oms.components.WorkspaceOutlinedButton(onClick = {
                         refreshConfirmationOpen = false

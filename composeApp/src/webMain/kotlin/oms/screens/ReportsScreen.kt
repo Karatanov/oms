@@ -559,7 +559,7 @@ private fun ReportPreviewDialog(report: ReportRow, onDismiss: () -> Unit) {
                     } else if (loaded.sheets.isEmpty()) {
                         Text(LocalizationManager.t("report_preview_empty"))
                     } else {
-                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        oms.components.WrappingActions(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             loaded.sheets.forEachIndexed { index, sheet ->
                                 oms.components.WorkspaceFilterChip(
                                     selected = selectedSheet == index,
@@ -1104,12 +1104,12 @@ private fun ReportEditorDialog(
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 3
             )
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            oms.components.ResponsiveFormRow { fieldModifier ->
                 OutlinedTextField(
                     value = latitude,
                     onValueChange = { value -> value.coordinateInputOrNull()?.let { latitude = it } },
                     label = { Text(LocalizationManager.t("latitude")) },
-                    modifier = Modifier.weight(1f),
+                    modifier = fieldModifier,
                     singleLine = true,
                     isError = latitudeInvalid
                 )
@@ -1117,13 +1117,13 @@ private fun ReportEditorDialog(
                     value = longitude,
                     onValueChange = { value -> value.coordinateInputOrNull()?.let { longitude = it } },
                     label = { Text(LocalizationManager.t("longitude")) },
-                    modifier = Modifier.weight(1f),
+                    modifier = fieldModifier,
                     singleLine = true,
                     isError = longitudeInvalid
                 )
             }
             Text(LocalizationManager.t("attachments"), style = MaterialTheme.typography.titleSmall)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            oms.components.WrappingActions(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 oms.components.WorkspaceOutlinedButton(onClick = {
                     openInspectionSourceReplacement(report.report.uuid) { }
                 }) {
@@ -1139,7 +1139,7 @@ private fun ReportEditorDialog(
                     Text(LocalizationManager.t("upload_photo"))
                 }
             }
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
+            oms.components.WrappingActions(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
                 oms.components.WorkspaceOutlinedButton(onClick = onDismiss) { Text(LocalizationManager.t("cancel")) }
                 oms.components.WorkspaceButton(
                     onClick = {
@@ -1206,7 +1206,7 @@ private fun ReviewReportDialog(
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 3
             )
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
+            oms.components.WrappingActions(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
                 oms.components.WorkspaceOutlinedButton(onClick = onDismiss) { Text(LocalizationManager.t("cancel")) }
                 oms.components.WorkspaceOutlinedButton(
                     onClick = { onReview("reject", rejectionReason.trim()) },
@@ -1253,7 +1253,7 @@ private fun FindingsDialog(report: ReportRow, onDismiss: () -> Unit) {
                             Text("${finding.category} • ${LocalizationManager.t("severity_${finding.severity.lowercase()}")}${if (finding.isResolved) " • ${LocalizationManager.t("resolved")}" else ""}", style = MaterialTheme.typography.titleSmall)
                             Text(finding.description)
                             finding.recommendation?.let { Text("${LocalizationManager.t("recommendation")}: $it", style = MaterialTheme.typography.bodySmall) }
-                            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            oms.components.WrappingActions(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                                 oms.components.WorkspaceTextButton(onClick = { editing = finding }) { Text(LocalizationManager.t("edit")) }
                                 oms.components.WorkspaceTextButton(onClick = {
                                     scope.launch {
@@ -1272,7 +1272,7 @@ private fun FindingsDialog(report: ReportRow, onDismiss: () -> Unit) {
                     }
                 }
                 error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
+            oms.components.WrappingActions(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
                 oms.components.WorkspaceOutlinedButton(onClick = onDismiss) { Text(LocalizationManager.t("close")) }
                 oms.components.WorkspaceButton(onClick = { adding = true }) { Text(LocalizationManager.t("add_finding")) }
             }
@@ -1295,13 +1295,13 @@ private fun FindingEditorDialog(
         Column(Modifier.padding(20.dp).heightIn(max = 560.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text(if (finding == null) LocalizationManager.t("add_finding") else LocalizationManager.t("edit_finding"), style = MaterialTheme.typography.titleLarge)
                 OutlinedTextField(category, { category = it.safeTextInput(200) }, label = { Text(LocalizationManager.t("category")) }, modifier = Modifier.fillMaxWidth())
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                oms.components.WrappingActions(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     listOf("low", "medium", "high", "critical").forEach { value -> oms.components.WorkspaceFilterChip(selected = severity == value, onClick = { severity = value }, label = { Text(LocalizationManager.t("severity_$value")) }) }
                 }
                 OutlinedTextField(description, { description = it.safeTextInput(8_000) }, label = { Text(LocalizationManager.t("description")) }, minLines = 3, modifier = Modifier.fillMaxWidth())
                 OutlinedTextField(recommendation, { recommendation = it.safeTextInput(8_000) }, label = { Text(LocalizationManager.t("recommendation")) }, minLines = 2, modifier = Modifier.fillMaxWidth())
                 if (finding != null) Row(verticalAlignment = Alignment.CenterVertically) { Checkbox(isResolved, { isResolved = it }); Text(LocalizationManager.t("resolved")) }
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
+            oms.components.WrappingActions(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
                 oms.components.WorkspaceOutlinedButton(onClick = onDismiss) { Text(LocalizationManager.t("cancel")) }
                 oms.components.WorkspaceButton(onClick = { onSave(category, severity, description, recommendation.ifBlank { null }, isResolved) }, enabled = category.isNotBlank() && description.isNotBlank()) { Text(LocalizationManager.t("save")) }
             }

@@ -42,7 +42,7 @@ internal fun ProjectForm(
         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             FormSectionTitle(L.t("basic_information"), Icons.Default.Folder)
             if (!editing) {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                oms.components.WrappingActions(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     listOf("project", "subproject", "subproject_part").forEach { type ->
                         oms.components.WorkspaceFilterChip(selected = state.projectType == type, onClick = {
                             state.projectType = type

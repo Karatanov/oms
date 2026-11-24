@@ -11,3 +11,11 @@ All workspace pages use the same theme and controls. Apply visual changes to sha
 - Keep chart-specific compact navigation and layouts. Avoid changing chart sizing through general-purpose control replacements.
 
 Do not introduce page-specific copies of shared control styles. When adjusting a shared component, consider desktop wrapping, mobile stacking, dialogs and authentication forms together.
+
+## Narrow layouts
+
+- Use `WrappingActions` for dialog footers, attachment actions and short chip groups. Do not place multiple unrestricted buttons beside a weighted title.
+- Use `ResponsiveFormRow` for repeated inspection fields. It stacks fields below 900 dp of actual available width, including narrow desktop dialogs.
+- Use `ResponsiveDetailRow` for record labels and values. Below 600 dp, the label sits above its value instead of reserving a 210 dp label column.
+- Search, PDF export and pagination require separate wrapping rows below 1000 dp. Keep the data table inside `ScrollableTable`; do not shrink its columns to fit a phone.
+- Review both languages at 320, 360, 390, 430 and 768 px, plus landscape with the on-screen keyboard. Check long names, empty results, filtered lists, all dialog actions, and horizontal scrolling. These are verification targets, not a claim that runtime checks have passed.

@@ -381,7 +381,7 @@ fun ProjectsScreen(
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text(LocalizationManager.t("reassign_projects"), style = MaterialTheme.typography.titleMedium)
                     InlineOptionPicker(managers, selectedManager, LocalizationManager.t("role_project_manager"), { selectedManager = it }, { "${it.firstName} ${it.lastName} (${it.username})" })
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
+                    oms.components.WrappingActions(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
                         oms.components.WorkspaceOutlinedButton(onClick = { showReassign = false }) { Text(LocalizationManager.t("cancel")) }
                         oms.components.WorkspaceButton(onClick = {
                             selectedManager?.let { manager ->
@@ -425,7 +425,7 @@ fun ProjectsScreen(
                     Text(LocalizationManager.t("subproject_registry_refresh_instruction_step_2"), style = MaterialTheme.typography.bodyMedium)
                     Text(LocalizationManager.t("subproject_registry_refresh_instruction_step_3"), style = MaterialTheme.typography.bodyMedium)
                 }
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
+                oms.components.WrappingActions(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
                     oms.components.WorkspaceOutlinedButton(onClick = { registryRefreshConfirmationOpen = false }) { Text(LocalizationManager.t("cancel")) }
                     oms.components.WorkspaceButton(onClick = {
                         registryRefreshConfirmationOpen = false
@@ -547,7 +547,7 @@ fun ProjectsTable(
 
     Column(Modifier.fillMaxWidth()) {
         BoxWithConstraints(Modifier.fillMaxWidth()) {
-            if (maxWidth >= 620.dp) Row(
+            if (maxWidth >= 1000.dp) Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically
@@ -563,7 +563,7 @@ fun ProjectsTable(
                 ProjectPagination(pageSize, currentPage, pageCount, sortedProjects.size, { pageSize = it }) { currentPage = it.coerceIn(0, pageCount - 1) }
             } else Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 oms.components.WorkspaceSearchField(value = searchText, onValueChange = onSearchTextChange, label = LocalizationManager.t("search_project"), modifier = Modifier.fillMaxWidth())
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
+                oms.components.WrappingActions(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
                     onExportPdf?.let { export -> oms.components.WorkspaceOutlinedButton(onClick = { export(sortedProjects.map { it.project.id }) }, enabled = sortedProjects.isNotEmpty()) { Text(LocalizationManager.t("export_pdf")) } }
                     ProjectPagination(pageSize, currentPage, pageCount, sortedProjects.size, { pageSize = it }) { currentPage = it.coerceIn(0, pageCount - 1) }
                 }

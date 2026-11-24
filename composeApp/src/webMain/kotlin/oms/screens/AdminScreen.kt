@@ -397,7 +397,7 @@ fun AdminScreen() {
                     Text(LocalizationManager.t("archive"), style = MaterialTheme.typography.titleLarge)
                     Text(user.username, style = MaterialTheme.typography.titleMedium)
                     Text(LocalizationManager.t("archive_confirmation"))
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
+                    oms.components.WrappingActions(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
                     oms.components.WorkspaceOutlinedButton(onClick = { userPendingDeletion = null }) { Text(LocalizationManager.t("cancel")) }
                     oms.components.WorkspaceButton(
                         onClick = {
@@ -430,7 +430,7 @@ fun AdminScreen() {
                             dependencies.forEach { (name, count) -> Text("• $count $name") }
                         }
                     }
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
+                    oms.components.WrappingActions(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
                         oms.components.WorkspaceOutlinedButton(onClick = { userPendingPermanentDeletion = null }) { Text(LocalizationManager.t("cancel")) }
                         oms.components.WorkspaceButton(
                             enabled = permanentDeleteDependencies?.isEmpty() == true,
@@ -524,7 +524,7 @@ private fun CreateUserDialog(roles: List<ApiRole>, roleNotice: @Composable () ->
             role?.let { RolePermissionsHint(it.code) }
             }
             saveError?.let { oms.components.ContentState(it, error = true) }
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
+            oms.components.WrappingActions(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
                 oms.components.WorkspaceOutlinedButton(onClick = onDismiss, enabled = !saving) { Text(LocalizationManager.t("cancel")) }
             oms.components.WorkspaceButton(
                 onClick = {
@@ -637,7 +637,7 @@ private fun EditUserDialog(
             )
             }
             saveError?.let { oms.components.ContentState(it, error = true) }
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
+            oms.components.WrappingActions(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
                 oms.components.WorkspaceOutlinedButton(onClick = onDismiss, enabled = !saving) { Text(LocalizationManager.t("cancel")) }
             oms.components.WorkspaceButton(
                 onClick = { onSave(UpdateUserRequest(username, email, roleCode, password.ifBlank { null }, firstName, lastName, status, region, department, preferredLang)) },

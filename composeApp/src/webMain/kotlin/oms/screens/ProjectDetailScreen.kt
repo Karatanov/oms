@@ -180,7 +180,7 @@ fun ProjectDetailScreen(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 BoxWithConstraints(Modifier.fillMaxWidth()) {
-                if (maxWidth >= 680.dp) Row(
+                if (maxWidth >= 1000.dp) Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -214,7 +214,7 @@ fun ProjectDetailScreen(
                         )
                     }
 
-                    if (canEditProject || canDeleteProject) Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (canEditProject || canDeleteProject) oms.components.WrappingActions(modifier = Modifier.widthIn(max = 360.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         if (canEditProject) {
                         oms.components.WorkspaceButton(onClick = { onEdit(project) }, modifier = Modifier.pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true)) {
                             Icon(
@@ -613,7 +613,7 @@ private fun ProjectGeneralInfoTab(details: oms.data.ApiProjectDetails?) {
                     source.constructionWorkComments?.takeIf(String::isNotBlank)?.let { LocalizationManager.t("construction_work_comments") to it }
                 )
             }.orEmpty()
-            Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 CollapsibleProjectSection(
                     LocalizationManager.t("basic_information"),
                     Icons.Default.Info,
@@ -671,28 +671,24 @@ private fun CollapsibleProjectSection(
         }
         if (expanded) {
             fields.forEach { (label, value) ->
-                Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                oms.components.ResponsiveDetailRow(label = { labelModifier ->
                     if (showProjectStatusInfo && label == LocalizationManager.t("status")) {
-                        oms.components.ProjectStatusLabelWithInfo(
-                            modifier = Modifier.width(210.dp),
-                            style = MaterialTheme.typography.bodyMedium
-                        )
+                        oms.components.ProjectStatusLabelWithInfo(modifier = labelModifier,
+                            style = MaterialTheme.typography.bodyMedium)
                     } else {
-                        Text(label, modifier = Modifier.width(210.dp), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(label, modifier = labelModifier, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
+                }, value = { valueModifier ->
                     if (value.startsWith("https://", ignoreCase = true) || value.startsWith("http://", ignoreCase = true)) {
-                        oms.components.WorkspaceTextButton(
-                            onClick = { uriHandler.openUri(value) },
-                            modifier = Modifier.weight(1f).pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true),
-                            contentPadding = PaddingValues(0.dp)
-                        ) { Text(value, textAlign = TextAlign.Start, modifier = Modifier.fillMaxWidth()) }
-                    } else {
-                        Text(value, modifier = Modifier.weight(1f))
-                    }
-                }
+                        oms.components.WorkspaceTextButton(onClick = { uriHandler.openUri(value) },
+                            modifier = valueModifier, contentPadding = PaddingValues(0.dp)) {
+                            Text(value, textAlign = TextAlign.Start, modifier = Modifier.fillMaxWidth())
+                        }
+                    } else Text(value, modifier = valueModifier)
+                })
                 HorizontalDivider()
             }
-            if (showMapLink) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+            if (showMapLink) oms.components.WrappingActions(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                 oms.components.WorkspaceTextButton(onClick = { clipboard.setText(AnnotatedString(mapUrl)) }, modifier = Modifier.pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true)) { Icon(Icons.Default.ContentCopy, null); Spacer(Modifier.width(6.dp)); Text(LocalizationManager.t("copy_map_link")) }
                 oms.components.WorkspaceTextButton(onClick = { uriHandler.openUri(mapUrl) }, modifier = Modifier.pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true)) { Icon(Icons.Default.OpenInNew, null); Spacer(Modifier.width(6.dp)); Text(LocalizationManager.t("open_in_openstreetmap")) }
             }
@@ -704,10 +700,10 @@ private fun CollapsibleProjectSection(
 private fun ProjectReportsTab(reports: List<ApiInspectionReport>) {
     val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
     Card(Modifier.fillMaxSize()) {
-        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             if (reports.isEmpty()) Text(LocalizationManager.t("no_reports"))
             reports.forEach { report ->
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
+                oms.components.WrappingActions(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
                     oms.components.WorkspaceButton(
                         onClick = { oms.data.openOmsDownload(oms.data.omsApiUrl("/inspection-reports/${report.uuid}/source-file")) },
                         modifier = Modifier.pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true)
@@ -733,7 +729,7 @@ private fun ProjectReportsTab(reports: List<ApiInspectionReport>) {
 private fun ProjectFinancialsTab(financials: ApiFinancialRecords?) {
     val records = financials?.data.orEmpty()
     Card(Modifier.fillMaxSize()) {
-        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(LocalizationManager.t("financial_records"), style = MaterialTheme.typography.titleMedium)
             if (records.isEmpty()) Text(LocalizationManager.t("no_financial_records"))
             else {
@@ -796,7 +792,7 @@ private fun FinancialDetailHeader(key: String, width: androidx.compose.ui.unit.D
 private fun ProjectProcurementTab(records: List<ApiProcurementRecord>) {
     val uriHandler = LocalUriHandler.current
     Card(Modifier.fillMaxSize()) {
-        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             if (records.isEmpty()) {
                 Text(LocalizationManager.t("no_procurement_records"), color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
@@ -817,10 +813,10 @@ private fun ProjectProcurementTab(records: List<ApiProcurementRecord>) {
                 )
                 Text(record.subProjectLotId ?: record.subProjectId, style = MaterialTheme.typography.titleMedium)
                 values.forEach { (label, value) ->
-                    Row(Modifier.fillMaxWidth().padding(vertical = 3.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Text(label, Modifier.width(210.dp), color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text(value, Modifier.weight(1f))
-                    }
+                    oms.components.ResponsiveDetailRow(
+                        label = { Text(label, it, color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                        value = { Text(value, it) }
+                    )
                 }
                 record.prozorroTenderId?.takeIf(String::isNotBlank)?.let { tender ->
                     oms.components.WorkspaceTextButton(
@@ -851,7 +847,7 @@ private fun ProjectDocumentsTab(projectUuid: String, documents: List<ApiProjectD
         it.relatedEntity == "financial_record" || it.docType == "financial_doc"
     }
     Card(Modifier.fillMaxSize()) {
-        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             if (projectDocuments.isEmpty()) Text(LocalizationManager.t("no_project_documents"))
             projectDocuments.forEach { document ->
                 Text(document.fileName, style = MaterialTheme.typography.titleMedium)

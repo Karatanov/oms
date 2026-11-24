@@ -35,13 +35,6 @@ internal fun RepeatableQualityRemarks(
         onChange(values.mapIndexed { current, item -> if (current == index) transform(item) else item })
     }
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(LocalizationManager.t("sir_quality_work"), Modifier.weight(1f), style = MaterialTheme.typography.labelMedium)
-            Text(LocalizationManager.t("sir_quality_comment"), Modifier.weight(1.4f), style = MaterialTheme.typography.labelMedium)
-            Text(LocalizationManager.t("sir_quality_rectification"), Modifier.weight(1.4f), style = MaterialTheme.typography.labelMedium)
-            Text(LocalizationManager.t("sir_quality_status"), Modifier.weight(1f), style = MaterialTheme.typography.labelMedium)
-            Spacer(Modifier.width(40.dp))
-        }
         values.forEachIndexed { index, remark ->
             // Evidence in this section is captioned from the quality comment,
             // not the work name: it is the field that describes the issue
@@ -50,24 +43,24 @@ internal fun RepeatableQualityRemarks(
                 setPendingInspectionPhotoDescription(remark.photoKey, remark.comment)
             }
             Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(remark.work, { value -> update(index) { it.copy(work = value.inspectionText(4_000)) } }, minLines = 2, maxLines = 6, modifier = Modifier.weight(1f))
-                    OutlinedTextField(remark.comment, { value -> update(index) { it.copy(comment = value.inspectionText(8_000)) } }, minLines = 2, maxLines = 6, modifier = Modifier.weight(1.4f))
-                    OutlinedTextField(remark.rectification, { value -> update(index) { it.copy(rectification = value.inspectionText(8_000)) } }, minLines = 2, maxLines = 6, modifier = Modifier.weight(1.4f))
+                oms.components.ResponsiveFormRow { fieldModifier ->
+                    OutlinedTextField(remark.work, { value -> update(index) { it.copy(work = value.inspectionText(4_000)) } }, label = { Text(LocalizationManager.t("sir_quality_work")) }, minLines = 2, maxLines = 6, modifier = fieldModifier)
+                    OutlinedTextField(remark.comment, { value -> update(index) { it.copy(comment = value.inspectionText(8_000)) } }, label = { Text(LocalizationManager.t("sir_quality_comment")) }, minLines = 2, maxLines = 6, modifier = fieldModifier)
+                    OutlinedTextField(remark.rectification, { value -> update(index) { it.copy(rectification = value.inspectionText(8_000)) } }, label = { Text(LocalizationManager.t("sir_quality_rectification")) }, minLines = 2, maxLines = 6, modifier = fieldModifier)
                     InlineOptionPicker(
                         options = rectificationStatuses,
                         selected = remark.status.takeIf { it.isNotBlank() },
                         prompt = LocalizationManager.t("sir_quality_status"),
                         onSelect = { status -> update(index) { it.copy(status = status) } },
                         itemLabel = ::rectificationStatusLabel,
-                        modifier = Modifier.weight(1f)
+                        modifier = fieldModifier
                     )
                     if (values.size > 1) {
                         TableActionIconButton(LocalizationManager.t("delete"), Icons.Default.Remove) {
                             onChange(values.filterIndexed { current, _ -> current != index })
                         }
                     }
-                    else Spacer(Modifier.width(40.dp))
+
                 }
                 oms.components.WorkspaceOutlinedButton(onClick = {
                     openInspectionPhotoPicker(remark.photoKey) { count ->

@@ -880,7 +880,7 @@ fun FinancialScreen(
                 Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text(LocalizationManager.t("payment_monitoring_refresh_confirm_title"), style = MaterialTheme.typography.titleLarge)
                     if (WorkspaceBrand.legacySources) Text(LocalizationManager.t("payment_monitoring_refresh_confirm_message"), style = MaterialTheme.typography.bodyMedium)
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
+                    oms.components.WrappingActions(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
                         oms.components.WorkspaceOutlinedButton(onClick = { paymentMonitoringRefreshConfirmationOpen = false }) { Text(LocalizationManager.t("cancel")) }
                         oms.components.WorkspaceOutlinedButton(onClick = {
                             paymentMonitoringRefreshConfirmationOpen = false
@@ -1035,7 +1035,7 @@ private fun ActEditorDialog(
                 loadProjectsOnOpen().also { availableProjects = it }
             }) { projectUuid = it }
             OutlinedTextField(reference, { reference = it.safeTextInput(500) }, label = { Text(LocalizationManager.t("reference_number")) }, modifier = Modifier.fillMaxWidth())
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            oms.components.WrappingActions(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 listOf("invoice", "act", "payment", "advance").forEach { type -> oms.components.WorkspaceFilterChip(selected = recordType == type, onClick = { recordType = type }, label = { Text(LocalizationManager.t("record_type_$type")) }) }
             }
             if (recordType in setOf("payment", "advance")) {
@@ -1081,7 +1081,7 @@ private fun ActEditorDialog(
                 singleLine = true
             )
             Text(LocalizationManager.t("original_record_currency"), style = MaterialTheme.typography.labelLarge)
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            oms.components.WrappingActions(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 listOf("EUR", "UAH").forEach { code ->
                     oms.components.WorkspaceFilterChip(
                         selected = currency == code,
@@ -1539,17 +1539,13 @@ private fun PaymentMonitoringCard(
                         PaymentMonitoringRow(totals, heading = true)
                         HorizontalDivider()
                     }
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
-                        Text(
+                    oms.components.PageNavigation(currentPage = page.coerceIn(0, pageCount - 1), pageCount = pageCount,
+                        summary =
                             LocalizationManager.t("page_of")
                                 .replace("{page}", (page.coerceIn(0, pageCount - 1) + 1).toString())
                                 .replace("{pages}", pageCount.toString())
                                 .replace("{total}", rows.size.toString()),
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                        PageArrow(forward = false, enabled = page > 0) { page = (page - 1).coerceAtLeast(0) }
-                        PageArrow(forward = true, enabled = page < pageCount - 1) { page = (page + 1).coerceAtMost(pageCount - 1) }
-                    }
+                        onPage = { page = it.coerceIn(0, pageCount - 1) })
                 }
                 PaymentMonitoringTransactionTable(scopePaymentTransactions(snapshot.transactions, projects, context), selectedMonth, codeQuery,
                     title = paymentMonitoringTitle(context.copy(month = selectedMonth ?: context.month), projects, codeQuery, includePeriod = true))
@@ -1736,12 +1732,10 @@ private fun PaymentMonitoringTransactionTable(
         }
         HorizontalDivider()
     }
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
-        Text(LocalizationManager.t("page_of").replace("{page}", (page.coerceIn(0, pageCount - 1) + 1).toString())
-            .replace("{pages}", pageCount.toString()).replace("{total}", rows.size.toString()), style = MaterialTheme.typography.bodySmall)
-        PageArrow(forward = false, enabled = page > 0) { page = (page - 1).coerceAtLeast(0) }
-        PageArrow(forward = true, enabled = page < pageCount - 1) { page = (page + 1).coerceAtMost(pageCount - 1) }
-    }
+    oms.components.PageNavigation(currentPage = page.coerceIn(0, pageCount - 1), pageCount = pageCount,
+                        summary = LocalizationManager.t("page_of").replace("{page}", (page.coerceIn(0, pageCount - 1) + 1).toString())
+            .replace("{pages}", pageCount.toString()).replace("{total}", rows.size.toString()),
+                        onPage = { page = it.coerceIn(0, pageCount - 1) })
 }
 
 @Composable

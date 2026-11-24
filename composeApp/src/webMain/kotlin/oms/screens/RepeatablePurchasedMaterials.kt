@@ -45,17 +45,17 @@ internal fun RepeatablePurchasedMaterials(
             }
             Card(colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FBFC))) {
                 Column(Modifier.fillMaxWidth().padding(10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedTextField(material.materialsAndEquipment, { value -> update(index) { it.copy(materialsAndEquipment = value.inspectionText(4_000)) } }, label = { Text(LocalizationManager.t("sir_materials_equipment")) }, minLines = 2, maxLines = 5, modifier = Modifier.weight(1f))
-                        OutlinedTextField(material.characteristics, { value -> update(index) { it.copy(characteristics = value.inspectionText(4_000)) } }, label = { Text(LocalizationManager.t("sir_material_characteristics")) }, minLines = 2, maxLines = 5, modifier = Modifier.weight(1f))
-                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    oms.components.ResponsiveFormRow { fieldModifier ->
+                        OutlinedTextField(material.materialsAndEquipment, { value -> update(index) { it.copy(materialsAndEquipment = value.inspectionText(4_000)) } }, label = { Text(LocalizationManager.t("sir_materials_equipment")) }, minLines = 2, maxLines = 5, modifier = fieldModifier)
+                        OutlinedTextField(material.characteristics, { value -> update(index) { it.copy(characteristics = value.inspectionText(4_000)) } }, label = { Text(LocalizationManager.t("sir_material_characteristics")) }, minLines = 2, maxLines = 5, modifier = fieldModifier)
+                        Column(fieldModifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
                             Text(LocalizationManager.t("sir_material_per_ded"))
                             Checkbox(
                                 checked = material.perDed.equals("yes", ignoreCase = true),
                                 onCheckedChange = { checked -> update(index) { it.copy(perDed = if (checked) "yes" else "no") } }
                             )
                         }
-                        OutlinedTextField(material.notes, { value -> update(index) { it.copy(notes = value.inspectionText(4_000)) } }, label = { Text(LocalizationManager.t("sir_material_notes")) }, minLines = 2, maxLines = 5, modifier = Modifier.weight(1f))
+                        OutlinedTextField(material.notes, { value -> update(index) { it.copy(notes = value.inspectionText(4_000)) } }, label = { Text(LocalizationManager.t("sir_material_notes")) }, minLines = 2, maxLines = 5, modifier = fieldModifier)
                         TableActionIconButton(LocalizationManager.t("delete"), Icons.Default.Remove) { onChange(values.filterIndexed { current, _ -> current != index }) }
                     }
                     oms.components.WorkspaceOutlinedButton(onClick = {

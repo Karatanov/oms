@@ -197,8 +197,10 @@ fun AdaptivePagination(sizeControls: @Composable () -> Unit, navigation: @Compos
     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
         verticalArrangement = Arrangement.spacedBy(4.dp),
         itemVerticalAlignment = Alignment.CenterVertically) {
-        Row(verticalAlignment = Alignment.CenterVertically) { sizeControls() }
-        Row(verticalAlignment = Alignment.CenterVertically) { navigation() }
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+            itemVerticalAlignment = Alignment.CenterVertically) { sizeControls() }
+        Box(Modifier.widthIn(max = 440.dp)) { navigation() }
     }
 }
 

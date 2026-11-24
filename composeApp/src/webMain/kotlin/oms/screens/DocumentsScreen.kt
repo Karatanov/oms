@@ -238,10 +238,10 @@ fun DocumentsScreen(canManageDocuments: Boolean = true) {
                         }
                     }
                 }
-                Row(Modifier.fillMaxWidth(), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                oms.components.WrappingActions(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(LocalizationManager.t("documents_results")
                         .replace("{shown}", visibleDocuments.size.toString()).replace("{total}", documents.size.toString()),
-                        Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium,
+                        Modifier, style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                     if (hasFilters) oms.components.WorkspaceTextButton(onClick = { search = ""; typeFilter = DocumentTypeFilter.ALL }) {
                         Text(LocalizationManager.t("reset_filters"))
@@ -537,7 +537,7 @@ private fun ProjectDocumentUploadDialog(
                         Text(LocalizationManager.t("cancel"))
                     }
                 } else {
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, androidx.compose.ui.Alignment.End)) {
+                    oms.components.WrappingActions(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, androidx.compose.ui.Alignment.End)) {
                         oms.components.WorkspaceOutlinedButton(onClick = onDismiss) { Text(LocalizationManager.t("cancel")) }
                         ChooseFile(Modifier)
                     }

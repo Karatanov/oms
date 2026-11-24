@@ -93,7 +93,7 @@ fun AppLayout(appState: AppState) {
                 Icon(Icons.Default.Menu, oms.localization.LocalizationManager.t("expand_navigation"))
             }
             Text(WorkspaceBrand.title, Modifier.weight(1f), style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            IconButton(onClick = oms.localization.LocalizationManager::switchLanguage) {
+            IconButton(onClick = { oms.components.switchWorkspaceLanguage() }) {
                 Icon(Icons.Default.Language, oms.localization.LocalizationManager.t("language"))
             }
         }
