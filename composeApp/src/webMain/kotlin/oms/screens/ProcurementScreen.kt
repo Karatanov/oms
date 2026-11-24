@@ -351,11 +351,12 @@ fun ProcurementScreen(
                         Spacer(Modifier.width(6.dp))
                         Text(LocalizationManager.t("export_pdf"))
                     }
-                    if (maxWidth >= 620.dp) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                    if (maxWidth >= 1000.dp) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
                         SearchField(Modifier.weight(1f).widthIn(min = 280.dp)); ExportPdf(); Pagination()
                     } else Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         SearchField(Modifier.fillMaxWidth())
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) { ExportPdf(); Pagination() }
+                        FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
+                            verticalArrangement = Arrangement.spacedBy(4.dp)) { ExportPdf(); Pagination() }
                     }
                 }
                 signedContractMonthFilter?.let { month ->

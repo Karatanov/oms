@@ -682,7 +682,7 @@ fun FinancialScreen(
 
         if (useLedger) {
             BoxWithConstraints(Modifier.fillMaxWidth()) {
-                if (maxWidth >= 620.dp) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                if (maxWidth >= 1000.dp) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                     Text(LocalizationManager.t("financial_records"), style = MaterialTheme.typography.titleLarge)
                     Spacer(Modifier.weight(1f))
                     oms.components.WorkspaceOutlinedButton(
@@ -709,7 +709,8 @@ fun FinancialScreen(
                     FinancialPagination(pageSize, currentPage, pageCount, visibleActs.size, { pageSize = it }) { currentPage = it.coerceIn(0, pageCount - 1) }
                 } else Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(LocalizationManager.t("financial_records"), style = MaterialTheme.typography.titleLarge)
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
+                    FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
+                        verticalArrangement = Arrangement.spacedBy(4.dp), itemVerticalAlignment = Alignment.CenterVertically) {
                         oms.components.WorkspaceOutlinedButton(
                             onClick = {
                                 oms.data.openOmsDownload(OmsApiClient.financialTablePdfExportUrl(
@@ -1421,6 +1422,7 @@ private fun financialProgressLabel(label: String, titleKey: String): String = wh
         else LocalizationManager.t("construction_$label").takeUnless { it == "construction_$label" } ?: label
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun PaymentMonitoringCard(
     snapshot: ApiPaymentMonitoring,
@@ -1463,10 +1465,19 @@ private fun PaymentMonitoringCard(
     val pageCount = maxOf(1, (rows.size + pageSize - 1) / pageSize)
     val visibleRows = rows.drop(page.coerceIn(0, pageCount - 1) * pageSize).take(pageSize)
     Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text(paymentMonitoringTitle(context, projects, codeQuery),
-                    modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleMedium)
+                oms.components.ExpandableTableText(paymentMonitoringTitle(context, projects, codeQuery),
+                    modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleMedium, maxLines = 3)
+                TableActionIconButton(
+                    tooltip = LocalizationManager.t(if (expanded) "collapse" else "expand"),
+                    icon = if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown
+                ) { expanded = !expanded }
+            }
+            FlowRow(Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+                itemVerticalAlignment = Alignment.CenterVertically) {
                 if (canUpdate) {
                     oms.components.WorkspaceOutlinedButton(onClick = onUpdate) {
                         Text(LocalizationManager.t("payment_monitoring_update"))
@@ -1488,10 +1499,6 @@ private fun PaymentMonitoringCard(
                     Spacer(Modifier.width(6.dp))
                     Text(LocalizationManager.t("export_pdf"))
                 }
-                TableActionIconButton(
-                    tooltip = LocalizationManager.t(if (expanded) "collapse" else "expand"),
-                    icon = if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown
-                ) { expanded = !expanded }
             }
             message?.let {
                 Text(
@@ -1572,6 +1579,7 @@ private fun paymentMonitoringTitle(
     }
 }.joinToString(" · ")
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun PaymentMonitoringCodeSearch(
     codeQuery: String,
@@ -1579,19 +1587,18 @@ private fun PaymentMonitoringCodeSearch(
     filteredCount: Int,
     totalCount: Int
 ) {
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        OutlinedTextField(
+    FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp), itemVerticalAlignment = Alignment.CenterVertically) {
+        oms.components.WorkspaceSearchField(
             value = codeQuery,
             onValueChange = onCodeQueryChange,
-            singleLine = true,
-            label = { Text(LocalizationManager.t("subproject_code")) },
-            modifier = Modifier.widthIn(min = 180.dp, max = 240.dp)
+            label = LocalizationManager.t("subproject_code"),
+            modifier = Modifier.widthIn(max = 240.dp).fillMaxWidth()
         )
         Text(
             LocalizationManager.t("payment_monitoring_filtered_count")
                 .replace("{shown}", filteredCount.toString()).replace("{total}", totalCount.toString()),
-            style = MaterialTheme.typography.bodySmall,
-            modifier = Modifier.padding(top = 14.dp)
+            style = MaterialTheme.typography.bodySmall
         )
     }
 }
