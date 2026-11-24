@@ -82,7 +82,10 @@ fun AppLayout(appState: AppState) {
             )
         }
     }
-    CompositionLocalProvider(LocalMobileLayout provides mobile) {
+    CompositionLocalProvider(
+        LocalMobileLayout provides mobile,
+        oms.components.LocalTableSettingsUser provides "${appState.roleCode}:${appState.username}"
+    ) {
     Column(Modifier.fillMaxSize()) {
     if (mobile) Surface(color = MaterialTheme.colorScheme.surface, tonalElevation = 2.dp) {
         Row(Modifier.fillMaxWidth().height(56.dp).padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically) {

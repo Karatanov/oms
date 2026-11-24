@@ -1,5 +1,7 @@
 package oms.screens
 
+import oms.components.rememberTablePageSize
+
 import oms.components.toOmsDate
 import oms.components.PageArrow
 import androidx.compose.foundation.layout.*
@@ -89,7 +91,7 @@ fun DocumentsScreen(canManageDocuments: Boolean = true) {
     var showUploadDialog by remember { mutableStateOf(false) }
     val pageScrollState = rememberScrollState()
     var reloadKey by remember { mutableStateOf(0) }
-    var pageSize by remember { mutableStateOf(20) }
+    var pageSize by rememberTablePageSize("documents")
     var currentPage by remember { mutableStateOf(0) }
     LaunchedEffect(reloadKey) {
         loading = true; loadFailed = false

@@ -1,5 +1,8 @@
 package oms.screens
 
+import oms.components.rememberTablePageSize
+import oms.components.rememberTableSetting
+
 import oms.data.WorkspaceBrand
 import oms.components.PageArrow
 import androidx.compose.foundation.layout.*
@@ -132,7 +135,7 @@ fun FinancialScreen(
     var regionalFundingFailed by remember { mutableStateOf(false) }
     var paymentMonitoringMessage by remember { mutableStateOf<String?>(null) }
     var paymentMonitoringMessageIsError by remember { mutableStateOf(false) }
-    var displayCurrency by remember { mutableStateOf("EUR") }
+    var displayCurrency by rememberTableSetting("financial.currency", "EUR") { it.also { currency -> require(currency in listOf("EUR", "UAH")) } }
     var displayRates by remember { mutableStateOf<Map<String, Double>>(emptyMap()) }
     var loadingRates by remember { mutableStateOf(false) }
     var rateRetry by remember { mutableStateOf(0) }
@@ -191,7 +194,7 @@ fun FinancialScreen(
     var legacyLoadFailed by remember { mutableStateOf(false) }
     oms.navigation.ReportRouteReadiness(loading, loadFailed)
     var errorMessage by remember { mutableStateOf<String?>(null) }
-    var pageSize by remember { mutableStateOf(20) }
+    var pageSize by rememberTablePageSize("financial")
     var currentPage by remember { mutableStateOf(0) }
     var tableTopInRootPx by remember { mutableStateOf(0f) }
     var paymentMonitoringTopInRootPx by remember { mutableStateOf(0f) }
@@ -1435,9 +1438,9 @@ private fun PaymentMonitoringCard(
     // the UR III subproject payment-monitoring data above financial records.
     var expanded by remember { mutableStateOf(true) }
     var page by remember(snapshot.items) { mutableStateOf(0) }
-    var sort by remember { mutableStateOf(PaymentMonitoringSort.Code) }
-    var ascending by remember { mutableStateOf(true) }
-    var codeQuery by remember(snapshot.items) { mutableStateOf("") }
+    var sort by rememberTableSetting("financial.monitoring.sort", PaymentMonitoringSort.Code) { PaymentMonitoringSort.valueOf(it) }
+    var ascending by rememberTableSetting("financial.monitoring.ascending", true) { it.toBooleanStrict() }
+    var codeQuery by rememberTableSetting("financial.monitoring.search", "") { it }
     fun selectSort(column: PaymentMonitoringSort) {
         if (sort == column) ascending = !ascending else { sort = column; ascending = true }
         page = 0
@@ -1661,8 +1664,8 @@ private fun PaymentMonitoringTransactionTable(
     codeQuery: String,
     title: String
 ) {
-    var sort by remember { mutableStateOf(PaymentMonitoringTransactionSort.Date) }
-    var ascending by remember { mutableStateOf(true) }
+    var sort by rememberTableSetting("financial.transactions.sort", PaymentMonitoringTransactionSort.Date) { PaymentMonitoringTransactionSort.valueOf(it) }
+    var ascending by rememberTableSetting("financial.transactions.ascending", true) { it.toBooleanStrict() }
     var page by remember(transactions, selectedMonth) { mutableStateOf(0) }
     fun selectSort(column: PaymentMonitoringTransactionSort) {
         if (sort == column) ascending = !ascending else { sort = column; ascending = true }

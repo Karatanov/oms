@@ -1,5 +1,8 @@
 package oms.screens
 
+import oms.components.rememberTableSetting
+import oms.components.rememberTablePageSize
+
 import oms.data.WorkspaceBrand
 import oms.components.PageArrow
 import androidx.compose.foundation.ScrollState
@@ -73,14 +76,14 @@ fun ProcurementScreen(
     requestedTrancheFilter: Int? = null,
     onRequestedStatusFilterConsumed: () -> Unit = {}
 ) {
-    var search by remember { mutableStateOf("") }
-    var trancheFilter by remember { mutableStateOf(requestedTrancheFilter?.let { if (it == 1) 8 else 9 }) }
-    var oblastFilter by remember { mutableStateOf<String?>(null) }
-    var subprojectFilter by remember { mutableStateOf<String?>(null) }
-    var contractTypeFilter by remember { mutableStateOf<String?>(null) }
-    var procurementMethodFilter by remember { mutableStateOf<String?>(null) }
-    var statusFilter by remember { mutableStateOf<String?>(null) }
-    var signedContractMonthFilter by remember { mutableStateOf<String?>(null) }
+    var search by rememberTableSetting("procurement.search", "") { it }
+    var trancheFilter by rememberTableSetting<Int?>("procurement.tranche", null) { if (it.isEmpty()) null else it.toInt().also { value -> require(value in 8..9) } }
+    var oblastFilter by rememberTableSetting<String?>("procurement.oblast", null) { it.takeIf(String::isNotEmpty) }
+    var subprojectFilter by rememberTableSetting<String?>("procurement.subproject", null) { it.takeIf(String::isNotEmpty) }
+    var contractTypeFilter by rememberTableSetting<String?>("procurement.type", null) { it.takeIf(String::isNotEmpty) }
+    var procurementMethodFilter by rememberTableSetting<String?>("procurement.method", null) { it.takeIf(String::isNotEmpty) }
+    var statusFilter by rememberTableSetting<String?>("procurement.status", null) { it.takeIf(String::isNotEmpty) }
+    var signedContractMonthFilter by rememberTableSetting<String?>("procurement.month", null) { it.takeIf(String::isNotEmpty) }
     var records by remember { mutableStateOf<List<ApiProcurementRecord>?>(null) }
     var error by remember { mutableStateOf<String?>(null) }
     var loadError by remember { mutableStateOf<String?>(null) }
@@ -90,15 +93,18 @@ fun ProcurementScreen(
     var refreshJob by remember { mutableStateOf<oms.data.ApiProcurementRefresh?>(null) }
     var refreshElapsedSeconds by remember { mutableStateOf(0) }
     var registryRefreshMessage by remember { mutableStateOf<String?>(null) }
-    var pageSize by remember { mutableStateOf(20) }
+    var pageSize by rememberTablePageSize("procurement")
     var currentPage by remember { mutableStateOf(0) }
-    var sortColumnIndex by remember { mutableStateOf(0) }
-    var sortAscending by remember { mutableStateOf(true) }
+    var sortColumnIndex by rememberTableSetting("procurement.sort", 0) { it.toInt().also { index -> require(index >= 0) } }
+    var sortAscending by rememberTableSetting("procurement.ascending", true) { it.toBooleanStrict() }
     val scope = rememberCoroutineScope()
     val refreshUriHandler = LocalUriHandler.current
     val contentScrollState = rememberScrollState()
     var tableTopInRootPx by remember { mutableStateOf(0f) }
     val tableTopPaddingPx = with(LocalDensity.current) { 24.dp.toPx() }
+    LaunchedEffect(requestedTrancheFilter) {
+        requestedTrancheFilter?.let { trancheFilter = if (it == 1) 8 else 9 }
+    }
     LaunchedEffect(requestedStatusFilter) {
         requestedStatusFilter?.let {
             statusFilter = it

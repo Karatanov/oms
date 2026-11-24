@@ -2,6 +2,8 @@ package oms.screens
 
 import oms.data.WorkspaceBrand
 import oms.components.PageArrow
+import oms.components.rememberTableSetting
+import oms.components.rememberTablePageSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.clickable
@@ -121,14 +123,14 @@ fun ProjectsScreen(
 ) {
 
     val deletion = oms.components.LocalDeleteConfirmation.current
-    var searchText by remember { mutableStateOf("") }
-    var regionFilter by remember { mutableStateOf<String?>(null) }
+    var searchText by rememberTableSetting("projects.search", "") { it }
+    var regionFilter by rememberTableSetting<String?>("projects.region", null) { it.takeIf(String::isNotEmpty) }
     // The registry opens on active subprojects. "Archived" is the ordinary
     // project status, not a second technical archive state.
-    var statusFilter by remember { mutableStateOf<ProjectStatus?>(ProjectStatus.ACTIVE) }
-    var trancheFilter by remember { mutableStateOf(requestedTrancheFilter) }
-    var constructionTypeFilter by remember { mutableStateOf<String?>(null) }
-    var sectorFilter by remember { mutableStateOf<String?>(null) }
+    var statusFilter by rememberTableSetting<ProjectStatus?>("projects.status", ProjectStatus.ACTIVE) { if (it.isEmpty()) null else ProjectStatus.valueOf(it) }
+    var trancheFilter by rememberTableSetting<Int?>("projects.tranche", null) { if (it.isEmpty()) null else it.toInt().also { value -> require(value in 1..2) } }
+    var constructionTypeFilter by rememberTableSetting<String?>("projects.construction", null) { it.takeIf(String::isNotEmpty) }
+    var sectorFilter by rememberTableSetting<String?>("projects.sector", null) { it.takeIf(String::isNotEmpty) }
     val scope = rememberCoroutineScope()
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var selectedProjectIds by remember { mutableStateOf<Set<String>>(emptySet()) }
@@ -143,6 +145,9 @@ fun ProjectsScreen(
     val pageScrollState = rememberScrollState()
     fun scrollPageBy(delta: Float) = scope.launch { pageScrollState.animateScrollBy(delta) }
 
+    LaunchedEffect(requestedTrancheFilter) {
+        requestedTrancheFilter?.let { trancheFilter = it }
+    }
     LaunchedEffect(requestedRegionFilter) {
         requestedRegionFilter?.let {
             regionFilter = canonicalUkraineRegion(it)
@@ -491,10 +496,10 @@ fun ProjectsTable(
     onExportPdf: ((List<String>) -> Unit)? = null
 ) {
 
-    var sortColumn by remember { mutableStateOf(SortColumn.NAME) }
-    var ascending by remember { mutableStateOf(true) }
+    var sortColumn by rememberTableSetting("projects.sort", SortColumn.NAME) { SortColumn.valueOf(it) }
+    var ascending by rememberTableSetting("projects.ascending", true) { it.toBooleanStrict() }
     var expandedParentIds by remember { mutableStateOf<Set<String>?>(null) }
-    var pageSize by remember { mutableStateOf(20) }
+    var pageSize by rememberTablePageSize("projects")
     var currentPage by remember { mutableStateOf(0) }
 
     val sortedProjects = remember(projects, sortColumn, ascending, expandedParentIds, LocalizationManager.currentLanguage) {
