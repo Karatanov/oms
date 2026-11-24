@@ -348,20 +348,14 @@ private fun NationalPortfolioSummary(
                 SummaryMetric(
                     "national_signed_contract_value",
                     "${summary.signedContractsAmountUah.roundToLong().grouped()} ${LocalizationManager.currencyLabel("UAH")}",
-                    cardWidth = metricWidth, onClick = onOpenSignedContracts
+                    cardWidth = metricWidth, onClick = onOpenSignedContracts,
+                    details = listOf("dashboard_contract_works", "dashboard_contract_engineer_consultant", "dashboard_contract_technical_supervision")
+                        .map { type ->
+                            val amount = contractTypes.firstOrNull { it.type == type }?.contractAmountUah
+                            LocalizationManager.t(type) to (amount?.let {
+                                "${it.roundToLong().grouped()} ${LocalizationManager.currencyLabel("UAH")}" } ?: "—")
+                        }
                 )
-                listOf(
-                    "dashboard_contract_works",
-                    "dashboard_contract_engineer_consultant",
-                    "dashboard_contract_technical_supervision"
-                ).forEach { type ->
-                    val amount = contractTypes.firstOrNull { it.type == type }?.contractAmountUah
-                    SummaryMetric(
-                        type,
-                        amount?.let { "${it.roundToLong().grouped()} ${LocalizationManager.currencyLabel("UAH")}" } ?: "—",
-                        cardWidth = metricWidth, onClick = onOpenSignedContracts
-                    )
-                }
                 val legacyPayments = oms.data.WorkspaceBrand.legacySources
                 val paidUah = if (legacyPayments) summary.eibPaidUnderContractsUah else summary.servicesPaidUahCents?.div(100.0)
                 SummaryMetric(
@@ -387,7 +381,8 @@ private fun SummaryMetric(
     value: String,
     uahEquivalent: String? = null,
     cardWidth: androidx.compose.ui.unit.Dp = 192.dp,
-    onClick: (() -> Unit)? = null
+    onClick: (() -> Unit)? = null,
+    details: List<Pair<String, String>> = emptyList()
 ) {
     OmsTooltipBox(
         tooltip = {
@@ -397,6 +392,13 @@ private fun SummaryMetric(
                 if (uahEquivalent != null) {
                     Text(LocalizationManager.t("national_uah_equivalent"), style = MaterialTheme.typography.labelMedium)
                     Text(uahEquivalent, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                }
+                if (details.isNotEmpty()) {
+                    HorizontalDivider(Modifier.padding(vertical = 4.dp))
+                    details.forEach { (label, amount) ->
+                        Text(label, style = MaterialTheme.typography.labelMedium)
+                        Text(amount, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                    }
                 }
             }
         }
