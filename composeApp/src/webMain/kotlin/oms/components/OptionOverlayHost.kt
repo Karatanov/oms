@@ -53,13 +53,19 @@ fun OptionOverlayHost(content: @Composable () -> Unit) {
             state.menu?.let { menu ->
                 val density = LocalDensity.current
                 val margin = 8.dp
-                val width = with(density) { menu.anchor.width.toDp() }.coerceAtLeast(240.dp).coerceAtMost((maxWidth - margin * 2).coerceAtLeast(1.dp))
+                // The host sits outside page-local layout providers. Use its actual
+                // viewport width so mobile menus are wide even for a small trigger.
+                val mobile = maxWidth < 600.dp
+                val availableWidth = (maxWidth - margin * 2).coerceAtLeast(1.dp)
+                val rowHeight = if (mobile) 44.dp else 40.dp
+                val width = if (mobile) availableWidth else
+                    with(density) { menu.anchor.width.toDp() }.coerceAtLeast(240.dp).coerceAtMost(availableWidth)
                 val left = with(density) { menu.anchor.left.toDp() }.coerceIn(margin, (maxWidth - width - margin).coerceAtLeast(margin))
                 val top = with(density) { menu.anchor.top.toDp() }
                 val bottom = with(density) { menu.anchor.bottom.toDp() }
                 val below = (maxHeight - bottom - margin).coerceAtLeast(0.dp)
                 val above = (top - margin).coerceAtLeast(0.dp)
-                val desired = (menu.labels.size.coerceAtLeast(1) * 40 + 8).dp.coerceAtMost(320.dp)
+                val desired = (rowHeight * menu.labels.size.coerceAtLeast(1) + 8.dp).coerceAtMost(320.dp)
                 val openBelow = below >= desired || below >= above
                 val height = desired.coerceAtMost(if (openBelow) below else above).coerceAtLeast(1.dp)
                 val y = if (openBelow) bottom else (top - height).coerceAtLeast(margin)
@@ -138,7 +144,7 @@ fun OptionOverlayHost(content: @Composable () -> Unit) {
                                 .hoverable(hoverSource)
                                 .then(rowAction)
                                 .pointerHoverIcon(PointerIcon.Hand, overrideDescendants = true)
-                                .heightIn(min = 40.dp).padding(horizontal = 12.dp, vertical = 6.dp),
+                                .heightIn(min = rowHeight).padding(horizontal = 12.dp, vertical = 6.dp),
                                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 Text(label, Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium,
                                     color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface)
