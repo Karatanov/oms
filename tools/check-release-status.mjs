@@ -8,10 +8,12 @@ const displayedWorkflows = [...requiredWorkflows, 'Publish OMS frontend to GitHu
 
 export function summarizeRelease({ sha, remoteMaster, runs, version, health, ready }) {
   if (!/^[a-f0-9]{40}$/.test(sha)) throw Error('Expected a full 40-character commit SHA.');
-  const matching = runs.filter(run => run.head_sha === sha && run.event === 'push')
+  const matching = runs.filter(run => run.head_sha === sha)
     .sort((a, b) => b.id - a.id || (b.run_attempt ?? 1) - (a.run_attempt ?? 1));
   const workflows = displayedWorkflows.map(name => {
-    const run = matching.find(candidate => candidate.name === name);
+    const run = matching.find(candidate => candidate.name === name &&
+      (requiredWorkflows.includes(name) ? candidate.event === 'push' :
+        ['push', 'workflow_run', 'workflow_dispatch'].includes(candidate.event)));
     return { name, status: run?.status ?? 'missing', conclusion: run?.conclusion ?? null, url: run?.html_url ?? null };
   });
   const revision = version?.revision;
@@ -55,7 +57,7 @@ async function main() {
   }).trim().split(/\s+/)[0];
   // SHA scoping avoids mixing commits; a nonce avoids stale intermediary lists.
   const nonce = Date.now();
-  const url = `https://api.github.com/repos/Karatanov/oms/actions/runs?head_sha=${sha}&event=push&per_page=100&oms_check=${nonce}`;
+  const url = `https://api.github.com/repos/Karatanov/oms/actions/runs?head_sha=${sha}&per_page=100&oms_check=${nonce}`;
   const [actions, version, health, ready] = await Promise.all([
     readJson(url),
     readJson(`https://ua-oms.com/version?oms_check=${nonce}`),

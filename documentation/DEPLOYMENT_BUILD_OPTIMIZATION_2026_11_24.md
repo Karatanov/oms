@@ -52,6 +52,14 @@ packaging, renderer references and asset-manifest sizes. Actionlint validates th
 three changed workflows. The actual clean Kotlin build and production browser
 navigation must pass CI; Windows Gradle currently fails to establish loopback.
 
+First CI run `45351529633` (`a81c1537`) confirmed the actual production task at
+61 seconds and Webpack at 7.24 seconds. The production navigation smoke test
+passed in 28 seconds. Kotlin executable outputs were restored from Gradle cache
+in this run; a changed UI still needs compilation before the fast minifier.
+The full existing form/mobile regression workflow remains a separate deployment
+gate. Its first attempt timed out after a mobile drawer click; only that failed
+job was retried, with no safety gate disabled.
+
 Expected benefit: remove the ~17-minute minifier bottleneck on UI changes and
 avoid browser recompilation entirely on backend-only changes when the exact
 cache is warm. First clean/cache-miss builds still compile Kotlin. No fixed

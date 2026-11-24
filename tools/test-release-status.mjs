@@ -7,6 +7,15 @@ const names = ['Backend regression tests', 'Project form regression tests', 'Pub
 const runs = names.map((name, id) => ({ name, id, head_sha: sha, event: 'push', status: 'completed', conclusion: 'success' }));
 const fixture = () => ({ sha, remoteMaster: sha, runs, version: { revision: sha.slice(0, 12) }, health: { status: 'UP' }, ready: { status: 'READY' } });
 
+test('Pages artifact-reuse workflow is displayed without weakening required push gates', () => {
+  const pages = { id: 100, name: 'Publish OMS frontend to GitHub Pages', head_sha: sha,
+    event: 'workflow_run', status: 'completed', conclusion: 'success' };
+  const result = summarizeRelease({ ...fixture(), runs: [...runs, pages] });
+  assert.equal(result.workflows.find(run => run.name === pages.name).conclusion, 'success');
+  assert.equal(result.requiredChecksPassed, true);
+  assert.equal(summarizeRelease({ ...fixture(), runs: runs.map(run => ({...run, event:'workflow_run'})) }).requiredChecksPassed, false);
+});
+
 test('green checks plus the exact healthy production revision verify API release, not browser UI', () => {
   const result = summarizeRelease(fixture());
   assert.equal(result.releaseVerified, true);
