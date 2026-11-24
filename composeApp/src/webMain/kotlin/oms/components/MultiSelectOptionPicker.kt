@@ -114,7 +114,12 @@ fun <T> MultiSelectOptionPicker(
         enabled = enabled,
         modifier = modifier.then(if (fillWidth) Modifier.fillMaxWidth() else Modifier)
             .heightIn(min = OmsDimensions.ControlHeight)
-            .onGloballyPositioned { anchor = it.boundsInRoot() }
+            .onGloballyPositioned {
+                if (it.isAttached) {
+                    anchor = it.boundsInRoot()
+                    host.updateAnchor(id, anchor)
+                }
+            }
             .onFocusChanged { focused = it.isFocused }
             .semantics {
                 stateDescription = listOf(

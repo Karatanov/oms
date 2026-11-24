@@ -36,6 +36,10 @@ internal data class OptionMenu(
 internal class OptionOverlayState {
     var menu by mutableStateOf<OptionMenu?>(null)
     fun dismiss(id: Any) { if (menu?.id === id) menu = null }
+    fun updateAnchor(id: Any, anchor: Rect) {
+        val current = menu ?: return
+        if (current.id === id && current.anchor != anchor) menu = current.copy(anchor = anchor)
+    }
 }
 internal val LocalOptionOverlay = staticCompositionLocalOf<OptionOverlayState> { error("OptionOverlayHost is required") }
 
@@ -61,14 +65,16 @@ fun OptionOverlayHost(content: @Composable () -> Unit) {
                 val width = if (mobile) availableWidth else
                     with(density) { menu.anchor.width.toDp() }.coerceAtLeast(240.dp).coerceAtMost(availableWidth)
                 val left = with(density) { menu.anchor.left.toDp() }.coerceIn(margin, (maxWidth - width - margin).coerceAtLeast(margin))
-                val top = with(density) { menu.anchor.top.toDp() }
-                val bottom = with(density) { menu.anchor.bottom.toDp() }
+                val viewportBottom = (maxHeight - margin).coerceAtLeast(margin)
+                val top = with(density) { menu.anchor.top.toDp() }.coerceIn(margin, viewportBottom)
+                val bottom = with(density) { menu.anchor.bottom.toDp() }.coerceIn(margin, viewportBottom)
                 val below = (maxHeight - bottom - margin).coerceAtLeast(0.dp)
                 val above = (top - margin).coerceAtLeast(0.dp)
                 val desired = (rowHeight * menu.labels.size.coerceAtLeast(1) + 8.dp + if (menu.multiSelect) 44.dp else 0.dp).coerceAtMost(320.dp)
                 val openBelow = below >= desired || below >= above
                 val height = desired.coerceAtMost(if (openBelow) below else above).coerceAtLeast(1.dp)
-                val y = if (openBelow) bottom else (top - height).coerceAtLeast(margin)
+                val y = (if (openBelow) bottom else top - height)
+                    .coerceIn(margin, (maxHeight - height - margin).coerceAtLeast(margin))
                 val requester = remember(menu.id) { FocusRequester() }
                 var menuFocused by remember(menu.id) { mutableStateOf(false) }
                 var dismissFocused by remember(menu.id) { mutableStateOf(false) }

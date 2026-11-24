@@ -35,7 +35,12 @@ fun AutocompleteField(value: String, onValueChange: (String) -> Unit, label: Str
             onDismiss = { host.dismiss(id); fieldFocus.requestFocus() }, focusOnOpen = false)
     }, label = { Text(label) }, placeholder = placeholder?.let { { Text(it) } }, singleLine = true, enabled = enabled,
         keyboardOptions = keyboardOptions, keyboardActions = keyboardActions,
-        modifier = modifier.fillMaxWidth().focusRequester(fieldFocus).onGloballyPositioned { anchor = it.boundsInRoot() }
+        modifier = modifier.fillMaxWidth().focusRequester(fieldFocus).onGloballyPositioned {
+                if (it.isAttached) {
+                    anchor = it.boundsInRoot()
+                    host.updateAnchor(id, anchor)
+                }
+            }
             .onPreviewKeyEvent { event ->
                 if (event.type == KeyEventType.KeyDown && event.key == Key.DirectionDown && host.menu?.id === id) {
                     host.menu = host.menu?.copy(focusOnOpen = true); true

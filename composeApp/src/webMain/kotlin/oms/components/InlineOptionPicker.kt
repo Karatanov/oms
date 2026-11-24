@@ -79,7 +79,12 @@ fun <T> InlineOptionPicker(
         enabled = enabled,
         modifier = modifier.then(if (fillWidth) Modifier.fillMaxWidth() else Modifier)
             .heightIn(min = if (compact) 32.dp else OmsDimensions.ControlHeight)
-            .onGloballyPositioned { anchor = it.boundsInRoot() }
+            .onGloballyPositioned {
+                if (it.isAttached) {
+                    anchor = it.boundsInRoot()
+                    host.updateAnchor(id, anchor)
+                }
+            }
             .onFocusChanged { focused = it.isFocused }
             .onPreviewKeyEvent { event ->
                 if (loading && event.type == KeyEventType.KeyDown && event.key == Key.Escape) {
