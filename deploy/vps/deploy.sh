@@ -73,7 +73,9 @@ fi
 # with its short-lived GITHUB_TOKEN immediately before invoking this script.
 docker compose pull oms
 switched=1
-docker compose up -d --no-deps oms
+# The exact immutable tag was pulled successfully above. With pull_policy:
+# always, a plain `up` makes an unnecessary second registry request here.
+docker compose up -d --no-deps --pull never oms
 
 if ! wait_for_health healthy; then
   echo "New OMS container did not become healthy" >&2
@@ -91,7 +93,7 @@ docker exec "$container_id" wget -qO- http://127.0.0.1:8080/health >/dev/null
 
 public_ready=0
 for _ in $(seq 1 12); do
-  if wget -qO- https://ua-oms.com/health >/dev/null; then
+  if wget -T 10 -t 1 -qO- https://ua-oms.com/health >/dev/null; then
     public_ready=1
     break
   fi

@@ -1,11 +1,16 @@
 name: Publish OMS frontend to GitHub Pages
 
 on:
-  push:
-    branches: [master]
-  pull_request:
+  workflow_run:
+    workflows: [Publish OMS container]
+    types: [completed]
     branches: [master]
   workflow_dispatch:
+    inputs:
+      source_run_id:
+        description: Successful container workflow run (blank = current commit)
+        required: false
+        type: string
 
 permissions:
   actions: read
@@ -23,11 +28,64 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build:
+  source:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push' &&
+       github.event.workflow_run.head_repository.full_name == github.repository)
     runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+    outputs:
+      run_id: ${{ steps.source.outputs.run_id }}
+      sha: ${{ steps.source.outputs.sha }}
+      current: ${{ steps.source.outputs.current }}
+    steps:
+      - name: Select trusted, matching production frontend
+        id: source
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const repo = context.repo;
+            let run = context.payload.workflow_run;
+            if (!run) {
+              const requested = context.payload.inputs?.source_run_id;
+              if (requested) {
+                if (!/^\d+$/.test(requested)) throw new Error('Invalid source run ID');
+                run = (await github.rest.actions.getWorkflowRun({...repo, run_id: Number(requested)})).data;
+              } else {
+                run = (await github.rest.actions.listWorkflowRuns({
+                  ...repo, workflow_id: 'publish-ghcr.yml', head_sha: context.sha,
+                  event: 'push', status: 'success', per_page: 10
+                })).data.workflow_runs[0];
+              }
+            }
+            if (!run || run.name !== 'Publish OMS container' || run.event !== 'push' ||
+                run.conclusion !== 'success' || run.head_branch !== 'master' ||
+                run.head_repository?.full_name !== `${repo.owner}/${repo.repo}`) {
+              throw new Error('A successful same-repository master push is required; no untrusted PR artifacts');
+            }
+            const head = (await github.rest.repos.getBranch({...repo, branch: 'master'})).data.commit.sha;
+            core.setOutput('current', String(head === run.head_sha));
+            if (head !== run.head_sha) {
+              core.notice('Skipping superseded release rather than rolling Pages back');
+              return;
+            }
+            core.setOutput('run_id', String(run.id));
+            core.setOutput('sha', run.head_sha);
+
+  build:
+    needs: source
+    if: needs.source.outputs.current == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - name: Check out source
         uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.source.outputs.sha }}
 
       - name: Check browser regex compatibility
         run: node tools/check-web-regex.cjs
@@ -40,43 +98,22 @@ jobs:
       - name: Check SIR photo association handling
         run: node tools/check-sir-photo-associations.cjs
 
-      - name: Set up JDK 21
-        uses: actions/setup-java@v6
+      # Reuse the exact frontend already packaged into the release container.
+      # Never spend another ~20 minutes compiling the same commit for Pages.
+      - name: Download release frontend
+        uses: actions/download-artifact@v7
         with:
-          distribution: temurin
-          java-version: "21"
-
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v6
-
-      - name: Build production web frontend
-        # A corrupted Gradle configuration-cache entry can leave the Kotlin/JS
-        # compiler running indefinitely.  A production bundle normally takes
-        # about 20 minutes, so fail deterministically instead of consuming a
-        # runner for hours and retry from a clean configuration state.
-        run: timeout --foreground --kill-after=1m 30m gradle -PrenderJsOnly :composeApp:jsBrowserProductionWebpack --no-daemon --no-configuration-cache --max-workers=1
+          name: oms-production-frontend
+          path: frontend-dist
+          run-id: ${{ needs.source.outputs.run_id }}
+          github-token: ${{ github.token }}
 
       - name: Assemble Pages site
+        env:
+          SOURCE_SHA: ${{ needs.source.outputs.sha }}
         run: |
-          mkdir -p build/pages
-          cp -a composeApp/build/processedResources/js/main/. build/pages/
-          cp -a composeApp/build/kotlin-webpack/js/productionExecutable/. build/pages/
-          cp build/pages/index.html build/pages/app.html
-          cp composeApp/src/webMain/resources/login.html build/pages/index.html
-          cp composeApp/src/webMain/resources/favicon.svg build/pages/favicon.svg
-          cp composeApp/src/webMain/resources/social-preview.png build/pages/social-preview.png
-          wasm_asset=$(find build/pages -maxdepth 1 -type f -name '*.wasm' ! -name 'skiko.wasm' -printf '%f\n' | head -n 1)
-          test -n "$wasm_asset" && test -f "build/pages/$wasm_asset"
-          sed -i "s#skiko\\.wasm#$wasm_asset#g" build/pages/composeApp.js
-          asset_hash=$(sha256sum build/pages/composeApp.js | cut -c1-12)
-          build_date=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
-          git_short=$(printf '%s' "$GITHUB_SHA" | cut -c1-12)
-          sed -i "s#__OMS_WASM_ASSET__#${wasm_asset}#g" build/pages/app.html
-          sed -i "s|__OMS_GIT_COMMIT__|${git_short}|g; s|__OMS_BUILD_DATE__|${build_date}|g" build/pages/app.html
-          js_bytes=$(stat -c %s build/pages/composeApp.js)
-          wasm_bytes=$(stat -c %s "build/pages/$wasm_asset")
-          printf '{"version":"%s","assets":[{"url":"composeApp.js","bytes":%s},{"url":"%s","bytes":%s}]}\n' "$GITHUB_SHA" "$js_bytes" "$wasm_asset" "$wasm_bytes" > build/pages/assets-manifest.json
-          touch build/pages/.nojekyll
+          set -euo pipefail
+          node tools/assemble-pages.cjs frontend-dist build/pages "$SOURCE_SHA"
           test -f build/pages/index.html
           test -f build/pages/app.html
           test -f build/pages/composeApp.js

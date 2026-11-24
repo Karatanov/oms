@@ -60,6 +60,10 @@ kotlin {
         webMain.dependencies {
             implementation("io.ktor:ktor-client-js:3.3.3")
         }
+        jsMain.dependencies {
+            // Build-time only; no new library is shipped in the browser bundle.
+            implementation(devNpm("esbuild", "0.28.2"))
+        }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
         }

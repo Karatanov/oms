@@ -31,22 +31,35 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - name: Restore exact production frontend
+        id: frontend-cache
+        uses: actions/cache@v4
+        with:
+          path: frontend-dist
+          # No restore prefix: an older/different UI must never enter a release.
+          # Test/server source changes do not invalidate browser executables.
+          key: oms-frontend-v1-${{ runner.os }}-${{ hashFiles('composeApp/src/commonMain/**', 'composeApp/src/webMain/**', 'composeApp/src/jsMain/**', 'shared/src/commonMain/**', 'shared/src/webMain/**', 'shared/src/jsMain/**', 'composeApp/webpack.config.d/**', 'gradle/**', '*.gradle.kts', 'gradle.properties', 'gradlew', 'composeApp/build.gradle.kts', 'shared/build.gradle.kts', 'server/build.gradle.kts', 'kotlin-js-store/**') }}
+
       # setup-gradle keeps the Gradle User Home (including task/build caches)
       # across runners.  Unlike the old in-Docker Gradle invocation, that
       # cache remains available after a frontend source change.
       - uses: actions/setup-java@v6
+        if: steps.frontend-cache.outputs.cache-hit != 'true'
         with:
           distribution: temurin
           java-version: '21'
       - uses: gradle/actions/setup-gradle@v6
+        if: steps.frontend-cache.outputs.cache-hit != 'true'
 
       - name: Compile production Compose frontend
+        if: steps.frontend-cache.outputs.cache-hit != 'true'
         # Do not reuse configuration state for the long Kotlin/JS production
         # task: a stale entry may hang compilation.  The command-level limit
         # also works if a hosted-runner job timeout is not enforced promptly.
         run: timeout --foreground --kill-after=1m 30m bash gradlew -PrenderJsOnly :composeApp:jsBrowserProductionWebpack --no-daemon --no-configuration-cache --max-workers=1
 
       - name: Assemble frontend hand-off
+        if: steps.frontend-cache.outputs.cache-hit != 'true'
         run: |
           set -euo pipefail
           mkdir -p frontend-dist/processed frontend-dist/executable frontend-dist/source-resources
@@ -56,13 +69,47 @@ jobs:
           cp composeApp/src/webMain/resources/favicon.svg frontend-dist/source-resources/favicon.svg
           cp composeApp/src/webMain/resources/social-preview.png frontend-dist/source-resources/social-preview.png
 
+      - name: Verify production minifier
+        if: steps.frontend-cache.outputs.cache-hit != 'true'
+        run: node --test tools/test-production-minifier.cjs
+
+      - name: Validate frontend hand-off
+        run: |
+          set -euo pipefail
+          node --test tools/test-frontend-packaging.cjs
+          test -s frontend-dist/executable/composeApp.js
+          test -s frontend-dist/processed/index.html
+          test -s frontend-dist/source-resources/login.html
+          test -s frontend-dist/source-resources/favicon.svg
+          test -s frontend-dist/source-resources/social-preview.png
+          test -n "$(find frontend-dist/executable frontend-dist/processed -maxdepth 1 -name '*.wasm' -print -quit)"
+
+      - name: Identify browser binary platform
+        id: browser-platform
+        run: |
+          source /etc/os-release
+          printf 'id=%s-%s-%s\n' "$ID" "$VERSION_ID" "$(uname -m)" >> "$GITHUB_OUTPUT"
+      - name: Cache production smoke-test browser
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-${{ steps.browser-platform.outputs.id }}-production-chromium-1.63.0
+      - name: Test real production frontend before publishing
+        env:
+          OMS_SMOKE_ASSETS: build/production-smoke
+        run: |
+          node tools/assemble-pages.cjs frontend-dist build/production-smoke "$GITHUB_SHA"
+          npm install --prefix build/date-picker-test playwright@1.63.0
+          build/date-picker-test/node_modules/.bin/playwright install --with-deps chromium
+          node tools/test-route-transitions.cjs
+
       - name: Upload production frontend
         uses: actions/upload-artifact@v6
         with:
           name: oms-production-frontend
           path: frontend-dist/
           if-no-files-found: error
-          retention-days: 1
+          retention-days: 7
 
   publish:
     needs: frontend-build

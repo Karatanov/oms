@@ -24,6 +24,7 @@ RUN gradle :server:dependencies --no-daemon --max-workers=1
 # these stages lets BuildKit reuse the completed frontend stage independently.
 FROM gradle-base AS frontend-build
 COPY composeApp/src composeApp/src
+COPY composeApp/webpack.config.d composeApp/webpack.config.d
 COPY shared/src shared/src
 RUN gradle -PrenderJsOnly :composeApp:jsBrowserProductionWebpack --no-daemon --max-workers=1
 

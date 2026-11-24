@@ -29,6 +29,8 @@ jobs:
       - uses: gradle/actions/setup-gradle@v6
       - name: Kotlin form validation in Chrome Headless
         run: bash gradlew -PrenderJsOnly :composeApp:jsBrowserTest --no-daemon --max-workers=1
+      - name: Production minifier compatibility
+        run: node --test tools/test-production-minifier.cjs
 
       # Browser downloads are much larger and slower than the small test
       # scripts. Keep them between runs so deployment does not spend several
