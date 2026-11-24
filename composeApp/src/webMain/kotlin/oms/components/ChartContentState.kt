@@ -22,22 +22,36 @@ import oms.localization.LocalizationManager
 fun ChartContentState(message: String, loading: Boolean = false, onRetry: (() -> Unit)? = null) {
     val foreground = if (loading) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onErrorContainer
     val background = if (loading) MaterialTheme.colorScheme.surfaceContainerLow else MaterialTheme.colorScheme.errorContainer
-    CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 0.dp) {
-        Row(
-            Modifier.fillMaxWidth().background(background, MaterialTheme.shapes.small).padding(8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            if (loading) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp, color = foreground)
-            else Icon(Icons.Outlined.ErrorOutline, null, Modifier.size(18.dp), tint = foreground)
-            Text(message, Modifier.weight(1f).semantics { liveRegion = LiveRegionMode.Polite },
-                style = MaterialTheme.typography.bodySmall, color = foreground)
-            if (onRetry != null) {
-                OmsTooltipBox(tooltip = { Text(LocalizationManager.t("retry")) }) {
-                    IconButton(onClick = onRetry, enabled = !loading,
-                        modifier = Modifier.size(28.dp).then(if (!loading) Modifier.buttonHandCursor() else Modifier)) {
-                        Icon(Icons.Outlined.Refresh, LocalizationManager.t("retry"), Modifier.size(18.dp), tint = foreground)
+    BoxWithConstraints(
+        Modifier.fillMaxWidth().background(background, MaterialTheme.shapes.small).padding(8.dp)
+    ) {
+        val separateRetry = maxWidth < 420.dp && onRetry != null
+        Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (loading) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp, color = foreground)
+                else Icon(Icons.Outlined.ErrorOutline, null, Modifier.size(18.dp), tint = foreground)
+                Text(message, Modifier.weight(1f).semantics { liveRegion = LiveRegionMode.Polite },
+                    style = MaterialTheme.typography.bodySmall, color = foreground)
+                if (onRetry != null && !separateRetry) {
+                    CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 0.dp) {
+                        OmsTooltipBox(tooltip = { Text(LocalizationManager.t("retry")) }, enabled = !loading) {
+                            WorkspaceIconButton(onClick = onRetry, enabled = !loading,
+                                modifier = Modifier.size(28.dp).chartControlFocus()) {
+                                Icon(Icons.Outlined.Refresh, LocalizationManager.t("retry"),
+                                    Modifier.size(18.dp), tint = foreground)
+                            }
+                        }
                     }
+                }
+            }
+            if (onRetry != null && separateRetry) {
+                WorkspaceTextButton(onClick = onRetry, enabled = !loading,
+                    modifier = Modifier.align(Alignment.End).heightIn(min = 40.dp),
+                    colors = ButtonDefaults.textButtonColors(contentColor = foreground)) {
+                    Icon(Icons.Outlined.Refresh, null, Modifier.size(18.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text(LocalizationManager.t("retry"))
                 }
             }
         }
