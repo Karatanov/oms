@@ -65,10 +65,13 @@ fun ActivationScreen(token: String, onActivated: () -> Unit) {
             }
         }
     }
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        val compactWidth = maxWidth < 600.dp
+        val compactHeight = maxHeight < 480.dp
     Column(
-        modifier = Modifier.fillMaxSize().padding(24.dp).verticalScroll(rememberScrollState()),
+        modifier = Modifier.fillMaxSize().padding(if (compactWidth) 12.dp else 24.dp).verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+        verticalArrangement = if (compactHeight) Arrangement.Top else Arrangement.Center
     ) {
         androidx.compose.material3.Surface(
             modifier = Modifier.widthIn(max = 440.dp).fillMaxWidth(),
@@ -76,7 +79,7 @@ fun ActivationScreen(token: String, onActivated: () -> Unit) {
             color = MaterialTheme.colorScheme.surface,
             border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
         ) {
-        Column(Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(Modifier.padding(if (compactWidth) 16.dp else 24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         LanguageSwitcher()
         Text(LocalizationManager.t("activate_title"), style = MaterialTheme.typography.titleLarge)
         oms.components.OmsPasswordField(
@@ -108,6 +111,7 @@ fun ActivationScreen(token: String, onActivated: () -> Unit) {
         }
         if (saving) ContentState(LocalizationManager.t("save_in_progress"), loading = true)
         }
+    }
     }
     }
 }
