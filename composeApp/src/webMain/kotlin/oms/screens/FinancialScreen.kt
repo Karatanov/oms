@@ -2,6 +2,7 @@ package oms.screens
 
 import oms.components.rememberTablePageSize
 import oms.components.rememberTableSetting
+import oms.urp3.paymentSubprojectKey
 
 import oms.data.WorkspaceBrand
 import oms.components.PageArrow
@@ -350,7 +351,7 @@ fun FinancialScreen(
     }
     val workbookChartRows = remember(paymentMonitoring?.transactions, subprojectsByCode) {
         paymentMonitoring?.transactions.orEmpty().mapNotNull { transaction ->
-            val subprojectCode = transaction.code.paymentSubprojectCode()
+            val subprojectCode = paymentSubprojectKey(transaction.code)
             val project = subprojectsByCode[subprojectCode.uppercase()] ?: return@mapNotNull null
             val amountEur = transaction.amountEur
             val derivedRate = amountEur?.takeIf { it > 0.0 }?.let { transaction.amountUah / it }
@@ -1860,9 +1861,6 @@ private fun PaymentMonitoringCell(value: String, width: androidx.compose.ui.unit
 /** The column header already identifies these values as UAH. */
 private fun Double?.asUahTableValue(): String = this?.let(Double::formatUiAmount) ?: "—"
 private fun Double?.asPercent(): String = this?.let { "${it.formatUiAmount()}%" } ?: "—"
-
-/** `KH08_07#Lot1_W` and `KH08_07_TS$1` both belong to `KH08_07`. */
-private fun String.paymentSubprojectCode(): String = substringBefore('$').substringBefore('#').substringBeforeLast('_').trim()
 
 private fun String.paymentPurpose(): String = when {
     substringBefore('$').substringAfterLast('_').equals("TS", ignoreCase = true) -> "technical_supervision"

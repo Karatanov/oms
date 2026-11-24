@@ -4,7 +4,7 @@ package oms.urp3
 fun paymentSubprojectKey(code: String): String {
     val reference = code.trim().substringBefore('$')
     val suffix = reference.substringAfterLast('_').uppercase()
-    val projectOrLot = if (suffix in setOf("W", "TS", "CSC")) reference.substringBeforeLast('_') else reference
+    val projectOrLot = if (suffix in setOf("W", "TS", "CSC", "E", "EQUIPMENT")) reference.substringBeforeLast('_') else reference
     return projectOrLot.substringBefore('#').trim()
 }
 
