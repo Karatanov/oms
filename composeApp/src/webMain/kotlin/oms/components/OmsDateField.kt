@@ -2,8 +2,11 @@ package oms.components
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.size
+import androidx.compose.ui.unit.dp
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -98,17 +101,35 @@ fun OmsDateField(
         isError = showError,
         supportingText = if (showError) ({ Text(LocalizationManager.t("date_invalid")) }) else null,
         trailingIcon = {
-            OmsTooltipBox(tooltip = { Text("${LocalizationManager.t("choose_date")} · Alt + ↓") }) {
-            IconButton(
-                onClick = { openCalendar() },
-                modifier = Modifier.buttonHandCursor().onGloballyPositioned { coordinates ->
-                    val position = coordinates.positionInWindow()
-                    anchorLeft = position.x / density
-                    anchorTop = (position.y + coordinates.size.height) / density
+            Row {
+                if (!required && displayValue.isNotEmpty()) {
+                    val clearLabel = "${LocalizationManager.t("clear_selection")}: $label"
+                    OmsTooltipBox(tooltip = { Text(clearLabel) }) {
+                        WorkspaceIconButton(
+                            onClick = {
+                                displayValue = ""
+                                onValueChange("")
+                                inputFocus.requestFocus()
+                            },
+                            modifier = Modifier.size(40.dp).chartControlFocus()
+                        ) {
+                            Icon(Icons.Default.Close, contentDescription = clearLabel, modifier = Modifier.size(18.dp))
+                        }
+                    }
                 }
-            ) {
-                Icon(Icons.Default.CalendarMonth, contentDescription = LocalizationManager.t("choose_date"))
-            }
+                OmsTooltipBox(tooltip = { Text("${LocalizationManager.t("choose_date")} · Alt + ↓") }) {
+                    WorkspaceIconButton(
+                        onClick = { openCalendar() },
+                        modifier = Modifier.size(40.dp).chartControlFocus().onGloballyPositioned { coordinates ->
+                            val position = coordinates.positionInWindow()
+                            anchorLeft = position.x / density
+                            anchorTop = (position.y + coordinates.size.height) / density
+                        }
+                    ) {
+                        Icon(Icons.Default.CalendarMonth, contentDescription = LocalizationManager.t("choose_date"),
+                            modifier = Modifier.size(20.dp))
+                    }
+                }
             }
         }
     )
