@@ -65,12 +65,13 @@ fun OptionOverlayHost(content: @Composable () -> Unit) {
                 val bottom = with(density) { menu.anchor.bottom.toDp() }
                 val below = (maxHeight - bottom - margin).coerceAtLeast(0.dp)
                 val above = (top - margin).coerceAtLeast(0.dp)
-                val desired = (rowHeight * menu.labels.size.coerceAtLeast(1) + 8.dp).coerceAtMost(320.dp)
+                val desired = (rowHeight * menu.labels.size.coerceAtLeast(1) + 8.dp + if (menu.multiSelect) 44.dp else 0.dp).coerceAtMost(320.dp)
                 val openBelow = below >= desired || below >= above
                 val height = desired.coerceAtMost(if (openBelow) below else above).coerceAtLeast(1.dp)
                 val y = if (openBelow) bottom else (top - height).coerceAtLeast(margin)
                 val requester = remember(menu.id) { FocusRequester() }
                 var menuFocused by remember(menu.id) { mutableStateOf(false) }
+                var dismissFocused by remember(menu.id) { mutableStateOf(false) }
                 var active by remember(menu.id, menu.labels) { mutableStateOf(menu.selectedIndex.coerceIn(0, (menu.labels.size - 1).coerceAtLeast(0))) }
                 val listState = rememberLazyListState()
                 LaunchedEffect(menu.id, menu.focusOnOpen) { if (menu.focusOnOpen) requester.requestFocus() }
@@ -89,7 +90,9 @@ fun OptionOverlayHost(content: @Composable () -> Unit) {
                         .focusRequester(requester)
                         .onFocusChanged { menuFocused = it.hasFocus }
                         .onPreviewKeyEvent { event ->
-                            if (event.type != KeyEventType.KeyDown) false else when (event.key) {
+                            if (event.type != KeyEventType.KeyDown) false
+                            else if (dismissFocused && event.key != Key.Escape) false
+                            else when (event.key) {
                                 Key.Escape -> { menu.onDismiss(); true }
                                 Key.DirectionDown -> { active = (active + 1).coerceAtMost((menu.labels.size - 1).coerceAtLeast(0)); true }
                                 Key.DirectionUp -> { active = (active - 1).coerceAtLeast(0); true }
@@ -119,7 +122,20 @@ fun OptionOverlayHost(content: @Composable () -> Unit) {
                     color = MaterialTheme.colorScheme.surface, shadowElevation = 8.dp,
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                 ) {
-                    LazyColumn(state = listState, contentPadding = PaddingValues(vertical = 4.dp)) {
+                    Column {
+                    if (menu.multiSelect) {
+                        Row(Modifier.fillMaxWidth().height(44.dp).padding(horizontal = 4.dp),
+                            horizontalArrangement = Arrangement.End,
+                            verticalAlignment = Alignment.CenterVertically) {
+                            WorkspaceTextButton(onClick = menu.onDismiss,
+                                modifier = Modifier.onFocusChanged { dismissFocused = it.isFocused }) {
+                                Text(LocalizationManager.t("close"))
+                            }
+                        }
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                    }
+                    LazyColumn(modifier = Modifier.weight(1f, fill = false), state = listState,
+                        contentPadding = PaddingValues(vertical = 4.dp)) {
                         if (menu.labels.isEmpty()) item { Text(LocalizationManager.t("no_options"), Modifier.padding(12.dp)) }
                         itemsIndexed(menu.labels, key = { index, _ -> index }) { index, label ->
                             val isClearAction = menu.clearIndex == index
@@ -157,6 +173,7 @@ fun OptionOverlayHost(content: @Composable () -> Unit) {
                                 }
                             }
                         }
+                    }
                     }
                 }
             }
