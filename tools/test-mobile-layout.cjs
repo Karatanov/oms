@@ -63,12 +63,15 @@ const origin = 'http://127.0.0.1:18088';
         await page.mouse.click(28, 28);
         await page.waitForFunction(() => document.body.classList.contains('mobile-navigation-open'));
         // Compose exposes semantic bounds behind its canvas; click those bounds on the canvas.
-        await page.locator('#sidebar-projects').click({ force: true });
+        const projectsLink = page.locator('#sidebar-projects');
+        await projectsLink.waitFor({ state: 'visible' });
+        await projectsLink.click({ force: true });
         await ready('Projects');
         assert.equal(await page.evaluate(() => document.body.classList.contains('mobile-navigation-open')), false, 'Navigation closes the drawer');
         await navigate('map', 'Projects Map');
         // The filter toggle remains reachable in portrait and short landscape views.
         const toggle = page.locator('#map-filter-toggle');
+        await toggle.waitFor({ state: 'visible' });
         await toggle.click({ force: true });
         await page.waitForFunction(height => {
           const current = document.getElementById('map-pane').getBoundingClientRect().height;
