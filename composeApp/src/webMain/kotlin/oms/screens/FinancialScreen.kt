@@ -1429,7 +1429,7 @@ private fun PaymentMonitoringCard(
         filteredRows.sortedWith { left, right -> comparePaymentMonitoringRows(left, right, sort, ascending) }
     }
     val totals = remember(filteredRows) { paymentMonitoringTotals(filteredRows) }
-    LaunchedEffect(normalizedQuery) { page = 0 }
+    LaunchedEffect(normalizedQuery, context) { page = 0 }
     val pageSize = 20
     val pageCount = maxOf(1, (rows.size + pageSize - 1) / pageSize)
     val visibleRows = rows.drop(page.coerceIn(0, pageCount - 1) * pageSize).take(pageSize)
