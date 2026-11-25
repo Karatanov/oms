@@ -332,8 +332,6 @@ fun FinancialScreen(
         paymentMonitoring?.transactions.orEmpty().mapNotNull { transaction ->
             val subprojectCode = paymentSubprojectKey(transaction.code)
             val project = subprojectsByCode[subprojectCode.uppercase()] ?: return@mapNotNull null
-            val amountEur = transaction.amountEur
-            val derivedRate = amountEur?.takeIf { it > 0.0 }?.let { transaction.amountUah / it }
             ProjectActRow(
                 projectUuid = project.id,
                 subprojectUuid = project.id,
@@ -342,18 +340,7 @@ fun FinancialScreen(
                 subprojectPartName = null,
                 trancheNumber = project.trancheNumber,
                 region = canonicalUkraineRegion(project.region),
-                act = ApiFinancialRecord(
-                    uuid = transaction.sourceReference,
-                    recordType = "payment",
-                    referenceNumber = transaction.sourceReference,
-                    amount = amountEur ?: transaction.amountUah,
-                    currency = if (amountEur != null) "EUR" else "UAH",
-                    recordDate = transaction.paymentDate,
-                    paymentDate = transaction.paymentDate,
-                    paymentPurpose = transaction.code.paymentPurpose(),
-                    eurExchangeRate = derivedRate,
-                    amountEurCents = amountEur?.let { (it * 100).roundToLong() }
-                )
+                act = approvedPaymentChartRecord(transaction)
             )
         }
     }
@@ -1811,14 +1798,6 @@ private fun PaymentMonitoringCell(value: String, width: androidx.compose.ui.unit
 /** The column header already identifies these values as UAH. */
 private fun Double?.asUahTableValue(): String = this?.let(Double::formatUiAmount) ?: "—"
 private fun Double?.asPercent(): String = this?.let { "${it.formatUiAmount()}%" } ?: "—"
-
-private fun String.paymentPurpose(): String = when {
-    substringBefore('$').substringAfterLast('_').equals("TS", ignoreCase = true) -> "technical_supervision"
-    substringBefore('$').substringAfterLast('_').equals("CSC", ignoreCase = true) -> "engineer_consultant"
-    substringBefore('$').substringAfterLast('_').equals("W", ignoreCase = true) -> "works"
-    contains("equipment", ignoreCase = true) || endsWith("_E", ignoreCase = true) -> "equipment"
-    else -> "works"
-}
 
 /** Imported workbook statuses may start with emoji that are not supported by every browser font. */
 private fun String?.asReadableComplianceStatus(): String = this

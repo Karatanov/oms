@@ -4,6 +4,8 @@
 
 Monetary charts initially show UAH. Supported EUR switches continue to use the existing stored conversions or validated recorded exchange rates. No new rate source or conversion rule is introduced.
 
+Approved payment transactions enter the chart model with their original UAH amount and a frozen EUR equivalent when the workbook supplies one. UAH is never reconstructed from that EUR amount or a derived ratio; changing a chart currency reads the corresponding source amount. Legacy records retain the existing validated conversion fallback.
+
 Filters persist only within the current application session. Browser reload and authentication lifecycle entry/exit create a fresh filter state, including table search, currency selection and pagination. Language, theme, credentials and layout preferences are untouched. Old `oms.table.v1.*` local-storage entries and the old dashboard tranche entry are no longer read.
 
 Financial Monitoring has one searchable global Subproject selector. Dashboard drill-down uses the same `subprojectFilter` state. Changing it scopes KPIs, progress requests, monthly transactions and both source tables. Page-level reset clears the global scope. Table-level reset clears the shared local code search and pagination without changing global scope. Manual source refresh retains filters.

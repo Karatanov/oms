@@ -82,6 +82,8 @@ $sources = @(
     'tools/DisplayCurrencyAudit.kt',
     'composeApp/src/webMain/kotlin/oms/screens/PaymentMonitoringScope.kt',
     'composeApp/src/webMain/kotlin/oms/screens/RegionalInvestment.kt',
+    'composeApp/src/webMain/kotlin/oms/screens/FinancialChartSource.kt',
+    'composeApp/src/webTest/kotlin/oms/urp3/FinancialChartSourceTest.kt',
     'composeApp/src/webMain/kotlin/oms/screens/PaymentMonitoringTotals.kt',
     'composeApp/src/webTest/kotlin/oms/screens/PaymentMonitoringTotalsTest.kt',
     'composeApp/src/webTest/kotlin/oms/screens/RegionalInvestmentTest.kt',
@@ -147,7 +149,7 @@ if ($LASTEXITCODE -ne 0) { throw 'Client/server frozen conversion parity failed'
 if ($LASTEXITCODE -ne 0) { throw 'Project/lot financial execution failed' }
 & $java @textEncodingArgs -cp ($deps -join ';') org.junit.runner.JUnitCore oms.urp3.service.MonitoringCompletionTest oms.urp3.PhysicalCompletionScopeTest
 if ($LASTEXITCODE -ne 0) { throw 'Physical completion source validation failed' }
-& $java @textEncodingArgs -cp ($deps -join ';') org.junit.runner.JUnitCore oms.screens.RegionalInvestmentTest oms.urp3.ProcurementSourceCodeTest oms.screens.PaymentMonitoringTotalsTest
+& $java @textEncodingArgs -cp ($deps -join ';') org.junit.runner.JUnitCore oms.screens.RegionalInvestmentTest oms.urp3.ProcurementSourceCodeTest oms.screens.PaymentMonitoringTotalsTest oms.urp3.FinancialChartSourceTest
 if ($LASTEXITCODE -ne 0) { throw 'Regional planned/actual financing failed' }
 & $java @textEncodingArgs -cp ($deps -join ';') org.junit.runner.JUnitCore oms.urp3.service.FinancialProgressPaymentsTest oms.urp3.FinancialProgressAvailabilityTest
 if ($LASTEXITCODE -ne 0) { throw 'Financial progress completeness failed' }
