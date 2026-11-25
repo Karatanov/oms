@@ -12,6 +12,8 @@ const { chromium } = require(path.resolve(process.env.OMS_PLAYWRIGHT_PATH || 'bu
     await new Promise((resolve, reject) => { server.stdout.once('data', resolve); server.once('exit', reject); });
     browser = await chromium.launch(process.env.CHROME_BIN ? { executablePath: process.env.CHROME_BIN } : {});
     page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
+    // Keep Chromium's chooser interception active across both uploads.
+    page.on('filechooser', () => {});
     const errors = [], queries = [];
     let uploads = 0, snapshotReads = 0, refreshFinished = false;
     let completeRefresh = false;
@@ -73,9 +75,14 @@ const { chromium } = require(path.resolve(process.env.OMS_PLAYWRIGHT_PATH || 'bu
     await page.waitForTimeout(500);
     await page.screenshot({ path: 'build/financial-workspace-smoke/refresh-confirmation.png', fullPage: true });
     const chooseWorkbook = async () => {
-      const chooser = page.waitForEvent('filechooser');
-      await page.mouse.click(795, 525); // Upload XLSX in the real confirmation.
-      await (await chooser).setFiles({ name: 'local-fixture.xlsx', mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', buffer: Buffer.from('browser transport fixture') });
+      const button = page.getByRole('button', { name: 'Завантажити XLSX', exact: true });
+      await button.waitFor({ state: 'visible' });
+      const rect = await button.boundingBox();
+      await page.mouse.click(rect.x + rect.width / 2, rect.y + rect.height / 2);
+      await page.locator('body > input[type=file][accept^=".xls,.xlsx"]').setInputFiles({
+        name: 'local-fixture.xlsx', mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        buffer: Buffer.from('browser transport fixture')
+      });
     };
     const beforeRefresh = snapshotReads, beforeQueries = queries.length;
     await chooseWorkbook();
@@ -92,8 +99,10 @@ const { chromium } = require(path.resolve(process.env.OMS_PLAYWRIGHT_PATH || 'bu
     assert.equal(queries.at(-1), 'smoke-lviv', 'Manual refresh must retain the selected subproject');
     await page.screenshot({ path: 'build/financial-workspace-smoke/refresh-completed.png', fullPage: true });
     await page.mouse.click(1350, 44); await page.waitForTimeout(500);
-    const failedUpload = page.waitForResponse(response => response.url().endsWith('/refresh/upload') && response.status() === 503);
-    await chooseWorkbook(); await failedUpload;
+    await Promise.all([
+      chooseWorkbook(),
+      page.waitForResponse(response => response.url().endsWith('/refresh/upload') && response.status() === 503)
+    ]);
     await page.waitForFunction(() => !document.querySelector('#oms-loading-overlay.visible'));
     await page.waitForTimeout(200);
     assert.equal(snapshotReads, beforeRefresh + 1, 'Failed upload must not reload or replace financial data');
