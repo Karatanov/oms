@@ -4,6 +4,8 @@
 
 No API schema or authorization change is needed for the regional investment chart. Existing `/financials/payment-monitoring` investment fields `totalInvestmentUah`, `eibInvestmentUah`, and `localCoFinancingUah` supply its three UAH series. Existing `/financials/progress?subprojectUuid=...` supplies scoped construction/sector execution. Page and table filter state is session-local; reload/new login reset it without changing authentication storage. See [financial workspace behavior](FINANCIAL_WORKSPACE_2026_11_25.md) for source-grain and reset rules.
 
+`GET /financials/payment-monitoring/export-pdf` now includes both the cumulative monitoring table and a dated payment register, with source UAH/EUR amounts and payment totals. Existing `lang`, `code`, `codes`, `sort` and `ascending` parameters remain supported. Optional `month=YYYY-MM`, `year=YYYY`, and canonical `purpose` scope the dated payments; investment snapshots are not allocated to a transaction month. Invalid cash filters return 400. Explicit empty `codes` never exports the full register. Export uses the existing authorized snapshot, does not import or mutate records, and is not limited to the visible table page.
+
 The API base is `/api/v1`; JSON is the default representation. `server/requests.http` contains development examples. There is no generated OpenAPI endpoint in Phase 1, so routes and DTOs in `server/src/main/kotlin/oms/urp3` are the code-level source of truth.
 
 ## Authentication and errors

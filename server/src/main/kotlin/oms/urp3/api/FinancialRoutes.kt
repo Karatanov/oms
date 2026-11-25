@@ -92,7 +92,8 @@ fun Route.financialRoutes() {
         val query = try {
             oms.urp3.service.paymentMonitoringExportQuery(
                 call.request.queryParameters["code"], call.request.queryParameters["sort"], call.request.queryParameters["ascending"],
-                call.request.queryParameters["codes"])
+                call.request.queryParameters["codes"], call.request.queryParameters["month"],
+                call.request.queryParameters["year"], call.request.queryParameters["purpose"])
         } catch (failure: IllegalArgumentException) {
             call.respond(HttpStatusCode.BadRequest, ErrorResponse("VALIDATION_ERROR", failure.message ?: "Invalid export selection."))
             return@get
@@ -108,7 +109,19 @@ fun Route.financialRoutes() {
             return@get
         }
         val pdf = withContext(Dispatchers.IO) {
-            paymentMonitoringPdfExportService.export(oms.urp3.service.selectPaymentMonitoringExportItems(snapshot.items, query), language, query.code)
+            paymentMonitoringPdfExportService.export(
+                oms.urp3.service.selectPaymentMonitoringExportItems(snapshot.items, query), language, query.code,
+                transactions = oms.urp3.service.selectPaymentMonitoringExportTransactions(snapshot.transactions, query),
+                paymentFilterSummary = listOfNotNull(query.month, query.year?.toString(), query.purpose?.let {
+                    val uk = language == PaymentMonitoringPdfExportService.Language.UK
+                    when (it) {
+                        "works" -> if (uk) "Будівельні роботи" else "Construction works"
+                        "technical_supervision" -> if (uk) "Технічний нагляд" else "Technical supervision"
+                        "engineer_consultant" -> if (uk) "Інженер-консультант" else "Engineer-consultant"
+                        else -> if (uk) "Обладнання" else "Equipment"
+                    }
+                }).joinToString(" · ")
+            )
         }
         call.response.header(HttpHeaders.ContentDisposition, "attachment; filename=oms-payment-monitoring.pdf")
         call.respondBytes(pdf, ContentType.Application.Pdf)

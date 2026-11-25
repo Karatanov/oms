@@ -11,7 +11,7 @@ function Jars([string[]]$paths) {
 $compiler = Jars @('org.jetbrains.kotlin/kotlin-compiler-embeddable/2.3.0', 'org.jetbrains.kotlin/kotlin-stdlib/2.3.0',
     'org.jetbrains.kotlin/kotlin-script-runtime/2.3.0', 'org.jetbrains.kotlin/kotlin-reflect/2.2.21',
     'org.jetbrains.kotlin/kotlin-daemon-embeddable/2.3.0', 'org.jetbrains.kotlinx/kotlinx-coroutines-core-jvm', 'org.jetbrains/annotations')
-$testDeps = Jars @('org.jetbrains.kotlin/kotlin-test', 'org.jetbrains.kotlin/kotlin-test-junit', 'junit/junit', 'org.hamcrest/hamcrest-core', 'com.google.auth')
+$testDeps = Jars @('org.jetbrains.kotlin/kotlin-test', 'org.jetbrains.kotlin/kotlin-test-junit', 'junit/junit', 'org.hamcrest/hamcrest-core', 'com.google.auth', 'org.apache.pdfbox', 'commons-logging/commons-logging')
 $testOutput = Join-Path $env:TEMP ('oms-calculation-tests-' + [guid]::NewGuid())
 New-Item -ItemType Directory -Path $testOutput | Out-Null
 $deps = @($testOutput) + @(Jars @('org.jetbrains.kotlin/kotlin-stdlib/2.3.0')) +
@@ -21,6 +21,9 @@ $textEncodingArgs = @('-Dstdout.encoding=UTF-8', '-Dstderr.encoding=UTF-8')
 node tools/build-display-currency-audit.cjs
 if ($LASTEXITCODE -ne 0) { throw 'DTO fixture generation failed' }
 $sources = @(
+    'server/src/main/kotlin/oms/urp3/service/LandscapeTablePdfExportService.kt',
+    'server/src/main/kotlin/oms/urp3/service/FinancialTablePdfExportService.kt',
+    'server/src/test/kotlin/oms/urp3/service/PaymentMonitoringPdfExportServiceTest.kt',
     'composeApp/src/webMain/kotlin/oms/components/NumberFormat.kt',
     'composeApp/src/webTest/kotlin/oms/components/WholeMoneyFormatTest.kt',
     'server/src/main/kotlin/oms/urp3/config/Deployment.kt',
@@ -151,7 +154,7 @@ if ($LASTEXITCODE -ne 0) { throw 'Client/server frozen conversion parity failed'
 if ($LASTEXITCODE -ne 0) { throw 'Project/lot financial execution failed' }
 & $java @textEncodingArgs -cp ($deps -join ';') org.junit.runner.JUnitCore oms.urp3.service.MonitoringCompletionTest oms.urp3.PhysicalCompletionScopeTest
 if ($LASTEXITCODE -ne 0) { throw 'Physical completion source validation failed' }
-& $java @textEncodingArgs -cp ($deps -join ';') org.junit.runner.JUnitCore oms.screens.RegionalInvestmentTest oms.urp3.ProcurementSourceCodeTest oms.screens.PaymentMonitoringTotalsTest oms.urp3.FinancialChartSourceTest oms.components.WholeMoneyFormatTest
+& $java @textEncodingArgs -cp (($deps + 'server/src/main/resources') -join ';') org.junit.runner.JUnitCore oms.screens.RegionalInvestmentTest oms.urp3.ProcurementSourceCodeTest oms.screens.PaymentMonitoringTotalsTest oms.urp3.FinancialChartSourceTest oms.components.WholeMoneyFormatTest oms.urp3.service.PaymentMonitoringPdfExportServiceTest
 if ($LASTEXITCODE -ne 0) { throw 'Regional planned/actual financing failed' }
 & $java @textEncodingArgs -cp ($deps -join ';') org.junit.runner.JUnitCore oms.urp3.service.FinancialProgressPaymentsTest oms.urp3.FinancialProgressAvailabilityTest
 if ($LASTEXITCODE -ne 0) { throw 'Financial progress completeness failed' }

@@ -27,45 +27,59 @@ class LandscapeTablePdfExportService {
         val pageLabel: (Int, Int) -> String,
         val columns: List<Column>,
         val rows: List<List<String>>,
-        val filterSummary: String? = null
+        val filterSummary: String? = null,
+        val recordCount: Int = rows.size
     )
 
-    fun export(request: Request): ByteArray = PDDocument().use { document ->
+    fun export(request: Request, followingTables: List<Request> = emptyList()): ByteArray = PDDocument().use { document ->
         val fontBytes = requireNotNull(javaClass.getResourceAsStream("/fonts/DejaVuSans.ttf")) {
             "PDF export font is unavailable."
         }
         val font = fontBytes.use { PDType0Font.load(document, it, true) }
-        Writer(document, font, request).write()
+        Writer(document, font, listOf(request) + followingTables).write()
         ByteArrayOutputStream().use { output -> document.save(output); output.toByteArray() }
     }
 
     private class Writer(
         private val document: PDDocument,
         private val font: PDType0Font,
-        private val request: Request
+        private val requests: List<Request>
     ) {
+        private var request = requests.first()
         private val pageSize = PDRectangle(1190.55f, 841.89f) // A3 landscape
         // Print tables use narrow, but still practical, margins. Together with
         // a compact document header this saves meaningful vertical space on
         // multi-page registries without reducing the business data.
         private val margin = 20f
         private val usableWidth = pageSize.width - margin * 2
-        private val columns = request.columns.let { source ->
+        private fun scaledColumns() = request.columns.let { source ->
             val total = source.sumOf { it.relativeWidth.toDouble() }.toFloat().coerceAtLeast(1f)
             source.map { it.copy(relativeWidth = it.relativeWidth * usableWidth / total) }
         }
+        private var columns = scaledColumns()
         private var stream: PDPageContentStream? = null
         private var y = 0f
 
         fun write() {
-            newPage()
-            request.rows.forEach { row ->
-                val cells = columns.indices.map { row.getOrElse(it) { "—" }.ifBlank { "—" } }
-                val height = rowHeight(cells)
-                if (y - height < margin + 14f) newPage()
-                drawRow(cells, height)
+            requests.forEachIndexed { index, table ->
+                request = table
+                columns = scaledColumns()
+                if (index == 0 || y < margin + 120f) newPage() else {
+                    y -= 22f
+                    drawDocumentHeader()
+                    drawTableHeader()
+                }
+                request.rows.forEach { row ->
+                    val cells = columns.indices.map { row.getOrElse(it) { "—" }.ifBlank { "—" } }
+                    val height = rowHeight(cells)
+                    if (y - height < margin + 14f) newPage()
+                    drawRow(cells, height)
+                }
+                if (request.rows.isEmpty()) {
+                    text(request.noRecordsLabel, margin, y - 20f, 10f, INK)
+                    y -= 35f
+                }
             }
-            if (request.rows.isEmpty()) text(request.noRecordsLabel, margin, y - 20f, 10f, INK)
             stream?.close()
             addPageNumbers()
         }
@@ -84,7 +98,7 @@ class LandscapeTablePdfExportService {
             text(request.title, margin, y - 13f, 14f, PRIMARY)
             val date = "${request.exportDateLabel}: ${LocalDate.now().format(DateTimeFormatter.ofPattern("dd.MM.yyyy"))}"
             text(date, pageSize.width - margin - textWidth(date, 7.5f), y - 12f, 7.5f, INK)
-            val total = "${request.totalLabel}: ${request.rows.size}"
+            val total = "${request.totalLabel}: ${request.recordCount}"
             text(total, margin, y - 27f, 7.5f, MUTED)
             request.filterSummary?.takeIf(String::isNotBlank)?.let { summary ->
                 text("${request.filtersLabel}: $summary", margin + 155f, y - 27f, 7.5f, MUTED)

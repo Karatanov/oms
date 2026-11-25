@@ -521,10 +521,14 @@ object OmsApiClient {
         client.post("$baseUrl/financials/payment-monitoring/refresh/$id/cancel").body()
 
     /** URL keeps the browser's authenticated download flow for the read-only payment register. */
-    fun paymentMonitoringPdfExportUrl(language: String, code: String = "", sort: String = "Code", ascending: Boolean = true, selectedCodes: List<String>? = null): String =
+    fun paymentMonitoringPdfExportUrl(language: String, code: String = "", sort: String = "Code", ascending: Boolean = true, selectedCodes: List<String>? = null,
+        month: String? = null, year: Int? = null, purpose: String? = null): String =
         "$baseUrl/financials/payment-monitoring/export-pdf?lang=${language.encodeURLParameter()}" +
             "&code=${code.encodeURLParameter()}&sort=${sort.encodeURLParameter()}&ascending=$ascending" +
-            (selectedCodes?.let { "&codes=${it.joinToString(",").encodeURLParameter()}" } ?: "")
+            (selectedCodes?.let { "&codes=${it.joinToString(",").encodeURLParameter()}" } ?: "") +
+            (month?.let { "&month=${it.encodeURLParameter()}" } ?: "") +
+            (year?.let { "&year=$it" } ?: "") +
+            (purpose?.let { "&purpose=${it.encodeURLParameter()}" } ?: "")
 
     suspend fun createFinancialRecord(projectUuid: String, request: FinancialRecordRequest): ApiFinancialRecord =
         client.post("$baseUrl/projects/$projectUuid/financials") {

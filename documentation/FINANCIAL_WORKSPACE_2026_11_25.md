@@ -14,6 +14,8 @@ The single Update data action is in the page heading. Its existing permission, c
 
 The lower dated table is now Payment register / Реєстр платежів. The upper cumulative table retains its previous title.
 
+The monitoring PDF export contains both tables. The dated payment section follows the selected subproject population, code search, month, year and purpose, and includes every matching transaction in chronological order. It shows date, original project/lot code, tranche and source UAH/EUR amounts, with a payment-only total. Cumulative parent/lot indicators are not added to those totals. If an EUR value is unavailable, its total is unavailable too rather than a misleading partial sum. The second table follows the summary on the same page where space permits, with repeated section headers on continuation pages.
+
 ## Regional investment chart and data lineage
 
 The new Financing structure by oblast grouped chart replaces the planned/paid chart and the regional execution chart. The already-authorized `/api/v1/financials/payment-monitoring` response supplies:

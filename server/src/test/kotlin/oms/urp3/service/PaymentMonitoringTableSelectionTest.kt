@@ -17,6 +17,33 @@ class PaymentMonitoringTableSelectionTest {
     private fun item(code: String, value: Double? = null, compliance: String? = null) = PaymentMonitoringWorkbookSource.Item(
         code, value, value, value, value, value, value, value, value, compliance)
 
+    private fun payment(code: String, date: String = "2026-06-01") = PaymentMonitoringWorkbookSource.Transaction(
+        "$code:$date", code, 8, java.time.LocalDate.parse(date), 100.0, 2.0, "June")
+
+    @Test fun paymentExportIncludesLotsOnceAndHonorsEveryCashFilter() {
+        val source = listOf(payment("ZH08_04#Lot3_TS"), payment("ZH08_04#Lot4_TS", "2026-06-03"),
+            payment("ZH08_04_W"), payment("ZH08_04_TS", "2026-07-01"), payment("ZH08_04_TS", "2025-06-01"), payment("CK08_05_TS"))
+        val query = paymentMonitoringExportQuery("zh08", null, null, "ZH08_04,ZH08_04_W,ZH08_04_TS", "2026-06", "2026", "technical_supervision")
+        assertEquals(listOf("ZH08_04#Lot3_TS", "ZH08_04#Lot4_TS"), selectPaymentMonitoringExportTransactions(source, query).map { it.code })
+        assertEquals(source.size, selectPaymentMonitoringExportTransactions(source, paymentMonitoringExportQuery(null, null, null)).size)
+        assertEquals(emptyList(), selectPaymentMonitoringExportTransactions(source, paymentMonitoringExportQuery(null, null, null, "")))
+    }
+
+    @Test fun paymentExportIsNotLimitedToTheVisibleTablePage() {
+        val source = (1..65).map { payment("KH08_${it.toString().padStart(2, '0')}_W") }
+        assertEquals(65, selectPaymentMonitoringExportTransactions(source, paymentMonitoringExportQuery("kh08", null, null)).size)
+    }
+
+    @Test fun malformedCashFiltersAreRejected() {
+        for (month in listOf("June", "2026-13", "2026-00")) assertFailsWith<IllegalArgumentException> {
+            paymentMonitoringExportQuery(null, null, null, month = month)
+        }
+        for (year in listOf("oops", "0", "10000")) assertFailsWith<IllegalArgumentException> {
+            paymentMonitoringExportQuery(null, null, null, year = year)
+        }
+        assertFailsWith<IllegalArgumentException> { paymentMonitoringExportQuery(null, null, null, purpose = "unknown") }
+    }
+
     @Test fun codeSearchIsCaseInsensitiveAndExportsEveryMatchingPageWithoutMutation() {
         val source = (1..45).map { item("KH08_${it.toString().padStart(2, '0')}", it.toDouble()) } + item("VN08_01", 2.0)
         val result = selectPaymentMonitoringExportItems(source, paymentMonitoringExportQuery("  kh08_  ", "Paid", "false"))

@@ -98,8 +98,38 @@ class PaymentMonitoringPdfExportService(
 ) {
     enum class Language { UK, EN }
 
-    fun export(items: List<PaymentMonitoringWorkbookSource.Item>, language: Language, codeQuery: String = ""): ByteArray {
+    fun export(items: List<PaymentMonitoringWorkbookSource.Item>, language: Language, codeQuery: String = "",
+        transactions: List<PaymentMonitoringWorkbookSource.Transaction> = emptyList(), paymentFilterSummary: String? = null): ByteArray {
         val labels = Labels(language)
+        val uk = language == Language.UK
+        val codeSummary = if (codeQuery.isBlank()) "" else
+            if (uk) "Код субпроєкту: $codeQuery" else "Subproject code: $codeQuery"
+        val paymentRows = transactions.map { row -> listOf(
+            row.paymentDate.format(DateTimeFormatter.ofPattern("dd.MM.yyyy")), row.code,
+            when (row.batchId) { 1, 8 -> "A"; 2, 9 -> "B"; else -> "—" },
+            row.amountUah.money(), row.amountEur.money()
+        ) }.let { rows ->
+            if (rows.isEmpty()) rows else rows + listOf(listOf(
+                if (uk) "Усього" else "Total", "—", "—",
+                transactions.map { it.amountUah }.totalMoney(), transactions.map { it.amountEur }.totalMoney()
+            ))
+        }
+        val payments = LandscapeTablePdfExportService.Request(
+            title = if (uk) "Реєстр платежів" else "Payment register",
+            totalLabel = if (uk) "Усього платежів" else "Total payments",
+            filtersLabel = if (uk) "Фільтри" else "Filters",
+            noRecordsLabel = if (uk) "Немає платежів за вибраними фільтрами" else "No payments match the selected filters",
+            exportDateLabel = if (uk) "Дата експорту" else "Export date",
+            pageLabel = { current, total -> if (uk) "Сторінка $current з $total" else "Page $current of $total" },
+            columns = listOf(
+                LandscapeTablePdfExportService.Column(if (uk) "Дата" else "Date", 65f),
+                LandscapeTablePdfExportService.Column(labels["code"], 200f),
+                LandscapeTablePdfExportService.Column(if (uk) "Транш" else "Tranche", 45f),
+                LandscapeTablePdfExportService.Column(if (uk) "Сплачено, грн" else "Amount paid, UAH", 90f),
+                LandscapeTablePdfExportService.Column(if (uk) "Сплачено, EUR" else "Amount paid, EUR", 90f)
+            ), rows = paymentRows, recordCount = transactions.size,
+            filterSummary = listOfNotNull(codeSummary.takeIf(String::isNotBlank), paymentFilterSummary).joinToString(" · ")
+        )
         return tableExporter.export(
             LandscapeTablePdfExportService.Request(
                 title = if (language == Language.UK) {
@@ -120,10 +150,16 @@ class PaymentMonitoringPdfExportService(
                     "planned" to 60f, "factual" to 60f, "compliance" to 90f
                 ).map { LandscapeTablePdfExportService.Column(labels[it.first], it.second) },
                 rows = items.map(::values),
-                filterSummary = if (codeQuery.isBlank()) "" else
-                    if (language == Language.UK) "Код субпроєкту: $codeQuery" else "Subproject code: $codeQuery"
-            )
+                filterSummary = codeSummary
+            ), followingTables = listOf(payments)
         )
+    }
+
+    private fun List<Double?>.totalMoney(): String {
+        if (any { it == null || !it.isFinite() }) return "—"
+        return fold(java.math.BigDecimal.ZERO) { sum, amount ->
+            sum + java.math.BigDecimal.valueOf(amount!!).setScale(2, java.math.RoundingMode.HALF_UP)
+        }.toPlainString()
     }
 
     private fun values(item: PaymentMonitoringWorkbookSource.Item) = listOf(

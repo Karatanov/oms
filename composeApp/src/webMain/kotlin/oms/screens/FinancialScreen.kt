@@ -1455,7 +1455,8 @@ private fun PaymentMonitoringCard(
                         OmsApiClient.paymentMonitoringPdfExportUrl(
                             if (LocalizationManager.currentLanguage == oms.localization.Language.EN) "en" else "uk",
                             code = codeQuery.trim(), sort = sort.name, ascending = ascending,
-                            selectedCodes = scopedItems.map { it.code }
+                            selectedCodes = scopedItems.map { it.code },
+                            month = context.month, year = context.year, purpose = context.purpose
                         )
                     )
                 }, enabled = rows.isNotEmpty()) {

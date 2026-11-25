@@ -10,10 +10,14 @@ internal data class PaymentMonitoringExportQuery(
     val code: String,
     val sort: PaymentMonitoringExportSort,
     val ascending: Boolean,
-    val selectedCodes: Set<String>? = null
+    val selectedCodes: Set<String>? = null,
+    val month: String? = null,
+    val year: Int? = null,
+    val purpose: String? = null
 )
 
-internal fun paymentMonitoringExportQuery(code: String?, sort: String?, ascending: String?, codes: String? = null): PaymentMonitoringExportQuery {
+internal fun paymentMonitoringExportQuery(code: String?, sort: String?, ascending: String?, codes: String? = null,
+    month: String? = null, year: String? = null, purpose: String? = null): PaymentMonitoringExportQuery {
     require(codes == null || codes.length <= 8000) { "Export selection is too large." }
     // An explicit empty selection must never expand to the entire register.
     val selectedCodes = codes?.split(',')?.filter { it.isNotBlank() }?.map { it.trim().lowercase(Locale.ROOT) }?.toSet()
@@ -24,7 +28,32 @@ internal fun paymentMonitoringExportQuery(code: String?, sort: String?, ascendin
             ?: throw IllegalArgumentException("Unknown payment monitoring sort column.")
     val direction = ascending?.toBooleanStrictOrNull() ?: if (ascending == null) true else
         throw IllegalArgumentException("Sort direction must be true or false.")
-    return PaymentMonitoringExportQuery(query.lowercase(Locale.ROOT), column, direction, selectedCodes)
+    require(month == null || runCatching { java.time.YearMonth.parse(month) }.isSuccess) { "Invalid payment month." }
+    val selectedYear = year?.toIntOrNull()
+    require(year == null || selectedYear != null && selectedYear in 1..9999) { "Invalid payment year." }
+    require(purpose == null || purpose in setOf("works", "technical_supervision", "engineer_consultant", "equipment")) { "Invalid payment purpose." }
+    return PaymentMonitoringExportQuery(query.lowercase(Locale.ROOT), column, direction, selectedCodes, month, selectedYear, purpose)
+}
+
+/** Export dated source rows once; cumulative parent/lot indicators are never payments. */
+internal fun selectPaymentMonitoringExportTransactions(
+    transactions: List<PaymentMonitoringWorkbookSource.Transaction>, query: PaymentMonitoringExportQuery
+): List<PaymentMonitoringWorkbookSource.Transaction> {
+    val projects = query.selectedCodes?.map { oms.urp3.paymentSubprojectKey(it).lowercase(Locale.ROOT) }?.toSet()
+    return transactions.filter { row ->
+        val purpose = when (row.code.substringBefore('$').substringAfterLast('_').uppercase(Locale.ROOT)) {
+            "W" -> "works"
+            "TS" -> "technical_supervision"
+            "CSC" -> "engineer_consultant"
+            "E", "EQUIPMENT" -> "equipment"
+            else -> null
+        }
+        (projects == null || oms.urp3.paymentSubprojectKey(row.code).lowercase(Locale.ROOT) in projects) &&
+            (query.code.isBlank() || row.code.lowercase(Locale.ROOT).contains(query.code)) &&
+            (query.month == null || row.paymentDate.toString().startsWith(query.month)) &&
+            (query.year == null || row.paymentDate.year == query.year) &&
+            (query.purpose == null || purpose == query.purpose)
+    }.sortedWith(compareBy({ it.paymentDate }, { it.code.lowercase(Locale.ROOT) }, { it.sourceReference }))
 }
 
 /** Match the table's code search and nulls-last sorting, without pagination. */
