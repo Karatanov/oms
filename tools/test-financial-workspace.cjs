@@ -17,9 +17,11 @@ const { chromium } = require(path.resolve(process.env.OMS_PLAYWRIGHT_PATH || 'bu
     page.on('request', request => { if (request.url().includes('/financials/progress')) queries.push(new URL(request.url()).searchParams.get('subprojectUuid')); });
     const ready = () => page.waitForFunction(() => document.getElementById('oms-route-transition')?.dataset.displayedSection === 'Financial Monitoring' && document.getElementById('oms-route-transition')?.hidden, null, { timeout: 120000 });
     const click = async id => {
-      await page.waitForFunction(id => document.getElementById(id)?.getBoundingClientRect().width > 0, id);
-      const bounds = await page.locator('#' + id).boundingBox();
-      await page.mouse.click(bounds.x + Math.min(80, bounds.width / 2), bounds.y + bounds.height / 2);
+      // Desktop Compose does not expose a stable DOM semantics tree. Hit the
+      // real painted controls at this test's fixed 1440x1000 viewport.
+      if (id === 'financial-subproject-filter') await page.mouse.click(400, 120);
+      else if (id === 'financial-reset-filters') await page.mouse.click(1360, 120);
+      else throw Error('Unknown financial control: ' + id);
     };
     const queryIs = async expected => {
       const deadline = Date.now() + 20000;
@@ -29,12 +31,10 @@ const { chromium } = require(path.resolve(process.env.OMS_PLAYWRIGHT_PATH || 'bu
     await page.goto('http://127.0.0.1:18088/app.html#financial');
     await ready();
     await page.waitForFunction(() => !document.querySelector('#oms-loading-overlay.visible'));
-    await page.keyboard.press('Tab'); // Activate Compose's browser accessibility tree.
     await click('financial-subproject-filter');
     await page.keyboard.type('TEST-02');
-    await page.keyboard.press('ArrowDown');
-    await page.waitForTimeout(100); // Allow the in-canvas option menu to take keyboard focus.
-    await page.keyboard.press('Enter');
+    await page.waitForTimeout(100);
+    await page.mouse.click(400, 174); // Select the actual matching option.
     await queryIs('smoke-lviv');
     assert.ok(queries.includes('smoke-lviv'), 'Global selector must scope the financial API');
     fs.mkdirSync('build/financial-workspace-smoke', { recursive: true });
@@ -43,7 +43,7 @@ const { chromium } = require(path.resolve(process.env.OMS_PLAYWRIGHT_PATH || 'bu
     await queryIs(null);
     assert.equal(queries.at(-1), null, 'Reset must remove backend filter parameters');
     await click('financial-subproject-filter');
-    await page.keyboard.type('TEST-02'); await page.keyboard.press('ArrowDown'); await page.waitForTimeout(100); await page.keyboard.press('Enter');
+    await page.keyboard.type('TEST-02'); await page.keyboard.press('Enter');
     await queryIs('smoke-lviv');
     assert.equal(queries.at(-1), 'smoke-lviv');
     await page.reload(); await ready();

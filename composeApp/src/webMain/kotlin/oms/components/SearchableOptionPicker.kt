@@ -193,6 +193,12 @@ fun <T> SearchableOptionPicker(
             }
             .onPreviewKeyEvent { event ->
                 when {
+                    event.type == KeyEventType.KeyDown && event.key in setOf(Key.Enter, Key.NumPadEnter) &&
+                        host.menu?.id === id && host.menu?.labels?.size == 1 -> {
+                        // Accept the unique match without relying on browser IME focus transfer.
+                        host.menu?.onChoose?.invoke(0)
+                        true
+                    }
                     event.type == KeyEventType.KeyDown && event.key == Key.DirectionDown && host.menu?.id === id -> {
                         host.menu = host.menu?.copy(focusOnOpen = true)
                         true
