@@ -1141,7 +1141,7 @@ private fun RegistryTableCell(project: Project, column: SortColumn, fontWeight: 
         else -> ""
     }
     val link = oms.data.registryReferenceLink(sourceReference, eConstruction = column != SortColumn.DREAM)
-    val value = when (column) {
+    val rawValue = when (column) {
         SortColumn.POOL -> project.registryValue("pool", project.trancheNumber.trancheLabel())
         SortColumn.REGION -> localizedUkraineRegion(project.region)
         SortColumn.DREAM, SortColumn.DED, SortColumn.ESTIMATE, SortColumn.EXPERTISE, SortColumn.PERMIT ->
@@ -1179,6 +1179,13 @@ private fun RegistryTableCell(project: Project, column: SortColumn, fontWeight: 
         SortColumn.WORK_SUMMARY -> project.registryValue("workSummary")
         SortColumn.WORK_COMMENTS -> project.registryValue("workComments")
         else -> ""
+    }
+    val value = when (column) {
+        SortColumn.FUNDING_TOTAL, SortColumn.FUNDING_WORKS, SortColumn.FUNDING_TS, SortColumn.FUNDING_CSC,
+        SortColumn.EIB_COST, SortColumn.LOCAL_COST, SortColumn.CONTRACTED_TOTAL, SortColumn.CONTRACTED_EIB,
+        SortColumn.CONTRACTED_LOCAL, SortColumn.CONSTRUCTION_AMOUNT, SortColumn.CONSTRUCTION_EIB,
+        SortColumn.CONSTRUCTION_LOCAL, SortColumn.PAID_CONSTRUCTION -> oms.components.formatWholeMoney(rawValue)
+        else -> rawValue
     }
     if (column == SortColumn.CONSTRUCTION_TYPE) {
         // Construction types are a small, closed set.  Keep their visual

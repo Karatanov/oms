@@ -1,5 +1,15 @@
 package oms.components
 
+import kotlin.math.roundToLong
+
+/** Display-only rounding; registry values and sorting retain their source precision. */
+fun formatWholeMoney(source: String): String {
+    val normalized = source.trim().replace(" ", "").replace("\u00A0", "").replace("\u202F", "").replace(',', '.')
+    val amount = normalized.toDoubleOrNull() ?: return source
+    if (!amount.isFinite() || amount >= Long.MAX_VALUE.toDouble() || amount <= Long.MIN_VALUE.toDouble()) return source
+    return formatGroupedNumber(amount.roundToLong())
+}
+
 /**
  * Formats an integer with non-breaking thousands separators.
  *
