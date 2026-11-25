@@ -1772,8 +1772,8 @@ private fun PaymentMonitoringHeaderCell(
         numeric = numeric,
         // Payment-monitoring captions are intentionally explicit.  Give the
         // header an extra line rather than truncating their meaning.
-        height = 76.dp,
-        maxLines = 4
+        height = 96.dp,
+        maxLines = 5
     )
 }
 
