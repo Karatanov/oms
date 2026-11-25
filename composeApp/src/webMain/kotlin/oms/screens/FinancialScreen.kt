@@ -243,24 +243,14 @@ fun FinancialScreen(
         }
     }
 
-    LaunchedEffect(requestedTranche) { requestedTranche?.let { trancheFilter = it } }
-    LaunchedEffect(requestedSubprojectUuid) {
-        requestedSubprojectUuid?.let {
-            subprojectFilter = it
-            onRequestedSubprojectFilterConsumed()
-        }
-    }
-    LaunchedEffect(requestedRegion) {
-        requestedRegion?.let {
-            regionFilter = canonicalUkraineRegion(it)
-            onRequestedRegionFilterConsumed()
-        }
-    }
-    LaunchedEffect(requestedMonth) {
-        requestedMonth?.let {
-            chartMonthFilter = it
-            onRequestedMonthFilterConsumed()
-        }
+    LaunchedEffect(requestedSubprojectUuid, requestedRegion, requestedMonth, requestedTranche) {
+        val next = financialNavigationScope(PaymentMonitoringScope(trancheFilter, subprojectFilter, regionFilter, yearFilter, chartMonthFilter, paymentPurposeFilter),
+            requestedSubprojectUuid, requestedRegion, requestedMonth, requestedTranche)
+        trancheFilter = next.tranche; subprojectFilter = next.subproject; regionFilter = next.region
+        yearFilter = next.year; chartMonthFilter = next.month; paymentPurposeFilter = next.purpose
+        if (requestedSubprojectUuid != null) onRequestedSubprojectFilterConsumed()
+        if (requestedRegion != null) onRequestedRegionFilterConsumed()
+        if (requestedMonth != null) onRequestedMonthFilterConsumed()
     }
 
     LaunchedEffect(reloadKey) {
@@ -517,7 +507,7 @@ fun FinancialScreen(
                 modifier = Modifier.weight(1f).semantics { testTag = "financial-subproject-filter" }, enabled = !loading
             )
             oms.components.WorkspaceOutlinedButton(modifier = Modifier.semantics { testTag = "financial-reset-filters" }, onClick = {
-                subprojectFilter = null; regionFilter = null; trancheFilter = null; yearFilter = null; chartMonthFilter = null; paymentPurposeFilter = null
+                subprojectFilter = null; regionFilter = null; trancheFilter = null; yearFilter = null; chartMonthFilter = null; paymentPurposeFilter = null; recordTypeFilter = null
             }) { Text(LocalizationManager.t("reset_filters")) }
         }
         if (subprojectFilter != null || chartMonthFilter != null || paymentPurposeFilter != null) {

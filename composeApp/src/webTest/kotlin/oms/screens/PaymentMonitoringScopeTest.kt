@@ -5,6 +5,12 @@ import oms.data.ApiPaymentMonitoringTransaction
 import kotlin.test.*
 
 class PaymentMonitoringScopeTest {
+    @Test fun explicitDashboardNavigationReplacesAnOldScopeButNormalReturnPreservesIt() {
+        val old = PaymentMonitoringScope(subproject = "old", month = "2026-05", purpose = "works", year = 2026)
+        assertEquals(old, financialNavigationScope(old, null, null, null, null))
+        assertEquals(PaymentMonitoringScope(subproject = "new"), financialNavigationScope(old, "new", null, null, null))
+        assertEquals(PaymentMonitoringScope(month = "2026-06"), financialNavigationScope(old, null, null, "2026-06", null))
+    }
     private val projects = listOf(PaymentProjectContext("kh", "KH08_07", 1, "Харківська область"),
         PaymentProjectContext("vn", "VN09_01", 2, "Вінницька область"))
     private fun payment(code: String, date: String = "2026-10-01", batch: Int = 8) =

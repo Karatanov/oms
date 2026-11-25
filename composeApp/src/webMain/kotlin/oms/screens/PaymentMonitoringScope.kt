@@ -11,6 +11,11 @@ internal data class PaymentMonitoringScope(
     val year: Int? = null, val month: String? = null, val purpose: String? = null
 )
 
+/** Explicit dashboard navigation replaces the prior scope; ordinary navigation preserves it. */
+internal fun financialNavigationScope(current: PaymentMonitoringScope, subproject: String?, region: String?, month: String?, tranche: Int?): PaymentMonitoringScope =
+    if (subproject == null && region == null && month == null && tranche == null) current
+    else PaymentMonitoringScope(tranche = tranche, subproject = subproject, region = region?.let(::canonicalUkraineRegion), month = month)
+
 internal fun sourcePaymentPurpose(code: String): String? = when (code.substringBefore('$').substringAfterLast('_').uppercase()) {
     "W" -> "works"
     "TS" -> "technical_supervision"
