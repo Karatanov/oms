@@ -95,7 +95,7 @@ external fun openSubprojectMonitoringWorkbookUpload(onComplete: (String, String)
 private const val subprojectMonitoringWorkbookUrl =
     "https://docs.google.com/spreadsheets/d/1-RQLaRuWT7_VYYXdxJM3cfTOUqVuGSZYuWc03heVvfw/edit?gid=1116614736#gid=1116614736"
 private const val allocationWorkbookUrl =
-    "https://docs.google.com/spreadsheets/d/1QVniQDv_2iFBQr1NqsuXs6GM6rrQPpDf/edit?gid=1331578786#gid=1331578786"
+    "https://docs.google.com/spreadsheets/d/1VjToOtNwGlsWLtC5PMuaqEMV8Do3IIRM/edit?gid=701082551#gid=701082551"
 
 // ... existing code ...
 
