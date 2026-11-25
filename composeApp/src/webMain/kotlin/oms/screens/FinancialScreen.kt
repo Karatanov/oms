@@ -337,6 +337,7 @@ fun FinancialScreen(
         ProjectRepository.projects.filter { it.projectType == "subproject" }
             .associateBy { it.siteNumber.trim().uppercase() }
     }
+    val subprojectsByUuid = remember(subprojectsByCode) { subprojectsByCode.values.associateBy { it.id } }
     val workbookChartRows = remember(paymentMonitoring?.transactions, subprojectsByCode) {
         paymentMonitoring?.transactions.orEmpty().mapNotNull { transaction ->
             val subprojectCode = paymentSubprojectKey(transaction.code)
@@ -512,7 +513,7 @@ fun FinancialScreen(
                 options = subprojectFilterOptions.map { it.first }, selected = subprojectFilter,
                 label = LocalizationManager.t("subproject"), onSelect = { subprojectFilter = it },
                 placeholder = LocalizationManager.t("all_financial_subprojects"),
-                itemLabel = { id -> subprojectsByCode.values.firstOrNull { it.id == id }?.let { "${it.siteNumber} — ${it.localizedName()}" }.orEmpty() },
+                itemLabel = { id -> subprojectsByUuid[id]?.let { "${it.siteNumber} — ${it.localizedName()}" }.orEmpty() },
                 modifier = Modifier.weight(1f).semantics { testTag = "financial-subproject-filter" }, enabled = !loading
             )
             oms.components.WorkspaceOutlinedButton(modifier = Modifier.semantics { testTag = "financial-reset-filters" }, onClick = {
@@ -567,9 +568,11 @@ fun FinancialScreen(
             }
             return total
         }
-        val paymentProjects = subprojectsByCode.values.map { PaymentProjectContext(it.id, it.siteNumber, it.trancheNumber, it.region) }
+        val paymentProjects = remember(subprojectsByCode) { subprojectsByCode.values.map { PaymentProjectContext(it.id, it.siteNumber, it.trancheNumber, it.region) } }
         val paymentScope = PaymentMonitoringScope(trancheFilter, subprojectFilter, regionFilter, yearFilter, chartMonthFilter, paymentPurposeFilter)
-        val contextualPayments = scopePaymentTransactions(paymentMonitoring?.transactions.orEmpty(), paymentProjects, paymentScope.copy(purpose = null))
+        val contextualPayments = remember(paymentMonitoring?.transactions, paymentProjects, paymentScope.copy(purpose = null)) {
+            scopePaymentTransactions(paymentMonitoring?.transactions.orEmpty(), paymentProjects, paymentScope.copy(purpose = null))
+        }
         val paymentSourceReady = !loading && !loadFailed && !paymentMonitoringLoading && !paymentMonitoringLoadFailed
         val totalCaption = listOfNotNull(LocalizationManager.t("completed_works_by_acts"), selectedPaymentScopeLabel,
             paymentPurposeFilter?.let { LocalizationManager.t("payment_purpose_$it") }).joinToString(" · ")
