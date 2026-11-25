@@ -47,7 +47,7 @@ data class DashboardSubprojectProgress(
     val completionPct: Double,
     val hasCompleteAmounts: Boolean = true
 )
-data class DashboardMetric(val label: String, val value: Long)
+data class DashboardMetric(val label: String, val value: Long, val subprojectCodes: List<String> = emptyList())
 data class DashboardRecentInspection(val report: InspectionReport, val subprojectCode: String?)
 data class DashboardNationalSummary(
     val subprojectsCount: Long,
@@ -136,7 +136,10 @@ private fun procurementStatusMetrics(procurementRecords: List<org.jetbrains.expo
         } }
         .groupBy({ it.first }, { it.second })
         .mapValues { (_, tenderIds) -> tenderIds.distinct().size.toLong() }
-    return procurementStatusOrder.map { status -> DashboardMetric(status, countByStatus[status] ?: 0L) }
+    val codesByStatus = procurementRecords.groupBy { canonicalProcurementStatus(it[ProcurementRecordTable.purchaseStatus]) }
+        .mapValues { (_, rows) -> rows.map { oms.urp3.paymentSubprojectKey(it[ProcurementRecordTable.subProjectId]) }
+            .filter(String::isNotBlank).distinct().sorted() }
+    return procurementStatusOrder.map { status -> DashboardMetric(status, countByStatus[status] ?: 0L, codesByStatus[status].orEmpty()) }
 }
 
 /**

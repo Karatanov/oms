@@ -386,7 +386,11 @@ private fun AnalyticsListCard(
                         Text(row.label, Modifier.weight(1f), maxLines = 2, style = MaterialTheme.typography.bodyMedium)
                         Text(row.value, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary)
                     }
-                    row.supporting?.takeIf(String::isNotBlank)?.let { Text(it, maxLines = 1, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                    row.supporting?.takeIf(String::isNotBlank)?.let { supporting ->
+                        oms.components.OmsTooltipBox(tooltip = { Text(supporting) }) {
+                            Text(supporting, maxLines = 1, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
                     row.progress?.let { LinearProgressIndicator(progress = { it.coerceIn(0f, 1f) }, Modifier.fillMaxWidth().padding(top = 4.dp)) }
                 }
                 HorizontalDivider()
@@ -425,6 +429,9 @@ fun MetricsChart(
             label = if (centerYearLabels && isMonth) displayLabel.toMonthName() else displayLabel.toChartMonth(),
             value = metric.value.toFloat(),
             formattedValue = formatGroupedNumber(metric.value),
+            tooltip = metric.subprojectCodes.takeIf { it.isNotEmpty() }?.let {
+                "${LocalizationManager.t("subprojects")}:\n${procurementChartCodeLines(it)}"
+            },
             color = when {
                 titleKey.contains("procurement_status") -> oms.theme.procurementStatusColor(metric.label)
                 titleKey.contains("signed_contract") -> oms.theme.paymentPurposeColor(when (metric.label) {
@@ -452,7 +459,7 @@ fun MetricsChart(
 }
 
 @Composable
-fun MetricsListChart(titleKey: String, metrics: List<ApiDashboardMetric>, compact: Boolean = false) {
+fun MetricsListChart(titleKey: String, metrics: List<ApiDashboardMetric>, compact: Boolean = false, onItemClick: ((String) -> Unit)? = null) {
     var criterion by remember { mutableStateOf<ChartSortCriterion?>(null) }
     var ascending by remember { mutableStateOf(true) }
     val displayMetrics = criterion?.let { activeCriterion ->
@@ -466,7 +473,9 @@ fun MetricsListChart(titleKey: String, metrics: List<ApiDashboardMetric>, compac
     } ?: metrics
     AnalyticsListCard(
         titleKey,
-        displayMetrics.map { AnalyticsListRow(LocalizationManager.procurementStatus(it.label), it.value.toString()) },
+        displayMetrics.map { metric -> AnalyticsListRow(LocalizationManager.procurementStatus(metric.label), metric.value.toString(),
+            supporting = metric.subprojectCodes.takeIf { it.isNotEmpty() }?.let(::procurementChartCodeLines),
+            onClick = onItemClick?.let { handler -> { handler(metric.label) } }) },
         compact = compact,
         sortControls = {
             ChartSortControls(criterion, ascending, { criterion = it }, { ascending = !ascending })

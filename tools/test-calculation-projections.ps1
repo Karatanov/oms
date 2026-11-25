@@ -21,6 +21,8 @@ $textEncodingArgs = @('-Dstdout.encoding=UTF-8', '-Dstderr.encoding=UTF-8')
 node tools/build-display-currency-audit.cjs
 if ($LASTEXITCODE -ne 0) { throw 'DTO fixture generation failed' }
 $sources = @(
+    'composeApp/src/webMain/kotlin/oms/screens/ProcurementDrilldown.kt',
+    'composeApp/src/webTest/kotlin/oms/screens/ProcurementDrilldownTest.kt',
     'server/src/main/kotlin/oms/urp3/service/LandscapeTablePdfExportService.kt',
     'server/src/main/kotlin/oms/urp3/service/FinancialTablePdfExportService.kt',
     'server/src/test/kotlin/oms/urp3/service/PaymentMonitoringPdfExportServiceTest.kt',
@@ -154,7 +156,7 @@ if ($LASTEXITCODE -ne 0) { throw 'Client/server frozen conversion parity failed'
 if ($LASTEXITCODE -ne 0) { throw 'Project/lot financial execution failed' }
 & $java @textEncodingArgs -cp ($deps -join ';') org.junit.runner.JUnitCore oms.urp3.service.MonitoringCompletionTest oms.urp3.PhysicalCompletionScopeTest
 if ($LASTEXITCODE -ne 0) { throw 'Physical completion source validation failed' }
-& $java @textEncodingArgs -cp (($deps + 'server/src/main/resources') -join ';') org.junit.runner.JUnitCore oms.screens.RegionalInvestmentTest oms.urp3.ProcurementSourceCodeTest oms.screens.PaymentMonitoringTotalsTest oms.urp3.FinancialChartSourceTest oms.components.WholeMoneyFormatTest oms.urp3.service.PaymentMonitoringPdfExportServiceTest
+& $java @textEncodingArgs -cp (($deps + 'server/src/main/resources') -join ';') org.junit.runner.JUnitCore oms.screens.RegionalInvestmentTest oms.urp3.ProcurementSourceCodeTest oms.screens.PaymentMonitoringTotalsTest oms.urp3.FinancialChartSourceTest oms.components.WholeMoneyFormatTest oms.urp3.service.PaymentMonitoringPdfExportServiceTest oms.screens.ProcurementDrilldownTest
 if ($LASTEXITCODE -ne 0) { throw 'Regional planned/actual financing failed' }
 & $java @textEncodingArgs -cp ($deps -join ';') org.junit.runner.JUnitCore oms.urp3.service.FinancialProgressPaymentsTest oms.urp3.FinancialProgressAvailabilityTest
 if ($LASTEXITCODE -ne 0) { throw 'Financial progress completeness failed' }

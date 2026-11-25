@@ -102,13 +102,31 @@ fun ProcurementScreen(
     val contentScrollState = rememberScrollState()
     var tableTopInRootPx by remember { mutableStateOf(0f) }
     val tableTopPaddingPx = with(LocalDensity.current) { 24.dp.toPx() }
-    LaunchedEffect(requestedTrancheFilter) {
-        requestedTrancheFilter?.let { trancheFilter = if (it == 1) 8 else 9 }
+    var chartDrilldownPending by remember { mutableStateOf(false) }
+    fun applyChartFilter(status: String, month: String? = null, contractType: String? = null) {
+        // Charts describe the tranche, not an old local search/column selection.
+        val next = ProcurementTableFilters(search, oblastFilter, subprojectFilter, procurementMethodFilter,
+            statusFilter, signedContractMonthFilter, contractTypeFilter).forChart(status, month, contractType)
+        search = next.search; oblastFilter = next.oblast; subprojectFilter = next.subproject; procurementMethodFilter = next.method
+        statusFilter = next.status; signedContractMonthFilter = next.month; contractTypeFilter = next.contractType
+        currentPage = 0
+        chartDrilldownPending = true
     }
-    LaunchedEffect(requestedStatusFilter) {
+    LaunchedEffect(requestedStatusFilter, requestedTrancheFilter) {
         requestedStatusFilter?.let {
-            statusFilter = it
+            trancheFilter = requestedTrancheFilter?.let { tranche -> if (tranche == 1) 8 else 9 }
+            applyChartFilter(it)
             onRequestedStatusFilterConsumed()
+        } ?: requestedTrancheFilter?.let { trancheFilter = if (it == 1) 8 else 9 }
+    }
+    LaunchedEffect(chartDrilldownPending, records) {
+        if (chartDrilldownPending && records != null) {
+            withFrameNanos { }
+            contentScrollState.animateScrollTo(
+                (contentScrollState.value + tableTopInRootPx - tableTopPaddingPx).toInt()
+                    .coerceIn(0, contentScrollState.maxValue)
+            )
+            chartDrilldownPending = false
         }
     }
     LaunchedEffect(reloadKey) {
@@ -154,17 +172,7 @@ fun ProcurementScreen(
     // already present and therefore does not add another API request on return.
     LaunchedEffect(reloadKey) { ProjectRepository.refresh() }
     fun applySignedContractMonthFilter(month: String, contractType: String? = null) {
-        signedContractMonthFilter = month
-        statusFilter = procurementStatuses[3]
-        contractTypeFilter = contractType
-        scope.launch {
-            kotlinx.coroutines.yield()
-            contentScrollState.animateScrollTo(
-                (contentScrollState.value + tableTopInRootPx - tableTopPaddingPx)
-                    .toInt()
-                    .coerceIn(0, contentScrollState.maxValue)
-            )
-        }
+        applyChartFilter(procurementStatuses[3], month, contractType)
     }
     // A tranche is a page-level view, not merely a table filter: the two
     // procurement charts must describe precisely the same registry subset.
@@ -173,17 +181,18 @@ fun ProcurementScreen(
     }
     val procurementStatusMetrics = records?.let {
         procurementStatuses.map { status ->
+            val matching = trancheRecords.filter { sameProcurementStatus(it.purchaseStatus, status) }
             ApiDashboardMetric(
                 status,
-                trancheRecords.asSequence()
-                    .filter { sameProcurementStatus(it.purchaseStatus, status) }
+                matching.asSequence()
                     // The approved tracker assigns one current status to a
                     // Procurement ID; contract and lot rows must not turn
                     // that one procurement into multiple chart bars.
                     .map { it.procurementId ?: it.tenderId ?: it.id.toString() }
                     .distinct()
                     .count()
-                    .toLong()
+                    .toLong(),
+                procurementChartSubprojectCodes(matching.map { it.subProjectId })
             )
         }
     }.orEmpty()
@@ -191,10 +200,9 @@ fun ProcurementScreen(
         .asSequence()
         .filter { sameProcurementStatus(it.purchaseStatus, procurementStatuses[3]) }
         .filter { oms.urp3.isWorksProcurementContract(it.sourceContractType) }
-        .mapNotNull { (it.contractDate ?: it.estimatedContractDate)?.takeIf { date -> date.length >= 7 }?.take(7) }
-        .groupingBy { it }
-        .eachCount()
-        .map { ApiDashboardMetric(it.key, it.value.toLong()) }
+        .mapNotNull { record -> (record.contractDate ?: record.estimatedContractDate)?.takeIf { date -> date.length >= 7 }?.take(7)?.let { it to record } }
+        .groupBy({ it.first }, { it.second })
+        .map { (month, contracts) -> ApiDashboardMetric(month, contracts.size.toLong(), procurementChartSubprojectCodes(contracts.map { it.subProjectId })) }
         .sortedBy { it.label }
     // Keep the count chart and the monetary chart separate: a contract count
     // cannot be used as a proxy for the signed value, especially where TS/CSC
@@ -215,6 +223,11 @@ fun ProcurementScreen(
         .groupBy({ it.first }, { it.second })
         .map { (month, amounts) -> oms.screens.MonthlyMoneyAmount(month, amounts.sum()) }
         .sortedBy { it.month }
+    val signedContractCodesByMonth = trancheRecords
+        .filter { sameProcurementStatus(it.purchaseStatus, procurementStatuses[3]) && it.contractAmountUah?.isFinite() == true }
+        .mapNotNull { record -> (record.contractDate ?: record.estimatedContractDate)?.takeIf { it.length >= 7 }?.take(7)?.let { it to record.subProjectId } }
+        .groupBy({ it.first }, { it.second })
+        .mapValues { (_, codes) -> "${LocalizationManager.t("subprojects")}:\n${procurementChartCodeLines(codes)}" }
     fun scrollBy(delta: Float) = scope.launch { contentScrollState.animateScrollBy(delta) }
     Box(Modifier.fillMaxSize()) {
     Column(
@@ -255,7 +268,8 @@ fun ProcurementScreen(
         }
         Spacer(Modifier.height(16.dp))
         oms.components.AdaptiveChartRow(
-            first = { MetricsListChart("procurement_status_chart", procurementStatusMetrics, compact = true) },
+            first = { MetricsListChart("procurement_status_chart", procurementStatusMetrics, compact = true,
+                onItemClick = { applyChartFilter(it) }) },
             second = {
                 MetricsChart(
                     "signed_construction_contracts",
@@ -273,6 +287,7 @@ fun ProcurementScreen(
             hintKey = "signed_contract_value_by_month_hint",
             payments = signedContractValueMetrics,
             currency = "UAH",
+            tooltipByMonth = signedContractCodesByMonth,
             onMonthClick = { month -> applySignedContractMonthFilter(month) }
         )
         Spacer(Modifier.height(4.dp))

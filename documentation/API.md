@@ -8,6 +8,10 @@ No API schema or authorization change is needed for the regional investment char
 
 The API base is `/api/v1`; JSON is the default representation. `server/requests.http` contains development examples. There is no generated OpenAPI endpoint in Phase 1, so routes and DTOs in `server/src/main/kotlin/oms/urp3` are the code-level source of truth.
 
+## Procurement chart drill-down
+
+Dashboard overview procurement-status metrics include additive `subprojectCodes` metadata for the supporting unique subproject list. Codes are drawn from the same tranche-scoped procurement rows as the existing metric; no additional registry request is needed. Older responses without this field remain readable by the client. Procurement chart selection clears conflicting local table filters before showing the matching rows.
+
 ## Authentication and errors
 
 - **POST** `/auth/login`, **POST** `/auth/logout`, **POST** `/auth/activate`.

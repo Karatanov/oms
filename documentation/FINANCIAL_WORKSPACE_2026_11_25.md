@@ -30,6 +30,10 @@ These are imported investment fields, not dated transaction amounts, contract ex
 
 The redundant dashboard-overview request and obsolete planned/actual chart implementation were removed. Existing financial-progress requests remain because construction and sector progress still use them. No API contract, authorization or database migration is changed.
 
+## Procurement chart drill-down
+
+Procurement-status tooltips on the Dashboard list unique subproject codes from the same authorized status population as the count. Procurement status rows and monthly contract count/value charts also show their supporting codes. Selecting a status or month replaces stale local search, oblast, subproject, method, prior month and incompatible type filters, resets pagination and scrolls to the matching procurement rows. The chart's tranche scope is retained; a Dashboard transition explicitly supplies its selected tranche, including all tranches. Lists identify unique subprojects; the bar count still counts procedures/contracts, not the number of unique subprojects.
+
 ## Semantic colors
 
 Payment and procurement category bars use `paymentPurposeColor`, shared with the corresponding chips. Procurement-status charts share their mapping with status chips. Construction and sector progress share registry chip mappings. Investment Total/EIB/Local use distinct Information/Success/Purple design tokens. Sorting and filtering do not assign colors by array position.

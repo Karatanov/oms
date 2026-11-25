@@ -979,7 +979,7 @@ data class ApiMonthlyActPayment(val month: String, val amountEurCents: Long, val
     val completionPct: Double,
     val hasCompleteAmounts: Boolean = true
 )
-@Serializable data class ApiDashboardMetric(val label: String, val value: Long)
+@Serializable data class ApiDashboardMetric(val label: String, val value: Long, val subprojectCodes: List<String> = emptyList())
 @Serializable data class ApiDashboardContractTypeMetric(
     val type: String,
     val contractsCount: Long,

@@ -70,7 +70,7 @@ data class MonthlyActPaymentResponse(
     val paidAmountUah: Double? = null,
     val paymentPct: Double? = null
 )
-@Serializable data class DashboardMetricResponse(val label: String, val value: Long)
+@Serializable data class DashboardMetricResponse(val label: String, val value: Long, val subprojectCodes: List<String> = emptyList())
 @Serializable data class DashboardContractTypeMetricResponse(
     val type: String,
     val contractsCount: Long,
