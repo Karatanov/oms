@@ -116,6 +116,7 @@ fun MapScreen(onOpenProject: (Project) -> Unit = {}, requestedTrancheFilter: Int
                             if (mobile) FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp),
                                 verticalArrangement = Arrangement.spacedBy(4.dp)) { Selectors() }
                             BoxWithConstraints(Modifier.fillMaxWidth()) {
+                                val filterWidth = maxWidth
                                 val searchControl: @Composable (Modifier) -> Unit = { modifier ->
                                     WorkspaceSearchField(search, { search = it.safeTextInput(200) },
                                         LocalizationManager.t("search_project"), modifier)
@@ -136,14 +137,14 @@ fun MapScreen(onOpenProject: (Project) -> Unit = {}, requestedTrancheFilter: Int
                                         modifier = modifier, clearLabel = LocalizationManager.t("map_clear_selection")
                                     )
                                 }
-                                if (maxWidth >= 720.dp) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                if (filterWidth >= 720.dp) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp),
                                     verticalAlignment = Alignment.CenterVertically) {
                                     searchControl(Modifier.weight(1f))
                                     regionControl(Modifier.width(180.dp))
                                     statusControl(Modifier.width(174.dp))
                                 } else Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                     searchControl(Modifier.fillMaxWidth())
-                                    if (maxWidth < 480.dp) {
+                                    if (filterWidth < 480.dp) {
                                         regionControl(Modifier.fillMaxWidth())
                                         statusControl(Modifier.fillMaxWidth())
                                     } else Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
