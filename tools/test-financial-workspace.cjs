@@ -13,6 +13,35 @@ const { chromium } = require(path.resolve(process.env.OMS_PLAYWRIGHT_PATH || 'bu
     browser = await chromium.launch(process.env.CHROME_BIN ? { executablePath: process.env.CHROME_BIN } : {});
     page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
     const errors = [], queries = [];
+    let uploads = 0, snapshotReads = 0, refreshFinished = false;
+    let completeRefresh = false;
+    // Intercept mutations in the browser: the HTTP fixture stays read-only.
+    // These bytes only exercise the file chooser and multipart transport, not
+    // the server's separately tested XLSX parser.
+    await page.route('**/api/v1/financials/payment-monitoring/refresh/upload', async route => {
+      uploads++;
+      assert.match(route.request().headers()['content-type'], /multipart\/form-data/);
+      await route.fulfill(uploads === 1 ? {
+        json: { id: 'local-refresh', status: 'RUNNING', progress: 10, phase: 'READING' }
+      } : { status: 503, json: { message: 'Local fixture: source unavailable' } });
+    });
+    await page.route('**/api/v1/financials/payment-monitoring/refresh/local-refresh', async route => {
+      refreshFinished = completeRefresh;
+      await route.fulfill({ json: {
+        id: 'local-refresh', status: completeRefresh ? 'COMPLETED' : 'RUNNING',
+        progress: completeRefresh ? 100 : 50, phase: 'READING', importedCount: completeRefresh ? 2 : null
+      } });
+    });
+    await page.route('**/api/v1/financials/payment-monitoring', async route => {
+      snapshotReads++;
+      const response = await route.fetch();
+      const snapshot = await response.json();
+      if (refreshFinished) {
+        snapshot.transactions[1].amountUah = 750;
+        snapshot.summary.amountPaidTotalUah = 1750;
+      }
+      await route.fulfill({ json: snapshot });
+    });
     page.on('pageerror', error => errors.push(String(error)));
     page.on('request', request => { if (request.url().includes('/financials/progress')) queries.push(new URL(request.url()).searchParams.get('subprojectUuid')); });
     const ready = () => page.waitForFunction(() => document.getElementById('oms-route-transition')?.dataset.displayedSection === 'Financial Monitoring' && document.getElementById('oms-route-transition')?.hidden, null, { timeout: 120000 });
@@ -39,6 +68,41 @@ const { chromium } = require(path.resolve(process.env.OMS_PLAYWRIGHT_PATH || 'bu
     assert.ok(queries.includes('smoke-lviv'), 'Global selector must scope the financial API');
     fs.mkdirSync('build/financial-workspace-smoke', { recursive: true });
     await page.screenshot({ path: 'build/financial-workspace-smoke/filtered.png', fullPage: true });
+    await page.waitForTimeout(300); // Let the scoped canvas finish its frame.
+    await page.mouse.click(1350, 44); // Page-level Update data action.
+    await page.waitForTimeout(500);
+    await page.screenshot({ path: 'build/financial-workspace-smoke/refresh-confirmation.png', fullPage: true });
+    const chooseWorkbook = async () => {
+      const chooser = page.waitForEvent('filechooser');
+      await page.mouse.click(795, 525); // Upload XLSX in the real confirmation.
+      await (await chooser).setFiles({ name: 'local-fixture.xlsx', mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', buffer: Buffer.from('browser transport fixture') });
+    };
+    const beforeRefresh = snapshotReads, beforeQueries = queries.length;
+    await chooseWorkbook();
+    await page.waitForResponse(response => response.url().endsWith('/refresh/local-refresh'));
+    await page.mouse.click(1350, 44); // A running operation must not start another.
+    await page.waitForTimeout(200);
+    assert.equal(uploads, 1);
+    await page.screenshot({ path: 'build/financial-workspace-smoke/refresh-running.png', fullPage: true });
+    completeRefresh = true;
+    await page.waitForResponse(response => response.url().endsWith('/financials/payment-monitoring'));
+    await page.waitForTimeout(200);
+    assert.equal(snapshotReads, beforeRefresh + 1, 'Completed refresh must reload the snapshot exactly once');
+    assert.ok(queries.length > beforeQueries, 'Completed refresh must update financial progress');
+    assert.equal(queries.at(-1), 'smoke-lviv', 'Manual refresh must retain the selected subproject');
+    await page.screenshot({ path: 'build/financial-workspace-smoke/refresh-completed.png', fullPage: true });
+    await page.mouse.click(1350, 44); await page.waitForTimeout(500);
+    const failedUpload = page.waitForResponse(response => response.url().endsWith('/refresh/upload') && response.status() === 503);
+    await chooseWorkbook(); await failedUpload;
+    await page.waitForFunction(() => !document.querySelector('#oms-loading-overlay.visible'));
+    await page.waitForTimeout(200);
+    assert.equal(snapshotReads, beforeRefresh + 1, 'Failed upload must not reload or replace financial data');
+    assert.equal(queries.at(-1), 'smoke-lviv', 'Failed refresh must retain the selected subproject');
+    await page.screenshot({ path: 'build/financial-workspace-smoke/refresh-error.png', fullPage: true });
+    // Failure must release the operation guard and let the user retry/cancel.
+    await page.mouse.click(1350, 44); await page.waitForTimeout(500);
+    await page.keyboard.press('Escape'); // Dismiss confirmation without another upload.
+    await page.waitForTimeout(500);
     await click('financial-reset-filters');
     await queryIs(null);
     assert.equal(queries.at(-1), null, 'Reset must remove backend filter parameters');
@@ -66,7 +130,7 @@ const { chromium } = require(path.resolve(process.env.OMS_PLAYWRIGHT_PATH || 'bu
     await page.mouse.click(120, 313); await ready(); await queryIs(null);
     await page.screenshot({ path: 'build/financial-workspace-smoke/new-login.png', fullPage: true });
     assert.deepEqual(errors, []);
-    console.log('PASS financial workspace: real production startup, subproject selector, API scope/reset, reload, new user login, screenshots, no runtime errors');
+    console.log('PASS financial workspace: production startup, selector, scoped refresh/error/retry, single reload, filter reset, browser reload, new login, no runtime errors');
   } catch (error) {
     fs.mkdirSync('build/financial-workspace-smoke', { recursive: true });
     if (page) await page.screenshot({ path: 'build/financial-workspace-smoke/failure.png', fullPage: true }).catch(() => {});

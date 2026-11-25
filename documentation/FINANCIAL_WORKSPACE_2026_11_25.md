@@ -36,4 +36,6 @@ Payment and procurement category bars use `paymentPurposeColor`, shared with the
 
 Calculation tests cover parent/lot exclusion, child fallback, subproject/region/tranche scoping, real zero, missing values, source differences and the absence of invented monthly budgets. Session and semantic-color tests run with the web regression suite. `tools/test-financial-workspace.cjs` runs the actual compiled production frontend against a local read-only fixture, verifies subproject API parameters, clearing filters and reload behavior, captures screenshots and rejects unhandled browser exceptions. This fixture is not evidence of production financial amounts.
 
+The browser regression also selects an upload through the real file chooser, intercepts the multipart request locally, and exercises refresh progress, completion and an HTTP 503 upload failure. It checks that the selected subproject is retained, the completed job reloads the monitoring snapshot exactly once, failure leaves the snapshot unchanged, and the update confirmation can be reopened. The test payload exercises transport only; it is not an XLSX parser test and never reaches production.
+
 The existing container workflow performs the release build and VPS health/revision checks. Deployment evidence and remaining host-specific limits must be recorded separately from local test results.
