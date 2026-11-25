@@ -25,7 +25,7 @@ internal fun paymentMonitoringTotals(rows: List<ApiPaymentMonitoringItem>): ApiP
  * highest filled subtotal in this filtered selection, independently per column.
  * If a parent is absent or blank, its available children still contribute.
  */
-private fun sumRollupPayments(rows: List<ApiPaymentMonitoringItem>, value: (ApiPaymentMonitoringItem) -> Double?): Double? {
+internal fun sumRollupPayments(rows: List<ApiPaymentMonitoringItem>, value: (ApiPaymentMonitoringItem) -> Double?): Double? {
     val filledCodes = rows.filter { value(it) != null }.map { it.code.trim().uppercase() }
         .filter(String::isNotBlank).toSet()
     val selected = rows.filter { row ->

@@ -18,6 +18,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Refresh
+import oms.model.localizedName
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.testTag
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
@@ -132,12 +136,9 @@ fun FinancialScreen(
     var paymentMonitoring by remember { mutableStateOf<ApiPaymentMonitoring?>(null) }
     var paymentMonitoringLoading by remember { mutableStateOf(!useLedger) }
     var paymentMonitoringLoadFailed by remember { mutableStateOf(false) }
-    var regionalFunding by remember { mutableStateOf<List<oms.data.ApiSubprojectFunding>?>(null) }
-    var regionalFundingLoading by remember { mutableStateOf(true) }
-    var regionalFundingFailed by remember { mutableStateOf(false) }
     var paymentMonitoringMessage by remember { mutableStateOf<String?>(null) }
     var paymentMonitoringMessageIsError by remember { mutableStateOf(false) }
-    var displayCurrency by rememberTableSetting("financial.currency", "EUR") { it.also { currency -> require(currency in listOf("EUR", "UAH")) } }
+    var displayCurrency by rememberTableSetting("financial.currency", "UAH") { it.also { currency -> require(currency in listOf("EUR", "UAH")) } }
     var displayRates by remember { mutableStateOf<Map<String, Double>>(emptyMap()) }
     var loadingRates by remember { mutableStateOf(false) }
     var rateRetry by remember { mutableStateOf(0) }
@@ -200,7 +201,6 @@ fun FinancialScreen(
     var currentPage by remember { mutableStateOf(0) }
     var tableTopInRootPx by remember { mutableStateOf(0f) }
     var paymentMonitoringTopInRootPx by remember { mutableStateOf(0f) }
-    var regionProgressTopInRootPx by remember { mutableStateOf(0f) }
     val deletion = oms.components.LocalDeleteConfirmation.current
     val scope = rememberCoroutineScope()
     val pageScrollState = rememberScrollState()
@@ -335,19 +335,6 @@ fun FinancialScreen(
     val subprojectsByCode = remember(ProjectRepository.projects) {
         ProjectRepository.projects.filter { it.projectType == "subproject" }
             .associateBy { it.siteNumber.trim().uppercase() }
-    }
-    LaunchedEffect(reloadKey) {
-        regionalFundingLoading = true
-        regionalFundingFailed = false
-        try {
-            regionalFunding = OmsApiClient.dashboardOverview().subprojectFunding
-        } catch (cancelled: kotlinx.coroutines.CancellationException) {
-            throw cancelled
-        } catch (_: Exception) {
-            regionalFundingFailed = true
-        } finally {
-            regionalFundingLoading = false
-        }
     }
     val workbookChartRows = remember(paymentMonitoring?.transactions, subprojectsByCode) {
         paymentMonitoring?.transactions.orEmpty().mapNotNull { transaction ->
@@ -499,6 +486,14 @@ fun FinancialScreen(
             Icons.Default.AccountBalance,
             iconText = "€"
         ) {
+            if (!useLedger && canUpdatePaymentMonitoring) oms.components.WorkspaceOutlinedButton(
+                onClick = { paymentMonitoringMessage = null; paymentMonitoringRefreshConfirmationOpen = true },
+                enabled = paymentMonitoringRefreshJob?.status !in setOf("RUNNING", "CANCELLING")
+            ) {
+                Icon(Icons.Default.Refresh, null, Modifier.size(18.dp))
+                Spacer(Modifier.width(6.dp))
+                Text(LocalizationManager.t("payment_monitoring_update"))
+            }
             if (useLedger && canManageFinancials) {
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     oms.components.WorkspaceOutlinedButton(onClick = { errorMessage = null; showTransferDialog = true }) {
@@ -510,6 +505,17 @@ fun FinancialScreen(
                     }
                 }
             }
+        }
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            SearchableOptionPicker(
+                options = subprojectFilterOptions.map { it.first }, selected = subprojectFilter,
+                label = LocalizationManager.t("subproject"), onSelect = { subprojectFilter = it },
+                itemLabel = { id -> subprojectsByCode.values.firstOrNull { it.id == id }?.let { "${it.siteNumber} — ${it.localizedName()}" }.orEmpty() },
+                modifier = Modifier.weight(1f).semantics { testTag = "financial-subproject-filter" }, enabled = !loading
+            )
+            oms.components.WorkspaceOutlinedButton(modifier = Modifier.semantics { testTag = "financial-reset-filters" }, onClick = {
+                subprojectFilter = null; regionFilter = null; trancheFilter = null; yearFilter = null; chartMonthFilter = null; paymentPurposeFilter = null
+            }) { Text(LocalizationManager.t("reset_filters")) }
         }
         if (subprojectFilter != null || chartMonthFilter != null || paymentPurposeFilter != null) {
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -599,14 +605,6 @@ fun FinancialScreen(
         } else null
         PaymentSummaryCards(paidFor("works"), paidFor("technical_supervision"), paidFor("engineer_consultant"), selectedPaymentScopeLabel)
 
-        val fundingByUuid = regionalFunding.orEmpty().associateBy { it.projectUuid }
-        val regionalPlanProjects = subprojectsByCode.values
-            .filter { it.id in fundingByUuid && '#' !in it.siteNumber }
-            .map { project -> RegionalFinancingProject(
-                PaymentProjectContext(project.id, project.siteNumber, project.trancheNumber, project.region),
-                oms.urp3.decimalMoneyCents(fundingByUuid.getValue(project.id).amountUah),
-                oms.urp3.decimalMoneyCents(fundingByUuid.getValue(project.id).amountEur)
-            ) }
         if (financialProgressLoading) oms.components.ContentState(
             LocalizationManager.t("financial_progress_loading"), loading = true)
         if (financialProgressLoadFailed) oms.components.ContentState(
@@ -622,24 +620,17 @@ fun FinancialScreen(
                     (yearFilter == null || (it.act.paymentDate ?: it.act.recordDate).take(4).toIntOrNull() == yearFilter)
             }.map { FinancialChartRecord(it.act, it.subprojectCode.orEmpty()) }.toList()
         }
-        fun financingByRegion(currency: String): List<RegionalFinancingAmount> {
-            val regions = regionalFinancing(regionalPlanProjects, paymentMonitoring?.transactions, paymentScope, currency)
-            if (!useLedger) return regions
-            val included = scopePaymentProjects(regionalPlanProjects.map { it.context }, paymentScope).map { it.uuid }.toSet()
-            val payments = cash.filter { it.subprojectUuid in included &&
-                (paymentPurposeFilter == null || it.act.paymentPurpose == paymentPurposeFilter) }.groupBy { it.region }
-            return regions.map { it.copy(paidCents = ledgerCents(payments[it.region].orEmpty(), currency)) }
-        }
         // Rate availability is chart-local: an incomplete purpose shows its
         // own warning/retry without hiding unrelated, complete financial charts.
         oms.components.AdaptiveChartRow(
             first = {
-                RegionalFinancingChart(
-                    financingByRegion("UAH"),
-                    paymentMonitoringLoading || ProjectRepository.loading || regionalFundingLoading,
-                    paymentMonitoringLoadFailed || ProjectRepository.errorMessage != null || regionalFundingFailed,
-                    onRetry = { reloadKey++ }, titleSuffix = selectedChartScopeLabel,
-                    itemsEur = financingByRegion("EUR")
+                RegionalInvestmentChart(
+                    remember(paymentMonitoring?.items, paymentProjects, paymentScope.subproject, paymentScope.region, paymentScope.tranche) {
+                        regionalInvestment(paymentMonitoring?.items.orEmpty(), paymentProjects, paymentScope)
+                    },
+                    paymentMonitoringLoading || loading,
+                    paymentMonitoringLoadFailed || loadFailed,
+                    onRetry = { reloadKey++ }, titleSuffix = selectedChartScopeLabel
                 )
             },
             second = {
@@ -661,26 +652,7 @@ fun FinancialScreen(
                     FinancialProgressCard("financial_progress_by_sector", progress.bySector, selectedChartScopeLabel, compactInitially = true)
                 }
             },
-            second = {
-                financialProgress?.let { progress ->
-                    Box(Modifier.onGloballyPositioned { regionProgressTopInRootPx = it.positionInRoot().y }) {
-                        FinancialProgressCard(
-                            "financial_progress_by_region",
-                            progress.byRegion,
-                            selectedChartScopeLabel,
-                            compactInitially = true,
-                            onCollapsed = {
-                                scope.launch {
-                                    delay(16)
-                                    val target = (pageScrollState.value + regionProgressTopInRootPx - tableTopPaddingPx)
-                                        .roundToInt().coerceIn(0, pageScrollState.maxValue)
-                                    pageScrollState.animateScrollTo(target)
-                                }
-                            }
-                        )
-                    }
-                }
-            }
+            second = {}
         )
         MonthlyEquipmentPaymentsChart(financialChartRecords, displayRates, selectedChartScopeLabel) { month -> selectChartMonth(month, "equipment") }
         // Keep the update action available even when the last source snapshot
@@ -692,21 +664,8 @@ fun FinancialScreen(
                 selectedMonth = chartMonthFilter,
                 projects = paymentProjects,
                 context = paymentScope,
-                onResetScope = {
-                    trancheFilter = null
-                    subprojectFilter = null
-                    regionFilter = null
-                    yearFilter = null
-                    chartMonthFilter = null
-                    paymentPurposeFilter = null
-                },
-                canUpdate = canUpdatePaymentMonitoring,
                 message = paymentMonitoringMessage,
-                messageIsError = paymentMonitoringMessageIsError,
-                onUpdate = {
-                    paymentMonitoringMessage = null
-                    paymentMonitoringRefreshConfirmationOpen = true
-                }
+                messageIsError = paymentMonitoringMessageIsError
             )
         }
 
@@ -1423,7 +1382,8 @@ private fun FinancialProgressCard(
                     }
                     if (item.hasCompleteAmounts) LinearProgressIndicator(
                         progress = { (item.completionPct / 100.0).toFloat().coerceIn(0f, 1f) },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        color = if (titleKey.contains("sector")) oms.components.priorityDirectionColor(item.label) else oms.components.constructionTypeColor(item.label)
                     )
                     Text(
                         "${if (item.hasCompleteAmounts) item.completedAmountUah.formatUiAmount() else "—"} ${LocalizationManager.currencyLabel("UAH")} / ${item.contractAmountUah.formatUiAmount()} ${LocalizationManager.currencyLabel("UAH")}",
@@ -1459,11 +1419,8 @@ private fun PaymentMonitoringCard(
     selectedMonth: String?,
     projects: List<PaymentProjectContext>,
     context: PaymentMonitoringScope,
-    onResetScope: () -> Unit,
-    canUpdate: Boolean,
     message: String?,
-    messageIsError: Boolean,
-    onUpdate: () -> Unit
+    messageIsError: Boolean
 ) {
     // This is an independent source table, not an optional chart. Keep it
     // visible on opening Financial Monitoring so users can immediately see
@@ -1508,13 +1465,8 @@ private fun PaymentMonitoringCard(
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp),
                 itemVerticalAlignment = Alignment.CenterVertically) {
-                if (canUpdate) {
-                    oms.components.WorkspaceOutlinedButton(onClick = onUpdate) {
-                        Text(LocalizationManager.t("payment_monitoring_update"))
-                    }
-                }
-                if (context != PaymentMonitoringScope()) {
-                    oms.components.WorkspaceOutlinedButton(onClick = onResetScope) { Text(LocalizationManager.t("reset_filters")) }
+                oms.components.WorkspaceOutlinedButton(onClick = { codeQuery = ""; page = 0 }) {
+                    Text(LocalizationManager.t("reset_filters"))
                 }
                 oms.components.WorkspaceOutlinedButton(onClick = {
                     oms.data.openOmsDownload(
@@ -1578,7 +1530,8 @@ private fun PaymentMonitoringCard(
                         onPage = { page = it.coerceIn(0, pageCount - 1) })
                 }
                 PaymentMonitoringTransactionTable(scopePaymentTransactions(snapshot.transactions, projects, context), selectedMonth, codeQuery,
-                    title = paymentMonitoringTitle(context.copy(month = selectedMonth ?: context.month), projects, codeQuery, includePeriod = true))
+                    title = paymentMonitoringTitle(context.copy(month = selectedMonth ?: context.month), projects, codeQuery, includePeriod = true),
+                    onResetFilters = { codeQuery = ""; page = 0 })
             }
         }
     }
@@ -1591,7 +1544,7 @@ private fun paymentMonitoringTitle(
     codeQuery: String,
     includePeriod: Boolean = false
 ): String = buildList {
-    add(LocalizationManager.t("payment_monitoring_title"))
+    add(LocalizationManager.t(if (includePeriod) "payment_register_title" else "payment_monitoring_title"))
     context.region?.let { add(localizedUkraineRegion(it)) }
     context.tranche?.let { add("${LocalizationManager.t("tranche")} ${it.financialTrancheCode()}") }
     val projectCode = projects.firstOrNull { it.uuid == context.subproject }?.code
@@ -1695,7 +1648,8 @@ private fun PaymentMonitoringTransactionTable(
     transactions: List<ApiPaymentMonitoringTransaction>,
     selectedMonth: String?,
     codeQuery: String,
-    title: String
+    title: String,
+    onResetFilters: () -> Unit
 ) {
     var sort by rememberTableSetting("financial.transactions.sort", PaymentMonitoringTransactionSort.Date) { PaymentMonitoringTransactionSort.valueOf(it) }
     var ascending by rememberTableSetting("financial.transactions.ascending", true) { it.toBooleanStrict() }
@@ -1723,6 +1677,7 @@ private fun PaymentMonitoringTransactionTable(
         title,
         style = MaterialTheme.typography.titleSmall
     )
+    oms.components.WorkspaceTextButton(onClick = { onResetFilters(); page = 0 }) { Text(LocalizationManager.t("reset_filters")) }
     if (rows.isEmpty()) {
         Text(LocalizationManager.t("no_chart_data"), color = MaterialTheme.colorScheme.onSurfaceVariant)
         return
@@ -1885,13 +1840,13 @@ private fun FinancialPaymentPurposeBadge(recordType: String, purpose: String) {
         Text("—", color = MaterialTheme.colorScheme.onSurfaceVariant)
         return
     }
-    val (labelKey, color) = when (purpose) {
-        "equipment" -> "payment_purpose_equipment" to oms.theme.OmsColors.Warning
-        "technical_supervision" -> "payment_purpose_technical_supervision" to oms.theme.OmsColors.Success
-        "engineer_consultant" -> "payment_purpose_engineer_consultant" to oms.theme.OmsColors.Purple
-        else -> "payment_purpose_works" to MaterialTheme.colorScheme.primary
+    val labelKey = when (purpose) {
+        "equipment" -> "payment_purpose_equipment"
+        "technical_supervision" -> "payment_purpose_technical_supervision"
+        "engineer_consultant" -> "payment_purpose_engineer_consultant"
+        else -> "payment_purpose_works"
     }
-    oms.components.OmsBadge(LocalizationManager.t(labelKey), color)
+    oms.components.OmsBadge(LocalizationManager.t(labelKey), oms.theme.paymentPurposeColor(purpose))
 }
 
 @Composable

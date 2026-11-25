@@ -832,26 +832,12 @@ private fun ApiProcurementRecord.localizedPromotorName(): String = if (Localizat
 }
 
 /** Keeps procurement states visually distinguishable without depending on the selected UI language. */
-private fun procurementStatusColor(status: String) = when {
-    status.contains("договір укладено", ignoreCase = true) ||
-        status.contains("contract signed", ignoreCase = true) -> oms.theme.OmsColors.Success
-    status.contains("закупівля триває", ignoreCase = true) ||
-        status.contains("tender ongoing", ignoreCase = true) -> oms.theme.OmsColors.Information
-    status.contains("повідомлення про намір", ignoreCase = true) ||
-        status.contains("contract award notice", ignoreCase = true) -> oms.theme.OmsColors.Warning
-    status.contains("відмінено", ignoreCase = true) ||
-        status.contains("розірвано", ignoreCase = true) ||
-        status.contains("cancelled", ignoreCase = true) ||
-        status.contains("terminated", ignoreCase = true) -> oms.theme.OmsColors.Danger
-    else -> oms.theme.OmsColors.Neutral
-}
+private fun procurementStatusColor(status: String) = oms.theme.procurementStatusColor(status)
 
 /** Contract classifications and methods are attributes, not controls.  Use the
  * same quiet badge treatment as statuses while retaining a stable semantic hue. */
 private fun procurementContractTypeColor(type: String) = when {
-    type == "W" -> oms.theme.OmsColors.Information
-    type == "TS" -> oms.theme.OmsColors.Purple
-    type == "CSC" -> oms.theme.OmsColors.Success
+    type in setOf("W", "TS", "CSC") -> oms.theme.paymentPurposeColor(type)
     type.contains("works", ignoreCase = true) || type.contains("робот", ignoreCase = true) -> oms.theme.OmsColors.Information
     type.contains("supply", ignoreCase = true) || type.contains("постач", ignoreCase = true) || type.contains("equipment", ignoreCase = true) -> oms.theme.OmsColors.Purple
     type.contains("service", ignoreCase = true) || type.contains("послуг", ignoreCase = true) || type.contains("consult", ignoreCase = true) -> oms.theme.OmsColors.Success

@@ -5,6 +5,16 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNull
 
 class TableSettingsTest {
+    @Test fun navigationRetainsFiltersButANewSessionDoesNot() {
+        TableSettingsSession.reset()
+        TableSettingsSession.write("admin.projects.search", "KH08")
+        TableSettingsSession.write("admin.financial.currency", "EUR")
+        assertEquals("KH08", TableSettingsSession.read("admin.projects.search"))
+        assertNull(TableSettingsSession.read("other.projects.search"))
+        TableSettingsSession.reset()
+        assertNull(TableSettingsSession.read("admin.projects.search"))
+        assertNull(TableSettingsSession.read("admin.financial.currency"))
+    }
     @Test fun pageSizeSurvivesLeavingAndRecreatingTheTable() {
         val storage = mutableMapOf<String, String>()
         fun mount() = TableSettingState(20, { storage["pageSize"] }, { storage["pageSize"] = it }, String::toInt)

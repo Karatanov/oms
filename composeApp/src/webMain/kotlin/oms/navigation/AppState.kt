@@ -165,6 +165,7 @@ class AppState {
 
     // 🔹 Успішний логін
     fun onLoginSuccess(username: String, roleCode: String) {
+        resetSessionFilters()
         this.token = "session"
         this.username = username
         this.roleCode = roleCode
@@ -177,6 +178,7 @@ class AppState {
 
     /** Restores a verified HttpOnly session without redirecting away from the current route. */
     fun restoreAuthenticatedSession(username: String, roleCode: String, route: String) {
+        resetSessionFilters()
         token = "session"
         this.username = username
         this.roleCode = roleCode
@@ -185,6 +187,7 @@ class AppState {
     }
 
     fun onGuestAccess() {
+        resetSessionFilters()
         token = "guest-session"
         username = "Guest"
         roleCode = "GUEST"
@@ -195,6 +198,7 @@ class AppState {
 
     // 🔹 Logout
     fun logout() {
+        resetSessionFilters()
         clearOmsAuthentication()
         ProjectRepository.clear()
         token = null
@@ -204,6 +208,16 @@ class AppState {
         selectedProject = null
         currentScreen = Screen.Login
         replaceOmsRoute("login")
+    }
+
+    private fun resetSessionFilters() {
+        oms.components.TableSettingsSession.reset()
+        requestedProjectRegion = null
+        requestedFinancialSubprojectUuid = null
+        requestedFinancialRegion = null
+        requestedFinancialMonth = null
+        requestedProcurementStatus = null
+        requestedAnalyticsTranche = null
     }
 }
 

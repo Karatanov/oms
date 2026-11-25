@@ -33,7 +33,7 @@ fun MonthlyPaymentsChart(
     regionName: String? = null,
     onMonthClick: (String) -> Unit = {}
 ) {
-    var currency by remember { mutableStateOf("EUR") }
+    var currency by remember { mutableStateOf("UAH") }
     val state = rememberMonthlyPayments(records, "works", currency, rates)
     val aggregation = state.aggregation
     var expanded by remember { mutableStateOf(true) }
@@ -129,7 +129,7 @@ private fun MonthlyPurposePaymentsChart(
     onExpandedChange: ((Boolean) -> Unit)? = null,
     onMonthClick: (String) -> Unit = {}
 ) {
-    var currency by remember { mutableStateOf("EUR") }
+    var currency by remember { mutableStateOf("UAH") }
     val state = rememberMonthlyPayments(records, purpose, currency, rates)
     val aggregation = state.aggregation
     if (aggregation.payments.isEmpty() && aggregation.unavailableRecords == 0 && !state.loadingRates && !showWhenEmpty) return
@@ -206,7 +206,7 @@ private fun chartRates(
 internal fun aggregateMonthlyPayments(
     records: List<FinancialChartRecord>,
     purpose: String? = null,
-    currency: String = "EUR",
+    currency: String = "UAH",
     rates: Map<String, Double> = emptyMap()
 ): MonthlyFinancialAggregation {
     var unavailable = 0

@@ -28,6 +28,7 @@ const overview = {
 const projects = [
   { uuid: 'smoke-root', projectType: 'project', name: 'Smoke parent', siteNumber: 'URP-III', region: 'Київська область', city: 'Київ', sector: 'education', budgetPlanned: 0, status: 'active', latitude: 50.45, longitude: 30.52 },
   { uuid: 'smoke-kyiv', projectType: 'subproject', parentProjectUuid: 'smoke-root', name: 'Test school', siteNumber: 'TEST-01', region: 'Київська область', city: 'Київ', sector: 'education', budgetPlanned: 4500000, status: 'active', latitude: 50.45, longitude: 30.52 },
+  { uuid: 'smoke-lviv', projectType: 'subproject', parentProjectUuid: 'smoke-root', name: 'Test hospital', siteNumber: 'TEST-02', region: 'Львівська область', city: 'Львів', sector: 'healthcare', budgetPlanned: 9000000, status: 'active', latitude: 49.84, longitude: 24.03 },
 ];
 const financialRecords = Array.from({ length: 36 }, (_, index) => ({
   projectUuid: 'smoke-kyiv',
@@ -70,6 +71,19 @@ const fixtures = {
   '/api/v1/inspection-reports/analytics': { monthlyInspectionCounts: [], monthlyEshsViolations: [] },
   '/api/v1/procurements': procurements,
   '/api/v1/financials': financialRecords,
+  '/api/v1/financials/progress': { byRegion: [], byConstructionType: [], bySector: [] },
+  '/api/v1/financials/payment-monitoring': {
+    refreshedAt: '2026-11-25T00:00:00Z',
+    summary: { amountPaidTotalUah: 1500 },
+    items: [
+      { code: 'TEST-01', totalInvestmentUah: 4500000, eibInvestmentUah: 4000000, localCoFinancingUah: 500000 },
+      { code: 'TEST-02', totalInvestmentUah: 9000000, eibInvestmentUah: 8000000, localCoFinancingUah: 1000000 },
+    ],
+    transactions: [
+      { sourceReference: 'one', code: 'TEST-01_W', batchId: 8, paymentDate: '2026-06-01', amountUah: 1000, amountEur: 20 },
+      { sourceReference: 'two', code: 'TEST-02#Lot1_TS', batchId: 9, paymentDate: '2026-06-02', amountUah: 500, amountEur: 10 },
+    ],
+  },
   '/api/v1/documents': [],
   '/api/v1/users': [],
 };

@@ -21,6 +21,7 @@ $textEncodingArgs = @('-Dstdout.encoding=UTF-8', '-Dstderr.encoding=UTF-8')
 node tools/build-display-currency-audit.cjs
 if ($LASTEXITCODE -ne 0) { throw 'DTO fixture generation failed' }
 $sources = @(
+    'server/src/main/kotlin/oms/urp3/config/Deployment.kt',
     'shared/src/commonMain/kotlin/oms/urp3/ProcurementSourceCode.kt',
     'shared/src/commonTest/kotlin/oms/urp3/ProcurementSourceCodeTest.kt',
     'server/src/test/kotlin/oms/urp3/service/MonitoringSourceNumberValidationTest.kt',
@@ -80,10 +81,10 @@ $sources = @(
     'composeApp/src/webTest/kotlin/oms/urp3/FinancialDecimalRoundingTest.kt',
     'tools/DisplayCurrencyAudit.kt',
     'composeApp/src/webMain/kotlin/oms/screens/PaymentMonitoringScope.kt',
-    'composeApp/src/webMain/kotlin/oms/screens/RegionalFinancing.kt',
+    'composeApp/src/webMain/kotlin/oms/screens/RegionalInvestment.kt',
     'composeApp/src/webMain/kotlin/oms/screens/PaymentMonitoringTotals.kt',
     'composeApp/src/webTest/kotlin/oms/screens/PaymentMonitoringTotalsTest.kt',
-    'composeApp/src/webTest/kotlin/oms/screens/RegionalFinancingTest.kt',
+    'composeApp/src/webTest/kotlin/oms/screens/RegionalInvestmentTest.kt',
     'build/calculation-audit/PaymentMonitoringDtos.kt',
     'build/calculation-audit/ApiFinancialRecord.kt',
     'build/calculation-audit/ApiFinancialSummary.kt',
@@ -146,7 +147,7 @@ if ($LASTEXITCODE -ne 0) { throw 'Client/server frozen conversion parity failed'
 if ($LASTEXITCODE -ne 0) { throw 'Project/lot financial execution failed' }
 & $java @textEncodingArgs -cp ($deps -join ';') org.junit.runner.JUnitCore oms.urp3.service.MonitoringCompletionTest oms.urp3.PhysicalCompletionScopeTest
 if ($LASTEXITCODE -ne 0) { throw 'Physical completion source validation failed' }
-& $java @textEncodingArgs -cp ($deps -join ';') org.junit.runner.JUnitCore oms.screens.RegionalFinancingTest oms.urp3.ProcurementSourceCodeTest oms.screens.PaymentMonitoringTotalsTest
+& $java @textEncodingArgs -cp ($deps -join ';') org.junit.runner.JUnitCore oms.screens.RegionalInvestmentTest oms.urp3.ProcurementSourceCodeTest oms.screens.PaymentMonitoringTotalsTest
 if ($LASTEXITCODE -ne 0) { throw 'Regional planned/actual financing failed' }
 & $java @textEncodingArgs -cp ($deps -join ';') org.junit.runner.JUnitCore oms.urp3.service.FinancialProgressPaymentsTest oms.urp3.FinancialProgressAvailabilityTest
 if ($LASTEXITCODE -ne 0) { throw 'Financial progress completeness failed' }

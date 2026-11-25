@@ -76,6 +76,7 @@ fun ActivitySection(
                 style = MaterialTheme.typography.titleMedium
             )
 
+            oms.components.WorkspaceTextButton(onClick = { activityQuery = "" }) { Text(LocalizationManager.t("reset_filters")) }
             Spacer(modifier = Modifier.height(12.dp))
 
             @Composable

@@ -71,7 +71,7 @@ import kotlin.math.roundToLong
 
 @Composable
 fun FundingByOblastChart(items: List<ApiSubprojectFunding>, onOpenProjectsByRegion: (String) -> Unit = {}, orientation: BarChartOrientation = BarChartOrientation.Vertical) {
-    var currency by remember { mutableStateOf("EUR") }
+    var currency by remember { mutableStateOf("UAH") }
     val fundingByRegion = items
         .groupBy { canonicalUkraineRegion(it.region) }
         .mapValues { (_, rows) -> rows.sumOf { if (currency == "EUR") it.amountEur else it.amountUah } }
@@ -425,6 +425,13 @@ fun MetricsChart(
             label = if (centerYearLabels && isMonth) displayLabel.toMonthName() else displayLabel.toChartMonth(),
             value = metric.value.toFloat(),
             formattedValue = formatGroupedNumber(metric.value),
+            color = when {
+                titleKey.contains("procurement_status") -> oms.theme.procurementStatusColor(metric.label)
+                titleKey.contains("signed_contract") -> oms.theme.paymentPurposeColor(when (metric.label) {
+                    "technical_supervision" -> "TS"; "engineer_consultant" -> "CSC"; "works" -> "W"; else -> metric.label
+                })
+                else -> null
+            },
             id = metric.label,
             groupLabel = if (centerYearLabels && isMonth) metric.label.take(4) else null
         )
@@ -477,7 +484,7 @@ fun MonthlyAmountsChart(
     onExpandedChange: ((Boolean) -> Unit)? = null,
     orientation: BarChartOrientation = BarChartOrientation.Vertical
 ) {
-    var currency by remember { mutableStateOf("EUR") }
+    var currency by remember { mutableStateOf("UAH") }
     val projection = projectMonthlyAmounts(payments, currency)
     MonthlyMoneyChart(
         titleKey = titleKey,
@@ -530,7 +537,14 @@ fun MonthlyMoneyChart(
             id = it.month,
             groupLabel = it.month.take(4),
             tooltip = tooltipByMonth[it.month],
-            formattedValue = formatChartAmount(it.amountCents / 100.0, currency)
+            formattedValue = formatChartAmount(it.amountCents / 100.0, currency),
+            color = when (titleKey) {
+                "monthly_project_payments" -> oms.theme.paymentPurposeColor("works")
+                "monthly_technical_supervision_payments" -> oms.theme.paymentPurposeColor("technical_supervision")
+                "monthly_engineer_consultant_payments" -> oms.theme.paymentPurposeColor("engineer_consultant")
+                "monthly_equipment_payments" -> oms.theme.paymentPurposeColor("equipment")
+                else -> oms.theme.OmsColors.Information
+            }
         )
     }
     AnalyticsCard(

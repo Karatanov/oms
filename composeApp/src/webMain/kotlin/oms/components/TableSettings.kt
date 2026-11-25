@@ -5,9 +5,16 @@ import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
-import kotlinx.browser.localStorage
 
 val LocalTableSettingsUser = staticCompositionLocalOf { "guest" }
+
+/** A page reload creates a fresh store; a new authenticated session clears it explicitly. */
+object TableSettingsSession {
+    private val values = mutableMapOf<String, String>()
+    fun read(key: String): String? = values[key]
+    fun write(key: String, value: String) { values[key] = value }
+    fun reset() { values.clear() }
+}
 
 /** Only presentation preferences are stored, never records, selections or API state. */
 internal class TableSettingState<T>(
@@ -36,7 +43,7 @@ fun <T> rememberTableSetting(key: String, initial: T, decode: (String) -> T): Mu
     val user = LocalTableSettingsUser.current
     return remember(user, key) {
         val storageKey = "oms.table.v1.${user.length}:$user.$key"
-        TableSettingState(initial, { localStorage.getItem(storageKey) }, { localStorage.setItem(storageKey, it) }, decode)
+        TableSettingState(initial, { TableSettingsSession.read(storageKey) }, { TableSettingsSession.write(storageKey, it) }, decode)
     }
 }
 

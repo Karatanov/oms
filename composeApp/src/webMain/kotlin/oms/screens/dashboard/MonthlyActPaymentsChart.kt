@@ -33,7 +33,7 @@ import kotlin.math.roundToLong
 
 @Composable
 fun MonthlyActPaymentsChart(primary: Color, payments: List<ApiMonthlyActPayment>, onOpenFinancialByMonth: (String) -> Unit = {}, orientation: BarChartOrientation = BarChartOrientation.Vertical, onRetry: (() -> Unit)? = null) {
-    var currency by remember { mutableStateOf("EUR") }
+    var currency by remember { mutableStateOf("UAH") }
     val projection = projectMonthlyAmounts(payments, currency)
     val data = projection.payments
         .map { payment ->

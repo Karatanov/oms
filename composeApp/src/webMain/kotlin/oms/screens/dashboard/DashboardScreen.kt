@@ -33,7 +33,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.input.key.*
 import kotlinx.browser.localStorage
-import kotlinx.browser.sessionStorage
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.yield
@@ -77,10 +76,7 @@ fun DashboardScreen(
                 ?: BarChartOrientation.Vertical
         )
     }
-    var trancheNumber by remember {
-        val savedTranche = runCatching { sessionStorage.getItem("oms.dashboard.tranche") }.getOrNull()
-        mutableStateOf(savedTranche?.toIntOrNull()?.takeIf { it == 1 || it == 2 })
-    }
+    var trancheNumber by oms.components.rememberTableSetting<Int?>("dashboard.tranche", null) { it.toIntOrNull()?.takeIf { value -> value in 1..2 } }
     val scrollState = rememberLazyListState()
     val scope = rememberCoroutineScope()
     LaunchedEffect(reload, trancheNumber) {
@@ -164,7 +160,6 @@ fun DashboardScreen(
                             loading = true
                             error = false
                             trancheNumber = option
-                            runCatching { sessionStorage.setItem("oms.dashboard.tranche", option?.toString() ?: "all") }
                         }
                     })
                     ChartOrientationPicker(chartOrientation) { orientation ->

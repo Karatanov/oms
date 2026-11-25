@@ -102,6 +102,7 @@ jobs:
           npm install --prefix build/date-picker-test playwright@1.63.0
           build/date-picker-test/node_modules/.bin/playwright install --with-deps chromium
           node tools/test-route-transitions.cjs
+          node tools/test-financial-workspace.cjs
 
       - name: Upload production frontend
         uses: actions/upload-artifact@v6

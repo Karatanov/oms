@@ -242,6 +242,9 @@ fun AdminScreen() {
             }
         }
         oms.components.WorkspaceSearchField(search, { search = it.safeTextInput(200) }, LocalizationManager.t("admin_search"))
+        oms.components.WorkspaceOutlinedButton(onClick = { search = ""; archiveFilter = "active" }) {
+            Text(LocalizationManager.t("reset_filters"))
+        }
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             listOf("active", "archived", "all").forEach { filter ->
                 oms.components.WorkspaceFilterChip(archiveFilter == filter, { archiveFilter = filter }, { Text(LocalizationManager.t("archive_filter_$filter")) })

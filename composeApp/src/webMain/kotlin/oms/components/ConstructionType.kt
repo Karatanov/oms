@@ -30,13 +30,14 @@ fun ConstructionTypeSelector(value: String, onValueChange: (String) -> Unit, mod
 
 @Composable
 fun ConstructionTypeChip(value: String, fontWeight: FontWeight = FontWeight.Medium) {
-    val color = when (value) {
+    OmsBadge(value.constructionTypeLabel(), constructionTypeColor(value), fontWeight)
+}
+
+fun constructionTypeColor(value: String) = when (oms.urp3.financialConstructionKey(value)) {
         "reconstruction" -> Color(0xFF1565C0)
         "capital_repair" -> oms.theme.OmsColors.Warning
         "new_construction" -> oms.theme.OmsColors.Success
         else -> Color(0xFF546E7A)
-    }
-    OmsBadge(value.constructionTypeLabel(), color, fontWeight)
 }
 
 fun String.constructionTypeLabel(): String = when (oms.urp3.financialConstructionKey(this)) {
