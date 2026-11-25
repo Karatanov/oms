@@ -50,8 +50,23 @@ const { chromium } = require(path.resolve(process.env.OMS_PLAYWRIGHT_PATH || 'bu
     await queryIs(null);
     assert.equal(queries.at(-1), null, 'Browser reload must reset filters');
     await page.screenshot({ path: 'build/financial-workspace-smoke/default.png', fullPage: true });
+    // Exercise AppState's real logout/login lifecycle, not just a fresh tab.
+    await page.route('**/api/v1/auth/login', route => route.fulfill({ contentType: 'application/json', body: JSON.stringify({
+      user: { id: 2, username: 'second-ui-test', email: 'second@example.invalid', role: { id: 1, code: 'ADMIN', name: 'Admin' } }
+    }) }));
+    await click('financial-subproject-filter');
+    await page.keyboard.type('TEST-02'); await page.keyboard.press('Enter'); await queryIs('smoke-lviv');
+    await page.mouse.click(215, 918); // Sign out through the real sidebar control.
+    await page.waitForFunction(() => window.location.hash === '#login');
+    await page.waitForTimeout(200);
+    await page.mouse.click(1080, 418); await page.keyboard.type('second-ui-test');
+    await page.mouse.click(1080, 495); await page.keyboard.type('local-fixture-password');
+    await page.mouse.click(1080, 620);
+    await page.waitForFunction(() => document.getElementById('oms-route-transition')?.dataset.displayedSection === 'Dashboard' && document.getElementById('oms-route-transition')?.hidden, null, { timeout: 30000 });
+    await page.mouse.click(120, 313); await ready(); await queryIs(null);
+    await page.screenshot({ path: 'build/financial-workspace-smoke/new-login.png', fullPage: true });
     assert.deepEqual(errors, []);
-    console.log('PASS financial workspace: real production startup, subproject selector, API scope/reset, reload, screenshots, no runtime errors');
+    console.log('PASS financial workspace: real production startup, subproject selector, API scope/reset, reload, new user login, screenshots, no runtime errors');
   } catch (error) {
     fs.mkdirSync('build/financial-workspace-smoke', { recursive: true });
     if (page) await page.screenshot({ path: 'build/financial-workspace-smoke/failure.png', fullPage: true }).catch(() => {});
