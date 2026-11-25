@@ -1,5 +1,9 @@
 # API Handover Reference
 
+## Financial workspace presentation update November 2026
+
+No API schema or authorization change is needed for the regional investment chart. Existing `/financials/payment-monitoring` investment fields `totalInvestmentUah`, `eibInvestmentUah`, and `localCoFinancingUah` supply its three UAH series. Existing `/financials/progress?subprojectUuid=...` supplies scoped construction/sector execution. Page and table filter state is session-local; reload/new login reset it without changing authentication storage. See [financial workspace behavior](FINANCIAL_WORKSPACE_2026_11_25.md) for source-grain and reset rules.
+
 The API base is `/api/v1`; JSON is the default representation. `server/requests.http` contains development examples. There is no generated OpenAPI endpoint in Phase 1, so routes and DTOs in `server/src/main/kotlin/oms/urp3` are the code-level source of truth.
 
 ## Authentication and errors

@@ -1,5 +1,9 @@
 # OMS UI/UX design system
 
+## Financial workspace amendment November 2026
+
+Monetary charts start in UAH. Filter state is session-local: navigation retains the relevant table preferences, while reload and a new login restore defaults without clearing language/theme/authentication preferences. Financial Monitoring has one global searchable Subproject selector and a page-level reset; local table resets clear only local code search and pagination. Update data is a single permission-controlled page-heading action. The new grouped regional investment chart has adjacent Total/EIB/Local bars, using shared semantic palette tokens rather than order-dependent colors. Procurement statuses, contract types, construction and sector indicators share the corresponding chip mappings. The lower dated table is Payment register / Реєстр платежів. See `FINANCIAL_WORKSPACE_2026_11_25.md` for data-grain and verification rules.
+
 This English implementation companion describes the August 2026 interface redesign. The business specification, roles, project scopes, data and existing workflows remain in force. No Ukrainian documentation was modified.
 
 ## Design principles

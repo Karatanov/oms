@@ -167,13 +167,13 @@ fun FinancialScreen(
     }
     fun displayCents(record: ApiFinancialRecord) = record.displayAmountCents(displayCurrency, displayRates[record.recordDate])
     val missingConversions = acts.count { displayCents(it.act) == null }
-    var recordTypeFilter by remember { mutableStateOf<String?>(null) }
-    var paymentPurposeFilter by remember { mutableStateOf<String?>(null) }
-    var trancheFilter by remember { mutableStateOf(requestedTranche) }
-    var subprojectFilter by remember { mutableStateOf<String?>(null) }
-    var regionFilter by remember { mutableStateOf<String?>(null) }
-    var chartMonthFilter by remember { mutableStateOf<String?>(null) }
-    var yearFilter by remember { mutableStateOf<Int?>(null) }
+    var recordTypeFilter by rememberTableSetting<String?>("financial.scope.type", null) { it.takeIf(String::isNotEmpty) }
+    var paymentPurposeFilter by rememberTableSetting<String?>("financial.scope.purpose", null) { it.takeIf(String::isNotEmpty) }
+    var trancheFilter by rememberTableSetting<Int?>("financial.scope.tranche", null) { it.toIntOrNull() }
+    var subprojectFilter by rememberTableSetting<String?>("financial.scope.subproject", null) { it.takeIf(String::isNotEmpty) }
+    var regionFilter by rememberTableSetting<String?>("financial.scope.region", null) { it.takeIf(String::isNotEmpty) }
+    var chartMonthFilter by rememberTableSetting<String?>("financial.scope.month", null) { it.takeIf(String::isNotEmpty) }
+    var yearFilter by rememberTableSetting<Int?>("financial.scope.year", null) { it.toIntOrNull() }
     var sort by remember { mutableStateOf(FinancialSort.ActDate) }
     var ascending by remember { mutableStateOf(false) }
     var reloadKey by remember { mutableStateOf(0) }
@@ -243,6 +243,7 @@ fun FinancialScreen(
         }
     }
 
+    LaunchedEffect(requestedTranche) { requestedTranche?.let { trancheFilter = it } }
     LaunchedEffect(requestedSubprojectUuid) {
         requestedSubprojectUuid?.let {
             subprojectFilter = it
@@ -510,6 +511,7 @@ fun FinancialScreen(
             SearchableOptionPicker(
                 options = subprojectFilterOptions.map { it.first }, selected = subprojectFilter,
                 label = LocalizationManager.t("subproject"), onSelect = { subprojectFilter = it },
+                placeholder = LocalizationManager.t("all_financial_subprojects"),
                 itemLabel = { id -> subprojectsByCode.values.firstOrNull { it.id == id }?.let { "${it.siteNumber} — ${it.localizedName()}" }.orEmpty() },
                 modifier = Modifier.weight(1f).semantics { testTag = "financial-subproject-filter" }, enabled = !loading
             )

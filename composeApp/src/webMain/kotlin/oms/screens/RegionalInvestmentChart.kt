@@ -1,6 +1,7 @@
 package oms.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.*
@@ -11,6 +12,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTag
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.input.pointer.PointerIcon
+import androidx.compose.ui.input.pointer.pointerHoverIcon
+import oms.charts.chartItemHighlight
 import oms.components.*
 import oms.localization.LocalizationManager
 import oms.theme.InvestmentColors
@@ -27,7 +32,7 @@ internal fun RegionalInvestmentChart(items: List<RegionalInvestment>, loading: B
     val maximum = values.maxOrNull()?.coerceAtLeast(0) ?: 0L
     val minimum = values.minOrNull()?.coerceAtMost(0) ?: 0L
     val span = (maximum.toDouble() - minimum).coerceAtLeast(1.0)
-    fun money(value: Long?) = value?.let { formatGroupedNumber(it / 100) + (if (LocalizationManager.currentLanguage == oms.localization.Language.EN) "." else ",") + (kotlin.math.abs(it % 100)).toString().padStart(2, '0') } ?: "—"
+    fun money(value: Long?) = value?.let { (if (it < 0) "−" else "") + formatGroupedNumber(kotlin.math.abs(it / 100)) + (if (LocalizationManager.currentLanguage == oms.localization.Language.EN) "." else ",") + (kotlin.math.abs(it % 100)).toString().padStart(2, '0') } ?: "—"
     Card(Modifier.fillMaxWidth().semantics { testTag = "regional-investment-chart" }, colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
         Column(Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             OmsChartHeader(listOfNotNull(LocalizationManager.t("regional_investment_title"), titleSuffix).joinToString(" — ")) {
@@ -60,7 +65,9 @@ internal fun RegionalInvestmentChart(items: List<RegionalInvestment>, loading: B
                                                 val hint = "$region\n${labels[index]}: ${money(amount)}" +
                                                     if (!item.reconciled && item.total != null && item.eib != null && item.local != null) "\n${LocalizationManager.t("investment_source_difference")}" else ""
                                                 OmsTooltipBox(modifier = Modifier.weight(1f), tooltip = { Text(hint) }) {
-                                                    Box(Modifier.fillMaxWidth().height(150.dp)) {
+                                                    Box(Modifier.fillMaxWidth().height(150.dp).chartItemHighlight()
+                                                        .semantics { contentDescription = hint }.focusable()
+                                                        .pointerHoverIcon(PointerIcon.Hand)) {
                                                         Box(Modifier.fillMaxWidth().offset(y = (150.0 * (maximum - maxOf(0L, amount ?: 0L)) / span).toFloat().dp)
                                                             .height(if (amount == null || amount == 0L) 1.dp else (150.0 * kotlin.math.abs(amount.toDouble()) / span).toFloat().coerceIn(1f, 150f).dp)
                                                             .background(if (amount == null) MaterialTheme.colorScheme.outline else colors[index]))

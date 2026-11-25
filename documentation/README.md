@@ -2,6 +2,8 @@
 
 Use this page as the documentation entry point for Phase 1.
 
+Current financial workspace behavior: [currencies, filter lifecycle, regional investment structure and verification](FINANCIAL_WORKSPACE_2026_11_25.md).
+
 - `OMS_Supplementary_Specification.docx` — authoritative functional and technical specification.
 - `ARCHITECTURE.md` — maintainable runtime/module/security architecture.
 - `DATABASE.md` — schema relationships, migration and recovery guidance.

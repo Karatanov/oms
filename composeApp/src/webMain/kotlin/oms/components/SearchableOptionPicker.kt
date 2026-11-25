@@ -46,7 +46,8 @@ fun <T> SearchableOptionPicker(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     maxSuggestions: Int = 50,
-    loadOptionsOnInput: (suspend () -> List<T>)? = null
+    loadOptionsOnInput: (suspend () -> List<T>)? = null,
+    placeholder: String? = null
 ) {
     val host = LocalOptionOverlay.current
     val id = remember { Any() }
@@ -61,7 +62,8 @@ fun <T> SearchableOptionPicker(
     var loading by remember { mutableStateOf(false) }
     var loadFailed by remember { mutableStateOf(false) }
     var searchVersion by remember { mutableStateOf(0) }
-    LaunchedEffect(selected) { query = selected?.let(itemLabel).orEmpty() }
+    val selectedLabel = selected?.let(itemLabel).orEmpty()
+    LaunchedEffect(selected, selectedLabel) { query = selectedLabel }
     LaunchedEffect(options) { availableOptions = options }
     DisposableEffect(id, enabled) {
         onDispose {
@@ -147,6 +149,7 @@ fun <T> SearchableOptionPicker(
             searchOptions(safeQuery)
         },
         label = { Text(label) },
+        placeholder = if (placeholder != null) { { Text(placeholder) } } else null,
         isError = loadFailed && enabled,
         supportingText = if (enabled && (loadFailed || noMatches || emptyOptions || moreMatches)) {
             { Text(LocalizationManager.t(when {

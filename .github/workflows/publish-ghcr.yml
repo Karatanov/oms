@@ -103,6 +103,21 @@ jobs:
           build/date-picker-test/node_modules/.bin/playwright install --with-deps chromium
           node tools/test-route-transitions.cjs
           node tools/test-financial-workspace.cjs
+      - name: Preserve financial browser evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: financial-workspace-browser-evidence
+          path: build/financial-workspace-smoke/
+          if-no-files-found: ignore
+          retention-days: 7
+      - name: Preserve failed frontend for reproduction
+        if: failure()
+        uses: actions/upload-artifact@v6
+        with:
+          name: financial-failed-frontend
+          path: frontend-dist/
+          retention-days: 3
 
       - name: Upload production frontend
         uses: actions/upload-artifact@v6

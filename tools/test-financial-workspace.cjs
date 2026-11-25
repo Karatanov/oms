@@ -7,11 +7,11 @@ const { chromium } = require(path.resolve(process.env.OMS_PLAYWRIGHT_PATH || 'bu
 (async () => {
   const server = spawn(process.execPath, ['tools/serve-dashboard-smoke.mjs'], { env: process.env });
   server.stderr.pipe(process.stderr);
-  let browser;
+  let browser, page;
   try {
     await new Promise((resolve, reject) => { server.stdout.once('data', resolve); server.once('exit', reject); });
     browser = await chromium.launch(process.env.CHROME_BIN ? { executablePath: process.env.CHROME_BIN } : {});
-    const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
+    page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
     const errors = [], queries = [];
     page.on('pageerror', error => errors.push(String(error)));
     page.on('request', request => { if (request.url().includes('/financials/progress')) queries.push(new URL(request.url()).searchParams.get('subprojectUuid')); });
@@ -29,6 +29,7 @@ const { chromium } = require(path.resolve(process.env.OMS_PLAYWRIGHT_PATH || 'bu
     await page.goto('http://127.0.0.1:18088/app.html#financial');
     await ready();
     await page.waitForFunction(() => !document.querySelector('#oms-loading-overlay.visible'));
+    await page.keyboard.press('Tab'); // Activate Compose's browser accessibility tree.
     await click('financial-subproject-filter');
     await page.keyboard.type('TEST-02');
     await page.keyboard.press('ArrowDown');
@@ -51,5 +52,10 @@ const { chromium } = require(path.resolve(process.env.OMS_PLAYWRIGHT_PATH || 'bu
     await page.screenshot({ path: 'build/financial-workspace-smoke/default.png', fullPage: true });
     assert.deepEqual(errors, []);
     console.log('PASS financial workspace: real production startup, subproject selector, API scope/reset, reload, screenshots, no runtime errors');
+  } catch (error) {
+    fs.mkdirSync('build/financial-workspace-smoke', { recursive: true });
+    if (page) await page.screenshot({ path: 'build/financial-workspace-smoke/failure.png', fullPage: true }).catch(() => {});
+    if (page) fs.writeFileSync('build/financial-workspace-smoke/failure-dom.json', JSON.stringify(await page.evaluate(() => [...document.querySelectorAll('[id]')].map(el => ({ id: el.id, rect: el.getBoundingClientRect().toJSON() }))), null, 2));
+    throw error;
   } finally { if (browser) await browser.close(); server.kill(); }
 })().catch(error => { console.error(error); process.exitCode = 1; });
