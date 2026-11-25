@@ -15,7 +15,7 @@ const { chromium } = require(path.resolve(process.env.OMS_PLAYWRIGHT_PATH || 'bu
     const errors = [], queries = [];
     page.on('pageerror', error => errors.push(String(error)));
     page.on('request', request => { if (request.url().includes('/financials/progress')) queries.push(new URL(request.url()).searchParams.get('subprojectUuid')); });
-    const ready = () => page.waitForFunction(() => document.getElementById('oms-route-transition')?.dataset.displayedSection === 'Financial' && document.getElementById('oms-route-transition')?.hidden, null, { timeout: 120000 });
+    const ready = () => page.waitForFunction(() => document.getElementById('oms-route-transition')?.dataset.displayedSection === 'Financial Monitoring' && document.getElementById('oms-route-transition')?.hidden, null, { timeout: 120000 });
     const click = async id => {
       await page.waitForFunction(id => document.getElementById(id)?.getBoundingClientRect().width > 0, id);
       const bounds = await page.locator('#' + id).boundingBox();
@@ -32,6 +32,7 @@ const { chromium } = require(path.resolve(process.env.OMS_PLAYWRIGHT_PATH || 'bu
     await click('financial-subproject-filter');
     await page.keyboard.type('TEST-02');
     await page.keyboard.press('ArrowDown');
+    await page.waitForTimeout(100); // Allow the in-canvas option menu to take keyboard focus.
     await page.keyboard.press('Enter');
     await queryIs('smoke-lviv');
     assert.ok(queries.includes('smoke-lviv'), 'Global selector must scope the financial API');
@@ -41,7 +42,7 @@ const { chromium } = require(path.resolve(process.env.OMS_PLAYWRIGHT_PATH || 'bu
     await queryIs(null);
     assert.equal(queries.at(-1), null, 'Reset must remove backend filter parameters');
     await click('financial-subproject-filter');
-    await page.keyboard.type('TEST-02'); await page.keyboard.press('ArrowDown'); await page.keyboard.press('Enter');
+    await page.keyboard.type('TEST-02'); await page.keyboard.press('ArrowDown'); await page.waitForTimeout(100); await page.keyboard.press('Enter');
     await queryIs('smoke-lviv');
     assert.equal(queries.at(-1), 'smoke-lviv');
     await page.reload(); await ready();
