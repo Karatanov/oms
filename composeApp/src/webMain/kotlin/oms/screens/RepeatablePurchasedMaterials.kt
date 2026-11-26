@@ -5,12 +5,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.OutlinedButton
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import oms.components.TableActionIconButton
 import oms.localization.LocalizationManager
@@ -41,7 +41,12 @@ internal fun RepeatablePurchasedMaterials(
             androidx.compose.runtime.LaunchedEffect(material.photoKey, material.materialsAndEquipment) {
                 setPendingInspectionPhotoDescription(material.photoKey, material.materialsAndEquipment)
             }
-            Card(colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FBFC))) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.small,
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+            ) {
                 Column(Modifier.fillMaxWidth().padding(10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     oms.components.ResponsiveFormRow { fieldModifier ->
                         OutlinedTextField(material.materialsAndEquipment, { value -> update(index) { it.copy(materialsAndEquipment = value.inspectionText(4_000)) } }, label = { Text(LocalizationManager.t("sir_materials_equipment")) }, minLines = 2, maxLines = 5, modifier = fieldModifier)

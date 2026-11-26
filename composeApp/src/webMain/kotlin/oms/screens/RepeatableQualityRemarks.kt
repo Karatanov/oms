@@ -4,7 +4,9 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -41,34 +43,42 @@ internal fun RepeatableQualityRemarks(
             androidx.compose.runtime.LaunchedEffect(remark.photoKey, remark.comment) {
                 setPendingInspectionPhotoDescription(remark.photoKey, remark.comment)
             }
-            Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                oms.components.ResponsiveFormRow { fieldModifier ->
-                    OutlinedTextField(remark.work, { value -> update(index) { it.copy(work = value.inspectionText(4_000)) } }, label = { Text(LocalizationManager.t("sir_quality_work")) }, minLines = 2, maxLines = 6, modifier = fieldModifier)
-                    OutlinedTextField(remark.comment, { value -> update(index) { it.copy(comment = value.inspectionText(8_000)) } }, label = { Text(LocalizationManager.t("sir_quality_comment")) }, minLines = 2, maxLines = 6, modifier = fieldModifier)
-                    OutlinedTextField(remark.rectification, { value -> update(index) { it.copy(rectification = value.inspectionText(8_000)) } }, label = { Text(LocalizationManager.t("sir_quality_rectification")) }, minLines = 2, maxLines = 6, modifier = fieldModifier)
-                    InlineOptionPicker(
-                        options = rectificationStatuses,
-                        selected = remark.status.takeIf { it.isNotBlank() },
-                        prompt = LocalizationManager.t("sir_quality_status"),
-                        onSelect = { status -> update(index) { it.copy(status = status) } },
-                        itemLabel = ::rectificationStatusLabel,
-                        modifier = fieldModifier
-                    )
-                    if (values.size > 1) {
-                        TableActionIconButton(LocalizationManager.t("delete"), Icons.Default.Remove) {
-                            onChange(values.filterIndexed { current, _ -> current != index })
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.small,
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+            ) {
+                Column(Modifier.fillMaxWidth().padding(10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    oms.components.ResponsiveFormRow { fieldModifier ->
+                        OutlinedTextField(remark.work, { value -> update(index) { it.copy(work = value.inspectionText(4_000)) } }, label = { Text(LocalizationManager.t("sir_quality_work")) }, minLines = 2, maxLines = 6, modifier = fieldModifier)
+                        OutlinedTextField(remark.comment, { value -> update(index) { it.copy(comment = value.inspectionText(8_000)) } }, label = { Text(LocalizationManager.t("sir_quality_comment")) }, minLines = 2, maxLines = 6, modifier = fieldModifier)
+                        OutlinedTextField(remark.rectification, { value -> update(index) { it.copy(rectification = value.inspectionText(8_000)) } }, label = { Text(LocalizationManager.t("sir_quality_rectification")) }, minLines = 2, maxLines = 6, modifier = fieldModifier)
+                        InlineOptionPicker(
+                            options = rectificationStatuses,
+                            selected = remark.status.takeIf { it.isNotBlank() },
+                            prompt = LocalizationManager.t("sir_quality_status"),
+                            onSelect = { status -> update(index) { it.copy(status = status) } },
+                            itemLabel = ::rectificationStatusLabel,
+                            modifier = fieldModifier,
+                            showSelectionContext = true
+                        )
+                        if (values.size > 1) {
+                            TableActionIconButton(LocalizationManager.t("delete"), Icons.Default.Remove) {
+                                onChange(values.filterIndexed { current, _ -> current != index })
+                            }
                         }
-                    }
 
-                }
-                oms.components.WorkspaceOutlinedButton(onClick = {
-                    openInspectionPhotoPicker(remark.photoKey) { count ->
-                        update(index) { it.copy(photoCount = count, photoRevision = it.photoRevision + 1) }
                     }
-                }) { Text(LocalizationManager.t("add_inspection_photos")) }
-                if (remark.photoCount > 0) {
-                    PendingInspectionPhotoPreviews(remark.photoKey, remark.photoRevision) { count ->
-                        update(index) { it.copy(photoCount = count, photoRevision = it.photoRevision + 1) }
+                    oms.components.WorkspaceOutlinedButton(onClick = {
+                        openInspectionPhotoPicker(remark.photoKey) { count ->
+                            update(index) { it.copy(photoCount = count, photoRevision = it.photoRevision + 1) }
+                        }
+                    }) { Text(LocalizationManager.t("add_inspection_photos")) }
+                    if (remark.photoCount > 0) {
+                        PendingInspectionPhotoPreviews(remark.photoKey, remark.photoRevision) { count ->
+                            update(index) { it.copy(photoCount = count, photoRevision = it.photoRevision + 1) }
+                        }
                     }
                 }
             }
