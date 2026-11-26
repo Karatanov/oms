@@ -48,11 +48,11 @@ const { chromium } = require(path.resolve(process.env.OMS_PLAYWRIGHT_PATH || 'bu
     page.on('request', request => { if (request.url().includes('/financials/progress')) queries.push(new URL(request.url()).searchParams.get('subprojectUuid')); });
     const ready = () => page.waitForFunction(() => document.getElementById('oms-route-transition')?.dataset.displayedSection === 'Financial Monitoring' && document.getElementById('oms-route-transition')?.hidden, null, { timeout: 120000 });
     const click = async id => {
-      // Desktop Compose does not expose a stable DOM semantics tree. Hit the
-      // real painted controls at this test's fixed 1440x1000 viewport.
-      if (id === 'financial-subproject-filter') await page.mouse.click(400, 120);
-      else if (id === 'financial-reset-filters') await page.mouse.click(1360, 120);
-      else throw Error('Unknown financial control: ' + id);
+      const control = page.locator('#' + id);
+      await control.waitFor({ state: 'visible' });
+      const bounds = await control.boundingBox();
+      assert.ok(bounds && bounds.width && bounds.height, id + ' must have a hit target');
+      await page.mouse.click(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
     };
     const queryIs = async expected => {
       const deadline = Date.now() + 20000;
