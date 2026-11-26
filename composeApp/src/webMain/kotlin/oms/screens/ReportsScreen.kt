@@ -758,40 +758,51 @@ private fun ReadOnlyProgressAssessmentTable(progressComment: String?, scheduleRe
     )
 }
 
-/** HSE observations retain the three-column structure of the SIR worksheet. */
+/** HSE observations stack on narrow screens and retain columns on desktop. */
 @Composable
 private fun ReadOnlyHealthSafetyTable(observations: List<oms.data.ManualHseObservationRequest>) {
-    val headerColor = MaterialTheme.colorScheme.surfaceVariant
-    Column(
-        Modifier.fillMaxWidth().border(1.dp, MaterialTheme.colorScheme.outlineVariant),
-        verticalArrangement = Arrangement.spacedBy(0.dp)
-    ) {
-        Row(Modifier.fillMaxWidth().background(headerColor).padding(horizontal = 10.dp, vertical = 8.dp)) {
-            Text(LocalizationManager.t("sir_hse_observations"), Modifier.weight(1.35f), style = MaterialTheme.typography.labelMedium)
-            Text("${LocalizationManager.t("yes")}/${LocalizationManager.t("no")}", Modifier.width(72.dp), style = MaterialTheme.typography.labelMedium)
-            Text(LocalizationManager.t("comments"), Modifier.weight(1.5f), style = MaterialTheme.typography.labelMedium)
-        }
-        observations.forEachIndexed { index, observation ->
-            if (index > 0) HorizontalDivider()
-            Row(Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 10.dp), verticalAlignment = Alignment.Top) {
-                Text(LocalizationManager.hseObservation(observation.observation), Modifier.weight(1.35f), style = MaterialTheme.typography.bodyMedium)
-                Box(Modifier.width(72.dp), contentAlignment = Alignment.TopStart) {
-                    observation.answer?.takeIf(String::isNotBlank)?.let { answer ->
-                        when {
-                            answer.equals("yes", true) -> oms.components.OmsBadge(LocalizationManager.t("yes"), Color(0xFF2E7D32))
-                            answer.equals("no", true) -> oms.components.OmsBadge(LocalizationManager.t("no"), Color(0xFFC62828))
-                            else -> Text(answer, style = MaterialTheme.typography.bodyMedium)
-                        }
+    BoxWithConstraints(Modifier.fillMaxWidth().border(1.dp, MaterialTheme.colorScheme.outlineVariant)) {
+        val compact = maxWidth < 660.dp
+        Column(Modifier.fillMaxWidth()) {
+            if (!compact) {
+                Row(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceVariant)
+                    .padding(horizontal = 10.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(LocalizationManager.t("sir_hse_observations"), Modifier.weight(1.35f), style = MaterialTheme.typography.labelMedium)
+                    Text("${LocalizationManager.t("yes")}/${LocalizationManager.t("no")}", Modifier.width(72.dp), style = MaterialTheme.typography.labelMedium)
+                    Text(LocalizationManager.t("comments"), Modifier.weight(1.5f), style = MaterialTheme.typography.labelMedium)
+                }
+                HorizontalDivider()
+            }
+            observations.forEachIndexed { index, observation ->
+                if (index > 0) HorizontalDivider()
+                if (compact) {
+                    Column(Modifier.fillMaxWidth().padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(LocalizationManager.hseObservation(observation.observation), style = MaterialTheme.typography.bodyMedium)
+                        ReadOnlyHseAnswer(observation.answer)
+                        Text(LocalizationManager.t("comments"), style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(observation.comment?.takeIf(String::isNotBlank) ?: "—", style = MaterialTheme.typography.bodyMedium)
+                    }
+                } else {
+                    Row(Modifier.fillMaxWidth().padding(10.dp), verticalAlignment = Alignment.Top,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(LocalizationManager.hseObservation(observation.observation), Modifier.weight(1.35f), style = MaterialTheme.typography.bodyMedium)
+                        Box(Modifier.width(72.dp)) { ReadOnlyHseAnswer(observation.answer) }
+                        Text(observation.comment?.takeIf(String::isNotBlank) ?: "—", Modifier.weight(1.5f),
+                            style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
-                Text(
-                    observation.comment?.takeIf(String::isNotBlank) ?: "—",
-                    Modifier.weight(1.5f),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
             }
         }
+    }
+}
+
+@Composable
+private fun ReadOnlyHseAnswer(answer: String?) {
+    when {
+        answer.equals("yes", true) -> oms.components.OmsBadge(LocalizationManager.t("yes"), Color(0xFF2E7D32))
+        answer.equals("no", true) -> oms.components.OmsBadge(LocalizationManager.t("no"), Color(0xFFC62828))
+        else -> Text(answer?.takeIf(String::isNotBlank) ?: "—", style = MaterialTheme.typography.bodyMedium)
     }
 }
 
