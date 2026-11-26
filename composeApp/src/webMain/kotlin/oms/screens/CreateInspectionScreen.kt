@@ -36,7 +36,6 @@ import oms.model.Project
 import kotlin.js.JsName
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.FactCheck
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.WbSunny
@@ -912,7 +911,7 @@ private fun ManualSirForm(
                     }
                 }
             }
-            TableActionIconButton(LocalizationManager.t("add_custom_hse_observation"), Icons.Default.Add) {
+            oms.components.WorkspaceAddButton(LocalizationManager.t("add_custom_hse_observation")) {
                 onHseObservationsChange(hseObservations + HseObservationInput(observation = "", isCustom = true))
             }
         }
@@ -1037,7 +1036,7 @@ private fun RepeatableOngoingObservations(
             }
         }
     }
-    TableActionIconButton(LocalizationManager.t("add"), Icons.Default.Add) {
+    oms.components.WorkspaceAddButton(LocalizationManager.t("add")) {
         onChange(values + OngoingObservationInput(photoKey = "observation-${values.size}"))
     }
 }
@@ -1230,7 +1229,7 @@ private fun RepeatableManualActivities(
             }
         }
     }
-    TableActionIconButton(LocalizationManager.t("sir_add_activity"), Icons.Default.Add) {
+    oms.components.WorkspaceAddButton(LocalizationManager.t("sir_add_activity")) {
         onChange(values + ManualActivityInput(photoKey = "activity-${values.size}"))
     }
 }

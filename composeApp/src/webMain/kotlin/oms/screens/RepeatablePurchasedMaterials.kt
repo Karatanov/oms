@@ -2,7 +2,6 @@ package oms.screens
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -79,7 +78,7 @@ internal fun RepeatablePurchasedMaterials(
         // Materials are an open-ended report table.  Keep the add control
         // available in edit mode as well, even when imported data already
         // contains three or more rows.
-        TableActionIconButton(LocalizationManager.t("sir_add_material"), Icons.Default.Add) {
+        oms.components.WorkspaceAddButton(LocalizationManager.t("sir_add_material")) {
             onChange(values + PurchasedMaterialInput())
         }
     }

@@ -2,7 +2,6 @@ package oms.screens
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -74,7 +73,7 @@ internal fun RepeatableQualityRemarks(
                 }
             }
         }
-        TableActionIconButton(LocalizationManager.t("add"), Icons.Default.Add) {
+        oms.components.WorkspaceAddButton(LocalizationManager.t("add")) {
             onChange(values + QualityRemarkInput(photoKey = "quality-${values.size}"))
         }
     }
