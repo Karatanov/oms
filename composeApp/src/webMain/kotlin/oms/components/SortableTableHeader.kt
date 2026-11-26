@@ -1,13 +1,19 @@
 package oms.components
 
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.border
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowUpward
+import androidx.compose.material.icons.filled.UnfoldMore
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.getValue
@@ -23,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import oms.localization.LocalizationManager
 import oms.theme.OmsDimensions
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun SortableTableHeader(
     title: String,
@@ -35,6 +42,13 @@ fun SortableTableHeader(
     maxLines: Int = 2
 ) {
     var focused by remember { mutableStateOf(false) }
+    val visibilityRequester = remember { BringIntoViewRequester() }
+    LaunchedEffect(focused) {
+        if (focused) {
+            withFrameNanos { }
+            visibilityRequester.bringIntoView()
+        }
+    }
     val sortDescription = LocalizationManager.t(
         if (!selected) "not_sorted" else if (ascending) "sorted_ascending_state" else "sorted_descending_state"
     )
@@ -51,6 +65,7 @@ fun SortableTableHeader(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth().height(height).buttonHandCursor()
             .background(if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerLow)
+            .bringIntoViewRequester(visibilityRequester)
             .onFocusChanged { focused = it.isFocused }
             .then(if (focused) Modifier.border(2.dp, MaterialTheme.colorScheme.primary) else Modifier)
             .semantics { stateDescription = sortDescription },
@@ -62,13 +77,17 @@ fun SortableTableHeader(
             Text(title, Modifier.fillMaxWidth().padding(start = 8.dp, end = 24.dp), style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.Bold, maxLines = maxLines, overflow = TextOverflow.Ellipsis,
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center)
-            if (selected) {
-                Icon(
-                    if (ascending) Icons.Default.ArrowUpward else Icons.Default.ArrowDownward,
-                    null,
-                    Modifier.align(Alignment.CenterEnd).padding(end = 4.dp).size(14.dp)
-                )
-            }
+            Icon(
+                when {
+                    !selected -> Icons.Default.UnfoldMore
+                    ascending -> Icons.Default.ArrowUpward
+                    else -> Icons.Default.ArrowDownward
+                },
+                null,
+                Modifier.align(Alignment.CenterEnd).padding(end = 4.dp).size(14.dp),
+                tint = if (selected) MaterialTheme.colorScheme.onPrimaryContainer
+                    else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = .6f)
+            )
         }
     }
 }
