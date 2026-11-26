@@ -199,6 +199,20 @@ fun FinancialScreen(
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var pageSize by rememberTablePageSize("financial")
     var currentPage by remember { mutableStateOf(0) }
+    var monitoringCodeQuery by rememberTableSetting("financial.monitoring.search", "") { it }
+    var filterResetRevision by remember { mutableStateOf(0) }
+    val resetAllFilters: () -> Unit = {
+        recordTypeFilter = null
+        paymentPurposeFilter = null
+        trancheFilter = null
+        subprojectFilter = null
+        regionFilter = null
+        chartMonthFilter = null
+        yearFilter = null
+        monitoringCodeQuery = ""
+        currentPage = 0
+        filterResetRevision++
+    }
     var tableTopInRootPx by remember { mutableStateOf(0f) }
     var paymentMonitoringTopInRootPx by remember { mutableStateOf(0f) }
     val deletion = oms.components.LocalDeleteConfirmation.current
@@ -465,6 +479,10 @@ fun FinancialScreen(
             Icons.Default.AccountBalance,
             iconText = "€"
         ) {
+            oms.components.WorkspaceOutlinedButton(
+                modifier = Modifier.semantics { testTag = "financial-reset-filters" },
+                onClick = resetAllFilters
+            ) { Text(LocalizationManager.t("reset_filters")) }
             if (!useLedger && canUpdatePaymentMonitoring) oms.components.WorkspaceOutlinedButton(
                 onClick = { paymentMonitoringMessage = null; paymentMonitoringRefreshConfirmationOpen = true },
                 enabled = paymentMonitoringRefreshJob?.status !in setOf("RUNNING", "CANCELLING")
@@ -493,9 +511,6 @@ fun FinancialScreen(
                 itemLabel = { id -> subprojectsByUuid[id]?.let { "${it.siteNumber} — ${it.localizedName()}" }.orEmpty() },
                 modifier = Modifier.weight(1f).semantics { testTag = "financial-subproject-filter" }, enabled = !loading
             )
-            oms.components.WorkspaceOutlinedButton(modifier = Modifier.semantics { testTag = "financial-reset-filters" }, onClick = {
-                subprojectFilter = null; regionFilter = null; trancheFilter = null; yearFilter = null; chartMonthFilter = null; paymentPurposeFilter = null; recordTypeFilter = null
-            }) { Text(LocalizationManager.t("reset_filters")) }
         }
         if (subprojectFilter != null || chartMonthFilter != null || paymentPurposeFilter != null) {
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -646,6 +661,9 @@ fun FinancialScreen(
                 selectedMonth = chartMonthFilter,
                 projects = paymentProjects,
                 context = paymentScope,
+                codeQuery = monitoringCodeQuery,
+                onCodeQueryChange = { monitoringCodeQuery = it },
+                resetRevision = filterResetRevision,
                 message = paymentMonitoringMessage,
                 messageIsError = paymentMonitoringMessageIsError
             )
@@ -746,15 +764,6 @@ fun FinancialScreen(
                         label = { Text("${LocalizationManager.t("date")}: ${month.toMonthName()} ${month.take(4)}") }
                     )
                 }
-                oms.components.WorkspaceOutlinedButton(onClick = {
-                    recordTypeFilter = null
-                    paymentPurposeFilter = null
-                    trancheFilter = null
-                    subprojectFilter = null
-                    regionFilter = null
-                    chartMonthFilter = null
-                    yearFilter = null
-                }) { Text(LocalizationManager.t("reset_filters")) }
             }
             oms.components.ScrollableTable(
                 Modifier.fillMaxWidth()
@@ -1401,6 +1410,9 @@ private fun PaymentMonitoringCard(
     selectedMonth: String?,
     projects: List<PaymentProjectContext>,
     context: PaymentMonitoringScope,
+    codeQuery: String,
+    onCodeQueryChange: (String) -> Unit,
+    resetRevision: Int,
     message: String?,
     messageIsError: Boolean
 ) {
@@ -1408,10 +1420,9 @@ private fun PaymentMonitoringCard(
     // visible on opening Financial Monitoring so users can immediately see
     // the UR III subproject payment-monitoring data above financial records.
     var expanded by remember { mutableStateOf(true) }
-    var page by remember(snapshot.items) { mutableStateOf(0) }
+    var page by remember(snapshot.items, resetRevision) { mutableStateOf(0) }
     var sort by rememberTableSetting("financial.monitoring.sort", PaymentMonitoringSort.Code) { PaymentMonitoringSort.valueOf(it) }
     var ascending by rememberTableSetting("financial.monitoring.ascending", true) { it.toBooleanStrict() }
-    var codeQuery by rememberTableSetting("financial.monitoring.search", "") { it }
     fun selectSort(column: PaymentMonitoringSort) {
         if (sort == column) ascending = !ascending else { sort = column; ascending = true }
         page = 0
@@ -1447,9 +1458,6 @@ private fun PaymentMonitoringCard(
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp),
                 itemVerticalAlignment = Alignment.CenterVertically) {
-                oms.components.WorkspaceOutlinedButton(onClick = { codeQuery = ""; page = 0 }) {
-                    Text(LocalizationManager.t("reset_filters"))
-                }
                 oms.components.WorkspaceOutlinedButton(onClick = {
                     oms.data.openOmsDownload(
                         OmsApiClient.paymentMonitoringPdfExportUrl(
@@ -1475,7 +1483,7 @@ private fun PaymentMonitoringCard(
             if (expanded) {
                 PaymentMonitoringCodeSearch(
                     codeQuery = codeQuery,
-                    onCodeQueryChange = { codeQuery = it.safeTextInput(100) },
+                    onCodeQueryChange = { onCodeQueryChange(it.safeTextInput(100)) },
                     filteredCount = rows.size,
                     totalCount = scopedItems.size
                 )
@@ -1514,7 +1522,7 @@ private fun PaymentMonitoringCard(
                 }
                 PaymentMonitoringTransactionTable(scopePaymentTransactions(snapshot.transactions, projects, context), selectedMonth, codeQuery,
                     title = paymentMonitoringTitle(context.copy(month = selectedMonth ?: context.month), projects, codeQuery, includePeriod = true),
-                    onResetFilters = { codeQuery = ""; page = 0 })
+                    resetRevision = resetRevision)
             }
         }
     }
@@ -1632,11 +1640,11 @@ private fun PaymentMonitoringTransactionTable(
     selectedMonth: String?,
     codeQuery: String,
     title: String,
-    onResetFilters: () -> Unit
+    resetRevision: Int
 ) {
     var sort by rememberTableSetting("financial.transactions.sort", PaymentMonitoringTransactionSort.Date) { PaymentMonitoringTransactionSort.valueOf(it) }
     var ascending by rememberTableSetting("financial.transactions.ascending", true) { it.toBooleanStrict() }
-    var page by remember(transactions, selectedMonth) { mutableStateOf(0) }
+    var page by remember(transactions, selectedMonth, resetRevision) { mutableStateOf(0) }
     fun selectSort(column: PaymentMonitoringTransactionSort) {
         if (sort == column) ascending = !ascending else { sort = column; ascending = true }
         page = 0
@@ -1660,7 +1668,6 @@ private fun PaymentMonitoringTransactionTable(
         title,
         style = MaterialTheme.typography.titleSmall
     )
-    oms.components.WorkspaceTextButton(onClick = { onResetFilters(); page = 0 }) { Text(LocalizationManager.t("reset_filters")) }
     if (rows.isEmpty()) {
         Text(LocalizationManager.t("no_chart_data"), color = MaterialTheme.colorScheme.onSurfaceVariant)
         return
