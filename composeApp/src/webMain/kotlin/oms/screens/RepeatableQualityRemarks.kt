@@ -1,8 +1,6 @@
 package oms.screens
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.material3.Card
@@ -12,7 +10,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import oms.components.TableActionIconButton
 import oms.components.InlineOptionPicker
 import oms.localization.LocalizationManager
 
@@ -63,18 +60,24 @@ internal fun RepeatableQualityRemarks(
                             modifier = fieldModifier,
                             showSelectionContext = true
                         )
-                        if (values.size > 1) {
-                            TableActionIconButton(LocalizationManager.t("delete"), Icons.Default.Remove) {
-                                onChange(values.filterIndexed { current, _ -> current != index })
-                            }
-                        }
 
                     }
-                    oms.components.WorkspaceOutlinedButton(onClick = {
-                        openInspectionPhotoPicker(remark.photoKey) { count ->
-                            update(index) { it.copy(photoCount = count, photoRevision = it.photoRevision + 1) }
+                    oms.components.WrappingActions(
+                        Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        oms.components.WorkspaceOutlinedButton(modifier = Modifier.heightIn(min = 48.dp), onClick = {
+                            openInspectionPhotoPicker(remark.photoKey) { count ->
+                                update(index) { it.copy(photoCount = count, photoRevision = it.photoRevision + 1) }
+                            }
+                        }) { Text(LocalizationManager.t("add_inspection_photos")) }
+                        if (values.size > 1) {
+                            oms.components.WorkspaceTextButton(
+                                onClick = { onChange(values.filterIndexed { current, _ -> current != index }) },
+                                modifier = Modifier.heightIn(min = 48.dp),
+                                colors = androidx.compose.material3.ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                            ) { Text(LocalizationManager.t("delete")) }
                         }
-                    }) { Text(LocalizationManager.t("add_inspection_photos")) }
+                    }
                     if (remark.photoCount > 0) {
                         PendingInspectionPhotoPreviews(remark.photoKey, remark.photoRevision) { count ->
                             update(index) { it.copy(photoCount = count, photoRevision = it.photoRevision + 1) }
