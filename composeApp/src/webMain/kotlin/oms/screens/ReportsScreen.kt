@@ -1057,6 +1057,23 @@ private fun ReadOnlySirSection(title: String, icon: ImageVector, content: @Compo
 @Composable
 private fun PreviewEmpty() = Text("—", color = MaterialTheme.colorScheme.onSurfaceVariant)
 
+/** Shared spacing and scrolling for report forms, including narrow overlays. */
+@Composable
+private fun ReportDialogContent(
+    spacing: androidx.compose.ui.unit.Dp,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    BoxWithConstraints(Modifier.fillMaxWidth()) {
+        val contentPadding = if (maxWidth < 600.dp) 12.dp else 20.dp
+        Column(
+            Modifier.fillMaxWidth().heightIn(max = 560.dp)
+                .verticalScroll(rememberScrollState()).padding(contentPadding),
+            verticalArrangement = Arrangement.spacedBy(spacing),
+            content = content
+        )
+    }
+}
+
 @Composable
 private fun ReportEditorDialog(
     report: ReportRow,
@@ -1088,7 +1105,7 @@ private fun ReportEditorDialog(
     val longitudeInvalid = longitude.isNotBlank() && (longitudeValue == null || longitudeValue !in -180.0..180.0)
     val valid = date.matches(Regex("\\d{4}-\\d{2}-\\d{2}")) && !latitudeInvalid && !longitudeInvalid
     Card(Modifier.widthIn(max = 720.dp).fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-        Column(Modifier.padding(20.dp).heightIn(max = 560.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        ReportDialogContent(spacing = 12.dp) {
             Text(LocalizationManager.t("edit_inspection"), style = MaterialTheme.typography.titleLarge)
             ReportLocationSelector(
                 projects = projects,
@@ -1107,6 +1124,7 @@ private fun ReportEditorDialog(
                 prompt = LocalizationManager.t("inspection_type"),
                 onSelect = { inspectionType = it },
                 itemLabel = { LocalizationManager.t(it) },
+                showSelectionContext = true,
                 modifier = Modifier.fillMaxWidth()
             )
             if (canChangeStatus) {
@@ -1116,6 +1134,7 @@ private fun ReportEditorDialog(
                     prompt = LocalizationManager.t("status"),
                     onSelect = { status = it },
                     itemLabel = { LocalizationManager.t("${it}_status") },
+                    showSelectionContext = true,
                     modifier = Modifier.fillMaxWidth()
                 )
             }
@@ -1218,7 +1237,7 @@ private fun ReviewReportDialog(
 ) {
     var rejectionReason by remember(report.report.uuid) { mutableStateOf("") }
     Card(Modifier.widthIn(max = 720.dp).fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-        Column(Modifier.padding(20.dp).heightIn(max = 560.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        ReportDialogContent(spacing = 12.dp) {
             Text(LocalizationManager.t("review_inspection_report"), style = MaterialTheme.typography.titleLarge)
             Text(report.report.summary ?: LocalizationManager.t("inspection_report"))
             OutlinedTextField(
@@ -1265,7 +1284,7 @@ private fun FindingsDialog(report: ReportRow, onDismiss: () -> Unit) {
             }
         )
     } else Card(Modifier.widthIn(max = 820.dp).fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-        Column(Modifier.padding(20.dp).heightIn(max = 560.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        ReportDialogContent(spacing = 10.dp) {
             Text(LocalizationManager.t("inspection_findings"), style = MaterialTheme.typography.titleLarge)
                 Text("${report.report.summary ?: LocalizationManager.t("inspection_report")} — ${report.projectName}", style = MaterialTheme.typography.bodySmall)
                 if (findings.isEmpty()) Text(LocalizationManager.t("no_findings"))
@@ -1314,7 +1333,7 @@ private fun FindingEditorDialog(
     var recommendation by remember(finding?.uuid) { mutableStateOf(finding?.recommendation ?: "") }
     var isResolved by remember(finding?.uuid) { mutableStateOf(finding?.isResolved ?: false) }
     Card(Modifier.widthIn(max = 720.dp).fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-        Column(Modifier.padding(20.dp).heightIn(max = 560.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        ReportDialogContent(spacing = 10.dp) {
             Text(if (finding == null) LocalizationManager.t("add_finding") else LocalizationManager.t("edit_finding"), style = MaterialTheme.typography.titleLarge)
                 OutlinedTextField(category, { category = it.safeTextInput(200) }, label = { Text(LocalizationManager.t("category")) }, modifier = Modifier.fillMaxWidth())
                 oms.components.WrappingActions(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
