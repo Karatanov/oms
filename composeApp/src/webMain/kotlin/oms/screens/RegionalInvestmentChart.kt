@@ -28,7 +28,7 @@ import oms.theme.InvestmentColors
 /** Three adjacent bars share a scale. The total is not stacked with its components. */
 @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
-internal fun RegionalInvestmentChart(items: List<RegionalInvestment>, loading: Boolean, failed: Boolean, onRetry: () -> Unit, titleSuffix: String? = null) {
+internal fun RegionalInvestmentChart(items: List<RegionalInvestment>, loading: Boolean, failed: Boolean, onRetry: () -> Unit, titleSuffix: String? = null, targetHeight: androidx.compose.ui.unit.Dp? = null) {
     var expanded by remember { mutableStateOf(true) }
     val scroll = rememberScrollState()
     val scope = rememberCoroutineScope()
@@ -41,8 +41,9 @@ internal fun RegionalInvestmentChart(items: List<RegionalInvestment>, loading: B
     val minimum = values.minOrNull()?.coerceAtMost(0) ?: 0L
     val span = (maximum.toDouble() - minimum).coerceAtLeast(1.0)
     fun money(value: Long?) = value?.let { (if (it < 0) "−" else "") + formatGroupedNumber(kotlin.math.abs(it / 100)) + (if (LocalizationManager.currentLanguage == oms.localization.Language.EN) "." else ",") + (kotlin.math.abs(it % 100)).toString().padStart(2, '0') } ?: "—"
-    Card(Modifier.fillMaxWidth().semantics { testTag = "regional-investment-chart" }, colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-        Column(Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    val matchedHeight = targetHeight?.takeIf { it >= 240.dp && expanded && !loading && !failed && items.isNotEmpty() }
+    Card(Modifier.fillMaxWidth().then(if (matchedHeight != null) Modifier.height(matchedHeight) else Modifier).semantics { testTag = "regional-investment-chart" }, colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+        Column(Modifier.then(if (matchedHeight != null) Modifier.fillMaxSize() else Modifier).padding(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             OmsChartHeader(listOfNotNull(LocalizationManager.t("regional_investment_title"), titleSuffix).joinToString(" — ")) {
                 CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 0.dp) {
                     if (expanded && scroll.maxValue > 0) {
@@ -82,7 +83,9 @@ internal fun RegionalInvestmentChart(items: List<RegionalInvestment>, loading: B
                     failed -> ChartContentState(LocalizationManager.t("financial_progress_load_error"), onRetry = onRetry)
                     items.isEmpty() -> Text(LocalizationManager.t("no_chart_data"))
                     else -> {
-                        Column(Modifier.fillMaxWidth().heightIn(max = 216.dp).verticalScroll(scroll),
+                        Column(Modifier.fillMaxWidth()
+                            .then(if (matchedHeight != null) Modifier.weight(1f) else Modifier.heightIn(max = 320.dp))
+                            .verticalScroll(scroll),
                             verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             orderedItems.forEach { item ->
                                 val region = localizedUkraineRegion(item.region).ifBlank { LocalizationManager.t("construction_unspecified") }

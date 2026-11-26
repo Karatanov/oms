@@ -623,26 +623,33 @@ fun FinancialScreen(
         }
         // Rate availability is chart-local: an incomplete purpose shows its
         // own warning/retry without hiding unrelated, complete financial charts.
-        oms.components.AdaptiveChartRow(
-            first = {
-                RegionalInvestmentChart(
-                    remember(paymentMonitoring?.items, paymentProjects, paymentScope.subproject, paymentScope.region, paymentScope.tranche) {
-                        regionalInvestment(paymentMonitoring?.items.orEmpty(), paymentProjects, paymentScope)
-                    },
-                    paymentMonitoringLoading || loading,
-                    paymentMonitoringLoadFailed || loadFailed,
-                    onRetry = { reloadKey++ }, titleSuffix = selectedChartScopeLabel
-                )
-            },
-            second = {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    MonthlyPaymentsChart(financialChartRecords, displayRates, selectedChartScopeLabel) { month -> selectChartMonth(month, "works") }
-                    financialProgress?.let { progress ->
-                        FinancialProgressCard("financial_progress_by_construction_type", progress.byConstructionType, selectedChartScopeLabel)
+        BoxWithConstraints(Modifier.fillMaxWidth()) {
+            val twoColumns = maxWidth >= 760.dp
+            val chartDensity = LocalDensity.current
+            var adjacentHeightPx by remember(maxWidth) { mutableStateOf(0) }
+            oms.components.AdaptiveChartRow(
+                first = {
+                    RegionalInvestmentChart(
+                        remember(paymentMonitoring?.items, paymentProjects, paymentScope.subproject, paymentScope.region, paymentScope.tranche) {
+                            regionalInvestment(paymentMonitoring?.items.orEmpty(), paymentProjects, paymentScope)
+                        },
+                        paymentMonitoringLoading || loading,
+                        paymentMonitoringLoadFailed || loadFailed,
+                        onRetry = { reloadKey++ }, titleSuffix = selectedChartScopeLabel,
+                        targetHeight = if (twoColumns && adjacentHeightPx > 0) with(chartDensity) { adjacentHeightPx.toDp() } else null
+                    )
+                },
+                second = {
+                    Column(Modifier.fillMaxWidth().onGloballyPositioned { adjacentHeightPx = it.size.height },
+                        verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        MonthlyPaymentsChart(financialChartRecords, displayRates, selectedChartScopeLabel) { month -> selectChartMonth(month, "works") }
+                        financialProgress?.let { progress ->
+                            FinancialProgressCard("financial_progress_by_construction_type", progress.byConstructionType, selectedChartScopeLabel)
+                        }
                     }
                 }
-            }
-        )
+            )
+        }
         oms.components.AdaptiveChartRow(
             first = { MonthlyTechnicalSupervisionPaymentsChart(financialChartRecords, displayRates, selectedChartScopeLabel) { month -> selectChartMonth(month, "technical_supervision") } },
             second = { MonthlyEngineerConsultantPaymentsChart(financialChartRecords, displayRates, selectedChartScopeLabel) { month -> selectChartMonth(month, "engineer_consultant") } }
