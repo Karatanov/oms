@@ -512,23 +512,27 @@ fun FinancialScreen(
                 modifier = Modifier.weight(1f).semantics { testTag = "financial-subproject-filter" }, enabled = !loading
             )
         }
-        if (subprojectFilter != null || chartMonthFilter != null || paymentPurposeFilter != null) {
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (subprojectFilter != null) oms.components.WorkspaceOutlinedButton(onClick = { subprojectFilter = null }) {
-                    Text("${LocalizationManager.t("subproject_code")}: ${selectedSubprojectCode ?: "…"}")
-                    Icon(Icons.Default.Close, LocalizationManager.t("reset_filters"), Modifier.size(16.dp))
-                }
-                selectedMonthLabel?.let { month ->
-                    oms.components.WorkspaceOutlinedButton(onClick = { chartMonthFilter = null }) {
-                        Text(month)
-                        Icon(Icons.Default.Close, LocalizationManager.t("reset_filters"), Modifier.size(16.dp))
-                    }
-                }
-                paymentPurposeFilter?.let { purpose ->
-                    oms.components.WorkspaceOutlinedButton(onClick = { paymentPurposeFilter = null }) {
-                        Text(LocalizationManager.t("payment_purpose_$purpose"))
-                        Icon(Icons.Default.Close, LocalizationManager.t("reset_filters"), Modifier.size(16.dp))
-                    }
+        val activeFilterLabels = buildList {
+            selectedRegionLabel?.let { add("${LocalizationManager.t("region")}: $it") }
+            trancheFilter?.let { add("${LocalizationManager.t("tranche")}: ${it.financialTrancheCode()}") }
+            subprojectFilter?.let {
+                add("${LocalizationManager.t("subproject_code")}: ${selectedSubprojectCode ?: "…"}")
+            }
+            yearFilter?.let { add("${LocalizationManager.t("date")}: $it") }
+            selectedMonthLabel?.let { add("${LocalizationManager.t("date")}: $it") }
+            paymentPurposeFilter?.let { add("${LocalizationManager.t("payment_purpose")}: ${LocalizationManager.t("payment_purpose_$it")}") }
+            if (useLedger) recordTypeFilter?.let {
+                add("${LocalizationManager.t("type")}: ${LocalizationManager.t("record_type_$it")}")
+            }
+            if (!useLedger && monitoringCodeQuery.isNotBlank()) {
+                add("${LocalizationManager.t("subproject_code")}: ${monitoringCodeQuery.trim()}")
+            }
+        }
+        if (activeFilterLabels.isNotEmpty()) {
+            FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                activeFilterLabels.forEach { label ->
+                    oms.components.OmsBadge(label, MaterialTheme.colorScheme.primary)
                 }
             }
         }
