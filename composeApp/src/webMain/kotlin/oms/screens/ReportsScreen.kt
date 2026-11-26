@@ -701,19 +701,33 @@ internal fun ReadOnlySirReport(manual: ManualInspectionReportRequest, photos: Li
 @Composable
 private fun ReadOnlyFieldsTable(vararg fields: Pair<String, String?>) {
     val headerColor = MaterialTheme.colorScheme.surfaceVariant
-    Column(
-        Modifier.fillMaxWidth().border(1.dp, MaterialTheme.colorScheme.outlineVariant),
-        verticalArrangement = Arrangement.spacedBy(0.dp)
-    ) {
-        Row(Modifier.fillMaxWidth().background(headerColor).padding(horizontal = 10.dp, vertical = 8.dp)) {
-            fields.forEach { (label, _) ->
-                Text(label, Modifier.weight(1f), style = MaterialTheme.typography.labelMedium)
+    BoxWithConstraints(Modifier.fillMaxWidth().border(1.dp, MaterialTheme.colorScheme.outlineVariant)) {
+        if (maxWidth < maxOf(600.dp, (fields.size * 220).dp)) {
+            Column(Modifier.fillMaxWidth()) {
+                fields.forEachIndexed { index, (label, value) ->
+                    if (index > 0) HorizontalDivider()
+                    Column(Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 8.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(label, style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(value?.takeIf(String::isNotBlank) ?: "—",
+                            style = MaterialTheme.typography.bodyMedium)
+                    }
+                }
             }
-        }
-        HorizontalDivider()
-        Row(Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 10.dp), verticalAlignment = Alignment.Top) {
-            fields.forEach { (_, value) ->
-                Text(value?.takeIf(String::isNotBlank) ?: "—", Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
+        } else {
+            Column(Modifier.fillMaxWidth()) {
+                Row(Modifier.fillMaxWidth().background(headerColor).padding(horizontal = 10.dp, vertical = 8.dp)) {
+                    fields.forEach { (label, _) ->
+                        Text(label, Modifier.weight(1f), style = MaterialTheme.typography.labelMedium)
+                    }
+                }
+                HorizontalDivider()
+                Row(Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 10.dp), verticalAlignment = Alignment.Top) {
+                    fields.forEach { (_, value) ->
+                        Text(value?.takeIf(String::isNotBlank) ?: "—", Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
+                    }
+                }
             }
         }
     }
@@ -738,21 +752,10 @@ private fun ReadOnlySingleColumnTable(header: String, values: List<String>) {
 /** Progress and schedule remarks are one two-column row in the SIR worksheet. */
 @Composable
 private fun ReadOnlyProgressAssessmentTable(progressComment: String?, scheduleRemark: String?) {
-    val headerColor = MaterialTheme.colorScheme.surfaceVariant
-    Column(
-        Modifier.fillMaxWidth().border(1.dp, MaterialTheme.colorScheme.outlineVariant),
-        verticalArrangement = Arrangement.spacedBy(0.dp)
-    ) {
-        Row(Modifier.fillMaxWidth().background(headerColor).padding(horizontal = 10.dp, vertical = 8.dp)) {
-            Text(LocalizationManager.t("sir_progress_comments"), Modifier.weight(1f), style = MaterialTheme.typography.labelMedium)
-            Text(LocalizationManager.t("sir_schedule_remarks"), Modifier.weight(1f), style = MaterialTheme.typography.labelMedium)
-        }
-        HorizontalDivider()
-        Row(Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 10.dp), verticalAlignment = Alignment.Top) {
-            Text(progressComment?.takeIf(String::isNotBlank) ?: "—", Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
-            Text(scheduleRemark?.takeIf(String::isNotBlank) ?: "—", Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
-        }
-    }
+    ReadOnlyFieldsTable(
+        LocalizationManager.t("sir_progress_comments") to progressComment,
+        LocalizationManager.t("sir_schedule_remarks") to scheduleRemark
+    )
 }
 
 /** HSE observations retain the three-column structure of the SIR worksheet. */
