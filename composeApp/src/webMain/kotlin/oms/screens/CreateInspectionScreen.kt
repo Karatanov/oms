@@ -895,15 +895,18 @@ private fun ManualSirForm(
                 } else {
                     BoxWithConstraints(Modifier.fillMaxWidth()) {
                         val updateComment: (String) -> Unit = { comment -> onHseObservationsChange(hseObservations.mapIndexed { current, value -> if (current == index) value.copy(comment = comment.inspectionText(2_000)) else value }) }
+                        val updateAnswer: (Boolean) -> Unit = { checked ->
+                            onHseObservationsChange(hseObservations.mapIndexed { current, value ->
+                                if (current == index) value.copy(isYes = checked) else value
+                            })
+                        }
                         if (maxWidth >= 680.dp) Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Checkbox(checked = item.isYes, onCheckedChange = { checked -> onHseObservationsChange(hseObservations.mapIndexed { current, value -> if (current == index) value.copy(isYes = checked) else value }) })
-                            Text(LocalizationManager.hseObservation(item.observation), modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
+                            oms.components.WorkspaceCheckbox(item.isYes, updateAnswer,
+                                LocalizationManager.hseObservation(item.observation), Modifier.weight(1f))
                             OutlinedTextField(item.comment, updateComment, label = { Text(LocalizationManager.t("comment")) }, maxLines = 3, modifier = Modifier.widthIn(min = 220.dp).weight(1f))
                         } else Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                Checkbox(checked = item.isYes, onCheckedChange = { checked -> onHseObservationsChange(hseObservations.mapIndexed { current, value -> if (current == index) value.copy(isYes = checked) else value }) })
-                                Text(LocalizationManager.hseObservation(item.observation), style = MaterialTheme.typography.bodyMedium)
-                            }
+                            oms.components.WorkspaceCheckbox(item.isYes, updateAnswer,
+                                LocalizationManager.hseObservation(item.observation), Modifier.fillMaxWidth())
                             OutlinedTextField(item.comment, updateComment, label = { Text(LocalizationManager.t("comment")) }, maxLines = 3, modifier = Modifier.fillMaxWidth())
                         }
                     }

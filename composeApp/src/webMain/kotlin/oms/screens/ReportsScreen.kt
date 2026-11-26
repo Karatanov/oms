@@ -1341,7 +1341,7 @@ private fun FindingEditorDialog(
                 }
                 OutlinedTextField(description, { description = it.safeTextInput(8_000) }, label = { Text(LocalizationManager.t("description")) }, minLines = 3, modifier = Modifier.fillMaxWidth())
                 OutlinedTextField(recommendation, { recommendation = it.safeTextInput(8_000) }, label = { Text(LocalizationManager.t("recommendation")) }, minLines = 2, modifier = Modifier.fillMaxWidth())
-                if (finding != null) Row(verticalAlignment = Alignment.CenterVertically) { Checkbox(isResolved, { isResolved = it }); Text(LocalizationManager.t("resolved")) }
+                if (finding != null) oms.components.WorkspaceCheckbox(isResolved, { isResolved = it }, LocalizationManager.t("resolved"), Modifier.fillMaxWidth())
             oms.components.WrappingActions(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
                 oms.components.WorkspaceOutlinedButton(onClick = onDismiss) { Text(LocalizationManager.t("cancel")) }
                 oms.components.WorkspaceButton(onClick = { onSave(category, severity, description, recommendation.ifBlank { null }, isResolved) }, enabled = category.isNotBlank() && description.isNotBlank()) { Text(LocalizationManager.t("save")) }

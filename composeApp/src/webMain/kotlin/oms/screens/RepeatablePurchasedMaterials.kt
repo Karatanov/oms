@@ -6,7 +6,6 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -48,13 +47,12 @@ internal fun RepeatablePurchasedMaterials(
                     oms.components.ResponsiveFormRow { fieldModifier ->
                         OutlinedTextField(material.materialsAndEquipment, { value -> update(index) { it.copy(materialsAndEquipment = value.inspectionText(4_000)) } }, label = { Text(LocalizationManager.t("sir_materials_equipment")) }, minLines = 2, maxLines = 5, modifier = fieldModifier)
                         OutlinedTextField(material.characteristics, { value -> update(index) { it.copy(characteristics = value.inspectionText(4_000)) } }, label = { Text(LocalizationManager.t("sir_material_characteristics")) }, minLines = 2, maxLines = 5, modifier = fieldModifier)
-                        Column(fieldModifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text(LocalizationManager.t("sir_material_per_ded"))
-                            Checkbox(
-                                checked = material.perDed.equals("yes", ignoreCase = true),
-                                onCheckedChange = { checked -> update(index) { it.copy(perDed = if (checked) "yes" else "no") } }
-                            )
-                        }
+                        oms.components.WorkspaceCheckbox(
+                            checked = material.perDed.equals("yes", ignoreCase = true),
+                            onCheckedChange = { checked -> update(index) { it.copy(perDed = if (checked) "yes" else "no") } },
+                            label = LocalizationManager.t("sir_material_per_ded"),
+                            modifier = fieldModifier
+                        )
                         OutlinedTextField(material.notes, { value -> update(index) { it.copy(notes = value.inspectionText(4_000)) } }, label = { Text(LocalizationManager.t("sir_material_notes")) }, minLines = 2, maxLines = 5, modifier = fieldModifier)
                         TableActionIconButton(LocalizationManager.t("delete"), Icons.Default.Remove) { onChange(values.filterIndexed { current, _ -> current != index }) }
                     }
