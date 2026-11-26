@@ -992,30 +992,47 @@ private fun ReadOnlyOngoingObservationsTable(
     photos: List<ApiInspectionPhoto>,
     photoCaptionCandidates: List<String>
 ) {
-    val headerColor = MaterialTheme.colorScheme.surfaceVariant
-    Column(
-        Modifier.fillMaxWidth().border(1.dp, MaterialTheme.colorScheme.outlineVariant),
-        verticalArrangement = Arrangement.spacedBy(0.dp)
-    ) {
-        Row(Modifier.fillMaxWidth().background(headerColor).padding(horizontal = 10.dp, vertical = 8.dp)) {
-            Text(LocalizationManager.t("sir_ongoing_observations"), Modifier.weight(3f), style = MaterialTheme.typography.labelMedium)
-            Text(LocalizationManager.t("photos"), Modifier.weight(1f), style = MaterialTheme.typography.labelMedium)
-        }
-        observations.forEachIndexed { index, observation ->
-            if (index > 0) HorizontalDivider()
-            Row(Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 10.dp), verticalAlignment = Alignment.Top) {
-                Text(observation, Modifier.weight(3f), style = MaterialTheme.typography.bodyMedium)
+    BoxWithConstraints(Modifier.fillMaxWidth().border(1.dp, MaterialTheme.colorScheme.outlineVariant)) {
+        val compact = maxWidth < 660.dp
+        Column(Modifier.fillMaxWidth()) {
+            Row(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceVariant)
+                .padding(horizontal = 10.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(LocalizationManager.t("sir_ongoing_observations"), Modifier.weight(3f), style = MaterialTheme.typography.labelMedium)
+                if (!compact) Text(LocalizationManager.t("photos"), Modifier.weight(1f), style = MaterialTheme.typography.labelMedium)
+            }
+            HorizontalDivider()
+            observations.forEachIndexed { index, observation ->
+                if (index > 0) HorizontalDivider()
                 val observationPhotos = (
                     photos.forAssociation("observation-$index") +
                         photos.forImportedCaptions(listOf(observation), photoCaptionCandidates)
                     ).distinctBy { it.uuid }
-                if (observationPhotos.isEmpty()) Text("—", Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
-                else InspectionActivityPhotoGallery(
-                    activityKey = "observation-$index",
-                    photos = observationPhotos,
-                    modifier = Modifier.weight(1f),
-                    nativeGallery = false
-                )
+                val photoContent: @Composable (Modifier) -> Unit = { modifier ->
+                    if (observationPhotos.isEmpty()) {
+                        Text(if (compact) "${LocalizationManager.t("photos")}: —" else "—",
+                            modifier, style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    } else {
+                        InspectionActivityPhotoGallery(
+                            activityKey = "observation-$index",
+                            photos = observationPhotos,
+                            modifier = modifier,
+                            nativeGallery = false
+                        )
+                    }
+                }
+                if (compact) {
+                    Column(Modifier.fillMaxWidth().padding(10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(observation, style = MaterialTheme.typography.bodyMedium)
+                        photoContent(Modifier.fillMaxWidth())
+                    }
+                } else {
+                    Row(Modifier.fillMaxWidth().padding(10.dp), verticalAlignment = Alignment.Top,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Text(observation, Modifier.weight(3f), style = MaterialTheme.typography.bodyMedium)
+                        photoContent(Modifier.weight(1f))
+                    }
+                }
             }
         }
     }
